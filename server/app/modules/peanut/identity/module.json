@@ -3,7 +3,7 @@
   "key": "peanut.identity",
   "name": "Identity and access management",
   "description": "Required account credentials, staff membership, organization, authorization, tenant onboarding and security audit foundation. Customer CRM remains peanut.member.",
-  "version": "4.0.0-rc.36",
+  "version": "4.0.0-rc.37",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-identity",
