@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "key": "peanut.collaboration",
+  "name": "Document Collaboration",
+  "description": "Authenticated native collaboration rooms with batched Document persistence and immutable save targets.",
+  "version": "1.0.13",
+  "kernel_constraint": "^1.0",
+  "license": "Apache-2.0",
+  "php_package": "peanut-business/peanut-collaboration",
+  "dependencies": [
+    {
+      "module_key": "peanut.identity",
+      "version": "^4.0.0-rc.32"
+    },
+    {
+      "module_key": "peanut.document",
+      "version": "^1.0.2"
+    },
+    {
+      "module_key": "peanut.file",
+      "version": "^1.0"
+    },
+    {
+      "module_key": "peanut.rich-text",
+      "version": "^1.0"
+    }
+  ],
+  "optional_dependencies": [
+    {
+      "module_key": "peanut.task",
+      "version": "^1.0"
+    }
+  ],
+  "lifecycle": {
+    "protected": false
+  },
+  "backend": {
+    "provider": "PeanutAdmin\\Modules\\Collaboration\\ModuleProvider",
+    "menus": "resources/menus.json",
+    "permissions": "resources/permissions.json",
+    "setting_definitions": "resources/setting-definitions.json",
+    "migrations": "database/migrations"
+  },
+  "frontend": {},
+  "database": {
+    "owned_tables": [
+      "pa_collaboration_grant",
+      "pa_collaboration_service_nonce",
+      "pa_collaboration_ticket",
+      "pa_collaboration_room",
+      "pa_collaboration_connection",
+      "pa_collaboration_admission",
+      "pa_collaboration_barrier",
+      "pa_collaboration_runtime"
+    ]
+  },
+  "contracts": {
+    "exports": [
+      "PeanutAdmin\\Modules\\Collaboration\\Contract\\CollaborationTransports"
+    ],
+    "events": []
+  },
+  "tenant": {
+    "enableable": true,
+    "disable_behavior": "reject_new_operations",
+    "requires": [
+      "peanut.identity",
+      "peanut.document",
+      "peanut.file"
+    ]
+  }
+}

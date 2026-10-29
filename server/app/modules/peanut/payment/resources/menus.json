@@ -1,0 +1,5 @@
+[
+  {"key":"peanut.payment.settings","parent_key":"core.applications","scope":"tenant","type":"page","name":"支付设置","route_name":"AppSettingPay","route_path":"/app-setting/pay","component_key":"peanut.payment.settings","required_permission":"peanut.payment.settings.detail","icon":"icon-settings","sort_order":70,"client_keys":["admin-web"]},
+  {"key":"peanut.payment.recharge","parent_key":"core.business","scope":"tenant","type":"page","name":"充值订单","route_name":"FinanceRecharge","route_path":"/finance/recharge","component_key":"peanut.payment.recharge","required_permission":"peanut.payment.recharge.list","icon":"icon-pay-circle","sort_order":60,"client_keys":["admin-web"]},
+  {"key":"peanut.payment.refund","parent_key":"core.business","scope":"tenant","type":"page","name":"退款记录","route_name":"FinanceRefund","route_path":"/finance/refund","component_key":"peanut.payment.refund","required_permission":"peanut.payment.refund.list","icon":"icon-rollback","sort_order":50,"client_keys":["admin-web"]}
+]

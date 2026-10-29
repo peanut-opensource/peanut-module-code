@@ -580,13 +580,15 @@ $add($paths, 'POST', '/platformapi/instance-tools/modules/uninstall', $operation
     'uninstallInstanceModule',
     'PlatformModules',
     $responses('PlatformModuleLifecycleResult'),
+    [$header('Idempotency-Key', ['type' => 'string', 'minLength' => 8, 'maxLength' => 200, 'pattern' => '^[!-~]+$'], false)],
     requestBody: $jsonBody([
         'oneOf' => [
             ['type' => 'object', 'additionalProperties' => false, 'required' => ['module_key', 'purge', 'preview'], 'properties' => ['module_key' => ['type' => 'string', 'maxLength' => 96], 'purge' => ['type' => 'boolean'], 'preview' => ['type' => 'boolean', 'enum' => [true]]]],
             ['type' => 'object', 'additionalProperties' => false, 'required' => ['module_key', 'purge', 'preview', 'change_reason', 'confirm_plan', 'confirm_plan_digest', 'confirm_package_key'], 'properties' => ['module_key' => ['type' => 'string', 'maxLength' => 96], 'purge' => ['type' => 'boolean'], 'preview' => ['type' => 'boolean', 'enum' => [false]], 'change_reason' => ['type' => 'string', 'minLength' => 3, 'maxLength' => 500], 'confirm_plan' => $dynamicMap, 'confirm_plan_digest' => ['type' => 'string', 'pattern' => '^[a-f0-9]{64}$'], 'confirm_package_key' => ['type' => 'string']]],
         ],
     ]),
-    errors: ['MODULE_UNINSTALL_PLAN_CHANGED'],
+    errors: ['MODULE_UNINSTALL_PLAN_CHANGED', 'MODULE_UNINSTALL_REQUEST_INVALID'],
+    description: 'preview=true 返回确认计划；preview=false 必须提供 Idempotency-Key，提交 Ops 模块卸载任务并返回任务状态。',
 ));
 $add($paths, 'GET', '/platformapi/developer-center/catalog', $operation(
     'getPlatformDeveloperCatalog',

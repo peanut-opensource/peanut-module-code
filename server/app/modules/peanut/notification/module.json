@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "key": "peanut.notification",
+  "name": "Notification",
+  "description": "Tenant-owned notification channels, scenes, templates and delivery logs.",
+  "version": "1.0.23",
+  "kernel_constraint": "^1.0",
+  "license": "Apache-2.0",
+  "php_package": "peanut-business/peanut-notification",
+  "web_package": "@peanut-admin/peanut-notification",
+  "dependencies": [
+    {
+      "module_key": "peanut.integration",
+      "version": "^1.0"
+    },
+    {
+      "module_key": "peanut.task",
+      "version": "^1.0"
+    },
+    {
+      "module_key": "peanut.identity",
+      "version": "^4.0.0-rc.32"
+    }
+  ],
+  "optional_dependencies": [
+    {
+      "module_key": "peanut.file",
+      "version": "^1.0"
+    }
+  ],
+  "backend": {
+    "provider": "PeanutAdmin\\Modules\\Notification\\ModuleProvider",
+    "menus": "resources/menus.json",
+    "permissions": "resources/permissions.json",
+    "setting_definitions": "resources/setting-definitions.json",
+    "migrations": "database/migrations"
+  },
+  "frontend": {
+    "entry": "web/src/modules/peanut-notification/contribution.ts"
+  },
+  "database": {
+    "owned_tables": [
+      "pa_notice_log",
+      "pa_notice_scene",
+      "pa_notice_template",
+      "pa_notification_template",
+      "pa_notification_message",
+      "pa_notification_attachment",
+      "pa_notification_outbox",
+      "pa_sms_rate_bucket",
+      "pa_notification_event",
+      "pa_notification_task_actor"
+    ]
+  },
+  "contracts": {
+    "exports": [
+      "PeanutAdmin\\Modules\\Notification\\Contract\\NotificationUpgradePreflight",
+      "PeanutAdmin\\Modules\\Notification\\Contract\\NotificationBootstrapCommands",
+      "PeanutAdmin\\Modules\\Notification\\Contract\\NotificationCommands",
+      "PeanutAdmin\\Modules\\Notification\\Contract\\NotificationQueries",
+      "PeanutAdmin\\Modules\\Notification\\Contract\\VerificationCodeCommands",
+      "PeanutAdmin\\Modules\\Notification\\Contract\\NoticeSmsSender",
+      "PeanutAdmin\\Modules\\Notification\\Contract\\NotificationPublicationIdentity",
+      "PeanutAdmin\\Modules\\Notification\\Contract\\NotificationProducer",
+      "PeanutAdmin\\Modules\\Notification\\Contract\\NotificationProducerRegistry",
+      "PeanutAdmin\\Modules\\Notification\\Contract\\NotificationLifecycleQueries",
+      "PeanutAdmin\\Modules\\Notification\\Delivery\\Application\\NotificationService",
+      "PeanutAdmin\\Modules\\Notification\\Delivery\\Application\\NotificationMessage",
+      "PeanutAdmin\\Modules\\Notification\\Delivery\\Application\\AttachmentReference",
+      "PeanutAdmin\\Modules\\Notification\\Delivery\\Application\\OutboxRecord",
+      "PeanutAdmin\\Modules\\Notification\\Delivery\\Application\\NotificationException",
+      "PeanutAdmin\\Modules\\Notification\\Delivery\\Task\\NotificationOutboxDispatcher",
+      "PeanutAdmin\\Modules\\Notification\\Delivery\\Task\\ProducerOutboxTaskSubmissionProvider",
+      "PeanutAdmin\\Modules\\Notification\\Infrastructure\\Authorization\\NotificationAsyncAuthorization"
+    ],
+    "events": []
+  },
+  "tenant": {
+    "enableable": true,
+    "disable_behavior": "reject_new_operations",
+    "requires": [
+      "peanut.integration",
+      "peanut.identity"
+    ]
+  }
+}

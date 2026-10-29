@@ -1,0 +1,127 @@
+{
+    "schema_version": 1,
+    "key": "peanut.article",
+    "version": "1.0.12",
+    "source": {
+        "type": "canonical-contents",
+        "reference": "canonical-plugin-contents-v1",
+        "sha256": "798214ca0cb2443616281a519efb7d00448ebf93dd132a64fe19f93aac7c8e87"
+    },
+    "trust": {
+        "channel": "bundled",
+        "origin": {
+            "type": "repository-contents",
+            "reference": "canonical-plugin-contents-v1"
+        },
+        "archive": {
+            "status": "not-issued",
+            "sha256": null
+        },
+        "signature": {
+            "status": "not-issued",
+            "key_id": null
+        },
+        "sbom": {
+            "status": "not-issued",
+            "sha256": null
+        },
+        "license": {
+            "identifier": "Apache-2.0",
+            "status": "declared"
+        },
+        "qualification": {
+            "status": "bundled-locked",
+            "review": "not-reviewed",
+            "vulnerability_response": "not-configured",
+            "marketplace": "blocked"
+        },
+        "compatibility": {
+            "modules": [
+                {
+                    "key": "peanut.article",
+                    "version": "1.0.12",
+                    "kernel_constraint": "^1.0",
+                    "dependencies": [
+                        {
+                            "module_key": "peanut.document",
+                            "version": "^1.0"
+                        },
+                        {
+                            "module_key": "peanut.file",
+                            "version": "^1.0"
+                        },
+                        {
+                            "module_key": "peanut.identity",
+                            "version": "^4.0.0-rc.32"
+                        },
+                        {
+                            "module_key": "peanut.member",
+                            "version": "^1.0"
+                        },
+                        {
+                            "module_key": "peanut.rich-text",
+                            "version": "^1.0"
+                        }
+                    ],
+                    "permissions": {
+                        "path": "resources/permissions.json",
+                        "sha256": "855dcb5671de7549e34046cbb2f43e92516785fe2ac5c19fd29f104d24140f75"
+                    }
+                }
+            ]
+        }
+    },
+    "composer": [
+        {
+            "name": "peanut-business/peanut-article",
+            "version": "1.0.12",
+            "sha256": "5a086bc25b22c011001a779016e029dc31553d9c6c39231c1f3814ef1af129fa"
+        }
+    ],
+    "npm": [
+        {
+            "name": "@peanut-admin/peanut-article",
+            "version": "1.0.4",
+            "integrity": "sha256-eQS/f+PBkgIL9edJaER4lj+xMv3qWylREBjkWAW9WDQ="
+        },
+        {
+            "name": "@peanut-admin/peanut-article-pc",
+            "version": "1.0.0",
+            "integrity": "sha256-foNDEJA756MFociDfiGsFM9xDohgBZe6m7Vb2Xx/K48="
+        },
+        {
+            "name": "@peanut-admin/peanut-article-uniapp",
+            "version": "1.0.0",
+            "integrity": "sha256-LHvjIvF2P0iBfkw4qWmbbqwYeb8g6mjGTxS6TrxNcQM="
+        }
+    ],
+    "frontend": [
+        {
+            "client_key": "pc-web",
+            "package": "@peanut-admin/peanut-article-pc",
+            "version": "1.0.0",
+            "entry": "pc/modules/peanut-article/contribution.ts",
+            "sha256": "29f8b7624301a3531a579a60207a71055a50b68b021dec331724227318a51cf4"
+        },
+        {
+            "client_key": "uniapp",
+            "package": "@peanut-admin/peanut-article-uniapp",
+            "version": "1.0.0",
+            "entry": "uniapp/src/modules/peanut-article/contribution.ts",
+            "sha256": "c0c06f27b613665a6858f2869ee8c2698c94b4defe3324edb070dcbd7c986ec2"
+        },
+        {
+            "client_key": "admin-web",
+            "package": "@peanut-admin/peanut-article",
+            "version": "1.0.4",
+            "entry": "web/src/modules/peanut-article/contribution.ts",
+            "sha256": "b2f77b748e49cc9f748c66d0bf8a9ec1840e2635262dd8e38d862a1832d47932"
+        }
+    ],
+    "modules": [
+        {
+            "key": "peanut.article",
+            "root": "server/app/modules/peanut/article"
+        }
+    ]
+}

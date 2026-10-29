@@ -197,11 +197,15 @@ final class TaskJobStore
         return $this->map($this->rowById($tenantId, (int) $row['id']) ?? throw TaskJobException::internal(), $tenantId);
     }
 
-    public function claim(int $tenantId, string $workerId, int $leaseSeconds): ?JobClaim
+    public function claim(int $tenantId, string $workerId, int $leaseSeconds, ?string $jobKey = null): ?JobClaim
     {
         $this->assertStorageMode();
-        $this->recoverExpired($tenantId);
-        $row = $this->query('task_job', $tenantId)->where('status', 'queued')
+        $this->recoverExpired($tenantId, $jobKey);
+        $query = $this->query('task_job', $tenantId)->where('status', 'queued');
+        if ($jobKey !== null) {
+            $query->where('job_key', $jobKey);
+        }
+        $row = $query
             ->where('available_at', '<=', new Raw('UTC_TIMESTAMP(3)'))->order('priority', 'desc')->order('id')
             ->lock('FOR UPDATE SKIP LOCKED')->find()?->toArray();
         if ($row === null) {
@@ -291,7 +295,7 @@ final class TaskJobStore
             ->whereRaw("JSON_EXTRACT(metadata_json, '$.batches') IS NOT NULL")->order('id', 'desc')->find();
         $proof = $complete === null ? null : $this->payload($complete['metadata_json']);
         return ['status' => $row['status'], 'job_key' => $row['job_key'], 'attempt_count' => (int) $row['attempt_count'], 'last_error_code' => $row['last_error_code'],
-            'ack_holder_key' => $proof['holder_key'] ?? null];
+            'ack_holder_key' => $proof['holder_key'] ?? null, 'delivery_outcome' => $proof['outcome'] ?? null];
     }
 
     /** Only the approved negative-fact compensation path can reopen dead claims. */
@@ -419,9 +423,13 @@ final class TaskJobStore
         return $jobStatus;
     }
 
-    private function recoverExpired(int $tenantId): void
+    private function recoverExpired(int $tenantId, ?string $jobKey = null): void
     {
-        $rows = $this->query('task_job', $tenantId)->where('status', 'running')
+        $query = $this->query('task_job', $tenantId)->where('status', 'running');
+        if ($jobKey !== null) {
+            $query->where('job_key', $jobKey);
+        }
+        $rows = $query
             ->where('lease_expires_at', '<=', new Raw('UTC_TIMESTAMP(3)'))->order('id')->lock(true)->select()->toArray();
         foreach ($rows as $row) {
             $attempt = $this->query('task_job_attempt', $tenantId)->where('job_id', (int) $row['id'])

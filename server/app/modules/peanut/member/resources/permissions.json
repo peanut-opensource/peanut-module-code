@@ -1,0 +1,14 @@
+[
+  {"key":"peanut.member.list","type":"api","name":"查看会员列表","risk_level":"normal"},
+  {"key":"peanut.member.detail","type":"api","name":"查看会员详情","risk_level":"normal"},
+  {"key":"peanut.member.add","type":"action","name":"新增会员","risk_level":"sensitive"},
+  {"key":"peanut.member.edit","type":"action","name":"编辑会员","risk_level":"sensitive"},
+  {"key":"peanut.member.update-status","type":"action","name":"切换会员状态","risk_level":"sensitive"},
+  {"key":"peanut.member.balance.adjust","type":"action","name":"调整会员余额","risk_level":"critical"},
+  {"key":"peanut.member.tag.list","type":"api","name":"查看会员标签","risk_level":"normal"},
+  {"key":"peanut.member.tag.add","type":"action","name":"新增会员标签","risk_level":"sensitive"},
+  {"key":"peanut.member.tag.edit","type":"action","name":"编辑会员标签","risk_level":"sensitive"},
+  {"key":"peanut.member.tag.delete","type":"action","name":"删除会员标签","risk_level":"critical"},
+  {"key":"peanut.member.account-log.list","type":"api","name":"查看余额明细","risk_level":"normal"},
+  {"key":"peanut.member.account-log.change-types","type":"api","name":"查看余额变动类型","risk_level":"normal"}
+]

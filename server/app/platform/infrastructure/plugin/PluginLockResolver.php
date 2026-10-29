@@ -369,7 +369,15 @@ final class PluginLockResolver
         $files = [];
         foreach ($moduleRoots as $directory) {
             $iterator = new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
+                new \RecursiveCallbackFilterIterator(
+                    new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
+                    static function (\SplFileInfo $file): bool {
+                        if ($file->isLink()) {
+                            throw new PluginLifecycleException('PLUGIN_SOURCE_INVALID', 'Plugin source contains a link.');
+                        }
+                        return !$file->isDir() || !in_array(strtolower($file->getFilename()), PluginArtifactWriter::EXCLUDED_SOURCE_DIRECTORIES, true);
+                    },
+                ),
             );
             foreach ($iterator as $file) {
                 if ($file->isFile() && !$file->isLink()) {

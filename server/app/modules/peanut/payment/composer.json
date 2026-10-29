@@ -1,0 +1,27 @@
+{
+  "name": "peanut-business/peanut-payment",
+  "description": "Official Tenant payment module",
+  "type": "library",
+  "version": "1.0.21",
+  "license": "Apache-2.0",
+  "require": {
+    "php": "^8.3",
+    "peanut-admin/core": "^5.0.2",
+    "peanut-business/peanut-task": "^1.0",
+    "peanut-business/peanut-identity": "^4.0.0-rc.32",
+    "peanut-business/peanut-integration": "^1.0",
+    "peanut-business/peanut-member": "^1.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "PeanutAdmin\\Modules\\Payment\\": "src/"
+    }
+  },
+  "extra": {
+    "peanut": {
+      "editions": [
+        "multi-tenant"
+      ]
+    }
+  }
+}

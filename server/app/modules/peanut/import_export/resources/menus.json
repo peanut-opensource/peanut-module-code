@@ -1,0 +1,4 @@
+[
+  {"key":"peanut.import-export.configuration","parent_key":"core.applications","scope":"tenant","type":"page","name":"配置转移","route_name":"ConfigurationTransfer","route_path":"/system/configuration-transfer","component_key":"peanut.import-export.configuration","required_permission":"peanut.import-export.configuration.export","icon":"icon-swap","sort_order":55,"client_keys":["admin-web"]},
+  {"key":"peanut.import-export.operations","parent_key":"core.applications","scope":"tenant","type":"page","name":"导入导出任务","route_name":"OfficialImportExportOperations","route_path":"/system/import-export-operations","component_key":"peanut.import-export.operations","required_permission":"peanut.import-export.operations.read","icon":"icon-swap","sort_order":56,"client_keys":["admin-web"]}
+]

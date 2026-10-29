@@ -1,0 +1,19 @@
+[
+  {"key":"peanut.oauth.web-page.config","type":"api","name":"查看网页渠道","risk_level":"normal"},
+  {"key":"peanut.oauth.web-page.save","type":"action","name":"保存网页渠道","risk_level":"sensitive"},
+  {"key":"peanut.oauth.mini-program.config","type":"api","name":"查看小程序渠道","risk_level":"normal"},
+  {"key":"peanut.oauth.mini-program.save","type":"action","name":"保存小程序渠道","risk_level":"critical"},
+  {"key":"peanut.oauth.official-account.config","type":"api","name":"查看公众号渠道","risk_level":"normal"},
+  {"key":"peanut.oauth.official-account.save","type":"action","name":"保存公众号渠道","risk_level":"critical"},
+  {"key":"peanut.oauth.official-account.menu.detail","type":"api","name":"查看公众号菜单","risk_level":"normal"},
+  {"key":"peanut.oauth.official-account.menu.save","type":"action","name":"保存公众号菜单","risk_level":"sensitive"},
+  {"key":"peanut.oauth.official-account.menu.publish","type":"action","name":"发布公众号菜单","risk_level":"critical"},
+  {"key":"peanut.oauth.official-account.reply.list","type":"api","name":"查看公众号回复","risk_level":"normal"},
+  {"key":"peanut.oauth.official-account.reply.detail","type":"api","name":"查看公众号回复详情","risk_level":"normal"},
+  {"key":"peanut.oauth.official-account.reply.add","type":"action","name":"新增公众号回复","risk_level":"sensitive"},
+  {"key":"peanut.oauth.official-account.reply.edit","type":"action","name":"编辑公众号回复","risk_level":"sensitive"},
+  {"key":"peanut.oauth.official-account.reply.delete","type":"action","name":"删除公众号回复","risk_level":"critical"},
+  {"key":"peanut.oauth.official-account.reply.update-status","type":"action","name":"切换公众号回复状态","risk_level":"sensitive"},
+  {"key":"peanut.oauth.open-platform.config","type":"api","name":"查看开放平台配置","risk_level":"normal"},
+  {"key":"peanut.oauth.open-platform.save","type":"action","name":"保存开放平台配置","risk_level":"critical"}
+]

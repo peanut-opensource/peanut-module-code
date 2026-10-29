@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://peanut-admin.org/schemas/configuration-package.schema.json",
+  "title": "Peanut Admin Configuration Transfer Package",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "protocol", "manifest", "scope", "created_at", "assets", "entries", "checksum"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "protocol": { "const": "peanut.configuration-transfer" },
+    "manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "version"],
+      "properties": {
+        "identity": { "const": "peanut.admin" },
+        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$", "maxLength": 32 }
+      }
+    },
+    "scope": { "enum": ["tenant", "deployment"] },
+    "created_at": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$" },
+    "assets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategy"],
+      "properties": { "strategy": { "const": "logical-reference-only" } }
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["adapter", "key", "value", "secrets"],
+        "properties": {
+          "adapter": { "type": "string", "pattern": "^[a-z][a-z0-9.-]{0,63}$" },
+          "key": { "type": "string", "pattern": "^[a-z][a-z0-9.-]{0,190}(?::[a-z][a-z0-9-]{0,63})?$" },
+          "value": {},
+          "secrets": {
+            "type": "array",
+            "maxItems": 128,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["reference", "state"],
+              "properties": {
+                "reference": { "type": "string", "pattern": "^[a-z][a-z0-9._-]{0,190}$" },
+                "state": { "enum": ["configured", "unconfigured"] }
+              }
+            }
+          }
+        }
+      }
+    },
+    "checksum": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

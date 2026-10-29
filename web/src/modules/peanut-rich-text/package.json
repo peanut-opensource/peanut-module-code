@@ -1,0 +1,23 @@
+{
+  "name": "@peanut-admin/peanut-rich-text",
+  "version": "1.0.6",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./contribution.ts",
+    "./document": "./src/document.ts",
+    "./editor": "./src/editor.ts",
+    "./viewer": "./src/viewer.ts",
+    "./file-picker": "./src/file-picker.ts"
+  },
+  "dependencies": {
+    "@hocuspocus/provider": "4.6.0",
+    "@tiptap/core": "3.30.5",
+    "@tiptap/extension-collaboration": "3.30.5",
+    "@tiptap/pm": "3.30.5",
+    "@tiptap/starter-kit": "3.30.5",
+    "dompurify": "3.4.14",
+    "yjs": "13.6.32"
+  }
+}

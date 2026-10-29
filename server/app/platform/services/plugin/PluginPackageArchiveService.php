@@ -538,18 +538,14 @@ final class PluginPackageArchiveService
             || !str_starts_with($absoluteRoot, $projectRoot . '/')) {
             throw new PluginPackageException('MODULE_PACKAGE_SOURCE_INVALID', 'Module package source root is not an ordinary project directory.');
         }
-        $excludedDirectories = [
-            'vendor', 'node_modules', '.cache', '.vite', '.nuxt', '.output', '.next', '.turbo', '.parcel-cache',
-            'coverage', 'tmp', 'temp', 'unpackage',
-        ];
         $iterator = new \RecursiveIteratorIterator(
             new \RecursiveCallbackFilterIterator(
                 new \RecursiveDirectoryIterator($absoluteRoot, \FilesystemIterator::SKIP_DOTS),
-                static function (\SplFileInfo $file) use ($excludedDirectories): bool {
+                static function (\SplFileInfo $file): bool {
                     if ($file->isLink()) {
                         throw new PluginPackageException('MODULE_PACKAGE_SOURCE_INVALID', 'Module package source contains a link.');
                     }
-                    return !$file->isDir() || !in_array(strtolower($file->getFilename()), $excludedDirectories, true);
+                    return !$file->isDir() || !in_array(strtolower($file->getFilename()), PluginArtifactWriter::EXCLUDED_SOURCE_DIRECTORIES, true);
                 },
             ),
         );

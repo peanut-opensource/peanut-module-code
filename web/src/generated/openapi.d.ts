@@ -36,6 +36,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/article/lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listArticles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/article/detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["articleDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/adminapi/peanut.file.upload.file": {
         parameters: {
             query?: never;
@@ -85,6 +117,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sms/sendCode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["sendVerificationCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/adminapi/readiness/checklist": {
         parameters: {
             query?: never;
@@ -96,6 +144,57 @@ export interface paths {
         get: operations["getFirstRunReadinessChecklist"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.import-export.configuration.export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Exports the authenticated Tenant's logical configuration as a schema-validated package. Tenant IDs and secret material are never included; configured secrets are represented by references that must be rebound at the destination. */
+        get: operations["exportTenantConfiguration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.import-export.configuration.dry-run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Validates a configuration package, checks its checksum and Tenant scope, reports conflicts and missing secret bindings, and performs no configuration write. */
+        post: operations["previewTenantConfigurationImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.import-export.configuration.apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Applies a validated Tenant configuration package atomically after conflict and secret-rebinding checks, then records a Tenant audit event. The request cannot select a Tenant or carry callback keys, passwords, tokens or keys. */
+        post: operations["applyTenantConfigurationImport"];
         delete?: never;
         options?: never;
         head?: never;
@@ -294,6 +393,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/index/index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getApplicationHome"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/index/config": {
         parameters: {
             query?: never;
@@ -318,6 +433,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getApplicationPolicy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/login/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["logoutMemberSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/article/cate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listPublicArticleCategories"];
         put?: never;
         post?: never;
         delete?: never;
@@ -398,6 +545,102 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getPcPublicConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pc/index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPcHome"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pc/infoCenter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPcInformationCenter"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pc/articleDetail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPcArticleDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/article/addCollect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["addArticleCollection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/article/cancelCollect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancelArticleCollection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/article/collect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listArticleCollections"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1544,6 +1787,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/adminapi/decoration/mobile/article": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listDecorationArticleOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/adminapi/decoration/tabbar/detail": {
         parameters: {
             query?: never;
@@ -2545,6 +2804,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description preview=true 返回确认计划；preview=false 必须提供 Idempotency-Key，提交 Ops 模块卸载任务并返回任务状态。 */
         post: operations["uninstallInstanceModule"];
         delete?: never;
         options?: never;
@@ -2763,6 +3023,825 @@ export interface paths {
         put?: never;
         /** @description 仅同源 guided 安装；Authorization Bearer 是一次性部署 setup token，不是 Platform/Tenant 会话。 */
         post: operations["executeGuidedInstallation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.document.editor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取当前人员获准编辑的既有正文 */
+        get: operations["articleBodyEditor"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.document.transport": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 签发既有正文写票据（不含部署发现地址） */
+        post: operations["articleBodyTransport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.document.save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 元数据与正文不可变版本原子绑定 */
+        post: operations["saveArticleBody"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.document.operation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取原人员的原保存请求；未完成时重放相同输入 */
+        get: operations["articleBodySaveOperation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.document": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ensureArticleBodyDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.category.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询资讯分类 */
+        get: operations["listArticleCategories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.category.all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询全部启用资讯分类 */
+        get: operations["listEnabledArticleCategories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.category.detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询资讯分类详情 */
+        get: operations["getArticleCategory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.category.add": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建资讯分类 */
+        post: operations["createArticleCategory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.category.edit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 更新资讯分类 */
+        post: operations["updateArticleCategory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.category.delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 软删除资讯分类 */
+        post: operations["deleteArticleCategory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.category.update-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 更新资讯分类启用状态 */
+        post: operations["updateArticleCategoryStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.category.recycle.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询已删除资讯分类 */
+        get: operations["listRecycledArticleCategories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.category.recycle.detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询已删除资讯分类详情 */
+        get: operations["getRecycledArticleCategory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.category.restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 恢复已删除资讯分类 */
+        post: operations["restoreArticleCategories"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.category.force-delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 永久删除资讯分类 */
+        post: operations["forceDeleteArticleCategories"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询资讯 */
+        get: operations["listAdminArticles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询资讯详情 */
+        get: operations["getAdminArticle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.add": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建资讯 */
+        post: operations["createArticle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.edit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 更新资讯 */
+        post: operations["updateArticle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 软删除资讯 */
+        post: operations["deleteArticle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.update-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 更新资讯展示状态 */
+        post: operations["updateArticleStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.recycle.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询已删除资讯 */
+        get: operations["listRecycledArticles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.recycle.detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询已删除资讯详情 */
+        get: operations["getRecycledArticle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 恢复已删除资讯 */
+        post: operations["restoreArticles"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.force-delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 永久删除资讯 */
+        post: operations["forceDeleteArticles"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.collaboration.transport": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["resolveCollaborationTransport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/internal/collaboration/v1/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Exact-body transport envelope v2 HMAC/nonce/holder and TLS; business payload protocol 2. Human identity is separately revalidated where required. */
+        post: operations["authorizeCollaborationConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/internal/collaboration/v1/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Exact-body transport envelope v2 HMAC/nonce/holder and TLS; business payload protocol 2. Human identity is separately revalidated where required. */
+        post: operations["checkCollaborationConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/internal/collaboration/v1/load": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Exact-body transport envelope v2 HMAC/nonce/holder and TLS; business payload protocol 2. Human identity is separately revalidated where required. */
+        post: operations["loadCollaborationDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/internal/collaboration/v1/store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Exact-body transport envelope v2 HMAC/nonce/holder and TLS; business payload protocol 2. Human identity is separately revalidated where required. */
+        post: operations["storeCollaborationCapture"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/internal/collaboration/v1/receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Exact-body transport envelope v2 HMAC/nonce/holder and TLS; business payload protocol 2. Human identity is separately revalidated where required. */
+        post: operations["queryCollaborationReceipt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/internal/collaboration/v1/references": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Exact-body transport envelope v2 HMAC/nonce/holder and TLS; business payload protocol 2. Human identity is separately revalidated where required. */
+        post: operations["reserveCollaborationReferences"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/internal/collaboration/v1/target/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Exact-body transport envelope v2 HMAC/nonce/holder and TLS; business payload protocol 2. Human identity is separately revalidated where required. */
+        post: operations["prepareCollaborationTarget"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/internal/collaboration/v1/target": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Exact-body transport envelope v2 HMAC/nonce/holder and TLS; business payload protocol 2. Human identity is separately revalidated where required. */
+        post: operations["confirmCollaborationTarget"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/internal/collaboration/v1/recovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Exact-body transport envelope v2 HMAC/nonce/holder and TLS; business payload protocol 2. Human identity is separately revalidated where required. */
+        post: operations["recoverCollaborationRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/internal/collaboration/v1/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Exact-body transport envelope v2 HMAC/nonce/holder and TLS; business payload protocol 2. Human identity is separately revalidated where required. */
+        post: operations["revokeCollaborationConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.target": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getDocumentTarget"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.target.cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancelDocumentTarget"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.operation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["queryDocumentBusinessOperation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["documentDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["documentVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["documentCapabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.solo.save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["saveSoloDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.resource.bind": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["bindDocumentResource"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.version.create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createDocumentVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.version.restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["restoreDocumentVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["archiveDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["restoreDocument"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3034,6 +4113,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/upload/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["uploadMemberImage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/adminapi/peanut.file.move": {
         parameters: {
             query?: never;
@@ -3140,6 +4235,134 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["deleteFileCategory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.import-export.operation-log.export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submitOperationLogExport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.import-export.operation.status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getLegacyImportExportOperation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.import-export.result.download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["downloadLegacyImportExportResult"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/import-export/operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listImportExportOperations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/import-export/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submitImportOperation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/import-export/exports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submitExportOperation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/import-export/operations/{operationKey}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancelImportExportOperation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/files/{fileKey}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["downloadImportExportResult"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3300,6 +4523,1267 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["revokeIntegrationSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.member.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询会员列表或导出结果 */
+        get: operations["listAdminMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.member.detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询会员详情 */
+        get: operations["getAdminMember"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.member.add": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建会员 */
+        post: operations["createAdminMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.member.edit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 更新会员字段 */
+        post: operations["updateAdminMemberField"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.member.update-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 更新会员状态 */
+        post: operations["updateAdminMemberStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.member.balance.adjust": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 调整会员余额 */
+        post: operations["adjustAdminMemberBalance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.member.tag.add": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建会员标签 */
+        post: operations["createMemberTag"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.member.tag.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询会员标签 */
+        get: operations["listMemberTags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.member.tag.edit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 更新会员标签 */
+        post: operations["updateMemberTag"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.member.tag.delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 删除会员标签 */
+        post: operations["deleteMemberTag"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.member.account-log.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询会员余额流水 */
+        get: operations["listAdminMemberBalanceLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.member.account-log.change-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询会员余额变动类型 */
+        get: operations["getMemberBalanceChangeTypes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/login/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 注册会员账号 */
+        post: operations["registerMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/login/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 会员账号密码登录 */
+        post: operations["loginMemberWithAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/login/mobile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 会员手机验证码登录 */
+        post: operations["loginMemberWithMobileCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/login/resetPassword": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 通过手机验证码重置会员密码 */
+        post: operations["resetMemberPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/user/center": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询会员中心 */
+        get: operations["getMemberCenter"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/user/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询会员资料 */
+        get: operations["getMemberProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/user/setInfo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 更新会员本人资料字段 */
+        post: operations["updateMemberProfileField"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/user/changePassword": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 修改会员密码 */
+        post: operations["changeMemberPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/user/bindMobile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 绑定或变更会员手机 */
+        post: operations["bindMemberMobile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account_log/lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询当前会员余额流水 */
+        get: operations["listCurrentMemberBalanceLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.notification.channel.detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getNotificationChannelConfiguration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.notification.channel.save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["saveNotificationChannelConfiguration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.notification.scene.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listNotificationScenes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.notification.scene.detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getNotificationScene"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.notification.scene.save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["saveNotificationScene"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.notification.log.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listNotificationLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.notification.log.detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getNotificationLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listInboxNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/notifications/{messageKey}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["markInboxNotificationRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/notifications/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["bulkUpdateInboxNotifications"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.oauth.web-page.config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询 H5 网页渠道配置 */
+        get: operations["getOAuthWebPageConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.oauth.web-page.save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 保存 H5 网页渠道配置 */
+        post: operations["replaceOAuthWebPageConfig"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.oauth.mini-program.config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询微信小程序配置 */
+        get: operations["getOAuthMiniProgramConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.oauth.mini-program.save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 保存微信小程序配置 */
+        post: operations["replaceOAuthMiniProgramConfig"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.oauth.official-account.config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询微信公众号配置 */
+        get: operations["getOAuthOfficialAccountConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.oauth.official-account.save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 保存微信公众号配置 */
+        post: operations["replaceOAuthOfficialAccountConfig"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.oauth.official-account.menu.detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询微信公众号菜单 */
+        get: operations["getOAuthOfficialAccountMenu"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.oauth.official-account.menu.save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 保存微信公众号菜单 */
+        post: operations["saveOAuthOfficialAccountMenu"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.oauth.official-account.menu.publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 保存并发布微信公众号菜单 */
+        post: operations["publishOAuthOfficialAccountMenu"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.oauth.official-account.reply.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询微信公众号自动回复 */
+        get: operations["listOAuthOfficialAccountReplies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.oauth.official-account.reply.detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询微信公众号自动回复详情 */
+        get: operations["getOAuthOfficialAccountReply"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.oauth.official-account.reply.add": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建微信公众号自动回复 */
+        post: operations["createOAuthOfficialAccountReply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.oauth.official-account.reply.edit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 更新微信公众号自动回复 */
+        post: operations["updateOAuthOfficialAccountReply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.oauth.official-account.reply.delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 删除微信公众号自动回复 */
+        post: operations["deleteOAuthOfficialAccountReply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.oauth.official-account.reply.update-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 更新微信公众号自动回复状态 */
+        post: operations["updateOAuthOfficialAccountReplyStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.oauth.open-platform.config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询微信开放平台配置 */
+        get: operations["getOAuthOpenPlatformConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.oauth.open-platform.save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 保存微信开放平台配置 */
+        post: operations["replaceOAuthOpenPlatformConfig"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/wechat/begin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 发起微信浏览器授权 */
+        post: operations["beginWechatOAuth"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/wechat/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 处理微信浏览器授权回调 */
+        post: operations["completeWechatOAuthCallback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/wechat/mini-program": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 微信小程序登录 */
+        post: operations["loginWithWechatMiniProgram"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/wechat/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 补全微信登录资料 */
+        post: operations["completeWechatOAuthProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/wechat/redirect/pc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 重定向微信授权结果到 PC 客户端 */
+        get: operations["redirectWechatOAuthToPc"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/wechat/redirect/official-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 重定向微信授权结果到公众号 H5 客户端 */
+        get: operations["redirectWechatOAuthToOfficialAccount"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/wechat/bind": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 绑定当前会员的微信身份 */
+        post: operations["bindWechatIdentity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/wechat/official-account/callback/{binding}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 验证微信公众号回调地址 */
+        get: operations["verifyWechatOfficialAccountCallback"];
+        put?: never;
+        /** 接收微信公众号明文消息 */
+        post: operations["receiveWechatOfficialAccountMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.payment.settings.detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询支付渠道配置 */
+        get: operations["getPaymentSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.payment.settings.save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 保存支付渠道配置 */
+        post: operations["savePaymentSettings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.payment.recharge-settings.detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询充值配置 */
+        get: operations["getPaymentRechargeSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.payment.recharge-settings.save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 保存充值配置 */
+        post: operations["savePaymentRechargeSettings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.payment.recharge.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询充值订单 */
+        get: operations["listPaymentRecharges"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.payment.recharge.refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 发起充值退款
+         * @description 渠道明确成功时退款记录进入成功；渠道明确失败时接口返回错误。若 gateway 报告 ERROR_RESULT_UNKNOWN，现实现保留 refund_status=0（退款中）并等待 refund:reconcile 收敛，但本接口仍返回成功消息；该消息不表示退款资金已到达终态。
+         */
+        post: operations["refundPaymentRecharge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.payment.refund.retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 重试失败退款
+         * @description 重试会先把失败记录恢复为 refund_status=0（退款中）。若 gateway 报告 ERROR_RESULT_UNKNOWN，记录继续保持退款中并等待 refund:reconcile 收敛，但本接口仍返回成功消息；该消息不表示退款资金已到达终态。
+         */
+        post: operations["retryPaymentRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.payment.refund.stat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询退款统计 */
+        get: operations["getPaymentRefundStatistics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.payment.refund.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询退款记录 */
+        get: operations["listPaymentRefunds"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.payment.refund.log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询退款操作日志 */
+        get: operations["listPaymentRefundLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/payment/notify/wechat/{binding}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 接收微信支付回调
+         * @description 先用原始请求体和 Wechatpay-* 签名头完成绑定解析、验签和解密；仅 success 事件入账。已验签的 failed/pending（含未知渠道状态）不入账，但同样返回渠道确认。
+         */
+        post: operations["receiveWechatPaymentCallback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/payment/notify/alipay/{binding}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 接收支付宝支付回调
+         * @description 按 application/x-www-form-urlencoded 表单原值进行 RSA2 验签和绑定解析；仅 success 事件入账。已验签的 failed/pending（含未知渠道状态）不入账，但同样返回 success 文本。
+         */
+        post: operations["receiveAlipayPaymentCallback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recharge/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询会员充值配置 */
+        get: operations["getMemberRechargeConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recharge/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建会员充值订单 */
+        post: operations["createMemberRecharge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recharge/prepay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建充值预支付参数 */
+        post: operations["prepayMemberRecharge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recharge/detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询本人充值订单 */
+        get: operations["getMemberRecharge"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recharge/lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询本人充值订单列表 */
+        get: operations["listMemberRecharges"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3578,6 +6062,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/adminapi/peanut.rich-text.document.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Current-tenant admin session and route permission required; soft-deleted documents are excluded. */
+        get: operations["richTextDocumentList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.rich-text.document.detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Current-tenant admin session and route permission required; soft-deleted documents are excluded. */
+        get: operations["richTextDocumentDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.rich-text.document.collaboration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Current-tenant admin session and route permission required; soft-deleted documents are excluded. */
+        get: operations["richTextDocumentCollaboration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.rich-text.document.add": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Current-tenant admin session and route permission required; soft-deleted documents are excluded. */
+        post: operations["richTextDocumentAdd"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.rich-text.document.edit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Current-tenant admin session and route permission required; soft-deleted documents are excluded. Revision is a compare-and-swap input; successful edit increments it by one. */
+        post: operations["richTextDocumentEdit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.rich-text.document.delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Current-tenant admin session and route permission required; soft-deleted documents are excluded. */
+        post: operations["richTextDocumentDelete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/adminapi/api/v1/settings": {
         parameters: {
             query?: never;
@@ -3765,6 +6351,86 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["operateCrontab"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getWorkflowStartSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/instances/{instanceKey}/materials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getWorkflowFrozenMaterials"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/instances/{instanceKey}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getWorkflowEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/instances/{instanceKey}/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getWorkflowNotificationDiagnostics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/instances/{instanceKey}/notifications/recover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["recoverWorkflowNotification"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5567,6 +8233,860 @@ export interface components {
                 [key: string]: components["schemas"]["ApplicationDynamicValue"];
             };
         };
+        ArticleBodySaveRequest: {
+            id: components["schemas"]["ArticlePositiveIntegerInput"];
+            document_id: components["schemas"]["ArticlePositiveIntegerInput"];
+            expected_state_seq: number | string;
+            owner_revision: string;
+            request_id: string;
+            cid: components["schemas"]["ArticlePositiveIntegerInput"];
+            title: string;
+            desc?: string;
+            abstract?: string;
+            image?: string;
+            author?: string;
+            click_virtual?: number | string;
+            is_show: 0 | "0";
+            sort?: number | string;
+        };
+        ArticleBodyEditorResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_id: number;
+                /** @enum {string} */
+                content_kind: "rich_text";
+                schema_version: string;
+                /** @enum {string} */
+                status: "active";
+                state_seq: number;
+                auth_revision: number;
+                owner: {
+                    /** @enum {string} */
+                    module_key: "peanut.article";
+                    /** @enum {string} */
+                    object_type: "article";
+                    object_id: string;
+                    /** @enum {string} */
+                    slot: "body";
+                };
+                authorization_revision: string;
+                collaboration_enabled: boolean;
+                structured_content: components["schemas"]["DocumentStructuredContent"];
+                digest: string;
+                persisted_at: string;
+                /** @enum {boolean} */
+                can_edit: true;
+                /** @enum {boolean} */
+                can_download_original: false;
+                capabilities: components["schemas"]["DocumentContentCapabilities"];
+                article_id: number;
+                owner_revision: string;
+                saved_binding: {
+                    document_id: number;
+                    revision_id: number;
+                    source_state_seq: number;
+                    snapshot_sha256: string;
+                } | null;
+                article_metadata: {
+                    cid: number;
+                    title: string;
+                    desc: string;
+                    abstract: string;
+                    image: string;
+                    /** @description Display delivery URL only; never a writable content reference. */
+                    image_url: string;
+                    author: string;
+                    click_virtual: number;
+                    sort: number;
+                    /** @enum {integer} */
+                    is_show: 0 | 1;
+                };
+            };
+        };
+        ArticleBodyTransportResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_id: number;
+                /** @enum {string} */
+                mode: "write";
+                /** @enum {integer} */
+                protocol: 2;
+                owner: {
+                    /** @enum {string} */
+                    module_key: "peanut.article";
+                    /** @enum {string} */
+                    object_type: "article";
+                    object_id: string;
+                    /** @enum {string} */
+                    slot: "body";
+                };
+                authorization_revision: string;
+                document_name: string;
+                article_id: number;
+                owner_revision: string;
+                capabilities: components["schemas"]["DocumentContentCapabilities"];
+                /** Format: uri */
+                wss_url: string;
+            };
+        };
+        ArticleBodySaveResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                article_id: number;
+                request_id: string;
+                /** @enum {string} */
+                phase: "completed";
+                binding: {
+                    document_id: number;
+                    revision_id: number;
+                    source_state_seq: number;
+                    snapshot_sha256: string;
+                };
+                /** @enum {boolean} */
+                published: false;
+            };
+        };
+        ArticleBodySaveOperationResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                article_id: number;
+                request_id: string;
+                document_id: number;
+                /** @enum {string} */
+                phase: "prepared" | "completed" | "conflicted";
+                result: {
+                    article_id: number;
+                    request_id: string;
+                    /** @enum {string} */
+                    phase: "completed";
+                    binding: {
+                        document_id: number;
+                        revision_id: number;
+                        source_state_seq: number;
+                        snapshot_sha256: string;
+                    };
+                    /** @enum {boolean} */
+                    published: false;
+                } | null;
+                /** @enum {string|null} */
+                error_code: "ARTICLE_BODY_SAVE_OWNER_CHANGED" | null;
+                /** @enum {string|null} */
+                continuation: "same_request_same_payload" | null;
+            };
+        };
+        /** @description 服务端接受正整数或仅含十进制数字的字符串。 */
+        ArticlePositiveIntegerInput: number | string;
+        /**
+         * @example {
+         *       "id": 12
+         *     }
+         */
+        ArticleIdentifierRequest: {
+            id: components["schemas"]["ArticlePositiveIntegerInput"];
+        };
+        /**
+         * @example {
+         *       "ids": [
+         *         12,
+         *         13
+         *       ]
+         *     }
+         */
+        ArticleBatchIdentifierRequest: {
+            id?: components["schemas"]["ArticlePositiveIntegerInput"];
+            ids?: components["schemas"]["ArticlePositiveIntegerInput"][];
+        } & (unknown | unknown);
+        /**
+         * @example {
+         *       "id": 12,
+         *       "is_show": 1
+         *     }
+         */
+        ArticleStatusRequest: {
+            id: components["schemas"]["ArticlePositiveIntegerInput"];
+            /** @enum {integer} */
+            is_show: 0 | 1;
+        };
+        /**
+         * @example {
+         *       "name": "产品动态",
+         *       "is_show": 1,
+         *       "sort": 10
+         *     }
+         */
+        ArticleCategoryCreateRequest: {
+            name: string;
+            /** @enum {integer} */
+            is_show: 0 | 1;
+            sort?: number;
+        };
+        ArticleCategoryUpdateRequest: {
+            id: components["schemas"]["ArticlePositiveIntegerInput"];
+            name: string;
+            /** @enum {integer} */
+            is_show: 0 | 1;
+            sort?: number;
+        };
+        /**
+         * @example {
+         *       "title": "多租户产品动态",
+         *       "cid": 3,
+         *       "abstract": "资讯摘要",
+         *       "content": "<p>正文</p>",
+         *       "is_show": 1,
+         *       "sort": 10
+         *     }
+         */
+        ArticleCreateRequest: {
+            title: string;
+            cid: components["schemas"]["ArticlePositiveIntegerInput"];
+            desc?: string;
+            abstract?: string;
+            image?: string;
+            author?: string;
+            content?: string;
+            click_virtual?: number;
+            /** @enum {integer} */
+            is_show: 0 | 1;
+            sort?: number;
+        };
+        ArticleUpdateRequest: {
+            id: components["schemas"]["ArticlePositiveIntegerInput"];
+            title: string;
+            cid: components["schemas"]["ArticlePositiveIntegerInput"];
+            desc?: string;
+            abstract?: string;
+            image?: string;
+            author?: string;
+            content?: string;
+            click_virtual?: number;
+            /** @enum {integer} */
+            is_show: 0 | 1;
+            sort?: number;
+        };
+        ArticleCategoryRecord: {
+            id: number;
+            name: string;
+            sort: number;
+            /** @enum {integer} */
+            is_show: 0 | 1;
+            create_time: components["schemas"]["ArticleTimestamp"];
+            update_time: components["schemas"]["ArticleTimestamp"];
+            delete_time: components["schemas"]["ArticleTimestamp"];
+            article_count?: number;
+        };
+        ArticleRecord: {
+            id: number;
+            cid: number;
+            title: string;
+            desc: string;
+            abstract: string;
+            image: string;
+            author: string;
+            content: string;
+            click_virtual: number;
+            click_actual: number;
+            click: number;
+            /** @enum {integer} */
+            is_show: 0 | 1;
+            sort: number;
+            cate_name: string;
+            create_time: components["schemas"]["ArticleTimestamp"];
+            update_time: components["schemas"]["ArticleTimestamp"];
+            delete_time: components["schemas"]["ArticleTimestamp"];
+        };
+        /** @description 空字符串或服务端格式化的本地日期时间。 */
+        ArticleTimestamp: string;
+        ArticlePage: {
+            lists: components["schemas"]["ArticleRecord"][];
+            count: number;
+            pageNo: number;
+            pageSize: number;
+        };
+        ArticleCategoryPage: {
+            lists: components["schemas"]["ArticleCategoryRecord"][];
+            count: number;
+            pageNo: number;
+            pageSize: number;
+        };
+        ArticleBatchFailure: {
+            id: number;
+            code: string;
+            message: string;
+        };
+        ArticleBatchMutationResult: {
+            requested: number[];
+            restored?: number[];
+            deleted?: number[];
+            already_active: number[];
+            failed: components["schemas"]["ArticleBatchFailure"][];
+        };
+        ArticleMutationResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: unknown[];
+        };
+        ArticlePageResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            /** @enum {string} */
+            msg: "success";
+            data: components["schemas"]["ArticlePage"] | components["schemas"]["ExportPageInfo"] | components["schemas"]["ExportFile"];
+        };
+        ArticleCategoryPageResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            /** @enum {string} */
+            msg: "success";
+            data: components["schemas"]["ArticleCategoryPage"] | components["schemas"]["ExportPageInfo"] | components["schemas"]["ExportFile"];
+        };
+        ArticleDetailResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            /** @enum {string} */
+            msg: "success";
+            data: components["schemas"]["ArticleDetailRecord"] | unknown[];
+        };
+        ArticleCategoryDetailResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            /** @enum {string} */
+            msg: "success";
+            data: components["schemas"]["ArticleCategoryRecord"] | unknown[];
+        };
+        ArticleCategoryCollectionResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            /** @enum {string} */
+            msg: "success";
+            data: components["schemas"]["ArticleCategoryRecord"][];
+        };
+        ArticleBatchMutationResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            /** @enum {string} */
+            msg: "success";
+            data: components["schemas"]["ArticleBatchMutationResult"];
+        };
+        /**
+         * @example {
+         *       "code": 40900,
+         *       "msg": "仅回收站资讯可永久删除",
+         *       "data": {
+         *         "error_code": "ARTICLE_FORCE_DELETE_REQUIRES_TRASHED"
+         *       }
+         *     }
+         */
+        ArticleErrorEnvelope: {
+            code: number;
+            msg: string;
+            data: {
+                error_code: string;
+            } & {
+                [key: string]: unknown;
+            };
+        };
+        ArticleDetailRecord: {
+            id: number;
+            cid: number;
+            title: string;
+            desc: string;
+            abstract: string;
+            image: string;
+            author: string;
+            content: string;
+            click_virtual: number;
+            click_actual: number;
+            click: number;
+            /** @enum {integer} */
+            is_show: 0 | 1;
+            sort: number;
+            cate_name: string;
+            create_time: components["schemas"]["ArticleTimestamp"];
+            update_time: components["schemas"]["ArticleTimestamp"];
+            delete_time: components["schemas"]["ArticleTimestamp"];
+            body_document_id: number | null;
+        };
+        CollaborationTransportResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_name: string;
+                document_id: number;
+                /** @enum {string} */
+                mode: "read" | "write";
+                /** @enum {integer} */
+                protocol: 2;
+                /** Format: uri */
+                wss_url: string;
+            };
+        };
+        CollaborationConnectionResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                /** @enum {integer} */
+                protocol: 2;
+                holder_key: string;
+                connection_key: string;
+                room_key: string;
+                lease_epoch: number;
+                /** @enum {string} */
+                mode: "read" | "write";
+                member_id: number;
+                nickname: string;
+                document_id: number;
+                binding: {
+                    instance_id: string;
+                    /** @enum {string} */
+                    edition: "engine" | "standalone" | "multi-tenant";
+                    tenant_id: number;
+                    document_id: number;
+                    owner: {
+                        module_key: string;
+                        object_type: string;
+                        object_id: string;
+                        slot: string;
+                    };
+                };
+                authorization_revision: string;
+                lease_expires_at: number;
+            };
+        };
+        CollaborationLoadResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_id: number;
+                lease_epoch: number;
+                state_seq: number;
+                state_sha256: string;
+                /** @description Canonical base64, at most 4 MiB decoded. PHP verifies bytes/hash; native Yjs owns merging and coverage. */
+                binary_base64: string | null;
+                initialization_required: boolean;
+                structured_content: components["schemas"]["DocumentStructuredContent"];
+                store_id: string | null;
+                binding: {
+                    instance_id: string;
+                    /** @enum {string} */
+                    edition: "engine" | "standalone" | "multi-tenant";
+                    tenant_id: number;
+                    document_id: number;
+                    owner: {
+                        module_key: string;
+                        object_type: string;
+                        object_id: string;
+                        slot: string;
+                    };
+                };
+                holder_key: string;
+                schema_version: string;
+            };
+        };
+        CollaborationStoreResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_id: number;
+                store_id: string;
+                lease_epoch: number;
+                state_seq: number;
+                binary_sha256: string;
+                projection_sha256: string;
+                persisted_at: string;
+                target_progress: number;
+            };
+        };
+        CollaborationReceiptResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                /** @enum {boolean} */
+                found: false;
+            } | {
+                /** @enum {boolean} */
+                found: true;
+                receipt: {
+                    document_id: number;
+                    store_id: string;
+                    lease_epoch: number;
+                    state_seq: number;
+                    binary_sha256: string;
+                    projection_sha256: string;
+                    persisted_at: string;
+                    target_progress: number;
+                };
+            };
+        };
+        CollaborationReferenceResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_id: number;
+                room_key: string;
+                lease_epoch: number;
+                file_keys: string[];
+                authorization_revision: string;
+                authorized_at_ms: number;
+            };
+        };
+        CollaborationTargetPreparationResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_id: number;
+                request_id: string;
+                target_binary_sha256: string;
+                target_projection_sha256: string;
+                target_progress: number;
+            };
+        };
+        CollaborationTargetResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_id: number;
+                request_id: string;
+                target_binary_sha256: string;
+                target_projection_sha256: string;
+                target_progress: number;
+                store_id: string;
+                state_seq: number;
+                committed_binary_sha256: string;
+            };
+        };
+        CollaborationRecoveryResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                /** @enum {integer} */
+                protocol: 2;
+                holder_key: string;
+                request_id: string;
+                room_key: string;
+                lease_epoch: number;
+                binding: {
+                    instance_id: string;
+                    /** @enum {string} */
+                    edition: "engine" | "standalone" | "multi-tenant";
+                    tenant_id: number;
+                    document_id: number;
+                    owner: {
+                        module_key: string;
+                        object_type: string;
+                        object_id: string;
+                        slot: string;
+                    };
+                };
+                baseline: {
+                    document_id: number;
+                    lease_epoch: number;
+                    state_seq: number;
+                    state_sha256: string;
+                    /** @description Canonical base64, at most 4 MiB decoded. PHP verifies bytes/hash; native Yjs owns merging and coverage. */
+                    binary_base64: string | null;
+                    initialization_required: boolean;
+                    structured_content: components["schemas"]["DocumentStructuredContent"];
+                    store_id: string | null;
+                    /** @enum {string} */
+                    status: "active" | "archived";
+                };
+            };
+        };
+        CollaborationRevokeResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                /** @enum {boolean} */
+                revoked: true;
+            };
+        };
+        DocumentStructuredContent: {
+            /** @enum {string} */
+            schemaVersion: "peanut.richtext/1";
+            /** @enum {string} */
+            editorModel: "tiptap-prosemirror";
+            content: {
+                [key: string]: unknown;
+            };
+            annotations: unknown[];
+        };
+        DocumentMetadataResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_id: number;
+                /** @enum {string} */
+                content_kind: "rich_text" | "file_resource";
+                schema_version: string;
+                /** @enum {string} */
+                status: "active" | "archiving" | "archived" | "blocked_recovery";
+                state_seq: number;
+                auth_revision: number;
+                created?: boolean;
+                operation_id?: string;
+                /** @enum {string} */
+                phase?: "completed";
+                lease_epoch?: number;
+                binary_sha256?: string;
+                store_id?: string | null;
+                target_progress?: number;
+            };
+        };
+        DocumentDetailResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_id: number;
+                /** @enum {string} */
+                content_kind: "rich_text" | "file_resource";
+                schema_version: string;
+                /** @enum {string} */
+                status: "active" | "archiving" | "archived" | "blocked_recovery";
+                state_seq: number;
+                auth_revision: number;
+                created?: boolean;
+                tenant_id?: number;
+                owner?: {
+                    module_key: string;
+                    object_type: string;
+                    object_id: string;
+                    slot: string;
+                };
+                authorization_revision?: string;
+                structured_content?: components["schemas"]["DocumentStructuredContent"] | null;
+                file_key?: string | null;
+                file_sha256?: string | null;
+                verified_mime_type?: string | null;
+                digest?: string;
+                persisted_at?: string;
+                revision_id?: number;
+                revision_no?: number;
+                source_state_seq?: number;
+                /** @enum {boolean} */
+                confirmed?: true;
+                references?: {
+                    file_key: string;
+                    variant_key: string | null;
+                }[];
+                file_keys?: string[];
+            };
+        };
+        DocumentVersionResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_id: number;
+                revision_id: number;
+                revision_no: number;
+                source_state_seq: number;
+                digest: string;
+                /** @enum {string} */
+                content_kind?: "rich_text" | "file_resource";
+                schema_version?: string;
+                /** @enum {string} */
+                status?: "active" | "archiving" | "archived" | "blocked_recovery";
+                state_seq?: number;
+                auth_revision?: number;
+                created?: boolean;
+                operation_id?: string;
+                /** @enum {string} */
+                phase?: "completed";
+                lease_epoch?: number;
+                binary_sha256?: string;
+                store_id?: string | null;
+                target_progress?: number;
+            };
+        };
+        DocumentSaveResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_id: number;
+                state_seq: number;
+                persisted_at?: string;
+                digest: string;
+                file_key?: string;
+            };
+        };
+        DocumentCapabilitiesResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_id: number;
+                can_view: boolean;
+                can_edit: boolean;
+                can_download_original: boolean;
+                collaboration_enabled: boolean;
+                capabilities: {
+                    /** @enum {string} */
+                    contentKind: "rich_text" | "file_resource";
+                    verifiedMimeType: string | null;
+                    viewerAdapterId: string | null;
+                    editorAdapterId: string | null;
+                    canView: boolean;
+                    canEdit: boolean;
+                    canDownloadOriginal: boolean;
+                    /** @enum {string} */
+                    state: "permission_denied" | "preview_unavailable" | "edit_unsupported" | "service_unavailable" | "read_only" | "available";
+                    unavailableReason: string | null;
+                    capabilityRevision: string;
+                };
+            };
+        };
+        DocumentVersionsResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_id: number;
+                owner: {
+                    module_key: string;
+                    object_type: string;
+                    object_id: string;
+                    slot: string;
+                };
+                items: {
+                    revision_id: number;
+                    revision_no: number;
+                    created_at: string;
+                    source_state_seq: number;
+                    /** @enum {string} */
+                    content_kind: "rich_text" | "file_resource";
+                }[];
+                next_before_revision_no: number | null;
+            };
+        };
+        DocumentBusinessOperationResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_id: number;
+                operation_id: string;
+                /** @enum {string} */
+                action: "version.create" | "version.restore" | "archive" | "restore";
+                input_sha256: string;
+                /** @enum {string} */
+                phase: "prepared" | "attention" | "completed";
+                target_progress: number | null;
+                store_id: string | null;
+                state_seq: number | null;
+                binary_sha256: string | null;
+                released: boolean;
+                result: {
+                    document_id: number;
+                    revision_id?: number;
+                    revision_no?: number;
+                    source_state_seq?: number;
+                    digest?: string;
+                    /** @enum {string} */
+                    content_kind?: "rich_text" | "file_resource";
+                    schema_version?: string;
+                    /** @enum {string} */
+                    status: "active" | "archiving" | "archived" | "blocked_recovery";
+                    state_seq: number;
+                    auth_revision: number;
+                    created?: boolean;
+                    operation_id: string;
+                    /** @enum {string} */
+                    phase: "completed";
+                    lease_epoch: number;
+                    binary_sha256: string;
+                    store_id: string | null;
+                    target_progress: number;
+                } | null;
+            };
+        };
+        DocumentTargetResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_id: number;
+                request_id: string;
+                /** @enum {string} */
+                phase: "not_prepared" | "prepared" | "confirmed" | "consumed" | "canceled";
+                target_binary_sha256: string | null;
+                target_projection_sha256: string | null;
+                target_progress: number | null;
+                store_id: string | null;
+                state_seq: number | null;
+                committed_binary_sha256: string | null;
+                revision_id: number | null;
+            };
+        };
+        DocumentTargetCancelResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_id: number;
+                request_id: string;
+                /** @enum {string} */
+                phase: "canceled";
+            };
+        };
+        DocumentBusinessResult: {
+            document_id: number;
+            revision_id?: number;
+            revision_no?: number;
+            source_state_seq?: number;
+            digest?: string;
+            /** @enum {string} */
+            content_kind?: "rich_text" | "file_resource";
+            schema_version?: string;
+            /** @enum {string} */
+            status: "active" | "archiving" | "archived" | "blocked_recovery";
+            state_seq: number;
+            auth_revision: number;
+            created?: boolean;
+            operation_id: string;
+            /** @enum {string} */
+            phase: "completed";
+            lease_epoch: number;
+            binary_sha256: string;
+            store_id: string | null;
+            target_progress: number;
+        };
+        DocumentContentCapabilities: {
+            /** @enum {string} */
+            contentKind: "rich_text" | "file_resource";
+            verifiedMimeType: string | null;
+            viewerAdapterId: string | null;
+            editorAdapterId: string | null;
+            canView: boolean;
+            canEdit: boolean;
+            canDownloadOriginal: boolean;
+            /** @enum {string} */
+            state: "permission_denied" | "preview_unavailable" | "edit_unsupported" | "service_unavailable" | "read_only" | "available";
+            unavailableReason: string | null;
+            capabilityRevision: string;
+        };
         StorageAccountSnapshot: {
             /** @description ThinkORM bigint projection. */
             id: string;
@@ -5990,6 +9510,71 @@ export interface components {
             msg: string;
             data: components["schemas"]["FileCategoryRecord"][];
         };
+        ImportExportOperation: {
+            operation_key: string;
+            provider_key: string;
+            /** @enum {string} */
+            direction: "import" | "export";
+            /** @enum {string} */
+            format: "csv";
+            /** @enum {string} */
+            status: "queued" | "running" | "cancel_requested" | "succeeded" | "failed" | "cancelled" | "expired";
+            input_file_key: string | null;
+            result_file_key: string | null;
+            error_file_key: string | null;
+            task_job_key: string | null;
+            schema_revision: string;
+            mapping: {
+                [key: string]: string;
+            };
+            processed_rows: number;
+            accepted_rows: number;
+            rejected_rows: number;
+            total_rows: number;
+            revision: number;
+            last_error_code: string | null;
+            /** Format: date-time */
+            retention_until: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            completed_at: string | null;
+        };
+        ImportOperationRequest: {
+            provider_key: string;
+            file_key: string;
+            mapping: {
+                [key: string]: string;
+            };
+        };
+        ExportOperationRequest: {
+            provider_key: string;
+        };
+        ImportExportMeta: {
+            request_id: string;
+        };
+        ImportExportOperationResponse: {
+            data: components["schemas"]["ImportExportOperation"];
+            meta: components["schemas"]["ImportExportMeta"];
+        };
+        ImportExportLegacyOperationResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["ImportExportOperation"];
+        };
+        ImportExportOperationListResponse: {
+            data: {
+                items: components["schemas"]["ImportExportOperation"][];
+            };
+            meta: components["schemas"]["ImportExportMeta"] & {
+                page: number;
+                page_size: number;
+                total: number;
+            };
+        };
         IntegrationRequestMeta: {
             request_id: string;
         } & {
@@ -6150,6 +9735,1379 @@ export interface components {
                 total: number;
             };
         };
+        MemberPositiveIntegerInput: number | string;
+        /**
+         * @example {
+         *       "id": 17
+         *     }
+         */
+        MemberIdentifierRequest: {
+            id: components["schemas"]["MemberPositiveIntegerInput"];
+        };
+        /**
+         * @example {
+         *       "account": "member001",
+         *       "password": "secret-value"
+         *     }
+         */
+        MemberRegistrationRequest: {
+            account: string;
+            /** Format: password */
+            password: string;
+        };
+        MemberAccountLoginRequest: {
+            account: string;
+            /** Format: password */
+            password: string;
+            terminal?: number;
+        };
+        /**
+         * @example {
+         *       "mobile": "13800000000",
+         *       "code": "123456"
+         *     }
+         */
+        MemberMobileCodeRequest: {
+            mobile: string;
+            code: string;
+        };
+        MemberPasswordResetRequest: {
+            mobile: string;
+            code: string;
+            /** Format: password */
+            password: string;
+        };
+        MemberPasswordChangeRequest: {
+            /** Format: password */
+            old_password: string;
+            /** Format: password */
+            password: string;
+        };
+        /**
+         * @example {
+         *       "field": "birthday",
+         *       "value": "1990-01-01"
+         *     }
+         */
+        MemberSelfFieldRequest: {
+            /** @enum {string} */
+            field: "nickname" | "avatar" | "sex" | "birthday" | "email";
+            value: (string | (0 | 1 | 2)) | null;
+        };
+        MemberAdminCreateRequest: {
+            nickname: string;
+            mobile?: string;
+            /** Format: email */
+            email?: string;
+            /** @enum {integer} */
+            sex?: 0 | 1 | 2;
+            /** @enum {integer} */
+            status?: 0 | 1;
+        };
+        MemberAdminFieldUpdateRequest: {
+            id: components["schemas"]["MemberPositiveIntegerInput"];
+            /** @enum {string} */
+            field: "account" | "sex" | "mobile" | "real_name";
+            value: string | (0 | 1 | 2);
+        };
+        MemberAdminStatusRequest: {
+            id: components["schemas"]["MemberPositiveIntegerInput"];
+            /** @enum {integer} */
+            status: 0 | 1;
+        };
+        MemberBalanceAdjustmentRequest: {
+            user_id: components["schemas"]["MemberPositiveIntegerInput"];
+            /** @enum {integer} */
+            action: 1 | 2;
+            num: number | string;
+            remark?: string;
+        };
+        MemberTagCreateRequest: {
+            name: string;
+        };
+        MemberTagUpdateRequest: {
+            id: components["schemas"]["MemberPositiveIntegerInput"];
+            name: string;
+        };
+        MemberAdminListTag: {
+            id: number;
+            name: string;
+            remark: string;
+            create_time: number;
+            update_time: number;
+            delete_time: number | null;
+            tenant_id: number;
+        };
+        MemberAdminListItem: {
+            id: number;
+            sn: string;
+            account: string;
+            account_unique: string | null;
+            nickname: string;
+            avatar: string;
+            real_name: string;
+            mobile: string;
+            channel: string;
+            channel_value: number;
+            email: string;
+            /** @enum {string} */
+            sex: "未知" | "男" | "女";
+            /** @enum {integer} */
+            sex_value: 0 | 1 | 2;
+            /** Format: date */
+            birthday: string | null;
+            /** @enum {integer} */
+            status: 0 | 1;
+            login_time: string;
+            login_ip: string;
+            /** @enum {integer} */
+            is_new_user: 0 | 1;
+            user_money: number;
+            balance: number;
+            total_recharge_amount: number;
+            points: number;
+            create_time: string;
+            update_time: string;
+            delete_time: number | null;
+            mobile_unique: string | null;
+            tenant_id: number;
+            /** @enum {integer} */
+            is_disable: 0 | 1;
+            tags: components["schemas"]["MemberAdminListTag"][];
+            tag_ids: number[];
+        };
+        MemberAdminListPage: {
+            lists: components["schemas"]["MemberAdminListItem"][];
+            count: number;
+            pageNo: number;
+            pageSize: number;
+        };
+        MemberExportPageInfo: {
+            count: number;
+            page_size: number;
+            sum_page: number;
+            max_page: number;
+            /** @enum {integer} */
+            all_max_size: 25000;
+            /** @enum {integer} */
+            page_start: 1;
+            page_end: number;
+            file_name: string;
+        };
+        MemberExportFile: {
+            url: string;
+            file_name: string;
+        };
+        MemberAdminListResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["MemberAdminListPage"];
+        } | {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["MemberExportPageInfo"];
+        } | {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["MemberExportFile"];
+        };
+        MemberTagListResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["MemberAdminListTag"][];
+        };
+        MemberLoginData: {
+            token: string;
+            id: number;
+            sn: string;
+            nickname: string;
+            avatar: string;
+            mobile: string;
+        };
+        MemberAdminDetail: {
+            id: number;
+            sn: string;
+            account: string;
+            nickname: string;
+            avatar: string;
+            real_name: string;
+            /** @enum {integer} */
+            sex: 0 | 1 | 2;
+            mobile: string;
+            create_time: string;
+            login_time: string;
+            channel: string;
+            user_money: number;
+            balance: number;
+        };
+        MemberCenterData: {
+            id: number;
+            sn: string;
+            nickname: string;
+            avatar: string;
+            mobile: string;
+            balance: number;
+            points: number;
+            create_time: number | string;
+            collect_num: number;
+        };
+        MemberProfileData: {
+            id: number;
+            sn: string;
+            account: string;
+            nickname: string;
+            avatar: string;
+            /** @enum {integer} */
+            sex: 0 | 1 | 2;
+            birthday: string | null;
+            mobile: string;
+            email: string;
+            balance: number;
+            points: number;
+            create_time: number | string;
+            has_password: boolean;
+        };
+        MemberAdminBalanceLog: {
+            nickname: string;
+            account: string;
+            sn: string;
+            avatar: string;
+            mobile: string;
+            /** @enum {integer} */
+            action: 1 | 2;
+            change_amount: string;
+            left_amount: number | string;
+            /** @enum {integer} */
+            change_type: 100 | 101 | 200 | 201;
+            change_type_desc: string;
+            source_sn: string;
+            create_time: string;
+        };
+        MemberAdminBalanceLogPage: {
+            lists: components["schemas"]["MemberAdminBalanceLog"][];
+            count: number;
+            pageNo: number;
+            pageSize: number;
+        };
+        MemberSelfBalanceLog: {
+            id: number;
+            sn: string;
+            member_id: number;
+            /** @enum {integer} */
+            change_object: 1;
+            /** @enum {integer} */
+            change_type: 100 | 101 | 200 | 201;
+            /** @enum {integer} */
+            action: 1 | 2;
+            left_amount: string | number;
+            source_type: number;
+            extra: string | null;
+            admin_id: number;
+            create_time: number | string;
+            update_time: (number | string) | null;
+            delete_time: (number | string) | null;
+            change_amount: string | number;
+            source_sn: string | null;
+            remark: string | null;
+            tenant_id: number;
+        };
+        MemberSelfBalanceLogPage: {
+            lists: components["schemas"]["MemberSelfBalanceLog"][];
+            count: number;
+            pageNo: number;
+            pageSize: number;
+        };
+        MemberMutationResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: unknown[];
+        };
+        MemberLoginResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["MemberLoginData"];
+        };
+        MemberAdminDetailResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["MemberAdminDetail"] | unknown[];
+        };
+        MemberCenterResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["MemberCenterData"] | unknown[];
+        };
+        MemberProfileResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["MemberProfileData"] | unknown[];
+        };
+        MemberAdminBalanceLogPageResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["MemberAdminBalanceLogPage"];
+        };
+        MemberSelfBalanceLogPageResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["MemberSelfBalanceLogPage"];
+        };
+        MemberChangeTypesResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            /**
+             * @description 键为稳定的 change_type 数字代码，值为中文说明。
+             * @example {
+             *       "100": "平台减少余额",
+             *       "200": "平台增加余额"
+             *     }
+             */
+            data: {
+                [key: string]: string;
+            };
+        };
+        NotificationChannelAliyunConfiguration: {
+            access_key_id: string;
+            /** @description 空字符串或已配置密钥的脱敏哨兵 ******。 */
+            access_key_secret: string;
+            sign_name: string;
+            /** @enum {integer} */
+            status: 0 | 1;
+        };
+        NotificationChannelTencentConfiguration: {
+            secret_id: string;
+            /** @description 空字符串或已配置密钥的脱敏哨兵 ******。 */
+            secret_key: string;
+            sdk_app_id: string;
+            sign_name: string;
+            region: string;
+            /** @enum {integer} */
+            status: 0 | 1;
+        };
+        NotificationChannelDetail: {
+            /** @enum {string} */
+            sms_default: "" | "aliyun" | "tencent";
+            sms_aliyun: components["schemas"]["NotificationChannelAliyunConfiguration"];
+            sms_tencent: components["schemas"]["NotificationChannelTencentConfiguration"];
+            status: {
+                sms: boolean;
+            };
+        };
+        NotificationChannelSaveRequest: {
+            /** @enum {string} */
+            section: "sms_default";
+            /** @enum {string} */
+            value: "aliyun" | "tencent";
+        } | {
+            /** @enum {string} */
+            section: "sms_aliyun";
+            access_key_id?: string;
+            /** @description ****** 表示保留现有密钥。 */
+            access_key_secret?: string;
+            sign_name?: string;
+            /** @enum {integer} */
+            status?: 0 | 1;
+        } | {
+            /** @enum {string} */
+            section: "sms_tencent";
+            secret_id?: string;
+            /** @description ****** 表示保留现有密钥。 */
+            secret_key?: string;
+            sdk_app_id?: string;
+            sign_name?: string;
+            region?: string;
+            /** @enum {integer} */
+            status?: 0 | 1;
+        };
+        /** @description NoticeScene 未声明 JSON cast；按实际 ORM/驱动边界可能是 JSON 字符串、已解码字符串数组或 null。 */
+        NotificationSceneVariables: (string | string[]) | null;
+        NotificationSceneListItem: {
+            id: number;
+            code: string;
+            name: string;
+            description: string;
+            recipient: string;
+            variables: components["schemas"]["NotificationSceneVariables"];
+            sms_template_id: string;
+            sms_content: string;
+            /** @enum {integer} */
+            sms_status: 0 | 1;
+            update_time: number;
+        };
+        NotificationSceneDetail: {
+            id: number;
+            code: string;
+            name: string;
+            description: string;
+            recipient: string;
+            variables: components["schemas"]["NotificationSceneVariables"];
+            sms_template_id: string;
+            sms_content: string;
+            /** @enum {integer} */
+            sms_status: 0 | 1;
+            create_time: number;
+            update_time: number;
+            tenant_id: number;
+        };
+        /** @description 服务只读取已列出的四个字段；当前旧控制器会忽略其他字段。 */
+        NotificationSceneSaveRequest: {
+            id: number;
+            sms_template_id?: string;
+            sms_content?: string;
+            /** @enum {integer} */
+            sms_status: 0 | 1;
+        };
+        NotificationLogRecord: {
+            id: number;
+            template_id: number;
+            scene_id: number;
+            /** @enum {integer} */
+            channel: 1 | 2 | 3;
+            provider: string;
+            receiver: string;
+            title: string;
+            content: string | null;
+            /** @enum {integer} */
+            is_verified: 0 | 1;
+            check_count: number;
+            verified_time: number;
+            /** @enum {integer} */
+            status: 0 | 1 | 2 | 3;
+            error: string;
+            send_time: number;
+            create_time: number;
+            template_name: string | null;
+            template_code: string | null;
+            scene_name: string | null;
+            scene_code: string | null;
+        };
+        NotificationLogPage: {
+            lists: components["schemas"]["NotificationLogRecord"][];
+            count: number;
+            pageNo: number;
+            pageSize: number;
+        };
+        NotificationMutationResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: unknown[];
+        };
+        NotificationChannelDetailResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["NotificationChannelDetail"];
+        };
+        NotificationSceneListResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                list: components["schemas"]["NotificationSceneListItem"][];
+                total: number;
+            };
+        };
+        NotificationSceneDetailResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["NotificationSceneDetail"];
+        };
+        NotificationLogListResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["NotificationLogPage"];
+        };
+        NotificationLogDetailResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["NotificationLogRecord"] | unknown[];
+        };
+        NotificationAttachment: {
+            file_key: string;
+            original_name: string;
+            media_type: string;
+            size_bytes: number;
+            sha256: string;
+        };
+        NotificationMessage: {
+            message_key: string;
+            template_key: string;
+            template_revision: number;
+            subject: string;
+            body: string;
+            /** @enum {string} */
+            status: "unread" | "read" | "archived";
+            revision: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            read_at: string | null;
+            /** Format: date-time */
+            archived_at: string | null;
+            attachments: components["schemas"]["NotificationAttachment"][];
+        };
+        NotificationMeta: {
+            request_id: string;
+        };
+        NotificationResponse: {
+            data: components["schemas"]["NotificationMessage"];
+            meta: components["schemas"]["NotificationMeta"];
+        };
+        NotificationListResponse: {
+            data: {
+                items: components["schemas"]["NotificationMessage"][];
+            };
+            meta: components["schemas"]["NotificationMeta"] & {
+                page: number;
+                page_size: number;
+                total: number;
+            };
+        };
+        NotificationBulkResponse: {
+            data: {
+                changed: number;
+            };
+            meta: components["schemas"]["NotificationMeta"];
+        };
+        OAuthPositiveIntegerInput: number | string;
+        OAuthEmptyData: string[];
+        /** @description 当前旧校验入口保留未知字段，但业务只消费 id，其他字段会被忽略。 */
+        OAuthIdentifierRequest: {
+            id: components["schemas"]["OAuthPositiveIntegerInput"];
+        };
+        /** @description page_status=1 时 page_url 必填且必须为 http/https 绝对地址。未列出的字段会被当前服务忽略。 */
+        OAuthWebPageConfigRequest: {
+            /** @enum {integer} */
+            status: 0 | 1;
+            /** @enum {integer} */
+            page_status: 0 | 1;
+            /** Format: uri */
+            page_url?: string;
+        };
+        OAuthWebPageConfig: {
+            /** @enum {integer} */
+            status: 0 | 1;
+            /** @enum {integer} */
+            page_status: 0 | 1;
+            page_url: string;
+            url: string;
+        };
+        /** @description app_secret 可传 ****** 保留已有秘密；未列出的字段会被当前服务忽略。 */
+        OAuthMiniProgramConfigRequest: {
+            name?: string;
+            original_id?: string;
+            qr_code?: string;
+            app_id: string;
+            /** Format: password */
+            app_secret: string;
+        };
+        OAuthMiniProgramConfig: {
+            name: string;
+            original_id: string;
+            qr_code: string;
+            app_id: string;
+            /** @description 已配置时固定返回 ******，否则返回空字符串。 */
+            readonly app_secret: string;
+            app_secret_configured: boolean;
+            request_domain: string;
+            socket_domain: string;
+            upload_file_domain: string;
+            download_file_domain: string;
+            udp_domain: string;
+            business_domain: string;
+        };
+        /** @description app_secret 与 token 可传 ****** 保留已有秘密；token 传空字符串表示清除。未列出的字段会被当前服务忽略。 */
+        OAuthOfficialAccountConfigRequest: {
+            name?: string;
+            original_id?: string;
+            qr_code?: string;
+            app_id: string;
+            /** Format: password */
+            app_secret: string;
+            /**
+             * Format: password
+             * @description ****** 表示保留已存 Token，空字符串表示清除。
+             */
+            token?: string;
+        };
+        OAuthOfficialAccountConfig: {
+            name: string;
+            original_id: string;
+            qr_code: string;
+            app_id: string;
+            /**
+             * @description 已配置时固定返回 ******，否则返回空字符串。
+             * @enum {string}
+             */
+            readonly app_secret: "" | "******";
+            app_secret_configured: boolean;
+            url: string;
+            /**
+             * @description 已配置时固定返回 ******，否则返回空字符串。
+             * @enum {string}
+             */
+            readonly token: "" | "******";
+            token_configured: boolean;
+            business_domain: string;
+            js_secure_domain: string;
+            web_auth_domain: string;
+            /** @enum {string} */
+            callback_mode: "plaintext";
+        };
+        /** @description app_secret 可传 ****** 保留已有秘密；未列出的字段会被当前服务忽略。 */
+        OAuthOpenPlatformConfigRequest: {
+            app_id: string;
+            /** Format: password */
+            app_secret: string;
+        };
+        OAuthOpenPlatformConfig: {
+            app_id: string;
+            /** @description 已配置时固定返回 ******，否则返回空字符串。 */
+            readonly app_secret: string;
+            app_secret_configured: boolean;
+        };
+        /** @description 顶层未知字段会被业务忽略；menu 节点内的扩展 JSON 字段会完整持久化并由详情接口返回。 */
+        OAuthMenuRequest: {
+            menu: components["schemas"]["OAuthMenuNode"][];
+        };
+        OAuthMenuNode: components["schemas"]["OAuthMenuParentNode"] | components["schemas"]["OAuthMenuTopClickNode"] | components["schemas"]["OAuthMenuTopViewNode"] | components["schemas"]["OAuthMenuTopMiniProgramNode"];
+        /** @description 保存和详情会保留额外 JSON 字段；发布到微信 Provider 时只消费 name 和 sub_button。 */
+        OAuthMenuParentNode: {
+            name: string;
+            sub_button: (components["schemas"]["OAuthMenuClickNode"] | components["schemas"]["OAuthMenuViewNode"] | components["schemas"]["OAuthMenuMiniProgramNode"])[];
+        } & {
+            [key: string]: components["schemas"]["OAuthMenuExtensionValue"];
+        };
+        /** @description 保存和详情会保留额外 JSON 字段；发布到微信 Provider 时只消费 name、type 和 key。 */
+        OAuthMenuTopClickNode: {
+            name: string;
+            /** @enum {string} */
+            type: "click";
+            key: string;
+        } & {
+            [key: string]: components["schemas"]["OAuthMenuExtensionValue"];
+        };
+        /** @description 保存和详情会保留额外 JSON 字段；发布到微信 Provider 时只消费 name、type 和 url。 */
+        OAuthMenuTopViewNode: {
+            name: string;
+            /** @enum {string} */
+            type: "view";
+            /** Format: uri */
+            url: string;
+        } & {
+            [key: string]: components["schemas"]["OAuthMenuExtensionValue"];
+        };
+        /** @description 保存和详情会保留额外 JSON 字段；发布到微信 Provider 时只消费列出的微信标准字段。 */
+        OAuthMenuTopMiniProgramNode: {
+            name: string;
+            /** @enum {string} */
+            type: "miniprogram";
+            /** Format: uri */
+            url: string;
+            appid: string;
+            pagepath: string;
+        } & {
+            [key: string]: components["schemas"]["OAuthMenuExtensionValue"];
+        };
+        /** @description 保存和详情会保留额外 JSON 字段；发布到微信 Provider 时只消费 name、type 和 key。 */
+        OAuthMenuClickNode: {
+            name: string;
+            /** @enum {string} */
+            type: "click";
+            key: string;
+        } & {
+            [key: string]: components["schemas"]["OAuthMenuExtensionValue"];
+        };
+        /** @description 保存和详情会保留额外 JSON 字段；发布到微信 Provider 时只消费 name、type 和 url。 */
+        OAuthMenuViewNode: {
+            name: string;
+            /** @enum {string} */
+            type: "view";
+            /** Format: uri */
+            url: string;
+        } & {
+            [key: string]: components["schemas"]["OAuthMenuExtensionValue"];
+        };
+        /** @description 保存和详情会保留额外 JSON 字段；发布到微信 Provider 时只消费列出的微信标准字段。 */
+        OAuthMenuMiniProgramNode: {
+            name: string;
+            /** @enum {string} */
+            type: "miniprogram";
+            /** Format: uri */
+            url: string;
+            appid: string;
+            pagepath: string;
+        } & {
+            [key: string]: components["schemas"]["OAuthMenuExtensionValue"];
+        };
+        /** @description reply_type=2 时 keyword、matching_type 和非负 sort 必填；未列出的字段会被当前服务忽略。 */
+        OAuthReplyCreateRequest: {
+            /** @enum {integer} */
+            reply_type: 1 | 2 | 3;
+            name: string;
+            keyword?: string;
+            /** @enum {integer} */
+            matching_type?: 1 | 2;
+            /** @enum {integer} */
+            content_type: 1;
+            content: string;
+            /** @enum {integer} */
+            status: 0 | 1;
+            sort?: number;
+        };
+        /** @description reply_type=2 时 keyword、matching_type 和非负 sort 必填；未列出的字段会被当前服务忽略。 */
+        OAuthReplyUpdateRequest: {
+            id: components["schemas"]["OAuthPositiveIntegerInput"];
+            /** @enum {integer} */
+            reply_type: 1 | 2 | 3;
+            name: string;
+            keyword?: string;
+            /** @enum {integer} */
+            matching_type?: 1 | 2;
+            /** @enum {integer} */
+            content_type: 1;
+            content: string;
+            /** @enum {integer} */
+            status: 0 | 1;
+            sort?: number;
+        };
+        /** @description 当前旧校验入口保留未知字段，但业务只消费 id 和 status，其他字段会被忽略。 */
+        OAuthReplyStatusRequest: {
+            id: components["schemas"]["OAuthPositiveIntegerInput"];
+            /** @enum {integer} */
+            status: 0 | 1;
+        };
+        OAuthReplyRecord: {
+            id: number;
+            name: string;
+            keyword: string;
+            /** @enum {integer} */
+            reply_type: 1 | 2 | 3;
+            /** @enum {integer} */
+            matching_type: 1 | 2;
+            /** @enum {integer} */
+            content_type: 1;
+            content: string;
+            /** @enum {integer} */
+            status: 0 | 1;
+            sort: number;
+            create_time: number;
+            update_time: number;
+            delete_time?: number;
+            tenant_id?: number;
+            singleton_active_key?: number | null;
+        };
+        /** @description 当前旧校验入口保留未知字段，但业务只消费列出的字段，其他字段会被忽略。 */
+        OAuthBeginRequest: {
+            /** @enum {string} */
+            scene: "oa" | "open_pc";
+            return_path: string;
+            client_id?: string;
+        };
+        /** @description 当前旧校验入口保留未知字段，但业务只消费列出的字段，其他字段会被忽略。 */
+        OAuthCallbackRequest: {
+            /** @enum {string} */
+            scene: "oa" | "open_pc";
+            code: string;
+            state: string;
+        };
+        /** @description 当前旧校验入口保留未知字段，但业务只消费 code 和 client_id，其他字段会被忽略。 */
+        OAuthMiniProgramLoginRequest: {
+            code: string;
+            client_id?: string;
+        };
+        /** @description need_profile/need_mobile 由票据决定；相应字段仅在服务要求时必须有效。当前旧校验入口保留未知字段，但补全业务不会消费其他字段。 */
+        OAuthCompletionRequest: {
+            /** Format: password */
+            ticket: string;
+            nickname?: string;
+            avatar?: string;
+            mobile?: string;
+            /** Format: password */
+            verification_code?: string;
+        };
+        /** @description 当前旧校验入口保留未知字段，但业务只消费 scene 和 code，其他字段会被忽略。 */
+        OAuthBindRequest: {
+            /** @enum {string} */
+            scene: "mnp" | "oa";
+            /** Format: password */
+            code: string;
+        };
+        OAuthAuthorizationData: {
+            /** Format: uri */
+            authorization_url: string;
+            expires_in: number;
+        };
+        OAuthMemberSummary: {
+            id: number;
+            sn: string;
+            nickname: string;
+            avatar: string;
+            mobile: string;
+        };
+        OAuthLoginCompletedData: {
+            /** @enum {boolean} */
+            completed: true;
+            member: components["schemas"]["OAuthMemberSummary"];
+            /** @description 本次完整登录签发的会员访问令牌。 */
+            readonly token: string;
+            return_path?: string;
+        };
+        OAuthLoginPendingData: {
+            /** @enum {boolean} */
+            completed: false;
+            member: components["schemas"]["OAuthMemberSummary"];
+            /** @description 短期、单次使用的资料补全票据。 */
+            readonly completion_ticket: string;
+            expires_in: number;
+            need_profile: boolean;
+            need_mobile: boolean;
+            return_path?: string;
+        };
+        /** @description 微信公众号明文 XML 消息或文本回复 XML。 */
+        OAuthOfficialAccountMessageXml: string;
+        /** @description 菜单扩展字段中可原样持久化并由详情接口返回的 JSON 值。 */
+        OAuthMenuExtensionValue: (string | null) | number | boolean | components["schemas"]["OAuthMenuExtensionValue"][] | {
+            [key: string]: components["schemas"]["OAuthMenuExtensionValue"];
+        };
+        OAuthMutationResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["OAuthEmptyData"];
+        };
+        OAuthWebPageConfigResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["OAuthWebPageConfig"];
+        };
+        OAuthMiniProgramConfigResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["OAuthMiniProgramConfig"];
+        };
+        OAuthOfficialAccountConfigResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["OAuthOfficialAccountConfig"];
+        };
+        OAuthOpenPlatformConfigResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["OAuthOpenPlatformConfig"];
+        };
+        OAuthMenuResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                menu: components["schemas"]["OAuthMenuNode"][];
+            };
+        };
+        OAuthReplyDetailResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["OAuthReplyRecord"];
+        };
+        OAuthReplyPageResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                lists: components["schemas"]["OAuthReplyRecord"][];
+                count: number;
+                pageNo: number;
+                pageSize: number;
+            };
+        };
+        OAuthAuthorizationResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["OAuthAuthorizationData"];
+        };
+        OAuthLoginResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["OAuthLoginCompletedData"] | components["schemas"]["OAuthLoginPendingData"];
+        };
+        PaymentMutationResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: string[];
+        };
+        PaymentSettingsData: {
+            /** @enum {integer} */
+            wx_pay_status: 0 | 1;
+            wx_pay_appid: string;
+            wx_pay_mch_id: string;
+            /**
+             * @description 只返回空串或固定掩码，不返回已存密钥。
+             * @enum {string}
+             */
+            wx_pay_secret: "" | "******";
+            wx_pay_secret_configured: boolean;
+            wx_pay_cert_path: string;
+            wx_pay_cert_key_path: string;
+            wx_pay_platform_cert_path: string;
+            /** @enum {integer} */
+            ali_pay_status: 0 | 1;
+            ali_pay_app_id: string;
+            /**
+             * @description 只返回空串或固定掩码，不返回已存私钥。
+             * @enum {string}
+             */
+            ali_pay_private_key: "" | "******";
+            ali_pay_private_key_configured: boolean;
+            ali_pay_public_key: string;
+            ali_pay_seller_id: string;
+        };
+        /** @description 当前服务只读取列出的支付字段；legacy 校验器未拒绝的其他字段会被忽略且不会持久化。 */
+        PaymentSettingsSaveRequest: {
+            wx_pay_status: (0 | 1) | ("0" | "1");
+            wx_pay_appid?: string;
+            wx_pay_mch_id?: string;
+            /** @description ****** 表示保留原密钥；其他值覆盖。 */
+            wx_pay_secret?: string;
+            wx_pay_cert_path?: string;
+            wx_pay_cert_key_path?: string;
+            wx_pay_platform_cert_path?: string;
+            ali_pay_status: (0 | 1) | ("0" | "1");
+            ali_pay_app_id?: string;
+            /** @description ****** 表示保留原私钥；其他值覆盖。 */
+            ali_pay_private_key?: string;
+            ali_pay_public_key?: string;
+            ali_pay_seller_id?: string;
+        } & {
+            [key: string]: components["schemas"]["PaymentIgnoredInput"];
+        };
+        PaymentSettingsResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["PaymentSettingsData"];
+        };
+        PaymentRechargeScene: {
+            /** @enum {integer} */
+            terminal: 1 | 2 | 3 | 4 | 5 | 6;
+            /** @enum {integer} */
+            pay_way: 2 | 3;
+            /** @enum {integer} */
+            status: 0 | 1;
+            /** @enum {integer} */
+            is_default: 0 | 1;
+        };
+        PaymentRechargeSceneInput: {
+            terminal: (1 | 2 | 3 | 4 | 5 | 6) | ("1" | "2" | "3" | "4" | "5" | "6");
+            pay_way: (2 | 3) | ("2" | "3");
+            status: (0 | 1) | ("0" | "1");
+            is_default: (0 | 1) | ("0" | "1");
+        };
+        PaymentRechargeSettingsData: {
+            /** @enum {integer} */
+            status: 0 | 1;
+            min_amount: string;
+            max_amount: string;
+            scenes: components["schemas"]["PaymentRechargeScene"][];
+        };
+        PaymentRechargeSettingsSaveRequest: {
+            status: (0 | 1) | ("0" | "1");
+            min_amount: number | string;
+            max_amount: number | string;
+            /** @description 必须一次提交 PaymentScene 当前登记的 11 个终端/渠道组合，组合不可重复；启用充值时每个终端恰有一个已启用默认渠道。 */
+            scenes: components["schemas"]["PaymentRechargeSceneInput"][];
+        };
+        PaymentRechargeSettingsResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["PaymentRechargeSettingsData"];
+        };
+        PaymentRechargeOrder: {
+            id: number;
+            sn: string;
+            /** @enum {integer} */
+            pay_way: 1 | 2 | 3;
+            pay_way_text: string;
+            /** @enum {integer} */
+            pay_status: 0 | 1;
+            /** @enum {string} */
+            pay_status_text: "未支付" | "已支付";
+            order_amount: string;
+            /** @enum {integer} */
+            order_terminal: 1 | 2 | 3 | 4 | 5 | 6;
+            terminal_text: string;
+            transaction_id: string;
+            pay_time: string;
+            create_time: string;
+        };
+        PaymentAdminRechargeOrder: {
+            id: number;
+            sn: string;
+            order_amount: string | number;
+            /** @enum {integer} */
+            pay_way: 1 | 2 | 3;
+            pay_time: string;
+            /** @enum {integer} */
+            pay_status: 0 | 1;
+            create_time: string;
+            /**
+             * @description 充值订单级标记：0 未发起退款，1 已发起退款；1 不表示渠道退款已经成功。
+             * @enum {integer}
+             */
+            refund_status: 0 | 1;
+            avatar: string;
+            nickname: string;
+            account: string;
+            refunded_amount: string;
+            refundable_amount: string;
+            pay_way_text: string;
+            pay_status_text: string;
+        };
+        PaymentPageData: {
+            lists: components["schemas"]["PaymentAdminRechargeOrder"][];
+            count: number;
+            pageNo: number;
+            pageSize: number;
+            extend?: string[];
+        };
+        PaymentExportInfo: {
+            count: number;
+            page_size: number;
+            sum_page: number;
+            max_page: number;
+            /** @enum {integer} */
+            all_max_size: 25000;
+            page_start: number;
+            page_end: number;
+            file_name: string;
+        };
+        PaymentExportFile: {
+            url: string;
+            file_name: string;
+        };
+        PaymentAdminRechargeListResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["PaymentPageData"] | components["schemas"]["PaymentExportInfo"] | components["schemas"]["PaymentExportFile"];
+        };
+        /** @description 当前服务只消费 recharge_id/refund_amount；legacy 校验器未拒绝的其他字段会被忽略。 */
+        PaymentRechargeRefundRequest: {
+            recharge_id: number | string;
+            refund_amount?: number | string;
+        } & {
+            [key: string]: components["schemas"]["PaymentIgnoredInput"];
+        };
+        /** @description 当前控制器只消费 record_id；legacy 校验器未拒绝的其他字段会被忽略。 */
+        PaymentRefundRetryRequest: {
+            record_id: number | string;
+        } & {
+            [key: string]: components["schemas"]["PaymentIgnoredInput"];
+        };
+        PaymentRefundStatistics: {
+            total: number;
+            ing: number;
+            success: number;
+            error: number;
+        };
+        PaymentRefundStatisticsResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["PaymentRefundStatistics"];
+        };
+        PaymentRefundRecord: {
+            id: number;
+            /** @enum {string} */
+            order_type: "order" | "recharge";
+            order_amount: string | number;
+            refund_amount: string | number;
+            transaction_id: string | null;
+            /** @enum {integer} */
+            refund_way: 1 | 2;
+            /** @enum {integer} */
+            refund_type: 1;
+            /**
+             * @description 0 退款中、1 退款成功、2 退款失败。gateway 结果未知时保持 0，由 refund:reconcile 后续收敛，不推定终态。
+             * @enum {integer}
+             */
+            refund_status: 0 | 1 | 2;
+            create_time: string;
+            update_time: (number | string) | null;
+            sn: string;
+            order_sn: string;
+            tenant_id?: number;
+            user_id: number;
+            order_id: number;
+            nickname: string;
+            avatar: string;
+            refund_type_text: string;
+            refund_status_text: string;
+            refund_way_text: string;
+        };
+        PaymentRefundSummary: {
+            total: number;
+            ing: number;
+            success: number;
+            error: number;
+        };
+        PaymentRefundPageData: {
+            lists: components["schemas"]["PaymentRefundRecord"][];
+            count: number;
+            pageNo: number;
+            pageSize: number;
+            extend: components["schemas"]["PaymentRefundSummary"];
+        };
+        PaymentRefundListResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["PaymentRefundPageData"];
+        };
+        PaymentRefundLog: {
+            id: number;
+            sn: string | null;
+            record_id: number;
+            handle_id: number;
+            order_amount: string | number;
+            refund_amount: string | number;
+            /**
+             * @description 0 退款中、1 退款成功、2 退款失败。本次 gateway 结果未知时日志保持 0，等待 refund:reconcile 收敛。
+             * @enum {integer}
+             */
+            refund_status: 0 | 1 | 2;
+            create_time: string;
+            update_time: (number | string) | null;
+            tenant_id?: number;
+            user_id: number;
+            handler: string;
+            refund_status_text: string;
+        };
+        PaymentRefundLogResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["PaymentRefundLog"][];
+        };
+        /** @description 完整原始 JSON 会参与微信签名校验；解析器读取列出的标准字段，并保留对渠道新增签名字段的接收能力。 */
+        PaymentWechatCallbackRequest: {
+            id?: string;
+            create_time?: string;
+            event_type?: string;
+            resource_type?: string;
+            summary?: string;
+            resource: {
+                /** @enum {string} */
+                algorithm: "AEAD_AES_256_GCM";
+                ciphertext: string;
+                nonce: string;
+                associated_data?: string;
+            } & {
+                [key: string]: components["schemas"]["PaymentIgnoredInput"];
+            };
+        } & {
+            [key: string]: components["schemas"]["PaymentIgnoredInput"];
+        };
+        PaymentWechatCallbackAcknowledgement: {
+            /** @enum {string} */
+            code: "SUCCESS";
+            /** @enum {string} */
+            message: "成功";
+        };
+        /** @description 支付宝异步通知表单；列出的字段由当前解析器消费，其他渠道扩展字段仍作为字符串参与 RSA2 验签。 */
+        PaymentAlipayCallbackRequest: {
+            sign: string;
+            /** @enum {string} */
+            sign_type: "RSA2";
+            app_id: string;
+            seller_id: string;
+            out_trade_no: string;
+            trade_no: string;
+            total_amount: string;
+            trade_status: string;
+            notify_time?: string;
+            notify_type?: string;
+            notify_id?: string;
+            buyer_id?: string;
+            buyer_logon_id?: string;
+            receipt_amount?: string;
+            invoice_amount?: string;
+            buyer_pay_amount?: string;
+            point_amount?: string;
+            gmt_create?: string;
+            gmt_payment?: string;
+            subject?: string;
+            body?: string;
+            charset?: string;
+            version?: string;
+        } & {
+            [key: string]: string;
+        };
+        PaymentMemberRechargeConfigData: {
+            /** @enum {integer} */
+            status: 0 | 1;
+            min_amount: string;
+            balance: string;
+            /** @enum {integer} */
+            terminal: 1 | 2 | 3 | 4 | 5 | 6;
+            channels: components["schemas"]["PaymentMemberRechargeChannel"][];
+        };
+        PaymentMemberRechargeChannel: {
+            /** @enum {integer} */
+            pay_way: 2 | 3;
+            name: string;
+            /** @enum {integer} */
+            is_default: 0 | 1;
+        };
+        PaymentMemberRechargeConfigResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["PaymentMemberRechargeConfigData"];
+        };
+        /** @description 当前服务只消费 amount/terminal；legacy 校验器未拒绝的其他字段会被忽略。 */
+        PaymentMemberRechargeCreateRequest: {
+            amount: number | string;
+            terminal: (1 | 2 | 3 | 4 | 5 | 6) | ("1" | "2" | "3" | "4" | "5" | "6");
+        } & {
+            [key: string]: components["schemas"]["PaymentIgnoredInput"];
+        };
+        /** @description 当前控制器只消费 order_id/pay_way；legacy 校验器未拒绝的其他字段会被忽略。 */
+        PaymentMemberRechargePrepayRequest: {
+            order_id: number | string;
+            pay_way: (2 | 3) | ("2" | "3");
+        } & {
+            [key: string]: components["schemas"]["PaymentIgnoredInput"];
+        };
+        PaymentRechargeOrderResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["PaymentRechargeOrder"];
+        };
+        PaymentWechatJsapiPayload: {
+            appId: string;
+            timeStamp: string;
+            nonceStr: string;
+            package: string;
+            /** @enum {string} */
+            signType: "RSA";
+            paySign: string;
+        };
+        PaymentWechatAppPayload: {
+            appid: string;
+            partnerid: string;
+            prepayid: string;
+            /** @enum {string} */
+            package: "Sign=WXPay";
+            noncestr: string;
+            timestamp: string;
+            sign: string;
+        };
+        PaymentWechatNativePayload: {
+            code_url: string;
+        };
+        PaymentWechatH5Payload: {
+            h5_url: string;
+        };
+        PaymentAlipayAppPayload: {
+            /** @description 支付宝 SDK 所需完整签名订单字符串。 */
+            order_string: string;
+        };
+        PaymentAlipayRedirectPayload: {
+            /**
+             * Format: uri
+             * @description WAP/PAGE 场景由客户端跳转的支付宝网关 URL。
+             */
+            gateway_url: string;
+        };
+        PaymentPrepayPayment: {
+            /** @enum {string} */
+            channel: "wechat";
+            /** @enum {string} */
+            scene: "JSAPI";
+            payload: components["schemas"]["PaymentWechatJsapiPayload"];
+        } | {
+            /** @enum {string} */
+            channel: "wechat";
+            /** @enum {string} */
+            scene: "MWEB";
+            payload: components["schemas"]["PaymentWechatH5Payload"];
+        } | {
+            /** @enum {string} */
+            channel: "wechat";
+            /** @enum {string} */
+            scene: "NATIVE";
+            payload: components["schemas"]["PaymentWechatNativePayload"];
+        } | {
+            /** @enum {string} */
+            channel: "wechat";
+            /** @enum {string} */
+            scene: "APP";
+            payload: components["schemas"]["PaymentWechatAppPayload"];
+        } | {
+            /** @enum {string} */
+            channel: "alipay";
+            /** @enum {string} */
+            scene: "WAP" | "PAGE";
+            payload: components["schemas"]["PaymentAlipayRedirectPayload"];
+        } | {
+            /** @enum {string} */
+            channel: "alipay";
+            /** @enum {string} */
+            scene: "APP";
+            payload: components["schemas"]["PaymentAlipayAppPayload"];
+        };
+        PaymentRechargePrepayData: {
+            order: components["schemas"]["PaymentRechargeOrder"];
+            payment: components["schemas"]["PaymentPrepayPayment"];
+        };
+        PaymentRechargePrepayResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["PaymentRechargePrepayData"];
+        };
+        PaymentMemberRechargePageData: {
+            lists: components["schemas"]["PaymentRechargeOrder"][];
+            count: number;
+            pageNo: number;
+            pageSize: number;
+        };
+        PaymentMemberRechargeListResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["PaymentMemberRechargePageData"];
+        };
+        /** @description 运行时可接收但 Payment 业务不会读取或持久化的扩展输入值。 */
+        PaymentIgnoredInput: (string | number | boolean | components["schemas"]["PaymentIgnoredInput"][] | {
+            [key: string]: components["schemas"]["PaymentIgnoredInput"];
+        }) | null;
         /** @description 旧控制器保留原始请求；未列字段会被忽略。 */
         ReferenceCodeLegacyIdentifierRequest: {
             id: number;
@@ -6377,6 +11335,343 @@ export interface components {
             };
             meta: components["schemas"]["ReferenceCodeMeta"];
         };
+        RichTextNodeDoc: {
+            /** @enum {string} */
+            type: "doc";
+            attrs?: Record<string, never> | string[] | (null);
+            content: (components["schemas"]["RichTextNodeParagraph"] | components["schemas"]["RichTextNodeHeading"] | components["schemas"]["RichTextNodeBlockquote"] | components["schemas"]["RichTextNodeBulletList"] | components["schemas"]["RichTextNodeOrderedList"] | components["schemas"]["RichTextNodeCodeBlock"] | components["schemas"]["RichTextNodeHorizontalRule"] | components["schemas"]["RichTextNodeTable"] | components["schemas"]["RichTextNodeImage"] | components["schemas"]["RichTextNodeVideo"] | components["schemas"]["RichTextNodeAudio"] | components["schemas"]["RichTextNodeFile"] | components["schemas"]["RichTextNodeMedia"])[];
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextNodeParagraph: {
+            /** @enum {string} */
+            type: "paragraph";
+            attrs?: {
+                /** @enum {string|null} */
+                textAlign?: "left" | "right" | "center" | "justify" | null;
+            } | string[] | (null);
+            content?: (components["schemas"]["RichTextNodeText"] | components["schemas"]["RichTextNodeHardBreak"])[] | null;
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextNodeHeading: {
+            /** @enum {string} */
+            type: "heading";
+            attrs?: {
+                level?: number;
+                /** @enum {string|null} */
+                textAlign?: "left" | "right" | "center" | "justify" | null;
+            } | string[] | (null);
+            content?: (components["schemas"]["RichTextNodeText"] | components["schemas"]["RichTextNodeHardBreak"])[] | null;
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextNodeBlockquote: {
+            /** @enum {string} */
+            type: "blockquote";
+            attrs?: Record<string, never> | string[] | (null);
+            content: (components["schemas"]["RichTextNodeParagraph"] | components["schemas"]["RichTextNodeHeading"] | components["schemas"]["RichTextNodeBlockquote"] | components["schemas"]["RichTextNodeBulletList"] | components["schemas"]["RichTextNodeOrderedList"] | components["schemas"]["RichTextNodeCodeBlock"] | components["schemas"]["RichTextNodeHorizontalRule"] | components["schemas"]["RichTextNodeTable"] | components["schemas"]["RichTextNodeImage"] | components["schemas"]["RichTextNodeVideo"] | components["schemas"]["RichTextNodeAudio"] | components["schemas"]["RichTextNodeFile"] | components["schemas"]["RichTextNodeMedia"])[];
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextNodeBulletList: {
+            /** @enum {string} */
+            type: "bulletList";
+            attrs?: Record<string, never> | string[] | (null);
+            content: components["schemas"]["RichTextNodeListItem"][];
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextNodeOrderedList: {
+            /** @enum {string} */
+            type: "orderedList";
+            attrs?: {
+                start?: number;
+            } | string[] | (null);
+            content: components["schemas"]["RichTextNodeListItem"][];
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextNodeCodeBlock: {
+            /** @enum {string} */
+            type: "codeBlock";
+            attrs?: {
+                language?: string | null;
+            } | string[] | (null);
+            content?: components["schemas"]["RichTextNodeText"][] | null;
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextNodeHorizontalRule: {
+            /** @enum {string} */
+            type: "horizontalRule";
+            attrs?: Record<string, never> | string[] | (null);
+            content?: string[] | null;
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextNodeTable: {
+            /** @enum {string} */
+            type: "table";
+            attrs?: Record<string, never> | string[] | (null);
+            content: components["schemas"]["RichTextNodeTableRow"][];
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextNodeImage: {
+            /** @enum {string} */
+            type: "image";
+            attrs: {
+                fileKey: string;
+                /** @enum {string} */
+                kind: "image" | "video" | "audio" | "file";
+                variantKey?: string | null;
+                /** @description At most 1000 UTF-8 bytes when non-null. */
+                alt?: string | null;
+                /** @description At most 1000 UTF-8 bytes when non-null. */
+                title?: string | null;
+            };
+            content?: string[] | null;
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextNodeVideo: {
+            /** @enum {string} */
+            type: "video";
+            attrs: {
+                fileKey: string;
+                /** @enum {string} */
+                kind: "image" | "video" | "audio" | "file";
+                variantKey?: string | null;
+                /** @description At most 1000 UTF-8 bytes when non-null. */
+                alt?: string | null;
+                /** @description At most 1000 UTF-8 bytes when non-null. */
+                title?: string | null;
+            };
+            content?: string[] | null;
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextNodeAudio: {
+            /** @enum {string} */
+            type: "audio";
+            attrs: {
+                fileKey: string;
+                /** @enum {string} */
+                kind: "image" | "video" | "audio" | "file";
+                variantKey?: string | null;
+                /** @description At most 1000 UTF-8 bytes when non-null. */
+                alt?: string | null;
+                /** @description At most 1000 UTF-8 bytes when non-null. */
+                title?: string | null;
+            };
+            content?: string[] | null;
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextNodeFile: {
+            /** @enum {string} */
+            type: "file";
+            attrs: {
+                fileKey: string;
+                /** @enum {string} */
+                kind: "image" | "video" | "audio" | "file";
+                variantKey?: string | null;
+                /** @description At most 1000 UTF-8 bytes when non-null. */
+                alt?: string | null;
+                /** @description At most 1000 UTF-8 bytes when non-null. */
+                title?: string | null;
+            };
+            content?: string[] | null;
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextNodeMedia: {
+            /** @enum {string} */
+            type: "media";
+            attrs: {
+                fileKey: string;
+                /** @enum {string} */
+                kind: "image" | "video" | "audio" | "file";
+                variantKey?: string | null;
+                /** @description At most 1000 UTF-8 bytes when non-null. */
+                alt?: string | null;
+                /** @description At most 1000 UTF-8 bytes when non-null. */
+                title?: string | null;
+            };
+            content?: string[] | null;
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextNodeText: {
+            /** @enum {string} */
+            type: "text";
+            attrs?: Record<string, never> | string[] | (null);
+            content?: string[] | null;
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            text: string;
+        };
+        RichTextNodeHardBreak: {
+            /** @enum {string} */
+            type: "hardBreak";
+            attrs?: Record<string, never> | string[] | (null);
+            content?: string[] | null;
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextNodeListItem: {
+            /** @enum {string} */
+            type: "listItem";
+            attrs?: Record<string, never> | string[] | (null);
+            /** @description First child must be a paragraph. */
+            content: (components["schemas"]["RichTextNodeParagraph"] | components["schemas"]["RichTextNodeHeading"] | components["schemas"]["RichTextNodeBlockquote"] | components["schemas"]["RichTextNodeBulletList"] | components["schemas"]["RichTextNodeOrderedList"] | components["schemas"]["RichTextNodeCodeBlock"] | components["schemas"]["RichTextNodeHorizontalRule"] | components["schemas"]["RichTextNodeTable"] | components["schemas"]["RichTextNodeImage"] | components["schemas"]["RichTextNodeVideo"] | components["schemas"]["RichTextNodeAudio"] | components["schemas"]["RichTextNodeFile"] | components["schemas"]["RichTextNodeMedia"])[];
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextNodeTableRow: {
+            /** @enum {string} */
+            type: "tableRow";
+            attrs?: Record<string, never> | string[] | (null);
+            content: (components["schemas"]["RichTextNodeTableCell"] | components["schemas"]["RichTextNodeTableHeader"])[];
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextNodeTableCell: {
+            /** @enum {string} */
+            type: "tableCell";
+            attrs?: {
+                colspan?: number;
+                rowspan?: number;
+                colwidth?: number[] | null;
+            } | string[] | (null);
+            content: (components["schemas"]["RichTextNodeParagraph"] | components["schemas"]["RichTextNodeHeading"] | components["schemas"]["RichTextNodeBlockquote"] | components["schemas"]["RichTextNodeBulletList"] | components["schemas"]["RichTextNodeOrderedList"] | components["schemas"]["RichTextNodeCodeBlock"] | components["schemas"]["RichTextNodeHorizontalRule"] | components["schemas"]["RichTextNodeTable"] | components["schemas"]["RichTextNodeImage"] | components["schemas"]["RichTextNodeVideo"] | components["schemas"]["RichTextNodeAudio"] | components["schemas"]["RichTextNodeFile"] | components["schemas"]["RichTextNodeMedia"])[];
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextNodeTableHeader: {
+            /** @enum {string} */
+            type: "tableHeader";
+            attrs?: {
+                colspan?: number;
+                rowspan?: number;
+                colwidth?: number[] | null;
+            } | string[] | (null);
+            content: (components["schemas"]["RichTextNodeParagraph"] | components["schemas"]["RichTextNodeHeading"] | components["schemas"]["RichTextNodeBlockquote"] | components["schemas"]["RichTextNodeBulletList"] | components["schemas"]["RichTextNodeOrderedList"] | components["schemas"]["RichTextNodeCodeBlock"] | components["schemas"]["RichTextNodeHorizontalRule"] | components["schemas"]["RichTextNodeTable"] | components["schemas"]["RichTextNodeImage"] | components["schemas"]["RichTextNodeVideo"] | components["schemas"]["RichTextNodeAudio"] | components["schemas"]["RichTextNodeFile"] | components["schemas"]["RichTextNodeMedia"])[];
+            marks?: components["schemas"]["RichTextMark"][] | null;
+            /** @enum {string|null} */
+            text?: null;
+        };
+        RichTextMark: {
+            /** @enum {string} */
+            type: "bold";
+            attrs?: Record<string, never> | string[] | (null);
+        } | {
+            /** @enum {string} */
+            type: "italic";
+            attrs?: Record<string, never> | string[] | (null);
+        } | {
+            /** @enum {string} */
+            type: "strike";
+            attrs?: Record<string, never> | string[] | (null);
+        } | {
+            /** @enum {string} */
+            type: "underline";
+            attrs?: Record<string, never> | string[] | (null);
+        } | {
+            /** @enum {string} */
+            type: "code";
+            attrs?: Record<string, never> | string[] | (null);
+        } | {
+            /** @enum {string} */
+            type: "link";
+            attrs: {
+                /** @description At most 2048 bytes; http(s) needs a host; /storage/delivery is forbidden. */
+                href: string;
+                /** @enum {string|null} */
+                target?: "_blank" | "_self" | null;
+                /** @enum {string|null} */
+                rel?: "noopener noreferrer" | "noopener noreferrer nofollow" | null;
+                /** @enum {string|null} */
+                class?: null;
+            };
+        } | {
+            /** @enum {string} */
+            type: "textStyle";
+            attrs?: {
+                color?: string | null;
+            } | string[] | (null);
+        };
+        /** @description RichTextProjection whitelist: at most 50000 total nodes, nesting <=60, <=1000 distinct file keys. Validator JSON encoding depth 64 and <=1 MiB apply to requests. Code-block text children must have no marks. No Yjs state is synthesized from this JSON. */
+        RichTextStructuredContent: {
+            /** @enum {string} */
+            schemaVersion: "peanut.richtext/1";
+            /** @enum {string} */
+            editorModel: "tiptap-prosemirror";
+            content: components["schemas"]["RichTextNodeDoc"];
+            annotations: string[];
+        };
+        RichTextRecord: {
+            id: string;
+            title: string;
+            revision: number;
+            created_by_member_id: string;
+            updated_by_member_id: string;
+            /** @description Model timestamp formatted with database.datetime_format (Y-m-d H:i:s). */
+            create_time: string;
+            /** @description Model timestamp formatted with database.datetime_format (Y-m-d H:i:s). */
+            update_time: string;
+        };
+        RichTextDetail: {
+            id: string;
+            title: string;
+            revision: number;
+            created_by_member_id: string;
+            updated_by_member_id: string;
+            /** @description Model timestamp formatted with database.datetime_format (Y-m-d H:i:s). */
+            create_time: string;
+            /** @description Model timestamp formatted with database.datetime_format (Y-m-d H:i:s). */
+            update_time: string;
+            document: components["schemas"]["RichTextStructuredContent"];
+            /** Format: byte */
+            collaboration_state: string;
+        };
+        RichTextCollaboration: {
+            /** @enum {boolean} */
+            enabled: false;
+            /** @enum {string|null} */
+            url: null;
+            document_name: string;
+            /** @enum {string|null} */
+            token: null;
+            /** @enum {string|null} */
+            expires_at: null;
+        } | {
+            /** @enum {boolean} */
+            enabled: true;
+            url: string;
+            document_name: string;
+            /** @description Short-lived payload.signature ticket; expires in 300 seconds. */
+            token: string;
+            expires_at: number;
+        };
         /** @description 任意 JSON 值；整数同时属于 JSON number，故使用 anyOf 避免 oneOf 重叠。 */
         SettingValue: (string | number | boolean | {
             [key: string]: components["schemas"]["SettingValue"];
@@ -6546,6 +11841,61 @@ export interface components {
             msg: string;
             data: components["schemas"]["TaskExpressionItem"][];
         };
+        /** @description Persisted event-time metadata only. File preview, original download and management require separate current authorization; a changed source must not be delivered as the historical bytes. */
+        WorkflowAttachment: {
+            file_key: string;
+            name: string;
+            media_type: string;
+            size_bytes: number;
+            sha256: string;
+        };
+        WorkflowEvent: {
+            sequence_no: number;
+            event_key: string;
+            node_execution_key: string | null;
+            actor_member_id: string | null;
+            comment: string | null;
+            metadata: Record<string, never>;
+            attachments: components["schemas"]["WorkflowAttachment"][];
+            occurred_at: string;
+        };
+        WorkflowStartSummary: {
+            definition_id: string;
+            module_key: string;
+            workflow_key: string;
+            /** @enum {string} */
+            status: "active";
+            draft_revision: number;
+            active_version: number;
+        };
+        WorkflowFrozenMaterials: {
+            revision_key: string;
+            sha256: string;
+            fields: Record<string, never>;
+            reference: Record<string, never>;
+        };
+        WorkflowNotificationDiagnostic: {
+            sequence_no: number;
+            /** @enum {string} */
+            status: "pending_materialization" | "materialized";
+            last_error: string | null;
+            available_actions: "reauthorize"[];
+            outboxes: components["schemas"]["WorkflowNotificationOutboxDiagnostic"][];
+        };
+        WorkflowNotificationOutboxDiagnostic: {
+            outbox_key: string;
+            delivery_status: string;
+            available_actions: ("retry_original" | "reauthorize")[];
+            /** @description The native redacted Task record; signed authorization and session references are excluded. */
+            task: Record<string, never> | null;
+        };
+        WorkflowRuntimeErrorEnvelope: {
+            code: number;
+            msg: string;
+            data: {
+                error_code: string;
+            };
+        };
     };
     responses: {
         /** @description Standard Peanut Module Code API response */
@@ -6568,6 +11918,17 @@ export interface components {
                 "application/json": components["schemas"]["ErrorEnvelope"];
             };
         };
+        /** @description 统一 API 错误；X-Request-Id 响应头用于追踪。 */
+        ArticleErrorResponse: {
+            headers: {
+                /** @description 请求追踪 ID */
+                "X-Request-Id"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ArticleErrorEnvelope"];
+            };
+        };
         /** @description Updated tenant setting with the resulting strong ETag. */
         SettingRecordResponse: {
             headers: {
@@ -6576,6 +11937,15 @@ export interface components {
             };
             content: {
                 "application/json": components["schemas"]["SettingRecordResponseBody"];
+            };
+        };
+        /** @description Native error envelope; HTTP status and X-Request-ID are retained. */
+        WorkflowRuntimeError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["WorkflowRuntimeErrorEnvelope"];
             };
         };
     };
@@ -6649,6 +12019,58 @@ export interface operations {
             };
             403: components["responses"]["ErrorResponse"];
             422: components["responses"]["ErrorResponse"];
+        };
+    };
+    listArticles: {
+        parameters: {
+            query?: {
+                page_no?: components["parameters"]["PageNo"];
+                page_size?: components["parameters"]["PageSize"];
+                cid?: number;
+                keyword?: string;
+                sort?: "default" | "new" | "hot";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 公开文章分页 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationArticleListResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    articleDetail: {
+        parameters: {
+            query: {
+                id: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 公开文章详情 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationArticleDetailResponse"];
+                };
+            };
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
         };
     };
     uploadFile: {
@@ -6739,6 +12161,36 @@ export interface operations {
             422: components["responses"]["ErrorResponse"];
         };
     };
+    sendVerificationCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    scene: string;
+                    mobile?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 验证码发送请求已受理 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
     getFirstRunReadinessChecklist: {
         parameters: {
             query?: never;
@@ -6764,6 +12216,83 @@ export interface operations {
             };
             401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
+        };
+    };
+    exportTenantConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Configuration package */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigurationTransferPackageResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    previewTenantConfigurationImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfigurationTransferRequest"];
+            };
+        };
+        responses: {
+            /** @description Configuration import plan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigurationTransferPlanResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    applyTenantConfigurationImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfigurationTransferRequest"];
+            };
+        };
+        responses: {
+            /** @description Applied configuration import plan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigurationTransferPlanResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
         };
     };
     listPlatformBackups: {
@@ -7207,6 +12736,32 @@ export interface operations {
             422: components["responses"]["ErrorResponse"];
         };
     };
+    getApplicationHome: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationHomeData"];
+                    };
+                };
+            };
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
     getApplicationPublicConfig: {
         parameters: {
             query?: never;
@@ -7255,6 +12810,58 @@ export interface operations {
                         code: 20000;
                         msg: string;
                         data: components["schemas"]["ApplicationPolicy"];
+                    };
+                };
+            };
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    logoutMemberSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationDynamicValue"][];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+        };
+    };
+    listPublicArticleCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationArticleCategory"][];
                     };
                 };
             };
@@ -7391,6 +12998,183 @@ export interface operations {
                     };
                 };
             };
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    getPcHome: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationPcHomeData"];
+                    };
+                };
+            };
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    getPcInformationCenter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationInformationCategory"][];
+                    };
+                };
+            };
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    getPcArticleDetail: {
+        parameters: {
+            query?: {
+                id?: number;
+                source?: "default" | "all" | "new" | "hot";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationPcArticleDetail"] | unknown[];
+                    };
+                };
+            };
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    addArticleCollection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationArticleCollectionRequest"];
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationDynamicValue"][];
+                    };
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+        };
+    };
+    cancelArticleCollection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationArticleCollectionRequest"];
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationDynamicValue"][];
+                    };
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    listArticleCollections: {
+        parameters: {
+            query?: {
+                page_no?: components["parameters"]["PageNo"];
+                page_size?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationArticleCollectionPage"];
+                    };
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
         };
     };
@@ -9840,6 +15624,35 @@ export interface operations {
             422: components["responses"]["ErrorResponse"];
         };
     };
+    listDecorationArticleOptions: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ArticleOption"][];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
     getDecorationTabbar: {
         parameters: {
             query?: never;
@@ -11963,7 +17776,9 @@ export interface operations {
     uninstallInstanceModule: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -12385,6 +18200,1698 @@ export interface operations {
             409: components["responses"]["ErrorResponse"];
             422: components["responses"]["ErrorResponse"];
             503: components["responses"]["ErrorResponse"];
+        };
+    };
+    articleBodyEditor: {
+        parameters: {
+            query: {
+                /**
+                 * @description 资讯 ID
+                 * @example 12
+                 */
+                id: components["schemas"]["ArticlePositiveIntegerInput"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 读取当前人员获准编辑的既有正文成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleBodyEditorResponse"];
+                };
+            };
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+            404: components["responses"]["ArticleErrorResponse"];
+            409: components["responses"]["ArticleErrorResponse"];
+            422: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    articleBodyTransport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleIdentifierRequest"];
+            };
+        };
+        responses: {
+            /** @description 签发既有正文写票据（不含部署发现地址）成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleBodyTransportResponse"];
+                };
+            };
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+            404: components["responses"]["ArticleErrorResponse"];
+            409: components["responses"]["ArticleErrorResponse"];
+            422: components["responses"]["ArticleErrorResponse"];
+            503: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    saveArticleBody: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleBodySaveRequest"];
+            };
+        };
+        responses: {
+            /** @description 元数据与正文不可变版本原子绑定成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleBodySaveResponse"];
+                };
+            };
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+            404: components["responses"]["ArticleErrorResponse"];
+            409: components["responses"]["ArticleErrorResponse"];
+            422: components["responses"]["ArticleErrorResponse"];
+            503: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    articleBodySaveOperation: {
+        parameters: {
+            query: {
+                /**
+                 * @description 资讯 ID
+                 * @example 12
+                 */
+                id: components["schemas"]["ArticlePositiveIntegerInput"];
+                request_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 读取原人员的原保存请求；未完成时重放相同输入成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleBodySaveOperationResponse"];
+                };
+            };
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+            404: components["responses"]["ArticleErrorResponse"];
+            409: components["responses"]["ArticleErrorResponse"];
+            422: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    ensureArticleBodyDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    id: number;
+                    request_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Business-owned body document; no automatic conversion of legacy Article content. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentMetadataResponse"];
+                };
+            };
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+            404: components["responses"]["ArticleErrorResponse"];
+            409: components["responses"]["ArticleErrorResponse"];
+            422: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    listArticleCategories: {
+        parameters: {
+            query?: {
+                page_no?: components["parameters"]["PageNo"];
+                page_size?: components["parameters"]["PageSize"];
+                page_start?: components["schemas"]["ArticlePositiveIntegerInput"];
+                page_end?: components["schemas"]["ArticlePositiveIntegerInput"];
+                file_name?: string;
+                page_type?: 0 | 1;
+                order_by?: "asc" | "desc";
+                field?: "create_time" | "id";
+                name?: string;
+                is_show?: 0 | 1;
+                /** @example 2026-09-01 00:00:00 */
+                start_time?: string;
+                /** @example 2026-09-30 23:59:59 */
+                end_time?: string;
+                start?: number;
+                end?: number;
+                export?: 1 | 2;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询资讯分类成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleCategoryPageResponse"];
+                };
+            };
+            400: components["responses"]["ArticleErrorResponse"];
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    listEnabledArticleCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询全部启用资讯分类成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleCategoryCollectionResponse"];
+                };
+            };
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    getArticleCategory: {
+        parameters: {
+            query: {
+                /**
+                 * @description 资讯分类 ID
+                 * @example 12
+                 */
+                id: components["schemas"]["ArticlePositiveIntegerInput"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询资讯分类详情成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleCategoryDetailResponse"];
+                };
+            };
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    createArticleCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleCategoryCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description 创建资讯分类成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleMutationResponse"];
+                };
+            };
+            400: components["responses"]["ArticleErrorResponse"];
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    updateArticleCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleCategoryUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description 更新资讯分类成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleMutationResponse"];
+                };
+            };
+            400: components["responses"]["ArticleErrorResponse"];
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+            404: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    deleteArticleCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleIdentifierRequest"];
+            };
+        };
+        responses: {
+            /** @description 软删除资讯分类成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleMutationResponse"];
+                };
+            };
+            400: components["responses"]["ArticleErrorResponse"];
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+            404: components["responses"]["ArticleErrorResponse"];
+            409: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    updateArticleCategoryStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description 更新资讯分类启用状态成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleMutationResponse"];
+                };
+            };
+            400: components["responses"]["ArticleErrorResponse"];
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+            404: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    listRecycledArticleCategories: {
+        parameters: {
+            query?: {
+                page_no?: components["parameters"]["PageNo"];
+                page_size?: components["parameters"]["PageSize"];
+                page_start?: components["schemas"]["ArticlePositiveIntegerInput"];
+                page_end?: components["schemas"]["ArticlePositiveIntegerInput"];
+                file_name?: string;
+                page_type?: 0 | 1;
+                order_by?: "asc" | "desc";
+                field?: "create_time" | "id";
+                name?: string;
+                is_show?: 0 | 1;
+                /** @example 2026-09-01 00:00:00 */
+                start_time?: string;
+                /** @example 2026-09-30 23:59:59 */
+                end_time?: string;
+                start?: number;
+                end?: number;
+                export?: 1 | 2;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询已删除资讯分类成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleCategoryPageResponse"];
+                };
+            };
+            400: components["responses"]["ArticleErrorResponse"];
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    getRecycledArticleCategory: {
+        parameters: {
+            query: {
+                /**
+                 * @description 已删除资讯分类 ID
+                 * @example 12
+                 */
+                id: components["schemas"]["ArticlePositiveIntegerInput"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询已删除资讯分类详情成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleCategoryDetailResponse"];
+                };
+            };
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    restoreArticleCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleBatchIdentifierRequest"];
+            };
+        };
+        responses: {
+            /** @description 恢复已删除资讯分类成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleBatchMutationResponse"];
+                };
+            };
+            400: components["responses"]["ArticleErrorResponse"];
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    forceDeleteArticleCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleBatchIdentifierRequest"];
+            };
+        };
+        responses: {
+            /** @description 永久删除资讯分类成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleBatchMutationResponse"];
+                };
+            };
+            400: components["responses"]["ArticleErrorResponse"];
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    listAdminArticles: {
+        parameters: {
+            query?: {
+                page_no?: components["parameters"]["PageNo"];
+                page_size?: components["parameters"]["PageSize"];
+                page_start?: components["schemas"]["ArticlePositiveIntegerInput"];
+                page_end?: components["schemas"]["ArticlePositiveIntegerInput"];
+                file_name?: string;
+                page_type?: 0 | 1;
+                order_by?: "asc" | "desc";
+                field?: "create_time" | "id";
+                title?: string;
+                is_show?: 0 | 1;
+                /** @example 2026-09-01 00:00:00 */
+                start_time?: string;
+                /** @example 2026-09-30 23:59:59 */
+                end_time?: string;
+                start?: number;
+                end?: number;
+                cid?: components["schemas"]["ArticlePositiveIntegerInput"];
+                export?: 1 | 2;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询资讯成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticlePageResponse"];
+                };
+            };
+            400: components["responses"]["ArticleErrorResponse"];
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    getAdminArticle: {
+        parameters: {
+            query: {
+                /**
+                 * @description 资讯 ID
+                 * @example 12
+                 */
+                id: components["schemas"]["ArticlePositiveIntegerInput"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询资讯详情成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleDetailResponse"];
+                };
+            };
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    createArticle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description 创建资讯成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleMutationResponse"];
+                };
+            };
+            400: components["responses"]["ArticleErrorResponse"];
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+            409: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    updateArticle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description 更新资讯成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleMutationResponse"];
+                };
+            };
+            400: components["responses"]["ArticleErrorResponse"];
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+            404: components["responses"]["ArticleErrorResponse"];
+            409: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    deleteArticle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleIdentifierRequest"];
+            };
+        };
+        responses: {
+            /** @description 软删除资讯成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleMutationResponse"];
+                };
+            };
+            400: components["responses"]["ArticleErrorResponse"];
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+            404: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    updateArticleStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description 更新资讯展示状态成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleMutationResponse"];
+                };
+            };
+            400: components["responses"]["ArticleErrorResponse"];
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+            404: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    listRecycledArticles: {
+        parameters: {
+            query?: {
+                page_no?: components["parameters"]["PageNo"];
+                page_size?: components["parameters"]["PageSize"];
+                page_start?: components["schemas"]["ArticlePositiveIntegerInput"];
+                page_end?: components["schemas"]["ArticlePositiveIntegerInput"];
+                file_name?: string;
+                page_type?: 0 | 1;
+                order_by?: "asc" | "desc";
+                field?: "create_time" | "id";
+                title?: string;
+                is_show?: 0 | 1;
+                /** @example 2026-09-01 00:00:00 */
+                start_time?: string;
+                /** @example 2026-09-30 23:59:59 */
+                end_time?: string;
+                start?: number;
+                end?: number;
+                cid?: components["schemas"]["ArticlePositiveIntegerInput"];
+                export?: 1 | 2;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询已删除资讯成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticlePageResponse"];
+                };
+            };
+            400: components["responses"]["ArticleErrorResponse"];
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    getRecycledArticle: {
+        parameters: {
+            query: {
+                /**
+                 * @description 已删除资讯 ID
+                 * @example 12
+                 */
+                id: components["schemas"]["ArticlePositiveIntegerInput"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询已删除资讯详情成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleDetailResponse"];
+                };
+            };
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    restoreArticles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleBatchIdentifierRequest"];
+            };
+        };
+        responses: {
+            /** @description 恢复已删除资讯成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleBatchMutationResponse"];
+                };
+            };
+            400: components["responses"]["ArticleErrorResponse"];
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    forceDeleteArticles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleBatchIdentifierRequest"];
+            };
+        };
+        responses: {
+            /** @description 永久删除资讯成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleBatchMutationResponse"];
+                };
+            };
+            400: components["responses"]["ArticleErrorResponse"];
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    resolveCollaborationTransport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: number;
+                    /** @enum {string} */
+                    mode: "read" | "write";
+                };
+            };
+        };
+        responses: {
+            /** @description Native protocol 2 result. A merged broadcast is not a committed database receipt. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollaborationTransportResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            429: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    authorizeCollaborationConnection: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Collaboration-Protocol": string;
+                "X-Collaboration-Service-Instance": string;
+                "X-Collaboration-Key-Id": string;
+                "X-Collaboration-Holder-Key": string;
+                "X-Collaboration-Timestamp": string;
+                "X-Collaboration-Nonce": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    token: string;
+                    document_name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Native protocol 2 result. A merged broadcast is not a committed database receipt. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollaborationConnectionResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            429: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    checkCollaborationConnection: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Collaboration-Protocol": string;
+                "X-Collaboration-Service-Instance": string;
+                "X-Collaboration-Key-Id": string;
+                "X-Collaboration-Holder-Key": string;
+                "X-Collaboration-Timestamp": string;
+                "X-Collaboration-Nonce": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    connection_key: string;
+                    /** @enum {string} */
+                    mode: "read" | "write";
+                };
+            };
+        };
+        responses: {
+            /** @description Native protocol 2 result. A merged broadcast is not a committed database receipt. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollaborationConnectionResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            429: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    loadCollaborationDocument: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Collaboration-Protocol": string;
+                "X-Collaboration-Service-Instance": string;
+                "X-Collaboration-Key-Id": string;
+                "X-Collaboration-Holder-Key": string;
+                "X-Collaboration-Timestamp": string;
+                "X-Collaboration-Nonce": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    room_key: string;
+                    lease_epoch: number;
+                    connection_key: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Native protocol 2 result. A merged broadcast is not a committed database receipt. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollaborationLoadResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            429: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    storeCollaborationCapture: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Collaboration-Protocol": string;
+                "X-Collaboration-Service-Instance": string;
+                "X-Collaboration-Key-Id": string;
+                "X-Collaboration-Holder-Key": string;
+                "X-Collaboration-Timestamp": string;
+                "X-Collaboration-Nonce": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {integer} */
+                    protocol: 2;
+                    instance_id: string;
+                    /** @enum {string} */
+                    edition: "engine" | "standalone" | "multi-tenant";
+                    tenant_id: number;
+                    document_id: number;
+                    owner: {
+                        module_key: string;
+                        object_type: string;
+                        object_id: string;
+                        slot: string;
+                    };
+                    room_key: string;
+                    lease_epoch: number;
+                    service_instance_id: string;
+                    base_state_seq: number;
+                    store_id: string;
+                    target_progress: number;
+                    baseline_sha256: string;
+                    binary_sha256: string;
+                    projector_version: string;
+                    projection_sha256: string;
+                    reference_digest: string;
+                    participants: {
+                        connection_key: string;
+                        authorization_revision: string;
+                        authorized_at_ms: number;
+                    }[];
+                    /** @description Canonical base64, at most 4 MiB decoded. PHP verifies bytes/hash; native Yjs owns merging and coverage. */
+                    binary_base64: string;
+                    structured_content: components["schemas"]["DocumentStructuredContent"];
+                };
+            };
+        };
+        responses: {
+            /** @description Native protocol 2 result. A merged broadcast is not a committed database receipt. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollaborationStoreResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            429: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    queryCollaborationReceipt: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Collaboration-Protocol": string;
+                "X-Collaboration-Service-Instance": string;
+                "X-Collaboration-Key-Id": string;
+                "X-Collaboration-Holder-Key": string;
+                "X-Collaboration-Timestamp": string;
+                "X-Collaboration-Nonce": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    room_key: string;
+                    lease_epoch: number;
+                    store_id: string;
+                    capture_sha256: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Native protocol 2 result. A merged broadcast is not a committed database receipt. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollaborationReceiptResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            429: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    reserveCollaborationReferences: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Collaboration-Protocol": string;
+                "X-Collaboration-Service-Instance": string;
+                "X-Collaboration-Key-Id": string;
+                "X-Collaboration-Holder-Key": string;
+                "X-Collaboration-Timestamp": string;
+                "X-Collaboration-Nonce": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    room_key: string;
+                    lease_epoch: number;
+                    connection_key: string;
+                    file_keys: string[];
+                    request_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Native protocol 2 result. A merged broadcast is not a committed database receipt. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollaborationReferenceResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            429: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    prepareCollaborationTarget: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Collaboration-Protocol": string;
+                "X-Collaboration-Service-Instance": string;
+                "X-Collaboration-Key-Id": string;
+                "X-Collaboration-Holder-Key": string;
+                "X-Collaboration-Timestamp": string;
+                "X-Collaboration-Nonce": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {integer} */
+                    protocol: 2;
+                    connection_key: string;
+                    request_id: string;
+                    target_binary_sha256: string;
+                    target_projection_sha256: string;
+                    /** @description Canonical base64, at most 4 MiB decoded. PHP verifies bytes/hash; native Yjs owns merging and coverage. */
+                    binary_base64: string;
+                    structured_content: components["schemas"]["DocumentStructuredContent"];
+                    projector_version: string;
+                    reference_digest: string;
+                    target_progress: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Native protocol 2 result. A merged broadcast is not a committed database receipt. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollaborationTargetPreparationResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            429: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    confirmCollaborationTarget: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Collaboration-Protocol": string;
+                "X-Collaboration-Service-Instance": string;
+                "X-Collaboration-Key-Id": string;
+                "X-Collaboration-Holder-Key": string;
+                "X-Collaboration-Timestamp": string;
+                "X-Collaboration-Nonce": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {integer} */
+                    protocol: 2;
+                    connection_key: string;
+                    request_id: string;
+                    target_binary_sha256: string;
+                    target_projection_sha256: string;
+                    /** @description Canonical base64, at most 4 MiB decoded. PHP verifies bytes/hash; native Yjs owns merging and coverage. */
+                    binary_base64: string;
+                    structured_content: components["schemas"]["DocumentStructuredContent"];
+                    projector_version: string;
+                    reference_digest: string;
+                    target_progress: number;
+                    store_id: string;
+                    state_seq: number;
+                    committed_binary_sha256: string;
+                    coverage: {
+                        /** @enum {string} */
+                        algorithm: "yjs.snapshotContainsUpdate/13.6.32";
+                        /** @enum {boolean} */
+                        covers_target: true;
+                        /** @description Canonical base64, at most 4 MiB decoded. PHP verifies bytes/hash; native Yjs owns merging and coverage. */
+                        committed_snapshot_base64: string;
+                        /** @description Canonical base64, at most 4 MiB decoded. PHP verifies bytes/hash; native Yjs owns merging and coverage. */
+                        target_snapshot_base64: string;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Native protocol 2 result. A merged broadcast is not a committed database receipt. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollaborationTargetResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            429: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    recoverCollaborationRoom: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Collaboration-Protocol": string;
+                "X-Collaboration-Service-Instance": string;
+                "X-Collaboration-Key-Id": string;
+                "X-Collaboration-Holder-Key": string;
+                "X-Collaboration-Timestamp": string;
+                "X-Collaboration-Nonce": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {integer} */
+                    protocol: 2;
+                    request_id: string;
+                    room_key: string;
+                    lease_epoch: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Native protocol 2 result. A merged broadcast is not a committed database receipt. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollaborationRecoveryResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            429: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    revokeCollaborationConnection: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Collaboration-Protocol": string;
+                "X-Collaboration-Service-Instance": string;
+                "X-Collaboration-Key-Id": string;
+                "X-Collaboration-Holder-Key": string;
+                "X-Collaboration-Timestamp": string;
+                "X-Collaboration-Nonce": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    connection_key: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Native protocol 2 result. A merged broadcast is not a committed database receipt. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollaborationRevokeResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            429: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    getDocumentTarget: {
+        parameters: {
+            query: {
+                document_id: number;
+                request_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current owner-authorized document result. Confirmed versions are immutable and committed, not business approval. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentTargetResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    cancelDocumentTarget: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: number;
+                    request_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Current owner-authorized document result. Confirmed versions are immutable and committed, not business approval. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentTargetCancelResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    queryDocumentBusinessOperation: {
+        parameters: {
+            query: {
+                document_id: number;
+                operation_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current owner-authorized document result. Confirmed versions are immutable and committed, not business approval. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentBusinessOperationResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    documentDetail: {
+        parameters: {
+            query: {
+                document_id: number;
+                revision_id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current owner-authorized document result. Confirmed versions are immutable and committed, not business approval. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentDetailResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    documentVersions: {
+        parameters: {
+            query: {
+                document_id: number;
+                limit?: number;
+                before_revision_no?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current owner-authorized document result. Confirmed versions are immutable and committed, not business approval. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentVersionsResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    documentCapabilities: {
+        parameters: {
+            query: {
+                document_id: number;
+                revision_id?: number;
+                intent: "view" | "edit";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current owner-authorized document result. Confirmed versions are immutable and committed, not business approval. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentCapabilitiesResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    saveSoloDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: number;
+                    expected_state_seq: number;
+                    request_id: string;
+                    structured_content: components["schemas"]["DocumentStructuredContent"];
+                };
+            };
+        };
+        responses: {
+            /** @description Current owner-authorized document result. Confirmed versions are immutable and committed, not business approval. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentSaveResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    bindDocumentResource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: number;
+                    expected_state_seq: number;
+                    request_id: string;
+                    file_key: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Current owner-authorized document result. Confirmed versions are immutable and committed, not business approval. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentSaveResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    createDocumentVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: number;
+                    expected_state_seq: number;
+                    reason: string;
+                    idempotency_key: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Current owner-authorized document result. Confirmed versions are immutable and committed, not business approval. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentVersionResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    restoreDocumentVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: number;
+                    expected_state_seq: number;
+                    request_id: string;
+                    revision_id: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Current owner-authorized document result. Confirmed versions are immutable and committed, not business approval. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentVersionResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    archiveDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: number;
+                    expected_auth_revision: number;
+                    request_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Current owner-authorized document result. Confirmed versions are immutable and committed, not business approval. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentMetadataResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    restoreDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: number;
+                    expected_auth_revision: number;
+                    request_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Current owner-authorized document result. Confirmed versions are immutable and committed, not business approval. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentMetadataResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
         };
     };
     getStorageConfiguration: {
@@ -12972,6 +20479,37 @@ export interface operations {
             403: components["responses"]["ErrorResponse"];
         };
     };
+    uploadMemberImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                    cid?: components["schemas"]["FileNonNegativeIntegerInput"];
+                };
+            };
+        };
+        responses: {
+            /** @description 上传成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileUploadResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
     moveFiles: {
         parameters: {
             query?: never;
@@ -13157,6 +20695,235 @@ export interface operations {
             400: components["responses"]["ErrorResponse"];
             401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
+        };
+    };
+    submitOperationLogExport: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation-log export accepted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportExportLegacyOperationResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    getLegacyImportExportOperation: {
+        parameters: {
+            query: {
+                operation_key: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful import/export response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportExportLegacyOperationResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    downloadLegacyImportExportResult: {
+        parameters: {
+            query: {
+                file_key: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Redirect to the tenant-scoped result URL returned by the file gateway. */
+            302: {
+                headers: {
+                    Location: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    listImportExportOperations: {
+        parameters: {
+            query?: {
+                status?: "queued" | "running" | "cancel_requested" | "succeeded" | "failed" | "cancelled" | "expired";
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful import/export response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportExportOperationListResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    submitImportOperation: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportOperationRequest"];
+            };
+        };
+        responses: {
+            /** @description Import operation accepted. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportExportOperationResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    submitExportOperation: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportOperationRequest"];
+            };
+        };
+        responses: {
+            /** @description Export operation accepted. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportExportOperationResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    cancelImportExportOperation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                operationKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    revision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful import/export response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportExportOperationResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    downloadImportExportResult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fileKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Redirect to the short-lived tenant-scoped download URL. */
+            302: {
+                headers: {
+                    Location: string;
+                    "Cache-Control": "no-store";
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
         };
     };
     listIntegrationMachines: {
@@ -13507,6 +21274,2131 @@ export interface operations {
             401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
             404: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    listAdminMembers: {
+        parameters: {
+            query?: {
+                page_no?: components["parameters"]["PageNo"];
+                page_size?: components["parameters"]["PageSize"];
+                page?: number;
+                limit?: number;
+                keyword?: string;
+                channel?: number;
+                create_time_start?: string;
+                create_time_end?: string;
+                status?: 0 | 1;
+                export?: 1 | 2;
+                page_type?: 0 | 1;
+                page_start?: number;
+                page_end?: number;
+                file_name?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询会员列表或导出结果成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberAdminListResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAdminMember: {
+        parameters: {
+            query: {
+                /** @example 17 */
+                id: components["schemas"]["MemberPositiveIntegerInput"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询会员详情成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberAdminDetailResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+        };
+    };
+    createAdminMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberAdminCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description 创建会员成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    updateAdminMemberField: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberAdminFieldUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description 更新会员字段成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    updateAdminMemberStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberAdminStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description 更新会员状态成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+        };
+    };
+    adjustAdminMemberBalance: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberBalanceAdjustmentRequest"];
+            };
+        };
+        responses: {
+            /** @description 调整会员余额成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    createMemberTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberTagCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description 创建会员标签成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    listMemberTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询会员标签成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberTagListResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    updateMemberTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberTagUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description 更新会员标签成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    deleteMemberTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberIdentifierRequest"];
+            };
+        };
+        responses: {
+            /** @description 删除会员标签成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+        };
+    };
+    listAdminMemberBalanceLogs: {
+        parameters: {
+            query?: {
+                page_no?: components["parameters"]["PageNo"];
+                page_size?: components["parameters"]["PageSize"];
+                page_type?: 0 | 1;
+                type?: "um";
+                change_type?: 100 | 101 | 200 | 201;
+                user_info?: string;
+                start_time?: string;
+                end_time?: string;
+                export?: 1 | 2;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询会员余额流水成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberAdminBalanceLogPageResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    getMemberBalanceChangeTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询会员余额变动类型成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberChangeTypesResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    registerMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberRegistrationRequest"];
+            };
+        };
+        responses: {
+            /** @description 注册会员账号成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    loginMemberWithAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberAccountLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description 会员账号密码登录成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberLoginResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    loginMemberWithMobileCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberMobileCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description 会员手机验证码登录成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberLoginResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            429: components["responses"]["ErrorResponse"];
+        };
+    };
+    resetMemberPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberPasswordResetRequest"];
+            };
+        };
+        responses: {
+            /** @description 通过手机验证码重置会员密码成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            429: components["responses"]["ErrorResponse"];
+        };
+    };
+    getMemberCenter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询会员中心成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberCenterResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+        };
+    };
+    getMemberProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询会员资料成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberProfileResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+        };
+    };
+    updateMemberProfileField: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberSelfFieldRequest"];
+            };
+        };
+        responses: {
+            /** @description 更新会员本人资料字段成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+        };
+    };
+    changeMemberPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberPasswordChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description 修改会员密码成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    bindMemberMobile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberMobileCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description 绑定或变更会员手机成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+        };
+    };
+    listCurrentMemberBalanceLogs: {
+        parameters: {
+            query?: {
+                page_no?: components["parameters"]["PageNo"];
+                page_size?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询当前会员余额流水成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberSelfBalanceLogPageResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    getNotificationChannelConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful notification-inbox response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationChannelDetailResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    saveNotificationChannelConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationChannelSaveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful notification-inbox response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    listNotificationScenes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful notification-inbox response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationSceneListResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    getNotificationScene: {
+        parameters: {
+            query: {
+                id: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful notification-inbox response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationSceneDetailResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+        };
+    };
+    saveNotificationScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationSceneSaveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful notification-inbox response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+        };
+    };
+    listNotificationLogs: {
+        parameters: {
+            query?: {
+                receiver?: string;
+                channel?: 1 | 2 | 3;
+                status?: 0 | 1 | 2 | 3;
+                scene_id?: number;
+                start_time?: number;
+                end_time?: number;
+                page_no?: number;
+                page_size?: number;
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful notification-inbox response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationLogListResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    getNotificationLog: {
+        parameters: {
+            query?: {
+                id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful notification-inbox response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationLogDetailResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    listInboxNotifications: {
+        parameters: {
+            query?: {
+                status?: "all" | "unread" | "read" | "archived";
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful notification-inbox response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationListResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    markInboxNotificationRead: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                messageKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Successful notification-inbox response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    bulkUpdateInboxNotifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    message_keys: string[];
+                    /** @enum {string} */
+                    action: "read" | "archive";
+                };
+            };
+        };
+        responses: {
+            /** @description Successful notification-inbox response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationBulkResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    getOAuthWebPageConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询 H5 网页渠道配置成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthWebPageConfigResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    replaceOAuthWebPageConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthWebPageConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description 保存 H5 网页渠道配置成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    getOAuthMiniProgramConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询微信小程序配置成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthMiniProgramConfigResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    replaceOAuthMiniProgramConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthMiniProgramConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description 保存微信小程序配置成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    getOAuthOfficialAccountConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询微信公众号配置成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthOfficialAccountConfigResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    replaceOAuthOfficialAccountConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthOfficialAccountConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description 保存微信公众号配置成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    getOAuthOfficialAccountMenu: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询微信公众号菜单成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthMenuResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    saveOAuthOfficialAccountMenu: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthMenuRequest"];
+            };
+        };
+        responses: {
+            /** @description 保存微信公众号菜单成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    publishOAuthOfficialAccountMenu: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthMenuRequest"];
+            };
+        };
+        responses: {
+            /** @description 保存并发布微信公众号菜单成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    listOAuthOfficialAccountReplies: {
+        parameters: {
+            query?: {
+                page_no?: components["parameters"]["PageNo"];
+                page_size?: number;
+                /** @deprecated */
+                page?: number;
+                /** @deprecated */
+                limit?: number;
+                reply_type?: 1 | 2 | 3;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询微信公众号自动回复成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthReplyPageResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    getOAuthOfficialAccountReply: {
+        parameters: {
+            query: {
+                id: components["schemas"]["OAuthPositiveIntegerInput"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询微信公众号自动回复详情成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthReplyDetailResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    createOAuthOfficialAccountReply: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthReplyCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description 创建微信公众号自动回复成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    updateOAuthOfficialAccountReply: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthReplyUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description 更新微信公众号自动回复成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    deleteOAuthOfficialAccountReply: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthIdentifierRequest"];
+            };
+        };
+        responses: {
+            /** @description 删除微信公众号自动回复成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    updateOAuthOfficialAccountReplyStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthReplyStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description 更新微信公众号自动回复状态成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    getOAuthOpenPlatformConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询微信开放平台配置成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthOpenPlatformConfigResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    replaceOAuthOpenPlatformConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthOpenPlatformConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description 保存微信开放平台配置成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    beginWechatOAuth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthBeginRequest"];
+            };
+        };
+        responses: {
+            /** @description 发起微信浏览器授权成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthAuthorizationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    completeWechatOAuthCallback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthCallbackRequest"];
+            };
+        };
+        responses: {
+            /** @description 处理微信浏览器授权回调成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthLoginResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    loginWithWechatMiniProgram: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthMiniProgramLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description 微信小程序登录成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthLoginResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    completeWechatOAuthProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthCompletionRequest"];
+            };
+        };
+        responses: {
+            /** @description 补全微信登录资料成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthLoginResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    redirectWechatOAuthToPc: {
+        parameters: {
+            query?: {
+                code?: string;
+                state?: string;
+                error?: string;
+                error_description?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 重定向到对应 PC/H5 OAuth 回调页。仅转发 code、state、error 和 error_description。 */
+            302: {
+                headers: {
+                    Location: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    redirectWechatOAuthToOfficialAccount: {
+        parameters: {
+            query?: {
+                code?: string;
+                state?: string;
+                error?: string;
+                error_description?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 重定向到对应 PC/H5 OAuth 回调页。仅转发 code、state、error 和 error_description。 */
+            302: {
+                headers: {
+                    Location: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    bindWechatIdentity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthBindRequest"];
+            };
+        };
+        responses: {
+            /** @description 绑定当前会员的微信身份成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    verifyWechatOfficialAccountCallback: {
+        parameters: {
+            query: {
+                signature: string;
+                timestamp: string;
+                nonce: string;
+                echostr: string;
+            };
+            header?: never;
+            path: {
+                binding: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 原样返回微信提供的 echostr。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description 回调绑定、签名、模块状态或消息校验失败。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": "callback rejected";
+                };
+            };
+        };
+    };
+    receiveWechatOfficialAccountMessage: {
+        parameters: {
+            query: {
+                signature: string;
+                timestamp: string;
+                nonce: string;
+                /** @description 当前实现拒绝值 aes，仅支持明文模式。 */
+                encrypt_type?: string;
+            };
+            header?: never;
+            path: {
+                binding: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/xml": components["schemas"]["OAuthOfficialAccountMessageXml"];
+            };
+        };
+        responses: {
+            /** @description 无回复时返回 success；有文本回复时返回公众号 XML。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": "success";
+                    "application/xml": components["schemas"]["OAuthOfficialAccountMessageXml"];
+                };
+            };
+            /** @description 回调绑定、签名、模块状态或消息校验失败。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": "callback rejected";
+                };
+            };
+        };
+    };
+    getPaymentSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询支付渠道配置成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentSettingsResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    savePaymentSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentSettingsSaveRequest"];
+            };
+        };
+        responses: {
+            /** @description 保存支付渠道配置成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    getPaymentRechargeSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询充值配置成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentRechargeSettingsResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    savePaymentRechargeSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentRechargeSettingsSaveRequest"];
+            };
+        };
+        responses: {
+            /** @description 保存充值配置成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    listPaymentRecharges: {
+        parameters: {
+            query?: {
+                page_no?: number;
+                page_size?: number;
+                sn?: string;
+                user_info?: string;
+                pay_way?: 1 | 2 | 3;
+                pay_status?: 0 | 1;
+                start_time?: string;
+                end_time?: string;
+                page_type?: 0 | 1;
+                page_start?: number;
+                page_end?: number;
+                export?: 1 | 2;
+                file_name?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询充值订单成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentAdminRechargeListResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    refundPaymentRecharge: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 退款幂等键；服务按租户和请求摘要登记。 */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentRechargeRefundRequest"];
+            };
+        };
+        responses: {
+            /** @description 发起充值退款成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+        };
+    };
+    retryPaymentRefund: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentRefundRetryRequest"];
+            };
+        };
+        responses: {
+            /** @description 重试失败退款成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+        };
+    };
+    getPaymentRefundStatistics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询退款统计成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentRefundStatisticsResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    listPaymentRefunds: {
+        parameters: {
+            query?: {
+                page_no?: number;
+                page_size?: number;
+                sn?: string;
+                order_sn?: string;
+                user_info?: string;
+                refund_type?: 1;
+                refund_status?: 0 | 1 | 2;
+                start_time?: string;
+                end_time?: string;
+                page_type?: 0 | 1;
+                export?: 1 | 2;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询退款记录成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentRefundListResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    listPaymentRefundLogs: {
+        parameters: {
+            query: {
+                record_id: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询退款操作日志成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentRefundLogResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    receiveWechatPaymentCallback: {
+        parameters: {
+            query?: never;
+            header: {
+                "Wechatpay-Timestamp": string;
+                "Wechatpay-Nonce": string;
+                "Wechatpay-Serial": string;
+                "Wechatpay-Signature": string;
+                "Wechatpay-Signature-Type"?: "WECHATPAY2-SHA256-RSA2048";
+            };
+            path: {
+                binding: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentWechatCallbackRequest"];
+            };
+        };
+        responses: {
+            /** @description 微信渠道确认 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentWechatCallbackAcknowledgement"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+        };
+    };
+    receiveAlipayPaymentCallback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                binding: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["PaymentAlipayCallbackRequest"];
+            };
+        };
+        responses: {
+            /** @description 支付宝渠道确认文本 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": "success";
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+        };
+    };
+    getMemberRechargeConfig: {
+        parameters: {
+            query: {
+                terminal: 1 | 2 | 3 | 4 | 5 | 6;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询会员充值配置成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentMemberRechargeConfigResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    createMemberRecharge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentMemberRechargeCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description 创建会员充值订单成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentRechargeOrderResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    prepayMemberRecharge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentMemberRechargePrepayRequest"];
+            };
+        };
+        responses: {
+            /** @description 创建充值预支付参数成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentRechargePrepayResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+        };
+    };
+    getMemberRecharge: {
+        parameters: {
+            query: {
+                order_id: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询本人充值订单成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentRechargeOrderResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    listMemberRecharges: {
+        parameters: {
+            query?: {
+                page_no?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 查询本人充值订单列表成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentMemberRechargeListResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
             422: components["responses"]["ErrorResponse"];
         };
     };
@@ -14095,6 +23987,247 @@ export interface operations {
             500: components["responses"]["ErrorResponse"];
         };
     };
+    richTextDocumentList: {
+        parameters: {
+            query?: {
+                title?: string;
+                page_no?: number;
+                page_size?: number;
+                /** @description Existing PaginationInput alias, used only when page_no is absent. */
+                page?: number;
+                /** @description Existing PaginationInput alias, used only when page_size is absent; PageRequest still bounds the page. */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: {
+                            lists: components["schemas"]["RichTextRecord"][];
+                            count: number;
+                            pageNo: number;
+                            pageSize: number;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+        };
+    };
+    richTextDocumentDetail: {
+        parameters: {
+            query: {
+                id: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["RichTextDetail"];
+                    };
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+        };
+    };
+    richTextDocumentCollaboration: {
+        parameters: {
+            query: {
+                id: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["RichTextCollaboration"];
+                    };
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+        };
+    };
+    richTextDocumentAdd: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title: string;
+                    document: components["schemas"]["RichTextStructuredContent"];
+                    /**
+                     * Format: byte
+                     * @description Strict base64; decoded state <=8 MiB. Empty or null means no state.
+                     */
+                    collaboration_state?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: string[];
+                    };
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+        };
+    };
+    richTextDocumentEdit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    id: number;
+                    revision: number;
+                    title: string;
+                    document: components["schemas"]["RichTextStructuredContent"];
+                    /**
+                     * Format: byte
+                     * @description Strict base64; decoded state <=8 MiB. Empty or null means no state.
+                     */
+                    collaboration_state?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: string[];
+                    };
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+        };
+    };
+    richTextDocumentDelete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    id: number;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: string[];
+                    };
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+        };
+    };
     listModuleSettings: {
         parameters: {
             query?: never;
@@ -14461,6 +24594,198 @@ export interface operations {
             400: components["responses"]["ErrorResponse"];
             401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
+        };
+    };
+    getWorkflowStartSummary: {
+        parameters: {
+            query: {
+                subject_type: string;
+                subject_key: string;
+            };
+            header?: never;
+            path: {
+                moduleKey: string;
+                workflowKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowStartSummary"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    getWorkflowFrozenMaterials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instanceKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowFrozenMaterials"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    getWorkflowEvents: {
+        parameters: {
+            query?: {
+                after_sequence?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                instanceKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            items: components["schemas"]["WorkflowEvent"][];
+                        };
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    getWorkflowNotificationDiagnostics: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                instanceKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            items: components["schemas"]["WorkflowNotificationDiagnostic"][];
+                        };
+                        meta: {
+                            request_id: string;
+                            page?: number;
+                            page_size?: number;
+                            total?: number;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    recoverWorkflowNotification: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                instanceKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    sequence_no: number;
+                    outbox_key: string | null;
+                    expected_job_revision: number | null;
+                    /** @enum {string} */
+                    strategy: "retry_original" | "reauthorize";
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            sequence_no: number;
+                            accepted: boolean;
+                        };
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
         };
     };
 }

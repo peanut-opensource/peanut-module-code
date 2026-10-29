@@ -1,0 +1,15 @@
+{
+  "name": "@peanut-admin/peanut-document",
+  "version": "1.0.1",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./contribution.ts",
+    "./editor": "./src/editor.ts",
+    "./viewer": "./src/viewer.ts"
+  },
+  "dependencies": {
+    "yjs": "13.6.32"
+  }
+}

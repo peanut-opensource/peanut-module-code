@@ -14,6 +14,11 @@ use PeanutAdmin\Kernel\Module\ModuleKey;
 /** Builds deterministic Plugin manifests and the repository Plugin lock without runtime services. */
 final readonly class PluginArtifactWriter
 {
+    public const EXCLUDED_SOURCE_DIRECTORIES = [
+        'vendor', 'node_modules', '.cache', '.vite', '.nuxt', '.output', '.next', '.turbo', '.parcel-cache',
+        'coverage', 'tmp', 'temp', 'unpackage',
+    ];
+
     public function __construct(
         private string $serverRoot,
         private bool $validateJsonSchema = true,
@@ -354,7 +359,15 @@ final readonly class PluginArtifactWriter
     {
         $files = [];
         foreach ($roots as $root) {
-            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS));
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveCallbackFilterIterator(
+                new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
+                static function (\SplFileInfo $file): bool {
+                    if ($file->isLink()) {
+                        throw new PluginArtifactToolException('Canonical Plugin source contains a link.');
+                    }
+                    return !$file->isDir() || !in_array(strtolower($file->getFilename()), self::EXCLUDED_SOURCE_DIRECTORIES, true);
+                },
+            ));
             foreach ($iterator as $file) {
                 if (!$file->isFile() || $file->isLink()) {
                     continue;

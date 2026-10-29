@@ -1,0 +1,4 @@
+[
+  {"key":"peanut.workflow.runtime","parent_key":"core.operations","scope":"tenant","type":"page","name":"流程运行中心","route_name":"WorkflowRuntime","route_path":"/workflow/runtime","component_key":"peanut.workflow.runtime","required_permission":"peanut.workflow.instance.read","icon":"icon-branch","sort_order":60,"client_keys":["admin-web"]},
+  {"key":"peanut.workflow.designer","parent_key":"core.operations","scope":"tenant","type":"page","name":"流程设计","route_name":"WorkflowDesigner","route_path":"/workflow/designer","component_key":"peanut.workflow.designer","required_permission":"peanut.workflow.definition.read","icon":"icon-branch","sort_order":61,"client_keys":["admin-web"]}
+]

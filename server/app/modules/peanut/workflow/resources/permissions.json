@@ -1,0 +1,104 @@
+[
+  {
+    "key": "peanut.workflow.definition.read",
+    "type": "api",
+    "name": "Workflow definition.read",
+    "risk_level": "normal"
+  },
+  {
+    "key": "peanut.workflow.definition.write",
+    "type": "action",
+    "name": "Workflow definition.write",
+    "risk_level": "normal"
+  },
+  {
+    "key": "peanut.workflow.definition.publish",
+    "type": "action",
+    "name": "Workflow definition.publish",
+    "risk_level": "sensitive"
+  },
+  {
+    "key": "peanut.workflow.instance.read",
+    "type": "api",
+    "name": "Workflow instance.read",
+    "risk_level": "normal"
+  },
+  {
+    "key": "peanut.workflow.instance.start",
+    "type": "action",
+    "name": "Workflow instance.start",
+    "risk_level": "normal"
+  },
+  {
+    "key": "peanut.workflow.instance.resubmit",
+    "type": "action",
+    "name": "Workflow instance.resubmit",
+    "risk_level": "normal"
+  },
+  {
+    "key": "peanut.workflow.instance.withdraw",
+    "type": "action",
+    "name": "Workflow instance.withdraw",
+    "risk_level": "normal"
+  },
+  {
+    "key": "peanut.workflow.instance.terminate",
+    "type": "action",
+    "name": "Workflow instance.terminate",
+    "risk_level": "normal"
+  },
+  {
+    "key": "peanut.workflow.task.claim",
+    "type": "action",
+    "name": "Workflow task.claim",
+    "risk_level": "normal"
+  },
+  {
+    "key": "peanut.workflow.task.release",
+    "type": "action",
+    "name": "Workflow task.release",
+    "risk_level": "normal"
+  },
+  {
+    "key": "peanut.workflow.task.decide",
+    "type": "action",
+    "name": "Workflow task.decide",
+    "risk_level": "normal"
+  },
+  {
+    "key": "peanut.workflow.task.complete",
+    "type": "action",
+    "name": "Workflow task.complete",
+    "risk_level": "normal"
+  },
+  {
+    "key": "peanut.workflow.task.return",
+    "type": "action",
+    "name": "Workflow task.return",
+    "risk_level": "normal"
+  },
+  {
+    "key": "peanut.workflow.diagnostics.read",
+    "type": "api",
+    "name": "Workflow diagnostics.read",
+    "risk_level": "sensitive"
+  },
+  {
+    "key": "peanut.workflow.diagnostics.retry",
+    "type": "action",
+    "name": "Workflow diagnostics.retry",
+    "risk_level": "sensitive"
+  },
+  {
+    "key": "peanut.workflow.diagnostics.reassign",
+    "type": "action",
+    "name": "Workflow diagnostics.reassign",
+    "risk_level": "sensitive"
+  },
+  {
+    "key": "peanut.workflow.managed.install",
+    "type": "action",
+    "name": "Install owned Workflow templates",
+    "risk_level": "sensitive"
+  }
+]

@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "key": "peanut.oauth",
+  "name": "OAuth and Channels",
+  "description": "Tenant-owned OAuth identities and WeChat channel bindings.",
+  "version": "1.0.7",
+  "kernel_constraint": "^1.0",
+  "license": "Apache-2.0",
+  "php_package": "peanut-business/peanut-oauth",
+  "web_package": "@peanut-admin/peanut-oauth",
+  "dependencies": [
+    {
+      "module_key": "peanut.file",
+      "version": "^1.0"
+    },
+    {
+      "module_key": "peanut.integration",
+      "version": "^1.0"
+    },
+    {
+      "module_key": "peanut.member",
+      "version": "^1.0"
+    },
+    {
+      "module_key": "peanut.notification",
+      "version": "^1.0"
+    },
+    {
+      "module_key": "peanut.settings",
+      "version": "^1.0"
+    },
+    {
+      "module_key": "peanut.identity",
+      "version": "^4.0.0-rc.32"
+    }
+  ],
+  "backend": {
+    "provider": "PeanutAdmin\\Modules\\OAuth\\ModuleProvider",
+    "menus": "resources/menus.json",
+    "permissions": "resources/permissions.json",
+    "setting_definitions": "resources/setting-definitions.json",
+    "migrations": "database/migrations"
+  },
+  "frontend": {
+    "entry": "web/src/modules/peanut-oauth/contribution.ts",
+    "clients": {
+      "pc-web": {
+        "entry": "pc/modules/peanut-oauth/contribution.ts"
+      },
+      "uniapp": {
+        "entry": "uniapp/src/modules/peanut-oauth/contribution.ts"
+      }
+    }
+  },
+  "database": {
+    "owned_tables": [
+      "pa_oauth_attempt",
+      "pa_oauth_completion_ticket",
+      "pa_oauth_identity",
+      "pa_oauth_principal",
+      "pa_official_account_reply"
+    ]
+  },
+  "contracts": {
+    "exports": [
+      "PeanutAdmin\\Modules\\OAuth\\Contract\\OAuthCommands",
+      "PeanutAdmin\\Modules\\OAuth\\Contract\\OAuthQueries",
+      "PeanutAdmin\\Modules\\OAuth\\Contract\\OfficialAccountCallbacks",
+      "PeanutAdmin\\Modules\\OAuth\\Contract\\OAuthCallbackLocator",
+      "PeanutAdmin\\Modules\\OAuth\\Contract\\Dto\\OAuthAuthorizationResult",
+      "PeanutAdmin\\Modules\\OAuth\\Contract\\Dto\\OAuthLoginResult",
+      "PeanutAdmin\\Modules\\OAuth\\Service\\OAuthBrowserCallbackService"
+    ],
+    "events": []
+  },
+  "tenant": {
+    "enableable": true,
+    "disable_behavior": "reject_new_operations",
+    "requires": [
+      "peanut.file",
+      "peanut.member",
+      "peanut.notification",
+      "peanut.settings",
+      "peanut.identity",
+      "peanut.integration"
+    ]
+  }
+}

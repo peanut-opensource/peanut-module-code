@@ -1,0 +1,131 @@
+{
+    "schema_version": 1,
+    "key": "peanut.oauth",
+    "version": "1.0.7",
+    "source": {
+        "type": "canonical-contents",
+        "reference": "canonical-plugin-contents-v1",
+        "sha256": "5303602d1d3d1c6605217af32bf3d9f0798dbf3f5aeef3a0198d4e0c5f6f3b2f"
+    },
+    "trust": {
+        "channel": "bundled",
+        "origin": {
+            "type": "repository-contents",
+            "reference": "canonical-plugin-contents-v1"
+        },
+        "archive": {
+            "status": "not-issued",
+            "sha256": null
+        },
+        "signature": {
+            "status": "not-issued",
+            "key_id": null
+        },
+        "sbom": {
+            "status": "not-issued",
+            "sha256": null
+        },
+        "license": {
+            "identifier": "Apache-2.0",
+            "status": "declared"
+        },
+        "qualification": {
+            "status": "bundled-locked",
+            "review": "not-reviewed",
+            "vulnerability_response": "not-configured",
+            "marketplace": "blocked"
+        },
+        "compatibility": {
+            "modules": [
+                {
+                    "key": "peanut.oauth",
+                    "version": "1.0.7",
+                    "kernel_constraint": "^1.0",
+                    "dependencies": [
+                        {
+                            "module_key": "peanut.file",
+                            "version": "^1.0"
+                        },
+                        {
+                            "module_key": "peanut.identity",
+                            "version": "^4.0.0-rc.32"
+                        },
+                        {
+                            "module_key": "peanut.integration",
+                            "version": "^1.0"
+                        },
+                        {
+                            "module_key": "peanut.member",
+                            "version": "^1.0"
+                        },
+                        {
+                            "module_key": "peanut.notification",
+                            "version": "^1.0"
+                        },
+                        {
+                            "module_key": "peanut.settings",
+                            "version": "^1.0"
+                        }
+                    ],
+                    "permissions": {
+                        "path": "resources/permissions.json",
+                        "sha256": "6bdcf50db198120d9f87cd5cef0e738f5b82b126e89875c11c396e0761c9b829"
+                    }
+                }
+            ]
+        }
+    },
+    "composer": [
+        {
+            "name": "peanut-business/peanut-oauth",
+            "version": "1.0.7",
+            "sha256": "8d7dee49308a6b3de08c7860d3c53297f942e3888e42c3b7cbce4ebb93f44ac7"
+        }
+    ],
+    "npm": [
+        {
+            "name": "@peanut-admin/peanut-oauth",
+            "version": "1.0.1",
+            "integrity": "sha256-jhcJoC8cHxp9yzEEottIxywQ+o4XIrfKqcDzprY+AVw="
+        },
+        {
+            "name": "@peanut-admin/peanut-oauth-pc",
+            "version": "1.0.0",
+            "integrity": "sha256-koscVU/jsdt1Lxfa/i4/5PjcrAXas4PC0e10GOnMda8="
+        },
+        {
+            "name": "@peanut-admin/peanut-oauth-uniapp",
+            "version": "1.0.0",
+            "integrity": "sha256-AnbespJ7dLqEfkixUbK8iTFC+4EgEfrOnK5U+dq8FX8="
+        }
+    ],
+    "frontend": [
+        {
+            "client_key": "pc-web",
+            "package": "@peanut-admin/peanut-oauth-pc",
+            "version": "1.0.0",
+            "entry": "pc/modules/peanut-oauth/contribution.ts",
+            "sha256": "afa9b975f26443c9e8d311d089aa0607fe9284d29f5a85fdf96b8a759f7096c6"
+        },
+        {
+            "client_key": "uniapp",
+            "package": "@peanut-admin/peanut-oauth-uniapp",
+            "version": "1.0.0",
+            "entry": "uniapp/src/modules/peanut-oauth/contribution.ts",
+            "sha256": "f10b63e44cb68b5dde23257e2fdb1af04101921e8501d049c6d2a9fce4f4475d"
+        },
+        {
+            "client_key": "admin-web",
+            "package": "@peanut-admin/peanut-oauth",
+            "version": "1.0.1",
+            "entry": "web/src/modules/peanut-oauth/contribution.ts",
+            "sha256": "fadee8d9f06aeedb486a5da0f9b68fb58c0df6561c8ba3bd5dc3ec78099b2bf6"
+        }
+    ],
+    "modules": [
+        {
+            "key": "peanut.oauth",
+            "root": "server/app/modules/peanut/oauth"
+        }
+    ]
+}

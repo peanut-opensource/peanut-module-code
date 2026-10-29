@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "lifecycle": {
+      "type": "string",
+      "enum": [
+        "running",
+        "draining"
+      ],
+      "default": "running"
+    }
+  }
+}

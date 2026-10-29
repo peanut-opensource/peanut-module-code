@@ -1,0 +1,10 @@
+{
+  "name": "@peanut-admin/peanut-payment",
+  "version": "1.0.3",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./contribution.ts"
+  }
+}

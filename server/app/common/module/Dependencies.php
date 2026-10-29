@@ -368,6 +368,11 @@ final readonly class Dependencies
             throw new PluginPackageException('MODULE_FRONTEND_EDITION_REQUIRED', 'The application deployment Edition is required for the native admin build.');
         }
         $results = [];
+        if (array_intersect($clients, ['web', 'platform']) !== []) {
+            $project = dirname($this->serverRoot);
+            $results['api-contracts'] = $this->run(['php', '-d', 'zend.exception_ignore_args=1',
+                $project . '/scripts/generate-api-contracts.php', '--application-root=' . $project], $project);
+        }
         foreach ($clients as $client) {
             if (in_array($client, ['web', 'platform'], true)) {
                 $target = dirname($this->serverRoot) . '/' . dirname($this->frontendEntry($client));

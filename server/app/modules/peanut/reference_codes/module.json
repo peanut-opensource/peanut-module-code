@@ -3,7 +3,7 @@
   "key": "peanut.reference-codes",
   "name": "Reference Codes",
   "description": "Tenant dictionaries, deployment reference values and versioned reference-code definitions.",
-  "version": "1.0.22",
+  "version": "1.0.24",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-reference-codes",
@@ -11,7 +11,7 @@
   "dependencies": [
     {
       "module_key": "peanut.identity",
-      "version": "4.0.0-rc.32"
+      "version": "^4.0.0-rc.32"
     }
   ],
   "backend": {

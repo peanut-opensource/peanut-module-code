@@ -14,5 +14,5 @@ interface TaskJobRuntime
 
     public function enqueueCrontab(TenantScope $scope, int $scheduleId, string $contextIdentity): void;
 
-    public function runTenant(int $tenantId, string $workerId): int;
+    public function runTenant(int $tenantId, string $workerId, ?string $jobKey = null): int;
 }

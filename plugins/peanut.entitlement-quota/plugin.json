@@ -1,0 +1,73 @@
+{
+    "schema_version": 1,
+    "key": "peanut.entitlement-quota",
+    "version": "4.0.0-rc.34",
+    "source": {
+        "type": "canonical-contents",
+        "reference": "canonical-plugin-contents-v1",
+        "sha256": "314277a2916e051fec46b04a8418b86f699fb6b962cd5427b3c77bea281f2f31"
+    },
+    "trust": {
+        "channel": "bundled",
+        "origin": {
+            "type": "repository-contents",
+            "reference": "canonical-plugin-contents-v1"
+        },
+        "archive": {
+            "status": "not-issued",
+            "sha256": null
+        },
+        "signature": {
+            "status": "not-issued",
+            "key_id": null
+        },
+        "sbom": {
+            "status": "not-issued",
+            "sha256": null
+        },
+        "license": {
+            "identifier": "Apache-2.0",
+            "status": "declared"
+        },
+        "qualification": {
+            "status": "bundled-locked",
+            "review": "not-reviewed",
+            "vulnerability_response": "not-configured",
+            "marketplace": "blocked"
+        },
+        "compatibility": {
+            "modules": [
+                {
+                    "key": "peanut.entitlement-quota",
+                    "version": "4.0.0-rc.34",
+                    "kernel_constraint": "^1.0",
+                    "dependencies": [
+                        {
+                            "module_key": "peanut.identity",
+                            "version": "^4.0.0-rc.32"
+                        }
+                    ],
+                    "permissions": {
+                        "path": null,
+                        "sha256": null
+                    }
+                }
+            ]
+        }
+    },
+    "composer": [
+        {
+            "name": "peanut-business/entitlement-quota",
+            "version": "4.0.0-rc.34",
+            "sha256": "1188e7ef3fea7f4996fa1a0922ab50c821a01c83446f4519e6945a1f34c16ece"
+        }
+    ],
+    "npm": [],
+    "frontend": [],
+    "modules": [
+        {
+            "key": "peanut.entitlement-quota",
+            "root": "server/app/modules/peanut/entitlement_quota"
+        }
+    ]
+}

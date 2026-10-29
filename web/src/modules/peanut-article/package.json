@@ -1,0 +1,10 @@
+{
+  "name": "@peanut-admin/peanut-article",
+  "version": "1.0.4",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./contribution.ts"
+  }
+}

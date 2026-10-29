@@ -2,12 +2,12 @@
   "name": "peanut-business/peanut-settings",
   "description": "Official settings module",
   "type": "peanut-admin-module",
-  "version": "1.0.22",
+  "version": "1.0.24",
   "license": "Apache-2.0",
   "require": {
     "php": "^8.3",
     "peanut-admin/core": "^5.0.2",
-    "peanut-business/peanut-identity": "4.0.0-rc.32"
+    "peanut-business/peanut-identity": "^4.0.0-rc.32"
   },
   "autoload": {
     "psr-4": {

@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "key": "peanut.document",
+  "name": "Business Documents",
+  "description": "Business-owned documents, committed immutable versions and controlled File references.",
+  "version": "1.0.12",
+  "kernel_constraint": "^1.0",
+  "license": "Apache-2.0",
+  "php_package": "peanut-business/peanut-document",
+  "web_package": "@peanut-admin/peanut-document",
+  "dependencies": [
+    {
+      "module_key": "peanut.identity",
+      "version": "^4.0.0-rc.32"
+    },
+    {
+      "module_key": "peanut.file",
+      "version": "^1.0"
+    },
+    {
+      "module_key": "peanut.content-tools",
+      "version": "1.0.1"
+    },
+    {
+      "module_key": "peanut.rich-text",
+      "version": "^1.0"
+    }
+  ],
+  "lifecycle": {
+    "protected": false
+  },
+  "backend": {
+    "provider": "PeanutAdmin\\Modules\\Document\\ModuleProvider",
+    "menus": "resources/menus.json",
+    "permissions": "resources/permissions.json",
+    "setting_definitions": "resources/setting-definitions.json",
+    "migrations": "database/migrations"
+  },
+  "frontend": {
+    "entry": "web/src/modules/peanut-document/contribution.ts"
+  },
+  "database": {
+    "owned_tables": [
+      "pa_document",
+      "pa_document_state",
+      "pa_document_revision",
+      "pa_document_file_ref",
+      "pa_document_resource_binding",
+      "pa_document_operation"
+    ]
+  },
+  "contracts": {
+    "exports": [
+      "PeanutAdmin\\Modules\\Document\\Contract\\DocumentCommands",
+      "PeanutAdmin\\Modules\\Document\\Contract\\DocumentQueries",
+      "PeanutAdmin\\Modules\\Document\\Contract\\DocumentUpgradePreservationQuery",
+      "PeanutAdmin\\Modules\\Document\\Contract\\DocumentOwnerReference",
+      "PeanutAdmin\\Modules\\Document\\Contract\\DocumentOwnerState",
+      "PeanutAdmin\\Modules\\Document\\Contract\\DocumentOwnerPolicy",
+      "PeanutAdmin\\Modules\\Document\\Contract\\DocumentPublicationOwnerPolicy",
+      "PeanutAdmin\\Modules\\Document\\Contract\\DocumentOwnerContributor",
+      "PeanutAdmin\\Modules\\Document\\Contract\\VersionSnapshot",
+      "PeanutAdmin\\Modules\\Document\\Contract\\DocumentCollaborativeWrites",
+      "PeanutAdmin\\Modules\\Document\\Contract\\AcceptedStoreInput",
+      "PeanutAdmin\\Modules\\Document\\Contract\\ExplicitTargetInput",
+      "PeanutAdmin\\Modules\\Document\\Contract\\ExplicitTargetPreparationInput",
+      "PeanutAdmin\\Modules\\Document\\Contract\\AcceptedWritePlan",
+      "PeanutAdmin\\Modules\\Document\\Contract\\DurableSaveReceipt",
+      "PeanutAdmin\\Modules\\Document\\Contract\\BusinessBarrierPlan",
+      "PeanutAdmin\\Modules\\Document\\Contract\\DrainedBusinessBarrier",
+      "PeanutAdmin\\Modules\\Document\\Contract\\DocumentBusinessReceipt",
+      "PeanutAdmin\\Modules\\Document\\Contract\\DocumentAcceptedWriteProvider",
+      "PeanutAdmin\\Modules\\Document\\Contract\\DocumentAcceptedWriteContributor",
+      "PeanutAdmin\\Modules\\Document\\Service\\DocumentAcceptedWriteRegistry",
+      "PeanutAdmin\\Modules\\Document\\Service\\DocumentAcceptedCommitQuery",
+      "PeanutAdmin\\Modules\\Document\\Service\\DocumentOwnerRegistry"
+    ],
+    "events": []
+  },
+  "tenant": {
+    "enableable": true,
+    "disable_behavior": "reject_new_operations",
+    "requires": [
+      "peanut.identity",
+      "peanut.file",
+      "peanut.content-tools",
+      "peanut.rich-text"
+    ]
+  }
+}

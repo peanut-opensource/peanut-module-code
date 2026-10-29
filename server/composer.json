@@ -12,6 +12,83 @@
     "repositories": [
         {
             "type": "path",
+            "url": "app/modules/peanut/article",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
+            "url": "app/modules/peanut/workflow",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
+            "url": "app/modules/peanut/payment",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
+            "url": "app/modules/peanut/collaboration",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
+            "url": "app/modules/peanut/oauth",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
+            "url": "app/modules/peanut/document",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
+            "url": "app/modules/peanut/rich_text",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
+            "url": "app/modules/peanut/notification",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
+            "url": "app/modules/peanut/member",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
+            "url": "app/modules/peanut/import_export",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
+            "url": "app/modules/peanut/entitlement_quota",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
             "url": "app/modules/peanut/artifact_revision",
             "options": {
                 "symlink": false
@@ -146,14 +223,25 @@
         "opis/json-schema": "^2.6",
         "topthink/think-migration": "3.1.1",
         "peanut-business/peanut-content-tools": "1.0.1",
-        "peanut-business/peanut-file": "1.0.30",
-        "peanut-business/peanut-identity": "4.0.0-rc.32",
-        "peanut-business/peanut-integration": "1.0.22",
-        "peanut-business/peanut-ops": "1.0.26",
-        "peanut-business/peanut-reference-codes": "1.0.22",
-        "peanut-business/peanut-settings": "1.0.22",
-        "peanut-business/peanut-task": "1.0.23",
-        "peanut-business/artifact-revision": "4.0.0-rc.33"
+        "peanut-business/peanut-file": "1.0.32",
+        "peanut-business/peanut-identity": "4.0.0-rc.35",
+        "peanut-business/peanut-integration": "1.0.24",
+        "peanut-business/peanut-ops": "1.0.28",
+        "peanut-business/peanut-reference-codes": "1.0.24",
+        "peanut-business/peanut-settings": "1.0.24",
+        "peanut-business/peanut-task": "1.0.26",
+        "peanut-business/artifact-revision": "4.0.0-rc.35",
+        "peanut-business/entitlement-quota": "4.0.0-rc.34",
+        "peanut-business/peanut-import-export": "1.0.25",
+        "peanut-business/peanut-member": "1.0.21",
+        "peanut-business/peanut-notification": "1.0.23",
+        "peanut-business/peanut-rich-text": "1.0.10",
+        "peanut-business/peanut-document": "1.0.12",
+        "peanut-business/peanut-oauth": "1.0.7",
+        "peanut-business/peanut-collaboration": "1.0.13",
+        "peanut-business/peanut-payment": "1.0.21",
+        "peanut-business/workflow": "4.0.0-rc.38",
+        "peanut-business/peanut-article": "1.0.12"
     },
     "require-dev": {
         "phpunit/phpunit": "12.5.31",

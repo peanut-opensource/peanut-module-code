@@ -259,9 +259,7 @@ final readonly class PlatformTenantAdminService
                     }
                 }
                 $this->moduleStates->lockTenantMutation($this->moduleRegistry, $availabilityKeys);
-                if ($this->tenant($tenantId, true)['status'] !== TenantStatus::Active->value) {
-                    throw AdminAccessException::conflict('MODULE_TENANT_DISABLED', 'Only an active tenant can disable a module.');
-                }
+                $this->tenant($tenantId, true);
                 $before = $this->tenantModule($tenantId, $moduleKey, true);
                 if ($before === null) {
                     throw AdminAccessException::notFound();

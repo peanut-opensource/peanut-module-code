@@ -1,4 +1,13 @@
 packages:
+  - "src/modules/peanut-article"
+  - "src/modules/peanut-workflow"
+  - "src/modules/peanut-payment"
+  - "src/modules/peanut-oauth"
+  - "src/modules/peanut-document"
+  - "src/modules/peanut-rich-text"
+  - "src/modules/peanut-notification"
+  - "src/modules/peanut-member"
+  - "src/modules/peanut-import-export"
   - "src/modules/peanut-content-tools"
   - "src/modules/peanut-file"
   - "src/modules/peanut-integration"

@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-const API_CONTRACT_GENERATOR_VERSION = '2';
+const API_CONTRACT_GENERATOR_VERSION = '3';
 
 $toolRoot = dirname(__DIR__);
 $repositoryRoot = $toolRoot;
@@ -68,9 +68,13 @@ require_once $repositoryRoot . '/server/route/registry_source.php';
 
 try {
     $inventory = peanut_route_endpoint_inventory($repositoryRoot . '/server');
-    $contract = loadContract($repositoryRoot, $inventory['modules']);
+    $declarations = loadContract($repositoryRoot, $inventory['modules']);
     $routes = indexRoutes($inventory['endpoints']);
-    $contract = applyRouteMetadata($contract, $routes);
+    // Types retain each selected Module's complete declaration, including optional
+    // integrations. Runtime documentation still describes only selected routes.
+    $modulePaths = array_column(array_merge(...array_values($declarations['module_operations'])), 'path');
+    $typeContract = applyRouteMetadata(selectContractModules($declarations['contract'], array_keys($inventory['modules']), $modulePaths), $routes);
+    $contract = selectContractModules($typeContract, array_keys($inventory['modules']));
     validateContract($contract, $routes);
     $catalog = buildCatalog($repositoryRoot, $contract, $inventory);
 
@@ -103,18 +107,19 @@ try {
         writeJson(generatedArtifactPath($resolvedProjectRoot, 'docs/api/openapi.yaml'), $contract);
     }
     writeJson(generatedArtifactPath($outputRoot, 'server/generated/api-catalog.json'), $catalog);
-    writeModuleTypes($repositoryRoot, $outputRoot, $contract, $routes);
+    writeModuleTypes($repositoryRoot, $outputRoot, $typeContract, $routes, $declarations['module_operations']);
     $generatedTypes = generatedArtifactPath($outputRoot, 'web/src/generated/openapi.d.ts');
 
     // Execute the already installed, locked tool; no global package manager,
     // dependency download, shell interpolation, or private checkout is needed.
     $process = proc_open([
-        'node', $typeGenerator, $generatedContract,
+        'node', $typeGenerator,
         '--output', $generatedTypes,
     ], [0 => ['pipe', 'r'], 1 => STDOUT, 2 => STDERR], $pipes, $repositoryRoot . '/web');
     if (!is_resource($process)) {
         throw new RuntimeException('openapi-typescript process could not be started');
     }
+    fwrite($pipes[0], json_encode($typeContract, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
     fclose($pipes[0]);
     $status = proc_close($process);
     if ($status !== 0) {
@@ -132,7 +137,7 @@ try {
     exit(1);
 }
 
-/** @return array<string,mixed> */
+/** @return array{contract:array<string,mixed>,module_operations:array<string,list<array{method:string,path:string,operationId:string}>>} */
 function loadContract(string $repositoryRoot, array $modules): array
 {
     $source = $repositoryRoot . '/server/app/api/metadata/contracts/openapi.json';
@@ -160,12 +165,33 @@ function loadContract(string $repositoryRoot, array $modules): array
     foreach (hostMetadataFiles($repositoryRoot) as $fragmentPath) {
         $contract = mergeContractFragment($contract, $fragmentPath, true);
     }
-    foreach ($modules as $root) {
+    $moduleOperations = [];
+    foreach ($modules as $moduleKey => $root) {
         $fragmentPath = $repositoryRoot . '/' . $root . '/api/metadata/openapi.php';
         if (is_file($fragmentPath)) {
+            $previousPaths = $contract['paths'];
             $contract = mergeContractFragment($contract, $fragmentPath, false);
+            foreach ($contract['paths'] as $path => $pathItem) {
+                foreach ($pathItem as $method => $operation) {
+                    if (!is_array($operation) || !isset($operation['operationId'])
+                        || isset($previousPaths[$path][$method])) {
+                        continue;
+                    }
+                    $moduleOperations[$moduleKey][] = [
+                        'method' => strtolower((string) $method),
+                        'path' => openApiPath((string) $path),
+                        'operationId' => (string) $operation['operationId'],
+                    ];
+                }
+            }
         }
     }
+    return ['contract' => $contract, 'module_operations' => $moduleOperations];
+}
+
+/** @param list<string> $moduleKeys @param list<string> $retainedPaths @return array<string,mixed> */
+function selectContractModules(array $contract, array $moduleKeys, array $retainedPaths = []): array
+{
     foreach ($contract['paths'] as $path => $pathItem) {
         $required = $pathItem['x-peanut-required-modules'] ?? [];
         if (!is_array($required) || !array_is_list($required)) {
@@ -176,7 +202,7 @@ function loadContract(string $repositoryRoot, array $modules): array
                 throw new RuntimeException('OpenAPI required Module key is invalid: ' . $path);
             }
         }
-        if (array_diff($required, array_keys($modules)) !== []) {
+        if (array_diff($required, $moduleKeys) !== [] && !in_array(openApiPath((string) $path), $retainedPaths, true)) {
             unset($contract['paths'][$path]);
         }
     }
@@ -888,9 +914,15 @@ function inferredErrors(array $auth, array $permissions): array
     return $errors;
 }
 
-/** @param array<string,mixed> $contract @param array<string,array<string,mixed>> $routes */
-function writeModuleTypes(string $repositoryRoot, string $outputRoot, array $contract, array $routes): void
+/** @param array<string,list<array{method:string,path:string,operationId:string}>> $declarations */
+function writeModuleTypes(string $repositoryRoot, string $outputRoot, array $contract, array $routes, array $declarations): void
 {
+    $declaredOwners = [];
+    foreach ($declarations as $moduleKey => $operations) {
+        foreach ($operations as $operation) {
+            $declaredOwners[routeKey($operation['method'], $operation['path'])] = $moduleKey;
+        }
+    }
     $modules = [];
     $expectedTargets = [];
     foreach ($contract['paths'] as $path => $pathItem) {
@@ -898,18 +930,21 @@ function writeModuleTypes(string $repositoryRoot, string $outputRoot, array $con
             if (!is_array($operation) || !isset($operation['operationId'])) {
                 continue;
             }
-            $route = $routes[routeKey((string) $method, (string) $path)];
-            if (($route['owner']['type'] ?? null) !== 'module') {
+            $key = routeKey((string) $method, (string) $path);
+            // Module fragments own optional declarations even when their runtime
+            // integration is absent. Host declarations retain native route ownership.
+            $owner = $declaredOwners[$key]
+                ?? (($routes[$key]['owner']['type'] ?? null) === 'module' ? $routes[$key]['owner']['key'] : null);
+            if ($owner === null) {
                 continue;
             }
-            $modules[(string) $route['owner']['key']][] = [
+            $modules[$owner][] = [
                 'method' => strtolower((string) $method),
                 'path' => openApiPath((string) $path),
                 'operationId' => (string) $operation['operationId'],
             ];
         }
     }
-
     foreach ($modules as $moduleKey => $operations) {
         $moduleDirectory = str_replace('.', '-', $moduleKey);
         $sourceModuleDirectory = $repositoryRoot . '/web/src/modules/' . $moduleDirectory;

@@ -1,0 +1,23 @@
+[
+  {"key":"peanut.article.category.list","type":"api","name":"List article categories","risk_level":"normal"},
+  {"key":"peanut.article.category.all","type":"api","name":"Read article categories","risk_level":"normal"},
+  {"key":"peanut.article.category.detail","type":"api","name":"Read article category","risk_level":"normal"},
+  {"key":"peanut.article.category.add","type":"action","name":"Create article category","risk_level":"sensitive"},
+  {"key":"peanut.article.category.edit","type":"action","name":"Edit article category","risk_level":"sensitive"},
+  {"key":"peanut.article.category.delete","type":"action","name":"Delete article category","risk_level":"critical"},
+  {"key":"peanut.article.category.update-status","type":"action","name":"Change article category status","risk_level":"sensitive"},
+  {"key":"peanut.article.category.recycle.list","type":"api","name":"List deleted article categories","risk_level":"sensitive"},
+  {"key":"peanut.article.category.recycle.detail","type":"api","name":"Read deleted article category","risk_level":"sensitive"},
+  {"key":"peanut.article.category.restore","type":"action","name":"Restore article category","risk_level":"critical"},
+  {"key":"peanut.article.category.force-delete","type":"action","name":"Permanently delete article category","risk_level":"critical"},
+  {"key":"peanut.article.list","type":"api","name":"List articles","risk_level":"normal"},
+  {"key":"peanut.article.detail","type":"api","name":"Read article","risk_level":"normal"},
+  {"key":"peanut.article.add","type":"action","name":"Create article","risk_level":"sensitive"},
+  {"key":"peanut.article.edit","type":"action","name":"Edit article","risk_level":"sensitive"},
+  {"key":"peanut.article.delete","type":"action","name":"Delete article","risk_level":"critical"},
+  {"key":"peanut.article.update-status","type":"action","name":"Change article status","risk_level":"sensitive"},
+  {"key":"peanut.article.recycle.list","type":"api","name":"List deleted articles","risk_level":"sensitive"},
+  {"key":"peanut.article.recycle.detail","type":"api","name":"Read deleted article","risk_level":"sensitive"},
+  {"key":"peanut.article.restore","type":"action","name":"Restore article","risk_level":"critical"},
+  {"key":"peanut.article.force-delete","type":"action","name":"Permanently delete article","risk_level":"critical"}
+]

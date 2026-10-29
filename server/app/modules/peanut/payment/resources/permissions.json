@@ -1,0 +1,12 @@
+[
+  {"key":"peanut.payment.settings.detail","type":"api","name":"查看支付设置","risk_level":"normal"},
+  {"key":"peanut.payment.settings.save","type":"action","name":"保存支付设置","risk_level":"critical"},
+  {"key":"peanut.payment.recharge-settings.detail","type":"api","name":"查看充值设置","risk_level":"normal"},
+  {"key":"peanut.payment.recharge-settings.save","type":"action","name":"保存充值设置","risk_level":"sensitive"},
+  {"key":"peanut.payment.recharge.list","type":"api","name":"查看充值订单","risk_level":"normal"},
+  {"key":"peanut.payment.recharge.refund","type":"action","name":"发起充值退款","risk_level":"critical"},
+  {"key":"peanut.payment.refund.retry","type":"action","name":"重新发起退款","risk_level":"critical"},
+  {"key":"peanut.payment.refund.stat","type":"api","name":"查看退款统计","risk_level":"normal"},
+  {"key":"peanut.payment.refund.list","type":"api","name":"查看退款记录","risk_level":"normal"},
+  {"key":"peanut.payment.refund.log","type":"api","name":"查看退款日志","risk_level":"normal"}
+]

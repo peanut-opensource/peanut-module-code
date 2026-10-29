@@ -1,0 +1,26 @@
+export default {
+  'menu.notice': '通知管理',
+  'menu.notice.channel': '渠道配置',
+  'menu.notice.template': '通知场景',
+  'menu.notice.log': '发送日志',
+
+  // 渠道配置
+  'notice.channel.sms': '短信渠道',
+  'notice.channel.sms.default': '默认服务商',
+  'notice.channel.aliyun': '阿里云',
+  'notice.channel.tencent': '腾讯云',
+  'notice.channel.access_key_id': 'AccessKey ID',
+  'notice.channel.access_key_secret': 'AccessKey Secret',
+  'notice.channel.sign_name': '短信签名',
+  'notice.channel.secret_id': 'SecretId',
+  'notice.channel.secret_key': 'SecretKey',
+  'notice.channel.sdk_app_id': 'SDK AppID',
+  'notice.channel.region': '地域',
+  'notice.channel.status.enabled': '已配置',
+  'notice.channel.status.disabled': '未配置',
+  'notice.channel.save': '保存配置',
+  'notice.channel.tip.success': '配置已保存',
+  'notice.channel.sms.current': '当前短信服务商',
+  'notice.channel.enabled': '启用服务商',
+  'notice.channel.none': '未启用',
+};

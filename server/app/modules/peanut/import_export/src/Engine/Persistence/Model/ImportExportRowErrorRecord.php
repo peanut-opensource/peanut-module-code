@@ -1,0 +1,17 @@
+<?php
+
+declare(strict_types=1);
+
+namespace PeanutAdmin\Modules\ImportExport\Engine\Persistence\Model;
+
+use PeanutAdmin\Kernel\Persistence\Model\TenantModel;
+
+final class ImportExportRowErrorRecord extends TenantModel
+{
+    /** @var string */ protected $name = 'import_export_row_error';
+    /** MySQL DATETIME(3) 的读出精度必须与业务时间合同一致。 */
+    protected $dateFormat = 'Y-m-d H:i:s.v';
+    /** @var array<string, string> */ protected $type = [
+        'id' => 'integer', 'tenant_id' => 'integer', 'operation_id' => 'integer', 'row_number' => 'integer',
+    ];
+}

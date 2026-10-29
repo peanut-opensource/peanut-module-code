@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "key": "peanut.member",
+  "name": "Member CRM",
+  "description": "Tenant-owned customer profiles, tags, balances and member sessions.",
+  "version": "1.0.21",
+  "kernel_constraint": "^1.0",
+  "license": "Apache-2.0",
+  "php_package": "peanut-business/peanut-member",
+  "web_package": "@peanut-admin/peanut-member",
+  "dependencies": [
+    {
+      "module_key": "peanut.file",
+      "version": "^1.0"
+    },
+    {
+      "module_key": "peanut.identity",
+      "version": "^4.0.0-rc.32"
+    },
+    {
+      "module_key": "peanut.settings",
+      "version": "^1.0"
+    }
+  ],
+  "backend": {
+    "provider": "PeanutAdmin\\Modules\\Member\\ModuleProvider",
+    "menus": "resources/menus.json",
+    "permissions": "resources/permissions.json",
+    "setting_definitions": "resources/setting-definitions.json",
+    "migrations": "database/migrations"
+  },
+  "frontend": {
+    "entry": "web/src/modules/peanut-member/contribution.ts",
+    "clients": {
+      "pc-web": {
+        "entry": "pc/modules/peanut-member/contribution.ts"
+      },
+      "uniapp": {
+        "entry": "uniapp/src/modules/peanut-member/contribution.ts"
+      }
+    }
+  },
+  "database": {
+    "owned_tables": [
+      "pa_member",
+      "pa_member_balance_log",
+      "pa_member_tag",
+      "pa_member_tag_relation",
+      "pa_member_session"
+    ]
+  },
+  "contracts": {
+    "exports": [
+      "PeanutAdmin\\Modules\\Member\\Contract\\MemberAdministration",
+      "PeanutAdmin\\Modules\\Member\\Contract\\MemberQueries",
+      "PeanutAdmin\\Modules\\Member\\Contract\\MemberBalanceCommands",
+      "PeanutAdmin\\Modules\\Member\\Contract\\MemberProfileCommands",
+      "PeanutAdmin\\Modules\\Member\\Contract\\MemberIdentityCommands",
+      "PeanutAdmin\\Modules\\Member\\Contract\\MemberTagCommands",
+      "PeanutAdmin\\Modules\\Member\\Contract\\Dto\\MemberBalanceMutation",
+      "PeanutAdmin\\Modules\\Member\\Contract\\Dto\\MemberBalanceSnapshot",
+      "PeanutAdmin\\Modules\\Member\\Contract\\Dto\\MemberIdentitySnapshot",
+      "PeanutAdmin\\Modules\\Member\\Contract\\MemberSubjectLookup",
+      "PeanutAdmin\\Modules\\Member\\Contract\\MemberSessions",
+      "PeanutAdmin\\Modules\\Member\\Contract\\Dto\\MemberSessionGrant",
+      "PeanutAdmin\\Modules\\Member\\Contract\\Dto\\MemberSessionSubject"
+    ],
+    "events": []
+  },
+  "tenant": {
+    "enableable": true,
+    "disable_behavior": "reject_new_operations",
+    "requires": [
+      "peanut.file",
+      "peanut.settings",
+      "peanut.identity"
+    ]
+  },
+  "optional_dependencies": [
+    {
+      "module_key": "peanut.notification",
+      "version": "^1.0"
+    }
+  ]
+}

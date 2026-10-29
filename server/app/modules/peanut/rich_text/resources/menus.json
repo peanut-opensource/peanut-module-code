@@ -1,0 +1,3 @@
+[
+  {"key":"peanut.rich-text.documents","parent_key":"core.applications","scope":"tenant","type":"page","name":"富文本文档","route_name":"RichTextDocuments","route_path":"/rich-text/documents","component_key":"peanut.rich-text.documents","required_permission":"peanut.rich-text.document.list","icon":"icon-edit","sort_order":70,"client_keys":["admin-web"]}
+]

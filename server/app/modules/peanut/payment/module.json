@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "key": "peanut.payment",
+  "name": "Payment",
+  "description": "Tenant-owned payment settings, recharge orders and refund processing.",
+  "version": "1.0.21",
+  "kernel_constraint": "^1.0",
+  "license": "Apache-2.0",
+  "php_package": "peanut-business/peanut-payment",
+  "web_package": "@peanut-admin/peanut-payment",
+  "dependencies": [
+    {
+      "module_key": "peanut.file",
+      "version": "^1.0"
+    },
+    {
+      "module_key": "peanut.identity",
+      "version": "^4.0.0-rc.32"
+    },
+    {
+      "module_key": "peanut.integration",
+      "version": "^1.0"
+    },
+    {
+      "module_key": "peanut.member",
+      "version": "^1.0"
+    },
+    {
+      "module_key": "peanut.oauth",
+      "version": "^1.0"
+    },
+    {
+      "module_key": "peanut.settings",
+      "version": "^1.0"
+    },
+    {
+      "module_key": "peanut.task",
+      "version": "^1.0"
+    }
+  ],
+  "backend": {
+    "provider": "PeanutAdmin\\Modules\\Payment\\ModuleProvider",
+    "menus": "resources/menus.json",
+    "permissions": "resources/permissions.json",
+    "setting_definitions": "resources/setting-definitions.json",
+    "migrations": "database/migrations"
+  },
+  "frontend": {
+    "entry": "web/src/modules/peanut-payment/contribution.ts",
+    "clients": {
+      "pc-web": {
+        "entry": "pc/modules/peanut-payment/contribution.ts"
+      },
+      "uniapp": {
+        "entry": "uniapp/src/modules/peanut-payment/contribution.ts"
+      }
+    }
+  },
+  "database": {
+    "owned_tables": [
+      "pa_payment_scene",
+      "pa_payment_tenant_channel_grant",
+      "pa_recharge_order",
+      "pa_refund_log",
+      "pa_refund_record"
+    ]
+  },
+  "contracts": {
+    "exports": [
+      "PeanutAdmin\\Modules\\Payment\\Contract\\PaymentChannelGrantCommands",
+      "PeanutAdmin\\Modules\\Payment\\Contract\\PaymentMethod",
+      "PeanutAdmin\\Modules\\Payment\\Contract\\RechargeCommands",
+      "PeanutAdmin\\Modules\\Payment\\Contract\\RechargeQueries",
+      "PeanutAdmin\\Modules\\Payment\\Contract\\RefundReconciliationCommands"
+    ],
+    "events": []
+  },
+  "tenant": {
+    "enableable": true,
+    "disable_behavior": "reject_new_operations",
+    "requires": [
+      "peanut.file",
+      "peanut.member",
+      "peanut.settings",
+      "peanut.task",
+      "peanut.identity",
+      "peanut.integration"
+    ]
+  }
+}

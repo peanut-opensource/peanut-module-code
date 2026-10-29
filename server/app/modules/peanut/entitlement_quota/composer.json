@@ -1,0 +1,24 @@
+{
+  "name": "peanut-business/entitlement-quota",
+  "description": "可选商业额度记录；使用方显式提供计量与额度策略，不作为普通业务的必需依赖。",
+  "type": "peanut-admin-module",
+  "version": "4.0.0-rc.34",
+  "license": "Apache-2.0",
+  "require": {
+    "php": "^8.3",
+    "peanut-admin/core": "^5.0.2",
+    "peanut-business/peanut-identity": "^4.0.0-rc.32"
+  },
+  "autoload": {
+    "psr-4": {
+      "PeanutAdmin\\Modules\\EntitlementQuota\\": "src/"
+    }
+  },
+  "extra": {
+    "peanut": {
+      "editions": [
+        "multi-tenant"
+      ]
+    }
+  }
+}

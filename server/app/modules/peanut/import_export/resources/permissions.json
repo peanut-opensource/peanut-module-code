@@ -1,0 +1,11 @@
+[
+  {"key":"peanut.import-export.operation-log.export","type":"action","name":"导出操作日志","risk_level":"sensitive"},
+  {"key":"peanut.import-export.operation.status","type":"api","name":"查看导出状态","risk_level":"normal"},
+  {"key":"peanut.import-export.result.download","type":"api","name":"下载导出文件","risk_level":"sensitive"},
+  {"key":"peanut.import-export.configuration.export","type":"action","name":"Export configuration package","risk_level":"sensitive"},
+  {"key":"peanut.import-export.configuration.dry-run","type":"api","name":"Preview configuration package","risk_level":"normal"},
+  {"key":"peanut.import-export.configuration.apply","type":"action","name":"Apply configuration package","risk_level":"critical"},
+  {"key":"peanut.import-export.operations.read","type":"api","name":"View import and export operations","risk_level":"normal"},
+  {"key":"peanut.import-export.operations.create","type":"action","name":"Create import and export operations","risk_level":"sensitive"},
+  {"key":"peanut.import-export.operations.cancel","type":"action","name":"Cancel import and export operations","risk_level":"sensitive"}
+]

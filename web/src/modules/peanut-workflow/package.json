@@ -1,0 +1,18 @@
+{
+  "name": "@peanut-modules/workflow-web",
+  "version": "5.0.1",
+  "private": true,
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./contribution.ts",
+    "./runtime": "./runtime/contribution.ts",
+    "./start": "./runtime/WorkflowStartButton.vue"
+  },
+  "peerDependencies": {
+    "vue": "^3.3.0",
+    "element-plus": "^2.14.3"
+  },
+  "dependencies": {
+    "@vue-flow/core": "1.48.2"
+  }
+}
