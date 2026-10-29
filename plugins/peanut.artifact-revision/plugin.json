@@ -1,0 +1,73 @@
+{
+    "schema_version": 1,
+    "key": "peanut.artifact-revision",
+    "version": "4.0.0-rc.33",
+    "source": {
+        "type": "canonical-contents",
+        "reference": "canonical-plugin-contents-v1",
+        "sha256": "9516cbb9d2637bd92871c4f0c6636a0b4248076d50add3121a480fc0cbb0ec1d"
+    },
+    "trust": {
+        "channel": "bundled",
+        "origin": {
+            "type": "repository-contents",
+            "reference": "canonical-plugin-contents-v1"
+        },
+        "archive": {
+            "status": "not-issued",
+            "sha256": null
+        },
+        "signature": {
+            "status": "not-issued",
+            "key_id": null
+        },
+        "sbom": {
+            "status": "not-issued",
+            "sha256": null
+        },
+        "license": {
+            "identifier": "Apache-2.0",
+            "status": "declared"
+        },
+        "qualification": {
+            "status": "bundled-locked",
+            "review": "not-reviewed",
+            "vulnerability_response": "not-configured",
+            "marketplace": "blocked"
+        },
+        "compatibility": {
+            "modules": [
+                {
+                    "key": "peanut.artifact-revision",
+                    "version": "4.0.0-rc.33",
+                    "kernel_constraint": "^1.0",
+                    "dependencies": [
+                        {
+                            "module_key": "peanut.identity",
+                            "version": "4.0.0-rc.32"
+                        }
+                    ],
+                    "permissions": {
+                        "path": null,
+                        "sha256": null
+                    }
+                }
+            ]
+        }
+    },
+    "composer": [
+        {
+            "name": "peanut-business/artifact-revision",
+            "version": "4.0.0-rc.33",
+            "sha256": "c9976616e0627dc66828d972a7840d65fefb32db129294c8bd7a9badf63e3d64"
+        }
+    ],
+    "npm": [],
+    "frontend": [],
+    "modules": [
+        {
+            "key": "peanut.artifact-revision",
+            "root": "server/app/modules/peanut/artifact_revision"
+        }
+    ]
+}

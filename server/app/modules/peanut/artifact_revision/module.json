@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "key": "peanut.artifact-revision",
+  "name": "ArtifactRevision",
+  "description": "租户内业务制品的不可变修订；提供创建、封存、读取与分支关系比较，保留审计与幂等语义",
+  "version": "4.0.0-rc.33",
+  "kernel_constraint": "^1.0",
+  "license": "Apache-2.0",
+  "php_package": "peanut-business/artifact-revision",
+  "web_package": null,
+  "dependencies": [
+    {
+      "module_key": "peanut.identity",
+      "version": "4.0.0-rc.32"
+    }
+  ],
+  "backend": {
+    "provider": "PeanutAdmin\\Modules\\ArtifactRevision\\ModuleProvider",
+    "migrations": "database/migrations"
+  },
+  "frontend": {},
+  "database": {
+    "owned_tables": [
+      "pa_artifact",
+      "pa_artifact_revision"
+    ]
+  },
+  "contracts": {
+    "exports": [
+      "PeanutAdmin\\Modules\\ArtifactRevision\\Application\\ArtifactRevisionService",
+      "PeanutAdmin\\Modules\\ArtifactRevision\\Contract\\ArtifactRevisionQuery",
+      "PeanutAdmin\\Modules\\ArtifactRevision\\Contract\\Dto\\ArtifactRevisionSnapshot",
+      "PeanutAdmin\\Modules\\ArtifactRevision\\Application\\ArtifactRevisionException"
+    ],
+    "events": []
+  },
+  "tenant": {
+    "enableable": true,
+    "disable_behavior": "reject_new_operations",
+    "requires": [
+      "peanut.identity"
+    ]
+  }
+}

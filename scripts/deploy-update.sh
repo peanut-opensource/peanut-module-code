@@ -31,7 +31,7 @@ main() {
     declared_version="$(python3 -c 'import json; print(json.load(open(".peanut/application-manifest.json"))["application"]["version"])')"
     [[ -z "$version" || "$version" == "$declared_version" ]] || fail 'version differs from the product declaration'
     # Raw archives are build inputs. PHP runtime identity readers do not consume them.
-    php <<'PHP'
+    php -d zend.exception_ignore_args=1 <<'PHP'
 <?php
 require 'server/vendor/autoload.php';
 app\common\value\installation\ApplicationSourceIdentity::loadGeneratedApp(getcwd() . '/server');
@@ -50,11 +50,27 @@ module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
 module.check_lock(server)
 PY
     static_target admin
-    (cd web && pnpm install --frozen-lockfile --prod=false && NODE_ENV=production VITE_API_BASE_URL='' pnpm run build --mode "$edition" --outDir ../server/public/admin --emptyOutDir)
     if [[ "$clients" == admin,platform ]]; then
       static_target platform
-      (cd platform && npm ci --include=dev && NODE_ENV=production VITE_API_BASE_URL='' npm run build -- --outDir ../server/public/platform --emptyOutDir)
     fi
+    NODE_ENV=production VITE_API_BASE_URL='' php -d zend.exception_ignore_args=1 <<'PHP'
+<?php
+require 'server/vendor/autoload.php';
+require_once 'server/database/install.php';
+$application = ensureThinkPhpApplication(getcwd() . '/server');
+$clients = $application->config->get('deployment.mode') === 'multi-tenant' ? ['web', 'platform'] : ['web'];
+$result = (new app\common\module\Dependencies(getcwd() . '/server'))->prepareRelease(
+    new app\platform\infrastructure\plugin\PluginLockResolver(getcwd() . '/server', '../plugins.lock'),
+    $clients,
+);
+foreach ($result['operations'] as $operation) {
+    echo $operation['output'];
+}
+foreach ($result['frontend_adoption'] as $operation) {
+    echo $operation['output'];
+}
+PHP
+    printf '%s\n' '{"operation":"compile","arguments":[]}' | php -d zend.exception_ignore_args=1 server/module
     printf '[deploy-update] Prepared %s %s static files; review and commit server/public/admin' "$declared_version" "$edition"
     [[ "$clients" != admin,platform ]] || printf ' and server/public/platform'
     printf ' with the product source before main/tag review.\n'

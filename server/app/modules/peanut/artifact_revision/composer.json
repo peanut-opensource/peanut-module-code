@@ -1,0 +1,24 @@
+{
+  "name": "peanut-business/artifact-revision",
+  "description": "租户内业务制品的不可变修订；提供创建、封存、读取与分支关系比较，保留审计与幂等语义",
+  "type": "peanut-admin-module",
+  "version": "4.0.0-rc.33",
+  "license": "Apache-2.0",
+  "require": {
+    "php": "^8.3",
+    "peanut-admin/core": "^5.0.2",
+    "peanut-business/peanut-identity": "4.0.0-rc.32"
+  },
+  "autoload": {
+    "psr-4": {
+      "PeanutAdmin\\Modules\\ArtifactRevision\\": "src/"
+    }
+  },
+  "extra": {
+    "peanut": {
+      "editions": [
+        "multi-tenant"
+      ]
+    }
+  }
+}

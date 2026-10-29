@@ -128,6 +128,7 @@ final class InstallationExecutionHost
         $code = (string) ($status['code'] ?? 'INSTALL_STATE_UNKNOWN');
         $locked = $this->completionLockPresent();
         $localMarkers = file_exists($this->progressMarker()) || is_link($this->progressMarker());
+        $resume = $code === 'INSTALL_RESUME_READY';
         $partial = $localMarkers
             || $code === 'INSTALL_PARTIAL_STATE_REQUIRES_REBUILD';
         $existingInstallation = $locked || $code === 'INSTALL_COMPLETION_LOCK_MISSING';
@@ -136,17 +137,18 @@ final class InstallationExecutionHost
             : ($existingInstallation ? 'installed_fault' : ($unknown ? 'unknown' : ($partial ? 'partial' : 'prerequisite')));
         return $status + [
             'category' => $category,
-            'stage' => $existingInstallation ? 'runtime' : ($partial ? 'execution'
-                : ($code === 'INSTALL_PREFLIGHT_BLOCKED' ? 'environment' : 'database_check')),
+            'stage' => $existingInstallation ? 'runtime' : ($resume ? 'install_modules' : ($partial ? 'execution'
+                : ($code === 'INSTALL_PREFLIGHT_BLOCKED' ? 'environment' : 'database_check'))),
             'reason' => $code,
             'remedy' => $existingInstallation
                 ? '恢复现有实例配置或数据库；不要删除完成锁来修复运行故障。'
-                : ($partial ? '保留现有数据库和执行记录，核对部分完成事实后由资源 owner 处理；不自动清库或重建身份。'
-                    : '按环境、配置和数据库检查的具体诊断修复后重新检查。'),
+                : ($resume ? '原生初始化已完成；按原模块选择继续安装，不重新初始化数据库或账号。'
+                    : ($partial ? '保留现有数据库和执行记录，核对部分完成事实后由资源 owner 处理；不自动清库或重建身份。'
+                    : '按环境、配置和数据库检查的具体诊断修复后重新检查。')),
             'writes' => ['status_request' => 'none', 'database_existing_state' => $category === 'partial' ? 'nonempty_or_partial' : ($existingInstallation ? 'installed_or_faulted' : 'see_status'), 'completion_lock_present' => $locked,
                 'residual_origin' => $localMarkers ? 'local_markers_present_identity_not_inferred' : 'unconfirmed_existing_database_origin',
                 'progress_present' => is_file($this->progressMarker())],
-            'safe_retry' => !$locked && !$partial && $status['state'] === 'uninstalled',
+            'safe_retry' => !$locked && ($resume || !$partial) && $status['state'] === 'uninstalled',
             'completion_lock' => 'server/private/installation/installed.json',
         ];
     }
@@ -216,10 +218,21 @@ final class InstallationExecutionHost
             ];
         }
         if ($progress && $database['state'] !== 'uninstalled') {
+            try {
+                $checkpoint = $this->initializedCheckpoint();
+                return [...$base, 'state' => 'uninstalled', 'code' => 'INSTALL_RESUME_READY',
+                    'retryable' => true, 'health' => $checkpoint['health'],
+                    'resume_stage' => 'install_modules', 'official_module_selection' => $checkpoint['official_modules']];
+            } catch (Throwable $exception) {
+                // An unknown source or incomplete native initialization is never replayed.
+                $resumeBlocker = preg_match('/^INSTALL_[A-Z0-9_]+$/D', $exception->getMessage()) === 1
+                    ? $exception->getMessage() : 'INSTALL_RESUME_STATE_UNCONFIRMED';
+            }
             return [
                 ...$base,
                 'state' => 'blocked',
                 'code' => 'INSTALL_PARTIAL_STATE_REQUIRES_REBUILD',
+                'resume_blocker' => $resumeBlocker,
                 'retryable' => false,
                 'health' => null,
             ];
@@ -336,12 +349,21 @@ final class InstallationExecutionHost
                         'remedy' => '由资源 owner 核对精确库权限后重新检查。',
                         'writes' => ['database' => 'none'], 'safe_retry' => true]);
             }
+            $resuming = $status['code'] === 'INSTALL_RESUME_READY';
+            if ($resuming && !array_key_exists('official_modules', $input)) {
+                $input['official_modules'] = $status['official_module_selection'];
+            }
             [$credentials, $moduleKeys] = $this->normalizeInput($input);
+            if ($resuming && $moduleKeys !== $status['official_module_selection']) {
+                throw new InstallationExecutionException('INSTALL_RESUME_SELECTION_MISMATCH', '继续安装须保留原模块选择。', 409);
+            }
             $this->installationSource();
-            $this->writeProgressMarker($moduleKeys);
-            $stage = 'fresh_database';
+            $stage = $resuming ? 'install_modules' : 'fresh_database';
+            $this->writeProgressMarker($moduleKeys, $stage);
             try {
-                $migration = \installFreshDatabase($this->serverRoot, $credentials, $moduleKeys);
+                $migration = $resuming ? ['migration' => 'native', 'status' => 'already-initialized']
+                    : \installFreshDatabase($this->serverRoot, $credentials, $moduleKeys);
+                $this->writeProgressMarker($moduleKeys, 'install_modules');
                 $completion = $this->completeInitializedInstallation($moduleKeys, $stage);
 
                 return [
@@ -358,7 +380,7 @@ final class InstallationExecutionHost
                     409,
                     $exception,
                     ['category' => 'partial', 'stage' => $stage, 'reason' => 'INSTALL_EXECUTION_FAILED',
-                        'remedy' => '核对该阶段日志、数据库和执行记录；不得直接重放、清库或覆盖身份。',
+                        'remedy' => '修复具体失败后读取安装状态；仅 INSTALL_RESUME_READY 可通过原入口继续，保留数据库和身份。',
                         'writes' => ['progress_marker' => true, 'database' => 'may_have_partial_writes',
                             'completion_lock_present' => $this->completionLockPresent()],
                         'safe_retry' => false,
@@ -559,7 +581,7 @@ final class InstallationExecutionHost
         $operations = [];
         foreach ($moduleKeys as $moduleKey) {
             $this->currentInstallationModule = $moduleKey;
-            $result = $lifecycle->reconcile($moduleKey);
+            $result = $lifecycle->install($moduleKey);
             $this->currentInstallationModule = null;
             $operations[] = [
                 'key' => $moduleKey,
@@ -675,15 +697,45 @@ final class InstallationExecutionHost
     }
 
     /** @param list<string> $moduleKeys */
-    private function writeProgressMarker(array $moduleKeys): void
+    private function writeProgressMarker(array $moduleKeys, string $stage): void
     {
+        $previous = is_file($this->progressMarker())
+            ? json_decode((string) file_get_contents($this->progressMarker()), true) : null;
         $this->writeMarker($this->progressMarker(), [
             'schema_version' => 1,
             'state' => 'executing',
             'deployment_mode' => $this->deploymentMode(),
             'official_modules' => $moduleKeys,
-            'started_at' => gmdate(DATE_ATOM),
+            'stage' => $stage,
+            'started_at' => is_string($previous['started_at'] ?? null) ? $previous['started_at'] : gmdate(DATE_ATOM),
         ]);
+    }
+
+    /** Reconcile the native initialization result; this path never initializes or seeds. */
+    private function initializedCheckpoint(): array
+    {
+        $path = $this->progressMarker();
+        $progress = json_decode((string) file_get_contents($path), true, 32, JSON_THROW_ON_ERROR);
+        if (($progress['schema_version'] ?? null) !== 1 || ($progress['state'] ?? null) !== 'executing'
+            || ($progress['deployment_mode'] ?? null) !== $this->deploymentMode()
+            || !is_array($progress['official_modules'] ?? null) || !array_is_list($progress['official_modules'])
+            || $progress['official_modules'] === []
+            || array_filter($progress['official_modules'], static fn(mixed $key): bool => !is_string($key)) !== []
+            || count(array_unique($progress['official_modules'])) !== count($progress['official_modules'])
+            || array_diff($progress['official_modules'], array_column($this->officialModules(), 'key')) !== []) {
+            throw new RuntimeException('INSTALL_PROGRESS_INVALID');
+        }
+        $modules = $progress['official_modules'];
+        $this->installationSource();
+        $pdo = $this->pdo();
+        // This is the existing native post-initialization health check, including the
+        // migration ledger, selected tables, seeded catalogs and active owner identity.
+        $health = \assertCurrentDatabase($pdo);
+        if (\coreIdentityCounts($pdo, \installationTenantBootstrapContract($this->serverRoot)['code'])
+            !== ['tenant_count' => 1, 'owner_count' => 1, 'operator_count' => 1]) {
+            throw new RuntimeException('INSTALL_RESUME_IDENTITY_INCOMPLETE');
+        }
+        return ['official_modules' => $modules, 'health' => $health];
     }
 
     /** @param list<string> $moduleKeys @return array<string,mixed> */

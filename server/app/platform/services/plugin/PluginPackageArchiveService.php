@@ -221,7 +221,7 @@ final class PluginPackageArchiveService
                 json_encode(['schema_version' => 1, 'plugins' => [$lockEntry]], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n",
                 LOCK_EX,
             );
-            $descriptor = (new PluginLockResolver($stageRoot . '/server', '../plugins.lock'))->require($packageKey);
+            $descriptor = PluginLockResolver::forPackageArchive($this->serverRoot, $stageRoot, $packageKey);
             unlink($temporaryLock);
 
             return new VerifiedPluginPackage(
