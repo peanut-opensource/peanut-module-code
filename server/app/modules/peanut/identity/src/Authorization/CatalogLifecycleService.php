@@ -262,7 +262,7 @@ final readonly class CatalogLifecycleService
         $operations = $this->foreignIds('pa_resource_operation', 'protected_resource_id', $resources);
         $removed = [];
         $preserved = [];
-        $blockers = $this->crossModuleBlockers($moduleKeys, $permissions, $targets, $conditions, $operations);
+        $blockers = $this->crossModuleBlockers($moduleKeys, $permissions, $targets, $conditions, $operations, !$purge);
         if ($purge) {
             foreach ([
                 ['pa_role_permission', $this->roleBindingIds($permissions, false)],
@@ -386,20 +386,20 @@ final readonly class CatalogLifecycleService
     }
 
     /** @return list<array{code:string,identifiers:list<string>}> */
-    private function crossModuleBlockers(array $moduleKeys, array $permissionIds, array $targetIds, array $conditionIds, array $operationIds): array
+    private function crossModuleBlockers(array $moduleKeys, array $permissionIds, array $targetIds, array $conditionIds, array $operationIds, bool $activeOperationsOnly): array
     {
         $checks = [];
         if ($moduleKeys !== [] && $permissionIds !== []) {
             $checks['MODULE_CATALOG_EXTERNAL_MENU_REFERENCE'] = Db::table('pa_menu_definition')->whereNotIn('module_key', $moduleKeys)->whereIn('required_permission_id', $permissionIds)->order('id')->column('id');
         }
         if ($permissionIds !== []) {
-            $checks['MODULE_CATALOG_EXTERNAL_PERMISSION_REFERENCE'] = $this->externalOperationReferenceIds('pa_resource_operation_permission', 'permission_id', $permissionIds, $operationIds);
+            $checks['MODULE_CATALOG_EXTERNAL_PERMISSION_REFERENCE'] = $this->externalOperationReferenceIds('pa_resource_operation_permission', 'permission_id', $permissionIds, $operationIds, $activeOperationsOnly);
         }
         if ($targetIds !== []) {
-            $checks['MODULE_CATALOG_EXTERNAL_TARGET_REFERENCE'] = $this->externalOperationReferenceIds('pa_resource_operation_target_type', 'target_type_id', $targetIds, $operationIds);
+            $checks['MODULE_CATALOG_EXTERNAL_TARGET_REFERENCE'] = $this->externalOperationReferenceIds('pa_resource_operation_target_type', 'target_type_id', $targetIds, $operationIds, $activeOperationsOnly);
         }
         if ($conditionIds !== []) {
-            $checks['MODULE_CATALOG_EXTERNAL_CONDITION_REFERENCE'] = $this->externalOperationReferenceIds('pa_resource_operation_condition', 'condition_definition_id', $conditionIds, $operationIds);
+            $checks['MODULE_CATALOG_EXTERNAL_CONDITION_REFERENCE'] = $this->externalOperationReferenceIds('pa_resource_operation_condition', 'condition_definition_id', $conditionIds, $operationIds, $activeOperationsOnly);
         }
         $blockers = [];
         foreach ($checks as $code => $ids) {
@@ -413,13 +413,18 @@ final readonly class CatalogLifecycleService
     /** With no selected operations, every reference to a selected definition is external.
      * @return list<string>
      */
-    private function externalOperationReferenceIds(string $table, string $column, array $definitionIds, array $operationIds): array
+    private function externalOperationReferenceIds(string $table, string $column, array $definitionIds, array $operationIds, bool $activeOperationsOnly): array
     {
-        $query = Db::table($table)->whereIn($column, $definitionIds);
+        $query = Db::table($table)->alias('reference')->whereIn('reference.' . $column, $definitionIds);
         if ($operationIds !== []) {
-            $query->whereNotIn('resource_operation_id', $operationIds);
+            $query->whereNotIn('reference.resource_operation_id', $operationIds);
         }
-        return array_map('strval', $query->order('id')->column('id'));
+        // Retiring keeps historical references; purging must still reject every physical reference.
+        if ($activeOperationsOnly) {
+            $query->join('pa_resource_operation operation', 'operation.id=reference.resource_operation_id')
+                ->where('operation.status', 'active');
+        }
+        return array_map('strval', $query->order('reference.id')->column('reference.id'));
     }
 
     private function append(array &$entries, string $table, string $action, array $ids, bool $includeEmpty = false): void

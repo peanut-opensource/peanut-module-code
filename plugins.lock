@@ -640,11 +640,11 @@
         },
         {
             "key": "peanut.identity",
-            "version": "4.0.0-rc.35",
+            "version": "4.0.0-rc.36",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "279e3aa5938b138e6a2a3e2d358be7c2e131df8e613deb8766c4b8ebf221b5c5"
+                "sha256": "8aecdda84ec1029d05de180f8cea9872023eb61d2199755aab74c86376d6cf08"
             },
             "trust": {
                 "channel": "bundled",
@@ -678,7 +678,7 @@
                     "modules": [
                         {
                             "key": "peanut.identity",
-                            "version": "4.0.0-rc.35",
+                            "version": "4.0.0-rc.36",
                             "kernel_constraint": "^1.0",
                             "dependencies": [],
                             "permissions": {
@@ -692,8 +692,8 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-identity",
-                    "version": "4.0.0-rc.35",
-                    "sha256": "eecb7d68c1f32c18182487eee3bcf5cc55f99849afb95486becede4ec7964c83"
+                    "version": "4.0.0-rc.36",
+                    "sha256": "c25767cafb76f91f8578dcb17d090dd07c2905341085d43a00bc07ffb0230775"
                 }
             ],
             "npm": [],
@@ -705,7 +705,7 @@
                 }
             ],
             "manifest": "plugins/peanut.identity/plugin.json",
-            "manifest_sha256": "a8e2a0efdae6bc9c0d3cb0e8b9dbee27ef35059bc685fb8b5e2b80e8d3ba75f4"
+            "manifest_sha256": "b58549515a0cc5f9bbca5c608f0bcb5ef13e6ce7ba4e7f6185c48285cb98ad85"
         },
         {
             "key": "peanut.import-export",
