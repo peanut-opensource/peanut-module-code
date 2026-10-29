@@ -203,6 +203,22 @@ SQL,
     private function schemaDefinition(string $definition): string
     {
         // AUTO_INCREMENT is live row state rather than a schema difference.
-        return (string) preg_replace('/ AUTO_INCREMENT=\d+(?= |$)/', '', rtrim(trim($definition), ';'));
+        $definition = (string) preg_replace('/ AUTO_INCREMENT=\d+(?= |$)/', '', rtrim(trim($definition), ';'));
+        $declarations = explode("\n", $definition);
+        $header = array_shift($declarations);
+        $options = array_pop($declarations);
+        foreach ($declarations as &$declaration) {
+            $declaration = rtrim(trim($declaration), ',');
+            // The retained collation already specifies utf8mb4 for these character columns.
+            $declaration = (string) preg_replace(
+                '/^(`[^`]+` (?:var)?char\(\d+\)) CHARACTER SET utf8mb4 COLLATE (utf8mb4_[a-z0-9_]+)(?= )/',
+                '$1 COLLATE $2',
+                $declaration
+            );
+        }
+        unset($declaration);
+        // Compare named declarations without changing the column order inside any index or constraint.
+        sort($declarations, SORT_STRING);
+        return $header . "\n" . implode("\n", $declarations) . "\n" . $options;
     }
 }
