@@ -16,7 +16,7 @@ class ArticleCateValidate extends TenantContextValidate
         'id'         => 'require|checkArticleCate',
         'name'       => 'require|length:1,90',
         'is_show'    => 'require|in:0,1',
-        'sort'       => 'egt:0',
+        'sort'       => 'integer|regex:/^[0-9]+$/|egt:0',
         'ids'        => 'array|checkIds',
         'page_no'    => 'integer|gt:0',
         'page_size'  => 'integer|gt:0|pageSizeMax',

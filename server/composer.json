@@ -241,7 +241,7 @@
         "peanut-business/peanut-collaboration": "1.0.13",
         "peanut-business/peanut-payment": "1.0.21",
         "peanut-business/workflow": "4.0.0-rc.38",
-        "peanut-business/peanut-article": "1.0.12"
+        "peanut-business/peanut-article": "1.0.14"
     },
     "require-dev": {
         "phpunit/phpunit": "12.5.31",
