@@ -10,11 +10,11 @@
     "public_runtime_dependencies": {
         "composer": {
             "package": "peanut-admin/core",
-            "constraint": "5.0.2",
-            "resolved_version": "v5.0.2",
+            "constraint": "5.0.3-alpha.1",
+            "resolved_version": "5.0.3-alpha.1",
             "source_type": "git",
             "source_url": "https://github.com/peanut-business/peanut-admin-core-php.git",
-            "source_reference": "9fc72010ec22e798240b9a4a45c1a23743a4bf9c"
+            "source_reference": "62383f26e0128d176bb86080bb031ffb1e018ab1"
         },
         "npm": {
             "source_type": "git",

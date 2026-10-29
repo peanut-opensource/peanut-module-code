@@ -152,7 +152,7 @@ function readInstallationState(value: unknown): InstallationState {
 
 维护者负责固定产品、包、模块、API/事件及迁移身份，先完成所选组合验证，再按授权发布可取得的Core和产品。脚手架、PHP Core、Web Core各自独立发行和升版，分别按自身变化决定SemVer；脚手架更新不要求Core跟随发版。Web Core六包及其内部依赖仍使用同一个Web Core发行版本。生成 APP 自有版本、模块/API/事件/schema 身份仍按各自合同维护，不重写历史发行。日常联合开发直接使用显式选择的本地Core源码与所需watch，详见[日常入口](current-code-lifecycle.md#9-应用生成安装与升级)；阶段候选组合才消费固定源码commit/tree、精确包版本和摘要的本地Core候选，使用同一模板归档与创建/升级合同，明确保留development来源及不可正式发行标记。Composer与npm按各自版本语义验证，不手改锁摘要、不覆写既有版本/tag。公开使用说明不授予发包、生产或客户数据操作权限，也不把完整产品资格附加成每次纯规范整理的任务。
 
-PHP Core与Web Core由其维护者按固定main来源、注释tag、已获准渠道和实际发布结果正式交付；下游APP正式交付只消费适用的已发布依赖，不需要执行上游发包任务。源级发布操作由源码仓的docs/maintenance入口和Core发行说明维护，不随APP教程复制。缺少公开固定依赖时停止相应正式交付；开发候选仍可按[冻结合同](../maintenance/release-producers.md#冻结内部候选)生成和验证，不以内部压缩包冒充渠道已发布。
+PHP Core与Web Core由其维护者按固定main来源、注释tag、已获准渠道和实际发布结果正式交付；下游APP正式交付只消费适用的已发布依赖，不需要执行上游发包任务。源级发布操作由源码仓的docs/maintenance入口和Core发行说明维护，不随APP教程复制。缺少公开固定依赖时停止相应正式交付；开发候选按Code源码仓`docs/maintenance/release-producers.md`中的冻结合同生成和验证，不以内部压缩包冒充渠道已发布；该合同不随生成APP交付。
 
 正式版 tag 为 `vX.Y.Z`；经单独授权的演练用 `vX.Y.Z-rc.N`，Web 六包与内部依赖保持同一 `X.Y.Z-rc.N`，npm 预发行使用 `rc` dist-tag。首次建包可能遗留指向演练版的 `latest`，须核对并清理后才可将无版本安装视为正式渠道。公开版本不可复用；演练版本不进入正式产品锁。正式交付前核两个Core各自公开版本、内容/摘要与精确来源，生成原生正式依赖锁并复核最终组合；稳定正式交付要求稳定Core。候选组合的验证不证明最终公开包已等同采用，不能省略受影响的最终资格与人工Gate。
 

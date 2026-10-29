@@ -2810,7 +2810,15 @@ final class ScaffoldUpgradeRunner
             if (!is_dir($source) || is_link($source)) {
                 throw new RuntimeException('SCAFFOLD_PLUGIN_PROJECTION_PATH_INVALID');
             }
-            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::SELF_FIRST);
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveCallbackFilterIterator(
+                new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS),
+                static function (\SplFileInfo $entry): bool {
+                    if ($entry->isLink()) {
+                        throw new RuntimeException('SCAFFOLD_PLUGIN_PROJECTION_PATH_INVALID');
+                    }
+                    return !$entry->isDir() || !in_array(strtolower($entry->getFilename()), PluginArtifactWriter::EXCLUDED_SOURCE_DIRECTORIES, true);
+                },
+            ), \RecursiveIteratorIterator::SELF_FIRST);
             foreach ($iterator as $entry) {
                 if ($entry->isLink() || (!$entry->isDir() && !$entry->isFile())) {
                     throw new RuntimeException('SCAFFOLD_PLUGIN_PROJECTION_PATH_INVALID');
@@ -2825,7 +2833,7 @@ final class ScaffoldUpgradeRunner
         return $files;
     }
 
-    /** Reject every link and copy exact customer bytes/modes into the ephemeral projection. */
+    /** Copy canonical customer source bytes/modes, excluding the existing dependency/cache directories. */
     private function copyPluginProjectionPath(string $root, string $stage, string $relative): void
     {
         $source = ScaffoldPathGuard::projectPath($root, $relative);
@@ -2841,7 +2849,15 @@ final class ScaffoldUpgradeRunner
         if (!is_dir($source) || is_link($source)) {
             throw new RuntimeException('SCAFFOLD_PLUGIN_PROJECTION_PATH_INVALID');
         }
-        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::SELF_FIRST);
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveCallbackFilterIterator(
+            new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS),
+            static function (\SplFileInfo $entry): bool {
+                if ($entry->isLink()) {
+                    throw new RuntimeException('SCAFFOLD_PLUGIN_PROJECTION_PATH_INVALID');
+                }
+                return !$entry->isDir() || !in_array(strtolower($entry->getFilename()), PluginArtifactWriter::EXCLUDED_SOURCE_DIRECTORIES, true);
+            },
+        ), \RecursiveIteratorIterator::SELF_FIRST);
         foreach ($iterator as $entry) {
             if ($entry->isLink() || (!$entry->isDir() && !$entry->isFile())) {
                 throw new RuntimeException('SCAFFOLD_PLUGIN_PROJECTION_PATH_INVALID');
@@ -3034,6 +3050,12 @@ final class ScaffoldUpgradeRunner
             }
             $path = (string) $action['path'];
             $selectedResolution = isset($preserve[$path]) ? 'preserve' : 'replace';
+            $missingUpstreamRemoved = ($action['reason'] ?? null) === 'managed_file_missing'
+                && ($action['current']['present'] ?? null) === false
+                && ($action['target_sha256'] ?? null) === null;
+            $upstreamRemoved = $missingUpstreamRemoved
+                || (($action['reason'] ?? null) === 'project_modified_upstream_removed'
+                    && ($action['target_sha256'] ?? null) === null);
             if (isset($action['resolution_options'])
                 && (!is_array($action['resolution_options'])
                     || !in_array($selectedResolution, $action['resolution_options'], true))) {
@@ -3051,8 +3073,6 @@ final class ScaffoldUpgradeRunner
                 }
                 $ownershipTransition = ($action['reason'] ?? null) === 'recipe_ownership_transition_required'
                     && ($action['target_sha256'] ?? null) === null;
-                $upstreamRemoved = ($action['reason'] ?? null) === 'project_modified_upstream_removed'
-                    && ($action['target_sha256'] ?? null) === null;
                 $action['action'] = $ownershipTransition || $upstreamRemoved ? 'omit' : 'preserve';
                 $action['reason'] = $ownershipTransition
                     ? 'recipe_ownership_transition_confirmed'
@@ -3060,9 +3080,8 @@ final class ScaffoldUpgradeRunner
                 $action['conflict'] = false;
                 continue;
             }
-            if (isset($replace[$path]) && ($action['reason'] ?? null) === 'project_modified_upstream_removed'
-                && ($action['target_sha256'] ?? null) === null) {
-                $action['action'] = 'delete';
+            if (isset($replace[$path]) && $upstreamRemoved) {
+                $action['action'] = $missingUpstreamRemoved ? 'omit' : 'delete';
                 $action['reason'] = 'conflict_upstream_delete_confirmed';
                 $action['conflict'] = false;
                 continue;
@@ -3825,9 +3844,11 @@ final class ScaffoldUpgradeRunner
         $paths = [];
         foreach ($plan['actions'] as $action) {
             if (($action['action'] ?? null) === 'omit'
-                && ($action['reason'] ?? null) === 'upstream_removed_preserve_confirmed') {
+                && in_array($action['reason'] ?? null, ['upstream_removed_preserve_confirmed', 'conflict_upstream_delete_confirmed'], true)) {
                 $this->assertActionFresh($root, $action);
-                $paths[$action['path']] = true;
+                if ($action['current']['present']) {
+                    $paths[$action['path']] = true;
+                }
             }
         }
         return $paths;

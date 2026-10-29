@@ -1,11 +1,11 @@
 {
     "schema_version": 1,
     "key": "peanut.reference-codes",
-    "version": "1.0.22",
+    "version": "1.0.24",
     "source": {
         "type": "canonical-contents",
         "reference": "canonical-plugin-contents-v1",
-        "sha256": "443153ad247816a3d5efd39abd811de161aa53c7023ca5bcc526544b702ae570"
+        "sha256": "5e6ce203f9d5bde7d549e028208d5ba34732cde29ce3d05e2caf422b3da6927d"
     },
     "trust": {
         "channel": "bundled",
@@ -39,12 +39,12 @@
             "modules": [
                 {
                     "key": "peanut.reference-codes",
-                    "version": "1.0.22",
+                    "version": "1.0.24",
                     "kernel_constraint": "^1.0",
                     "dependencies": [
                         {
                             "module_key": "peanut.identity",
-                            "version": "4.0.0-rc.32"
+                            "version": "^4.0.0-rc.32"
                         }
                     ],
                     "permissions": {
@@ -58,8 +58,8 @@
     "composer": [
         {
             "name": "peanut-business/peanut-reference-codes",
-            "version": "1.0.22",
-            "sha256": "d00b3459e83d3fd4b5f54296f247dde39a6f2eec68e45d09400c0c46ad79e1d5"
+            "version": "1.0.24",
+            "sha256": "5eee1f95b847d5a45c95ee93177f9791218776b0ce2dfc07695aede3a4c17bb7"
         }
     ],
     "npm": [

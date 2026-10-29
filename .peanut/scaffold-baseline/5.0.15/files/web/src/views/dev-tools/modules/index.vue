@@ -522,12 +522,14 @@
           : `确认退役 ${affectedModules.length > 1 ? 'Bundle' : '模块'}`,
         { type: purge ? 'error' : 'warning' }
       );
-      await perform(
-        () => executeUninstall(moduleKey, purge, preview, value),
-        purge
-          ? `${affectedModules.length > 1 ? 'Bundle' : '模块'}已清除`
-          : `${affectedModules.length > 1 ? 'Bundle' : '模块'}已退役`,
-        purge ? `正在清除 ${packageKey}…` : `正在退役 ${packageKey}…`
+      const idempotencyKey = `module-remove-${Array.from(
+        crypto.getRandomValues(new Uint8Array(16)),
+        (byte) => byte.toString(16).padStart(2, '0')
+      ).join('')}`;
+      packageTask.value = await perform(
+        () => executeUninstall(moduleKey, purge, preview, value, idempotencyKey),
+        '模块卸载任务已提交，请刷新任务状态查看结果',
+        `正在提交 ${packageKey} 卸载任务…`
       );
       await load(1);
     } catch (cause) {

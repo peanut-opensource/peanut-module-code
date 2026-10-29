@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4f39bae69281427ef67dc13a2d532f76",
+    "content-hash": "41698818632bda328f6e7383b598181e",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -1695,17 +1695,17 @@
         },
         {
             "name": "peanut-admin/core",
-            "version": "v5.0.2",
+            "version": "5.0.3-alpha.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/peanut-business/peanut-admin-core-php.git",
-                "reference": "9fc72010ec22e798240b9a4a45c1a23743a4bf9c"
+                "reference": "62383f26e0128d176bb86080bb031ffb1e018ab1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/peanut-business/peanut-admin-core-php/zipball/9fc72010ec22e798240b9a4a45c1a23743a4bf9c",
-                "reference": "9fc72010ec22e798240b9a4a45c1a23743a4bf9c",
-                "shasum": ""
+                "url": "../packages/core-php/peanut-admin-core-5.0.3-alpha.1.zip",
+                "reference": "62383f26e0128d176bb86080bb031ffb1e018ab1",
+                "shasum": "1903d5df8f674cc4ef8251c11ac734e32f1ee9bb"
             },
             "require": {
                 "ext-fileinfo": "*",
@@ -1716,9 +1716,6 @@
                 "opis/json-schema": "^2.6.0",
                 "php": "^8.3",
                 "topthink/think-orm": "^4.0.51"
-            },
-            "require-dev": {
-                "phpunit/phpunit": "^12.5.31"
             },
             "suggest": {
                 "aliyuncs/oss-sdk-php": "Required by hosts that construct AliyunStorageDriver.",
@@ -1735,25 +1732,289 @@
                     "PeanutAdmin\\Settings\\": "settings/src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "PeanutAdmin\\DataPermission\\Tests\\": "data-permission/tests/",
-                    "PeanutAdmin\\FileMedia\\Tests\\": "file-media/tests/",
-                    "PeanutAdmin\\Kernel\\Tests\\": "kernel/tests/",
-                    "PeanutAdmin\\Settings\\Tests\\": "settings/tests/",
-                    "PeanutAdmin\\Testing\\": "testing/src/",
-                    "PeanutAdmin\\Testing\\Tests\\": "testing/tests/"
-                }
-            },
             "license": [
                 "Apache-2.0"
             ],
             "description": "Peanut Admin technical kernel and ThinkPHP integration",
             "support": {
-                "source": "https://github.com/peanut-business/peanut-admin-core-php",
-                "issues": "https://github.com/peanut-business/peanut-admin-core-php/issues"
+                "source": "https://github.com/peanut-business/peanut-admin-core-php"
+            }
+        },
+        {
+            "name": "peanut-business/peanut-content-tools",
+            "version": "1.0.1",
+            "dist": {
+                "type": "path",
+                "url": "app/modules/peanut/content_tools",
+                "reference": "a56ef29a2218745e5a39d5ae336b2ffeafc17d30"
             },
-            "time": "2026-10-20T23:06:38+00:00"
+            "type": "peanut-admin-module",
+            "extra": {
+                "peanut": {
+                    "editions": [
+                        "multi-tenant"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "PeanutAdmin\\Modules\\ContentTools\\": "src/"
+                }
+            },
+            "license": [
+                "Apache-2.0"
+            ],
+            "description": "Generated peanut.content-tools Module skeleton.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "peanut-business/peanut-file",
+            "version": "1.0.32",
+            "dist": {
+                "type": "path",
+                "url": "app/modules/peanut/file",
+                "reference": "c3c72603b0f93927c18b8e00e46a31f049d7ec02"
+            },
+            "require": {
+                "aws/aws-sdk-php": "^3.0",
+                "peanut-admin/core": "^5.0.2",
+                "peanut-business/peanut-identity": "^4.0.0-rc.32",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "peanut": {
+                    "editions": [
+                        "multi-tenant"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "PeanutAdmin\\Modules\\File\\": "src/"
+                }
+            },
+            "license": [
+                "Apache-2.0"
+            ],
+            "description": "Official Tenant file and media module",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "peanut-business/peanut-identity",
+            "version": "4.0.0-rc.36",
+            "dist": {
+                "type": "path",
+                "url": "app/modules/peanut/identity",
+                "reference": "edf33e3f339c9202333e6a3a244e4a994444e352"
+            },
+            "require": {
+                "peanut-admin/core": "^5.0.2",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "peanut": {
+                    "editions": [
+                        "multi-tenant"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "PeanutAdmin\\Modules\\Identity\\": "src/"
+                }
+            },
+            "license": [
+                "Apache-2.0"
+            ],
+            "description": "Peanut Admin protected identity and access management module",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "peanut-business/peanut-integration",
+            "version": "1.0.25",
+            "dist": {
+                "type": "path",
+                "url": "app/modules/peanut/integration",
+                "reference": "a3c557b7f8610bb3a6946167291ed04334e30ffb"
+            },
+            "require": {
+                "peanut-admin/core": "^5.0.2",
+                "peanut-business/peanut-identity": "^4.0.0-rc.32",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "peanut": {
+                    "editions": [
+                        "multi-tenant"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "PeanutAdmin\\Modules\\Integration\\": "src/"
+                }
+            },
+            "license": [
+                "Apache-2.0"
+            ],
+            "description": "Peanut Admin official external integration module",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "peanut-business/peanut-ops",
+            "version": "1.0.28",
+            "dist": {
+                "type": "path",
+                "url": "app/modules/peanut/ops",
+                "reference": "f7639c970a278d940b4d270a7cac3097d9c9827c"
+            },
+            "require": {
+                "peanut-admin/core": "^5.0.2",
+                "peanut-business/peanut-identity": "^4.0.0-rc.32",
+                "peanut-business/peanut-task": "^1.0",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "peanut": {
+                    "editions": [
+                        "multi-tenant"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "PeanutAdmin\\Modules\\Ops\\": "src/"
+                }
+            },
+            "license": [
+                "Apache-2.0"
+            ],
+            "description": "First-party platform operations ownership module",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "peanut-business/peanut-reference-codes",
+            "version": "1.0.24",
+            "dist": {
+                "type": "path",
+                "url": "app/modules/peanut/reference_codes",
+                "reference": "1939fb213ab59de11030352051f23d0a4ebbe54b"
+            },
+            "require": {
+                "peanut-admin/core": "^5.0.2",
+                "peanut-business/peanut-identity": "^4.0.0-rc.32",
+                "php": "^8.3"
+            },
+            "type": "peanut-admin-module",
+            "extra": {
+                "peanut": {
+                    "editions": [
+                        "multi-tenant"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "PeanutAdmin\\Modules\\ReferenceCodes\\": "src/"
+                }
+            },
+            "license": [
+                "Apache-2.0"
+            ],
+            "description": "Official reference-codes module",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "peanut-business/peanut-settings",
+            "version": "1.0.24",
+            "dist": {
+                "type": "path",
+                "url": "app/modules/peanut/settings",
+                "reference": "90671ea3f7b44210a9e9e8fa914317d3d6b77049"
+            },
+            "require": {
+                "peanut-admin/core": "^5.0.2",
+                "peanut-business/peanut-identity": "^4.0.0-rc.32",
+                "php": "^8.3"
+            },
+            "type": "peanut-admin-module",
+            "extra": {
+                "peanut": {
+                    "editions": [
+                        "multi-tenant"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "PeanutAdmin\\Modules\\Settings\\": "src/"
+                }
+            },
+            "license": [
+                "Apache-2.0"
+            ],
+            "description": "Official settings module",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "peanut-business/peanut-task",
+            "version": "1.0.26",
+            "dist": {
+                "type": "path",
+                "url": "app/modules/peanut/task",
+                "reference": "ef7f628b7809e4c6d9cce8ef1743bf4a311b8a8c"
+            },
+            "require": {
+                "peanut-admin/core": "^5.0.2",
+                "peanut-business/peanut-identity": "^4.0.0-rc.32",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "peanut": {
+                    "editions": [
+                        "multi-tenant"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "PeanutAdmin\\Modules\\Task\\": "src/"
+                }
+            },
+            "license": [
+                "Apache-2.0"
+            ],
+            "description": "Official Tenant task module",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
         },
         {
             "name": "psr/container",
@@ -5004,7 +5265,10 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "peanut-admin/core": 15,
+        "peanut-business/peanut-identity": 5
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {

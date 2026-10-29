@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Ops\Infrastructure;
 
 use PeanutAdmin\Modules\Ops\Service\PlatformUpgradeReadinessService;
+use app\common\module\ModuleMigrationRun;
 use app\common\value\installation\ServerReleaseIdentity;
 use PeanutAdmin\Kernel\Context\PlatformContext;
 use PeanutAdmin\Modules\Ops\Domain\Status\OpsStatusSnapshot;
@@ -425,35 +426,43 @@ final readonly class ApplicationRuntimeStatusProvider implements RuntimeStatusPr
         // ThinkPHP migration uses the configured connection prefix and native ledger.
         // Read it directly: constructing a migration adapter may create the ledger.
         $table = (string) Db::connect()->getConfig('prefix') . (string) Config::get('database.migration_table', 'migrations');
-        $actual = array_fill_keys(array_map('strval', Db::table($table)->column('version')), true);
+        $actual = Db::table($table)->column('migration_name', 'version');
+        $actualNames = [];
+        foreach ($actual as $version => $name) {
+            $actualNames[strtolower((string) $name)] = (string) $version;
+        }
+        $files = [];
+        $drift = false;
+        foreach ($expected as $version => $source) {
+            $files[$version] = $source['sha256'];
+            $name = $source['name'];
+            if ((isset($actual[$version]) && $actual[$version] !== $name)
+                || (isset($actualNames[strtolower($name)]) && $actualNames[strtolower($name)] !== (string) $version)) {
+                $drift = true;
+            }
+        }
         $applied = count(array_intersect_key($expected, $actual));
         return [
             'applied' => $applied,
             'target' => count($expected),
             'pending' => count($expected) - $applied,
-            'digest' => hash('sha256', json_encode($expected, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES)),
-            'drift' => array_diff_key($actual, $expected) !== [],
-            'files' => $expected,
+            'digest' => hash('sha256', json_encode($files, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES)),
+            'drift' => $drift,
+            'files' => $files,
         ];
     }
 
     /** Current native migration source versions and their source digests. */
     private function expectedMigrations(): array
     {
-        $files = glob($this->projectRoot . '/server/database/migrations/*.php') ?: [];
-        sort($files, SORT_STRING);
+        $registry = $this->moduleGovernance->registry();
+        $manifests = [];
+        foreach ($this->moduleGovernance->qualification()->installedModules() as $module) {
+            $manifests[$module->moduleKey] = $registry->requireInstalled($module->moduleKey, false);
+        }
         $expected = [];
-        foreach ($files as $file) {
-            if (!is_file($file) || is_link($file)
-                || !\Phinx\Util\Util::isValidMigrationFileName(basename($file))) {
-                throw new \RuntimeException('OPS_MIGRATION_INVENTORY_INVALID');
-            }
-            $version = (string) \Phinx\Util\Util::getVersionFromFileName(basename($file));
-            $digest = hash_file('sha256', $file);
-            if (!is_string($digest) || isset($expected[$version])) {
-                throw new \RuntimeException('OPS_MIGRATION_INVENTORY_INVALID');
-            }
-            $expected[$version] = $digest;
+        foreach (ModuleMigrationRun::sources($manifests, $this->projectRoot . '/server', true) as $source) {
+            $expected[$source['migration_key']] = ['name' => $source['name'], 'sha256' => $source['sha256']];
         }
         return $expected;
     }
@@ -461,14 +470,19 @@ final readonly class ApplicationRuntimeStatusProvider implements RuntimeStatusPr
     /** @return array{applied:int,target:int,pending:int,digest:string,drift:bool,files:array<string,string>} */
     private function unavailableMigrationState(): array
     {
-        $expected = $this->expectedMigrations();
+        try {
+            $expected = $this->expectedMigrations();
+        } catch (Throwable) {
+            $expected = [];
+        }
+        $files = array_map(static fn(array $source): string => $source['sha256'], $expected);
         return [
             'applied' => 0,
             'target' => count($expected),
             'pending' => count($expected),
-            'digest' => hash('sha256', json_encode($expected, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES)),
+            'digest' => hash('sha256', json_encode($files, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES)),
             'drift' => true,
-            'files' => $expected,
+            'files' => $files,
         ];
     }
 

@@ -34,6 +34,14 @@ php /absolute/my-app/scripts/scaffold-upgrade plan --instance-root=/absolute/my-
 
 生产首次在固定空目录、空库取得产品定版 `main`，准备锁定依赖、必要构建、配置并通过[安装页面向导](installation.md)完成安装；已有实例在原目录更新固定 `main`，按变化处理依赖、构建和未应用迁移。具体程序/数据边界、恢复和实现差距见[交付合同](application-release.md)。
 
+首次安装通常使用网页向导。已有原生控制台安装入口供已准备依赖与配置、明确采用该方式的维护场景使用；从 APP 根目录运行，先执行预检且仅在结果为 ready 时安装。依赖、一次性管理员凭据文件及完整命令见[安装说明](installation.md#3-安装)。
+
+```sh
+php server/database/install.php --preflight
+PEANUT_INSTALLATION_ENV_FILE=/absolute/private/initial-admin.env php server/database/install.php
+php server/database/install.php --status
+```
+
 B 部署包、`peanut package` 和 `release/apps` 退出日常生产环节。现有包生产者、固定 Git 输入与 `update.sh` 仍保留实际消费者的技术合同，不因文档改动删代码，也不作为新流程的额外用户步骤。源码升级不等于生产更新；Git 能退版本不意味着数据库可自动回退。
 
 ## 4. 来源与失败保护

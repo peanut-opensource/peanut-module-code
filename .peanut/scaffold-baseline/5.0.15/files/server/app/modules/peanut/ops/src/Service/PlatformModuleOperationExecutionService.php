@@ -35,8 +35,8 @@ final readonly class PlatformModuleOperationExecutionService
             $request = $this->requestStore()->assertPrepared($requestKey);
             $local = $this->requests->isLocal($request);
             if ($local) {
-                if (!in_array($request['operation'], ['install', 'update'], true)
-                    || !$this->permissions->allows($context, 'platform.module.' . $request['operation'])) {
+                $permission = self::modulePermission($request['operation']);
+                if ($permission === null || !$this->permissions->allows($context, $permission)) {
                     throw OpsConsoleException::denied();
                 }
             } elseif (!$this->permissions->allows($context, self::PERMISSION)
@@ -90,6 +90,16 @@ final readonly class PlatformModuleOperationExecutionService
                 ->update(['state' => 'claimed', 'claimed_at' => Db::raw('UTC_TIMESTAMP(3)')]);
             return $this->taskProjection($row);
         });
+    }
+
+    public static function modulePermission(string $operation): ?string
+    {
+        return match ($operation) {
+            'install' => 'platform.module.install',
+            'update' => 'platform.module.update',
+            'retire', 'purge' => 'platform.module.uninstall',
+            default => null,
+        };
     }
 
     /** @return array<string,mixed>|null */

@@ -11,6 +11,10 @@
 
 模块适用 Edition 声明在已有 `composer.json` 的 `extra.peanut.editions`，值为 `multi-tenant` 或 `standalone` 的非空列表，不新增另一份清单。本轮官方模块只声明 `multi-tenant`，ST 后补；检查、采用、安装及运行按宿主 Edition 拒绝不匹配或缺声明。模块版本与 Composer 版本保持同一来源，模块各自独立升版。
 
+存在 Web／Platform 贡献时，安装、升级、卸载及发版准备在原生依赖完成后、受影响客户端构建前，调用同一 `scripts/generate-api-contracts.php` 刷新宿主 API 类型和输出；不要求操作人员每次额外运行生成命令。纯后端模块没有前端消费者时不因此要求 Node。
+
+多个已安装包需要联立更新原生依赖图时，原生 `reconcile` 调用可重复指定 `--selected-installed=<package_key>`，选择包含其必要依赖的已安装锁定图。该调用按真实 Module 节点准备一次 Composer／workspace 依赖和客户端输出，在同一依赖锁内按依赖顺序恢复选中包的 active／failed 安装状态；同批生命周期消费这次已经完成的准备结果，客户端各构建一次。
+
 ## 可用的开发与交付入口
 
 以下命令在完整产品 APP 根执行；先用 `peanut config` 选择已有本机工具，再通过 `scripts/project-env` 运行项目原生 Composer、pnpm/npm。源码生成不执行需要运行环境的 Composer hooks。`peanut module create` 是仅生成源码的入口，不要求 `.env`、数据库或已安装实例，也不启动运行服务。它使用 ThinkPHP 原生参数解析和同一个模块生成器，默认仅生成后端骨架；有管理端贡献时显式选择 `--client=admin-web`。`peanut module create --help` 可在配置运行环境前查看参数。检查、打包、安装等其他命令仍使用应用自己的运行环境和模块信任配置。命令存在不表示模块业务、迁移或客户端已验收。
@@ -69,5 +73,7 @@ protected const CRUD_WRITABLE_FIELDS = [
 需要软删除时，只有模块明确启用并登记回收、恢复、永久删除路由和权限后才开放相应动作；恢复要先检查冲突及关联，普通查询和导出仍保持租户过滤。订单、账本、支付等具有独立状态和补偿规则的操作应写明确业务用例，不套普通删除。
 
 ## 数据库结构交付
+
+平台 HTTP 卸载沿已有 Ops 队列交给 CLI，提交后按任务状态确认结果。正常退役先将目标后端和客户端源码移入现有 quarantine，再撤销目标自己引入的 Composer require/path repository、开发 metapackage 及精确 workspace 路径；宿主依赖、其他模块节点和共享 workspace glob 保留，目标源码已不再被 glob 匹配。原生 Composer、pnpm/npm 更新锁和安装结果，重建受影响客户端并刷新编译登记后才完成退役。失败保留原确认计划和 quarantine 声明，沿同一入口继续，不重建业务数据。锁外但已有安装记录的旧模块，可从原 canonical 插件与模块声明停用、退役；不为清理而加入当前运行锁或激活其旧依赖。
 
 模块在 module.json 的 `database.owned_tables` 声明自有表，以 `backend.migrations: "database/migrations"` 声明自己的 ThinkPHP 原生迁移。安装和升级按目标模块及其强依赖收集迁移，沿用原生数字顺序、执行器和单一账本；宿主尚未应用的迁移先由宿主原生入口处理。首次安装使用宿主初始结构和实际所选模块迁移；默认脚手架保留 identity、file、settings、reference-codes、task、ops、content-tools、integration 八模块，其他模块通过独立包加入。已有表由其初始迁移核对并保留数据，不通过补写账本伪造执行。停用、卸载保留表、设置值、附件及迁移历史；清除业务数据需要单独明确授权。模块租户默认数据通过所属模块的正式启用 hook 初始化，不以安装包成功代替租户启用或 RBAC 授权。

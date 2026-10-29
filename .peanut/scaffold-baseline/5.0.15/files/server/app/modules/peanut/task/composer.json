@@ -2,12 +2,12 @@
   "name": "peanut-business/peanut-task",
   "description": "Official Tenant task module",
   "type": "library",
-  "version": "1.0.23",
+  "version": "1.0.26",
   "license": "Apache-2.0",
   "require": {
     "php": "^8.3",
     "peanut-admin/core": "^5.0.2",
-    "peanut-business/peanut-identity": "4.0.0-rc.32"
+    "peanut-business/peanut-identity": "^4.0.0-rc.32"
   },
   "autoload": {
     "psr-4": {

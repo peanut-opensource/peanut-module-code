@@ -31,6 +31,25 @@ final class PluginLockResolver
         return new self($serverRoot, $lockPath, false);
     }
 
+    /** Resolve an extracted package using the same full-source identity checks. */
+    public static function forPackageArchive(string $serverRoot, string $stageRoot, string $pluginKey): PluginDescriptor
+    {
+        $stage = realpath($stageRoot);
+        $staging = realpath(dirname($serverRoot) . '/.local/module-staging');
+        if ($stage === false || $staging === false || dirname($stage) !== $staging || is_link($stageRoot)) {
+            throw new PluginLifecycleException('PLUGIN_PATH_UNAVAILABLE', 'Package staging path is invalid.');
+        }
+        if (PHP_SAPI !== 'cli') {
+            $app = \think\Container::getInstance();
+            if (!$app instanceof \think\App || rtrim($app->getRootPath(), '/') !== rtrim($serverRoot, '/')) {
+                throw new PluginLifecycleException('PLUGIN_SOURCE_UPGRADE_CLI_REQUIRED', 'HTTP may only read its admitted Plugin declarations.');
+            }
+        }
+        $resolver = new self($stage . '/server', '../plugins.lock');
+        return $resolver->resolve(false, true)[$pluginKey]
+            ?? throw new PluginLifecycleException('PLUGIN_NOT_LOCKED', "Plugin is not locked: {$pluginKey}");
+    }
+
     /**
      * Resolve the full application graph for CLI source-upgrade operations only.
      * Runtime callers retain all() and its backend projection identity checks.
@@ -83,7 +102,7 @@ final class PluginLockResolver
     }
 
     /** @return array<string,PluginDescriptor> */
-    private function resolve(bool $sourceUpgrade): array
+    private function resolve(bool $sourceUpgrade, bool $packageArchive = false): array
     {
         $journal = dirname($this->serverRoot) . '/.local/module-source-adoption/journal.json';
         if (file_exists($journal) || is_link($journal)) {
@@ -92,7 +111,7 @@ final class PluginLockResolver
         if ($this->resolved !== null) {
             return $this->resolved;
         }
-        if (PHP_SAPI !== 'cli') {
+        if (PHP_SAPI !== 'cli' && !$packageArchive) {
             $app = \think\Container::getInstance();
             if (!$app instanceof \think\App || rtrim($app->getRootPath(), '/') !== rtrim($this->serverRoot, '/')) {
                 throw new PluginLifecycleException('PLUGIN_SOURCE_UPGRADE_CLI_REQUIRED', 'HTTP may only read its admitted Plugin declarations.');
@@ -350,7 +369,15 @@ final class PluginLockResolver
         $files = [];
         foreach ($moduleRoots as $directory) {
             $iterator = new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
+                new \RecursiveCallbackFilterIterator(
+                    new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
+                    static function (\SplFileInfo $file): bool {
+                        if ($file->isLink()) {
+                            throw new PluginLifecycleException('PLUGIN_SOURCE_INVALID', 'Plugin source contains a link.');
+                        }
+                        return !$file->isDir() || !in_array(strtolower($file->getFilename()), PluginArtifactWriter::EXCLUDED_SOURCE_DIRECTORIES, true);
+                    },
+                ),
             );
             foreach ($iterator as $file) {
                 if ($file->isFile() && !$file->isLink()) {

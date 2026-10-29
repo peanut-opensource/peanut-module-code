@@ -122,7 +122,10 @@ final class PluginRuntimeGovernanceService
                 $ownedTablesByModule = $this->confirmedOwnedTablesByModule($confirmPlan);
                 $ownedTables = $this->confirmedOwnedTables($ownedTablesByModule);
                 $this->saveRemovalPlan($packageKey, $confirmPlan);
-                $this->markMaintenance($packageKey, $moduleKeys, $marker);
+                // The recovery marker commits with the preconditions and Module maintenance states.
+                if (!$resuming) {
+                    $this->markMaintenance($packageKey, $moduleKeys, $marker);
+                }
                 $this->inject('after-marker');
 
                 $catalog = $this->catalogs;
@@ -848,8 +851,13 @@ final class PluginRuntimeGovernanceService
         $actual = Db::name('plugin_module')->where('plugin_key', $packageKey)
             ->order('module_key')->column('manifest_digest', 'module_key');
         foreach ($plan['affected_modules'] as $module) {
-            if (!is_array($module) || !isset($actual[$module['module_key']]) || !hash_equals((string) $actual[$module['module_key']], (string) $module['manifest_digest'])) {
+            if (!is_array($module) || !isset($actual[$module['module_key']])) {
                 throw new PluginLifecycleException('MODULE_UNINSTALL_PLAN_CHANGED', 'Module ownership changed during recovery.');
+            }
+            // Orphan plans separate source and installed digests; locked plans carry only the source digest.
+            if (isset($module['source_manifest_digest'])
+                && !hash_equals((string) $actual[$module['module_key']], (string) $module['manifest_digest'])) {
+                throw new PluginLifecycleException('MODULE_UNINSTALL_PLAN_CHANGED', 'Installed Module identity changed during recovery.');
             }
         }
         if (count($actual) !== count($modules)) {

@@ -238,18 +238,23 @@ export function executeUninstall(
   moduleKey: string,
   purge: boolean,
   preview: UninstallPreview,
-  changeReason: string
+  changeReason: string,
+  idempotencyKey: string
 ) {
-  return unwrap<Record<string, unknown>>(
-    client.post('/platformapi/instance-tools/modules/uninstall', {
-      module_key: moduleKey,
-      purge,
-      preview: false,
-      confirm_package_key: preview.confirm_plan.package_key,
-      confirm_plan_digest: preview.plan_digest,
-      confirm_plan: preview.confirm_plan,
-      change_reason: changeReason,
-    })
+  return unwrap<ModuleOperationTask>(
+    client.post(
+      '/platformapi/instance-tools/modules/uninstall',
+      {
+        module_key: moduleKey,
+        purge,
+        preview: false,
+        confirm_package_key: preview.confirm_plan.package_key,
+        confirm_plan_digest: preview.plan_digest,
+        confirm_plan: preview.confirm_plan,
+        change_reason: changeReason,
+      },
+      { headers: { 'Idempotency-Key': idempotencyKey } }
+    )
   );
 }
 

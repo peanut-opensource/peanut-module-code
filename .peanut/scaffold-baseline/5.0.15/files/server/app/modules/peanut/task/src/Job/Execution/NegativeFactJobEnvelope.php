@@ -11,7 +11,8 @@ final readonly class NegativeFactJobEnvelope
 {
     public const PROFILE = 'identity_negative_fact';
     public const PURPOSE = 'identity.revocation.propagate';
-    public const RESOURCE = 'peanut.identity.revocation';
+    // Version 1 signatures bind this protocol identifier independently of Module keys.
+    public const RESOURCE = 'official.identity.revocation';
     public const TASK = 'identity.revocation.propagate';
     private const DOMAIN = 'peanut.task.identity-negative-fact.v1';
 

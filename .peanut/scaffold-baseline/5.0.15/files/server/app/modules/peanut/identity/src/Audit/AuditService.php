@@ -43,7 +43,8 @@ final readonly class AuditService implements \PeanutAdmin\Kernel\Audit\AuditWrit
             }
         }
         $this->assertRevocationSource($actor, $tenantId, $memberId, $kind, $subjectId, $reason, $before, $after, $sessionFingerprint);
-        $fact = ['schema_version' => 1, 'producer' => 'peanut.identity', 'fact_id' => 'revocation_' . bin2hex(random_bytes(16)),
+        // Version 1 hashes bind this producer identifier independently of Module keys.
+        $fact = ['schema_version' => 1, 'producer' => 'official.identity', 'fact_id' => 'revocation_' . bin2hex(random_bytes(16)),
             'tenant_id' => $tenantId, 'member_id' => $memberId, 'subject_kind' => $kind, 'subject_id' => $subjectId,
             'negative_action' => 'invalidate_old_grant', 'reason' => $reason, 'before' => $before, 'after' => $after,
             'session_fingerprint' => $sessionFingerprint, 'producer_operation_id' => $actor->requestId,
@@ -168,7 +169,7 @@ final readonly class AuditService implements \PeanutAdmin\Kernel\Audit\AuditWrit
             throw new \DomainException('IDENTITY_REVOCATION_FACT_MISMATCH');
         }
         $fact = $row->metadata_json;
-        if (!is_array($fact) || $fact['schema_version'] !== 1 || $fact['producer'] !== 'peanut.identity'
+        if (!is_array($fact) || $fact['schema_version'] !== 1 || $fact['producer'] !== 'official.identity'
             || $fact['tenant_id'] !== $tenantId || $fact['fact_id'] !== $factId || $fact['negative_action'] !== 'invalidate_old_grant'
             || !hash_equals($hash, hash('sha256', self::revocationJson($fact)))) {
             throw new \DomainException('IDENTITY_REVOCATION_FACT_MISMATCH');

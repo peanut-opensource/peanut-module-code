@@ -269,9 +269,39 @@ final class InstallationPreflightHost
                 if ($localCore['source_type'] !== 'local') { return $blocked(); }
                 ReleaseDependencyIdentity::phpComposerReference($package, $localCore, 'Composer Core identity invalid');
             }
-            $identity = static function (array $package) use ($localCore): array {
+            $modulePackages = [];
+            $moduleConfig = require $this->serverRoot . '/config/modules.php';
+            $resolver = \app\platform\infrastructure\plugin\PluginLockResolver::forRuntime($this->serverRoot, $moduleConfig['plugin_lock']);
+            foreach ($resolver->all() as $plugin) {
+                foreach ($plugin->moduleRoots as $key => $root) {
+                    $package = $read($root . '/composer.json');
+                    $modulePackages[$package['name']] = ['version' => $package['version'],
+                        'url' => substr($root, strlen($this->serverRoot) + 1)];
+                    $modulePackages['peanut-module-dev/' . $key] = ['version' => $package['version'],
+                        'require' => $package['require-dev'] ?? []];
+                }
+            }
+            $identity = static function (array $package) use ($localCore, $modulePackages): array {
                 $name = $package['name'] ?? null;
                 $version = $package['version'] ?? null;
+                if (isset($modulePackages[$name])) {
+                    $module = $modulePackages[$name];
+                    if ($version !== $module['version'] || isset($package['source'])) {
+                        throw new RuntimeException('Composer Module identity invalid');
+                    }
+                    if (isset($module['url'])) {
+                        $dist = $package['dist'] ?? [];
+                        if (($dist['type'] ?? null) !== 'path' || ($dist['url'] ?? null) !== $module['url']) {
+                            throw new RuntimeException('Composer Module path identity invalid');
+                        }
+                        return [$name, $version, $dist];
+                    }
+                    if (($package['type'] ?? null) !== 'metapackage' || isset($package['dist'])
+                        || ($package['require'] ?? []) != $module['require']) {
+                        throw new RuntimeException('Composer Module development identity invalid');
+                    }
+                    return [$name, $version, $module['require']];
+                }
                 if ($name === 'peanut-admin/core' && $localCore !== null) {
                     $reference = ReleaseDependencyIdentity::phpComposerReference($package, $localCore, 'Composer Core identity invalid');
                     // Compare the installed distribution with the lock; its ZIP was verified when prepared.

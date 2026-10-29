@@ -243,8 +243,29 @@ final readonly class PlatformModuleRuntimeService
     }
 
     /** @param array<string,mixed> $plan @return array<string,mixed> */
-    public function uninstall(string $key, bool $purge, array $plan, string $digest): array
+    public function uninstall(string $key, bool $purge, array $plan, string $digest,
+        ?PlatformContext $context = null, ?string $idempotencyKey = null): array
     {
+        if ($context !== null) {
+            if ($idempotencyKey === null || strlen($idempotencyKey) < 8 || strlen($idempotencyKey) > 200
+                || preg_match('/^[\x21-\x7e]+$/D', $idempotencyKey) !== 1) {
+                throw new PluginLifecycleException('MODULE_UNINSTALL_REQUEST_INVALID', 'An Idempotency-Key is required.');
+            }
+            if (!hash_equals((new \app\platform\infrastructure\plugin\ModuleUninstallPlanCodec())->digest($plan), $digest)) {
+                throw new PluginLifecycleException('MODULE_UNINSTALL_PLAN_CHANGED', 'Confirmed Module uninstall plan digest differs.');
+            }
+            try {
+                $request = $this->deliveryRequests->prepare('', '', $purge ? 'purge' : 'retire',
+                    (string) $plan['package_key'], null, null, $digest,
+                    hash('sha256', $context->operatorId . ':' . $idempotencyKey));
+                return $this->moduleOperations->submit($context, (string) $request['request_key'], $idempotencyKey);
+            } catch (\RuntimeException $exception) {
+                if (preg_match('/^OPS_MODULE_[A-Z0-9_]+$/D', $exception->getMessage()) === 1) {
+                    throw new PluginLifecycleException($exception->getMessage(), 'The Module worker is unavailable or rejected this removal.');
+                }
+                throw $exception;
+            }
+        }
         $result = $this->governance->uninstall($key, $purge, $plan, $digest);
         $moduleKeys = array_values(array_map(static fn(array $module): string => (string) $module['module_key'], $result['affected_modules'] ?? []));
         $catalog = $this->catalog();
@@ -337,10 +358,18 @@ final readonly class PlatformModuleRuntimeService
         if (!is_string($packageKey) || $packageKey === '') {
             throw new PluginLifecycleException('PLUGIN_NOT_INSTALLED', 'Module package is not installed.');
         }
-        $descriptor = (PluginLockResolver::forRuntime(
+        $descriptors = (PluginLockResolver::forRuntime(
             $this->serverRoot,
             (string) ($this->moduleConfig['plugin_lock'] ?? '../plugins.lock'),
-        ))->require($packageKey);
+        ))->all();
+        $descriptor = $descriptors[$packageKey] ?? null;
+        if ($descriptor === null) {
+            $scope = $this->governance->installedOrphanScope($moduleKey);
+            if ($scope === null) {
+                throw new PluginLifecycleException('PLUGIN_NOT_INSTALLED', 'Installed Module source is unavailable.');
+            }
+            return ['package_key' => $scope['package_key'], 'manifests' => $scope['manifests']];
+        }
         $manifests = [];
         foreach ($descriptor->moduleRoots as $key => $root) {
             $manifests[$key] = (new ManifestLoader())->load($root);

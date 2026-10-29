@@ -6,6 +6,7 @@ namespace app\common\infrastructure\module;
 
 use app\common\value\module\ModulePhpNamespace;
 use Composer\Autoload\ClassLoader;
+use Composer\InstalledVersions;
 use InvalidArgumentException;
 use PeanutAdmin\Kernel\Module\ModuleHostLayout;
 
@@ -69,12 +70,20 @@ final class ModuleHostLayoutFactory
                 || !str_starts_with($source, $moduleRoot . DIRECTORY_SEPARATOR)) {
                 throw new InvalidArgumentException("Module PHP source root is unavailable: {$moduleKey}.");
             }
+            $composer = json_decode((string) file_get_contents($moduleRoot . '/composer.json'), true, 512, JSON_THROW_ON_ERROR);
+            $nativeRoot = InstalledVersions::isInstalled($composer['name']) ? InstalledVersions::getInstallPath($composer['name']) : null;
+            $nativeSource = $nativeRoot === null ? false : realpath($nativeRoot . '/src');
             foreach ($registered as $existingPrefix => $directories) {
                 $samePrefix = $prefix === $existingPrefix;
                 $overlaps = str_starts_with(strtolower($prefix), strtolower($existingPrefix))
                     || str_starts_with(strtolower($existingPrefix), strtolower($prefix));
-                $sameSource = $samePrefix && count($directories) === 1
-                    && realpath((string) $directories[0]) === $source;
+                $sameSource = $samePrefix && $directories !== [];
+                foreach ($directories as $directory) {
+                    $resolved = realpath((string) $directory);
+                    if ($resolved !== $source && ($nativeSource === false || $resolved !== $nativeSource)) {
+                        $sameSource = false;
+                    }
+                }
                 if ($overlaps && !$sameSource) {
                     throw new InvalidArgumentException(
                         "Module PHP namespace {$prefix} conflicts with an existing Composer prefix.",

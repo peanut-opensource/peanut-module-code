@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\platform\services\plugin;
 
+use app\common\module\Dependencies;
+use app\platform\composition\plugin\ModuleDefinitionRegistryFactory;
 use app\common\value\installation\ApplicationSourceIdentity;
 use app\common\value\installation\ServerReleaseIdentity;
 use PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries;
@@ -12,6 +14,7 @@ use app\platform\exception\plugin\PluginLifecycleException;
 use app\platform\infrastructure\plugin\ModuleCatalogApplier;
 use app\platform\infrastructure\plugin\ModuleUninstallPlanCodec;
 use app\platform\infrastructure\plugin\PluginLockResolver;
+use app\platform\infrastructure\plugin\PluginArtifactWriter;
 use app\platform\policy\plugin\ModuleLifecyclePolicy;
 use app\platform\value\plugin\PluginDescriptor;
 use app\platform\value\plugin\ModuleFrontendLayout;
@@ -19,6 +22,7 @@ use app\common\persistence\AdvisoryLockExecution;
 use app\common\persistence\AdvisoryLockUnavailable;
 use PeanutAdmin\Kernel\Module\ManifestLoader;
 use PeanutAdmin\Kernel\Module\ModuleKey;
+use PeanutAdmin\Kernel\Module\ModuleException;
 use think\facade\Db;
 
 /** Deployment-scoped retire/purge state machine. It never mutates pa_tenant_module. */
@@ -37,19 +41,11 @@ final class PluginRuntimeGovernanceService
     public function preview(string $moduleOrPackageKey, bool $purge): array
     {
         $this->assertMutableSourceLock();
-        $scope = $this->scope($moduleOrPackageKey);
-        if ($scope === null) {
-            return [
-                'operation' => 'preview',
-                'plan_digest' => $this->codec()->digest($plan = $this->cleanPlan($moduleOrPackageKey, $purge)),
-                'confirm_plan' => $plan,
-                'affected_modules' => $plan['affected_modules'],
-                'preserved' => $plan['preserved'],
-                'removed' => $plan['removed'],
-                'blockers' => $plan['blockers'],
-            ];
+        $plan = $this->savedRemovalPlan($moduleOrPackageKey, $purge);
+        if ($plan === null) {
+            $scope = $this->scope($moduleOrPackageKey);
+            $plan = $scope === null ? $this->cleanPlan($moduleOrPackageKey, $purge) : $this->buildPlan($scope, $purge);
         }
-        $plan = $this->buildPlan($scope, $purge);
         return [
             'operation' => 'preview',
             'plan_digest' => $this->codec()->digest($plan),
@@ -102,6 +98,9 @@ final class PluginRuntimeGovernanceService
             ): array {
                 $state = $this->installationState($packageKey);
                 if ($this->isCleanState($state, $confirmPlan, $purge)) {
+                    if ($purge) {
+                        foreach ($this->quarantineDirectories($packageKey) as $directory) { $this->removeTree($directory); }
+                    }
                     return ['operation' => 'unchanged', 'package_key' => $packageKey, 'removed' => []];
                 }
                 $marker = $purge ? 'MODULE_PURGE_IN_PROGRESS' : 'MODULE_RETIRE_IN_PROGRESS';
@@ -122,7 +121,11 @@ final class PluginRuntimeGovernanceService
                 $moduleKeys = $this->confirmedModuleKeys($confirmPlan);
                 $ownedTablesByModule = $this->confirmedOwnedTablesByModule($confirmPlan);
                 $ownedTables = $this->confirmedOwnedTables($ownedTablesByModule);
-                $this->markMaintenance($packageKey, $moduleKeys, $marker);
+                $this->saveRemovalPlan($packageKey, $confirmPlan);
+                // The recovery marker commits with the preconditions and Module maintenance states.
+                if (!$resuming) {
+                    $this->markMaintenance($packageKey, $moduleKeys, $marker);
+                }
                 $this->inject('after-marker');
 
                 $catalog = $this->catalogs;
@@ -146,14 +149,34 @@ final class PluginRuntimeGovernanceService
                     $this->inject('after-database-clean');
                 }
 
-                $this->finalizeFilesystem($packageKey, $confirmPlan, $confirmPlanDigest, $purge);
+                $quarantine = $this->finalizeFilesystem($packageKey, $confirmPlan, $confirmPlanDigest);
+                $roots = [];
+                foreach ($moduleKeys as $moduleKey) {
+                    $relative = rtrim(ModuleHostLayoutFactory::pathLayout()->backendRelativePath(ModuleKey::fromString($moduleKey)), '/');
+                    $roots[$moduleKey] = $quarantine . '/' . $relative;
+                }
+                try {
+                    $dependencies = (new Dependencies($this->serverRoot))->remove($roots);
+                } catch (\Throwable $exception) {
+                    try {
+                        $this->publishCurrentRegistry();
+                    } catch (\Throwable $compilationFailure) {
+                        \think\facade\Log::error('Module registry compilation failed during dependency-removal recovery: ' . $compilationFailure::class);
+                    }
+                    throw $exception;
+                }
+                $this->publishCurrentRegistry();
                 $this->finalizeInstallation($packageKey, $moduleKeys, $purge);
+                if ($purge) {
+                    foreach ($this->quarantineDirectories($packageKey) as $directory) { $this->removeTree($directory); }
+                }
                 return [
                     'operation' => $purge ? 'purged' : 'retired',
                     'package_key' => $packageKey,
                     'affected_modules' => $confirmPlan['affected_modules'],
                     'removed' => $confirmPlan['removed'],
                     'preserved' => $confirmPlan['preserved'],
+                    'dependencies' => $dependencies,
                 ];
             });
         } catch (AdvisoryLockUnavailable) {
@@ -169,6 +192,9 @@ final class PluginRuntimeGovernanceService
         $removed = $catalog['removed'];
         $preserved = $catalog['preserved'];
         $blockers = [...$catalog['blockers'], ...$this->lifecycleBlockers($scope, $purge)];
+        if ($purge && ($scope['source_matches_installed'] ?? true) === false) {
+            $blockers[] = ['code' => 'MODULE_PURGE_SOURCE_MISMATCH', 'kind' => 'data_integrity', 'identifiers' => $moduleKeys];
+        }
         $ownedTables = [];
         foreach ($scope['affected_modules'] as $module) {
             foreach ($module['owned_tables'] as $table) {
@@ -196,6 +222,8 @@ final class PluginRuntimeGovernanceService
             'preserved' => $preserved,
             'removed' => $removed,
             'blockers' => $blockers,
+            ...(isset($scope['installed_identity']) ? ['installed_identity' => $scope['installed_identity'],
+                'source_identity' => $scope['source_identity']] : []),
         ];
     }
 
@@ -203,7 +231,67 @@ final class PluginRuntimeGovernanceService
     private function scope(string $moduleOrPackageKey): ?array
     {
         return $this->lockedScope($moduleOrPackageKey)
+            ?? $this->installedOrphanScope($moduleOrPackageKey)
             ?? $this->quarantinedScope($moduleOrPackageKey);
+    }
+
+    /** Installed lock-excluded source can be disabled and retired without activating its old dependencies. */
+    public function installedOrphanScope(string $moduleOrPackageKey): ?array
+    {
+        $installation = Db::name('plugin_installation')->alias('plugin')
+            ->join('plugin_module member', 'member.plugin_key=plugin.plugin_key')
+            ->where(function ($query) use ($moduleOrPackageKey): void {
+                $query->where('plugin.plugin_key', $moduleOrPackageKey)->whereOr('member.module_key', $moduleOrPackageKey);
+            })
+            ->whereIn('plugin.status', ['active', 'maintenance'])->distinct(true)
+            ->field('plugin.plugin_key,plugin.installed_version,plugin.artifact_sha256')->select()->toArray();
+        if ($installation === []) { return null; }
+        if (count($installation) !== 1) {
+            throw new PluginLifecycleException('PLUGIN_IDENTITY_INVALID', 'Installed package identity is ambiguous.');
+        }
+        $installed = $installation[0];
+        $packageKey = (string) $installed['plugin_key'];
+        $projectRoot = dirname($this->serverRoot);
+        $pluginPath = $projectRoot . '/plugins/' . $packageKey . '/plugin.json';
+        if (!is_file($pluginPath)) { return null; }
+        $plugin = json_decode((string) file_get_contents($pluginPath), true, 128, JSON_THROW_ON_ERROR);
+        if (($plugin['key'] ?? null) !== $packageKey) {
+            throw new PluginLifecycleException('PLUGIN_ARTIFACT_MISMATCH', 'Installed package key differs from its source.');
+        }
+        $specs = array_map(static fn(array $module): string => $module['key'] . '=' . $module['root'], $plugin['modules']);
+        if ((new PluginArtifactWriter($this->serverRoot))->build($packageKey, $plugin['version'], $specs) !== $plugin) {
+            throw new PluginLifecycleException('PLUGIN_ARTIFACT_MISMATCH', 'Installed package source is not canonical.');
+        }
+        $owned = Db::name('plugin_module')->where('plugin_key', $packageKey)->column('manifest_digest', 'module_key');
+        $affected = [];
+        $manifests = [];
+        $sourceMatches = $plugin['version'] === $installed['installed_version']
+            && $plugin['source']['sha256'] === $installed['artifact_sha256'];
+        foreach ($plugin['modules'] as $module) {
+            $key = $module['key'];
+            $manifest = (new ManifestLoader())->load($projectRoot . '/' . $module['root']);
+            if (!isset($owned[$key])) {
+                throw new PluginLifecycleException('PLUGIN_ARTIFACT_MISMATCH', 'Installed Module ownership differs from its source.');
+            }
+            $installedDigest = (string) $owned[$key];
+            $sourceMatches = $sourceMatches && hash_equals($installedDigest, $manifest->digest);
+            unset($owned[$key]);
+            $tables = $manifest->data['database']['owned_tables'] ?? [];
+            sort($tables, SORT_STRING);
+            $manifests[$key] = $manifest;
+            $affected[] = ['module_key' => $key, 'version' => $manifest->data['version'],
+                'manifest_digest' => $installedDigest, 'source_manifest_digest' => $manifest->digest,
+                'source_paths' => $this->moduleSourcePaths($key, $manifest->data),
+                'owned_tables' => $tables, 'lifecycle_protected' => ModuleLifecyclePolicy::isProtected($manifest)];
+        }
+        if ($owned !== []) {
+            throw new PluginLifecycleException('PLUGIN_ARTIFACT_MISMATCH', 'Installed Module ownership exceeds its source.');
+        }
+        usort($affected, static fn(array $a, array $b): int => $a['module_key'] <=> $b['module_key']);
+        return ['package_key' => $packageKey, 'package_manifest_digest' => hash_file('sha256', $pluginPath),
+            'affected_modules' => $affected, 'manifests' => $manifests, 'source_matches_installed' => $sourceMatches,
+            'installed_identity' => ['version' => $installed['installed_version'], 'artifact_sha256' => $installed['artifact_sha256']],
+            'source_identity' => ['version' => $plugin['version'], 'artifact_sha256' => $plugin['source']['sha256']]];
     }
 
     /** @return array{package_key:string,package_manifest_digest:string,descriptor:PluginDescriptor,affected_modules:list<array<string,mixed>>}|null */
@@ -267,12 +355,21 @@ final class PluginRuntimeGovernanceService
         }
 
         $packageKey = (string) $installation[0]['plugin_key'];
-        $quarantines = $this->quarantineDirectories($packageKey);
+        $directories = $this->quarantineDirectories($packageKey);
+        $quarantines = array_values(array_filter($directories, static function (string $directory) use ($installation, $packageKey): bool {
+            $path = $directory . '/plugins/' . $packageKey . '/plugin.json';
+            if (!is_file($path)) { return false; }
+            $plugin = json_decode((string) file_get_contents($path), true, 128, JSON_THROW_ON_ERROR);
+            return ($plugin['key'] ?? null) === $packageKey && ($plugin['version'] ?? null) === $installation[0]['installed_version']
+                && ($plugin['source']['sha256'] ?? null) === $installation[0]['artifact_sha256'];
+        }));
         if ($quarantines === []) {
+            foreach ($directories as $directory) {
+                if (is_file($directory . '/plugins/' . $packageKey . '/plugin.json')) {
+                    throw new PluginLifecycleException('MODULE_QUARANTINE_INVALID', 'Retired Module package identity changed.');
+                }
+            }
             return null;
-        }
-        if (count($quarantines) !== 1) {
-            throw new PluginLifecycleException('MODULE_QUARANTINE_CONFLICT', 'Retired Module package has multiple quarantine identities.');
         }
         $quarantine = $quarantines[0];
         $pluginManifestPath = $quarantine . '/plugins/' . $packageKey . '/plugin.json';
@@ -555,7 +652,7 @@ final class PluginRuntimeGovernanceService
     }
 
     /** @param array<string,mixed> $plan */
-    private function finalizeFilesystem(string $packageKey, array $plan, string $digest, bool $purge): void
+    private function finalizeFilesystem(string $packageKey, array $plan, string $digest): string
     {
         $this->assertMutableSourceLock();
         $projectRoot = realpath(dirname($this->serverRoot)) ?: dirname($this->serverRoot);
@@ -617,11 +714,67 @@ final class PluginRuntimeGovernanceService
                 }
             }
         }
-        if ($purge) {
-            foreach ($this->quarantineDirectories($packageKey) as $directory) {
-                $this->removeTree($directory);
+        foreach ([$quarantine, ...$this->quarantineDirectories($packageKey)] as $directory) {
+            $manifest = $directory . '/plugins/' . $packageKey . '/plugin.json';
+            if (is_file($manifest) && hash_file('sha256', $manifest) === $plan['package_manifest_digest']) {
+                return $directory;
             }
         }
+        throw new PluginLifecycleException('MODULE_QUARANTINE_FAILED', 'The confirmed package source is unavailable in quarantine.');
+    }
+
+    /** Preserve the already confirmed input in the existing quarantine recovery area. */
+    private function saveRemovalPlan(string $packageKey, array $plan): void
+    {
+        $root = dirname($this->serverRoot) . '/.local/module-quarantine';
+        if (!is_dir($root) && !mkdir($root, 0700, true) && !is_dir($root)) {
+            throw new PluginLifecycleException('MODULE_QUARANTINE_FAILED', 'Module quarantine cannot be created.');
+        }
+        $path = $root . '/' . $packageKey . '.plan.json';
+        $state = $this->installationState($packageKey);
+        if (is_file($path) && is_array($state) && $state['status'] === 'maintenance'
+            && in_array($state['last_error_code'], ['MODULE_RETIRE_IN_PROGRESS', 'MODULE_PURGE_IN_PROGRESS'], true)) {
+            $saved = json_decode((string) file_get_contents($path), true, 128, JSON_THROW_ON_ERROR);
+            if ($this->codec()->encode($saved) !== $this->codec()->encode($plan)) {
+                throw new PluginLifecycleException('MODULE_UNINSTALL_PLAN_CHANGED', 'Complete the existing confirmed Module removal plan first.');
+            }
+        }
+        $temporary = $path . '.tmp-' . bin2hex(random_bytes(6));
+        $contents = $this->codec()->encode($plan) . "\n";
+        if (file_put_contents($temporary, $contents, LOCK_EX) !== strlen($contents) || !rename($temporary, $path)) {
+            @unlink($temporary);
+            throw new PluginLifecycleException('MODULE_QUARANTINE_FAILED', 'Confirmed Module removal plan cannot be saved.');
+        }
+    }
+
+    private function publishCurrentRegistry(): void
+    {
+        $factory = new ModuleDefinitionRegistryFactory($this->serverRoot);
+        try {
+            $factory->fromCompiled($this->moduleConfig);
+            return;
+        } catch (ModuleException $exception) {
+            if ($exception->errorCode !== 'MODULE_REGISTRY_NOT_COMPILED') { throw $exception; }
+        }
+        $resolver = new PluginLockResolver($this->serverRoot, (string) $this->moduleConfig['plugin_lock']);
+        $registry = $factory->fromPluginLock($resolver, $this->moduleConfig, false);
+        $factory->publishCompiled($registry, $this->moduleConfig, $resolver->all());
+    }
+
+    private function savedRemovalPlan(string $moduleOrPackageKey, bool $purge): ?array
+    {
+        $packageKey = Db::name('plugin_module')->where('module_key', $moduleOrPackageKey)->value('plugin_key') ?? $moduleOrPackageKey;
+        $state = $this->installationState($packageKey);
+        $marker = $purge ? 'MODULE_PURGE_IN_PROGRESS' : 'MODULE_RETIRE_IN_PROGRESS';
+        if (!is_array($state) || $state['status'] !== 'maintenance' || $state['last_error_code'] !== $marker) { return null; }
+        $path = dirname($this->serverRoot) . '/.local/module-quarantine/' . $packageKey . '.plan.json';
+        if (!is_file($path)) { return null; }
+        $plan = json_decode((string) file_get_contents($path), true, 128, JSON_THROW_ON_ERROR);
+        if (($plan['package_key'] ?? null) !== $packageKey || ($plan['operation'] ?? null) !== ($purge ? 'purge' : 'retire')) {
+            throw new PluginLifecycleException('MODULE_UNINSTALL_PLAN_CHANGED', 'Saved Module removal plan differs from its operation.');
+        }
+        $this->assertResumeScope($plan, $packageKey);
+        return $plan;
     }
 
     private function assertMutableSourceLock(): void
@@ -698,8 +851,13 @@ final class PluginRuntimeGovernanceService
         $actual = Db::name('plugin_module')->where('plugin_key', $packageKey)
             ->order('module_key')->column('manifest_digest', 'module_key');
         foreach ($plan['affected_modules'] as $module) {
-            if (!is_array($module) || !isset($actual[$module['module_key']]) || !hash_equals((string) $actual[$module['module_key']], (string) $module['manifest_digest'])) {
+            if (!is_array($module) || !isset($actual[$module['module_key']])) {
                 throw new PluginLifecycleException('MODULE_UNINSTALL_PLAN_CHANGED', 'Module ownership changed during recovery.');
+            }
+            // Orphan plans separate source and installed digests; locked plans carry only the source digest.
+            if (isset($module['source_manifest_digest'])
+                && !hash_equals((string) $actual[$module['module_key']], (string) $module['manifest_digest'])) {
+                throw new PluginLifecycleException('MODULE_UNINSTALL_PLAN_CHANGED', 'Installed Module identity changed during recovery.');
             }
         }
         if (count($actual) !== count($modules)) {

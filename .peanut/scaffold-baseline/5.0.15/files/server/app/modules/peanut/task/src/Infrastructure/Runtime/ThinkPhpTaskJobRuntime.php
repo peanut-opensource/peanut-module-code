@@ -77,7 +77,7 @@ final readonly class ThinkPhpTaskJobRuntime implements TaskJobRuntime
         );
     }
 
-    public function runTenant(int $tenantId, string $workerId): int
+    public function runTenant(int $tenantId, string $workerId, ?string $jobKey = null): int
     {
         if (!$this->executionContexts->isEmpty()) {
             throw new \DomainException('TASK_EXECUTION_ROOT_REQUIRED');
@@ -118,6 +118,7 @@ final readonly class ThinkPhpTaskJobRuntime implements TaskJobRuntime
                 );
             },
             negativeSigningKey: $this->signingKey,
+            jobKey: $jobKey,
         );
 
         $processed = 0;

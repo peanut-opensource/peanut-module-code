@@ -27,6 +27,6 @@
 
 ## 不随APP分发的维护资料
 
-维护者的[模板生产、资格与既有包技术合同](maintenance/release-producers.md)、[本地身份凭据维护](maintenance/identity-credentials.md)、[授权 Workflow 身份消费者](maintenance/workflow-authorized-fixture.md)在源码仓`docs/maintenance/`；内部需求决定、资源实值、任务和运行回执在私有Project。它们不是产品使用者的必读前置。历史发行快照和APP旧baseline保留其原版本，不改成当前事实，也不从历史任务书恢复执行。
+维护者资料仅存在于Code源码仓的`docs/maintenance/release-producers.md`、`docs/maintenance/identity-credentials.md`和`docs/maintenance/workflow-authorized-fixture.md`，不随生成APP交付；内部需求决定、资源实值、任务和运行回执在私有Project。它们不是产品使用者的必读前置。历史发行快照和APP旧baseline保留其原版本，不改成当前事实，也不从历史任务书恢复执行。
 
 API与模块清单由原生结构化源生成；没有第二份手工API真值。公开文档站只展示固定来源，不拥有另一套技术正文。

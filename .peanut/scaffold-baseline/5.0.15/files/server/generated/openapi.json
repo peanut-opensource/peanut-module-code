@@ -10,7 +10,7 @@
         "description": "Application HTTP contract for the identity, Tenant, article, file and notification entry points. Runtime authorization and Tenant binding remain enforced by the server middleware.",
         "x-peanut-contract-generator": {
             "name": "scripts/generate-api-contracts.php",
-            "version": "2",
+            "version": "3",
             "release_source": "release-versions.json#source_product_version"
         }
     },
@@ -721,7 +721,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 161
+                        "line": 162
                     }
                 },
                 "x-peanut-permissions": [
@@ -799,7 +799,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 118
+                        "line": 119
                     }
                 },
                 "x-peanut-permissions": [
@@ -877,7 +877,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 158
+                        "line": 159
                     }
                 },
                 "x-peanut-permissions": [
@@ -955,7 +955,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 155
+                        "line": 156
                     }
                 },
                 "x-peanut-permissions": [
@@ -1059,7 +1059,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 121
+                        "line": 122
                     }
                 },
                 "x-peanut-permissions": [
@@ -1137,7 +1137,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 124
+                        "line": 125
                     }
                 },
                 "x-peanut-permissions": [
@@ -1249,7 +1249,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 131
+                        "line": 132
                     }
                 },
                 "x-peanut-permissions": [
@@ -1355,7 +1355,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 134
+                        "line": 135
                     }
                 },
                 "x-peanut-permissions": [
@@ -1456,7 +1456,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 141
+                        "line": 142
                     }
                 },
                 "x-peanut-permissions": [
@@ -1568,7 +1568,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 144
+                        "line": 145
                     }
                 },
                 "x-peanut-permissions": [
@@ -1662,7 +1662,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 147
+                        "line": 148
                     }
                 },
                 "x-peanut-permissions": [
@@ -1767,7 +1767,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 151
+                        "line": 152
                     }
                 },
                 "x-peanut-permissions": [
@@ -1859,7 +1859,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 164
+                        "line": 165
                     }
                 },
                 "x-peanut-permissions": [
@@ -12182,7 +12182,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 186
+                        "line": 187
                     }
                 },
                 "x-peanut-permissions": [
@@ -12355,7 +12355,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 170
+                        "line": 171
                     }
                 },
                 "x-peanut-permissions": [
@@ -12443,7 +12443,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 173
+                        "line": 174
                     }
                 },
                 "x-peanut-permissions": [
@@ -12531,7 +12531,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 176
+                        "line": 177
                     }
                 },
                 "x-peanut-permissions": [
@@ -13275,7 +13275,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 189
+                        "line": 190
                     }
                 },
                 "x-peanut-permissions": [
@@ -13385,7 +13385,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 192
+                        "line": 193
                     }
                 },
                 "x-peanut-permissions": [
@@ -13499,7 +13499,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 195
+                        "line": 196
                     }
                 },
                 "x-peanut-permissions": [
@@ -13604,7 +13604,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 198
+                        "line": 199
                     }
                 },
                 "x-peanut-permissions": [
@@ -13709,7 +13709,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 201
+                        "line": 202
                     }
                 },
                 "x-peanut-permissions": [
@@ -13814,7 +13814,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 204
+                        "line": 205
                     }
                 },
                 "x-peanut-permissions": [
@@ -13919,7 +13919,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 207
+                        "line": 208
                     }
                 },
                 "x-peanut-permissions": [
@@ -14033,7 +14033,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 210
+                        "line": 211
                     }
                 },
                 "x-peanut-permissions": [
@@ -14138,7 +14138,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 213
+                        "line": 214
                     }
                 },
                 "x-peanut-permissions": [
@@ -14251,7 +14251,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 216
+                        "line": 217
                     }
                 },
                 "x-peanut-permissions": [
@@ -14881,7 +14881,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 109
+                        "line": 110
                     }
                 },
                 "x-peanut-permissions": [
@@ -15001,7 +15001,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 112
+                        "line": 113
                     }
                 },
                 "x-peanut-permissions": [
@@ -15106,7 +15106,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 167
+                        "line": 168
                     }
                 },
                 "x-peanut-permissions": [
@@ -15227,7 +15227,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 179
+                        "line": 180
                     }
                 },
                 "x-peanut-permissions": [
@@ -15334,7 +15334,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 182
+                        "line": 183
                     }
                 },
                 "x-peanut-permissions": [
@@ -15558,7 +15558,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 86
+                        "line": 87
                     }
                 },
                 "x-peanut-permissions": [
@@ -15668,7 +15668,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 82
+                        "line": 83
                     }
                 },
                 "x-peanut-permissions": [
@@ -15769,7 +15769,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 101
+                        "line": 102
                     }
                 },
                 "x-peanut-permissions": [
@@ -15861,7 +15861,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 105
+                        "line": 106
                     }
                 },
                 "x-peanut-permissions": [
@@ -15878,7 +15878,19 @@
                     "PlatformModules"
                 ],
                 "operationId": "uninstallInstanceModule",
-                "parameters": [],
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Idempotency-Key",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "minLength": 8,
+                            "maxLength": 200,
+                            "pattern": "^[!-~]+$"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "成功",
@@ -16002,8 +16014,10 @@
                     }
                 },
                 "x-peanut-errors": [
-                    "MODULE_UNINSTALL_PLAN_CHANGED"
+                    "MODULE_UNINSTALL_PLAN_CHANGED",
+                    "MODULE_UNINSTALL_REQUEST_INVALID"
                 ],
+                "description": "preview=true 返回确认计划；preview=false 必须提供 Idempotency-Key，提交 Ops 模块卸载任务并返回任务状态。",
                 "security": [
                     {
                         "bearerAuth": {}
@@ -16020,7 +16034,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 97
+                        "line": 98
                     }
                 },
                 "x-peanut-permissions": [
@@ -16105,7 +16119,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 79
+                        "line": 80
                     }
                 },
                 "x-peanut-permissions": [
@@ -16183,7 +16197,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 115
+                        "line": 116
                     }
                 },
                 "x-peanut-permissions": [
@@ -16314,7 +16328,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 127
+                        "line": 128
                     }
                 },
                 "x-peanut-permissions": [
@@ -16414,7 +16428,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 137
+                        "line": 138
                     }
                 },
                 "x-peanut-permissions": [

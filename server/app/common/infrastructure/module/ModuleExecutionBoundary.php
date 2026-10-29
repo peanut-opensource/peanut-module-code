@@ -56,6 +56,19 @@ final readonly class ModuleExecutionBoundary
         $this->assertBackgroundTenant($context);
     }
 
+    /** Committed revocations remain deliverable after positive tenant access has ended. */
+    public function assertNegativeFactWorker(string $moduleKey): void
+    {
+        $execution = $this->execution->get();
+        if (!$execution instanceof SystemExecutionContext
+            || $execution->operation() !== 'identity.revocation.propagate'
+            || $execution->metadata->handlerKey !== 'identity.revocation.propagate'
+            || !in_array($moduleKey, ['peanut.task', 'peanut.collaboration'], true)) {
+            throw new \DomainException('MODULE_NEGATIVE_FACT_CONTEXT_REQUIRED');
+        }
+        $this->guard->assertDeployment($moduleKey);
+    }
+
     public function assertScheduled(string $moduleKey): void
     {
         $context = $this->moduleContext($moduleKey);

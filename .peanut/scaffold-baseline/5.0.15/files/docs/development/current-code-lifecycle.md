@@ -152,7 +152,7 @@ python3 "$code_root/scripts/project-env" --root "$web_core" --state-root "$code_
 
 既有 `server/database/seed-multi-tenant-demo.php` 仍保留专项演示数据能力；它与首次安装、脚手架开发库初始化是不同操作。需要该能力时，先按其既有 target/resource 准入及恢复合同核对明确目标，在对应后端环境配置 `PEANUT_DEMO_MODE`、演示租户邮件/密码/域名等所需值，再显式选择 `PHP_ENV_NAME` 并执行 `php server/database/seed-multi-tenant-demo.php --apply --default-host=<明确的default租户域名>`。它不负责选择工具、安装依赖、生成秘密或启动服务；不得向共享开发库重放旧演示配方，也不能把退出的聚合脚本当作当前初始化入口。
 
-数据库只采用 ThinkPHP 原生迁移和 `pa_migrations`（可由 database.migration_table 配置）。本次最终结构为唯一 `20261101000000_initial_baseline.php`，后续用 `php server/think migrate:create <Name>` 增加标准 PHP 迁移；初始基线明确不支持回滚。旧 baseline 覆盖、自研版本账本、schema:application 及历史 partial continuation 已退役。不存在自动清库、重建身份或旧数据库兼容路径。详见[原生迁移合同](../maintenance/migration-protocols.md)。
+数据库只采用 ThinkPHP 原生迁移和 `pa_migrations`（可由 database.migration_table 配置）。本次最终结构为唯一 `20261101000000_initial_baseline.php`，后续用 `php server/think migrate:create <Name>` 增加标准 PHP 迁移；初始基线明确不支持回滚。旧 baseline 覆盖、自研版本账本、schema:application 及历史 partial continuation 已退役。不存在自动清库、重建身份或旧数据库兼容路径。维护者迁移合同仅见Code源码仓`docs/maintenance/migration-protocols.md`，不随生成APP交付。
 
 模块安装/升级仍负责信任、依赖、锁、模块状态、目录和租户业务，结构变更由应用主目录原生迁移统一交付；不再读取模块私有 SQL 目录或 backend.migrations。安装执行原生 pending 迁移并核声明的自有表，缺失结构明确拒绝，不能把模块目录提升视为数据库交付。模块 schema 的新增/删除应在应用版本中审阅并交付，卸载保留原生迁移历史。
 

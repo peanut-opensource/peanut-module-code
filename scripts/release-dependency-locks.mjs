@@ -117,7 +117,7 @@ export function fixedArchiveInputs(root, inputPath, document, read) {
   const sha256 = createHash('sha256').update(raw).digest('hex');
   if (application.scaffold_candidate?.core_inputs_sha256 !== sha256 ||
       receipt.schema_version !== 1 || receipt.status !== 'frozen-core-build-inputs-not-product-release' ||
-      dependencyMode(document) !== 'archive' || !fixed(document.core_php.constraint) ||
+      dependencyMode(document) !== (receipt.php_only === true ? 'registry' : 'archive') || !fixed(document.core_php.constraint) ||
       !isDeepStrictEqual(receipt.core_php, document.core_php) ||
       !isDeepStrictEqual(receipt.core_web, document.core_web) ||
       (document.core_php.source_type === 'local'
@@ -126,7 +126,7 @@ export function fixedArchiveInputs(root, inputPath, document, read) {
         : receipt.sources?.php?.commit !== document.core_php.source_reference ||
           receipt.sources?.web?.commit !== document.core_web.source_reference ||
           !/^[a-f0-9]{40}$/.test(receipt.sources?.php?.tree ?? '') ||
-          !/^[a-f0-9]{40}$/.test(receipt.sources?.web?.tree ?? '')))
+          (receipt.php_only !== true && !/^[a-f0-9]{40}$/.test(receipt.sources?.web?.tree ?? ''))))
     fail('fixed Core input binding');
   const php = receipt.core_php_archive;
   if (!object(php) || php.path !== `packages/core-php/peanut-admin-core-${document.core_php.resolved_version}.zip` ||
@@ -137,14 +137,19 @@ export function fixedArchiveInputs(root, inputPath, document, read) {
   const expectedDist = {type: 'zip', url: `../${php.path}`,
     reference: document.core_php.source_type === 'local' ? document.core_php.source_identity.snapshot_sha256 : document.core_php.source_reference,
     shasum: php.sha1};
-  if (!isDeepStrictEqual(composer.repositories, [receipt.composer_repository]) || locked?.length !== 1 ||
+  const modules = nativeModulePackages(read);
+  const coreRepositories = Object.values(composer.repositories ?? {}).filter(repository =>
+    !(repository.type === 'path' && repository.options?.symlink === false &&
+      Object.values(modules).some(module => module.url === repository.url)));
+  if (!isDeepStrictEqual(coreRepositories, [receipt.composer_repository]) || locked?.length !== 1 ||
       !isDeepStrictEqual(locked[0].dist, expectedDist) ||
       (document.core_php.source_type === 'local' ? locked[0].source != null
         : !isDeepStrictEqual(locked[0].source, {type: document.core_php.source_type, url: document.core_php.source_url, reference: document.core_php.source_reference})))
     fail('fixed PHP native origin');
   const archives = [{path: php.path, sha256: php.sha256},
-    ...Object.values(document.core_web.packages).map(p => ({path: p.archive, sha256: p.sha256}))];
-  if (archives.length !== 7 || new Set(archives.map(p => p.path)).size !== 7) fail('fixed archive count');
+    ...(receipt.php_only === true ? [] : Object.values(document.core_web.packages).map(p => ({path: p.archive, sha256: p.sha256})))];
+  const archiveCount = receipt.php_only === true ? 1 : 7;
+  if (archives.length !== archiveCount || new Set(archives.map(p => p.path)).size !== archiveCount) fail('fixed archive count');
   for (const archive of archives) {
     let current = root;
     for (const part of archive.path.split('/')) {
@@ -157,7 +162,7 @@ export function fixedArchiveInputs(root, inputPath, document, read) {
       fail('fixed archive bytes');
   }
   if (createHash('sha1').update(read(php.path)).digest('hex') !== php.sha1) fail('fixed PHP archive SHA-1');
-  return {sha256, core_php_archive: php, archives};
+  return {sha256, core_php_archive: php, archives, ...(receipt.php_only === true ? {php_only: true} : {})};
 }
 
 /** 从既有锁定 OpenAPI 工具依赖取得 YAML 解析器，不自造 YAML 解析或安装新依赖。 */
@@ -170,6 +175,42 @@ export function lockedYamlParser(toolRoot) {
   const redocly = createRequire(require.resolve('@redocly/openapi-core'));
   const yaml = redocly('js-yaml');
   return (text) => yaml.load(text, { schema: yaml.JSON_SCHEMA });
+}
+
+// Same selected-root/name/version/path contract as docker/scripts/vendor-state.py.
+function nativeModulePackages(read) {
+  const lock = JSON.parse(String(read('plugins.lock')));
+  const modules = {};
+  for (const plugin of lock.plugins ?? []) {
+    for (const module of plugin.modules ?? []) {
+      const root = module.root;
+      if (typeof root !== 'string' || !root.startsWith('server/app/modules/') ||
+          root.split('/').some(part => ['', '.', '..'].includes(part))) fail('Module Composer root');
+      const packageManifest = JSON.parse(String(read(`${root}/composer.json`)));
+      modules[packageManifest.name] = {version: packageManifest.version, url: root.slice(7)};
+    }
+  }
+  return modules;
+}
+
+function nativeClientModulePackages(read, client) {
+  const roots = {web: ['admin-web', 'web/src/modules'], platform: ['platform-web', 'platform/src/modules'],
+    pc: ['pc-web', 'pc/modules'], uniapp: ['uniapp', 'uniapp/src/modules']};
+  const [clientKey, prefix] = roots[client];
+  const packages = {};
+  for (const plugin of JSON.parse(String(read('plugins.lock'))).plugins ?? []) {
+    for (const module of plugin.modules ?? []) {
+      const definition = JSON.parse(String(read(`${module.root}/module.json`)));
+      const entry = definition.frontend?.clients?.[clientKey]?.entry ??
+        (client === 'web' ? definition.frontend?.entry : undefined);
+      if (entry === undefined) continue;
+      const root = `${prefix}/${module.key.replace('.', '-')}`;
+      if (entry !== `${root}/contribution.ts`) fail('Module frontend root');
+      const packageManifest = JSON.parse(String(read(`${root}/package.json`)));
+      packages[packageManifest.name] = {version: packageManifest.version, url: root.slice(client.length + 1)};
+    }
+  }
+  return packages;
 }
 
 /** read 只读取指定源码/锁；Git 候选检查传入 git-show，绝不执行候选中的代码。 */
@@ -204,7 +245,18 @@ export function verifyDependencyLocks(versions, read, parseYaml, internal = fals
         ...(composerLock['packages-dev'] ?? []),
       ].some((x) => x.dist?.type === 'path'))
   )
-    fail('Composer path dependency');
+  {
+    const modules = nativeModulePackages(read);
+    const urls = new Set(Object.values(modules).map(module => module.url));
+    if (Object.values(composer.repositories ?? {}).some(repository => repository.type === 'path' &&
+          (!urls.has(repository.url) || repository.options?.symlink !== false)) ||
+        [...(composerLock.packages ?? []), ...(composerLock['packages-dev'] ?? [])].some(packageManifest => {
+          if (packageManifest.dist?.type !== 'path') return false;
+          const module = modules[packageManifest.name];
+          return !module || module.version !== packageManifest.version || packageManifest.source != null ||
+            packageManifest.dist.url !== module.url;
+        })) fail('Composer path dependency');
+  }
   const required = {
     web: ['vue', 'ui-vue'],
     platform: ['vue', 'ui-vue'],
@@ -302,6 +354,14 @@ export function verifyDependencyLocks(versions, read, parseYaml, internal = fals
       for (const [path, value] of Object.entries(lock.packages ?? {})) {
         const name = path.slice(path.lastIndexOf('node_modules/') + 13);
         if (!name.startsWith('@peanut-admin/')) continue;
+        if (!coreWebPackages.includes(name)) {
+          const module = nativeClientModulePackages(read, client)[name];
+          if (!module || value.link !== true || value.resolved !== module.url ||
+              !manifest.workspaces?.includes(module.url) ||
+              lock.packages[module.url]?.name !== name || lock.packages[module.url]?.version !== module.version)
+            fail(`${client} npm Module workspace:${name}`);
+          continue;
+        }
         const i = packages[name];
         if (
           !i ||
@@ -515,7 +575,7 @@ export function verifyInstalledDependencies(applicationRoot, document, internal 
         installed.version !== document.core_web.packages[name]?.version
       )
         fail(`${client} installed:${name}`);
-      if (internal || fixedInputs !== null) {
+      if (internal || (fixedInputs !== null && fixedInputs.php_only !== true)) {
         const identity = document.core_web.packages[name];
         const payload = verifyArchivePayload(resolve(root, identity.archive), dirname(actual), 'tgz', name, identity.version);
         for (const [peer, constraint] of Object.entries(payload.peerDependencies ?? {})) {
@@ -531,7 +591,7 @@ export function verifyInstalledDependencies(applicationRoot, document, internal 
         package: name,
         version: installed.version,
         contained: actual.startsWith(root + sep),
-        ...(internal || fixedInputs !== null ? { archive: document.core_web.packages[name].archive, proof: 'archive-payload-bytes-and-contained-location' } : {}),
+        ...(internal || (fixedInputs !== null && fixedInputs.php_only !== true) ? { archive: document.core_web.packages[name].archive, proof: 'archive-payload-bytes-and-contained-location' } : {}),
       });
     }
   }

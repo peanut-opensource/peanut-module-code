@@ -73,6 +73,7 @@ Route::get('tenants/modules', [PlatformControlPlaneQueryController::class, 'modu
     ->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.tenant.read');
 Route::get('instance-tools/modules', [PlatformModuleLifecycleController::class, 'lists'])
+    ->completeMatch()
     ->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.module.read')
     ->middleware(PlatformInstanceToolMiddleware::class);

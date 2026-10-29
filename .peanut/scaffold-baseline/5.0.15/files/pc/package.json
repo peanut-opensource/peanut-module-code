@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "description": "Peanut Module Code PC client",
     "private": true,
-    "author": "application owner",
+    "author": "花生科技",
     "homepage": "https://github.com/peanut-business/peanut-admin-code",
     "repository": {
         "type": "git",
@@ -35,5 +35,6 @@
         "@nuxtjs/tailwindcss": "^6.12.2",
         "typescript": "^5.6.3",
         "vue-tsc": "^2.1.10"
-    }
+    },
+    "workspaces": []
 }

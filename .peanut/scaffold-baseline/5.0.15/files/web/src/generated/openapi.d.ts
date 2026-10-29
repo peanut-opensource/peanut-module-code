@@ -2545,6 +2545,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description preview=true 返回确认计划；preview=false 必须提供 Idempotency-Key，提交 Ops 模块卸载任务并返回任务状态。 */
         post: operations["uninstallInstanceModule"];
         delete?: never;
         options?: never;
@@ -3028,6 +3029,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["uploadAdminVideo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/upload/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["uploadMemberImage"];
         delete?: never;
         options?: never;
         head?: never;
@@ -11963,7 +11980,9 @@ export interface operations {
     uninstallInstanceModule: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -12942,6 +12961,37 @@ export interface operations {
         };
     };
     uploadAdminVideo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                    cid?: components["schemas"]["FileNonNegativeIntegerInput"];
+                };
+            };
+        };
+        responses: {
+            /** @description 上传成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileUploadResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    uploadMemberImage: {
         parameters: {
             query?: never;
             header?: never;

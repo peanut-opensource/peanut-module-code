@@ -1,11 +1,11 @@
 {
     "schema_version": 1,
     "key": "peanut.ops",
-    "version": "1.0.25",
+    "version": "1.0.28",
     "source": {
         "type": "canonical-contents",
         "reference": "canonical-plugin-contents-v1",
-        "sha256": "af5152f29d1560472272eb36035a28228ffc885c1f40f35f8ac003dfc35d3b33"
+        "sha256": "cccb3c1e13032a1f8363b3f10d39ceced337d0922280f59218ad0fef27061f44"
     },
     "trust": {
         "channel": "bundled",
@@ -39,12 +39,12 @@
             "modules": [
                 {
                     "key": "peanut.ops",
-                    "version": "1.0.25",
+                    "version": "1.0.28",
                     "kernel_constraint": "^1.0",
                     "dependencies": [
                         {
                             "module_key": "peanut.identity",
-                            "version": "4.0.0-rc.32"
+                            "version": "^4.0.0-rc.32"
                         },
                         {
                             "module_key": "peanut.task",
@@ -62,8 +62,8 @@
     "composer": [
         {
             "name": "peanut-business/peanut-ops",
-            "version": "1.0.25",
-            "sha256": "55f6fa0b41ee6a470a45220cea2a1207c107c9e3a52c2c4806a3a66e879cb192"
+            "version": "1.0.28",
+            "sha256": "ac3520bbdf1b4fb04b23513dd920b6b4005ac80a49cd783b048dd7855c7ef56e"
         }
     ],
     "npm": [

@@ -19,6 +19,7 @@
   "include": ["src/**/*", "src/**/*.vue"],
   "exclude": [
     "node_modules",
+    "src/modules/fixture-workflow-business/**",
     "src/modules/**/optional-runtime/tests/**",
     "src/modules/peanut-reference-codes/runtime/tests/**",
     "src/modules/peanut-settings/runtime/tests/**",

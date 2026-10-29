@@ -30,8 +30,12 @@ final readonly class Dependencies
         return $this->withLock(fn(): array => $this->prepare($plugin->moduleRoots, $resolver, $installed));
     }
 
-    /** Prepare the admitted application graph once, without inventing a package identity. */
-    public function prepareRelease(PluginLockResolver $resolver, array $clients): array
+    /** Prepare admitted real Module nodes once; a native consumer may reuse that result under the same lock.
+     * @param null|list<string> $selectedModuleKeys
+     * @param null|callable(array<string,mixed>):array<string,mixed> $consume
+     */
+    public function prepareRelease(PluginLockResolver $resolver, array $clients, ?array $selectedModuleKeys = null,
+        array $installed = [], ?callable $consume = null): array
     {
         if (PHP_SAPI !== 'cli') {
             throw new PluginPackageException('MODULE_RELEASE_PREPARATION_REQUIRED', 'Release preparation requires the deployment CLI.');
@@ -40,7 +44,17 @@ final readonly class Dependencies
         foreach ($resolver->all() as $plugin) {
             $roots += $plugin->moduleRoots;
         }
-        return $this->withLock(fn(): array => $this->prepare($roots, $resolver, [], $clients));
+        if ($selectedModuleKeys !== null) {
+            $selected = [];
+            foreach ($selectedModuleKeys as $key) {
+                $selected[$key] = $roots[$key] ?? throw new PluginPackageException('MODULE_APPROVED_SOURCE_REQUIRED', 'Selected Module has no admitted source.');
+            }
+            $roots = $selected;
+        }
+        return $this->withLock(function () use ($roots, $resolver, $installed, $clients, $consume): array {
+            $prepared = $this->prepare($roots, $resolver, $installed, $clients);
+            return $consume === null ? $prepared : $consume($prepared);
+        });
     }
 
     /** Source has already entered the existing quarantine; shared workspace globs no longer select it.

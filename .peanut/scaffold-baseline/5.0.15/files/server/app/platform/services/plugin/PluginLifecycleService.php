@@ -11,6 +11,7 @@ use app\platform\infrastructure\plugin\ModuleCatalogApplier;
 use app\platform\infrastructure\plugin\PluginLockResolver;
 use app\platform\policy\plugin\ModuleLifecyclePolicy;
 use app\platform\value\plugin\PluginDescriptor;
+use app\platform\value\plugin\ModuleFrontendLayout;
 use app\common\contract\module\PluginLifecycleCommands;
 use app\common\persistence\AdvisoryLockExecution;
 use app\common\persistence\AdvisoryLockUnavailable;
@@ -87,6 +88,50 @@ final readonly class PluginLifecycleService implements PluginLifecycleCommands
     public function reconcile(string $pluginKey): array
     {
         return $this->withPackageLock($pluginKey, fn(): array => $this->reconcileLocked($pluginKey));
+    }
+
+    /** The native command supplies dependency-ordered, explicitly selected installed package keys. */
+    public function reconcileInstalled(array $pluginKeys): array
+    {
+        $moduleKeys = [];
+        $clients = [];
+        foreach ($pluginKeys as $key) {
+            $plugin = $this->resolver->require($key);
+            $this->assertTrustEligible($plugin);
+            $current = $this->pluginInstallation($key, false);
+            if (!is_array($current) || !in_array($current['status'], ['active', 'failed'], true)) {
+                throw new PluginLifecycleException('PLUGIN_STATE_INVALID', 'Selected dependency preparation requires an active or failed installed package.');
+            }
+            if (version_compare($plugin->version, (string) $current['installed_version'], '<')) {
+                throw new PluginLifecycleException('PLUGIN_DOWNGRADE_REJECTED', 'Upgrade cannot install an older Plugin version.');
+            }
+            foreach ($plugin->moduleRoots as $moduleKey => $root) {
+                $moduleKeys[$moduleKey] = true;
+                $manifest = (new ManifestLoader())->load($root)->data;
+                foreach (ModuleFrontendLayout::contributions($manifest['frontend'] ?? [], $moduleKey) as $contribution) {
+                    $clients[explode('/', $contribution['root'])[0]] = true;
+                }
+            }
+        }
+        $serverRoot = rtrim(app()->getRootPath(), '/');
+        return (new Dependencies($serverRoot))->prepareRelease($this->resolver, array_keys($clients),
+            array_keys($moduleKeys), $this->installedModules(), function (array $prepared) use ($pluginKeys): array {
+                $results = [];
+                foreach ($pluginKeys as $key) {
+                    $result = $this->withPackageLock($key, function () use ($key, $prepared): array {
+                        $current = $this->pluginInstallation($key, false);
+                        if (!is_array($current) || !in_array($current['status'], ['active', 'failed'], true)) {
+                            throw new PluginLifecycleException('PLUGIN_STATE_INVALID', 'Selected installed package changed before reconciliation.');
+                        }
+                        return $current['status'] === 'failed'
+                            ? $this->upgradeLocked($key, false, null, $prepared)
+                            : $this->reconcileLocked($key, $prepared);
+                    });
+                    unset($result['dependencies']);
+                    $results[] = $result;
+                }
+                return ['dependencies' => $prepared, 'packages' => $results];
+            });
     }
 
     /** Uses the native lock/manifest/ownership rules, without entering lifecycle mutation or recovery. */
@@ -176,10 +221,13 @@ final readonly class PluginLifecycleService implements PluginLifecycleCommands
         });
     }
 
-    private function reconcileLocked(string $pluginKey): array
+    private function reconcileLocked(string $pluginKey, ?array $preparedDependencies = null): array
     {
         $current = $this->pluginInstallation($pluginKey, false);
         if (!is_array($current)) {
+            if ($preparedDependencies !== null) {
+                throw new PluginLifecycleException('PLUGIN_NOT_INSTALLED', 'Selected package is no longer installed.');
+            }
             return $this->install($pluginKey);
         }
 
@@ -199,7 +247,7 @@ final readonly class PluginLifecycleService implements PluginLifecycleCommands
             return $plugin->publicIdentity() + ['operation' => 'unchanged'];
         }
 
-        return $this->upgrade($pluginKey, false);
+        return $preparedDependencies === null ? $this->upgrade($pluginKey, false) : $this->upgradeLocked($pluginKey, false, null, $preparedDependencies);
     }
 
     /**
@@ -213,7 +261,7 @@ final readonly class PluginLifecycleService implements PluginLifecycleCommands
         return $this->withPackageLock($pluginKey, fn(): array => $this->upgradeLocked($pluginKey, $dryRun, $consumePlan));
     }
 
-    private function upgradeLocked(string $pluginKey, bool $dryRun, ?callable $consumePlan = null): array
+    private function upgradeLocked(string $pluginKey, bool $dryRun, ?callable $consumePlan = null, ?array $preparedDependencies = null): array
     {
         $plugin = $this->resolver->require($pluginKey);
         $this->assertTrustEligible($plugin);
@@ -235,7 +283,7 @@ final readonly class PluginLifecycleService implements PluginLifecycleCommands
         }
         try {
             $dependencies = $dryRun || ($current['status'] === 'active' && $this->sameIdentity($plugin, $current))
-                ? null : $this->prepareDependencies($plugin);
+                ? null : ($preparedDependencies ?? $this->prepareDependencies($plugin));
             $prepared = $dependencies !== null;
             $manifests = $this->pluginManifests($plugin);
             $this->assertPreflightOwnership($plugin, $manifests, true);
@@ -277,15 +325,8 @@ final readonly class PluginLifecycleService implements PluginLifecycleCommands
     private function prepareDependencies(PluginDescriptor $plugin): array
     {
         $serverRoot = rtrim(app()->getRootPath(), '/');
-        $rows = Db::name('plugin_module')->field('module_key,module_version')->select()->toArray();
-        $states = $this->tenantStates->installationStates(array_column($rows, 'module_key'));
-        $installed = [];
-        foreach ($rows as $row) {
-            $key = (string) $row['module_key'];
-            $installed[$key] = ['version' => (string) $row['module_version'], 'status' => (string) ($states[$key]['status'] ?? 'uninstalled')];
-        }
         try {
-            return (new Dependencies($serverRoot))->install($plugin, $this->resolver, $installed);
+            return (new Dependencies($serverRoot))->install($plugin, $this->resolver, $this->installedModules());
         } catch (\Throwable $exception) {
             $manifests = [];
             foreach ($plugin->moduleRoots as $key => $root) {
@@ -297,6 +338,19 @@ final readonly class PluginLifecycleService implements PluginLifecycleCommands
             $this->markFailed($plugin, $manifests, $exception instanceof PluginPackageException ? $exception->errorCode : 'MODULE_DEPENDENCY_INSTALL_FAILED');
             throw $exception;
         }
+    }
+
+    /** @return array<string,array{version:string,status:string}> */
+    private function installedModules(): array
+    {
+        $rows = Db::name('plugin_module')->field('module_key,module_version')->select()->toArray();
+        $states = $this->tenantStates->installationStates(array_column($rows, 'module_key'));
+        $installed = [];
+        foreach ($rows as $row) {
+            $key = (string) $row['module_key'];
+            $installed[$key] = ['version' => (string) $row['module_version'], 'status' => (string) ($states[$key]['status'] ?? 'uninstalled')];
+        }
+        return $installed;
     }
 
     /** Describes manual rollback steps; it does not change the installed package or database. */

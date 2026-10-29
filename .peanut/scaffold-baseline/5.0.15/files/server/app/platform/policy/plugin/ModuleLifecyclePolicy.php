@@ -9,6 +9,10 @@ use app\platform\infrastructure\plugin\PluginLockResolver;
 use PeanutAdmin\Kernel\Module\ManifestDocument;
 use PeanutAdmin\Kernel\Module\ManifestLoader;
 use PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries;
+use app\common\infrastructure\module\ModuleHostLayoutFactory;
+use PeanutAdmin\Kernel\Module\ModuleKey;
+use think\facade\App;
+use think\facade\Db;
 
 /** Enforces manifest-owned core protection and explicit business dependencies. */
 final class ModuleLifecyclePolicy
@@ -72,22 +76,41 @@ final class ModuleLifecyclePolicy
     ): array {
         $targets = array_fill_keys($moduleKeys, true);
         $dependents = [];
+        $roots = [];
         foreach ($resolver->all() as $descriptor) {
-            foreach ($descriptor->moduleRoots as $dependentKey => $root) {
-                if (isset($targets[$dependentKey])) {
+            $roots += $descriptor->moduleRoots;
+        }
+        $installedKeys = Db::name('plugin_module')->alias('member')
+            ->join('plugin_installation plugin', 'plugin.plugin_key=member.plugin_key')
+            ->where('plugin.status', '<>', 'uninstalled')->distinct(true)->column('member.module_key');
+        foreach ($installedKeys as $installedKey) {
+            if (isset($roots[$installedKey]) || isset($targets[$installedKey])) {
+                continue;
+            }
+            $path = ModuleHostLayoutFactory::pathLayout()->backendRelativePath(ModuleKey::fromString($installedKey));
+            $root = dirname(rtrim(App::getRootPath(), '/')) . '/' . rtrim($path, '/');
+            if (!is_file($root . '/module.json') || is_link($root)) {
+                throw new PluginLifecycleException('MODULE_INSTALLED_MANIFEST_UNAVAILABLE', 'An installed Module outside the lock has no readable source declaration.');
+            }
+            $roots[$installedKey] = $root;
+        }
+        foreach ($roots as $dependentKey => $root) {
+            if (isset($targets[$dependentKey])) {
+                continue;
+            }
+            $manifest = (new ManifestLoader())->load($root);
+            if (($manifest->data['key'] ?? null) !== $dependentKey) {
+                throw new PluginLifecycleException('MODULE_INSTALLED_MANIFEST_UNAVAILABLE', 'Installed Module source identity does not match its ownership.');
+            }
+            foreach ((array) ($manifest->data['dependencies'] ?? []) as $dependency) {
+                $dependencyKey = is_array($dependency) ? ($dependency['module_key'] ?? null) : null;
+                if (!is_string($dependencyKey) || !isset($targets[$dependencyKey])) {
                     continue;
                 }
-                $manifest = (new ManifestLoader())->load($root);
-                foreach ((array) ($manifest->data['dependencies'] ?? []) as $dependency) {
-                    $dependencyKey = is_array($dependency) ? ($dependency['module_key'] ?? null) : null;
-                    if (!is_string($dependencyKey) || !isset($targets[$dependencyKey])) {
-                        continue;
-                    }
-                    if ($activeOnly
-                        ? $installationStates->activeInstallationCount([$dependentKey]) !== 0
-                        : $installationStates->installedPackageModuleCount([$dependentKey]) !== 0) {
-                        $dependents[] = $dependentKey . '->' . $dependencyKey;
-                    }
+                if ($activeOnly
+                    ? $installationStates->activeInstallationCount([$dependentKey]) !== 0
+                    : $installationStates->installedPackageModuleCount([$dependentKey]) !== 0) {
+                    $dependents[] = $dependentKey . '->' . $dependencyKey;
                 }
             }
         }

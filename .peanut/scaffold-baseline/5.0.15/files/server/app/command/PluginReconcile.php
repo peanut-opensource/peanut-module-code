@@ -17,18 +17,19 @@ use think\console\Output;
 use think\facade\Config;
 use think\facade\Db;
 
-/** Reconciles either the canonical official set or the full release replacement set. */
+/** Reconciles the official, release, or explicitly selected installed lock scope. */
 final class PluginReconcile extends ModuleContextualCommand
 {
     use PluginCommandSupport;
 
-    /** Declares mutually exclusive reconciliation scopes so deployments cannot select arbitrary Plugin keys. */
+    /** Declares mutually exclusive locked scopes; selected preparation accepts installed packages only. */
     protected function configure()
     {
         $this->setName('plugin:reconcile')
             ->setDescription('Reconcile immutable locked Plugin installations')
             ->addOption('official-locked', null, Option::VALUE_NONE, 'Reconcile every official.* Plugin in plugins.lock')
             ->addOption('release-locked', null, Option::VALUE_NONE, 'Reconcile official and already installed Plugins in plugins.lock')
+            ->addOption('selected-installed', null, Option::VALUE_REQUIRED | Option::VALUE_IS_ARRAY, 'Prepare and reconcile only these already installed locked package keys')
             ->addOption('plan-only', null, Option::VALUE_NONE, 'Read the locked Plugin plans without lifecycle changes');
     }
 
@@ -37,16 +38,29 @@ final class PluginReconcile extends ModuleContextualCommand
     {
         $officialLocked = (bool) $input->getOption('official-locked');
         $releaseLocked = (bool) $input->getOption('release-locked');
+        $selected = array_values(array_unique((array) $input->getOption('selected-installed')));
         if ((bool) $input->getOption('plan-only')) {
-            return $this->releasePlan($input, $output, $releaseLocked && !$officialLocked);
+            return $this->releasePlan($input, $output, $releaseLocked && !$officialLocked && $selected === []);
         }
-        if (!$officialLocked && !$releaseLocked) {
+        if (!$officialLocked && !$releaseLocked && $selected === []) {
             $output->writeln('{"error":"OFFICIAL_LOCKED_REQUIRED"}');
             return 1;
         }
-        if ($officialLocked && $releaseLocked) {
+        if (count(array_filter([$officialLocked, $releaseLocked, $selected !== []])) !== 1) {
             $output->writeln('{"error":"PLUGIN_RECONCILE_SCOPE_CONFLICT"}');
             return 1;
+        }
+
+        if ($selected !== []) {
+            return $this->runPluginOperation($output, function ($service) use ($selected): array {
+                $config = Config::get('modules', []);
+                $lock = is_array($config) ? trim((string) ($config['plugin_lock'] ?? '')) : '';
+                if ($lock === '') {
+                    throw new PluginLifecycleException('PLUGIN_LOCK_INVALID', 'Plugin lock path is not configured.');
+                }
+                $resolver = PluginLockResolver::forRuntime(dirname(__DIR__, 2), $lock);
+                return $service->reconcileInstalled($this->dependencyOrderedPlugins($resolver, $selected, $config));
+            });
         }
 
         return $this->runPluginOperation(

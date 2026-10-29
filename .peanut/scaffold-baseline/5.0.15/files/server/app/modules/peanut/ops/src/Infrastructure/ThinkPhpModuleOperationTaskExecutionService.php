@@ -205,8 +205,9 @@ final readonly class ThinkPhpModuleOperationTaskExecutionService implements Modu
         }
         $payload = $this->payload($task);
         $request = $this->requestStore()->assertPrepared($payload['request_key']);
+        $permission = PlatformModuleOperationExecutionService::modulePermission($payload['operation']);
         if ($this->requests->isLocal($request)
-            && !$this->permissions->allows($this->context($task), 'platform.module.' . $payload['operation'])) {
+            && ($permission === null || !$this->permissions->allows($this->context($task), $permission))) {
             throw OpsConsoleException::denied();
         }
         $result = $this->requestStore()->execute($payload['request_key']);
@@ -391,8 +392,8 @@ final readonly class ThinkPhpModuleOperationTaskExecutionService implements Modu
             $payload['signature_key_id'] === '' ? null : $payload['signature_key_id'],
         );
         if ($this->requests->isLocal($request)) {
-            if (!in_array($payload['operation'], ['install', 'update'], true)
-                || !$this->permissions->allows($this->context($task), 'platform.module.' . $payload['operation'])) {
+            $permission = PlatformModuleOperationExecutionService::modulePermission($payload['operation']);
+            if ($permission === null || !$this->permissions->allows($this->context($task), $permission)) {
                 throw OpsConsoleException::denied();
             }
             $this->transaction(function () use ($task, $revision): void {

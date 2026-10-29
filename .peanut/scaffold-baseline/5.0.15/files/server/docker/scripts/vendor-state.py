@@ -77,6 +77,43 @@ def inventory(vendor, exclude_receipt=True):
     return dict(sorted(result.items()))
 
 
+def module_packages(server):
+    """Native local packages come from the application's selected Module roots."""
+    path = server / 'plugins.lock'
+    if not path.is_file():
+        path = server.parent / 'plugins.lock'
+    if not path.is_file():
+        return {}
+    ordinary(path)
+    lock = json.loads(path.read_text())
+    projected = lock.get('protocol') == 'peanut.server-plugin-lock.v1'
+    root = server if projected else server.parent
+    packages = {}
+    for plugin in lock.get('plugins', []):
+        for module in plugin.get('modules', []):
+            relative = module['root']
+            prefix = 'app/modules/' if projected else 'server/app/modules/'
+            if not relative.startswith(prefix) or any(part in ('', '.', '..') for part in relative.split('/')):
+                raise ValueError('Module Composer root is invalid')
+            ordinary_parents(root, relative + '/composer.json')
+            package_path = root / relative / 'composer.json'
+            ordinary(package_path)
+            package = json.loads(package_path.read_text())
+            packages[package['name']] = {'version': package['version'],
+                                         'url': (root / relative).relative_to(server).as_posix(),
+                                         'development': {'name': 'peanut-module-dev/' + module['key'],
+                                                         'version': package['version'], 'type': 'metapackage',
+                                                         'require': package.get('require-dev', {})}}
+    return packages
+
+
+def native_module(package, modules):
+    declared = modules.get(package.get('name'))
+    dist = package.get('dist') or {}
+    return declared is not None and package.get('version') == declared['version'] \
+        and not package.get('source') and dist.get('type') == 'path' and dist.get('url') == declared['url']
+
+
 def server_core_archives(server):
     """Consume the ordinary server release's owned, frozen seven-archive proof."""
     if server.resolve() != server:
@@ -186,9 +223,17 @@ def server_core_archives(server):
     dist['url'] = relative; package['dist'] = dist; repository['package'] = package
     expected_dist = {'type': 'zip', 'url': relative, 'reference': reference, 'shasum': archive['sha1']}
     expected_source = None if local else {'type': 'git', 'url': php['source_url'], 'reference': reference}
+    modules = module_packages(server)
+    module_urls = {package['url'] for package in modules.values()}
+    development = [package['development'] for package in modules.values()]
+    repositories = composer.get('repositories', [])
+    repositories = repositories.values() if isinstance(repositories, dict) else repositories
+    core_repositories = [entry for entry in repositories
+                         if not (entry.get('type') == 'path' and entry.get('url') in module_urls)
+                         and not (entry.get('type') == 'package' and entry.get('package') in development)]
     if len(locked) != 1 or locked[0].get('version') != php['resolved_version'] \
             or locked[0].get('source') != expected_source \
-            or locked[0].get('dist') != expected_dist or composer.get('repositories') != [repository] \
+            or locked[0].get('dist') != expected_dist or core_repositories != [repository] \
             or package.get('name') != php['package'] or package.get('version') != php['resolved_version'] \
             or package.get('source') != locked[0].get('source') or dist != expected_dist \
             or composer.get('require', {}).get('peanut-admin/core') != php['constraint'] \
@@ -244,7 +289,10 @@ def local_archives(server, inputs=None):
                 or proof.get('lock_sha256') != digest(server / 'composer.lock') \
                 or any(proof.get(field) != declared.get(field) for field in ('server_root', 'composer_sha256', 'lock_sha256', 'archives')):
             raise ValueError('dependency input proof differs from its transaction inputs')
+    modules = module_packages(server)
     for package in lock['packages']:
+        if native_module(package, modules):
+            continue
         dist = package.get('dist') or {}
         url = str(dist.get('url', ''))
         if not url or url.startswith('https://'):
@@ -322,9 +370,12 @@ def check_lock(server, inputs=None):
     data = json.loads(lock.read_text())
     if not isinstance(data.get("packages"), list) or not re.fullmatch(r"[a-f0-9]{32}", data.get("content-hash", "")):
         raise ValueError("composer.lock is invalid")
+    modules = module_packages(server)
     for package in data["packages"]:
         if not re.fullmatch(r"[a-z0-9_.-]+/[a-z0-9_.-]+", package.get("name", "")):
             raise ValueError("locked package identity is invalid")
+        if native_module(package, modules):
+            continue
         for source in ("dist", "source"):
             value = package.get(source)
             if value and not str(value.get("url", "")).startswith("https://") and not (

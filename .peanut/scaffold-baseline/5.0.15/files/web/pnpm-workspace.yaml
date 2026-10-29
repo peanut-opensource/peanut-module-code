@@ -1,2 +1,9 @@
 packages:
+  - "src/modules/peanut-integration"
+  - "src/modules/peanut-reference-codes"
+  - "src/modules/peanut-settings"
+  - "src/modules/peanut-task"
+  - "src/modules/peanut-file"
+  - "src/modules/peanut-content-tools"
   - src/modules/*
+  - '!src/modules/fixture-workflow-business'

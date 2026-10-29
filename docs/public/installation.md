@@ -64,7 +64,9 @@ php server/database/install.php --status
 
 server/private/installation/installed.json是完成回执和防重装身份。已有 installed、executing、旧安装身份或 partial 数据须按真实状态处理。重复安装拒绝；--skip-if-installed只跳过已完成状态，不清库或重置管理员。
 
-安装完成后安装页面应关闭。数据库为空、不可达或回执损坏不产生重装授权；不得删锁、删账本、手填成功或用旧空库备份替代当前partial保全。旧 partial continuation 已退役；保留现场并核对实际失败阶段，不重放首次初始化。
+安装完成后安装页面应关闭。数据库为空、不可达或回执损坏不产生重装授权；不得删锁、删账本、手填成功或用旧空库备份替代当前partial保全。原执行记录中的模块选择仍有效，且原生迁移、所选表、核心身份和种子健康已完成时，状态返回 `INSTALL_RESUME_READY` 和 `safe_retry=true`。修复具体失败后，通过同一安装向导或原自动安装入口继续模块安装、租户配置和完成回执；保留原数据库和账号，不再初始化或执行 Seeder。无法确认这些事实时继续保留现场，不自动续作。
+
+HTTP 安装只使用已安装的 PHP／模块依赖和已构建的客户端文件。开发／发行机器先运行 `scripts/deploy-update.sh --prepare-release`；生产从产品 Git 采用这些文件并按 PHP 锁准备依赖。缺少模块依赖或客户端入口时返回 `MODULE_RELEASE_PREPARATION_REQUIRED`，HTTP 不启动 Composer、Node 或前端构建。普通模块安装／升级仍通过 Ops 后台任务完成其原生依赖及前端采用。
 
 旧安装状态不提供自动兼容、迁移或重装；需要处理旧现场时单独核定来源、数据和恢复边界。
 

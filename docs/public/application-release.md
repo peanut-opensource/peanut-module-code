@@ -10,7 +10,7 @@
 scripts/deploy-update.sh --prepare-release --version=<声明中的产品版本>
 ```
 
-版本参数只核对 APP 声明，不改版本；省略时采用当前声明，不写死版本或部署目录。准备动作读取 APP 原有身份与依赖声明，验证构建所消费的 Web 归档和 PHP 锁／本地归档，按 web 的 pnpm 锁安装并构建 admin；multi-tenant 另按 platform 的 npm 锁安装并构建平台后台。Admin 显式使用 standalone/multi-tenant mode，API 保持同源。PC/H5 后置，保留其源码与既有产物。
+版本参数只核对 APP 声明，不改版本；省略时采用当前声明，不写死版本或部署目录。准备动作读取 APP 原有身份与依赖声明，验证构建所消费的 Web 归档和 PHP 锁／本地归档，将 `plugins.lock` 已选模块作为真实 Composer path 包及客户端 workspace 一次加入原生依赖图，保留宿主依赖并由 Composer、pnpm/npm 更新对应锁。随后各构建一次 admin 和适用的 multi-tenant platform。Admin 显式使用 standalone/multi-tenant mode，API 保持同源。审阅模块依赖声明及原生锁变化；PC/H5 后置，保留其源码与既有产物。
 
 输出是普通 HTML、JS、CSS 等文件：`server/public/admin`，以及 MT 的 `server/public/platform`。这两个目录作为产品 Git 的受管发行内容；准备动作只清对应静态目录，拒绝链接、特殊类型或仍被忽略的目标。它不启动业务、安装数据库、修改 main/tag 或自动提交。
 

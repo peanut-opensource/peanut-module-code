@@ -159,5 +159,10 @@ if (
       'Usage: node module-pages.mjs --root <absolute UniApp root>'
     );
   }
-  await prepareModulePages({ command: 'build', mode: 'production' }, root);
+  prepareModulePages({ command: 'build', mode: 'production' }, root).catch(
+    (error) => {
+      console.error(error);
+      process.exitCode = 1;
+    }
+  );
 }

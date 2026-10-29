@@ -12,6 +12,7 @@ use app\common\execution\ContextualCommand;
 use think\console\Input;
 use think\console\Output;
 use think\console\input\Argument;
+use think\console\input\Option;
 
 final class TenantTaskWorker extends ContextualCommand
 {
@@ -27,7 +28,8 @@ final class TenantTaskWorker extends ContextualCommand
     {
         $this->setName('tenant-task:work')
             ->setDescription('执行一个 Tenant 的可信异步任务')
-            ->addArgument('tenant_id', Argument::REQUIRED, 'Tenant ID');
+            ->addArgument('tenant_id', Argument::REQUIRED, 'Tenant ID')
+            ->addOption('job-key', null, Option::VALUE_REQUIRED, 'Process only this exact job');
     }
 
     protected function establishesInstanceContext(): bool
@@ -42,10 +44,16 @@ final class TenantTaskWorker extends ContextualCommand
             $output->writeln('[tenant-task:work] invalid tenant');
             return 1;
         }
+        $jobKey = $input->getOption('job-key');
+        if ($jobKey !== null && (!is_string($jobKey) || preg_match('/^job_[0-9a-f]{32}$/D', $jobKey) !== 1)) {
+            $output->writeln('[tenant-task:work] invalid job key');
+            return 1;
+        }
         try {
             $processed = $this->runtime()->runTenant(
                 (int) $raw,
                 'tenant-worker-' . getmypid() . '-' . bin2hex(random_bytes(6)),
+                $jobKey,
             );
             $output->writeln(sprintf('[tenant-task:work] tenant=%d processed=%d', (int) $raw, $processed));
             return 0;

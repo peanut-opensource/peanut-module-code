@@ -37,8 +37,8 @@ final readonly class ModuleAwareTaskHandler implements TaskHandler, \PeanutAdmin
             || $ambient->metadata->handlerKey !== $this->key() || $this->executionContexts->rootIdentity() === null) {
             throw TaskJobException::denied();
         }
-        $this->modules->assertWorker('peanut.task');
-        $this->modules->assertWorker($this->moduleKey);
+        $this->modules->assertNegativeFactWorker('peanut.task');
+        $this->modules->assertNegativeFactWorker($this->moduleKey);
         $this->inner->validateNegativeFact($envelope);
     }
 

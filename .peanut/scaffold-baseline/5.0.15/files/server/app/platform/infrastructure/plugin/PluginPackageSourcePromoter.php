@@ -30,7 +30,14 @@ final class PluginPackageSourcePromoter
             if (!is_dir($path)) {
                 continue;
             }
-            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::SELF_FIRST);
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveCallbackFilterIterator(
+                    new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS),
+                    static fn(\SplFileInfo $entry): bool => $entry->isLink() || !$entry->isDir()
+                        || strtolower($entry->getFilename()) !== 'node_modules',
+                ),
+                \RecursiveIteratorIterator::SELF_FIRST,
+            );
             foreach ($iterator as $entry) {
                 if ($entry->isLink()) {
                     throw new PluginPackageException('MODULE_PACKAGE_PATH_INVALID', 'Application package roots cannot contain symlinks.');
@@ -235,7 +242,14 @@ final class PluginPackageSourcePromoter
             throw new PluginPackageException('MODULE_PACKAGE_PATH_INVALID', 'Package root must be a directory.');
         }
         $files = [];
-        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::SELF_FIRST);
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveCallbackFilterIterator(
+                new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
+                static fn(\SplFileInfo $entry): bool => $entry->isLink() || !$entry->isDir()
+                    || strtolower($entry->getFilename()) !== 'node_modules',
+            ),
+            \RecursiveIteratorIterator::SELF_FIRST,
+        );
         foreach ($iterator as $entry) {
             if ($entry->isLink() || (!$entry->isDir() && !$entry->isFile())) {
                 throw new PluginPackageException('MODULE_PACKAGE_PATH_INVALID', 'Package source must contain regular files only.');

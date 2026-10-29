@@ -24,6 +24,7 @@ export interface ModuleApiOperations {
   listFileAssets: paths['/adminapi/api/v1/files/assets']['get'];
   uploadAdminImage: paths['/adminapi/peanut.file.upload.image']['post'];
   uploadAdminVideo: paths['/adminapi/peanut.file.upload.video']['post'];
+  uploadMemberImage: paths['/api/upload/image']['post'];
   moveFiles: paths['/adminapi/peanut.file.move']['post'];
   renameFile: paths['/adminapi/peanut.file.rename']['post'];
   deleteFiles: paths['/adminapi/peanut.file.delete']['post'];
@@ -56,6 +57,7 @@ export function createModuleApi(client: Client<paths>) {
     listFileAssets: pathClient['/adminapi/api/v1/files/assets'].GET,
     uploadAdminImage: pathClient['/adminapi/peanut.file.upload.image'].POST,
     uploadAdminVideo: pathClient['/adminapi/peanut.file.upload.video'].POST,
+    uploadMemberImage: pathClient['/api/upload/image'].POST,
     moveFiles: pathClient['/adminapi/peanut.file.move'].POST,
     renameFile: pathClient['/adminapi/peanut.file.rename'].POST,
     deleteFiles: pathClient['/adminapi/peanut.file.delete'].POST,

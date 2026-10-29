@@ -69,11 +69,6 @@ final readonly class PlatformTenantModuleService implements TenantModuleCommands
     ): array {
         $context = $this->sessions->context($operatorCredential, $requestId);
         $this->sessions->assertAllowed($context, self::PERMISSION);
-        try {
-            $this->registry->requireInstalled($moduleKey);
-        } catch (ModuleException $exception) {
-            throw $this->moduleError($exception);
-        }
 
         return $this->governance->disableModule(
             $operatorCredential,

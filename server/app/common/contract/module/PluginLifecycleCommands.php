@@ -18,6 +18,9 @@ interface PluginLifecycleCommands
     /** @return array<string,mixed> */
     public function reconcile(string $pluginKey): array;
 
+    /** Prepare the selected already installed graph once, then reconcile it in dependency order. */
+    public function reconcileInstalled(array $pluginKeys): array;
+
     /** Reads a release reconcile action without changing installation, catalog or migration state.
      * Optional native consumer runs before the same package advisory lock is released.
      */

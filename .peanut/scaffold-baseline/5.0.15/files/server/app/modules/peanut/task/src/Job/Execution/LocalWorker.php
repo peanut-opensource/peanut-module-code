@@ -26,10 +26,12 @@ final readonly class LocalWorker
         private Closure $executeAuthorizedJob,
         private int $leaseSeconds = 60,
         private ?string $negativeSigningKey = null,
+        private ?string $jobKey = null,
     ) {
         if ($tenantId < 1
             || preg_match('/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/D', $workerId) !== 1
             || $leaseSeconds < 5 || $leaseSeconds > 3600
+            || ($jobKey !== null && preg_match('/^job_[0-9a-f]{32}$/D', $jobKey) !== 1)
         ) {
             throw TaskJobException::invalid();
         }
@@ -38,7 +40,7 @@ final readonly class LocalWorker
     public function runOnce(): ?string
     {
         $claim = Db::transaction(
-            fn(): ?JobClaim => $this->repository->claim($this->tenantId, $this->workerId, $this->leaseSeconds),
+            fn(): ?JobClaim => $this->repository->claim($this->tenantId, $this->workerId, $this->leaseSeconds, $this->jobKey),
         );
         if ($claim === null) {
             return null;

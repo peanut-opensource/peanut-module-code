@@ -577,25 +577,21 @@ function installationStateBlocksFreshDatabase(string $serverDir): bool
     return false;
 }
 
-/** @return array{cause_code?:string,module_key?:string} */
+/** @return array{cause_code?:string,module_key?:string,exit_code?:int} */
 function installationFailureDiagnostic(string $serverDir, string $stage, Throwable $exception, ?string $currentModule = null): array
 {
     $diagnostic = [];
-    if ($stage !== 'install_modules') {
-        return $diagnostic;
-    }
     try {
         do {
-            // A typed producer and finite public codes are required; never copy messages.
-            if ($exception instanceof \app\platform\exception\plugin\PluginLifecycleException
-                && in_array($exception->errorCode, [
-                    'MODULE_MIGRATION_ADOPTION_REJECTED', 'MODULE_MIGRATION_ADOPTION_UNAUTHORIZED',
-                    'MODULE_MIGRATION_ADOPTION_WINDOW_REQUIRED', 'MODULE_MIGRATION_POSTSTATE_REJECTED',
-                    'MODULE_MIGRATION_PRESERVATION_REQUIRED', 'MODULE_MIGRATION_PDO_MISMATCH',
-                    'MODULE_MIGRATION_NATIVE_MASTER_CHANGED', 'MODULE_MIGRATION_CHECKSUM_MISMATCH',
-                    'MODULE_MIGRATION_PREDECESSOR_REQUIRED', 'MODULE_MIGRATION_FAILED',
-                ], true)) {
+            // Typed public identifiers are safe; messages, process output and paths are not.
+            if (($exception instanceof \app\platform\exception\plugin\PluginLifecycleException
+                    || $exception instanceof \app\platform\exception\plugin\PluginPackageException)
+                && preg_match('/^(?:MODULE|PLUGIN)_[A-Z0-9_]{1,100}$/D', $exception->errorCode) === 1) {
                 $diagnostic['cause_code'] = $exception->errorCode;
+                if ($exception instanceof \app\platform\exception\plugin\PluginPackageException
+                    && is_int($exception->details['exit_code'] ?? null)) {
+                    $diagnostic['exit_code'] = $exception->details['exit_code'];
+                }
                 break;
             }
             $exception = $exception->getPrevious();
@@ -606,7 +602,7 @@ function installationFailureDiagnostic(string $serverDir, string $stage, Throwab
         // Independently bind the Host's current iteration to its protected selection.
         $progressPath = rtrim($serverDir, DIRECTORY_SEPARATOR) . '/private/installation/executing.json';
         $stat = @lstat($progressPath);
-        if (is_string($currentModule) && preg_match('/^official\.[a-z][a-z0-9-]{0,63}$/D', $currentModule) === 1
+        if (is_string($currentModule) && preg_match('/^[a-z][a-z0-9_-]*\.[a-z][a-z0-9_.-]*$/D', $currentModule) === 1
             && realpath($progressPath) === $progressPath && is_file($progressPath) && !is_link($progressPath)
             && is_array($stat) && $stat['nlink'] === 1 && ($stat['mode'] & 0777) === 0600
             && in_array($stat['uid'], [0, fileowner($serverDir)], true) && $stat['size'] <= 65536) {

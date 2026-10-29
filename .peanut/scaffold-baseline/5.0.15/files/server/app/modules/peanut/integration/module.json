@@ -3,14 +3,14 @@
   "key": "peanut.integration",
   "name": "External Integrations",
   "description": "Tenant-owned external bindings, machine identities and webhook delivery lifecycle.",
-  "version": "1.0.22",
+  "version": "1.0.25",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-integration",
   "dependencies": [
     {
       "module_key": "peanut.identity",
-      "version": "4.0.0-rc.32"
+      "version": "^4.0.0-rc.32"
     }
   ],
   "lifecycle": {

@@ -100,7 +100,11 @@ final class PlatformModuleLifecycleController extends BasePlatformController
             || $packageKey === '' || ($plan['package_key'] ?? null) !== $packageKey) {
             throw new PluginLifecycleException('MODULE_UNINSTALL_PLAN_CHANGED', 'Module uninstall confirmation is invalid.');
         }
-        return $this->data($this->moduleRuntime->uninstall($moduleKey, $purge, $plan, $digest));
+        if ($this->platformContext === null) {
+            throw new PluginLifecycleException('MODULE_CONTEXT_INVALID', 'A validated Platform session is required.');
+        }
+        return $this->data($this->moduleRuntime->uninstall($moduleKey, $purge, $plan, $digest,
+            $this->platformContext->core, trim((string) $this->request->header('Idempotency-Key', ''))));
     }
 
     public function disable()

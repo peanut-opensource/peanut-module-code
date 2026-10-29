@@ -49,7 +49,8 @@ trait PluginCommandSupport
                 JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES,
             ));
             return $exception->getCode() > 0 && $exception->getCode() < 256 ? $exception->getCode() : 1;
-        } catch (\Throwable) {
+        } catch (\Throwable $exception) {
+            $this->getApp()->make(\think\exception\Handle::class)->report($exception);
             $record = ['error' => 'PLUGIN_LIFECYCLE_FAILED'];
             $output->writeln((string) json_encode($record, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
             return 1;
