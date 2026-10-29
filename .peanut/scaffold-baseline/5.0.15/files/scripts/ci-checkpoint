@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+"""Accept only an explicit batch-validation request; Git synchronization is not one."""
+import argparse
+import json
+import sys
+from pathlib import Path
+
+
+def select(event_name: str, payload: dict) -> str:
+    if not isinstance(payload, dict):
+        raise ValueError('event payload must be an object')
+    if event_name != 'workflow_dispatch':
+        raise ValueError('automatic validation is disabled; request a batch with workflow_dispatch')
+    return 'required'
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--event-name', required=True)
+    parser.add_argument('--event-file', required=True, type=Path)
+    parser.add_argument('--github-output', type=Path)
+    parser.add_argument('--github-summary', type=Path)
+    args = parser.parse_args()
+    decision = select(args.event_name, json.loads(args.event_file.read_text()))
+    output = f'validation={decision}\n'
+    if args.github_output:
+        with args.github_output.open('a') as handle:
+            handle.write(output)
+    sys.stdout.write(output)
+    note = ('Explicit batch checkpoint: selected checks must actually succeed. '
+            'A pushed commit alone is not tested or release-qualified.')
+    print(note)
+    if args.github_summary:
+        with args.github_summary.open('a') as handle:
+            handle.write('## Validation checkpoint\n\n' + note + '\n')
+    return 0
+
+
+if __name__ == '__main__':
+    try:
+        raise SystemExit(main())
+    except (ValueError, OSError) as error:
+        print(f'ci-checkpoint: {error}', file=sys.stderr)
+        raise SystemExit(2)

@@ -1,0 +1,343 @@
+#!/usr/bin/env python3
+"""Bounded ordinary Article/Document consumer; no service, DB or login setup.
+
+Usage: consumer-document-article --contract
+       consumer-document-article --input /absolute/private.json [--execute]
+
+Default validates local inputs only. --execute additionally verifies the existing
+native resource lease before EVERY HTTP request. Input is a binding to separately
+admitted runtime/protection evidence, never a grant or a backup producer. Never
+resume an existing output: reconcile unknown outcomes using its original IDs.
+Historical solo save/restore/archive assertions are reused, not replayed here.
+"""
+
+import argparse
+import hashlib
+import http.client
+import json
+import os
+from pathlib import Path
+import queue
+import re
+import socket
+import subprocess
+import threading
+import time
+import urllib.parse
+
+
+class Rejected(RuntimeError):
+    pass
+
+
+def require(condition, code):
+    if not condition:
+        raise Rejected(code)
+
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def regular(path, private=False):
+    p = Path(path)
+    require(p.is_absolute() and p.resolve() == p and not p.is_symlink(), "CANONICAL_FILE")
+    st = p.stat()
+    require(p.is_file() and st.st_nlink == 1, "REGULAR_FILE")
+    if private:
+        require(st.st_uid == os.geteuid() and st.st_mode & 0o777 == 0o600, "PRIVATE_FILE")
+    return p.read_bytes()
+
+
+def pinned(value):
+    require(isinstance(value, dict) and set(value) == {"path", "sha256"}, "PINNED_INPUT")
+    raw = regular(value["path"])
+    require(sha(raw) == value["sha256"], "PIN_CHANGED")
+    return raw
+
+
+def git(root, *args):
+    return subprocess.check_output(["git", "-C", root, *args], text=True, timeout=20).strip()
+
+
+def login_token(c):
+    reference = c["login_response"]
+    require(isinstance(reference, dict) and set(reference) == {"path", "sha256", "received_at"}, "LOGIN_REFERENCE")
+    raw = regular(reference["path"], private=True)
+    require(sha(raw) == reference["sha256"], "LOGIN_RECEIPT_CHANGED")
+    receipt = json.loads(raw)
+    require(isinstance(receipt, dict) and type(receipt.get("status")) is int
+            and receipt["status"] == 200 and isinstance(receipt.get("body_utf8"), str), "LOGIN_HTTP_RECEIPT")
+    body = json.loads(receipt["body_utf8"])
+    require(isinstance(body, dict) and set(body) == {"data", "meta"}
+            and isinstance(body["data"], dict) and isinstance(body["meta"], dict)
+            and isinstance(body["meta"].get("request_id"), str) and body["meta"]["request_id"], "LOGIN_BODY")
+    data = body["data"]
+    require(set(data) == {"state", "access_token", "token_type", "expires_in", "context"}
+            and data["state"] == "authenticated" and data["token_type"] == "Bearer", "LOGIN_AUTHENTICATED")
+    ctx = data["context"]
+    require(isinstance(ctx, dict) and ctx.get("audience") == "tenant"
+            and all(isinstance(ctx.get(a), str) and ctx[a] == str(c[b]) for a, b in
+                    (("tenant_id", "tenant_id"), ("account_id", "account_id"), ("tenant_member_id", "member_id"))), "LOGIN_CONTEXT")
+    require(isinstance(data["access_token"], str) and data["access_token"]
+            and not any(x in data["access_token"] for x in ("\r", "\n")), "TOKEN")
+    received = reference["received_at"]
+    now = time.time()
+    require(type(received) in (int, float) and 0 < received <= now
+            and type(data["expires_in"]) is int and 0 < data["expires_in"] <= 900
+            and received + data["expires_in"] > now, "LOGIN_EXPIRED_OR_TIME_INVALID")
+    return data["access_token"]
+
+
+def protection_admission(c):
+    protection = json.loads(pinned(c["protection"]))
+    require(protection.get("expires_at", 0) > time.time(), "PROTECTION_EXPIRED")
+    # Consume an actual independent operation-admission result, not an author's
+    # complete=true assertion, source review or a successful backup capture alone.
+    admission = json.loads(pinned(protection["independent_review"]))
+    require(admission.get("execution_admitted") is True
+            and admission.get("purpose") == "ordinary_document_article_consumer", "PROTECTION_NOT_ADMITTED")
+    reviewer = admission.get("reviewer", {})
+    require(reviewer.get("independent_of_change") is True and isinstance(reviewer.get("thread"), str)
+            and reviewer["thread"] and reviewer["thread"] != c["thread"], "INDEPENDENT_ADMISSION_REQUIRED")
+    applicable = {key: c[key] for key in ("runtime_root", "source_commit", "endpoint", "host", "owner", "thread",
+                  "lease", "tenant_id", "account_id", "member_id", "article_id", "document_id",
+                  "expected_state_seq", "scope_resource", "request_prefix", "budget", "registry", "history", "login_response")}
+    require(admission.get("applicable") == applicable, "ADMISSION_OBJECT_MISMATCH")
+    require(admission.get("expires_at", 0) > time.time(), "ADMISSION_EXPIRED")
+    require(admission.get("backup_files") == protection.get("backup_files")
+            and isinstance(protection.get("backup_files"), list) and protection["backup_files"], "ADMITTED_BACKUPS")
+    for file in protection["backup_files"]:
+        pinned(file)
+    return protection
+
+
+def validate(c):
+    required = {"runtime_root", "source_commit", "endpoint", "host", "owner", "thread", "lease",
+                "registry", "login_response", "tenant_id", "account_id", "member_id", "article_id",
+                "document_id", "expected_state_seq", "request_prefix", "history", "protection",
+                "scope_resource", "budget", "output"}
+    require(isinstance(c, dict) and set(c) == required, "INPUT_FIELDS")
+    for key in ("tenant_id", "account_id", "member_id", "article_id", "document_id"):
+        require(type(c[key]) is int and c[key] > 0, "POSITIVE_ID")
+    require(type(c["expected_state_seq"]) is int and c["expected_state_seq"] >= 0, "SEQUENCE")
+    require(re.fullmatch(r"[a-f0-9]{40}", c["source_commit"]) is not None, "SOURCE")
+    root = Path(c["runtime_root"])
+    require(root.is_absolute() and root.resolve() == root, "RUNTIME_ROOT")
+    require(git(str(root), "rev-parse", "HEAD") == c["source_commit"], "SOURCE_CHANGED")
+    require(git(str(root), "status", "--porcelain") == "", "DIRTY_RUNTIME")
+    require(re.fullmatch(r"[A-Za-z0-9:_-]{1,96}", c["request_prefix"]) is not None, "REQUEST_PREFIX")
+    require(all(isinstance(c[k], str) and c[k] and "\n" not in c[k] and "\r" not in c[k]
+                for k in ("owner", "thread", "lease", "host")), "IDENTITY")
+    u = urllib.parse.urlsplit(c["endpoint"])
+    require(u.scheme in ("http", "https") and u.hostname and not u.username and not u.password
+            and not u.path and not u.query and not u.fragment, "EXACT_ORIGIN")
+    try:
+        port = u.port
+    except ValueError as error:
+        raise Rejected("ENDPOINT_PORT") from error
+    require(port is None or 1 <= port <= 65535, "ENDPOINT_PORT")
+    require(u.scheme == "https" or u.hostname in ("127.0.0.1", "localhost", "::1"), "TLS_REQUIRED")
+    require(isinstance(c["budget"], dict) and set(c["budget"]) == {"remaining", "max_started"}
+            and type(c["budget"]["remaining"]) is int and type(c["budget"]["max_started"]) is int
+            and c["budget"]["max_started"] == 9 <= c["budget"]["remaining"], "BUDGET")
+    registry = pinned(c["registry"])
+    require(isinstance(json.loads(registry), dict), "REGISTRY")
+    token = login_token(c)
+    h = c["history"]
+    require(isinstance(h, dict) and set(h) == {"revision_id", "expected"}
+            and type(h["revision_id"]) is int and h["revision_id"] > 0, "HISTORY")
+    require(set(h["expected"]) == {"structured_content", "source_state_seq", "digest", "references", "confirmed"}
+            and h["expected"]["confirmed"] is True, "HISTORY_EXPECTED")
+    protection = protection_admission(c)
+    # This fixed, separately reviewed input binds actual backup files and closure.
+    # Native lease verification below remains authoritative; this cannot mint one.
+    for key in ("source_commit", "endpoint", "tenant_id", "article_id", "document_id", "expected_state_seq", "scope_resource"):
+        require(protection.get(key) == c[key], "PROTECTION_BINDING")
+    require(isinstance(c["scope_resource"], str) and c["scope_resource"].startswith("mysql-access="), "SHARED_SCOPE")
+    scope = json.loads(c["scope_resource"].split("=", 1)[1])
+    require(scope.get("complete") is True and isinstance(scope.get("tables"), list) and scope["tables"], "COMPLETE_SCOPE")
+    output = Path(c["output"])
+    require(output.is_absolute() and output.parent.resolve() == output.parent and not output.exists()
+            and not output.is_symlink(), "NEW_OUTPUT_REQUIRED")
+    return token
+
+
+def verify_grant(c):
+    login_token(c)
+    pinned(c["registry"])
+    protection_admission(c)
+    env = dict(os.environ, PEANUT_RESOURCE_REGISTRY=c["registry"]["path"])
+    p = subprocess.run(["bash", "scripts/project-resource-lease", "show", "--lease", c["lease"], "--verify-locks"],
+                       cwd=c["runtime_root"], env=env, capture_output=True, text=True, timeout=30)
+    require(p.returncode == 0, "NATIVE_GRANT_REJECTED")
+    before, separator, resources = p.stdout.partition("resources\n")
+    require(bool(separator), "NATIVE_GRANT_OUTPUT")
+    fields = dict(line.split("\t", 1) for line in before.splitlines())
+    for key, expected in (("owner", c["owner"]), ("thread", c["thread"]), ("candidate", c["source_commit"]),
+                          ("candidate_repository", c["runtime_root"]), ("status", "ACTIVE")):
+        require(fields.get(key) == expected, "NATIVE_GRANT_BINDING")
+    pairs = {line.replace("\t", "=", 1) for line in resources.splitlines()}
+    require(c["scope_resource"] in pairs and "registry-sha256=" + c["registry"]["sha256"] in pairs,
+            "NATIVE_SCOPE_BINDING")
+
+
+def wait_for_listener(endpoint, seconds=60):
+    """Transport readiness for the admitted origin; identity remains the native grant's job."""
+    u = urllib.parse.urlsplit(endpoint)
+    try:
+        port = u.port
+    except ValueError as error:
+        raise Rejected("ENDPOINT_PORT") from error
+    require(port is None or 1 <= port <= 65535, "ENDPOINT_PORT")
+    port = port if port is not None else (443 if u.scheme == "https" else 80)
+    deadline = time.monotonic() + seconds
+    resolved = queue.Queue(maxsize=1)
+
+    def resolve():
+        try:
+            resolved.put(socket.getaddrinfo(u.hostname, port, type=socket.SOCK_STREAM))
+        except OSError:
+            resolved.put([])
+
+    # getaddrinfo has no timeout; an invocation-local daemon keeps DNS inside
+    # this deadline without leaving a non-daemon worker that holds the process.
+    threading.Thread(target=resolve, daemon=True).start()
+    try:
+        addresses = resolved.get(timeout=max(0, deadline - time.monotonic()))
+    except queue.Empty as error:
+        raise Rejected("ENDPOINT_LISTENER_NOT_READY") from error
+    require(addresses, "ENDPOINT_LISTENER_NOT_READY")
+    while True:
+        for family, kind, protocol, _, address in addresses:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise Rejected("ENDPOINT_LISTENER_NOT_READY")
+            try:
+                with socket.socket(family, kind, protocol) as connection:
+                    connection.settimeout(min(1, remaining))
+                    connection.connect(address)
+                    return
+            except OSError:
+                pass
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise Rejected("ENDPOINT_LISTENER_NOT_READY")
+        time.sleep(min(0.25, remaining))
+
+
+def execute(c, token):
+    verify_grant(c)  # Missing/rejected authority produces neither HTTP nor an output file.
+    wait_for_listener(c["endpoint"])
+    verify_grant(c)  # Readiness wait may outlive the original lease or login token.
+    out = Path(c["output"])
+    fd = os.open(out, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    journal = os.fdopen(fd, "w", encoding="utf-8")
+    count = 0
+    def event(value):
+        journal.write(json.dumps(value, ensure_ascii=False) + "\n")
+        journal.flush()
+        os.fsync(journal.fileno())
+    def call(method, path, payload=None, error=None):
+        nonlocal count
+        require(count < c["budget"]["max_started"], "REQUEST_CAP")
+        require(git(c["runtime_root"], "rev-parse", "HEAD") == c["source_commit"], "SOURCE_CHANGED")
+        require(git(c["runtime_root"], "status", "--porcelain") == "", "DIRTY_RUNTIME")
+        verify_grant(c)
+        wait_for_listener(c["endpoint"])
+        verify_grant(c)
+        request = {"method": method, "path": path, "state": "started", "http_request_id": c["request_prefix"],
+                   "tenant_id": c["tenant_id"], "article_id": c["article_id"], "document_id": c["document_id"]}
+        if method == "POST":
+            require(isinstance(payload, dict) and isinstance(payload.get("request_id"), str)
+                    and re.fullmatch(r"[A-Za-z0-9:_-]{1,128}", payload["request_id"]) is not None, "POST_REQUEST_ID")
+            request["request_id"] = payload["request_id"]
+            request["input_sha256"] = sha(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode())
+            if "expected_state_seq" in payload:
+                request["expected_state_seq"] = payload["expected_state_seq"]
+        count += 1
+        event({"request": count, **request})  # flush+fsync completes BEFORE connection construction/send.
+        u = urllib.parse.urlsplit(c["endpoint"])
+        connection = (http.client.HTTPSConnection if u.scheme == "https" else http.client.HTTPConnection)(u.hostname, u.port, timeout=20)
+        try:
+            connection.request(method, "/adminapi/" + path, None if payload is None else json.dumps(payload).encode(),
+                               {"Host": c["host"], "Authorization": "Bearer " + token,
+                                "Content-Type": "application/json", "X-Request-Id": c["request_prefix"]})
+            response = connection.getresponse()
+            raw = response.read(2_000_001)
+            event({"request": count, "state": "completed", "status": response.status, "bytes": len(raw), "sha256": sha(raw)})
+            require(len(raw) <= 2_000_000, "RESPONSE_TOO_LARGE")
+            value = json.loads(raw)
+            if error:
+                require(response.status == 409 and (value.get("error_code") == error or
+                        isinstance(value.get("data"), dict) and value["data"].get("error_code") == error), "EXPECTED_CONFLICT")
+                return None
+            require(response.status == 200 and value.get("code") == 20000, "HTTP_BUSINESS_FAILURE")
+            return value["data"]
+        finally:
+            connection.close()
+    try:
+        did, aid, seq = c["document_id"], c["article_id"], c["expected_state_seq"]
+        def editor():
+            v = call("GET", "official.article.document.editor?id=" + str(aid))
+            require(v["document_id"] == did and v["article_id"] == aid and v["status"] == "active"
+                    and v["collaboration_enabled"] is False and v["owner"] ==
+                    {"module_key": "official.article", "object_type": "article", "object_id": str(aid), "slot": "body"}, "OWNED_SOLO_BODY")
+            return v
+        current = editor()
+        require(current["state_seq"] == seq and current["article_metadata"]["is_show"] == 0, "OWN_UNPUBLISHED_BASELINE")
+        hp = "official.document.detail?" + urllib.parse.urlencode({"document_id": did, "revision_id": c["history"]["revision_id"]})
+        history = call("GET", hp)
+        require(all(history.get(k) == v for k, v in c["history"]["expected"].items()), "HISTORY_BASELINE")
+        for suffix in ("ensure-one", "ensure-two"):
+            ensured = call("POST", "official.article.document", {"id": aid, "request_id": c["request_prefix"] + ":" + suffix})
+            require(ensured["document_id"] == did and ensured["created"] is False, "OWNER_SLOT_UNIQUE")
+        def content(text):
+            return {"schemaVersion": "peanut.richtext/1", "editorModel": "tiptap-prosemirror", "content":
+                    {"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": text}]}]}, "annotations": []}
+        a, b = content(c["request_prefix"] + " A"), content(c["request_prefix"] + " stale B")
+        body = {"document_id": did, "expected_state_seq": seq, "structured_content": a, "request_id": c["request_prefix"] + ":cas-A"}
+        saved = call("POST", "official.document.solo.save", body)
+        require(saved["document_id"] == did and saved["state_seq"] == seq + 1, "SAVE_SEED")
+        call("POST", "official.document.solo.save", {**body, "structured_content": b,
+             "request_id": c["request_prefix"] + ":stale-B"}, "DOCUMENT_STATE_SEQ_CONFLICT")
+        call("POST", "official.document.solo.save", {**body, "structured_content": b}, "DOCUMENT_IDEMPOTENCY_CONFLICT")
+        after = editor()
+        require(after["state_seq"] == seq + 1 and after["structured_content"] == a and after["digest"] == saved["digest"], "CAS_NO_OVERWRITE")
+        historical = call("GET", hp)
+        require(all(historical.get(k) == history.get(k) for k in c["history"]["expected"]), "HISTORY_IMMUTABLE")
+        event({"state": "completed", "assertions": ["owner_slot_unique", "stale_CAS_rejected", "changed_request_rejected", "history_immutable"],
+               "multi_slot": "NOT_PROVEN: Article supports body only", "tenant_negative": "NOT_RUN", "archive": "REUSE_PRIOR_EVIDENCE", "requests": count})
+    except Exception as e:
+        event({"state": "stopped_reconcile_original_requests", "failure": type(e).__name__, "requests": count})
+        raise
+    finally:
+        journal.close()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input")
+    parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--contract", action="store_true")
+    args = parser.parse_args()
+    if args.contract:
+        print(__doc__)
+        print("Required fields: runtime_root source_commit endpoint host owner thread lease registry login_response tenant_id account_id member_id article_id document_id expected_state_seq request_prefix history protection scope_resource budget output")
+        return
+    require(args.input is not None, "INPUT_REQUIRED")
+    c = json.loads(regular(args.input, private=True))
+    token = validate(c)
+    if args.execute:
+        execute(c, token)
+    else:
+        print(json.dumps({"state": "LOCAL_INPUTS_VALIDATED_NOT_EXECUTED", "native_grant": "NOT_CHECKED", "HTTP": 0}))
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (Rejected, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as e:
+        # Never output network responses, credentials, native lease contents or input values.
+        print(json.dumps({"state": "REJECTED_OR_STOPPED", "failure": type(e).__name__}))
+        raise SystemExit(1)

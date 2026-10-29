@@ -1,0 +1,13 @@
+# Selected only for explicit APP_ENV=development + ws publication.
+# The independent Node service exposes its own registered HTTP/WS listener.
+services:
+  nginx:
+    volumes:
+      - ./conf/nginx.collaboration-development.conf.template:/etc/nginx/templates/default.conf.template:ro
+    tmpfs: ["/etc/nginx/collaboration:rw,noexec,nosuid,size=1m"]
+    environment:
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx/collaboration
+      COLLABORATION_PHP_TLS_HOST: ${COLLABORATION_PHP_TLS_HOST:?}
+    networks:
+      default:
+        aliases: ["${COLLABORATION_PHP_TLS_HOST:?}"]

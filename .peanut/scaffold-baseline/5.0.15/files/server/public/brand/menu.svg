@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title">
+  <title id="title">Management shortcut</title>
+  <rect width="96" height="96" rx="24" fill="#EEF4FF"/>
+  <rect x="20" y="22" width="24" height="22" rx="6" fill="#2563EB"/>
+  <rect x="52" y="22" width="24" height="22" rx="6" fill="#60A5FA"/>
+  <rect x="20" y="52" width="24" height="22" rx="6" fill="#60A5FA"/>
+  <rect x="52" y="52" width="24" height="22" rx="6" fill="#2563EB"/>
+</svg>

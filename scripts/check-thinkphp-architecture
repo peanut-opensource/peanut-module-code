@@ -1,0 +1,2234 @@
+#!/usr/bin/env python3
+"""TPQ00/TPQ50 static architecture inventory and allowlist gate."""
+
+from __future__ import annotations
+
+import argparse
+from contextlib import contextmanager, nullcontext
+from datetime import date
+from functools import lru_cache
+import hashlib
+import io
+import json
+import os
+import re
+import subprocess
+import sys
+import tarfile
+import tempfile
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent.parent
+CHECKER_ROOT = ROOT
+REGISTER = ROOT / "resources/architecture/tpq-issue-register.json"
+OWNERSHIP = ROOT / "resources/architecture/tpq-data-ownership.json"
+PHP_CORE_ROOT: Path | None = None
+PHP_CORE_COMMIT: str | None = None
+
+RULE_OWNERS = {
+    "global_scope_bypass": ("TPQ07", "Sol"),
+    "handwritten_tenant_predicate": ("TPQ02-TPQ13", "Sol"),
+    "tenant_join_missing": ("TPQ13", "Sol"),
+    "direct_db_in_business": ("TPQ08/TPQ24/TPQ42", "Sol"),
+    "manual_pagination": ("TPQ30-TPQ32", "Luna max; Sol review"),
+    "accessor_sql": ("TPQ36/TPQ38", "Luna max; Sol review"),
+    "module_guard_in_repository": ("TPQ20/TPQ23", "Sol"),
+    "legacy_module_execution_guard": ("TPQ20/TPQ22", "Sol"),
+    "tenant_model_owner": ("TPQ01/TPQ04", "Sol"),
+    "tenant_bulk_insert": ("TPQ05/TPQ13", "Sol"),
+    "generator_legacy_output": ("TPQ12/TPQ48", "Sol"),
+    "page_result_array_access": ("TPQ30/TPQ31", "Luna max; Sol review"),
+    "legacy_data_lists_signature": ("TPQ31", "Luna max; Sol review"),
+    "query_inside_loop": ("TPQ33/TPQ38", "Terra inventory; Sol review"),
+    "manual_transaction": ("TPQ35", "Sol"),
+    "model_accessor_mutator": ("TPQ36/TPQ46", "Terra inventory; Sol review"),
+    "tenant_context_request_argument": ("TPQ25", "Luna max; Sol review"),
+    "direct_validator_instantiation": ("TPQ40", "Luna max; Sol review"),
+    "json_fail_response": ("TPQ41/TPQ46", "Sol"),
+    "static_logic_layer": ("TPQ42", "Luna max; Sol review"),
+    "controller_service_construction": ("TPQ24/TPQ42", "Sol"),
+    "dynamic_request_state": ("TPQ25", "Sol"),
+    "direct_log_cache_session": ("TPQ44", "Sol"),
+    "raw_http_transport": ("TPQ45", "Sol"),
+    "non_http_entry": ("TPQ26/TPQ47", "Sol"),
+    "oversized_route_registry": ("TPQ21/TPQ43", "Sol"),
+    "database_connection_locator": ("WP1", "Sol"),
+    "global_service_locator": ("WP1", "Sol"),
+    "nullable_pdo_fallback": ("WP1", "Sol"),
+    "application_raw_persistence": ("WP1", "Sol"),
+    "model_owner_bypass": ("WP1", "Sol"),
+    "eager_cli_database_dependency": ("WP1", "Sol"),
+    "common_module_reverse_dependency": ("WP1", "Sol"),
+    "host_module_internal_dependency": ("WP1", "Sol"),
+    "application_framework_model": ("WP1", "Sol"),
+    "framework_upload_contract": ("WP1", "Sol"),
+    "application_composition_root": ("WP1", "Sol"),
+    "controller_catch_all": ("TPQ41/TPQ46", "Sol"),
+    "model_service_locator": ("WP1", "Sol"),
+    "common_facade_persistence": ("WP1", "Sol"),
+    "mutable_error_state": ("TPQ41/TPQ46", "Sol"),
+    "global_configuration_locator": ("WP1", "Sol"),
+    "static_runtime_assembly": ("WP1", "Sol"),
+    "classified_false_error": ("TPQ41/TPQ46", "Sol"),
+}
+
+DATABASE_COMPOSITION_ROOTS = {
+    "server/app/AppService.php",
+}
+
+TRUSTED_TENANT_KEY_PATHS = (
+    "server/app/common/execution/",
+    "server/app/common/contract/",
+    "server/app/common/dto/",
+    "server/app/common/service/audit/",
+    "server/app/common/service/configuration_transfer/",
+    "server/app/common/service/external/",
+    "server/app/common/service/payment/",
+    "server/app/common/services/storage/",
+    "server/app/common/service/tenant/",
+    "server/app/common/service/authorization/",
+    "server/app/common/service/capability/",
+    "server/app/common/service/module/",
+    "server/app/platform/",
+    "server/app/modules/fixture/delivery_record/src/Infrastructure/",
+    "server/app/modules/peanut/import_export/src/Infrastructure/",
+    "server/app/modules/peanut/article/src/Infrastructure/Persistence/",
+    "server/app/modules/peanut/file/src/Infrastructure/Persistence/",
+    "server/app/modules/peanut/member/src/Infrastructure/Persistence/",
+    "server/app/modules/peanut/notification/src/Infrastructure/Persistence/",
+    "server/app/modules/peanut/oauth/src/Infrastructure/Persistence/",
+    "server/app/modules/peanut/payment/src/Infrastructure/",
+    "server/app/modules/peanut/task/src/Infrastructure/Persistence/",
+    "server/app/common/service/notice/",
+    "server/app/common/service/runtime/",
+)
+
+DIRECT_RUNTIME_ADAPTERS = {
+    "server/app/common/infrastructure/runtime/ApplicationCache.php",
+    "server/app/common/infrastructure/runtime/OperationalLog.php",
+}
+
+OUTBOUND_TRANSPORT_ADAPTERS = {
+    "server/app/common/infrastructure/http/GuzzleOutboundHttpTransport.php",
+    "server/app/common/composition/storage/QcloudStorageClientFactory.php",
+}
+
+TRUSTED_TENANT_KEY_FILES = {
+    "server/app/command/TenantTaskWorker.php",
+    "server/app/common/model/decoration/DecoratePage.php",
+    "server/app/common/model/log/OperationLog.php",
+    "server/app/common/model/setting/TransactionSetting.php",
+    "server/app/common/model/setting/HotSearch.php",
+    "server/app/common/services/org/AdminDirectoryQuery.php",
+    "server/app/common/services/authorization/AdminAuthorizationService.php",
+    "server/app/common/infrastructure/authorization/CoreTenantModuleAdminBridge.php",
+    "server/app/common/runtime/authorization/RoleAdministrationRuntime.php",
+    "server/app/common/runtime/org/DepartmentAdministrationRuntime.php",
+    "server/app/common/model/dict/DictData.php",
+    "server/app/common/model/dict/DictType.php",
+    "server/app/common/model/dept/Jobs.php",
+    "server/app/common/infrastructure/member/MemberApiTenantContextResolver.php",
+}
+
+TENANT_JOIN_GLOBAL_TABLES = {
+    "system_menu",
+    "system_dict_type",
+    "system_dict_data",
+    "permission",
+    "tenant",
+    "account",
+    "credential",
+    "storage_account",
+    "storage_space",
+    "storage_route",
+}
+
+TENANT_JOIN_PATTERN = re.compile(
+    r"->(?:join|leftJoin)\s*\(\s*"
+    r"(?P<table_quote>['\"])(?P<table>.*?)(?P=table_quote)\s*,\s*"
+    r"(?P<condition_quote>['\"])(?P<condition>.*?)(?P=condition_quote)",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def trusted_tenant_key_path(rel: str) -> bool:
+    return rel in TRUSTED_TENANT_KEY_FILES or rel.startswith(TRUSTED_TENANT_KEY_PATHS)
+
+
+def source_files() -> list[Path]:
+    result = subprocess.run(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "server/app"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return [
+        ROOT / item
+        for item in result.stdout.splitlines()
+        if item.endswith(".php") and (ROOT / item).is_file()
+    ]
+
+
+def relative(path: Path) -> str:
+    return path.relative_to(ROOT).as_posix()
+
+
+def declared_module_exports() -> set[str]:
+    """Current declared public types, not an allowlist inferred from directory names."""
+    exported: set[str] = set()
+    for path in (ROOT / "server/app/modules").glob("*/*/module.json"):
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        types = manifest.get("contracts", {}).get("exports", [])
+        if not isinstance(types, list) or any(not isinstance(item, str) for item in types):
+            raise ValueError("MODULE_PUBLIC_DECLARATION_INVALID: " + str(path))
+        exported.update(types)
+    return exported
+
+
+def hits_for(path: Path, text: str, public_types: set[str] | None = None) -> list[tuple[str, int, str]]:
+    if public_types is None:
+        public_types = declared_module_exports()
+    lines = text.splitlines()
+    hits: list[tuple[str, int, str]] = []
+    rel = relative(path)
+    lower_rel = f"/{rel}".lower()
+    application_path = any(part in lower_rel for part in ("/application/", "/service/", "/services/"))
+    service_path = "/service/" in lower_rel or "/services/" in lower_rel or path.name.endswith("Service.php")
+    host_path = (
+        rel.startswith((
+            "server/app/api/",
+            "server/app/adminapi/",
+            "server/app/platform/",
+            "server/app/common/",
+            "server/app/command/",
+        ))
+        and not rel.endswith("ModuleProvider.php")
+    )
+    http_boundary = (
+        "/http/" in f"/{rel.lower()}"
+        or rel.endswith("Controller.php")
+        or rel.endswith("Middleware.php")
+    )
+    composition_path = (
+        rel == "server/app/AppService.php"
+        or rel.endswith("ModuleProvider.php")
+        or path.name.endswith("RuntimeFactory.php")
+        or "/composition/" in f"/{rel.lower()}"
+        or path.name.startswith(("ThinkPhp", "Pdo"))
+        or rel.startswith("server/app/common/service/installation/")
+        or rel.startswith("server/app/common/service/runtime/")
+        or path.name in {"StorageCredentialCipher.php", "ModuleScaffoldGenerator.php"}
+    )
+    method = ""
+    method_depth = 0
+    depth = 0
+    if rel == "server/app/common/execution/ContextualCommand.php" and re.search(r"\bPDO\b|function\s+database\s*\(", text):
+        hits.append(("eager_cli_database_dependency", 1, "ContextualCommand requires a database"))
+    if (rel.startswith("server/app/command/")
+        and rel != "server/app/command/PluginCommandSupport.php"
+        and ("$this->database()" in text or "use PluginCommandSupport;" in text)
+        and "extends DatabaseContextualCommand" not in text):
+        hits.append(("eager_cli_database_dependency", 1, "database command bypasses DatabaseContextualCommand"))
+    for join in TENANT_JOIN_PATTERN.finditer(text):
+        table = join.group("table").split()[0].strip("`").lower()
+        if table not in TENANT_JOIN_GLOBAL_TABLES and "tenant_id" not in join.group("condition").lower():
+            hits.append((
+                "tenant_join_missing",
+                text.count("\n", 0, join.start()) + 1,
+                re.sub(r"\s+", " ", join.group(0)).strip(),
+            ))
+    for number, line in enumerate(lines, 1):
+        declaration = re.search(r"\bfunction\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", line)
+        if declaration:
+            method = declaration.group(1)
+            method_depth = depth + line.count("{")
+        if not composition_path and not http_boundary and (application_path or service_path):
+            if re.search(
+                r"\bConfig::get\s*\(|(?<!->)(?<!::)(?<!function )\bconfig\s*\("
+                r"|\bgetenv\s*\(|\$_(?:ENV|SERVER)\b"
+                r"|(?<!->)(?<!::)(?<!function )\brequest\s*\(",
+                line,
+            ):
+                hits.append(("global_configuration_locator", number, line.strip()))
+            if (re.search(
+                r"\b(?:[A-Z][A-Za-z0-9_\\]*Runtime|Runtime)[A-Za-z0-9_]*::[A-Za-z_][A-Za-z0-9_]*\s*\(",
+                line,
+            )
+                or re.search(
+                    r"\b[A-Z][A-Za-z0-9_\\]*(?:Service|Factory|Provider|Host)::(?:from|for)[A-Z][A-Za-z0-9_]*\s*\(",
+                    line,
+                )):
+                hits.append(("static_runtime_assembly", number, line.strip()))
+        if (rel == "server/app/api/services/UserTokenService.php" and method == "parseToken"
+            and re.search(r"\breturn\s+false\s*;", line)):
+            hits.append(("classified_false_error", number, line.strip()))
+        if (rel == "server/app/modules/peanut/task/src/Service/CrontabSchedulerService.php"
+            and method == "consider"
+            and re.search(r"\breturn\s+false\s*;", line)
+            and "CRONTAB_EXPRESSION_INVALID" in "\n".join(lines[max(0, number - 16):number])):
+            hits.append(("classified_false_error", number, line.strip()))
+        if (rel == "server/app/modules/peanut/payment/src/Infrastructure/ThinkPhpPaymentChannelGrantCommands.php"
+            and method == "channelConfigured"
+            and re.search(r"\bcatch\s*\(\\?Throwable\b", line)):
+            hits.append(("classified_false_error", number, line.strip()))
+        imported = re.match(r"^\s*use\s+(PeanutAdmin\\Modules\\[A-Za-z0-9_\\]+)(?:\s+as\s+[A-Za-z_][A-Za-z0-9_]*)?\s*;", line)
+        declared_public_import = imported is not None and imported.group(1) in public_types
+        if (rel.startswith("server/app/common/")
+            and re.search(r"\bPeanutAdmin\\Modules\\", line)
+            and "\\Contract\\" not in line and not declared_public_import):
+            hits.append(("common_module_reverse_dependency", number, line.strip()))
+        if host_path and not declared_public_import and re.search(
+            r"^\s*use\s+PeanutAdmin\\Modules\\[^;]*\\(?:Application|Infrastructure|Model|Service)\\[^;]+;",
+            line,
+            re.IGNORECASE,
+        ):
+            hits.append(("host_module_internal_dependency", number, line.strip()))
+        if application_path and re.search(r"^\s*use\s+think\\Console\s*;", line):
+            hits.append(("application_framework_model", number, line.strip()))
+        if (application_path or "/contract/" in lower_rel) and re.search(
+            r"^\s*use\s+think\\file\\UploadedFile", line
+        ):
+            hits.append(("framework_upload_contract", number, line.strip()))
+        if application_path and re.search(
+            r"\bnew\s+[A-Za-z0-9_\\]+(?:ModuleProvider|Service|RepositoryFactory|Transport|Gateway|Provider|Client|Factory)\s*\(",
+            line,
+        ):
+            hits.append(("application_composition_root", number, line.strip()))
+        if (rel.endswith("Controller.php")
+            and rel != "server/app/installation/controller/InstallationController.php"
+            and re.search(r"\bcatch\s*\(\\?(?:Throwable|Exception)\b", line)):
+            hits.append(("controller_catch_all", number, line.strip()))
+        if "/model/" in rel.lower() and re.search(r"\bapp\s*\(", line):
+            hits.append(("model_service_locator", number, line.strip()))
+        if (rel.startswith("server/app/common/service/")
+            and not path.name.startswith(("ThinkPhp", "Pdo"))
+            and re.search(r"^\s*use\s+think\\facade\\Db\s*;|\bDb::", line)):
+            hits.append(("common_facade_persistence", number, line.strip()))
+        if ("/service/" in f"/{rel}" or "/driver/" in f"/{rel}") and re.search(
+            r"->(?:setError|getError)\s*\(|\$this->error\s*=", line
+        ):
+            hits.append(("mutable_error_state", number, line.strip()))
+        if "withoutGlobalScope" in line and rel != "server/app/common/tenancy/PlatformTenantDataGateway.php":
+            hits.append(("global_scope_bypass", number, line.strip()))
+        if re.search(r"where(?:In)?\s*\([^)]*tenant_id|['\"]tenant_id['\"]\s*=>", line):
+            if ("MultiTenantDataScopePolicy.php" not in rel
+                and "TenantOwnedModel.php" not in rel
+                and not trusted_tenant_key_path(rel)):
+                hits.append(("handwritten_tenant_predicate", number, line.strip()))
+        if ("/logic/" in f"/{rel}" or rel.endswith("Controller.php")) and re.search(
+            r"\b(?:Db::(?!transaction\b)|new\s+PDO\b|->(?:prepare|query)\s*\()", line
+        ):
+            hits.append(("direct_db_in_business", number, line.strip()))
+        if "->page(" in line:
+            hits.append(("manual_pagination", number, line.strip()))
+        if re.search(r"function\s+get[A-Za-z0-9_]+Attr\s*\(", line):
+            window = "\n".join(lines[number - 1 : min(len(lines), number + 24)])
+            if re.search(r"\b(?:Db::|[A-Z][A-Za-z]+::where\s*\(|->query\s*\()", window):
+                hits.append(("accessor_sql", number, line.strip()))
+        if "assertAvailable(" in line and "Repository.php" in rel:
+            hits.append(("module_guard_in_repository", number, line.strip()))
+        if "executionGuard(" in line:
+            hits.append(("legacy_module_execution_guard", number, line.strip()))
+        if "insertAll(" in line and rel.startswith("server/app/"):
+            hits.append(("tenant_bulk_insert", number, line.strip()))
+        if rel == "server/app/adminapi/services/generator/GeneratorRenderService.php" and (
+            "class {{entity}} extends BaseModel" in line
+            or "->page(" in line
+            or "class {{entity}}Logic extends BaseLogic" in line
+        ):
+            hits.append(("generator_legacy_output", number, line.strip()))
+        if re.search(r"\$[A-Za-z_][A-Za-z0-9_]*(?:PageResult|pageResult)\s*\[", line):
+            hits.append(("page_result_array_access", number, line.strip()))
+        if re.search(
+            r"dataLists\s*\(\s*\$[A-Za-z_][A-Za-z0-9_]*(?:\[['\"][A-Za-z0-9_]+['\"]\])?\s*,",
+            line,
+        ):
+            hits.append(("legacy_data_lists_signature", number, line.strip()))
+        if re.search(r"\bDb::(?:startTrans|commit|rollback)\s*\(", line):
+            hits.append(("manual_transaction", number, line.strip()))
+        if re.search(r"function\s+(?:get|set)[A-Za-z0-9_]+Attr\s*\(", line):
+            hits.append(("model_accessor_mutator", number, line.strip()))
+        if re.search(r"[A-Za-z0-9_]+TenantContext::(?:member|read)\s*\(\s*\$this->request", line):
+            hits.append(("tenant_context_request_argument", number, line.strip()))
+        if re.search(r"new\s+[A-Za-z0-9_\\]+Validate\s*\(", line):
+            hits.append(("direct_validator_instantiation", number, line.strip()))
+        if "JsonService::fail(" in line:
+            hits.append(("json_fail_response", number, line.strip()))
+        if re.search(r"\bclass\s+[A-Za-z0-9_]+Logic\b", line):
+            hits.append(("static_logic_layer", number, line.strip()))
+        if rel.endswith("Controller.php") and re.search(
+            r"new\s+[A-Za-z0-9_\\]+(?:Logic|Service|Repository|Runtime|Provider|Gateway|Adapter)\s*\(",
+            line,
+        ):
+            hits.append(("controller_service_construction", number, line.strip()))
+        if rel.endswith("Middleware.php") and re.search(r"\$request->[A-Za-z_][A-Za-z0-9_]*\s*=", line):
+            hits.append(("dynamic_request_state", number, line.strip()))
+        if (rel not in DIRECT_RUNTIME_ADAPTERS
+            and re.search(r"\b(?:Log|Cache|Session)::[A-Za-z_][A-Za-z0-9_]*\s*\(", line)):
+            hits.append(("direct_log_cache_session", number, line.strip()))
+        if (rel not in OUTBOUND_TRANSPORT_ADAPTERS
+            and re.search(r"\bcurl_init\s*\(|new\s+(?:\\?GuzzleHttp\\Client|Client)\s*\(", line)):
+            hits.append(("raw_http_transport", number, line.strip()))
+        if (re.search(r"\bclass\s+[A-Za-z0-9_]+\s+extends\s+Command\b", line)
+            and rel != "server/app/common/execution/ContextualCommand.php") or (re.search(
+            r"\bclass\s+[A-Za-z0-9_]+\s+implements\s+TaskHandler\b", line
+        ) and rel != "server/app/common/infrastructure/async/ModuleAwareTaskHandler.php"):
+            hits.append(("non_http_entry", number, line.strip()))
+        if "Db::connect(" in line and rel not in DATABASE_COMPOSITION_ROOTS:
+            hits.append(("database_connection_locator", number, line.strip()))
+        if re.search(r"(?:\?PDO\b|PDO\s*\|\s*null\b|PDO\s+\$[A-Za-z_][A-Za-z0-9_]*\s*=\s*null\b)", line):
+            hits.append(("nullable_pdo_fallback", number, line.strip()))
+        if (re.search(r"\bapp\s*\(\s*[A-Za-z_\\]", line)
+            and ("/Application/" in f"/{rel}"
+                 or "/application/" in f"/{rel}"
+                 or "/service/" in f"/{rel}"
+                 or "/services/" in f"/{rel}"
+                 or rel.endswith("ModuleProvider.php"))):
+            hits.append(("global_service_locator", number, line.strip()))
+        if application_path and re.search(
+            r"\bDb::(?!transaction\b)|->(?:prepare|query|exec)\s*\(", line
+        ):
+            if rel == "server/app/modules/peanut/task/src/Service/CrontabSchedulerService.php" and "->query(Crontab::class" in line:
+                continue
+            hits.append(("application_raw_persistence", number, line.strip()))
+        depth += line.count("{") - line.count("}")
+        if method and depth < method_depth:
+            method = ""
+
+    loop_depths: list[int] = []
+    depth = 0
+    for number, line in enumerate(lines, 1):
+        stripped = line.strip()
+        starts_loop = re.search(r"\b(?:foreach|for|while)\s*\(", stripped) is not None
+        if starts_loop and "{" in stripped:
+            loop_depths.append(depth + stripped.count("{"))
+        # A query used to build the foreach iterable executes once before the
+        # loop body. Only calls made after entering the body are N+1 candidates.
+        if loop_depths and not starts_loop and re.search(
+            r"\bDb::|::(?:where|find|create|destroy)\s*\(|->(?:select|find|findOrEmpty|count|column|save|update|delete|lock)\s*\(",
+            stripped,
+        ):
+            if rel == "server/app/modules/peanut/file/src/Service/FileAdministrationService.php" and "$this->storage->delete" in stripped:
+                continue
+            hits.append(("query_inside_loop", number, stripped))
+        depth += stripped.count("{") - stripped.count("}")
+        while loop_depths and depth < loop_depths[-1]:
+            loop_depths.pop()
+    return hits
+
+
+def model_owner_bypass_hits(path: Path, text: str) -> list[tuple[str, int, str]]:
+    if not re.search(r"\bDb::(?!transaction\b)|->(?:prepare|query|exec)\s*\(", text):
+        return []
+    rel = relative(path)
+    ownership = json.loads(OWNERSHIP.read_text(encoding="utf-8"))
+    hits: list[tuple[str, int, str]] = []
+    for item in ownership.get("model_owners", []):
+        table = str(item.get("table", "")).strip()
+        model = str(item.get("model", "")).strip()
+        if not table or not model:
+            continue
+        owner_path = composer_model_path(model)
+        # Only the exact declared source owns this exemption. A missing or
+        # guessed namespace path must not authorize unrelated table access.
+        if owner_path is not None and rel == relative(owner_path):
+            continue
+        for match in re.finditer(
+            rf"(?<![A-Za-z0-9_]){re.escape(table)}(?![A-Za-z0-9_])",
+            text,
+            re.IGNORECASE,
+        ):
+            line_start = text.rfind("\n", 0, match.start()) + 1
+            line_end = text.find("\n", match.end())
+            excerpt = text[line_start:line_end if line_end >= 0 else len(text)]
+            if not re.search(
+                r"\b(?:SELECT|FROM|JOIN|INSERT|UPDATE|DELETE|REPLACE|INTO)\b"
+                r"|\bDb::(?:name|table)\s*\(|->(?:join|table)\s*\(|\binsertRows\s*\(",
+                excerpt,
+                re.IGNORECASE,
+            ):
+                continue
+            line = text.count("\n", 0, match.start()) + 1
+            hits.append(("model_owner_bypass", line, f"{table} bypasses {model}"))
+            break
+    return hits
+
+
+def issue_id(rule: str, path: str, symbol: str, occurrence: int) -> str:
+    normalized = re.sub(r"\s+", " ", symbol.strip())
+    digest = hashlib.sha1(
+        f"{rule}:{path}:{normalized}:{occurrence}".encode()
+    ).hexdigest()[:12]
+    return f"{rule}:{digest}"
+
+
+def registered_issues(register: dict) -> dict[str, dict]:
+    return {
+        str(item.get("issue_id")): item
+        for item in register.get("issues", [])
+        if str(item.get("issue_id", "")).strip()
+    }
+
+
+def current_findings(register: dict) -> list[dict]:
+    findings: list[dict] = []
+    occurrences: dict[tuple[str, str, str], int] = {}
+    registered = registered_issues(register)
+    public_types = declared_module_exports()
+    for path in source_files():
+        text = path.read_text(encoding="utf-8")
+        for rule, line, excerpt in hits_for(path, text, public_types):
+            normalized = re.sub(r"\s+", " ", excerpt.strip())
+            key = (rule, relative(path), normalized)
+            occurrences[key] = occurrences.get(key, 0) + 1
+            finding_id = issue_id(rule, relative(path), normalized, occurrences[key])
+            item = registered.get(finding_id)
+            findings.append({
+                "issue_id": finding_id,
+                "category": rule,
+                "path": relative(path),
+                "line": line,
+                "symbol": excerpt[:160],
+                "tpq": RULE_OWNERS[rule][0],
+                "owner": item.get("owner") if item else None,
+                "decision": item.get("decision") if item else None,
+                "status": item.get("status") if item else "unregistered",
+                "verification": item.get("verification") if item else None,
+                "reason": item.get("reason") if item else None,
+                "review_due": item.get("review_due") if item else None,
+            })
+        for rule, line, excerpt in model_owner_bypass_hits(path, text):
+            key = (rule, relative(path), excerpt)
+            occurrences[key] = occurrences.get(key, 0) + 1
+            finding_id = issue_id(rule, relative(path), excerpt, occurrences[key])
+            item = registered.get(finding_id)
+            findings.append({
+                "issue_id": finding_id,
+                "category": rule,
+                "path": relative(path),
+                "line": line,
+                "symbol": excerpt,
+                "tpq": RULE_OWNERS[rule][0],
+                "owner": item.get("owner") if item else None,
+                "decision": item.get("decision") if item else None,
+                "status": item.get("status") if item else "unregistered",
+                "verification": item.get("verification") if item else None,
+                "reason": item.get("reason") if item else None,
+                "review_due": item.get("review_due") if item else None,
+            })
+
+    known_models = register.get("known_tenant_models", [])
+    for model_path in known_models:
+        path = ROOT / model_path
+        if not path.is_file() or "extends TenantOwnedModel" not in path.read_text(encoding="utf-8"):
+            symbol = "missing extends TenantOwnedModel"
+            finding_id = issue_id("tenant_model_owner", model_path, symbol, 1)
+            item = registered.get(finding_id)
+            findings.append({
+                "issue_id": finding_id,
+                "category": "tenant_model_owner",
+                "path": model_path,
+                "line": 0,
+                "symbol": symbol,
+                "tpq": RULE_OWNERS["tenant_model_owner"][0],
+                "owner": item.get("owner") if item else None,
+                "decision": item.get("decision") if item else None,
+                "status": item.get("status") if item else "unregistered",
+                "verification": item.get("verification") if item else None,
+                "reason": item.get("reason") if item else None,
+                "review_due": item.get("review_due") if item else None,
+            })
+    route = ROOT / "server/route/app.php"
+    if route.is_file() and len(route.read_text(encoding="utf-8").splitlines()) > 300:
+        symbol = "server/route/app.php exceeds 300 lines"
+        finding_id = issue_id("oversized_route_registry", "server/route/app.php", symbol, 1)
+        item = registered.get(finding_id)
+        findings.append({
+            "issue_id": finding_id,
+            "category": "oversized_route_registry",
+            "path": "server/route/app.php",
+            "line": 1,
+            "symbol": symbol,
+            "tpq": RULE_OWNERS["oversized_route_registry"][0],
+            "owner": item.get("owner") if item else None,
+            "decision": item.get("decision") if item else None,
+            "status": item.get("status") if item else "unregistered",
+            "verification": item.get("verification") if item else None,
+            "reason": item.get("reason") if item else None,
+            "review_due": item.get("review_due") if item else None,
+        })
+    return findings
+
+
+def kernel_schema_sql() -> list[str]:
+    """Read only the native nowdoc definitions actually referenced by migrations.
+
+    This inventories canonical KernelSchema::createSql(self::TABLE) references,
+    not arbitrary PHP migration programs or live schemas. Referenced definitions
+    that cannot be resolved fail closed; no migration code is executed.
+    """
+    referenced: set[str] = set()
+    for path in sorted((ROOT / "server/database/kernel-migrations").glob("*.php")):
+        source = path.read_text(encoding="utf-8")
+        if "KernelSchema::createSql(self::TABLE)" not in source:
+            continue
+        match = re.search(r"\bconst\s+TABLE\s*=\s*'([a-z0-9_]+)'\s*;", source)
+        if match is None:
+            raise ValueError("KERNEL_SCHEMA_TABLE_REFERENCE_INVALID: " + relative(path))
+        referenced.add(match.group(1))
+    if not referenced:
+        return []
+    path = ROOT / "server/database/schema/KernelSchema.php"
+    if not path.is_file():
+        raise ValueError("KERNEL_SCHEMA_SOURCE_MISSING")
+    source = path.read_text(encoding="utf-8")
+    entries = re.findall(r"'([a-z0-9_]+)'\s*=>\s*<<<'SQL'\r?\n(.*?)^SQL,?\s*$", source, re.MULTILINE | re.DOTALL)
+    definitions: dict[str, str] = {}
+    for name, sql in entries:
+        if name in definitions:
+            raise ValueError("KERNEL_SCHEMA_DUPLICATE: " + name)
+        if re.search(r"CREATE\s+TABLE\s+`" + re.escape(name) + r"`\s*\(", sql, re.IGNORECASE) is None:
+            raise ValueError("KERNEL_SCHEMA_TABLE_MISMATCH: " + name)
+        definitions[name] = sql
+    missing = referenced - definitions.keys()
+    if missing:
+        raise ValueError("KERNEL_SCHEMA_DEFINITION_MISSING: " + repr(sorted(missing)))
+    return [definitions[name] for name in sorted(referenced)]
+
+
+# Reuse the project's locked nikic/php-parser, as check-module-boundaries.php does.
+# The only executed PHP is this inspector and the trusted quality autoloader.
+# Audited source is input to ParserFactory, never required, evaluated or invoked.
+PHP_AST_INSPECTOR = r'''
+require $argv[1];
+if (Composer\InstalledVersions::getReference('nikic/php-parser') !== $argv[2]) {
+    throw new RuntimeException('TPQ_PHP_PARSER_LOCK_MISMATCH');
+}
+try {
+    $parser = (new PhpParser\ParserFactory())->createForHostVersion();
+    $nodes = $parser->parse(stream_get_contents(STDIN));
+    $traverser = new PhpParser\NodeTraverser(new PhpParser\NodeVisitor\NameResolver());
+    echo json_encode(['ast' => $traverser->traverse($nodes ?? [])], JSON_THROW_ON_ERROR);
+} catch (Throwable $error) {
+    echo json_encode(['error' => $error->getMessage()], JSON_THROW_ON_ERROR);
+    exit(2);
+}
+'''
+
+
+@lru_cache(maxsize=128)
+def _native_php_ast(source: str, binary: str, autoload: str, parser_ref: str) -> list[dict]:
+    """Cache syntax only by exact input bytes and the selected locked parser."""
+    result = subprocess.run([binary, '-r', PHP_AST_INSPECTOR, autoload, parser_ref],
+                            input=source, text=True, capture_output=True, timeout=20)
+    if result.returncode:
+        raise ValueError('PHP_AST_PARSE_FAILED: ' + (result.stdout or result.stderr)[-700:])
+    value = json.loads(result.stdout)
+    if not isinstance(value, dict) or not isinstance(value.get('ast'), list):
+        raise ValueError('PHP_AST_RESULT_INVALID')
+    return value['ast']
+
+
+def parse_schema_php(source: str) -> list[dict]:
+    binary = os.environ.get('TPQ_PHP_BINARY', 'php')
+    autoload = Path(os.environ.get('TPQ_PHP_PARSER_AUTOLOAD',
+                                  str(CHECKER_ROOT / 'tools/quality/vendor/autoload.php')))
+    if not autoload.is_file():
+        raise ValueError('PHP_AST_PARSER_UNAVAILABLE: use the existing quality dependency installation')
+    lock = json.loads((CHECKER_ROOT / 'tools/quality/composer.lock').read_text(encoding='utf-8'))
+    packages = lock.get('packages', []) + lock.get('packages-dev', [])
+    selected = [row for row in packages if row.get('name') == 'nikic/php-parser']
+    if len(selected) != 1 or not selected[0].get('source', {}).get('reference'):
+        raise ValueError('PHP_AST_PARSER_LOCK_MISSING')
+    return _native_php_ast(source, binary, str(autoload.resolve()), selected[0]['source']['reference'])
+
+
+def _ast_is(node, kind: str) -> bool:
+    return isinstance(node, dict) and node.get('nodeType') == kind
+
+
+def _ast_name(node) -> str | None:
+    if isinstance(node, dict) and node.get('nodeType') in {'Identifier', 'Name', 'Name_FullyQualified'}:
+        return node.get('name')
+    return None
+
+
+def _ast_require(condition: bool, reason: str) -> None:
+    if not condition:
+        raise ValueError('PHP_SCHEMA_UNSUPPORTED: ' + reason)
+
+
+def _ast_variable(node, name: str) -> bool:
+    return _ast_is(node, 'Expr_Variable') and node.get('name') == name
+
+
+def _ast_arguments(node: dict) -> list[dict]:
+    args = node.get('args', [])
+    _ast_require(all(_ast_is(arg, 'Arg') and not any(arg.get(key) for key in ('name', 'byRef', 'unpack'))
+                     for arg in args), 'named, unpacked or indirect arguments')
+    return [arg['value'] for arg in args]
+
+
+def _ast_class(nodes: list[dict]) -> dict:
+    classes = []
+    for node in nodes:
+        kind = node.get('nodeType')
+        if kind == 'Stmt_Namespace':
+            classes.append(_ast_class(node['stmts']))
+        elif kind == 'Stmt_Class':
+            classes.append(node)
+        elif kind == 'Stmt_Declare':
+            _ast_require(node.get('stmts') is None and all(
+                _ast_name(item.get('key')) == 'strict_types' and item.get('value', {}).get('value') == 1
+                for item in node.get('declares', [])), 'executable declare')
+        elif kind not in {'Stmt_Use', 'Stmt_GroupUse', 'Stmt_Nop'}:
+            raise ValueError('PHP_SCHEMA_UNSUPPORTED: executable or multiple top-level declarations')
+    _ast_require(len(classes) == 1 and not classes[0].get('attrGroups'), 'one unambiguous class required')
+    return classes[0]
+
+
+def _ast_method(cls: dict, name: str, static: bool, parameters: int) -> dict:
+    methods = [item for item in cls['stmts'] if _ast_is(item, 'Stmt_ClassMethod') and _ast_name(item.get('name')) == name]
+    _ast_require(len(methods) == 1, 'missing or duplicate method ' + name)
+    method = methods[0]
+    flags = method.get('flags', 0)
+    # PhpParser Modifiers: PUBLIC=1, PROTECTED=2, PRIVATE=4, STATIC=8.
+    _ast_require(flags & 7 == 1 and bool(flags & 8) == static and not method.get('byRef')
+                 and not method.get('attrGroups') and len(method['params']) == parameters
+                 and isinstance(method.get('stmts'), list), 'method signature ' + name)
+    return method
+
+
+def _ast_return(method: dict) -> dict:
+    stmts = [item for item in method['stmts'] if not _ast_is(item, 'Stmt_Nop')]
+    _ast_require(len(stmts) == 1 and _ast_is(stmts[0], 'Stmt_Return'), 'complete single-return Schema method')
+    return stmts[0]['expr']
+
+
+def _ast_reject_unknown(node: dict) -> bool:
+    return (_ast_is(node, 'Expr_Throw') and _ast_is(node.get('expr'), 'Expr_New')
+            and _ast_name(node['expr'].get('class')) == 'InvalidArgumentException')
+
+
+def _ast_constant(node: dict, name: str) -> bool:
+    return (_ast_is(node, 'Expr_ClassConstFetch') and _ast_name(node.get('class')) == 'self'
+            and _ast_name(node.get('name')) == name)
+
+
+def _schema_map_expression(method: dict) -> dict:
+    """Recognize a literal map return or its native null-guarded equivalent."""
+    statements = [item for item in method['stmts'] if not _ast_is(item, 'Stmt_Nop')]
+    if len(statements) == 1:
+        return _ast_return(method)
+    _ast_require(len(statements) == 3 and _ast_is(statements[0], 'Stmt_Expression')
+                 and _ast_is(statements[0].get('expr'), 'Expr_Assign'), 'complete guarded Schema return')
+    assignment = statements[0]['expr']
+    _ast_require(_ast_is(assignment.get('var'), 'Expr_Variable'), 'local Schema result variable')
+    variable = assignment['var']['name']
+    expression = assignment['expr']
+    _ast_require(_ast_is(expression, 'Expr_BinaryOp_Coalesce')
+                 and _ast_is(expression.get('right'), 'Expr_ConstFetch')
+                 and _ast_name(expression['right'].get('name')) == 'null', 'literal nullable Schema map')
+    guard = statements[1]
+    _ast_require(_ast_is(guard, 'Stmt_If') and not guard.get('elseifs') and guard.get('else') is None
+                 and len(guard['stmts']) == 1 and _ast_is(guard.get('cond'), 'Expr_BinaryOp_Identical'), 'exact Schema null guard')
+    condition = guard['cond']
+    _ast_require(_ast_variable(condition.get('left'), variable)
+                 and _ast_is(condition.get('right'), 'Expr_ConstFetch')
+                 and _ast_name(condition['right'].get('name')) == 'null', 'same Schema result guard')
+    rejection = guard['stmts'][0]
+    _ast_require(_ast_is(rejection, 'Stmt_Expression') and _ast_reject_unknown(rejection.get('expr'))
+                 and _ast_is(statements[2], 'Stmt_Return')
+                 and _ast_variable(statements[2].get('expr'), variable), 'same guarded Schema result return')
+    # Normalize this one proven declaration form; do not evaluate PHP expressions.
+    return {'nodeType': 'Expr_BinaryOp_Coalesce', 'left': expression['left'], 'right': rejection['expr']}
+
+
+def _schema_literals(cls: dict) -> tuple[dict[str, dict], list[str]]:
+    """Recognize two declarative Schema shapes, not a PHP expression evaluator."""
+    _ast_require(cls.get('extends') is None and not cls.get('implements'), 'inherited Schema behavior')
+    method = _ast_method(cls, 'createSql', True, 1)
+    parameter = method['params'][0]
+    _ast_require(_ast_name(parameter.get('type')) == 'string' and not parameter.get('default')
+                 and not parameter.get('byRef') and not parameter.get('variadic'), 'Schema table parameter')
+    variable = parameter['var']['name']
+    expression = _schema_map_expression(method)
+    values: dict[str, dict] = {}
+    constant = None
+    if _ast_is(expression, 'Expr_BinaryOp_Coalesce'):
+        fetch = expression['left']
+        _ast_require(_ast_is(fetch, 'Expr_ArrayDimFetch') and _ast_variable(fetch.get('dim'), variable)
+                     and _ast_is(fetch.get('var'), 'Expr_ClassConstFetch')
+                     and _ast_name(fetch['var'].get('class')) == 'self'
+                     and _ast_reject_unknown(expression['right']), 'literal Schema map dispatch')
+        constant = _ast_name(fetch['var'].get('name'))
+        entries = [item for member in cls['stmts'] if _ast_is(member, 'Stmt_ClassConst')
+                   for item in member['consts'] if _ast_name(item.get('name')) == constant]
+        _ast_require(len(entries) == 1 and _ast_is(entries[0]['value'], 'Expr_Array'), 'Schema map constant')
+        pairs = []
+        for item in entries[0]['value']['items']:
+            _ast_require(_ast_is(item, 'ArrayItem') and not item.get('byRef') and not item.get('unpack'), 'Schema map item')
+            pairs.append((item.get('key'), item['value']))
+    elif _ast_is(expression, 'Expr_Match'):
+        _ast_require(_ast_variable(expression.get('cond'), variable), 'Schema match selector')
+        defaults = [arm for arm in expression['arms'] if arm.get('conds') is None]
+        _ast_require(len(defaults) == 1 and _ast_reject_unknown(defaults[0]['body']), 'Schema match default')
+        pairs = []
+        for arm in expression['arms']:
+            if arm.get('conds') is not None:
+                _ast_require(len(arm['conds']) == 1, 'ambiguous Schema match arm')
+                pairs.append((arm['conds'][0], arm['body']))
+    else:
+        raise ValueError('PHP_SCHEMA_UNSUPPORTED: dynamic createSql body')
+    for key, value in pairs:
+        _ast_require(_ast_is(key, 'Scalar_String') and _ast_is(value, 'Scalar_String'), 'nonliteral Schema declaration')
+        name = key['value']
+        _ast_require(re.fullmatch(r'[a-z][a-z0-9_]*', name) is not None and name not in values, 'duplicate or invalid table name')
+        values[name] = value
+    _ast_require(bool(values), 'empty Schema declaration')
+    names_expression = _ast_return(_ast_method(cls, 'tableNames', True, 0))
+    if (_ast_is(names_expression, 'Expr_FuncCall') and _ast_name(names_expression.get('name')) == 'array_keys'
+            and constant is not None):
+        args = _ast_arguments(names_expression)
+        _ast_require(len(args) == 1 and _ast_constant(args[0], constant), 'tableNames must reference the createSql map')
+        names = list(values)
+    else:
+        _ast_require(_ast_is(names_expression, 'Expr_Array'), 'dynamic tableNames')
+        names = []
+        for item in names_expression['items']:
+            _ast_require(_ast_is(item, 'ArrayItem') and item.get('key') is None and not item.get('byRef')
+                         and not item.get('unpack') and _ast_is(item.get('value'), 'Scalar_String'), 'tableNames literal list')
+            names.append(item['value']['value'])
+    _ast_require(len(names) == len(set(names)) and set(names) == set(values), 'tableNames and createSql declarations disagree')
+    return values, names
+
+
+def _sql_create_parts(table: str, sql: str) -> list[str]:
+    """Read complete literal CREATE clauses, not server SQL grammar or execution."""
+    head = re.match(r'\s*CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+`' + re.escape(table) + r'`\s*\(', sql, re.I)
+    _ast_require(head is not None, 'SQL declaration does not match table ' + table)
+    depth, quote, cursor, start = 1, None, head.end(), head.end()
+    columns = []
+    while cursor < len(sql) and depth:
+        character = sql[cursor]
+        if quote:
+            if character == '\\':
+                cursor += 2
+                continue
+            if character == quote:
+                if cursor + 1 < len(sql) and sql[cursor + 1] == quote:
+                    cursor += 2
+                    continue
+                quote = None
+        elif character in "'\"`":
+            quote = character
+        elif character == '(':
+            depth += 1
+        elif character == ')':
+            depth -= 1
+            if depth == 0:
+                columns.append(sql[start:cursor])
+        elif character == ',' and depth == 1:
+            columns.append(sql[start:cursor])
+            start = cursor + 1
+        cursor += 1
+    _ast_require(depth == 0 and quote is None and bool(columns) and all(item.strip() for item in columns)
+                 and re.fullmatch(r'\s*ENGINE\s*=\s*[A-Za-z0-9_]+[^;]*;?\s*', sql[cursor:], re.I) is not None,
+                 'incomplete or multiple SQL declarations for ' + table)
+    return columns
+
+
+def _sql_tenant_column(table: str, sql: str) -> bool:
+    return any(re.match(r'\s*`tenant_id`\s+[A-Za-z]', column) for column in _sql_create_parts(table, sql))
+
+
+def _schema_reference(call: dict, method: str) -> tuple[str, list[dict]]:
+    _ast_require(_ast_is(call, 'Expr_StaticCall') and _ast_name(call.get('name')) == method
+                 and _ast_is(call.get('class'), 'Name_FullyQualified'), 'unresolved native Schema reference')
+    return _ast_name(call['class']), _ast_arguments(call)
+
+
+def _migration_execute(statement: dict) -> dict:
+    _ast_require(_ast_is(statement, 'Stmt_Expression'), 'additional migration statement')
+    call = statement['expr']
+    native = (_ast_is(call, 'Expr_MethodCall') and _ast_variable(call.get('var'), 'this'))
+    native = native or (_ast_is(call, 'Expr_StaticCall') and _ast_name(call.get('class')) == 'think\\facade\\Db')
+    _ast_require(native and _ast_name(call.get('name')) == 'execute', 'non-native migration execution')
+    args = _ast_arguments(call)
+    _ast_require(len(args) == 1, 'migration execute arguments')
+    return args[0]
+
+
+def _migration_table(node: dict, constants: dict[str, str]) -> str:
+    if _ast_is(node, 'Scalar_String'):
+        return node['value']
+    if _ast_constant(node, 'TABLE') and 'TABLE' in constants:
+        return constants['TABLE']
+    raise ValueError('PHP_SCHEMA_UNSUPPORTED: table must be a literal or exact local TABLE constant')
+
+
+def _migration_references(cls: dict) -> list[tuple[str, str | None, int]]:
+    _ast_require(_ast_name(cls.get('extends')) == 'think\\migration\\Migrator' and not cls.get('implements'), 'native Migrator class required')
+    constants = {}
+    for item in cls['stmts']:
+        if _ast_is(item, 'Stmt_ClassConst'):
+            _ast_require(not item.get('attrGroups') and len(item['consts']) == 1, 'literal migration constant')
+            entry = item['consts'][0]
+            name = _ast_name(entry.get('name'))
+            _ast_require(name == 'TABLE' and name not in constants and _ast_is(entry.get('value'), 'Scalar_String'),
+                         'one literal local TABLE constant')
+            constants[name] = entry['value']['value']
+        else:
+            _ast_require(_ast_is(item, 'Stmt_ClassMethod') and _ast_name(item.get('name')) in {'up', 'down'},
+                         'additional migration members')
+    up = _ast_method(cls, 'up', False, 0)
+    references = []
+    for statement in up['stmts']:
+        if _ast_is(statement, 'Stmt_Nop'):
+            continue
+        line = statement.get('attributes', {}).get('startLine')
+        if _ast_is(statement, 'Stmt_Expression'):
+            name, args = _schema_reference(_migration_execute(statement), 'createSql')
+            _ast_require(len(args) == 1, 'one table reference required')
+            references.append((name, _migration_table(args[0], constants), line))
+            continue
+        _ast_require(_ast_is(statement, 'Stmt_Foreach') and not statement.get('byRef')
+                     and statement.get('keyVar') is None and _ast_is(statement.get('valueVar'), 'Expr_Variable'), 'unknown migration control flow')
+        variable = statement['valueVar']['name']
+        name, args = _schema_reference(statement['expr'], 'tableNames')
+        _ast_require(not args and len(statement['stmts']) == 1, 'tableNames adoption loop')
+        guard = statement['stmts'][0]
+        _ast_require(_ast_is(guard, 'Stmt_If') and not guard.get('elseifs') and guard.get('else') is None
+                     and len(guard['stmts']) == 1 and _ast_is(guard.get('cond'), 'Expr_BooleanNot'), 'hasTable adoption guard')
+        check = guard['cond']['expr']
+        _ast_require(_ast_is(check, 'Expr_MethodCall') and _ast_variable(check.get('var'), 'this')
+                     and _ast_name(check.get('name')) == 'hasTable', 'native hasTable check')
+        check_args = _ast_arguments(check)
+        _ast_require(len(check_args) == 1 and _ast_variable(check_args[0], variable), 'same adoption table identity')
+        created_name, created_args = _schema_reference(_migration_execute(guard['stmts'][0]), 'createSql')
+        _ast_require(created_name == name and len(created_args) == 1 and _ast_variable(created_args[0], variable), 'same Schema and table in adoption')
+        references.append((name, None, line))
+    _ast_require(bool(references), 'empty or unrecognized up method')
+    # Rollback is deliberately not a forward schema source, but unknown rollback
+    # programs are not silently described as covered migration bodies.
+    down = _ast_method(cls, 'down', False, 0)
+    for statement in down['stmts']:
+        if _ast_is(statement, 'Stmt_Nop'):
+            continue
+        name, args = _schema_reference(_migration_execute(statement), 'dropSql')
+        _ast_require(len(args) == 1 and any(name == owner and _migration_table(args[0], constants) == table
+                                          for owner, table, _ in references), 'unknown rollback reference')
+    return references
+
+
+def _native_schema_path(name: str) -> Path | None:
+    path = composer_model_path(name)
+    if path is not None:
+        return path
+    # Native host schema files predate module PSR-4 registration. Resolve only
+    # their exact class-matching filename under the existing schema source root.
+    cursor = ROOT
+    for part in ('server', 'database', 'schema', name.rsplit('\\', 1)[-1] + '.php'):
+        if not cursor.is_dir() or part not in {child.name for child in cursor.iterdir()}:
+            return None
+        cursor = cursor / part
+        _ast_require(not cursor.is_symlink(), 'native Schema source symlink')
+    return cursor if cursor.is_file() else None
+
+
+def _sql_alter_structure(sql: str) -> tuple[str, list[dict]]:
+    """Recognize bounded literal ALTER declarations, not arbitrary SQL or execution.
+
+    Each complete clause is recorded. Unknown expressions and changes to the
+    Tenant identity column stay unsupported; ALTER is never a CREATE record.
+    """
+    token = re.compile(r"\s+|`[a-z][a-z0-9_]*`|'(?:''|[^'\\])*'|[A-Za-z_][A-Za-z0-9_]*|[0-9]+|[(),;=]")
+    tokens, position = [], 0
+    while position < len(sql):
+        match = token.match(sql, position)
+        _ast_require(match is not None, 'unsupported ALTER token')
+        value = match.group()
+        if not value.isspace():
+            tokens.append(value if value.startswith(('`', "'")) else value.upper())
+        position = match.end()
+    if tokens and tokens[-1] == ';':
+        tokens.pop()
+    identifier = lambda value: re.fullmatch(r'`[a-z][a-z0-9_]*`', value) is not None
+    literal = lambda value: value.startswith("'") and value.endswith("'")
+    _ast_require(len(tokens) > 3 and tokens[:2] == ['ALTER', 'TABLE'] and identifier(tokens[2]), 'literal ALTER table')
+    table = tokens[2][1:-1]
+    clauses, clause, depth = [], [], 0
+    for value in tokens[3:]:
+        depth += int(value == '(') - int(value == ')')
+        _ast_require(depth >= 0 and value != ';', 'incomplete or multiple ALTER statements')
+        if value == ',' and depth == 0:
+            _ast_require(bool(clause), 'empty ALTER clause')
+            clauses.append(clause)
+            clause = []
+        else:
+            clause.append(value)
+    _ast_require(depth == 0 and bool(clause), 'incomplete ALTER clause')
+    clauses.append(clause)
+
+    def columns(values):
+        _ast_require(len(values) >= 3 and values[0] == '(' and values[-1] == ')', 'literal column list')
+        body = values[1:-1]
+        _ast_require(len(body) % 2 == 1 and all(identifier(value) if index % 2 == 0 else value == ','
+                     for index, value in enumerate(body)), 'complete column list')
+        return [value[1:-1] for value in body[::2]]
+
+    effects = []
+    for part in clauses:
+        if len(part) == 3 and part[:2] in (['DROP', 'INDEX'], ['DROP', 'CHECK'], ['DROP', 'COLUMN']) and identifier(part[2]):
+            kind = {'INDEX': 'drop_index', 'CHECK': 'drop_check', 'COLUMN': 'drop_column'}[part[1]]
+            _ast_require(not (kind == 'drop_column' and part[2] == '`tenant_id`'), 'Tenant identity alteration requires separate analysis')
+            effects.append({'kind': kind, 'column' if kind == 'drop_column' else 'name': part[2][1:-1]})
+        elif len(part) == 4 and part[:3] == ['DROP', 'FOREIGN', 'KEY'] and identifier(part[3]):
+            effects.append({'kind': 'drop_foreign_key', 'name': part[3][1:-1]})
+        elif len(part) > 3 and part[:2] in (['ADD', 'KEY'], ['ADD', 'INDEX']) and identifier(part[2]):
+            effects.append({'kind': 'add_index', 'name': part[2][1:-1], 'columns': columns(part[3:])})
+        elif len(part) > 8 and part[:2] == ['ADD', 'CONSTRAINT'] and identifier(part[2]) and part[3:5] == ['FOREIGN', 'KEY']:
+            _ast_require(part.count('REFERENCES') == 1, 'one foreign-key reference')
+            split = part.index('REFERENCES')
+            _ast_require(split + 1 < len(part) and identifier(part[split + 1]) and part[-3:] == ['ON', 'DELETE', 'RESTRICT'], 'literal restrictive foreign key')
+            local, remote = columns(part[5:split]), columns(part[split + 2:-3])
+            _ast_require(len(local) == len(remote), 'foreign-key arity')
+            effects.append({'kind': 'add_foreign_key', 'name': part[2][1:-1], 'columns': local,
+                            'references_table': part[split + 1][1:-1], 'references_columns': remote, 'on_delete': 'RESTRICT'})
+        elif len(part) > 6 and part[:2] == ['ADD', 'CONSTRAINT'] and identifier(part[2]) and part[3:5] == ['CHECK', '('] and part[-1] == ')':
+            expression = part[5:-1]
+            valid = False
+            if len(expression) >= 5 and identifier(expression[0]) and expression[1:3] == ['IN', '('] and expression[-1] == ')':
+                values = expression[3:-1]
+                valid = len(values) % 2 == 1 and all(literal(value) if i % 2 == 0 else value == ',' for i, value in enumerate(values))
+            elif len(expression) == 3 and identifier(expression[0]) and expression[1] == '=' and literal(expression[2]):
+                valid = True
+            elif len(expression) == 8 and expression[:2] == ['REGEXP_LIKE', '('] and expression[-1] == ')':
+                valid = identifier(expression[2]) and expression[3] == expression[5] == ',' and literal(expression[4]) and literal(expression[6])
+            _ast_require(valid, 'unrecognized CHECK expression')
+            effects.append({'kind': 'add_check', 'name': part[2][1:-1], 'expression': ' '.join(expression)})
+        elif len(part) == 5 and part[:2] == ['ALTER', 'COLUMN'] and identifier(part[2]) and part[3:] == ['DROP', 'DEFAULT']:
+            _ast_require(part[2] != '`tenant_id`', 'Tenant identity alteration requires separate analysis')
+            effects.append({'kind': 'drop_default', 'column': part[2][1:-1]})
+        elif (len(part) == 13 and part[:2] == ['ADD', 'COLUMN'] and identifier(part[2]) and part[3:5] == ['VARCHAR', '(']
+              and part[5].isdigit() and part[6:10] == [')', 'NOT', 'NULL', 'DEFAULT']
+              and literal(part[10]) and part[11] == 'AFTER' and identifier(part[12])):
+            _ast_require(part[2] != '`tenant_id`' and 0 < int(part[5]) <= 65535, 'bounded non-Tenant column declaration')
+            effects.append({'kind': 'add_column', 'column': part[2][1:-1], 'type': 'VARCHAR', 'length': int(part[5]),
+                            'nullable': False, 'default': part[10][1:-1].replace("''", "'"), 'after': part[12][1:-1]})
+        else:
+            raise ValueError('PHP_SCHEMA_UNSUPPORTED: unrecognized complete ALTER clause')
+    return table, effects
+
+
+def _migration_alterations(cls: dict, path: Path, source: str) -> list[dict]:
+    """A second complete native shape, not a fallback that skips unknown code."""
+    _ast_require(_ast_name(cls.get('extends')) == 'think\\migration\\Migrator' and not cls.get('implements')
+                 and all(_ast_is(item, 'Stmt_ClassMethod') and _ast_name(item.get('name')) in {'up', 'down'}
+                         for item in cls['stmts']), 'literal native alteration class')
+    rows = []
+    for direction in ('up', 'down'):
+        method = _ast_method(cls, direction, False, 0)
+        statements = [item for item in method['stmts'] if not _ast_is(item, 'Stmt_Nop')]
+        _ast_require(bool(statements) or direction == 'down', 'empty forward alteration')
+        for statement in statements:
+            value = _migration_execute(statement)
+            proof = {}
+            if not _ast_is(value, 'Scalar_String'):
+                _ast_require(_ast_is(value, 'Expr_StaticCall') and not _ast_arguments(value), 'literal no-argument Schema helper')
+                name, member = _ast_name(value.get('class')), _ast_name(value.get('name'))
+                _ast_require(isinstance(name, str) and isinstance(member, str), 'exact Schema helper identity')
+                schema_path = _native_schema_path(name)
+                _ast_require(schema_path is not None, 'unresolved helper source')
+                schema_source = schema_path.read_text(encoding='utf-8')
+                schema = _ast_class(parse_schema_php(schema_source))
+                _ast_require(_ast_name(schema.get('namespacedName')) == name and schema.get('extends') is None
+                             and not schema.get('implements') and not any(_ast_is(item, 'Stmt_TraitUse') for item in schema['stmts']), 'helper class/path mismatch')
+                helper = _ast_method(schema, member, True, 0)
+                _ast_require(_ast_name(helper.get('returnType')) == 'string', 'helper string return required')
+                value = _ast_return(helper)
+                _ast_require(_ast_is(value, 'Scalar_String'), 'nonliteral helper result')
+                proof = {'schema_class': name, 'schema_path': relative(schema_path), 'schema_method': member,
+                         'schema_sha256': hashlib.sha256(schema_source.encode()).hexdigest(),
+                         'schema_line': value.get('attributes', {}).get('startLine')}
+            sql = value['value']
+            table, effects = _sql_alter_structure(sql)
+            rows.append({'migration': relative(path), 'migration_line': statement.get('attributes', {}).get('startLine'),
+                         'migration_sha256': hashlib.sha256(source.encode()).hexdigest(), 'direction': direction,
+                         'operation': 'ALTER', 'table': table, 'effects': effects, 'sql': sql,
+                         'sql_sha256': hashlib.sha256(sql.encode()).hexdigest(), **proof})
+    return rows
+
+
+def _php_schema_inventory(paths: list[Path]) -> dict:
+    """Shared syntax-only declaration reader for module and native host roots."""
+    records, alterations, gaps = [], [], {}
+    for path in paths:
+        try:
+            source = path.read_text(encoding='utf-8')
+            cls = _ast_class(parse_schema_php(source))
+            try:
+                references = _migration_references(cls)
+            except ValueError:
+                # The whole up/down program must match this independent shape.
+                alterations.extend(_migration_alterations(cls, path, source))
+                continue
+            pending = []
+            for name, selected, line in references:
+                schema_path = _native_schema_path(name)
+                _ast_require(schema_path is not None, 'Schema has no exact native source: ' + name)
+                schema_source = schema_path.read_text(encoding='utf-8')
+                schema = _ast_class(parse_schema_php(schema_source))
+                _ast_require(_ast_name(schema.get('namespacedName')) == name, 'Schema class/path mismatch')
+                values, names = _schema_literals(schema)
+                tables = names if selected is None else [selected]
+                _ast_require(all(table in values for table in tables), 'referenced table missing from Schema')
+                for table in tables:
+                    sql = values[table]['value']
+                    pending.append({'migration': relative(path), 'migration_line': line,
+                                    'migration_sha256': hashlib.sha256(source.encode()).hexdigest(),
+                                    'schema_class': name, 'schema_path': relative(schema_path),
+                                    'schema_sha256': hashlib.sha256(schema_source.encode()).hexdigest(),
+                                    'schema_line': values[table].get('attributes', {}).get('startLine'),
+                                    'table': table, 'tenant_column': _sql_tenant_column(table, sql),
+                                    'sql_sha256': hashlib.sha256(sql.encode()).hexdigest(),
+                                    'shape': 'guarded-schema-adoption' if selected is None else 'literal-schema-create'})
+            records.extend(pending)
+        except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as exc:
+            gaps[relative(path)] = str(exc)
+    return {'migration_count': len(paths), 'records': records, 'alterations': alterations, 'gaps': gaps}
+
+
+def module_php_schema_inventory() -> dict:
+    """Recognize complete native module up() shapes; unsupported bodies remain gaps."""
+    paths = sorted({path for module in (ROOT / 'server/app/modules').glob('*/*') if module.is_dir()
+                    for path in module.rglob('*.php') if path.is_file()
+                    and path.parts[-3:-1] == ('database', 'migrations')})
+    return _php_schema_inventory(paths)
+
+
+def host_php_schema_inventory() -> dict:
+    parent = ROOT / 'server/database'
+    paths = []
+    if parent.is_dir():
+        for folder in parent.iterdir():
+            if folder.name in {'kernel-migrations', 'migrations'} and folder.is_dir():
+                paths.extend(path for path in folder.iterdir() if path.is_file() and path.suffix == '.php')
+    return _php_schema_inventory(sorted(paths))
+
+
+def schema_coverage_gaps() -> list[str]:
+    return sorted(set(module_php_schema_inventory()['gaps']) | set(host_php_schema_inventory()['gaps']))
+
+
+def schema_tenant_tables() -> set[str]:
+    paths = [ROOT / "server/database/schema/baseline-schema.sql"]
+    paths.extend(sorted((ROOT / "server/database/migrations").glob("*.sql")))
+    paths.extend(sorted((ROOT / "server/app/modules").glob("*/*/database/migrations/*.sql")))
+    tables: set[str] = set()
+    pattern = re.compile(
+        r"CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+`([^`]+)`\s*\((.*?)\)\s*ENGINE=",
+        re.IGNORECASE | re.DOTALL,
+    )
+    sources = [path.read_text(encoding="utf-8") for path in paths if path.is_file()]
+    sources.extend(kernel_schema_sql())
+    for inventory in (module_php_schema_inventory(), host_php_schema_inventory()):
+        tables.update(row['table'] for row in inventory['records'] if row['tenant_column'])
+    for source in sources:
+        for match in pattern.finditer(source):
+            if re.search(r"`tenant_id`", match.group(2)):
+                tables.add(match.group(1))
+    return tables
+
+
+def concrete_models() -> set[str]:
+    paths = list((ROOT / "server/app/modules").glob("*/*/src/**/Model/**/*.php"))
+    paths.extend((ROOT / "server/app/common/model").glob("**/*.php"))
+    models: set[str] = set()
+    for path in paths:
+        if path.name in {
+            "BaseModel.php",
+            "TenantOwnedModel.php",
+            "PlatformOwnedModel.php",
+            "InstanceOwnedModel.php",
+            "SharedModel.php",
+        }:
+            continue
+        text = path.read_text(encoding="utf-8")
+        namespace = re.search(r"namespace\s+([^;]+);", text)
+        class_name = re.search(r"\bclass\s+([A-Za-z_][A-Za-z0-9_]*)\s+extends\s+", text)
+        if namespace and class_name:
+            models.add(namespace.group(1).strip() + "\\" + class_name.group(1))
+    return models
+
+
+def composer_model_path(model: str, source_root: Path | None = None, composer_root: Path | None = None) -> Path | None:
+    """Resolve exact Composer mappings in the explicit source, without autoloading PHP."""
+    source_root = source_root or ROOT
+    composer_root = composer_root or ROOT / "server"
+    manifest = json.loads((composer_root / "composer.json").read_text(encoding="utf-8"))
+    mappings = manifest.get("autoload", {}).get("psr-4", {})
+    if not isinstance(mappings, dict):
+        raise ValueError("MODEL_SOURCE_MAPPING_INVALID")
+    prefixes = sorted((prefix for prefix in mappings if model.startswith(prefix)), key=len, reverse=True)
+    root = source_root.resolve()
+    for prefix in prefixes:
+        suffix = model[len(prefix):].replace("\\", "/") + ".php"
+        paths = mappings[prefix]
+        if isinstance(paths, str):
+            paths = [paths]
+        if not isinstance(paths, list) or not paths or any(not isinstance(path, str) for path in paths):
+            raise ValueError("MODEL_SOURCE_MAPPING_INVALID: " + prefix)
+        matches = []
+        for mapping in paths:
+            if Path(mapping).is_absolute():
+                raise ValueError("MODEL_SOURCE_OUTSIDE_ROOT: " + model)
+            candidate = composer_root / mapping / suffix
+            resolved = candidate.resolve()
+            if not resolved.is_relative_to(root):
+                raise ValueError("MODEL_SOURCE_OUTSIDE_ROOT: " + model)
+            # Match native namespace/path case on macOS as well as Linux.
+            cursor = root
+            for part in candidate.relative_to(source_root).parts:
+                if part in {".", ".."} or not cursor.is_dir() or part not in {item.name for item in cursor.iterdir()}:
+                    break
+                cursor = cursor / part
+            else:
+                if cursor.is_file():
+                    matches.append(cursor)
+        matches = list(dict.fromkeys(matches))
+        if len(matches) > 1:
+            raise ValueError("MODEL_SOURCE_AMBIGUOUS: " + model)
+        if matches:
+            return matches[0]
+    return None
+
+
+def php_structure(source: str) -> str:
+    """Mask comments and literals while retaining declaration offsets and lines."""
+    masked = re.sub(r"/\*.*?\*/|//[^\n]*|\#(?!\[)[^\n]*|'(?:\\.|[^'\\])*'|\"(?:\\.|[^\"\\])*\"",
+                    lambda match: re.sub(r"[^\n]", " ", match.group(0)), source, flags=re.DOTALL)
+    if "<<<" in masked:
+        raise ValueError("PHP_SOURCE_LITERAL_UNSUPPORTED: heredoc requires a native parser")
+    return masked
+
+
+def declared_type(path: Path, source_root: Path | None = None) -> str:
+    source = php_structure(path.read_text(encoding="utf-8"))
+    namespaces = re.findall(r"\bnamespace\s+([A-Za-z_][A-Za-z0-9_\\]*)\s*;", source)
+    types = re.findall(r"\b(?:class|interface|enum)\s+([A-Za-z_][A-Za-z0-9_]*)\b", source)
+    if len(namespaces) != 1 or len(types) != 1:
+        raise ValueError("SOURCE_TYPE_DECLARATION_UNSUPPORTED: " + path.relative_to(source_root or ROOT).as_posix())
+    return namespaces[0] + "\\" + types[0]
+
+
+def model_header(path: Path) -> tuple[str, str]:
+    """Inspect the actual class header and imports; never autoload application code."""
+    source = php_structure(path.read_text(encoding="utf-8"))
+    namespaces = re.findall(r"\bnamespace\s+([A-Za-z_][A-Za-z0-9_\\]*)\s*;", source)
+    declarations = list(re.finditer(r"\bclass\s+([A-Za-z_][A-Za-z0-9_]*)\s+extends\s+(\\?[A-Za-z_][A-Za-z0-9_\\]*)\b", source))
+    if len(namespaces) != 1 or len(declarations) != 1:
+        raise ValueError("MODEL_DECLARATION_UNSUPPORTED: " + relative(path))
+    declaration = declarations[0]
+    namespace = namespaces[0]
+    parent = declaration.group(2)
+    header = source[:declaration.start()]
+    imports: dict[str, str] = {}
+    for match in re.finditer(r"\buse\s+([^;]+);", header):
+        entry = re.fullmatch(r"\s*(\\?[A-Za-z_][A-Za-z0-9_\\]*)(?:\s+as\s+([A-Za-z_][A-Za-z0-9_]*))?\s*", match.group(1))
+        if entry is None:
+            raise ValueError("MODEL_IMPORT_UNSUPPORTED: " + relative(path))
+        target = entry.group(1).lstrip("\\")
+        alias = entry.group(2) or target.rsplit("\\", 1)[-1]
+        if alias in imports:
+            raise ValueError("MODEL_IMPORT_AMBIGUOUS: " + relative(path))
+        imports[alias] = target
+    if parent.startswith("\\"):
+        resolved = parent[1:]
+    else:
+        first, separator, rest = parent.partition("\\")
+        resolved = imports[first] + (separator + rest if separator else "") if first in imports else namespace + "\\" + parent
+    return namespace + "\\" + declaration.group(1), resolved
+
+
+def source_model_table(path: Path) -> str | None:
+    """Match literal model names to this product's pa_-prefixed source schemas.
+
+    Dynamic/default ORM naming is unverified here, not automatically approved.
+    """
+    source = path.read_text(encoding="utf-8")
+    structure = php_structure(source)
+    matches = []
+    for match in re.finditer(r"\b(?:protected|public)\s+(?:string\s+)?\$(name|table)\s*=\s*(['\"])([a-z][a-z0-9_]*)\2\s*;", source):
+        if structure[match.start():].startswith(source[match.start():match.start() + 6]):
+            matches.append(("pa_" if match.group(1) == "name" else "") + match.group(3))
+    if len(matches) > 1:
+        raise ValueError("MODEL_TABLE_DECLARATION_AMBIGUOUS: " + relative(path))
+    return matches[0] if matches else None
+
+
+def module_table_inventory() -> tuple[dict[str, str], dict[str, str]]:
+    tables: dict[str, str] = {}
+    modules: dict[str, str] = {}
+    for path in sorted((ROOT / "server/app/modules").glob("*/*/module.json")):
+        value = json.loads(path.read_text(encoding="utf-8"))
+        key = value.get("key") if isinstance(value, dict) else None
+        database = value.get("database", {}) if isinstance(value, dict) else None
+        if not isinstance(key, str) or not key or not isinstance(database, dict):
+            raise ValueError("MODULE_OWNERSHIP_DECLARATION_INVALID: " + relative(path))
+        owned = database.get("owned_tables", [])
+        if not isinstance(owned, list) or any(not isinstance(table, str) or not table for table in owned):
+            raise ValueError("MODULE_OWNED_TABLES_INVALID: " + relative(path))
+        modules[relative(path.parent)] = key
+        for table in owned:
+            if table in tables:
+                raise ValueError("MODULE_TABLE_OWNER_DUPLICATE: " + table)
+            tables[table] = key
+    return tables, modules
+
+
+def review_source_root(source: str) -> Path:
+    if source == "application":
+        return ROOT
+    if source == "php-core":
+        if PHP_CORE_ROOT is None:
+            raise ValueError("CORE_SOURCE_REQUIRED: select an immutable PHP Core snapshot")
+        return PHP_CORE_ROOT
+    raise ValueError("ACCESS_SOURCE_INVALID")
+
+
+def reviewed_source(item: dict, *, native_schema: bool = False) -> tuple[Path, Path]:
+    """Bind a reviewed access path to its exact bytes, not an enduring allowlist."""
+    root = review_source_root(item.get("source"))
+    name, digest = item.get("path"), item.get("sha256")
+    if not isinstance(name, str) or not name or Path(name).is_absolute() or any(p in {"", ".", ".."} for p in name.split("/")):
+        raise ValueError("REVIEW_PATH_INVALID")
+    allowed = name.startswith("server/app/") if item["source"] == "application" else name.startswith("kernel/src/")
+    if native_schema and item['source'] == 'application':
+        allowed = allowed or name == 'server/database/init.sql' or re.fullmatch(r'server/database/schema/[A-Za-z_][A-Za-z0-9_]*\.php', name) is not None
+    if not allowed or not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+        raise ValueError("REVIEW_PATH_OR_DIGEST_INVALID")
+    cursor = root
+    for part in Path(name).parts:
+        if not cursor.is_dir() or part not in {p.name for p in cursor.iterdir()}:
+            raise ValueError("REVIEW_PATH_MISSING: " + name)
+        cursor = cursor / part
+        if cursor.is_symlink():
+            raise ValueError("REVIEW_PATH_SYMLINK: " + name)
+    if not cursor.is_file() or hashlib.sha256(cursor.read_bytes()).hexdigest() != digest:
+        raise ValueError("SOURCE_REVIEW_STALE: " + name)
+    return cursor, root
+
+
+def public_use_case_review(entry: str, contract: dict, path: Path) -> None:
+    """Verify an individually reviewed exported business result surface.
+
+    This is not persistence-publication permission or an authorization check.
+    Default stores remain private. Only exact reviewed manifest, class and every
+    public return declaration can support this data-access classification.
+    """
+    proof = contract.get('public_use_case')
+    if (contract.get('source') != 'application' or not isinstance(proof, dict)
+            or not isinstance(proof.get('reason'), str) or not proof['reason'].strip()
+            or entry not in declared_module_exports() or entry in concrete_models()):
+        raise ValueError('PUBLIC_USE_CASE_REVIEW_REQUIRED')
+    manifest_source = proof.get('manifest_source')
+    if not isinstance(manifest_source, dict) or manifest_source.get('source') != 'application':
+        raise ValueError('PUBLIC_USE_CASE_MANIFEST_REQUIRED')
+    manifest, _ = reviewed_source(manifest_source)
+    _, roots = module_table_inventory()
+    owners = [root for root in roots if relative(path).startswith(root + '/')]
+    if len(owners) != 1 or relative(manifest) != owners[0] + '/module.json':
+        raise ValueError('PUBLIC_USE_CASE_MODULE_MISMATCH')
+    declaration = json.loads(manifest.read_text(encoding='utf-8'))
+    if entry not in declaration.get('contracts', {}).get('exports', []):
+        raise ValueError('PUBLIC_USE_CASE_EXPORT_REQUIRED')
+    cls = _ast_class(parse_schema_php(path.read_text(encoding='utf-8')))
+    if (_ast_name(cls.get('namespacedName')) != entry or cls.get('extends') is not None
+            or any(_ast_is(node, 'Stmt_TraitUse') for node in cls['stmts'])):
+        raise ValueError('PUBLIC_USE_CASE_CLASS_UNSUPPORTED')
+    interfaces = proof.get('interfaces', [])
+    if not isinstance(interfaces, list) or any(not isinstance(row, dict) for row in interfaces):
+        raise ValueError('PUBLIC_USE_CASE_INTERFACE_REVIEW_REQUIRED')
+    known = []
+    for evidence in interfaces:
+        interface_path, root = reviewed_source(evidence)
+        name = evidence.get('entry')
+        composer_root = root if evidence['source'] == 'php-core' else root / 'server'
+        structure = php_structure(interface_path.read_text(encoding='utf-8'))
+        if (not isinstance(name, str) or name in known
+                or composer_model_path(name, root, composer_root) != interface_path
+                or declared_type(interface_path, root) != name
+                or re.search(r'\binterface\s+\w+\s*\{', structure) is None):
+            raise ValueError('PUBLIC_USE_CASE_INTERFACE_IDENTITY')
+        known.append(name)
+    if sorted(known) != sorted(_ast_name(node) for node in cls.get('implements', [])):
+        raise ValueError('PUBLIC_USE_CASE_INTERFACE_REVIEW_REQUIRED')
+    results = proof.get('method_results')
+    if not isinstance(results, dict) or not results:
+        raise ValueError('PUBLIC_USE_CASE_RESULTS_REQUIRED')
+    observed = {}
+    for node in cls['stmts']:
+        if not _ast_is(node, 'Stmt_ClassMethod') or node.get('flags', 0) & 7 not in {0, 1}:
+            continue
+        name = _ast_name(node.get('name'))
+        if name == '__construct':
+            continue
+        result = _ast_name(node.get('returnType'))
+        if (not isinstance(name, str) or name.startswith('__') or name in observed
+                or node.get('byRef') or node.get('flags', 0) & 8 or node.get('stmts') is None
+                or result not in {'array', 'bool', 'int', 'float', 'string', 'void'}):
+            raise ValueError('PUBLIC_USE_CASE_RESULT_UNSUPPORTED')
+        observed[name] = result
+    if observed != results:
+        raise ValueError('PUBLIC_USE_CASE_RESULT_COVERAGE')
+
+
+def access_contract_errors(contracts: dict) -> list[str]:
+    errors = []
+    for entry, contract in contracts.items():
+        try:
+            if not isinstance(entry, str) or not isinstance(contract, dict):
+                raise ValueError("ACCESS_CONTRACT_INVALID")
+            path, root = reviewed_source(contract)
+            composer_root = root if contract["source"] == "php-core" else root / "server"
+            if composer_model_path(entry, root, composer_root) != path or declared_type(path, root) != entry:
+                raise ValueError("ACCESS_ENTRY_IDENTITY_MISMATCH")
+            if 'public_use_case' in contract:
+                public_use_case_review(entry, contract, path)
+            elif contract["source"] == "application" and entry in declared_module_exports():
+                raise ValueError("ACCESS_PERSISTENCE_EXPORTED: registration does not make an internal store public")
+            if contract.get("scope") not in {"explicit-tenant-column", "explicit-edition-tenant", "explicit-source-recipient-tenant"}:
+                raise ValueError("ACCESS_SCOPE_INVALID")
+            if not isinstance(contract.get("reason"), str) or not contract["reason"].strip():
+                raise ValueError("ACCESS_REASON_REQUIRED")
+            roles = []
+            for key in ("tenant_operations", "other_operations", "pending_operations"):
+                methods = contract.get(key)
+                if not isinstance(methods, list) or any(not isinstance(m, str) or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", m) is None for m in methods):
+                    raise ValueError("ACCESS_METHOD_ROLES_INVALID")
+                roles.extend(methods)
+            if not contract["tenant_operations"] or len(roles) != len(set(roles)):
+                raise ValueError("ACCESS_METHOD_ROLES_INVALID")
+            public = set(re.findall(r"\bpublic\s+(?:static\s+)?function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", php_structure(path.read_text(encoding="utf-8")))) - {"__construct"}
+            if public != set(roles):
+                raise ValueError("ACCESS_METHOD_COVERAGE: " + repr(sorted(public ^ set(roles))))
+            support = contract.get("support_sources")
+            if not isinstance(support, list) or any(not isinstance(item, dict) for item in support):
+                raise ValueError("ACCESS_SUPPORT_SOURCES_INVALID")
+            for item in support:
+                reviewed_source(item)
+        except (OSError, ValueError) as exc:
+            errors.append(f"access_contract[{entry}]: {exc}")
+    return errors
+
+
+def read_ownership() -> dict:
+    value = json.loads(OWNERSHIP.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError("OWNERSHIP_ROOT_MUST_BE_OBJECT")
+    for field in ("model_owners", "tenant_tables"):
+        rows = value.get(field, [])
+        if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+            raise ValueError("OWNERSHIP_ROWS_INVALID: " + field)
+        required = ("model", "table", "owner") if field == "model_owners" else ("table", "owner", "access_entry")
+        for index, row in enumerate(rows, 1):
+            if any(not isinstance(row.get(key), str) or not row[key].strip() for key in required):
+                raise ValueError(f"OWNERSHIP_ROW_INVALID: {field}[{index}]")
+    if not isinstance(value.get("counts", {}), dict):
+        raise ValueError("OWNERSHIP_COUNTS_INVALID")
+    if not isinstance(value.get("access_contracts", {}), dict):
+        raise ValueError("ACCESS_CONTRACTS_MUST_BE_OBJECT")
+    return value
+
+
+def literal_sql_statements(source: str) -> list[str]:
+    """Split native literal CREATE statements; unsupported SQL is not evidence.
+
+    This is a bounded declaration reader, not SQL execution or server validation.
+    Quotes are retained, so comments/semicolons inside a literal are not syntax.
+    """
+    statements, parts = [], []
+    quote = None
+    cursor = 0
+    while cursor < len(source):
+        char = source[cursor]
+        if quote:
+            parts.append(char)
+            if char == '\\' and cursor + 1 < len(source):
+                cursor += 1
+                parts.append(source[cursor])
+            elif char == quote:
+                if cursor + 1 < len(source) and source[cursor + 1] == quote:
+                    cursor += 1
+                    parts.append(source[cursor])
+                else:
+                    quote = None
+        elif source.startswith('--', cursor) and (cursor + 2 == len(source) or source[cursor + 2].isspace()):
+            end = source.find('\n', cursor)
+            cursor = len(source) if end < 0 else end
+            parts.append('\n')
+            continue
+        elif source.startswith('/*', cursor) or char == '#':
+            raise ValueError('INSTANCE_SCHEMA_UNSUPPORTED_COMMENT')
+        elif char in "'\"`":
+            quote = char
+            parts.append(char)
+        elif char == ';':
+            statements.append(''.join(parts).strip())
+            parts = []
+        else:
+            parts.append(char)
+        cursor += 1
+    if quote:
+        raise ValueError('INSTANCE_SCHEMA_INCOMPLETE_LITERAL')
+    if ''.join(parts).strip():
+        statements.append(''.join(parts).strip())
+    return statements
+
+
+def literal_create_declarations(source: str) -> dict[str, str]:
+    declarations = {}
+    for statement in literal_sql_statements(source):
+        match = re.match(r'CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+`([a-z][a-z0-9_]*)`\s*\(', statement, re.I)
+        if match is None or match.group(1) in declarations:
+            raise ValueError('INSTANCE_SCHEMA_DECLARATION_INVALID_OR_DUPLICATE')
+        table = match.group(1)
+        _sql_tenant_column(table, statement)
+        declarations[table] = statement
+    return declarations
+
+
+def initial_schema_declarations(source: str) -> dict[str, str]:
+    """Read initial CREATE evidence; seed DML is not executed or certified.
+
+    Unsupported persistent DDL/dynamic statements fail instead of silently
+    interpreting their effects. This is declaration provenance, not applied SQL.
+    """
+    declarations, temporary = {}, set()
+    for statement in literal_sql_statements(source):
+        if re.match(r'CREATE\s+TABLE\b', statement, re.I):
+            rows = literal_create_declarations(statement)
+            if set(rows) & set(declarations):
+                raise ValueError('INITIAL_SCHEMA_DUPLICATE_DECLARATION')
+            declarations.update(rows)
+        elif re.match(r'(?:SET\s+(?:NAMES\b|FOREIGN_KEY_CHECKS\s*=|@[a-z_][a-z0-9_]*\s*=)|INSERT\s+(?:IGNORE\s+)?INTO\b|DELETE\s+FROM\b)', statement, re.I):
+            continue
+        elif re.match(r'(?:CREATE|DROP)\s+TEMPORARY\s+TABLE\s+(?:IF\s+EXISTS\s+)?`[^`]+`', statement, re.I):
+            # Temporary seed helpers must not shadow any declared product table.
+            name = re.search(r'`([^`]+)`', statement)[1]
+            temporary.add(name)
+        else:
+            raise ValueError('INITIAL_SCHEMA_UNSUPPORTED_STATEMENT')
+    if temporary & set(declarations):
+        raise ValueError('INITIAL_SCHEMA_TEMPORARY_SHADOW')
+    return declarations
+
+
+def reviewed_table_declaration(schema_source: dict, table: str, module_root: str) -> str:
+    """Reuse exact native declaration provenance; never execute schema/seed code."""
+    if not isinstance(schema_source, dict) or schema_source.get('source') != 'application':
+        raise ValueError('INSTANCE_SCHEMA_SOURCE_REQUIRED')
+    schema_path, _ = reviewed_source(schema_source, native_schema=True)
+    if relative(schema_path) == 'server/database/init.sql':
+        sql = initial_schema_declarations(schema_path.read_text(encoding='utf-8')).get(table)
+        if sql is None or schema_source.get('declaration_sha256') != hashlib.sha256(sql.encode()).hexdigest():
+            raise ValueError('INITIAL_SCHEMA_DECLARATION_MISSING_OR_CHANGED')
+    elif schema_path.suffix == '.sql' and relative(schema_path).startswith(module_root + '/database/migrations/'):
+        declarations = literal_create_declarations(schema_path.read_text(encoding='utf-8'))
+        sql = declarations.get(table)
+    elif schema_path.suffix == '.php' and (relative(schema_path).startswith(module_root + '/') or relative(schema_path).startswith('server/database/schema/')):
+        entry = schema_source.get('entry')
+        host_schema = relative(schema_path).startswith('server/database/schema/')
+        if host_schema:
+            maps = json.loads((ROOT / 'server/composer.json').read_text(encoding='utf-8')).get('autoload', {}).get('classmap', [])
+            if not isinstance(maps, list) or not any(isinstance(row, str) and (row == 'database/schema/' or 'server/' + row == relative(schema_path)) for row in maps):
+                raise ValueError('INSTANCE_SCHEMA_NATIVE_CLASSMAP_REQUIRED')
+        schema_class = _ast_class(parse_schema_php(schema_path.read_text(encoding='utf-8')))
+        if (not isinstance(entry, str) or (_native_schema_path(entry) if host_schema else composer_model_path(entry)) != schema_path
+                or _ast_name(schema_class.get('namespacedName')) != entry):
+            raise ValueError('INSTANCE_SCHEMA_CLASS_IDENTITY')
+        values, _ = _schema_literals(schema_class)
+        sql = values.get(table, {}).get('value')
+        evidence = schema_source.get('migration_sources')
+        if (not isinstance(evidence, list) or not evidence
+                or any(not isinstance(row, dict) or not isinstance(row.get('path'), str)
+                       or not isinstance(row.get('sha256'), str)
+                       or re.fullmatch(r'[0-9a-f]{64}', row['sha256']) is None for row in evidence)):
+            raise ValueError('INSTANCE_SCHEMA_TRACE_REQUIRED')
+        expected = {(row['path'], row['sha256']) for row in evidence}
+        if len(expected) != len(evidence) or sql is None:
+            raise ValueError('INSTANCE_SCHEMA_TRACE_INVALID')
+        actual = {(row['migration'], row['migration_sha256'])
+                  for inventory in (module_php_schema_inventory(), host_php_schema_inventory())
+                  for row in inventory['records']
+                  if row['schema_path'] == relative(schema_path) and row['schema_class'] == entry
+                  and row['schema_sha256'] == schema_source['sha256'] and row['table'] == table
+                  and row['sql_sha256'] == hashlib.sha256(sql.encode()).hexdigest()}
+        if not expected.issubset(actual):
+            raise ValueError('INSTANCE_SCHEMA_TRACE_MISSING_OR_STALE')
+    else:
+        raise ValueError('INSTANCE_SCHEMA_NATIVE_MIGRATION_REQUIRED')
+    if sql is None:
+        raise ValueError('INSTANCE_SCHEMA_TABLE_MISSING')
+    return sql
+
+
+def instance_model_review_errors(item: dict, model_path: Path, tenant_tables: set[str], module_roots: dict[str, str]) -> list[str]:
+    """Permit an individually reviewed native instance Model, not all think Models.
+
+    The review describes data ownership only. Caller fingerprints do not grant
+    platform, lifecycle or cross-Tenant operation authority, or prove runtime use.
+    """
+    try:
+        review = item.get('instance_review')
+        if (item.get('owner') != 'instance' or not isinstance(review, dict)
+                or review.get('classification') != 'deployment-instance'
+                or not isinstance(review.get('reason'), str) or not review['reason'].strip()):
+            raise ValueError('INSTANCE_REVIEW_REQUIRED')
+        model_source = review.get('model_source')
+        if not isinstance(model_source, dict) or model_source.get('source') != 'application':
+            raise ValueError('INSTANCE_MODEL_SOURCE_REQUIRED')
+        reviewed_model, _ = reviewed_source(model_source)
+        if (reviewed_model != model_path or model_header(model_path) != (item['model'], 'think\\Model')
+                or composer_model_path(item['model']) != model_path or source_model_table(model_path) != item['table']):
+            raise ValueError('INSTANCE_MODEL_IDENTITY_MISMATCH')
+        if item['model'] in declared_module_exports():
+            raise ValueError('INSTANCE_MODEL_EXPORTED')
+        roots = [root for root in module_roots if relative(model_path).startswith(root + '/')]
+        if len(roots) != 1:
+            raise ValueError('INSTANCE_MODULE_OWNER_REQUIRED')
+        module_root = roots[0]
+        sql = reviewed_table_declaration(review.get('schema_source'), item['table'], module_root)
+        if item['table'] in tenant_tables or _sql_tenant_column(item['table'], sql):
+            raise ValueError('INSTANCE_SCHEMA_TENANT_CONTRADICTION')
+        references = set(re.findall(r'\bREFERENCES\s+`([^`]+)`', sql, re.I))
+        if references & tenant_tables:
+            raise ValueError('INSTANCE_SCHEMA_TENANT_PARENT: ' + repr(sorted(references & tenant_tables)))
+        access_sources = review.get('access_sources')
+        if not isinstance(access_sources, list) or not access_sources:
+            raise ValueError('INSTANCE_ACCESS_REVIEW_REQUIRED')
+        seen = set()
+        for evidence in access_sources:
+            if not isinstance(evidence, dict) or evidence.get('source') != 'application':
+                raise ValueError('INSTANCE_ACCESS_SOURCE_INVALID')
+            path, _ = reviewed_source(evidence)
+            entry = evidence.get('entry')
+            if (not isinstance(entry, str) or not entry or entry in seen
+                    or not relative(path).startswith(module_root + '/')
+                    or composer_model_path(entry) != path or declared_type(path) != entry
+                    or entry in concrete_models()):
+                raise ValueError('INSTANCE_ACCESS_IDENTITY_MISMATCH')
+            seen.add(entry)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return [f"instance_review[{item.get('model')}]: {exc}"]
+    return []
+
+
+def named_tenant_review_errors(item: dict, model_path: Path, ownership: dict, module_roots: dict[str, str]) -> list[str]:
+    """Source grants retain two actual Tenant roles; neither is a global exemption."""
+    try:
+        proof = item.get('named_tenant_review')
+        if (item.get('owner') != 'tenant-gateway' or not isinstance(proof, dict)
+                or proof.get('classification') != 'source-recipient-tenant'
+                or not isinstance(proof.get('reason'), str) or not proof['reason'].strip()
+                or model_header(model_path) != (item['model'], 'think\Model')
+                or source_model_table(model_path) != item['table']):
+            raise ValueError('NAMED_TENANT_REVIEW_REQUIRED')
+        entry = item.get('access_entry')
+        contract = ownership.get('access_contracts', {}).get(entry)
+        if not isinstance(contract, dict) or contract.get('scope') != 'explicit-source-recipient-tenant':
+            raise ValueError('NAMED_TENANT_GATEWAY_REQUIRED')
+        gateway, _ = reviewed_source(contract)
+        roots = [root for root in module_roots if relative(model_path).startswith(root + '/')]
+        if len(roots) != 1 or not relative(gateway).startswith(roots[0] + '/') or item['model'] in declared_module_exports():
+            raise ValueError('NAMED_TENANT_OWNER_MISMATCH')
+        if reviewed_source(proof['model_source'])[0] != model_path:
+            raise ValueError('NAMED_TENANT_MODEL_SOURCE')
+        reader = proof.get('reader_source')
+        if not isinstance(reader, dict) or reader.get('source') != 'application':
+            raise ValueError('NAMED_TENANT_READER_REQUIRED')
+        path, _ = reviewed_source(reader)
+        if (not relative(path).startswith(roots[0] + '/') or composer_model_path(reader.get('entry', '')) != path
+                or declared_type(path) != reader.get('entry')
+                or not any(all(row.get(k) == reader.get(k) for k in ['source','path','sha256']) for row in contract.get('support_sources', []))):
+            raise ValueError('NAMED_TENANT_READER_IDENTITY')
+        columns = [proof.get(key) for key in ['source_column','recipient_column','grantor_column']]
+        if (len(set(columns)) != 3 or any(not isinstance(column, str) or re.fullmatch(r'[a-z][a-z0-9_]*', column) is None for column in columns)):
+            raise ValueError('NAMED_TENANT_COLUMNS_REQUIRED')
+        source, recipient, grantor = columns
+        sql = reviewed_table_declaration(proof.get('schema_source'), item['table'], roots[0])
+        parts = _sql_create_parts(item['table'], sql)
+        if _sql_tenant_column(item['table'], sql):
+            raise ValueError('NAMED_TENANT_DIRECT_COLUMN_CONTRADICTION')
+        def one(pattern):
+            return sum(re.fullmatch(pattern, part, re.I) is not None for part in parts) == 1
+        for column in columns:
+            if not one(r'\s*`'+column+r'`\s+BIGINT\s+UNSIGNED\s+NOT\s+NULL\s*'):
+                raise ValueError('NAMED_TENANT_REQUIRED_ID_MISMATCH')
+        start = r'\s*CONSTRAINT\s+`[a-z][a-z0-9_]*`\s+'
+        for column in [source, recipient]:
+            if not one(start+r'FOREIGN\s+KEY\s*\(\s*`'+column+r'`\s*\)\s+REFERENCES\s+`pa_tenant`\s*\(\s*`id`\s*\)\s+ON\s+DELETE\s+RESTRICT\s*'):
+                raise ValueError('NAMED_TENANT_FOREIGN_KEY_MISMATCH')
+        if not one(start+r'FOREIGN\s+KEY\s*\(\s*`'+source+r'`\s*,\s*`'+grantor+r'`\s*\)\s+REFERENCES\s+`pa_tenant_member`\s*\(\s*`tenant_id`\s*,\s*`id`\s*\)\s+ON\s+DELETE\s+RESTRICT\s*'):
+            raise ValueError('NAMED_TENANT_GRANTOR_SCOPE_MISMATCH')
+        if not one(start+r'CHECK\s*\(\s*`'+source+r'`\s*<>\s*`'+recipient+r'`\s*\)\s*'):
+            raise ValueError('NAMED_TENANT_DISTINCT_ROLES_REQUIRED')
+    except (OSError,ValueError,KeyError,TypeError) as exc:
+        return [f"named_tenant_review[{item.get('model')}]: {exc}"]
+    return []
+
+
+def parent_model_review_errors(item: dict, model_path: Path, ownership: dict, tenant_tables: set[str], module_roots: dict[str, str]) -> list[str]:
+    """One explicit same-owner parent relation; no implicit shared/instance fallback.
+
+    Structural and source evidence does not authorize a query. The reviewed
+    gateway must continue acquiring the scoped parent before reading/writing its
+    children. Changing that implementation invalidates its existing contract.
+    """
+    try:
+        proof = item.get('parent_review')
+        if (item.get('owner') != 'tenant-gateway' or not isinstance(proof, dict)
+                or proof.get('classification') != 'tenant-through-parent'
+                or not isinstance(proof.get('reason'), str) or not proof['reason'].strip()):
+            raise ValueError('PARENT_REVIEW_REQUIRED')
+        if model_header(model_path) != (item['model'], 'think\\Model'):
+            raise ValueError('PARENT_CHILD_MODEL_IDENTITY')
+        parent_name = proof.get('parent_model')
+        parents = [row for row in ownership['model_owners'] if row['model'] == parent_name]
+        if (len(parents) != 1 or parent_name == item['model'] or 'parent_review' in parents[0]
+                or parents[0]['owner'] != 'tenant-gateway' or parents[0].get('access_entry') != item['access_entry']
+                or parents[0]['table'] not in tenant_tables):
+            raise ValueError('PARENT_SCOPED_REGISTRATION_REQUIRED')
+        parent = parents[0]
+        parent_path = composer_model_path(parent_name)
+        if parent_path is None or source_model_table(parent_path) != parent['table']:
+            raise ValueError('PARENT_SOURCE_IDENTITY')
+        contract = ownership.get('access_contracts', {}).get(item['access_entry'])
+        if not isinstance(contract, dict) or contract.get('source') != 'application':
+            raise ValueError('PARENT_GATEWAY_REQUIRED')
+        expected_base = {'explicit-tenant-column': 'PeanutAdmin\\Kernel\\Persistence\\Model\\TenantModel',
+                         'explicit-edition-tenant': 'PeanutAdmin\\Kernel\\Persistence\\Model\\EditionTenantModel'}.get(contract.get('scope'))
+        if model_header(parent_path) != (parent_name, expected_base):
+            raise ValueError('PARENT_SCOPE_BASE_MISMATCH')
+        operations = proof.get('operations')
+        if (not isinstance(operations, list) or not operations or any(not isinstance(name, str) for name in operations)
+                or len(set(operations)) != len(operations) or set(operations) != set(contract.get('tenant_operations', []))):
+            raise ValueError('PARENT_OPERATION_REVIEW_REQUIRED')
+        roots = [root for root in module_roots if relative(model_path).startswith(root + '/')]
+        if len(roots) != 1 or not relative(parent_path).startswith(roots[0] + '/'):
+            raise ValueError('PARENT_MODULE_OWNER_MISMATCH')
+        if item['model'] in declared_module_exports() or parent_name in declared_module_exports():
+            raise ValueError('PARENT_MODEL_EXPORTED')
+        for key, path in [('model_source', model_path), ('parent_source', parent_path)]:
+            evidence = proof.get(key)
+            if not isinstance(evidence, dict) or evidence.get('source') != 'application' or reviewed_source(evidence)[0] != path:
+                raise ValueError('PARENT_EXACT_MODEL_SOURCE_REQUIRED')
+        schema_source = proof.get('schema_source')
+        child_sql = reviewed_table_declaration(schema_source, item['table'], roots[0])
+        parent_sql = reviewed_table_declaration(proof.get('parent_schema_source', schema_source), parent['table'], roots[0])
+        if item['table'] in tenant_tables or _sql_tenant_column(item['table'], child_sql) or not _sql_tenant_column(parent['table'], parent_sql):
+            raise ValueError('PARENT_SCHEMA_SCOPE_CONTRADICTION')
+        column, parent_column = proof.get('column'), proof.get('parent_column')
+        if any(not isinstance(name, str) or re.fullmatch(r'[a-z][a-z0-9_]*', name) is None for name in (column, parent_column)):
+            raise ValueError('PARENT_COLUMN_IDENTITY')
+        child_parts = _sql_create_parts(item['table'], child_sql)
+        parent_parts = _sql_create_parts(parent['table'], parent_sql)
+        required_column = r'\s*`' + re.escape(column) + r'`\s+BIGINT\s+UNSIGNED\s+NOT\s+NULL\s*'
+        primary = r'\s*PRIMARY\s+KEY\s*\(\s*`' + re.escape(parent_column) + r'`\s*\)\s*'
+        relation = (r'\s*CONSTRAINT\s+`[a-z][a-z0-9_]*`\s+FOREIGN\s+KEY\s*\(\s*`' + re.escape(column)
+                    + r'`\s*\)\s+REFERENCES\s+`' + re.escape(parent['table']) + r'`\s*\(\s*`'
+                    + re.escape(parent_column) + r'`\s*\)\s+ON\s+DELETE\s+RESTRICT\s*')
+        if (sum(re.fullmatch(required_column, part, re.I) is not None for part in child_parts) != 1
+                or sum(re.fullmatch(primary, part, re.I) is not None for part in parent_parts) != 1
+                or sum(re.fullmatch(relation, part, re.I) is not None for part in child_parts) != 1):
+            raise ValueError('PARENT_FOREIGN_KEY_OR_REQUIRED_ID_MISMATCH')
+        if any(row['table'] == item['table'] for row in ownership['tenant_tables']):
+            raise ValueError('PARENT_CHILD_IS_NOT_A_DIRECT_TENANT_TABLE')
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return [f"parent_review[{item.get('model')}]: {exc}"]
+    return []
+
+
+def ownership_errors() -> list[str]:
+    try:
+        ownership = read_ownership()
+    except (OSError, ValueError) as exc:
+        return [f"cannot read ownership registration: {exc}"]
+
+    errors: list[str] = []
+    model_rows = ownership.get("model_owners", [])
+    table_rows = ownership.get("tenant_tables", [])
+    contracts = ownership.get("access_contracts", {})
+    errors.extend(access_contract_errors(contracts))
+    errors.extend("SCHEMA_COVERAGE_INCOMPLETE: " + path for path in schema_coverage_gaps())
+    model_names = [str(item.get("model", "")) for item in model_rows]
+    table_names = [str(item.get("table", "")) for item in table_rows]
+    if len(model_names) != len(set(model_names)):
+        errors.append("model_owners contains duplicate model entries")
+    if len(table_names) != len(set(table_names)):
+        errors.append("tenant_tables contains duplicate table entries")
+
+    actual_models = concrete_models()
+    if not actual_models:
+        errors.append("model source inventory is empty")
+    if set(model_names) != actual_models:
+        errors.append(
+            "model ownership mismatch missing="
+            + repr(sorted(actual_models - set(model_names)))
+            + " extra="
+            + repr(sorted(set(model_names) - actual_models))
+        )
+    try:
+        actual_tables = schema_tenant_tables()
+    except (OSError, ValueError) as exc:
+        errors.append(str(exc))
+        actual_tables = set()
+    if not actual_tables:
+        errors.append("tenant schema source inventory is empty")
+    if set(table_names) != actual_tables:
+        errors.append(
+            "tenant table ownership mismatch missing="
+            + repr(sorted(actual_tables - set(table_names)))
+            + " extra="
+            + repr(sorted(set(table_names) - actual_tables))
+        )
+
+    try:
+        table_owners, module_roots = module_table_inventory()
+    except (OSError, ValueError) as exc:
+        errors.append(str(exc))
+        table_owners, module_roots = {}, {}
+    valid_owners = {"tenant-orm", "tenant-gateway", "instance", "shared"}
+    expected_bases = {
+        "tenant-orm": "TenantOwnedModel",
+        "platform": "PlatformOwnedModel",
+        "instance": "InstanceOwnedModel",
+        "shared": "SharedModel",
+    }
+    for index, item in enumerate(model_rows, 1):
+        if item.get("owner") not in valid_owners:
+            errors.append(f"model_owners[{index}] has invalid owner")
+            continue
+        model = str(item.get("model", ""))
+        expected = expected_bases.get(str(item.get("owner")))
+        try:
+            model_path = composer_model_path(model)
+        except (OSError, ValueError) as exc:
+            errors.append(f"model_owners[{index}] {model}: {exc}")
+            continue
+        if model_path is None:
+            errors.append(f"model_owners[{index}] {model} has no exact current Composer source")
+        else:
+            try:
+                declared, base = model_header(model_path)
+                if declared != model:
+                    errors.append(f"model_owners[{index}] {model} declaration differs: {declared}")
+                table = source_model_table(model_path)
+                if table is None or table != item["table"]:
+                    errors.append(f"model_owners[{index}] {model} table declaration mismatch or unsupported: registered={item['table']} actual={table}")
+                source_path = relative(model_path)
+                modules = [key for root, key in module_roots.items() if source_path.startswith(root + "/")]
+                if len(modules) == 1 and table_owners.get(item["table"]) != modules[0]:
+                    errors.append(f"model_owners[{index}] {model} module table owner mismatch: source={modules[0]} table={table_owners.get(item['table'])}")
+                if item["owner"] == "tenant-gateway":
+                    entry = item.get("access_entry")
+                    contract = contracts.get(entry) if isinstance(entry, str) else None
+                    if not isinstance(contract, dict):
+                        errors.append(f"model_owners[{index}] ACCESS_REVIEW_REQUIRED: {model}")
+                    else:
+                        expected_base = {"explicit-tenant-column": "PeanutAdmin\\Kernel\\Persistence\\Model\\TenantModel", "explicit-edition-tenant": "PeanutAdmin\\Kernel\\Persistence\\Model\\EditionTenantModel"}.get(contract.get("scope"))
+                        if 'named_tenant_review' in item:
+                            errors.extend(named_tenant_review_errors(item, model_path, ownership, module_roots))
+                        elif 'parent_review' in item:
+                            errors.extend(parent_model_review_errors(item, model_path, ownership, actual_tables, module_roots))
+                        elif base != expected_base:
+                            errors.append(f"model_owners[{index}] {model} must extend {expected_base}; actual={base}")
+                        entry_path, _ = reviewed_source(contract)
+                        entry_modules = [key for root, key in module_roots.items() if relative(entry_path).startswith(root + "/")] if contract["source"] == "application" else []
+                        if len(modules) != 1 or entry_modules != modules:
+                            errors.append(f"model_owners[{index}] ACCESS_MODULE_OWNER_MISMATCH: {model}")
+                        if 'parent_review' not in item and not any(row.get("table") == table and row.get("owner") == "tenant-gateway" and row.get("access_entry") == entry for row in table_rows):
+                            errors.append(f"model_owners[{index}] ACCESS_TABLE_ENTRY_MISMATCH: {model}")
+                elif item['owner'] == 'instance' and base == 'think\\Model':
+                    errors.extend(instance_model_review_errors(item, model_path, actual_tables, module_roots))
+                elif expected is None or base != "app\\common\\model\\" + expected:
+                    errors.append(f"model_owners[{index}] {model} must extend {expected}; actual={base}")
+                if 'instance_review' in item and not (item['owner'] == 'instance' and base == 'think\\Model'):
+                    errors.append(f"model_owners[{index}] INSTANCE_REVIEW_NOT_APPLICABLE: {model}")
+                if 'named_tenant_review' in item and not (item['owner'] == 'tenant-gateway' and base == 'think\\Model'):
+                    errors.append(f"model_owners[{index}] NAMED_TENANT_REVIEW_NOT_APPLICABLE: {model}")
+                if 'parent_review' in item and not (item['owner'] == 'tenant-gateway' and base == 'think\\Model'):
+                    errors.append(f"model_owners[{index}] PARENT_REVIEW_NOT_APPLICABLE: {model}")
+            except (OSError, ValueError) as exc:
+                errors.append(f"model_owners[{index}] {model}: {exc}")
+    for index, item in enumerate(table_rows, 1):
+        if item.get("owner") not in {"tenant-orm", "tenant-gateway"}:
+            errors.append(f"tenant_tables[{index}] has invalid owner")
+        if not str(item.get("access_entry", "")).strip():
+            errors.append(f"tenant_tables[{index}] missing access_entry")
+        if item.get("owner") == "tenant-orm" and not any(
+            row.get("model") == item.get("access_entry")
+            and row.get("table") == item.get("table")
+            and row.get("owner") == "tenant-orm" for row in model_rows
+        ):
+            errors.append(f"tenant_tables[{index}] access_entry is not the registered Tenant-owned model for {item.get('table')}")
+        if item.get("owner") == "tenant-gateway":
+            entry = item["access_entry"]
+            try:
+                contract = contracts.get(entry)
+                if isinstance(contract, dict):
+                    entry_path, entry_root = reviewed_source(contract)
+                    entry_modules = [key for root, key in module_roots.items() if relative(entry_path).startswith(root + "/")] if contract["source"] == "application" else []
+                    if entry_modules and entry_modules != [table_owners.get(item["table"])]:
+                        errors.append(f"tenant_tables[{index}] ACCESS_MODULE_OWNER_MISMATCH: {entry}")
+                else:
+                    entry_path, entry_root = composer_model_path(entry), ROOT
+                if entry_path is None:
+                    errors.append(f"tenant_tables[{index}] access_entry has no exact application source (external sources require separate verification): {entry}")
+                elif declared_type(entry_path, entry_root) != entry:
+                    errors.append(f"tenant_tables[{index}] access_entry declaration mismatch: {entry}")
+            except (OSError, ValueError) as exc:
+                errors.append(f"tenant_tables[{index}] access_entry invalid: {exc}")
+
+    counts = ownership.get("counts", {})
+    calculated = {
+        "concrete_models": len(model_rows),
+        "tenant_models": sum(item.get("owner") in {"tenant-orm", "tenant-gateway"} for item in model_rows),
+        "non_tenant_models": sum(item.get("owner") not in {"tenant-orm", "tenant-gateway"} for item in model_rows),
+        "tenant_tables": len(table_rows),
+        "tenant_tables_without_model": sum(not any(model.get("table") == item.get("table") for model in model_rows) for item in table_rows),
+    }
+    if counts != calculated:
+        errors.append(f"ownership counts mismatch expected={calculated!r} actual={counts!r}")
+    return errors
+
+
+def refresh_register(register: dict, findings: list[dict]) -> None:
+    existing = registered_issues(register)
+    refreshed: list[dict] = []
+    current_ids: set[str] = set()
+    for finding in findings:
+        finding_id = finding["issue_id"]
+        current_ids.add(finding_id)
+        previous = existing.get(finding_id, {})
+        default_owner = f"{finding['tpq']} / {RULE_OWNERS[finding['category']][1]}"
+        refreshed.append({
+            "issue_id": finding_id,
+            "category": finding["category"],
+            "path": finding["path"],
+            "line": finding["line"],
+            "symbol": finding["symbol"],
+            "owner": previous.get("owner", default_owner),
+            "decision": previous.get("decision", "migrate"),
+            "status": previous.get("status", "open"),
+            "verification": previous.get("verification", "pending"),
+            **({"reason": previous["reason"]} if previous.get("reason") else {}),
+            **({"review_due": previous["review_due"]} if previous.get("review_due") else {}),
+        })
+
+    for finding_id, previous in existing.items():
+        if finding_id in current_ids:
+            continue
+        retained = dict(previous)
+        if retained.get("status") == "open":
+            retained["status"] = "resolved_pending_verification"
+            retained["verification"] = "pending"
+        refreshed.append(retained)
+
+    refreshed.sort(key=lambda item: (
+        str(item.get("category", "")),
+        str(item.get("path", "")),
+        int(item.get("line", 0)),
+        str(item.get("issue_id", "")),
+    ))
+    register["issues"] = refreshed
+    REGISTER.write_text(
+        json.dumps(register, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+@contextmanager
+def git_source_snapshot(repository: Path, commit: str, paths: tuple[str, ...], required: str):
+    """Materialize only selected immutable source blobs in the caller's temporary area."""
+    if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
+        raise ValueError("SOURCE_REF_MUST_BE_EXACT_COMMIT")
+    repository = repository.resolve()
+    observed = subprocess.run(["git", "--no-replace-objects", "rev-parse", "--verify", commit + "^{commit}"], cwd=repository,
+                              capture_output=True, text=True, check=True, timeout=20).stdout.strip()
+    if observed != commit:
+        raise ValueError("SOURCE_REF_IDENTITY_MISMATCH")
+    tree = subprocess.run(["git", "--no-replace-objects", "ls-tree", "-rz", commit, *paths],
+                          cwd=repository, capture_output=True, check=True, timeout=20).stdout
+    expected: dict[str, str] = {}
+    for record in tree.split(b"\0"):
+        if not record:
+            continue
+        metadata, name = record.decode("utf-8").split("\t", 1)
+        mode, kind, identity = metadata.split()
+        if mode not in {"100644", "100755"} or kind != "blob":
+            raise ValueError("SOURCE_TREE_NON_REGULAR_ENTRY: " + name)
+        expected[name] = identity
+    if not expected or required not in expected:
+        raise ValueError("SOURCE_TREE_INCOMPLETE")
+    parent = ROOT / ".local/tmp/tpq-current-source"
+    parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=parent) as temporary:
+        target = Path(temporary)
+        archive = subprocess.run(["git", "--no-replace-objects", "archive", "--format=tar", commit, *paths],
+                                 cwd=repository, capture_output=True, check=True, timeout=60).stdout
+        with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as stream:
+            members = stream.getmembers()
+            seen: set[str] = set()
+            for member in members:
+                path = Path(member.name)
+                allowed = any(member.name == prefix or member.name.startswith(prefix + "/") or (member.isdir() and prefix.startswith(member.name + "/")) for prefix in paths)
+                if not allowed or path.is_absolute() or ".." in path.parts or member.name in seen:
+                    raise ValueError("SOURCE_ARCHIVE_PATH_INVALID")
+                if not member.isdir() and not member.isfile():
+                    raise ValueError("SOURCE_ARCHIVE_NON_REGULAR_ENTRY")
+                seen.add(member.name)
+            if {member.name for member in members if member.isfile()} != set(expected):
+                raise ValueError("SOURCE_ARCHIVE_TREE_MISMATCH: export rules omitted or added source")
+            for member in members:
+                destination = target / member.name
+                if member.isdir():
+                    destination.mkdir(parents=True, exist_ok=True)
+                else:
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    payload = stream.extractfile(member)
+                    if payload is None:
+                        raise ValueError("SOURCE_ARCHIVE_CONTENT_MISSING")
+                    with payload:
+                        content = payload.read()
+                    identity = hashlib.sha1(b"blob " + str(len(content)).encode("ascii") + b"\0" + content).hexdigest()
+                    if identity != expected[member.name]:
+                        raise ValueError("SOURCE_ARCHIVE_BLOB_MISMATCH: " + member.name)
+                    with destination.open("xb") as output:
+                        output.write(content)
+        yield target
+
+
+@contextmanager
+def ownership_source_snapshot(commit: str):
+    global ROOT
+    original = ROOT
+    with git_source_snapshot(original, commit, ("server/app", "server/database", "server/composer.json"), "server/composer.json") as target:
+        ROOT = target
+        try:
+            yield
+        finally:
+            ROOT = original
+
+
+@contextmanager
+def php_core_snapshot(directory: str, commit: str):
+    global PHP_CORE_ROOT, PHP_CORE_COMMIT
+    repository = Path(directory).resolve()
+    top = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=repository, capture_output=True, text=True, check=True, timeout=20).stdout.strip()
+    if Path(top).resolve() != repository:
+        raise ValueError("CORE_GIT_ROOT_REQUIRED")
+    previous = PHP_CORE_ROOT, PHP_CORE_COMMIT
+    with git_source_snapshot(repository, commit, ("composer.json", "kernel/src"), "composer.json") as target:
+        manifest = json.loads((target / "composer.json").read_text(encoding="utf-8"))
+        if not isinstance(manifest, dict) or manifest.get("name") != "peanut-admin/core":
+            raise ValueError("CORE_PACKAGE_IDENTITY_MISMATCH")
+        PHP_CORE_ROOT, PHP_CORE_COMMIT = target, commit
+        try:
+            yield
+        finally:
+            PHP_CORE_ROOT, PHP_CORE_COMMIT = previous
+
+
+def current_ownership_report(source_commit: str | None) -> dict:
+    """An independent registration audit, never an assertion of business acceptance."""
+    report = {
+        "source_commit": source_commit,
+        "php_core_commit": PHP_CORE_COMMIT,
+        "ownership_sha256": hashlib.sha256(OWNERSHIP.read_bytes()).hexdigest(),
+        "historical_register_read": False,
+        "business_scan": "not_run",
+        "finding_count": None,
+    }
+    try:
+        ownership = read_ownership()
+        errors = ownership_errors()
+        migrations = module_php_schema_inventory()
+        host = host_php_schema_inventory()
+        reasons = {**migrations['gaps'], **host['gaps']}
+        gaps = sorted(reasons)
+        report["coverage_gaps"] = gaps
+        report["coverage_gap_reasons"] = reasons
+        report["coverage_complete"] = not gaps
+        report["module_php_migration_count"] = migrations['migration_count']
+        report["module_php_schema_sources"] = migrations['records']
+        report["host_php_migration_count"] = host['migration_count']
+        report["host_php_schema_sources"] = host['records']
+        report["host_php_alterations"] = host['alterations']
+        report["module_php_alterations"] = migrations['alterations']
+        report["coverage_scope"] = "SQL CREATE declarations, recognized native Schema references and bounded literal ALTER effects (up/down separately); unknown programs remain gaps, not applied schema, rollback correctness or SQL server grammar validation"
+        models = concrete_models()
+        tables = schema_tenant_tables()
+        registered_models = {row["model"] for row in ownership.get("model_owners", [])}
+        registered_tables = {row["table"] for row in ownership.get("tenant_tables", [])}
+        table_owners, module_roots = module_table_inventory()
+        report.update({
+            "model_count": len(models), "tenant_table_count": len(tables),
+            "missing_models": sorted(models - registered_models),
+            "stale_models": sorted(registered_models - models),
+            "missing_tenant_tables": sorted(tables - registered_tables),
+            "stale_tenant_tables": sorted(registered_tables - tables),
+        })
+        candidates = []
+        for model in report["missing_models"]:
+            path = composer_model_path(model)
+            if path is None:
+                candidates.append({"model": model, "source_error": "no exact Composer source"})
+                continue
+            declared, base = model_header(path)
+            source_path = relative(path)
+            table = source_model_table(path)
+            source_modules = [key for root, key in module_roots.items() if source_path.startswith(root + "/")]
+            candidates.append({"model": model, "declared_class": declared, "direct_base": base,
+                               "table": table, "module": source_modules[0] if len(source_modules) == 1 else None,
+                               "table_owner": table_owners.get(table), "path": source_path,
+                               "classification": "not_registered_not_approved"})
+        report["model_candidates"] = candidates
+        report["missing_table_owners"] = {table: table_owners.get(table) for table in report["missing_tenant_tables"]}
+        report["needs_decision"] = [{"entry": entry, "operations": contract.get("pending_operations", []), "reason": contract.get("reason"), "classification": "not_authorized_by_tenant_registration"} for entry, contract in ownership.get("access_contracts", {}).items() if isinstance(contract, dict) and contract.get("pending_operations")]
+        report["scope"] = "source declarations and registered access-entry identity; not runtime authorization or live schema"
+    except (OSError, ValueError) as exc:
+        errors = [str(exc)]
+    report["registration_errors"] = errors
+    report["registration_error_count"] = len(errors)
+    report["status"] = ("check_incomplete" if report.get("coverage_gaps") else
+                        "registration_failed" if errors else
+                        "decision_required" if report.get("needs_decision") else "ownership_passed")
+    return report
+
+
+def run_ownership_audit(args) -> int:
+    try:
+        core = php_core_snapshot(args.php_core_root, args.php_core_ref) if args.php_core_root else nullcontext()
+        with core:
+            context = ownership_source_snapshot(args.source_ref) if args.source_ref else nullcontext()
+            with context:
+                report = current_ownership_report(args.source_ref)
+    except (OSError, ValueError, subprocess.SubprocessError, tarfile.TarError) as exc:
+        report = {"status": "configuration_failed", "registration_errors": [str(exc)],
+                  "historical_register_read": False, "business_scan": "not_run", "finding_count": None}
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print("TPQ ownership-only " + report["status"] + "; business scan not run")
+        for error in report.get("registration_errors", []):
+            print("REGISTRATION_ERROR " + error)
+    return 0 if report["status"] == "ownership_passed" else 2
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--json", action="store_true", help="emit the complete current hit report as JSON")
+    parser.add_argument("--ownership-only", action="store_true", help="audit current ownership only; never read or update historical issues")
+    parser.add_argument("--source-ref", help="exact local 40-character source commit for --ownership-only; registration stays in this checkout")
+    parser.add_argument("--php-core-root", help="explicit PHP Core Git root; read-only, paired with --php-core-ref")
+    parser.add_argument("--php-core-ref", help="exact local PHP Core commit for the ownership-only audit")
+    parser.add_argument(
+        "--refresh-register",
+        action="store_true",
+        help="synchronize exact current findings into the versioned issue register",
+    )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="also fail while registered findings remain open or pending verification",
+    )
+    args = parser.parse_args()
+    if ((args.source_ref or args.php_core_root or args.php_core_ref) and not args.ownership_only) or (bool(args.php_core_root) != bool(args.php_core_ref)) or (args.ownership_only and (args.refresh_register or args.strict)):
+        error = "ownership-only/source-ref cannot be combined with historical issue operations"
+        if args.json:
+            print(json.dumps({"status": "configuration_failed", "registration_errors": [error], "finding_count": None}))
+        else:
+            print("CONFIGURATION_ERROR " + error)
+        return 2
+    if args.ownership_only:
+        return run_ownership_audit(args)
+    try:
+        register = json.loads(REGISTER.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"ERROR: cannot read {REGISTER.relative_to(ROOT)}: {exc}", file=sys.stderr)
+        return 2
+
+    registration_errors: list[str] = []
+    registration_errors.extend(ownership_errors())
+    for index, item in enumerate(register.get("issues", []), 1):
+        for field in ("issue_id", "category", "path", "symbol", "owner", "decision", "status", "verification"):
+            if not str(item.get(field, "")).strip():
+                registration_errors.append(f"issues[{index}] missing {field}")
+        if item.get("decision") not in {"migrate", "allowlist"}:
+            registration_errors.append(f"issues[{index}] decision must be migrate or allowlist")
+        if item.get("decision") == "allowlist":
+            for field in ("reason", "review_due"):
+                if not str(item.get(field, "")).strip():
+                    registration_errors.append(f"issues[{index}] allowlist missing {field}")
+    known_rules = {item.get("id") for item in register.get("rules", [])}
+    for index, item in enumerate(register.get("issues", []), 1):
+        rule = str(item.get("category", ""))
+        if rule not in known_rules:
+            registration_errors.append(f"issues[{index}] references unknown rule {rule}")
+    if registration_errors:
+        if args.json:
+            print(json.dumps({
+                "status": "registration_failed",
+                "register": str(REGISTER.relative_to(ROOT)),
+                "registration_error_count": len(registration_errors),
+                "registration_errors": registration_errors,
+                # The source scan was not run; zero would imply a clean scan.
+                "finding_count": None,
+            }, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            for error in registration_errors:
+                print(f"REGISTRATION_ERROR {error}")
+        return 2
+
+    findings = current_findings(register)
+    if args.refresh_register:
+        refresh_register(register, findings)
+        register = json.loads(REGISTER.read_text(encoding="utf-8"))
+        findings = current_findings(register)
+    unregistered = [item for item in findings if item["status"] == "unregistered"]
+    unresolved = [
+        item for item in findings
+        if (item["status"] != "closed" or item["verification"] == "pending")
+        or (item["decision"] == "allowlist" and (
+            not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(item.get("review_due") or ""))
+            or str(item.get("review_due")) < date.today().isoformat()
+        ))
+    ]
+    report = {
+        "register": str(REGISTER.relative_to(ROOT)),
+        "rules": sorted({item["category"] for item in findings}),
+        "finding_count": len(findings),
+        "unregistered_count": len(unregistered),
+        "unresolved_count": len(unresolved),
+        "findings": findings,
+    }
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(
+            f"TPQ50 findings={len(findings)} unregistered={len(unregistered)} "
+            f"unresolved={len(unresolved)}"
+        )
+        for item in unregistered[:80]:
+            print(f"UNREGISTERED {item['issue_id']} {item['path']}:{item['line']} {item['symbol']}")
+        if len(unregistered) > 80:
+            print(f"... {len(unregistered) - 80} more unregistered findings (use --json)")
+    return 1 if unregistered or (args.strict and unresolved) else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

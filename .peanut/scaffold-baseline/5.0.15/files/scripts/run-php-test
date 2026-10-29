@@ -1,0 +1,141 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/** Executes PHPUnit classes through PHPUnit, and executable contract scripts as scripts. */
+require_once dirname(__DIR__) . '/server/vendor/autoload.php';
+
+use PhpParser\Node;
+use PhpParser\NodeFinder;
+use PhpParser\NodeTraverser;
+use PhpParser\NodeVisitor\NameResolver;
+use PhpParser\ParserFactory;
+use PHPUnit\Framework\TestCase;
+
+/** @return 'phpunit'|'script' */
+function peanutTestKind(string $source): string
+{
+    $nodes = (new ParserFactory())->createForHostVersion()->parse($source) ?? [];
+    $traverser = new NodeTraverser();
+    $traverser->addVisitor(new NameResolver());
+    $nodes = $traverser->traverse($nodes);
+    $classes = [];
+    foreach ((new NodeFinder())->findInstanceOf($nodes, Node\Stmt\Class_::class) as $class) {
+        if ($class->name !== null) {
+            $name = isset($class->namespacedName) ? $class->namespacedName->toString() : $class->name->toString();
+            $classes[$name] = $class;
+        }
+    }
+    $isTest = function (string $name, array $seen = []) use (&$isTest, $classes): bool {
+        if (isset($seen[$name])) {
+            throw new RuntimeException('Cyclic test class inheritance');
+        }
+        $seen[$name] = true;
+        if (isset($classes[$name])) {
+            $parent = $classes[$name]->extends;
+            return $parent !== null && $isTest($parent->toString(), $seen);
+        }
+        // Class loading is limited to the declared parent, using the locked autoloader.
+        // Unknown inheritance must not silently turn a class-based suite into a require-only pass.
+        if ($name === TestCase::class) {
+            return true;
+        }
+        if (!class_exists($name)) {
+            throw new RuntimeException('Cannot classify test parent: ' . $name);
+        }
+        return is_subclass_of($name, TestCase::class);
+    };
+    foreach ($classes as $name => $class) {
+        if (!$class->isAbstract() && $isTest($name)) {
+            return 'phpunit';
+        }
+    }
+    return 'script';
+}
+
+function peanutTestRunsInSeparateProcess(string $source): bool
+{
+    $nodes = (new ParserFactory())->createForHostVersion()->parse($source) ?? [];
+    $traverser = new NodeTraverser();
+    $traverser->addVisitor(new NameResolver());
+    $nodes = $traverser->traverse($nodes);
+    $isolationAttributes = [
+        PHPUnit\Framework\Attributes\RunInSeparateProcess::class,
+        PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses::class,
+        PHPUnit\Framework\Attributes\RunClassInSeparateProcess::class,
+    ];
+    foreach ((new NodeFinder())->findInstanceOf($nodes, Node\Attribute::class) as $attribute) {
+        if (in_array($attribute->name->toString(), $isolationAttributes, true)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function peanutRunTest(array $arguments): int
+{
+    $root = dirname(__DIR__);
+    $target = null;
+    $environment = null;
+    foreach ($arguments as $argument) {
+        if (str_starts_with($argument, '--env-file=')) {
+            if ($environment !== null) {
+                throw new InvalidArgumentException('Duplicate --env-file');
+            }
+            $environment = substr($argument, strlen('--env-file='));
+        } elseif ($target === null && !str_starts_with($argument, '-')) {
+            $target = $argument;
+        } else {
+            throw new InvalidArgumentException('Usage: php scripts/run-php-test [--env-file=/absolute/path] server/tests/SomeTest.php');
+        }
+    }
+    $base = realpath($root . '/server/tests');
+    $path = $target === null ? false : realpath(str_starts_with($target, '/') ? $target : $root . '/' . $target);
+    if ($base === false || $path === false || !str_starts_with($path, $base . DIRECTORY_SEPARATOR)
+        || !is_file($path) || !str_ends_with($path, '.php')) {
+        throw new InvalidArgumentException('Test must be an existing PHP file inside server/tests');
+    }
+    if ($environment !== null) {
+        if (!str_starts_with($environment, '/') || !is_file($environment) || is_link($environment)) {
+            throw new InvalidArgumentException('Invalid explicit backend environment file');
+        }
+        putenv('PEANUT_SERVER_ENV_FILE=' . $environment);
+    }
+    $source = file_get_contents($path);
+    if (!is_string($source)) {
+        throw new RuntimeException('Cannot read test source');
+    }
+    $kind = peanutTestKind($source);
+    $relative = substr($path, strlen($root) + 1);
+    fwrite(STDOUT, '[php-test] ' . $kind . ' ' . $relative . "\n");
+    if ($kind === 'phpunit') {
+        // PHPUnit starts isolated methods in child processes. Preloading the explicit backend
+        // environment in the parent would pass managed values to a child that loads it again.
+        $bootstrap = peanutTestRunsInSeparateProcess($source)
+            ? $root . '/server/vendor/autoload.php'
+            : $root . '/server/tests/Support/CiBootstrap.php';
+        $command = [PHP_BINARY, $root . '/server/vendor/bin/phpunit', '--no-configuration',
+            '--bootstrap', $bootstrap,
+            '--fail-on-empty-test-suite', '--fail-on-risky', $path];
+    } else {
+        $bootstrap = getenv('PEANUT_SERVER_ENV_FILE') !== false && getenv('PEANUT_SERVER_ENV_FILE') !== ''
+            ? $root . '/server/bootstrap/environment.php' : '';
+        $command = [PHP_BINARY, '-r',
+            'if ($argv[1] !== "") { require_once $argv[1]; } require $argv[2];', $bootstrap, $path];
+    }
+    $process = proc_open($command, [0 => STDIN, 1 => STDOUT, 2 => STDERR], $pipes, $root);
+    if (!is_resource($process)) {
+        throw new RuntimeException('Cannot start test process');
+    }
+    return proc_close($process);
+}
+
+if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) {
+    try {
+        exit(peanutRunTest(array_slice($argv, 1)));
+    } catch (Throwable $exception) {
+        fwrite(STDERR, '[php-test] ' . $exception->getMessage() . "\n");
+        exit(2);
+    }
+}

@@ -1,0 +1,279 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+cd "$ROOT"
+
+verified_environment_keys=(
+  DB_HOST DB_PORT DB_NAME
+  PEANUT_DATABASE_RESOURCE_ID PEANUT_DATABASE_ENDPOINT_ID
+  PEANUT_DATABASE_CONSUMER
+)
+validated_environment_file=""
+
+validate_environment_file() {
+  local php_binary="$1" file="$2"
+  "$php_binary" -r '
+    try {
+        $path = $argv[1];
+        $keys = [
+            "DB_HOST", "DB_PORT", "DB_NAME",
+            "PEANUT_DATABASE_RESOURCE_ID", "PEANUT_DATABASE_ENDPOINT_ID",
+            "PEANUT_DATABASE_CONSUMER",
+        ];
+        $counts = array_fill_keys($keys, 0);
+        $lines = file($path, FILE_IGNORE_NEW_LINES);
+        if (!is_array($lines)) {
+            throw new RuntimeException("REGISTERED_MYSQL_ENV_FILE_INVALID");
+        }
+        foreach ($lines as $line) {
+            if (preg_match("/^\\s*([A-Z][A-Z0-9_]*)\\s*=/D", $line, $matches) === 1
+                && array_key_exists($matches[1], $counts)) {
+                $counts[$matches[1]]++;
+            }
+        }
+        $values = parse_ini_file($path, false, INI_SCANNER_RAW);
+        if (!is_array($values)) {
+            throw new RuntimeException("REGISTERED_MYSQL_ENV_FILE_INVALID");
+        }
+        foreach ($keys as $key) {
+            if ($counts[$key] === 0 || !array_key_exists($key, $values)) {
+                throw new RuntimeException("REGISTERED_MYSQL_ENV_FILE_REQUIRED:" . $key);
+            }
+            if ($counts[$key] !== 1) {
+                throw new RuntimeException("REGISTERED_MYSQL_ENV_FILE_AMBIGUOUS:" . $key);
+            }
+            $expected = getenv($key);
+            if (!is_string($expected) || !is_string($values[$key])
+                || !hash_equals($expected, $values[$key])) {
+                throw new RuntimeException("REGISTERED_MYSQL_ENV_FILE_MISMATCH:" . $key);
+            }
+        }
+    } catch (Throwable $exception) {
+        fwrite(STDERR, "ERROR: " . $exception->getMessage() . "\n");
+        exit(2);
+    }
+  ' "$file"
+  validated_environment_file="$file"
+}
+
+run_php_with_backend_environment() {
+  [[ -n "$validated_environment_file" \
+    && "$validated_environment_file" == "$environment_file" \
+    && "${PEANUT_SERVER_ENV_FILE:-}" == "$environment_file" ]] \
+    || { echo 'ERROR: backend environment was not validated' >&2; return 2; }
+  (
+    local name
+    for name in "${verified_environment_keys[@]}"; do
+      unset "$name"
+    done
+    "$@"
+  )
+}
+
+# Unit tests source only the validation and child-environment helpers. The real
+# registered/CI modes below remain the only executable gate entry points.
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  return 0
+fi
+
+mode="${1:-}"
+shift || true
+environment_file=""
+if [[ "${1:-}" == --env-file && $# -eq 2 ]]; then
+  environment_file="$2"
+  shift 2
+fi
+[[ "$mode" == --registered || "$mode" == --ci-service ]] \
+  || { echo 'ERROR: expected --registered or --ci-service' >&2; exit 2; }
+[[ $# -eq 0 && "$environment_file" == /* && -f "$environment_file" && ! -L "$environment_file" ]] \
+  || { echo 'ERROR: --env-file must name an absolute regular file' >&2; exit 2; }
+
+required_environment=(
+  DB_HOST DB_PORT DB_NAME
+  PEANUT_DATABASE_RESOURCE_ID PEANUT_DATABASE_ENDPOINT_ID
+  PEANUT_DATABASE_CONSUMER PEANUT_DATABASE_ENVIRONMENT
+  PEANUT_DATABASE_RESOURCE_SCOPE PEANUT_DATABASE_LEASE_ID
+  PEANUT_DATABASE_LEASE_OWNER PEANUT_DATABASE_LEASE_GATE
+)
+for name in "${required_environment[@]}"; do
+  [[ -n "${!name:-}" ]] || { echo "ERROR: required environment is missing: $name" >&2; exit 2; }
+done
+[[ "$DB_PORT" =~ ^[1-9][0-9]{0,4}$ && "$DB_PORT" -le 65535 ]] \
+  || { echo 'ERROR: DB_PORT is invalid' >&2; exit 2; }
+[[ "$DB_NAME" =~ ^[A-Za-z0-9_]{1,64}$ ]] || { echo 'ERROR: DB_NAME is invalid' >&2; exit 2; }
+
+php_binary="${PHP_BINARY:-}"
+if [[ -z "$php_binary" ]]; then
+  php_launcher="$(command -v php || true)"
+  [[ -n "$php_launcher" ]] || { echo 'ERROR: PHP binary is unavailable' >&2; exit 2; }
+  php_binary="$("$php_launcher" -r 'fwrite(STDOUT, PHP_BINARY);')"
+fi
+[[ "$php_binary" == /* && -x "$php_binary" ]] \
+  || { echo 'ERROR: PHP_BINARY must be an absolute executable path' >&2; exit 2; }
+
+export PEANUT_SERVER_ENV_FILE="$environment_file"
+validate_environment_file "$php_binary" "$environment_file"
+canonical_registry="$ROOT/resources/project-resources.json"
+canonical_registry_tool="$ROOT/scripts/project-resource-registry"
+registry="$canonical_registry"
+registry_tool="$canonical_registry_tool"
+registry_root=""
+registry_pending=""
+lease_claimed=0
+logs=()
+
+cleanup() {
+  local status=$?
+  trap - EXIT INT TERM
+  if [[ "$lease_claimed" == 1 ]]; then
+    "$ROOT/scripts/project-resource-lease" release \
+      --lease "$PEANUT_DATABASE_LEASE_ID" \
+      --owner "$PEANUT_DATABASE_LEASE_OWNER" >/dev/null || status=1
+  fi
+  [[ -z "$registry_pending" || ! -f "$registry_pending" ]] || rm -f -- "$registry_pending"
+  if [[ -n "$registry_root" ]]; then
+    [[ "$registry_root" == "$RUNNER_TEMP"/peanut-admin-ci-registry.* ]] || status=1
+    rm -f -- "$registry_root/resources/project-resources.json" \
+      "$registry_root/scripts/project-resource-registry" || status=1
+    rmdir "$registry_root/resources" "$registry_root/scripts" "$registry_root" || status=1
+  fi
+  if ((${#logs[@]} > 0)); then
+    rm -f -- "${logs[@]}"
+  fi
+  exit "$status"
+}
+trap cleanup EXIT INT TERM
+
+if [[ "$mode" == --ci-service ]]; then
+  [[ "${GITHUB_ACTIONS:-}" == true && "${GITHUB_WORKSPACE:-}" == "$ROOT" && "${RUNNER_TEMP:-}" == /* ]] \
+    || { echo 'ERROR: temporary CI resource registration is restricted to this GitHub Actions checkout' >&2; exit 2; }
+  registry_root="$(mktemp -d "$RUNNER_TEMP/peanut-admin-ci-registry.XXXXXX")"
+  mkdir "$registry_root/resources" "$registry_root/scripts"
+  registry="$registry_root/resources/project-resources.json"
+  registry_tool="$registry_root/scripts/project-resource-registry"
+  registry_pending="$(mktemp "$registry_root/resources/project-resources.pending.XXXXXX.json")"
+  cp -p -- "$canonical_registry" "$registry"
+  cp -p -- "$canonical_registry_tool" "$registry_tool"
+
+  "$php_binary" -r '
+    [$source, $target] = [$argv[1], $argv[2]];
+    $registry = json_decode((string) file_get_contents($source), true, 512, JSON_THROW_ON_ERROR);
+    $databases = $registry["resources"]["databases"] ?? null;
+    if (!is_array($databases)) { throw new RuntimeException("database registry is invalid"); }
+    foreach ($databases as $database) {
+        if (($database["stable_resource_id"] ?? null) === getenv("PEANUT_DATABASE_RESOURCE_ID")) {
+            throw new RuntimeException("temporary CI resource id already exists");
+        }
+    }
+    $registry["resources"]["databases"][] = [
+        "stable_resource_id" => getenv("PEANUT_DATABASE_RESOURCE_ID"),
+        "purpose" => "job-exclusive GitHub Actions real MySQL test gate",
+        "environments" => [getenv("PEANUT_DATABASE_ENVIRONMENT")],
+        "owner" => getenv("PEANUT_DATABASE_LEASE_OWNER"),
+        "service_type" => "mysql",
+        "version" => "8.4.10",
+        "host" => getenv("DB_HOST"),
+        "port" => (int) getenv("DB_PORT"),
+        "database" => getenv("DB_NAME"),
+        "schema" => "test-created schemas only",
+        "namespace" => getenv("PEANUT_DATABASE_RESOURCE_SCOPE"),
+        "resource_scope" => getenv("PEANUT_DATABASE_RESOURCE_SCOPE"),
+        "credential_ref" => "GitHub Actions job-local MySQL service environment",
+        "data_source" => "empty job-exclusive MySQL service plus test-created fixtures",
+        "freshness_requirement" => "exact schema absent or empty before every suite",
+        "health_check" => "lease-bound PDO SELECT VERSION() and information_schema empty-schema check",
+        "fallback" => "none",
+        "lifecycle" => "single GitHub Actions job",
+        "application_runtime" => true,
+        "claim_precondition" => "active exact candidate/worktree/resource/endpoint/database lease",
+        "cleanup_responsibility" => "current lease owner removes only the exact test-created schema",
+        "lease_gate" => getenv("PEANUT_DATABASE_LEASE_GATE"),
+        "upstream_endpoint" => [
+            "endpoint_id" => getenv("PEANUT_DATABASE_ENDPOINT_ID"),
+            "host" => getenv("DB_HOST"),
+            "port" => (int) getenv("DB_PORT"),
+            "consumers" => [getenv("PEANUT_DATABASE_CONSUMER")],
+            "network_scope" => getenv("PEANUT_DATABASE_RESOURCE_SCOPE"),
+        ],
+    ];
+    $encoded = json_encode($registry, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n";
+    if (file_put_contents($target, $encoded, LOCK_EX) === false) { throw new RuntimeException("cannot write temporary registry"); }
+  ' "$registry" "$registry_pending"
+  mv -- "$registry_pending" "$registry"
+  registry_pending=""
+  export PEANUT_DATABASE_REGISTRY_FILE="$registry"
+  export PEANUT_DATABASE_REGISTRY_TOOL="$registry_tool"
+  export PEANUT_DATABASE_REGISTRY_SHA256
+  PEANUT_DATABASE_REGISTRY_SHA256="$(shasum -a 256 "$registry" | awk '{print $1}')"
+
+  resolved_output="$("$registry_tool" database-env \
+    --deployment-target "$PEANUT_DATABASE_ENVIRONMENT" \
+    --consumer "$PEANUT_DATABASE_CONSUMER" \
+    --resource-id "$PEANUT_DATABASE_RESOURCE_ID")"
+  for name in PEANUT_DATABASE_RESOURCE_ID PEANUT_DATABASE_ENDPOINT_ID PEANUT_DATABASE_CONSUMER DB_HOST DB_PORT DB_NAME; do
+    resolved_count=0
+    resolved_value=""
+    while IFS='=' read -r key value; do
+      if [[ "$key" == "$name" ]]; then
+        resolved_count=$((resolved_count + 1))
+        resolved_value="$value"
+      fi
+    done <<< "$resolved_output"
+    [[ "$resolved_count" == 1 && "$resolved_value" == "${!name}" ]] \
+      || { echo "ERROR: temporary registry resolution mismatch: $name" >&2; exit 1; }
+  done
+  unset resolved_output resolved_count resolved_value key value
+
+  candidate="$(git rev-parse HEAD)"
+  "$ROOT/scripts/project-resource-lease" claim \
+    --lease "$PEANUT_DATABASE_LEASE_ID" \
+    --owner "$PEANUT_DATABASE_LEASE_OWNER" \
+    --candidate "$candidate" \
+    --candidate-repository "$ROOT" \
+    --gate "$PEANUT_DATABASE_LEASE_GATE" \
+    --ttl 3600 \
+    --resource "resource-id=$PEANUT_DATABASE_RESOURCE_ID" \
+    --resource "endpoint=$PEANUT_DATABASE_ENDPOINT_ID" \
+    --resource "consumer=$PEANUT_DATABASE_CONSUMER" \
+    --resource "environment=$PEANUT_DATABASE_ENVIRONMENT" \
+    --resource "host=$DB_HOST" \
+    --resource "port=$DB_PORT" \
+    --resource "mysql-db=$DB_NAME" \
+    --resource "database=$DB_NAME" \
+    --resource "resource-scope=$PEANUT_DATABASE_RESOURCE_SCOPE" \
+    --resource 'version=8.4.10' \
+    --resource "registry-sha256=$PEANUT_DATABASE_REGISTRY_SHA256" >/dev/null
+  lease_claimed=1
+fi
+
+preflight() {
+  run_php_with_backend_environment "$php_binary" -r '
+    require_once $argv[1];
+    require_once $argv[2];
+    RegisteredMysqlTestResource::preflightEmptyDatabase();
+  ' "$ROOT/server/bootstrap/environment.php" "$ROOT/server/tests/Support/RegisteredMysqlTestResource.php"
+}
+
+run_suite() {
+  local target="$1" expected="$2" log status
+  log="$(mktemp "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/peanut-admin-real-mysql.log.XXXXXX")"
+  logs+=("$log")
+  set +e
+  run_php_with_backend_environment "$php_binary" "$ROOT/scripts/run-php-test" \
+    "--env-file=$environment_file" "$target" 2>&1 | tee "$log"
+  status=${PIPESTATUS[0]}
+  set -e
+  [[ "$status" == 0 ]] || { echo "ERROR: real MySQL suite failed: $target" >&2; exit "$status"; }
+  grep -Fq "$expected" "$log" \
+    || { echo "ERROR: real MySQL suite did not report its expected assertion/check count: $target" >&2; exit 1; }
+}
+
+preflight
+run_suite server/tests/Modules/Official/Integration/IntegrationSecurityMysqlTest.php 'PASS (40 checks)'
+preflight
+run_suite server/tests/Multitenancy/MemberSessionTenantIsolationTest.php '1 test, 33 assertions'
+preflight
+run_suite server/tests/Modules/Official/Notification/mysql-harness.php 'PASS (34 checks)'
+preflight
+echo 'Registered MySQL 8.4 gate: PASS (3 suites with expected counts)'

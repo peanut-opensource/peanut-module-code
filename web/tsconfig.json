@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ES2020",
+    "moduleResolution": "node",
+    "strict": true,
+    "jsx": "preserve",
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "vue": ["node_modules/vue"]
+    },
+    "lib": ["es2020", "dom"],
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*", "src/**/*.vue"],
+  "exclude": [
+    "node_modules",
+    "src/modules/**/optional-runtime/tests/**",
+    "src/modules/peanut-reference-codes/runtime/tests/**",
+    "src/modules/peanut-settings/runtime/tests/**",
+    "src/modules/peanut-content-tools/tests/**",
+    "src/modules/peanut-rich-text/tests/**"
+  ]
+}

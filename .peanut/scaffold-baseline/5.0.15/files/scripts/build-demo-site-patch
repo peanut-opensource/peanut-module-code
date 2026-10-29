@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+ROOT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
+BASE_TAG="${1:-}"
+OUTPUT="${2:-}"
+
+fail() {
+  printf 'build-demo-site-patch: %s\n' "$1" >&2
+  exit 1
+}
+
+[[ "$BASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+  || fail 'usage: scripts/build-demo-site-patch <vX.Y.Z> <output.tar>'
+[[ -n "$OUTPUT" ]] || fail 'output path is required'
+command -v git >/dev/null || fail 'git is required'
+command -v jq >/dev/null || fail 'jq is required'
+command -v shasum >/dev/null || fail 'shasum is required'
+
+cd "$ROOT_DIR"
+[[ -z "$(git status --porcelain --untracked-files=all)" ]] \
+  || fail 'source checkout has tracked or untracked changes'
+[[ "$(git cat-file -t "$BASE_TAG" 2>/dev/null || true)" == tag ]] \
+  || fail "$BASE_TAG must be an annotated local tag"
+
+files=(
+  deploy/docker-compose.prod.yml
+  deploy/docker/production.Dockerfile
+  plugins.lock
+  plugins/peanut.notification/plugin.json
+  plugins/peanut.task/plugin.json
+  server/app/modules/peanut/notification/src/Service/NotificationBootstrapDefaults.php
+  server/app/modules/peanut/notification/src/Service/NotificationBootstrapService.php
+  server/app/modules/peanut/task/src/Service/TaskBootstrapService.php
+  server/app/platform/infrastructure/ThinkPhpTenantApplicationBootstrapPersistence.php
+  server/app/platform/infrastructure/ops/ApplicationRuntimeStatusProvider.php
+  server/database/seed-multi-tenant-demo.php
+)
+
+migration_target_version="$(git show "$BASE_TAG:release-versions.json" | jq -r '.scaffold_template // empty')"
+[[ "$migration_target_version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] \
+  || fail 'base release scaffold migration identity is invalid'
+
+staging="$(mktemp -d -t peanut-admin-demo-patch.XXXXXX)"
+trap 'rm -rf "$staging"' EXIT
+for file in "${files[@]}"; do
+  [[ -f "$file" ]] || fail "patch source is missing: $file"
+  git ls-files --error-unmatch -- "$file" >/dev/null 2>&1 \
+    || fail "patch source is not tracked by overlay commit: $file"
+  mkdir -p "$staging/$(dirname "$file")"
+  cp "$file" "$staging/$file"
+done
+
+file_json='[]'
+for file in "${files[@]}"; do
+  digest="$(shasum -a 256 "$file" | awk '{print $1}')"
+  file_json="$(jq -c --arg path "$file" --arg sha "$digest" \
+    '. + [{path:$path,sha256:$sha}]' <<<"$file_json")"
+done
+jq -n \
+  --arg schema_version '1' \
+  --arg base_tag "$BASE_TAG" \
+  --arg base_commit "$(git rev-parse "$BASE_TAG^{commit}")" \
+  --arg overlay_commit "$(git rev-parse HEAD)" \
+  --arg migration_target_version "$migration_target_version" \
+  --argjson files "$file_json" \
+  '{schema_version:($schema_version|tonumber),kind:"peanut-admin-demo-site-overlay",base_tag:$base_tag,base_commit:$base_commit,overlay_commit:$overlay_commit,migration_target_version:$migration_target_version,files:$files}' \
+  >"$staging/DEMO_PATCH_METADATA.json"
+
+mkdir -p "$(dirname "$OUTPUT")"
+COPYFILE_DISABLE=1 tar --no-xattrs -cf "$OUTPUT" -C "$staging" .
+printf 'patch=%s\nsha256=%s\nbase_tag=%s\noverlay_commit=%s\nmigration_target_version=%s\nfiles=%d\n' \
+  "$OUTPUT" "$(shasum -a 256 "$OUTPUT" | awk '{print $1}')" "$BASE_TAG" \
+  "$(git rev-parse HEAD)" "$migration_target_version" "${#files[@]}"

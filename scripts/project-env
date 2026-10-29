@@ -1,0 +1,593 @@
+#!/usr/bin/env python3
+"""Select registered project tools; never install tools or dependencies implicitly."""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+import tempfile
+
+SUPPORTED = {"node", "npm", "pnpm", "php", "composer", "python3"}
+CACHE_ENV = {"pnpm": "npm_config_store_dir", "npm": "npm_config_cache", "composer": "COMPOSER_CACHE_DIR"}
+
+
+def fail(message: str) -> None:
+    raise ValueError(message)
+
+
+def read_json(path: Path) -> dict:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict) or value.get("schema_version") != 1:
+        fail(f"unsupported configuration: {path}")
+    return value
+
+
+def within(root: Path, name: str) -> Path:
+    path = root / name
+    try:
+        path.resolve().relative_to(root)
+    except ValueError:
+        fail(f"path escapes project: {name}")
+    current = path
+    while current != root:
+        if current.is_symlink():
+            fail(f"linked project configuration/output: {current}")
+        current = current.parent
+    return path
+
+
+def configured_path(root: Path, value: str) -> Path:
+    path = Path(value)
+    return path if path.is_absolute() else root / path
+
+
+def metadata(path: Path) -> list:
+    stat = path.stat()
+    return [str(path.resolve()), stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns]
+
+
+def version_tuple(value: str) -> tuple:
+    match = re.fullmatch(r"v?(\d+)(?:\.(\d+))?(?:\.(\d+))?", value)
+    if not match:
+        fail(f"invalid semantic version: {value}")
+    return tuple(int(part or 0) for part in match.groups())
+
+
+def semver_satisfies(actual: str, expression: str) -> bool:
+    observed = version_tuple(actual)
+    if not isinstance(expression, str) or not expression.strip():
+        fail("manifest version constraint is missing")
+    for alternative in expression.split("||"):
+        terms = alternative.replace(",", " ").split()
+        if not terms:
+            fail(f"unsupported empty version constraint: {expression}")
+        matched = True
+        for term in terms:
+            match = re.fullmatch(r"(<=|>=|<|>|=|\^|~)?(\d+)(?:\.(\d+))?(?:\.(\d+))?", term)
+            if not match:
+                fail(f"unsupported version constraint syntax: {expression}")
+            operator = match.group(1) or "="
+            parts = tuple(int(part or 0) for part in match.groups()[1:])
+            precision = 1 if match.group(3) is None else (2 if match.group(4) is None else 3)
+            partial_upper = (parts[0] + 1, 0, 0) if precision == 1 else (parts[0], parts[1] + 1, 0) if precision == 2 else (parts[0], parts[1], parts[2] + 1)
+            if operator == "^":
+                if parts[0] > 0 or match.group(3) is None:
+                    upper = (parts[0] + 1, 0, 0)
+                elif parts[1] > 0 or match.group(4) is None:
+                    upper = (parts[0], parts[1] + 1, 0)
+                else:
+                    upper = (parts[0], parts[1], parts[2] + 1)
+                current = parts <= observed < upper
+            elif operator == "~":
+                upper = (parts[0] + 1, 0, 0) if match.group(3) is None else (parts[0], parts[1] + 1, 0)
+                current = parts <= observed < upper
+            elif operator == ">=": current = observed >= parts
+            elif operator == "<=": current = observed < partial_upper if precision < 3 else observed <= parts
+            elif operator == ">": current = observed > parts
+            elif operator == "<": current = observed < parts
+            elif precision < 3: current = parts <= observed < partial_upper
+            else: current = observed == parts
+            matched = matched and current
+        if matched:
+            return True
+    return False
+
+
+def package_manifest_for_cli(cli: Path, name: str) -> tuple[Path, dict]:
+    for parent in (cli.resolve().parent, *cli.resolve().parents):
+        manifest = parent / "package.json"
+        if manifest.is_file():
+            try:
+                value = json.loads(manifest.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as error:
+                fail(f"cannot read selected {name} package manifest: {error}")
+            if not isinstance(value, dict):
+                fail(f"invalid selected {name} package manifest")
+            return manifest, value
+    fail(f"selected {name} installation has no verifiable package.json")
+
+
+def add_package_manager_constraint(document: dict, required: dict, context: str) -> None:
+    dev_engines = document.get("devEngines", {})
+    if not isinstance(dev_engines, dict):
+        fail(f"unsupported {context}.devEngines declaration")
+    declaration = dev_engines.get("packageManager")
+    if declaration is None:
+        return
+    if not isinstance(declaration, dict):
+        fail(f"unsupported {context}.devEngines.packageManager declaration")
+    name = declaration.get("name")
+    version = declaration.get("version")
+    if name not in {"npm", "pnpm"} or not isinstance(version, str):
+        fail(f"unsupported {context}.devEngines.packageManager requirement")
+    required.setdefault(name, {})
+    required[name].setdefault("manifest_constraints", []).append((f"{context}.devEngines.packageManager.version", version))
+
+
+def declared_runtime_constraints(required: dict, host: dict, inputs: dict) -> tuple[list[tuple[str, str]], dict[str, list[tuple[str, str]]]]:
+    constraints = list(required.get("node", {}).get("manifest_constraints", []))
+    manager_constraints = {}
+    for name in ("npm", "pnpm"):
+        declared = required.get(name, {}).get("manifest_constraints", [])
+        if declared:
+            manager_constraints.setdefault(name, []).extend(declared)
+        if name not in host["commands"]:
+            continue
+        manifest_path, manifest = package_manifest_for_cli(Path(host["commands"][name][-1]), name)
+        inputs[f"selected-tools/{name}/package.json"] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+        engines = manifest.get("engines", {})
+        dev_engines = manifest.get("devEngines", {})
+        if not isinstance(engines, dict) or not isinstance(dev_engines, dict):
+            fail(f"unsupported selected {name} engines/devEngines declaration")
+        engine = engines.get("node")
+        if engine is not None:
+            if not isinstance(engine, str):
+                fail(f"invalid selected {name}.engines.node constraint")
+            constraints.append((f"{name}.engines.node", engine))
+        runtime = dev_engines.get("runtime")
+        if runtime is not None:
+            if not isinstance(runtime, dict) or runtime.get("name") not in (None, "node"):
+                fail(f"unsupported {name}.devEngines.runtime declaration")
+            if runtime.get("version") is not None:
+                if not isinstance(runtime["version"], str):
+                    fail(f"invalid {name}.devEngines.runtime.version constraint")
+                constraints.append((f"{name}.devEngines.runtime.version", runtime["version"]))
+        package_manager = dev_engines.get("packageManager")
+        if package_manager is not None:
+            if not isinstance(package_manager, dict):
+                fail(f"unsupported {name}.devEngines.packageManager declaration")
+            manager_name = package_manager.get("name", name)
+            version = package_manager.get("version")
+            if manager_name not in host["commands"] or not isinstance(version, str):
+                fail(f"unsupported {name}.devEngines.packageManager requirement")
+            manager_constraints.setdefault(manager_name, []).append((f"{name}.devEngines.packageManager.version", version))
+    return constraints, manager_constraints
+
+
+def requirements(root: Path) -> tuple:
+    candidate = root / "tools/toolchain.json"
+    inputs = {}
+
+    def input_key(path: Path) -> str:
+        return path.resolve().relative_to(root.resolve()).as_posix()
+
+    if candidate.is_file():
+        source = within(root, "tools/toolchain.json")
+        document = read_json(source)
+        tools = document.get("tools", {})
+        if not isinstance(tools, dict) or set(tools) != SUPPORTED:
+            fail("toolchain must declare node, npm, pnpm, php, composer and python3")
+        inputs[input_key(source)] = hashlib.sha256(source.read_bytes()).hexdigest()
+    else:
+        tools = {}
+        composer = root / "composer.json"
+        package = root / "package.json"
+        if composer.is_file():
+            composer = within(root, "composer.json")
+            data = json.loads(composer.read_text(encoding="utf-8"))
+            constraint = data.get("require", {}).get("php")
+            if isinstance(constraint, str):
+                extensions = [name[4:].lower().replace("-", "_") for name in data.get("require", {}) if name.lower().startswith("ext-")]
+                tools["php"] = {"constraint": constraint, "manifest_constraints": [("composer.require.php", constraint)], "extensions": extensions}
+                tools["composer"] = {"constraint": "selected-local-binding"}
+            inputs[input_key(composer)] = hashlib.sha256(composer.read_bytes()).hexdigest()
+        if package.is_file():
+            package = within(root, "package.json")
+            data = json.loads(package.read_text(encoding="utf-8"))
+            engines = data.get("engines", {})
+            if not isinstance(engines, dict):
+                fail("unsupported package.engines declaration")
+            node_constraints = []
+            if "node" in engines:
+                if not isinstance(engines["node"], str):
+                    fail("invalid package.engines.node constraint")
+                node_constraints.append(("engines.node", engines["node"]))
+            dev_engines = data.get("devEngines", {})
+            if not isinstance(dev_engines, dict):
+                fail("unsupported package.devEngines declaration")
+            dev_runtime = dev_engines.get("runtime")
+            if dev_runtime is not None:
+                if not isinstance(dev_runtime, dict) or dev_runtime.get("name") not in (None, "node"):
+                    fail("unsupported devEngines.runtime declaration")
+                if "version" in dev_runtime:
+                    node_constraints.append(("devEngines.runtime.version", dev_runtime["version"]))
+            if node_constraints:
+                tools["node"] = {"manifest_constraints": node_constraints}
+            manager = data.get("packageManager", "")
+            match = re.fullmatch(r"pnpm@(\d+\.\d+\.\d+)(?:\+sha(?:224|256|384|512)\.[a-fA-F0-9]+)?", manager)
+            if match:
+                tools.setdefault("pnpm", {})["version"] = match.group(1)
+            add_package_manager_constraint(data, tools, "package")
+            inputs[input_key(package)] = hashlib.sha256(package.read_bytes()).hexdigest()
+        if not tools:
+            fail("project has no recognized composer.json or package.json tool requirements")
+    resolved = {}
+    for name, spec in tools.items():
+        if not isinstance(spec, dict):
+            fail(f"invalid requirement: {name}")
+        item = dict(spec)
+        if "package_manager_file" in spec:
+            if name != "pnpm" or "version" in spec:
+                fail("pnpm has one version authority: packageManager")
+            path = within(root, spec["package_manager_file"])
+            manager = json.loads(path.read_text()).get("packageManager", "")
+            match = re.fullmatch(r"pnpm@(\d+\.\d+\.\d+)(?:\+sha(?:224|256|384|512)\.[a-fA-F0-9]+)?", manager)
+            if not match:
+                fail("packageManager must pin an exact pnpm version")
+            item["version"] = match.group(1)
+            inputs[input_key(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+        if "project_composer_file" in spec:
+            if name != "composer" or "version" in spec:
+                fail("Composer has one version authority: project-composer")
+            path = within(root, spec["project_composer_file"])
+            text = path.read_text()
+            version = re.search(r"^VERSION='(\d+\.\d+\.\d+)'$", text, re.M)
+            digest = re.search(r"^SHA256='([a-f0-9]{64})'$", text, re.M)
+            if not version or not digest:
+                fail("cannot read the existing project-composer pin")
+            item.update(version=version.group(1), sha256=digest.group(1))
+            item["fixed_phar"] = f".local/toolchain/composer-{version.group(1)}.phar"
+            inputs[input_key(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+        if (not re.fullmatch(r"\d+\.\d+\.\d+", str(item.get("version", "")))
+                and not isinstance(item.get("constraint"), str)
+                and not isinstance(item.get("manifest_constraints"), list)):
+            fail(f"exact tool version or manifest constraint required: {name}")
+        resolved[name] = item
+    if "tools/toolchain.json" in inputs:
+        for name, relative in (("php", "server/composer.json"), ("node", "web/package.json")):
+            if name not in resolved:
+                continue
+            candidate = root / relative
+            if not candidate.is_file():
+                fail(f"required manifest missing for {name} platform constraints: {relative}")
+            manifest_path = within(root, relative)
+            try:
+                document = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as error:
+                fail(f"cannot read platform manifest {relative}: {error}")
+            if name == "php":
+                requirements_map = document.get("require", {})
+                if not isinstance(requirements_map, dict):
+                    fail("server/composer.json require declaration must be an object")
+                constraint = requirements_map.get("php")
+                if not isinstance(constraint, str):
+                    fail("server/composer.json must declare require.php")
+                resolved[name]["manifest_constraints"] = [("server.composer.require.php", constraint)]
+            else:
+                constraints = []
+                engines = document.get("engines", {})
+                if not isinstance(engines, dict):
+                    fail("unsupported web.engines declaration")
+                if "node" in engines:
+                    if not isinstance(engines["node"], str):
+                        fail("invalid web.engines.node constraint")
+                    constraints.append(("web.engines.node", engines["node"]))
+                dev_engines = document.get("devEngines", {})
+                if not isinstance(dev_engines, dict):
+                    fail("unsupported web.devEngines declaration")
+                runtime = dev_engines.get("runtime")
+                if runtime is not None:
+                    if not isinstance(runtime, dict) or runtime.get("name") not in (None, "node"):
+                        fail("unsupported web.devEngines.runtime declaration")
+                    if "version" in runtime:
+                        constraints.append(("web.devEngines.runtime.version", runtime["version"]))
+                resolved[name]["manifest_constraints"] = constraints
+                add_package_manager_constraint(document, resolved, "web")
+            inputs[input_key(manifest_path)] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+    return resolved, inputs
+
+
+def configuration(root: Path, host_path: Path, scope_identity: str) -> tuple:
+    required, inputs = requirements(root)
+    host = read_json(host_path)
+    path_base = configured_path(root, host.get("path_base", str(root))).resolve(strict=True)
+    if not path_base.is_dir():
+        fail("path_base must name an existing project root")
+    selected_tools = host.get("selected_tools", {})
+    if not isinstance(selected_tools, dict) or set(selected_tools) - {"composer"}:
+        fail("unsupported selected tool binding; run peanut config")
+    selected_composer = selected_tools.get("composer")
+    if "composer" in required and isinstance(selected_composer, dict):
+        required["composer"]["version"] = selected_composer.get("version")
+    commands = host.get("commands", {})
+    if not isinstance(commands, dict) or set(commands) != set(required):
+        fail("host commands must match the declared tools exactly")
+    watched = []
+    for name, argv in commands.items():
+        if not isinstance(argv, list) or not argv:
+            fail(f"absolute argv required for {name}")
+        for index, value in enumerate(argv):
+            if not isinstance(value, str) or any(ord(c) < 32 for c in value):
+                fail(f"invalid argv for {name}")
+            path = configured_path(path_base, value)
+            if not path.is_absolute() or not path.is_file() or (index == 0 and not os.access(path, os.X_OK)):
+                fail(f"missing absolute tool file for {name}: {value}")
+            watched.append(metadata(path))
+            argv[index] = str(path.resolve())
+    if "composer" in commands and "fixed_phar" in required.get("composer", {}):
+        fixed_path = configured_path(path_base, required["composer"]["fixed_phar"]).resolve()
+        composer_path = Path(commands["composer"][1]).resolve()
+        if composer_path == fixed_path:
+            digest = hashlib.sha256(composer_path.read_bytes()).hexdigest()
+            if digest != required["composer"].get("sha256"):
+                fail("project-fixed Composer PHAR does not match project-composer SHA-256")
+            required["composer"]["fixed_selected"] = True
+    # Package-manager scripts must use the same registered interpreter as children.
+    for name, interpreter in (("npm", "node"), ("pnpm", "node"), ("composer", "php")):
+        if name not in commands:
+            continue
+        if interpreter not in commands:
+            fail(f"{name} requires registered {interpreter}")
+        if len(commands[name]) != 2 or Path(commands[name][0]).resolve() != Path(commands[interpreter][0]).resolve():
+            fail(f"{name} must bind [registered {interpreter}, absolute CLI file]")
+    for name in ("node", "php", "python3"):
+        if name not in commands:
+            continue
+        if len(commands[name]) != 1:
+            fail(f"{name} must bind one native executable")
+    extra = host.get("extra_path", [])
+    if not isinstance(extra, list) or any(not isinstance(p, str) or not configured_path(path_base, p).is_dir() for p in extra):
+        fail("extra_path must contain existing project-relative or absolute directories")
+    host["extra_path"] = [str(configured_path(path_base, value).resolve()) for value in extra]
+    caches = host.get("caches", {})
+    expected_caches = set(CACHE_ENV) & set(required)
+    if not isinstance(caches, dict) or set(caches) != expected_caches:
+        fail("register cache directories required by selected package managers")
+    for name, value in caches.items():
+        path = configured_path(path_base, value) if isinstance(value, str) else Path("/")
+        if not isinstance(value, str) or not path.is_dir() or not os.access(path, os.W_OK):
+            fail(f"cache must already exist and be writable: {name}")
+        caches[name] = str(path.resolve())
+    watch_paths = host.get("watch_paths", [])
+    if not isinstance(watch_paths, list) or any(not isinstance(value, str) for value in watch_paths):
+        fail("watch_paths must be a list of relative or absolute paths")
+    for value in watch_paths:
+        path = configured_path(path_base, value)
+        if not path.exists():
+            fail(f"missing watched configuration: {value}")
+        watched.append(metadata(path))
+        if path.is_dir():
+            watched.extend(metadata(p) for p in sorted(path.iterdir()) if p.is_file())
+    host["watch_paths"] = [str(configured_path(path_base, value).resolve()) for value in watch_paths]
+    host["caches"] = caches
+    if "composer" in commands:
+        composer_path = Path(commands["composer"][1])
+        composer_digest = hashlib.sha256(composer_path.read_bytes()).hexdigest()
+        if required["composer"].get("fixed_selected"):
+            if composer_digest != required["composer"].get("sha256"):
+                fail("project-fixed Composer PHAR does not match project-composer SHA-256")
+            if selected_composer is not None and (
+                not isinstance(selected_composer, dict)
+                or configured_path(path_base, selected_composer.get("path", "")).resolve() != composer_path.resolve()
+                or selected_composer.get("version") != required["composer"].get("version")
+                or selected_composer.get("sha256") != required["composer"].get("sha256")
+            ):
+                fail("project-fixed Composer cannot be rebound; run peanut config")
+        elif selected_composer is None:
+            if required["composer"].get("sha256") is None or composer_digest != required["composer"]["sha256"]:
+                fail("registered Composer PHAR does not match project-composer SHA-256")
+        elif (not isinstance(selected_composer, dict)
+              or set(selected_composer) != {"path", "version", "sha256"}
+              or configured_path(path_base, selected_composer.get("path", "")).resolve() != composer_path.resolve()
+              or not re.fullmatch(r"\d+\.\d+\.\d+", str(selected_composer.get("version", "")))
+              or not re.fullmatch(r"[a-f0-9]{64}", str(selected_composer.get("sha256", "")))
+              or composer_digest != selected_composer["sha256"]):
+            fail("selected Composer path, version or file digest changed; run peanut config")
+        else:
+            required["composer"]["version"] = selected_composer["version"]
+    for name in ("npm", "pnpm"):
+        if name in commands:
+            manifest_path, _ = package_manifest_for_cli(Path(commands[name][-1]), name)
+            inputs[f"selected-tools/{name}/package.json"] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+    inputs.update(host=hashlib.sha256(host_path.read_bytes()).hexdigest(), runner=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
+    host["path_base"] = str(path_base)
+    inherited = {k: os.environ.get(k) for k in ("PHPRC", "PHP_INI_SCAN_DIR", "NODE_OPTIONS", "PYTHONPATH", "PYTHONHOME")}
+    fingerprint = hashlib.sha256(json.dumps([scope_identity, str(path_base), required, inputs, watched, inherited], sort_keys=True).encode()).hexdigest()
+    return required, host, fingerprint
+
+
+def environment(root: Path, host: dict, bin_path: Path, temporary_directory: Path) -> dict:
+    env = dict(os.environ)
+    # Keep the registered Node bin visible after the prepared shims so globally installed
+    # Node tools such as the independent Peanut CLI can be invoked without copying them here.
+    path_entries = [str(bin_path), *([str(Path(host["commands"]["node"][0]).parent)] if "node" in host["commands"] else []), *host["extra_path"]]
+    env["PATH"] = os.pathsep.join(dict.fromkeys(path_entries))
+    for name, variable in CACHE_ENV.items():
+        if name not in host["caches"]:
+            continue
+        for key in list(env):
+            if key.lower() == variable.lower():
+                del env[key]
+        env[variable] = host["caches"][name]
+    env["COREPACK_ENABLE_NETWORK"] = "0"
+    env["COREPACK_ENABLE_AUTO_PIN"] = "0"
+    env["TMPDIR"] = str(temporary_directory)
+    return env
+
+
+def probe(root: Path, required: dict, host: dict, env: dict) -> dict:
+    # Probes use registered argv directly; no shell, global changes or downloads.
+    probe_env = dict(env)
+    probe_env.update(NODE_DISABLE_COMPILE_CACHE="1", DISABLE_V8_COMPILE_CACHE="1", PYTHONDONTWRITEBYTECODE="1")
+    node_path = [str(Path(host["commands"]["node"][0]).parent)] if "node" in host["commands"] else []
+    probe_env["PATH"] = os.pathsep.join([*node_path, *host["extra_path"]])
+    result = {}
+    versions = {}
+    for name, argv in host["commands"].items():
+        options = ["--no-plugins", "--no-scripts", "--version"] if name == "composer" else ["--version"]
+        process = subprocess.run([*argv, *options], cwd=root, env=probe_env, text=True, capture_output=True, timeout=10)
+        output = process.stdout + process.stderr
+        if process.returncode:
+            fail(f"{name} version probe exited {process.returncode}: {output.strip()[-4000:]}")
+        match = re.search(r"(?<![\d.])v?(\d+\.\d+\.\d+)(?![\d.])", output)
+        actual = match.group(1) if match else None
+        recommended = required[name].get("version", "manifest-constrained")
+        if not actual:
+            fail(f"{name}: cannot parse actual version from probe output")
+        if name == "python3" and version_tuple(actual) < (3, 9, 0):
+            fail(f"python3 actual version {actual} is below the runner requirement 3.9.0")
+        if name == "composer":
+            selected = host.get("selected_tools", {}).get("composer")
+            expected = required[name].get("version") if required[name].get("fixed_selected") or selected is None else selected["version"]
+            if actual != expected:
+                fail(f"composer selected version mismatch: expected {expected}, observed {actual}")
+        versions[name] = actual
+        result[name] = {"version": actual, "argv": argv}
+    for name in ("php", "node"):
+        if name not in versions:
+            continue
+        for label, expression in required[name].get("manifest_constraints", []):
+            if not isinstance(expression, str) or not semver_satisfies(versions[name], expression):
+                fail(f"{name} {versions[name]} does not satisfy {label}: {expression}")
+    node_constraints, manager_constraints = declared_runtime_constraints(required, host, {})
+    if "node" in versions:
+        for label, expression in node_constraints:
+            if not isinstance(expression, str) or not semver_satisfies(versions["node"], expression):
+                fail(f"selected Node {versions['node']} does not satisfy {label}: {expression}")
+    for name, constraints in manager_constraints.items():
+        if name not in versions:
+            fail(f"devEngines requires unregistered package manager: {name}")
+        for label, expression in constraints:
+            if not isinstance(expression, str) or not semver_satisfies(versions[name], expression):
+                fail(f"selected {name} {versions[name]} does not satisfy {label}: {expression}")
+    if "php" in host["commands"]:
+        code = "echo json_encode(get_loaded_extensions(), JSON_THROW_ON_ERROR);"
+        process = subprocess.run([*host["commands"]["php"], "-r", code], cwd=root, env=probe_env, text=True, capture_output=True, timeout=10)
+        if process.returncode:
+            fail("cannot inspect registered PHP extensions")
+        extensions = {name.lower().replace("-", "_") for name in json.loads(process.stdout)}
+        missing = set(required["php"].get("extensions", [])) - extensions
+        if missing:
+            fail("missing PHP extensions: " + ", ".join(sorted(missing)))
+    return result
+
+
+def shim(argv: list) -> str:
+    return "#!/bin/sh\nexec " + " ".join(shlex.quote(value) for value in argv) + ' "$@"\n'
+
+
+def check_prepared(directory: Path, fingerprint: str, host: dict) -> dict:
+    state = read_json(directory / "prepared.json")
+    if state.get("fingerprint") != fingerprint:
+        fail("prepared environment does not match current registration")
+    for name, argv in host["commands"].items():
+        path = directory / "bin" / name
+        if path.is_symlink() or not path.is_file() or not os.access(path, os.X_OK) or path.read_text() != shim(argv):
+            fail(f"prepared tool entry changed: {name}")
+    return state
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parent.parent)
+    parser.add_argument("--host", type=Path)
+    parser.add_argument("--state-root", type=Path)
+    parser.add_argument("action", choices=("requirements", "doctor", "prepare", "exec"))
+    parser.add_argument("command", nargs=argparse.REMAINDER)
+    args = parser.parse_args()
+    root = args.root.resolve(strict=True)
+    state_root = configured_path(root, str(args.state_root)).resolve(strict=True) if args.state_root else root
+    if args.action != "exec" and args.command:
+        fail("only exec accepts a child command")
+    if args.action == "requirements":
+        print(json.dumps(requirements(root)[0], indent=2))
+        return
+    if os.name != "posix":
+        fail("this first implementation requires a POSIX host; no Windows support has been validated")
+    host_path = configured_path(root, str(args.host)).resolve(strict=True) if args.host else within(root, ".local/toolchain/host.json")
+    try:
+        host_scope = host_path.relative_to(state_root).as_posix()
+    except ValueError:
+        host_scope = host_path.as_posix()
+    scope_identity = f"{state_root.as_posix()}::{host_scope}"
+    required, host, fingerprint = configuration(root, host_path, scope_identity)
+    try:
+        host_relative = host_path.relative_to(state_root).as_posix()
+    except ValueError:
+        host_relative = ""
+    core_scope = re.fullmatch(r"\.local/toolchain/cores/(php|web)/host\.json", host_relative)
+    if core_scope:
+        scope_relative = f".local/toolchain/cores/{core_scope.group(1)}"
+        parent = within(state_root, scope_relative + "/project-env")
+        temporary_directory = within(state_root, scope_relative + "/tmp/project-env")
+    else:
+        parent = within(state_root, ".local/toolchain/project-env")
+        temporary_directory = within(state_root, ".local/tmp/project-env")
+    directory = parent / fingerprint
+    env = environment(root, host, directory / "bin", temporary_directory)
+    if args.action == "doctor":
+        if not Path(env["TMPDIR"]).is_dir():
+            fail("project temporary directory missing; run prepare explicitly (doctor never creates it)")
+        print(json.dumps({"status": "ok", "fingerprint": fingerprint, "tools": probe(root, required, host, env), "caches": host["caches"], "writes": False}, indent=2))
+        return
+    if args.action == "prepare":
+        # Version probes such as pnpm resolve TMPDIR before printing a version.
+        # Creating this directory belongs to explicit prepare, never doctor.
+        temporary_directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if directory.exists():
+            state = check_prepared(directory, fingerprint, host)
+            state["reused"] = True
+        else:
+            observed = probe(root, required, host, env)
+            parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            staging = Path(tempfile.mkdtemp(prefix=".prepare-", dir=parent))
+            try:
+                (staging / "bin").mkdir(mode=0o700)
+                for name, argv in host["commands"].items():
+                    path = staging / "bin" / name
+                    path.write_text(shim(argv), encoding="utf-8")
+                    path.chmod(0o700)
+                state = {"schema_version": 1, "fingerprint": fingerprint, "tools": observed, "caches": host["caches"], "reused": False}
+                (staging / "prepared.json").write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+                if directory.exists():
+                    state = check_prepared(directory, fingerprint, host)
+                else:
+                    staging.rename(directory)
+            finally:
+                if staging.exists():
+                    shutil.rmtree(staging)
+        print(json.dumps({"status": "prepared", "path": str(directory), **state}, indent=2))
+        return
+    check_prepared(directory, fingerprint, host)
+    if not Path(env["TMPDIR"]).is_dir():
+        fail("project temporary directory missing; run prepare explicitly")
+    command = args.command[1:] if args.command[:1] == ["--"] else args.command
+    if not command:
+        fail("exec requires a command after --")
+    print("project-env: using registered environment " + fingerprint[:12], file=sys.stderr, flush=True)
+    os.execvpe(command[0], command, env)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
+        print(f"project-env: {error}; correct the registration and run prepare explicitly", file=sys.stderr)
+        raise SystemExit(2)

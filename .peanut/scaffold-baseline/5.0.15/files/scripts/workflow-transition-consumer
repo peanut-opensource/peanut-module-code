@@ -1,0 +1,766 @@
+#!/usr/bin/env python3
+"""One granted Workflow HTTP case; validation is the default, never implicit execution.
+
+See workflow-transition-consumer.md for the fixed input and grant contracts.
+No login, fixture creation, SQL, worker, lease acquisition, retry or redirect.
+"""
+from __future__ import annotations
+
+import argparse
+from concurrent.futures import ThreadPoolExecutor
+import hashlib
+import http.client
+import json
+import os
+from pathlib import Path
+import re
+import socket
+import stat
+import subprocess
+import sys
+import threading
+import time
+import tempfile
+from urllib.parse import urlsplit
+
+WF = "/adminapi/api/v1/workflow"
+FX = "/adminapi/api/v1/fixture/workflow-business"
+KINDS = {"any_final", "withdrawal_race", "withdraw_window", "stale_conflict",
+         "return_resubmit", "idempotent", "gateway_wrong_type"}
+COUNTS = {"any_final": (4, 2), "withdrawal_race": (3, 2), "withdraw_window": (4, 2),
+          "stale_conflict": (1, 1), "return_resubmit": (4, 2), "idempotent": (3, 3),
+          "gateway_wrong_type": (3, 1)}
+ID = re.compile(r"[A-Za-z0-9_-]{1,160}\Z")
+HEX = re.compile(r"[a-f0-9]{64}\Z")
+
+
+class Stop(RuntimeError):
+    pass
+
+
+def need(condition, code):
+    if not condition:
+        raise Stop(code)
+
+
+def digest(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def output_directory(resources):
+    directories = [value.split("=", 1)[1] for value in resources if value.startswith("output-dir=")]
+    need(len(directories) == 1, "EXACTLY_ONE_NATIVE_OUTPUT_DIRECTORY")
+    directory = Path(directories[0])
+    need(directory.is_absolute() and directory.resolve() == directory and directory.is_dir(),
+         "CANONICAL_NATIVE_OUTPUT_DIRECTORY")
+    return directory
+
+
+def sync_directory(directory):
+    fd = os.open(directory, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def consume_run(directory, grant, grant_sha256):
+    # This is the one receipt location already bound by the exact native grant,
+    # not a selectable alternate marker store or a new authorization registry.
+    need(directory == output_directory(grant["resources"]), "RUN_NATIVE_OUTPUT_BINDING")
+    marker = directory / (".workflow-transition-" + grant["run_id"] + ".started")
+    binding = {name: grant[name] for name in ("run_id", "lease", "owner", "thread", "source_commit",
+               "fixture_sha256", "driver_sha256", "registry_sha256", "runtime_authorization")}
+    binding["grant_sha256"] = grant_sha256
+    fd = os.open(marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as stream:
+        stream.write(json.dumps(binding, sort_keys=True) + "\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    # Publication itself must survive a crash before any request can be sent.
+    sync_directory(directory)
+
+
+def request_record(fixture, grant, grant_sha256, number, actor, method, path, body, key):
+    raw = None if body is None else json.dumps(body, separators=(",", ":")).encode()
+    scope = fixture["scope"]
+    record = {"phase": "RESERVED_BEFORE_SEND", "request_sequence": number,
+              "run_id": grant["run_id"], "fixture_sha256": grant["fixture_sha256"],
+              "grant_sha256": grant_sha256, "lease": grant["lease"],
+              "runtime_authorization_sha256": grant["runtime_authorization"]["sha256"],
+              "actor": actor, "member_id": fixture["actors"][actor]["member_id"],
+              "scope": {name: scope[name] for name in ("tenant_id", "subject_key", "subject_revision_key", "instance_key")},
+              "origin": fixture["endpoint"]["url"], "method": method, "path": path,
+              "idempotency_key": None if key is None else grant["run_id"] + ":" + key,
+              "request_body_sha256": digest(b"" if raw is None else raw),
+              "selectors": {name: body[name] for name in ("node_execution_key", "expected_revision",
+                  "expected_node_revision", "expected_task_revision", "instance_key", "work_item_key",
+                  "instance_revision", "node_revision", "task_revision", "subject_revision_key")
+                  if isinstance(body, dict) and name in body}}
+    record["request_id"] = "rw09-" + digest(json.dumps(record, sort_keys=True).encode())[:50]
+    return record, raw
+
+
+def assertion_projection(data):
+    """Only native protocol selectors/enums; no labels, comments, materials or business input."""
+    if not isinstance(data, dict):
+        return {}
+    result = {}
+    for name in ("instance_key", "subject_revision_key", "work_item_key", "node_execution_key", "node_key"):
+        value = data.get(name)
+        if isinstance(value, str) and ID.fullmatch(value) and not value.startswith("pa_tat_"):
+            result[name] = value
+    for name in ("revision", "instance_revision", "node_revision", "event_cursor"):
+        if type(data.get(name)) is int:
+            result[name] = data[name]
+    for name, values in {"status": {"running", "blocked", "completed", "cancelled", "terminated", "pending"},
+                         "result_code": {None, "approved", "rejected", "completed"},
+                         "decision": {None, "approve", "reject", "complete", "return", "resubmit"}}.items():
+        if name in data and isinstance(data[name], (str, type(None))) and data[name] in values:
+            result[name] = data[name]
+    if isinstance(data.get("error_code"), str) and re.fullmatch(r"[A-Z][A-Z0-9_]{0,80}", data["error_code"]):
+        result["error_code"] = data["error_code"]
+    if "current_state" in data:
+        result["current_state"] = None if data["current_state"] is None else assertion_projection(data["current_state"])
+    if isinstance(data.get("available_actions"), list):
+        result["available_actions"] = [a for a in data["available_actions"] if isinstance(a, str)
+             and a in {"approve", "reject", "complete", "return", "resubmit", "claim", "release", "withdraw", "terminate", "retry", "reassign"}]
+    if isinstance(data.get("own_work_items"), list):
+        result["own_work_items"] = [assertion_projection(i) for i in data["own_work_items"][:100]]
+    if isinstance(data.get("blocker"), dict):
+        result["blocker"] = assertion_projection(data["blocker"])
+        if isinstance(data["blocker"].get("message"), str):
+            result["blocker"]["message_sha256"] = digest(data["blocker"]["message"].encode())
+        if isinstance(data["blocker"].get("code"), str) and re.fullmatch(r"[A-Z][A-Z0-9_]{0,80}", data["blocker"]["code"]):
+            result["blocker"]["code"] = data["blocker"]["code"]
+    return result
+
+
+def returned_correlation(request_id, header, envelope):
+    meta = envelope.get("meta")
+    values = {"header": header, "meta": meta.get("request_id") if isinstance(meta, dict) else None}
+    present = {name: value for name, value in values.items() if value is not None}
+    return bool(present) and all(value == request_id for value in present.values()), {
+        "returned_" + name + "_sha256": digest(str(value).encode()) for name, value in values.items() if value is not None}
+
+
+def private_json(name, expected):
+    path = Path(name)
+    need(path.is_absolute() and path.resolve() == path, "INPUT_CANONICAL_PATH")
+    info = path.lstat()
+    need(stat.S_ISREG(info.st_mode) and info.st_uid == os.getuid()
+         and info.st_nlink == 1 and stat.S_IMODE(info.st_mode) == 0o600,
+         "INPUT_PRIVATE_REGULAR_0600")
+    raw = path.read_bytes()
+    need(len(raw) <= 262144 and HEX.fullmatch(expected) and digest(raw) == expected,
+         "INPUT_HASH_OR_SIZE")
+    value = json.loads(raw)
+    need(isinstance(value, dict), "INPUT_OBJECT")
+    return value
+
+
+def reference(ref):
+    need(isinstance(ref, dict) and set(ref) == {"path", "sha256"}, "REFERENCE_FIELDS")
+    path = Path(ref["path"])
+    need(path.is_absolute() and path.resolve() == path and path.is_file(), "REFERENCE_PATH")
+    need(HEX.fullmatch(ref["sha256"]) and digest(path.read_bytes()) == ref["sha256"],
+         "REFERENCE_HASH")
+
+
+def pointer(value, path):
+    need(isinstance(path, str) and path.startswith("/"), "JSON_POINTER")
+    for part in path[1:].split("/"):
+        part = part.replace("~1", "/").replace("~0", "~")
+        value = value[int(part)] if isinstance(value, list) else value[part]
+    return value
+
+
+def git(root, *arguments):
+    result = subprocess.run(["git", "-C", str(root), *arguments], check=False,
+                            capture_output=True, text=True, timeout=10)
+    need(result.returncode == 0, "SOURCE_GIT_READ")
+    return result.stdout.strip()
+
+
+def identifier(value):
+    need(isinstance(value, str) and ID.fullmatch(value), "IDENTIFIER")
+    return value
+
+
+def base(value):
+    need(isinstance(value, dict) and set(value) == {
+        "node_execution_key", "expected_revision", "expected_node_revision", "expected_task_revision"
+    }, "REVISION_BASE_FIELDS")
+    identifier(value["node_execution_key"])
+    need(all(type(value[k]) is int and value[k] > 0 for k in value if k != "node_execution_key"),
+         "REVISION_INTEGER")
+    return dict(value)
+
+
+def action(value):
+    need(isinstance(value, dict) and set(value) == {"suffix", "body"}, "ACTION_FIELDS")
+    suffix, body = value["suffix"], value["body"]
+    allowed = {"decisions": {"decision", "comment", "attachment_file_keys"},
+               "completions": {"comment", "attachment_file_keys", "input"},
+               "return": {"comment", "attachment_file_keys"},
+               "resubmit": {"comment", "attachment_file_keys", "subject_revision_key"}}
+    need(suffix in allowed and isinstance(body, dict) and set(body) == allowed[suffix], "ACTION_BODY")
+    need(body["attachment_file_keys"] == [], "NO_FILE_SIDE_SCOPE")
+    need(body["comment"] is None or isinstance(body["comment"], str)
+         and len(body["comment"]) <= 2000, "COMMENT")
+    if suffix in {"return", "decisions"}:
+        need(suffix != "decisions" or body["decision"] in {"approve", "reject"}, "DECISION")
+        if suffix == "return" or body["decision"] == "reject":
+            need(isinstance(body["comment"], str) and body["comment"].strip(), "REASON_REQUIRED")
+    if suffix == "completions":
+        need(isinstance(body["input"], dict), "COMPLETION_INPUT")
+    if suffix == "resubmit":
+        identifier(body["subject_revision_key"])
+    return value
+
+
+def validate(f, g, fixture_sha, tool_sha):
+    need(set(f) == {"schema_version", "source", "registry", "endpoint", "scope", "actors", "case"}
+         and f["schema_version"] == 1, "FIXTURE_FIELDS")
+    required = {"schema_version", "run_id", "owner", "thread", "lease", "gate", "expires_at",
+                "fixture_sha256", "driver_sha256", "registry_sha256", "source_commit",
+                "budget", "resources", "protection", "review", "runtime_authorization"}
+    need(set(g) == required and g["schema_version"] == 1, "GRANT_FIELDS")
+    need(g["fixture_sha256"] == fixture_sha and g["driver_sha256"] == tool_sha, "GRANT_INPUT_PIN")
+    identifier(g["run_id"]); identifier(g["lease"])
+    need(len(g["run_id"]) <= 80 and isinstance(g["gate"], str) and g["gate"], "BOUNDED_RUN_AND_GATE")
+    need(g["owner"] == g["thread"] and isinstance(g["owner"], str) and g["owner"], "OWN_IDENTITY")
+    need(type(g["expires_at"]) is int and time.time() < g["expires_at"], "GRANT_EXPIRED")
+    for name in ("protection", "review", "runtime_authorization"):
+        reference(g[name])
+    r = f["registry"]
+    reference(r)
+    need(r["sha256"] == g["registry_sha256"], "REGISTRY_GRANT_PIN")
+    registry = json.loads(Path(r["path"]).read_text())
+    endpoint = f["endpoint"]
+    need(set(endpoint) == {"url", "host_pointer", "port_pointer"}, "ENDPOINT_FIELDS")
+    url = urlsplit(endpoint["url"])
+    need(url.scheme in {"http", "https"} and url.hostname and not url.username
+         and not url.password and not url.query and not url.fragment and url.path in {"", "/"},
+         "ENDPOINT_ORIGIN_ONLY")
+    port = url.port or (443 if url.scheme == "https" else 80)
+    need(pointer(registry, endpoint["host_pointer"]) == url.hostname
+         and str(pointer(registry, endpoint["port_pointer"])) == str(port), "REGISTERED_ENDPOINT")
+    s = f["source"]
+    need(set(s) == {"root", "commit", "workflow_tree", "fixture_tree"}, "SOURCE_FIELDS")
+    root = Path(s["root"])
+    need(root.is_absolute() and root.resolve() == root, "SOURCE_CANONICAL_ROOT")
+    need(re.fullmatch(r"[a-f0-9]{40}", s["commit"]) and s["commit"] == g["source_commit"], "SOURCE_COMMIT")
+    need(git(root, "rev-parse", "HEAD") == s["commit"] and not git(root, "status", "--porcelain"),
+         "SOURCE_FIXED_CLEAN")
+    for directory, key in [("server/app/modules/peanut/workflow", "workflow_tree"),
+                           ("server/app/modules/fixture/workflow_business", "fixture_tree")]:
+        need(git(root, "rev-parse", "HEAD:" + directory) == s[key], "SOURCE_SUBTREE")
+    scope = f["scope"]
+    need(set(scope) == {"tenant_id", "instance_key", "subject_key", "subject_revision_key", "scene",
+                        "native_baseline", "mysql_access_resource"}, "SCOPE_FIELDS")
+    for name in ("tenant_id", "instance_key", "subject_key", "subject_revision_key"):
+        identifier(scope[name])
+    need(scope["scene"] in {"application", "purchase", "receipt"}, "EXISTING_SCENE_ONLY")
+    reference(scope["native_baseline"])
+    baseline = json.loads(Path(scope["native_baseline"]["path"]).read_text())
+    need(isinstance(baseline, dict) and baseline.get("source_commit") == s["commit"]
+         and baseline.get("no_service_nodes") is True, "MANUAL_NATIVE_BASELINE_REQUIRED")
+    for name in ("tenant_id", "instance_key", "subject_key", "subject_revision_key"):
+        need(baseline.get(name) == scope[name], "NATIVE_BASELINE_SCOPE")
+    access = scope["mysql_access_resource"]
+    need(isinstance(access, str) and access.startswith("mysql-access="), "MYSQL_ACCESS_REQUIRED")
+    declaration = json.loads(access.split("=", 1)[1])
+    need(declaration.get("operation") == "transaction" and declaration.get("complete") is True
+         and declaration.get("tables"), "COMPLETE_TRANSACTION_SCOPE")
+    resources = g["resources"]
+    need(isinstance(resources, list) and resources and all(isinstance(x, str) for x in resources)
+         and len(resources) == len(set(resources)) and access in resources
+         and "port=" + str(port) in resources, "GRANT_RESOURCE_SCOPE")
+    output_directory(resources)
+    actors = f["actors"]
+    need(isinstance(actors, dict) and actors, "ACTORS_REQUIRED")
+    for name, actor in actors.items():
+        identifier(name)
+        need(set(actor) == {"member_id", "token_env"}, "ACTOR_FIELDS")
+        identifier(actor["member_id"])
+        need(re.fullmatch(r"[A-Z][A-Z0-9_]{1,100}", actor["token_env"]), "TOKEN_ENV_REFERENCE")
+    c = f["case"]
+    need(set(c) == {"kind", "actor", "other_actor", "item", "other_item", "base", "action",
+                       "expected_conflict_state", "changed_body", "resubmit_revision", "prelude"}, "CASE_FIELDS")
+    need(c["kind"] in KINDS and c["actor"] in actors and c["other_actor"] in actors, "CASE_KIND_ACTORS")
+    need(baseline.get("actors") == {name: actor["member_id"] for name, actor in actors.items()},
+         "NATIVE_BASELINE_ACTORS")
+    identifier(c["item"]); identifier(c["other_item"]); base(c["base"]); action(c["action"])
+    need(c["expected_conflict_state"] in {"null", "visible"}, "CONFLICT_PROJECTION")
+    kind = c["kind"]
+    need(baseline.get("kind") == kind and isinstance(baseline.get("preconditions"), dict),
+         "NATIVE_CASE_PRECONDITIONS")
+    pre = baseline["preconditions"]
+    if kind == "any_final":
+        need(c["action"] == {"suffix": "decisions", "body": {
+            "decision": "approve", "comment": None, "attachment_file_keys": []}}, "ANY_APPROVE_ONLY")
+        need(pre.get("completed_rejections") == 2 and pre.get("frozen_seats") == 3
+             and pre.get("pending_items") == [c["item"]] and pre.get("successor_count") == 0,
+             "REAL_THREE_PERSON_ANY_PRECONDITION")
+    if kind == "return_resubmit":
+        need(c["action"]["suffix"] == "return", "RETURN_ACTION")
+        identifier(c["resubmit_revision"])
+        identifier(pre.get("correction_node_key"))
+    if kind in {"withdrawal_race", "gateway_wrong_type"}:
+        need(c["action"]["suffix"] in {"decisions", "completions"}, "SUBSTANTIVE_ACTION")
+    if kind == "withdraw_window":
+        need(c["prelude"] in {"claim", "comment"}, "WITHDRAW_PRELUDE")
+    if kind == "gateway_wrong_type":
+        need(isinstance(pre.get("expected_blocker"), dict)
+             and set(pre["expected_blocker"]) == {"code", "message", "node_execution_key"}
+             and pre.get("wrong_type_proven") is True, "REAL_WRONG_TYPE_INPUT_REQUIRED")
+    if kind == "idempotent":
+        need(isinstance(c["changed_body"], dict) and c["changed_body"] != c["action"]["body"], "CHANGED_PAYLOAD")
+        action({"suffix": c["action"]["suffix"], "body": c["changed_body"]})
+    budget = g["budget"]
+    need(set(budget) == {"history_ref", "remaining_http", "remaining_writes"}, "ORIGINAL_BUDGET_REQUIRED")
+    reference(budget["history_ref"])
+    h, w = COUNTS[kind]
+    need(type(budget["remaining_http"]) is int and type(budget["remaining_writes"]) is int
+         and budget["remaining_http"] >= h and budget["remaining_writes"] >= w, "ORIGINAL_BUDGET_INSUFFICIENT")
+    return root, url, port
+
+
+class Consumer:
+    def __init__(self, fixture, grant, grant_sha256, source, origin, port, output):
+        self.f, self.g, self.root, self.url, self.port = fixture, grant, source, origin, port
+        self.grant_sha256 = grant_sha256
+        self.output, self.lock = output, threading.Lock()
+        self.http = self.writes = 0
+        self.tokens = {}
+
+    def guard(self):
+        need(os.environ.get("CODEX_THREAD_ID") == self.g["thread"], "CALLER_THREAD_MISMATCH")
+        need(time.time() < self.g["expires_at"], "GRANT_EXPIRED")
+        need(git(self.root, "rev-parse", "HEAD") == self.g["source_commit"]
+             and not git(self.root, "status", "--porcelain"), "RUNTIME_SOURCE_DRIFT")
+        reference(self.f["registry"])
+        reference(self.f["scope"]["native_baseline"])
+        reference(self.g["budget"]["history_ref"])
+        for name in ("protection", "review", "runtime_authorization"):
+            reference(self.g[name])
+        env = {k: v for k, v in os.environ.items() if k in {"PATH", "HOME", "TMPDIR", "CODEX_THREAD_ID"}}
+        env["PEANUT_RESOURCE_REGISTRY"] = self.f["registry"]["path"]
+        result = subprocess.run(["bash", str(self.root / "scripts/project-resource-lease"), "show",
+                                 "--lease", self.g["lease"], "--verify-locks"], cwd=self.root,
+                                env=env, capture_output=True, text=True, timeout=20)
+        need(result.returncode == 0, "NATIVE_LEASE_REJECTED")
+        metadata, sep, resource_text = result.stdout.partition("resources\n")
+        need(sep, "NATIVE_LEASE_FORMAT")
+        m = dict(line.split("\t", 1) for line in metadata.strip().splitlines())
+        for name in ("owner", "thread", "candidate", "gate", "worktree"):
+            expected = {"candidate": self.g["source_commit"], "worktree": str(self.root)}.get(name, self.g.get(name))
+            need(m.get(name) == expected, "NATIVE_LEASE_IDENTITY_SCOPE")
+        need(m.get("status") == "ACTIVE", "NATIVE_LEASE_INACTIVE")
+        need(int(m["expires_at"]) > time.time() + 60, "NATIVE_LEASE_WINDOW_TOO_SHORT")
+        resources = set()
+        for line in resource_text.strip().splitlines():
+            resource_type, value = line.split("\t", 1)
+            # Native parent/child show adds this final metadata line, not a resource.
+            if resource_type == "worktree":
+                need(value == str(self.root), "NATIVE_TRAILING_WORKTREE")
+            else:
+                resources.add(resource_type + "=" + value)
+        need(resources == set(self.g["resources"]), "NATIVE_LEASE_RESOURCES_DRIFT")
+
+    def record(self, value):
+        with self.output.open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(value, sort_keys=True) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+
+    def call(self, actor, method, suffix, body=None, key=None, send_barrier=None):
+        # Serialize admission and journal reservation, but let the two admitted HTTP requests overlap.
+        with self.lock:
+            self.guard()
+            h, w = COUNTS[self.f["case"]["kind"]]
+            need(self.http < h and (method == "GET" or self.writes < w), "CASE_BUDGET_EXHAUSTED")
+            self.http += 1
+            self.writes += int(method != "GET")
+            number = self.http
+            reservation, raw = request_record(self.f, self.g, self.grant_sha256, number,
+                                              actor, method, suffix, body, key)
+            reservation.update(http_used=self.http, writes_used=self.writes)
+            self.record(reservation)  # flush + fsync complete before any connection send
+        request_id = reservation["request_id"]
+        headers = {"Authorization": "Bearer " + self.tokens[actor], "Accept": "application/json",
+                   "X-Request-Id": request_id}
+        if reservation["idempotency_key"] is not None:
+            headers["Idempotency-Key"] = reservation["idempotency_key"]
+        if raw is not None:
+            headers["Content-Type"] = "application/json"
+        connection_type = http.client.HTTPSConnection if self.url.scheme == "https" else http.client.HTTPConnection
+        connection = connection_type(self.url.hostname, self.port, timeout=15)
+        try:
+            if send_barrier is not None:
+                send_barrier.wait(timeout=30)
+            need(time.time() < self.g["expires_at"], "GRANT_EXPIRED_BEFORE_SEND")
+            started = time.monotonic_ns()
+            connection.request(method, suffix, body=raw, headers=headers)
+            response = connection.getresponse()
+            payload = response.read(2097153)
+            need(len(payload) <= 2097152, "RESPONSE_TOO_LARGE")
+            envelope = json.loads(payload)
+            need(isinstance(envelope, dict) and "data" in envelope, "RESPONSE_ENVELOPE")
+            correlated, returned = returned_correlation(request_id, response.getheader("X-Request-Id"), envelope)
+            with self.lock:
+                receipt = {"request_sequence": number, "request_id": request_id,
+                             "phase": "RESPONSE" if correlated else "STOP_CORRELATION_UNKNOWN",
+                             "status": response.status,
+                             "response_sha256": digest(payload), "started_ns": started,
+                             "finished_ns": time.monotonic_ns(), **returned}
+                if correlated:
+                    receipt["assertion_projection"] = assertion_projection(envelope["data"])
+                self.record(receipt)
+            need(correlated, "NATIVE_RESPONSE_CORRELATION_MISSING_OR_MISMATCH")
+            # Only selected protocol assertions enter the receipt, never unrestricted bodies.
+            return response.status, envelope["data"]
+        finally:
+            connection.close()
+
+    def detail(self, actor):
+        status, data = self.call(actor, "GET", WF + "/instances/" + self.f["scope"]["instance_key"])
+        need(status == 200 and isinstance(data, dict)
+             and data.get("instance_key") == self.f["scope"]["instance_key"]
+             and data.get("subject_revision_key") == self.f["scope"]["subject_revision_key"], "INSTANCE_SCOPE_OR_VERSION")
+        return data
+
+    def submit(self, actor, item, basis, command, key, send_barrier=None):
+        return self.call(actor, "POST", WF + "/tasks/" + item + "/" + command["suffix"],
+                         {**base(basis), **command["body"]}, key, send_barrier)
+
+    @staticmethod
+    def current(data, item):
+        matches = [i for i in data["own_work_items"] if i["work_item_key"] == item]
+        need(len(matches) == 1, "CURRENT_OWN_ITEM_REQUIRED")
+        i = matches[0]
+        return base({"node_execution_key": i["node_execution_key"], "expected_revision": data["revision"],
+                     "expected_node_revision": i["node_revision"], "expected_task_revision": i["revision"]})
+
+    def run(self):
+        c, scope = self.f["case"], self.f["scope"]
+        a, b, item = c["actor"], c["other_actor"], c["item"]
+        kind, command, basis = c["kind"], c["action"], c["base"]
+        self.tokens = {name: os.environ.get(value["token_env"], "") for name, value in self.f["actors"].items()}
+        need(all(token.startswith("pa_tat_") and not re.search(r"[\x00-\x20\x7f]", token)
+                 for token in self.tokens.values()), "CURRENT_TENANT_TOKENS_REQUIRED")
+        self.guard()
+        if kind == "stale_conflict":
+            status, data = self.submit(a, item, basis, command, "stale")
+            need(status == 409 and data.get("error_code") == "WORKFLOW_INSTANCE_CONFLICT", "STALE_CONFLICT")
+            need("current_state" in data, "CONFLICT_PROJECTION_REQUIRED")
+            state = data.get("current_state")
+            need(state is None if c["expected_conflict_state"] == "null" else
+                 isinstance(state, dict) and state.get("instance_key") == scope["instance_key"], "CONFLICT_VISIBILITY")
+        elif kind == "idempotent":
+            first = self.submit(a, item, basis, command, "same")
+            second = self.submit(a, item, basis, command, "same")
+            need(first[0] == second[0] == 200 and first[1] == second[1], "EXACT_RECEIPT_REPLAY")
+            changed = self.submit(a, item, basis, {"suffix": command["suffix"], "body": c["changed_body"]}, "same")
+            need(changed[0] == 409 and isinstance(changed[1], dict)
+                 and changed[1].get("error_code") == "IDEMPOTENCY_KEY_REUSED", "CHANGED_KEY_PAYLOAD_REJECTED")
+        elif kind == "withdrawal_race":
+            barrier = threading.Barrier(2)
+            def withdraw():
+                return self.call(a, "POST", WF + "/instances/" + scope["instance_key"] + "/withdraw",
+                                 {"expected_revision": basis["expected_revision"], "comment": "RW09 granted withdrawal race"}, "withdraw", barrier)
+            def substantive():
+                return self.submit(b, item, basis, command, "substantive", barrier)
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                left, right = pool.submit(withdraw), pool.submit(substantive)
+                results = [left.result(), right.result()]
+            need(sorted(r[0] for r in results) == [200, 409], "RACE_ONE_SUCCESS_ONE_CONFLICT")
+            data = self.detail(a)
+            need(data["status"] in {"cancelled", "running", "blocked", "completed"}, "RACE_FINAL_STATE")
+        elif kind == "withdraw_window":
+            if c["prelude"] == "claim":
+                status, data = self.call(b, "POST", WF + "/tasks/" + item + "/claim", basis, "claim")
+            else:
+                status, data = self.call(b, "POST", FX + "/" + scope["scene"] + "/objects/" + scope["subject_key"] + "/collaboration",
+                    {"instance_key": scope["instance_key"], "work_item_key": item,
+                     "instance_revision": basis["expected_revision"], "node_revision": basis["expected_node_revision"],
+                     "task_revision": basis["expected_task_revision"], "kind": "comment", "note": "RW09 ordinary comment", "reference": ""}, "comment")
+            need(status in {200, 201}, "PRELUDE_SUCCEEDED")
+            current = self.detail(a)
+            need("withdraw" in current["available_actions"], "WINDOW_OPEN_AFTER_PRELUDE")
+            status, data = self.call(a, "POST", WF + "/instances/" + scope["instance_key"] + "/withdraw",
+                                     {"expected_revision": current["revision"], "comment": "RW09 granted withdrawal"}, "withdraw")
+            need(status == 200 and data["status"] == "cancelled", "WITHDRAW_SUCCEEDED")
+        else:
+            status, data = self.submit(a, item, basis, command, "first")
+            need(status == 200, "FIRST_ACTION_SUCCEEDED")
+            if kind == "any_final":
+                need(data["status"] == "completed" and data["result_code"] == "approved", "THIRD_VOTE_APPROVED")
+                late = {"suffix": "decisions", "body": {"decision": "reject", "comment": "RW09 late rejection", "attachment_file_keys": []}}
+                status, _ = self.submit(b, c["other_item"], basis, late, "late")
+                need(status == 409, "LATE_VOTE_REJECTED")
+                after = self.detail(a)
+                need(after["status"] == "completed" and after["result_code"] == "approved"
+                     and after["revision"] == data["revision"], "TERMINAL_UNCHANGED")
+            elif kind == "gateway_wrong_type":
+                baseline = json.loads(Path(scope["native_baseline"]["path"]).read_text())
+                need(data["status"] == "blocked"
+                     and data.get("blocker") == baseline["preconditions"]["expected_blocker"], "WRONG_TYPE_BLOCKED")
+                after = self.detail(a)
+                need(after["revision"] == data["revision"] and after["status"] == "blocked", "BLOCK_PERSISTS")
+            elif kind == "return_resubmit":
+                correction = self.detail(b)
+                baseline = json.loads(Path(scope["native_baseline"]["path"]).read_text())
+                items = [i for i in correction["own_work_items"]
+                         if i["node_key"] == baseline["preconditions"]["correction_node_key"]
+                         and "resubmit" in i["available_actions"]]
+                need(len(items) == 1, "ONE_CURRENT_CORRECTION_ITEM")
+                correction_item = items[0]["work_item_key"]
+                next_base = self.current(correction, correction_item)
+                need(next_base["node_execution_key"] != basis["node_execution_key"], "NEW_RETURN_NODE")
+                resubmit = {"suffix": "resubmit", "body": {"comment": None, "attachment_file_keys": [],
+                             "subject_revision_key": c["resubmit_revision"]}}
+                status, data = self.submit(b, correction_item, next_base, resubmit, "resubmit")
+                need(status == 200 and data["subject_revision_key"] == c["resubmit_revision"], "NEW_SNAPSHOT_RESUBMITTED")
+        self.record({"phase": "HTTP_ASSERTIONS_PASSED", "case": kind, "http_used": self.http,
+                     "writes_used": self.writes, "native_SQL_CAS": "NOT_OBSERVED",
+                     "physical_successor_count": "NOT_OBSERVED", "business_accepted": False})
+
+
+def self_check():
+    # Authorized no-network isolation check: any accidental socket use fails immediately.
+    original = socket.socket
+    def denied(*args, **kwargs):
+        raise AssertionError("self-check must never access a socket")
+    socket.socket = denied
+    try:
+        good = {"node_execution_key": "n1", "expected_revision": 1,
+                "expected_node_revision": 1, "expected_task_revision": 1}
+        need(base(good) == good, "SELF_BASE")
+        rejected = 0
+        for bad in [{}, dict(good, expected_revision=True), dict(good, expected_task_revision=0)]:
+            try:
+                base(bad)
+            except Stop:
+                rejected += 1
+        for bad in [{"suffix": "delete", "body": {}},
+                    {"suffix": "decisions", "body": {"decision": "reject", "comment": None, "attachment_file_keys": []}}]:
+            try:
+                action(bad)
+            except Stop:
+                rejected += 1
+        for bad_fixture, bad_grant in [({}, {}), ({"schema_version": 1}, {}),
+                ({"schema_version": 1, "source": {}, "registry": {}, "endpoint": {},
+                  "scope": {}, "actors": {}, "case": {}}, {})]:
+            try:
+                validate(bad_fixture, bad_grant, "0" * 64, "0" * 64)
+            except Stop:
+                rejected += 1
+        need(rejected == 8 and pointer({"a": [{"b": 2}]}, "/a/0/b") == 2, "SELF_REJECTIONS")
+        print(json.dumps({"self_check": "PASS", "negative_checks": rejected, "network_calls": 0,
+                          "product_assertions": 0}))
+    finally:
+        socket.socket = original
+
+
+def journal_self_check():
+    """Driver-only synthetic transport; no native admission or product assertions."""
+    from unittest.mock import patch
+    checks = []
+    fsync_events = []
+    real_fsync = os.fsync
+
+    def tracked_fsync(fd):
+        real_fsync(fd)
+        fsync_events.append("directory" if stat.S_ISDIR(os.fstat(fd).st_mode) else "file")
+
+    def no_socket(*args, **kwargs):
+        raise AssertionError("journal self-check must never use a socket")
+
+    with tempfile.TemporaryDirectory(prefix="rw09-journal-check-") as temporary:
+        directory = Path(temporary).resolve()
+        alternate = directory / "alternate"
+        alternate.mkdir()
+        grant = {"run_id": "driver-check", "lease": "driver-check-lease", "owner": "driver-check-owner",
+                 "thread": "driver-check-owner", "source_commit": "1" * 40, "fixture_sha256": "2" * 64,
+                 "driver_sha256": "3" * 64, "registry_sha256": "4" * 64,
+                 "runtime_authorization": {"path": "/not-a-runtime-input", "sha256": "5" * 64},
+                 "resources": ["output-dir=" + str(directory)], "expires_at": int(time.time()) + 120}
+        with patch.object(socket, "socket", no_socket), patch.object(os, "fsync", tracked_fsync):
+            consume_run(directory, grant, "6" * 64)
+            need(fsync_events == ["file", "directory"], "SELF_MARKER_PUBLICATION_DURABLE")
+            marker = json.loads((directory / ".workflow-transition-driver-check.started").read_text())
+            need(marker["lease"] == grant["lease"] and marker["fixture_sha256"] == grant["fixture_sha256"]
+                 and marker["runtime_authorization"] == grant["runtime_authorization"]
+                 and marker["grant_sha256"] == "6" * 64, "SELF_NATIVE_ASSIGNMENT_BINDING")
+            checks.append("marker_file_and_directory_fsync_and_native_assignment_binding")
+            try:
+                consume_run(directory, grant, "6" * 64)
+                raise AssertionError("same run replay admitted")
+            except FileExistsError:
+                checks.append("same_run_different_filename_rejected")
+            try:
+                consume_run(alternate, grant, "6" * 64)
+                raise AssertionError("alternate output location admitted")
+            except Stop:
+                checks.append("unchanged_grant_alternate_directory_rejected")
+            try:
+                output_directory(grant["resources"] + ["output-dir=" + str(alternate)])
+                raise AssertionError("two leased output directories admitted")
+            except Stop:
+                checks.append("multiple_native_output_directories_rejected")
+
+            fixture = {"scope": {"tenant_id": "tenant-driver-check", "subject_key": "object-driver-check",
+                       "subject_revision_key": "version-A", "instance_key": "instance-driver-check"},
+                       "actors": {"correction": {"member_id": "member-driver-check"}},
+                       "endpoint": {"url": "http://driver-check.invalid:1"}, "case": {"kind": "return_resubmit"}}
+            output = directory / "driver-only.jsonl"
+            output.touch(mode=0o600)
+            dynamic = Consumer.current({"revision": 7, "own_work_items": [{"work_item_key": "item-new",
+                "node_execution_key": "node-new", "node_revision": 3, "revision": 2}]}, "item-new")
+            test_body = {**dynamic, "subject_revision_key": "version-B", "comment": "private-driver-content",
+                         "attachment_file_keys": []}
+            state = {}
+
+            class LocalConsumer(Consumer):
+                def guard(self):
+                    # The self-check exercises journal/transport wiring only, not runtime authority.
+                    pass
+
+            class LocalResponse:
+                status = 200
+
+                def getheader(self, name):
+                    return state["request_id"] if name == "X-Request-Id" and not state.get("missing") else None
+
+                def read(self, limit):
+                    return json.dumps({"meta": {} if state.get("missing") else {"request_id": state["request_id"]}, "data": {
+                        "instance_key": "instance-driver-check", "revision": 8, "status": "running",
+                        "comment": "private-driver-content", "materials": {"body": "private-driver-content"}}}).encode()
+
+            class LocalConnection:
+                def __init__(self, *args, **kwargs):
+                    pass
+
+                def request(self, method, path, body, headers):
+                    rows = [json.loads(line) for line in output.read_text().splitlines()]
+                    row = rows[-1]
+                    need(fsync_events[-1] == "file" and row["phase"] == "RESERVED_BEFORE_SEND",
+                         "SELF_JOURNAL_FSYNC_BEFORE_SYNTHETIC_SEND")
+                    need(row["request_id"] == headers["X-Request-Id"]
+                         and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,63}", row["request_id"])
+                         and row["idempotency_key"] == headers["Idempotency-Key"] == "driver-check:resubmit"
+                         and row["request_body_sha256"] == digest(body)
+                         and row["path"].endswith("/tasks/item-new/resubmit")
+                         and row["selectors"] == {**dynamic, "subject_revision_key": "version-B"}
+                         and row["member_id"] == "member-driver-check", "SELF_COMPLETE_REQUEST_BINDING")
+                    state["request_id"] = row["request_id"]
+                    state["reservation"] = row
+
+                def getresponse(self):
+                    return LocalResponse()
+
+                def close(self):
+                    pass
+
+            consumer = LocalConsumer(fixture, grant, "6" * 64, directory,
+                                     urlsplit(fixture["endpoint"]["url"]), 1, output)
+            consumer.tokens = {"correction": "pa_tat_driver_only_not_real"}
+            with patch.object(http.client, "HTTPConnection", LocalConnection):
+                status, _ = consumer.call("correction", "POST", WF + "/tasks/item-new/resubmit", test_body, "resubmit")
+            need(status == 200, "SELF_SYNTHETIC_CORRELATED_RESPONSE")
+            checks.append("actual_call_durable_complete_dynamic_request_before_synthetic_transport")
+            rows = [json.loads(line) for line in output.read_text().splitlines()]
+            need(rows[-1]["request_id"] == state["request_id"]
+                 and rows[-1]["assertion_projection"]["revision"] == 8
+                 and "private-driver-content" not in output.read_text()
+                 and "pa_tat_driver_only_not_real" not in output.read_text(), "SELF_SAFE_ASSERTION_PROJECTION")
+            checks.append("correlated_response_projection_without_secret_bodies")
+            other, _ = request_record(fixture, grant, "6" * 64, 2, "correction", "POST",
+                                      WF + "/tasks/item-new/resubmit", test_body, "resubmit")
+            need(other["request_id"] != state["request_id"], "SELF_UNIQUE_RUN_SEQUENCE")
+            checks.append("same_idempotency_key_distinct_request_sequence_ids")
+            for header, envelope in [(None, {"meta": {}}), ("wrong", {"meta": {"request_id": state["request_id"]}}),
+                                      (state["request_id"], {"meta": {"request_id": "wrong"}})]:
+                need(not returned_correlation(state["request_id"], header, envelope)[0], "SELF_CORRELATION_REJECTION")
+            checks.append("missing_or_mismatched_native_correlation_rejected")
+            need(assertion_projection({"error_code": "WORKFLOW_INSTANCE_CONFLICT", "current_state": None}) == {
+                "error_code": "WORKFLOW_INSTANCE_CONFLICT", "current_state": None}, "SELF_ERROR_NULL_PROJECTION")
+            checks.append("safe_native_error_and_null_projection")
+            output = directory / "driver-only-unknown.jsonl"
+            output.touch(mode=0o600)
+            state["missing"] = True
+            consumer = LocalConsumer(fixture, grant, "6" * 64, directory,
+                                     urlsplit(fixture["endpoint"]["url"]), 1, output)
+            consumer.tokens = {"correction": "pa_tat_driver_only_not_real"}
+            with patch.object(http.client, "HTTPConnection", LocalConnection):
+                try:
+                    consumer.call("correction", "POST", WF + "/tasks/item-new/resubmit", test_body, "resubmit")
+                    raise AssertionError("uncorrelated response admitted")
+                except Stop as error:
+                    need(str(error) == "NATIVE_RESPONSE_CORRELATION_MISSING_OR_MISMATCH", "SELF_CORRELATION_STOP")
+            rows = [json.loads(line) for line in output.read_text().splitlines()]
+            need(rows[0]["phase"] == "RESERVED_BEFORE_SEND"
+                 and rows[-1]["phase"] == "STOP_CORRELATION_UNKNOWN"
+                 and "assertion_projection" not in rows[-1]
+                 and consumer.http == consumer.writes == 1, "SELF_UNKNOWN_PRESERVES_RESERVATION")
+            checks.append("actual_call_missing_correlation_stops_with_reserved_identity_no_replay")
+    print(json.dumps({"journal_self_check": "PASS", "checks": checks, "check_count": len(checks),
+                      "network_calls": 0, "native_lease_operations": 0, "product_assertions": 0}))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--fixture"); parser.add_argument("--fixture-sha256")
+    parser.add_argument("--grant"); parser.add_argument("--grant-sha256")
+    parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--output", help="new absolute JSONL receipt; parent must exist and be leased")
+    parser.add_argument("--self-check", action="store_true")
+    parser.add_argument("--journal-self-check", action="store_true")
+    args = parser.parse_args()
+    if args.journal_self_check:
+        need(not any((args.fixture, args.grant, args.execute, args.output, args.self_check)), "SELF_CHECK_ISOLATED")
+        journal_self_check()
+        return
+    if args.self_check:
+        need(not any((args.fixture, args.grant, args.execute, args.output)), "SELF_CHECK_ISOLATED")
+        self_check()
+        return
+    need(all((args.fixture, args.fixture_sha256, args.grant, args.grant_sha256)), "FIXED_INPUTS_REQUIRED")
+    f = private_json(args.fixture, args.fixture_sha256)
+    g = private_json(args.grant, args.grant_sha256)
+    source, origin, port = validate(f, g, args.fixture_sha256, digest(Path(__file__).read_bytes()))
+    if not args.execute:
+        need(not args.output, "OUTPUT_ONLY_WITH_EXPLICIT_EXECUTE")
+        print(json.dumps({"status": "VALIDATED_NOT_RUN", "case": f["case"]["kind"],
+                          "http": 0, "writes": 0, "native_admission": "NOT_RUN"}))
+        return
+    need(args.output, "NEW_DURABLE_OUTPUT_REQUIRED")
+    output = Path(args.output)
+    directory = output_directory(g["resources"])
+    need(output.is_absolute() and output.parent == directory, "LEASED_OUTPUT_DIRECTORY")
+    consumer = Consumer(f, g, args.grant_sha256, source, origin, port, output)
+    consumer.guard()
+    consume_run(directory, g, args.grant_sha256)
+    fd = os.open(output, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    os.close(fd)
+    sync_directory(directory)
+    consumer.record({"phase": "STARTED", "run_id": g["run_id"], "fixture_sha256": args.fixture_sha256,
+                     "grant_sha256": args.grant_sha256, "case": f["case"]["kind"]})
+    try:
+        consumer.run()
+    except Exception:
+        consumer.record({"phase": "STOP_UNKNOWN_OR_FAILED_DO_NOT_REPLAY", "http_used": consumer.http,
+                         "writes_used": consumer.writes, "business_accepted": False})
+        raise
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as error:
+        # Never print exception text: transport errors can contain credential-bearing server content.
+        print(json.dumps({"status": "STOP", "reason": str(error) if isinstance(error, Stop) else
+                          "fixed input, native admission, transport or assertion rejected; no automatic retry"}), file=sys.stderr)
+        sys.exit(1)

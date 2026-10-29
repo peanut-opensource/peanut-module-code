@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
+ROOT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd -P)"
+REGISTRY_PATH="$ROOT_DIR/resources/codegraph-registry.json"
+
+die() {
+  printf 'project-codegraph: %s\n' "$*" >&2
+  exit 1
+}
+
+usage() {
+  cat <<'EOF'
+Usage:
+  scripts/project-codegraph ensure
+  scripts/project-codegraph status
+  scripts/project-codegraph worktrees
+  scripts/project-codegraph sync
+
+ensure   Initialize the current worktree if missing, otherwise sync it.
+status   Report the current index and every existing Git worktree without writing.
+worktrees  Alias for status, emphasizing worktree discovery.
+sync     Sync an already initialized current-worktree index.
+
+The command never copies, symlinks, or initializes another worktree's index.
+EOF
+}
+
+[[ -f "$REGISTRY_PATH" ]] || die "CodeGraph registry is missing: $REGISTRY_PATH"
+command -v jq >/dev/null 2>&1 || die 'jq is required'
+command -v codegraph >/dev/null 2>&1 || die 'codegraph is required for this project; install it before code analysis'
+
+jq -e '
+  .schema_version == 1
+  and .project_id == "peanut-admin"
+  and (.policy.project_applicability == "required_for_code_analysis")
+  and (.policy.per_worktree_index == true)
+  and (.policy.sharing == "forbidden_to_copy_or_symlink_between_worktrees")
+' "$REGISTRY_PATH" >/dev/null || die 'CodeGraph registry is invalid or does not require per-worktree indexing'
+
+git_root="$(git -C "$ROOT_DIR" rev-parse --show-toplevel 2>/dev/null)" \
+  || die 'Peanut Module Code Git root is unavailable'
+git_root="$(CDPATH= cd -- "$git_root" && pwd -P)"
+[[ "$git_root" == "$ROOT_DIR" ]] || die "script is not inside the registered Git root: $git_root"
+
+current_head() {
+  git -C "$ROOT_DIR" rev-parse HEAD 2>/dev/null || printf 'unavailable'
+}
+
+worktree_paths() {
+  git -C "$ROOT_DIR" worktree list --porcelain 2>/dev/null \
+    | while IFS= read -r line; do
+        case "$line" in
+          worktree\ *)
+            path="${line#worktree }"
+            [[ -d "$path" ]] && printf '%s\n' "$path"
+            ;;
+        esac
+      done
+}
+
+index_state() {
+  local path="$1"
+  local output
+  if [[ ! -d "$path/.codegraph" ]]; then
+    printf 'missing'
+    return 0
+  fi
+  if [[ "$path" != "$ROOT_DIR" ]]; then
+    printf 'present_unchecked'
+    return 0
+  fi
+  output="$(codegraph status "$path" 2>&1 || true)"
+  if printf '%s\n' "$output" | grep -q 'Index is up to date'; then
+    printf 'present_up_to_date'
+  elif printf '%s\n' "$output" | grep -q 'Pending Changes'; then
+    printf 'present_pending'
+  else
+    printf 'present_needs_review'
+  fi
+}
+
+index_mtime() {
+  local path="$1"
+  if stat -f '%Sm' -t '%Y-%m-%dT%H:%M:%S%z' "$path/.codegraph" >/dev/null 2>&1; then
+    stat -f '%Sm' -t '%Y-%m-%dT%H:%M:%S%z' "$path/.codegraph"
+  else
+    stat -c '%y' "$path/.codegraph" 2>/dev/null | cut -d. -f1 || printf 'unknown'
+  fi
+}
+
+status_report() {
+  local path state current_state count=0 indexed=0
+  printf 'registry=%s\n' "$REGISTRY_PATH"
+  printf 'policy=required_for_code_analysis\n'
+  printf 'current_worktree=%s\n' "$ROOT_DIR"
+  printf 'current_head=%s\n' "$(current_head)"
+  current_state="$(index_state "$ROOT_DIR")"
+  printf 'current_index=%s\n' "$current_state"
+  if [[ "$current_state" != missing ]]; then
+    printf 'current_index_mtime=%s\n' "$(index_mtime "$ROOT_DIR")"
+  fi
+  while IFS= read -r path; do
+    [[ -n "$path" ]] || continue
+    state="$(index_state "$path")"
+    [[ "$state" != missing ]] && indexed=$((indexed + 1))
+    count=$((count + 1))
+    printf 'worktree[%d]=%s\tindex=%s\thead=%s\n' \
+      "$count" "$path" "$state" "$(git -C "$path" rev-parse HEAD 2>/dev/null || printf unavailable)"
+  done < <(worktree_paths)
+  printf 'existing_worktrees=%d\n' "$count"
+  printf 'worktrees_with_index=%d\n' "$indexed"
+  if [[ "$current_state" == missing ]]; then
+    printf 'next_action=scripts/project-codegraph ensure\n'
+  elif [[ "$current_state" == present_pending || "$current_state" == present_needs_review ]]; then
+    printf 'next_action=scripts/project-codegraph sync\n'
+  else
+    printf 'next_action=ready_for_registered_code_analysis\n'
+  fi
+}
+
+command_name="${1:-ensure}"
+shift || true
+[[ $# -eq 0 ]] || die 'unexpected arguments; use --help for usage'
+case "$command_name" in
+  ensure)
+    if [[ ! -d "$ROOT_DIR/.codegraph" ]]; then
+      printf 'project-codegraph: initializing current worktree %s\n' "$ROOT_DIR"
+      codegraph init "$ROOT_DIR"
+    else
+      printf 'project-codegraph: syncing current worktree %s\n' "$ROOT_DIR"
+      codegraph sync "$ROOT_DIR"
+    fi
+    status_report
+    ;;
+  sync)
+    [[ -d "$ROOT_DIR/.codegraph" ]] || die 'current worktree has no .codegraph; run scripts/project-codegraph ensure'
+    codegraph sync "$ROOT_DIR"
+    status_report
+    ;;
+  status|worktrees)
+    status_report
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    usage >&2
+    die "unknown command: $command_name"
+    ;;
+esac

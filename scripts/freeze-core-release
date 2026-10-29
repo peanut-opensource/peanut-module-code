@@ -1,0 +1,441 @@
+#!/usr/bin/env python3
+"""Freeze local Core sources into private build inputs; never publish or deploy."""
+from __future__ import annotations
+
+import argparse
+import base64
+import hashlib
+import io
+import json
+import os
+from pathlib import Path, PurePosixPath
+import re
+import shutil
+import subprocess
+import tarfile
+import tempfile
+import zipfile
+
+PACKAGES = ('client', 'vue', 'ui-vue', 'nuxt', 'uniapp', 'testing')
+# 这三个公开常量描述包版本，不是独立的协议版本；冻结时必须与清单一致。
+WEB_VERSION_EXPORTS = {'vue': 'PEANUT_ADMIN_VUE_VERSION',
+                       'ui-vue': 'PEANUT_ADMIN_UI_VUE_VERSION',
+                       'testing': 'WEB_TESTING_VERSION'}
+SEMVER = re.compile(r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?')
+
+
+def version(value: str) -> str:
+    if not isinstance(value, str) or SEMVER.fullmatch(value) is None:
+        raise ValueError('An exact SemVer without v, ranges or branch aliases is required.')
+    return value
+
+
+def validate_composer_version(selected_version: str, directory: Path,
+                              composer_command: Path | None = None) -> None:
+    """使用项目锁定入口；隔离 worktree 可显式复用已准备入口，不猜全局 Composer。"""
+    composer = composer_command or Path(__file__).resolve().parent / 'project-composer'
+    if not composer.is_file() or not os.access(composer, os.X_OK):
+        raise ValueError('Prepared project Composer entry is required; use scripts/project-composer '
+                         'prepare or --composer=/absolute/path/to/project-composer.')
+    probe = directory / 'composer-version-probe'
+    probe.mkdir()
+    write_json(probe / 'composer.json', {
+        'name': 'peanut-fixture/version-probe', 'version': '0.0.0',
+        'require': {'peanut-admin/core': selected_version},
+    })
+    result = subprocess.run([str(composer), 'show', '--self', '--format=json', '--no-interaction'],
+                            cwd=probe, capture_output=True, text=True, timeout=30)
+    if result.returncode != 0:
+        raise ValueError('Composer rejected the selected exact PHP version; use a supported '
+                         'stable/alpha/beta/RC version or an explicit --php-version. '
+                         'An npm-compatible label is not necessarily Composer-compatible.')
+
+
+def read_json(path: Path) -> dict:
+    data = json.loads(path.read_text(encoding='utf-8'))
+    if not isinstance(data, dict):
+        raise ValueError(f'Expected a JSON object: {path.name}')
+    return data
+
+
+def write_json(path: Path, data: dict) -> None:
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+
+def git(root: Path, *arguments: str) -> str:
+    return subprocess.check_output(['git', '-C', str(root), *arguments], text=True).strip()
+
+
+def identity(root: Path, expected_repository: str) -> dict:
+    root = root.resolve(strict=True)
+    if Path(git(root, 'rev-parse', '--show-toplevel')).resolve() != root:
+        raise ValueError('Core path must be its Git repository root.')
+    remote = git(root, 'remote', 'get-url', 'origin')
+    allowed = {f'https://github.com/{expected_repository}.git',
+               f'https://github.com/{expected_repository}',
+               f'git@github.com:{expected_repository}.git'}
+    if remote not in allowed:
+        raise ValueError('Core repository origin does not match the selected product input.')
+    if git(root, 'status', '--porcelain', '--untracked-files=normal'):
+        raise ValueError('Release input is dirty; commit intended changes before freezing.')
+    return {'repository': expected_repository,
+            'commit': git(root, 'rev-parse', 'HEAD'),
+            'tree': git(root, 'rev-parse', 'HEAD^{tree}')}
+
+
+def pnpm_command() -> str:
+    command = shutil.which('pnpm')
+    if command is None:
+        raise ValueError('The Web Core registered pnpm command is required.')
+    return command
+
+
+def run_pnpm(pnpm: str, arguments: list[str], cwd: Path,
+             environment: dict[str, str], timeout: int) -> None:
+    subprocess.run([pnpm, *arguments], cwd=cwd, env=environment,
+                   check=True, timeout=timeout)
+
+
+def local_source_identity(root: Path, helper: Path, php: Path) -> dict:
+    payload = base64.b64encode(
+        json.dumps([str(helper), str(root)], separators=(',', ':')).encode('utf-8')).decode('ascii')
+    code = (f"$v=json_decode(base64_decode('{payload}'),true,512,JSON_THROW_ON_ERROR);"
+            "require $v[0];"
+            "echo json_encode(\\app\\common\\value\\scaffold\\ScaffoldSourceIdentity::local($v[1]),JSON_THROW_ON_ERROR);")
+    result = subprocess.run([str(php), '-r', code], check=True, capture_output=True, text=True, timeout=30)
+    identity = json.loads(result.stdout)
+    if (not isinstance(identity, dict) or identity.get('kind') != 'local'
+            or not re.fullmatch(r'[a-f0-9]{64}', str(identity.get('snapshot_sha256', '')))):
+        raise ValueError('ScaffoldSourceIdentity returned an invalid Core source identity.')
+    return identity
+
+
+def snapshot(root: Path, commit: str, destination: Path) -> None:
+    raw = subprocess.check_output(['git', '-C', str(root), 'archive', '--format=tar', commit])
+    destination.mkdir()
+    with tarfile.open(fileobj=io.BytesIO(raw), mode='r:') as archive:
+        for member in archive.getmembers():
+            name = PurePosixPath(member.name)
+            if name.is_absolute() or '..' in name.parts or '\\' in member.name:
+                raise ValueError('Unsafe path in Core source archive.')
+            if member.isdir():
+                continue
+            if not member.isfile():
+                raise ValueError('Core release input contains a link or unsupported file.')
+            target = destination.joinpath(*name.parts)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            handle = archive.extractfile(member)
+            if handle is None:
+                raise ValueError('Core source archive member has no bytes.')
+            with handle:
+                target.write_bytes(handle.read())
+            target.chmod(0o755 if member.mode & 0o111 else 0o644)
+
+
+def stamp_web(root: Path, selected_version: str) -> None:
+    selected_version = version(selected_version)
+    manifests = []
+    version_sources = []
+    for suffix in PACKAGES:
+        path = root / 'packages' / suffix / 'package.json'
+        data = read_json(path)
+        if data.get('name') != '@peanut-admin/' + suffix:
+            raise ValueError('Unexpected Core Web package identity.')
+        data['version'] = selected_version
+        for field in ('dependencies', 'peerDependencies', 'optionalDependencies'):
+            for name in data.get(field, {}):
+                if name.startswith('@peanut-admin/'):
+                    if name.removeprefix('@peanut-admin/') not in PACKAGES:
+                        raise ValueError('An undeclared internal Core Web dependency was found.')
+                    data[field][name] = selected_version
+        symbol = WEB_VERSION_EXPORTS.get(suffix)
+        if symbol:
+            source = path.parent / 'src/index.ts'
+            text = source.read_text(encoding='utf-8')
+            pattern = re.compile(r'(?m)^(export const ' + re.escape(symbol)
+                                 + r' = )([\'\"])([^\'\"\r\n]+)\2( as const;?)[ \t]*$')
+            matches = list(pattern.finditer(text))
+            if len(matches) != 1:
+                raise ValueError(f'Expected one literal exported version: {suffix}/{symbol}')
+            version(matches[0].group(3))
+            stamped = pattern.sub(lambda match: match[1] + match[2] + selected_version
+                                  + match[2] + match[4], text)
+            version_sources.append((source, stamped))
+        manifests.append((path, data))
+    for path, data in manifests:
+        write_json(path, data)
+    for path, text in version_sources:
+        path.write_text(text, encoding='utf-8')
+    manifest = read_json(root / 'package.json')
+    manifest['version'] = selected_version
+    write_json(root / 'package.json', manifest)
+
+
+def build_php_archive(root: Path, output: Path, selected_version: str, *, stamp_version: bool = True) -> dict:
+    manifest = read_json(root / 'composer.json')
+    if manifest.get('name') != 'peanut-admin/core':
+        raise ValueError('Selected PHP input is not peanut-admin/core.')
+    if stamp_version:
+        manifest['version'] = version(selected_version)
+        write_json(root / 'composer.json', manifest)
+    if not (root / 'LICENSE').is_file():
+        raise ValueError('PHP Core license is missing.')
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(output, 'x', compression=zipfile.ZIP_DEFLATED) as archive:
+        for path in sorted(root.rglob('*')):
+            relative = path.relative_to(root)
+            if path.is_symlink():
+                raise ValueError('PHP Core release input contains a symbolic link.')
+            if not path.is_file() or any(part in {'.git', '.github', '.local', 'vendor', 'node_modules'} for part in relative.parts):
+                continue
+            if path.name == 'AGENTS.md' or path.name == '.env' or path.name.startswith('.env.'):
+                continue
+            entry = zipfile.ZipInfo('core/' + relative.as_posix(), date_time=(1980, 1, 1, 0, 0, 0))
+            entry.compress_type = zipfile.ZIP_DEFLATED
+            entry.external_attr = (0o100755 if path.stat().st_mode & 0o111 else 0o100644) << 16
+            archive.writestr(entry, path.read_bytes())
+    return {'sha256': hashlib.sha256(output.read_bytes()).hexdigest(),
+            'sha1': hashlib.sha1(output.read_bytes()).hexdigest()}
+
+
+def inspect_web_archive(path: Path, suffix: str, selected_version: str) -> dict:
+    with tarfile.open(path, 'r:gz') as archive:
+        members = archive.getmembers()
+        for member in members:
+            name = PurePosixPath(member.name)
+            if name.is_absolute() or '..' in name.parts or member.issym() or member.islnk():
+                raise ValueError('Unsafe packed Web Core entry.')
+        names = {item.name for item in members if item.isfile()}
+        if not {'package/package.json', 'package/LICENSE', 'package/dist/index.js', 'package/dist/index.d.ts'} <= names:
+            raise ValueError('Packed Core Web package is incomplete.')
+        stream = archive.extractfile('package/package.json')
+        if stream is None:
+            raise ValueError('Packed Core Web manifest is missing.')
+        with stream:
+            manifest = json.load(stream)
+        if manifest.get('name') != '@peanut-admin/' + suffix or manifest.get('version') != selected_version:
+            raise ValueError('Packed Core Web version differs from the selected release.')
+        for field in ('dependencies', 'peerDependencies', 'optionalDependencies'):
+            for name, requirement in manifest.get(field, {}).items():
+                if name.startswith('@peanut-admin/') and requirement != selected_version:
+                    raise ValueError('Packed internal Core Web version was not frozen.')
+        symbol = WEB_VERSION_EXPORTS.get(suffix)
+        if symbol:
+            for entry in ('package/dist/index.js', 'package/dist/index.d.ts'):
+                stream = archive.extractfile(entry)
+                if stream is None:
+                    raise ValueError(f'Packed exported version is missing: {suffix}/{entry}')
+                with stream:
+                    text = stream.read().decode('utf-8')
+                # 原生 tsc 为 as-const 导出生成字面量类型，不是 JavaScript 赋值。
+                # 声明还可使用常量初始化语法；运行时只接受真正的赋值导出。
+                declaration = entry.endswith('.d.ts')
+                prefix = r'(?m)^export declare const ' if declaration else r'(?m)^export const '
+                operator = r'[ \t]*(?::|=)[ \t]*' if declaration else r'[ \t]*=[ \t]*'
+                pattern = re.compile(prefix + re.escape(symbol) + operator
+                                     + r'([\'\"])([^\'\"\r\n]+)\1[ \t]*;?[ \t]*$')
+                values = [match.group(2) for match in pattern.finditer(text)]
+                if values != [selected_version]:
+                    raise ValueError(f'Packed exported version differs from manifest: {suffix}/{entry}')
+    return {'version': selected_version, 'archive': 'packages/core-web/' + path.name,
+            'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+
+
+def freeze(php_source: Path, web_source: Path, destination: Path,
+           php_version: str, web_version: str, composer_command: Path | None = None) -> dict:
+    php_version, web_version = version(php_version), version(web_version)
+    if not destination.is_absolute() or destination.exists():
+        raise ValueError('Output must be a new absolute directory.')
+    php_source, web_source = php_source.resolve(strict=True), web_source.resolve(strict=True)
+    destination = destination.resolve()
+    if any(destination == source or source in destination.parents for source in (php_source, web_source)):
+        raise ValueError('Release output must be outside both development repositories.')
+    sources = {'php': identity(php_source, 'peanut-business/peanut-admin-core-php'),
+               'web': identity(web_source, 'peanut-business/peanut-admin-core-web')}
+    pnpm = pnpm_command()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = Path(tempfile.mkdtemp(prefix='.peanut-core-release-', dir=destination.parent))
+    try:
+        php_root, web_root = temporary / 'php-source', temporary / 'web-source'
+        output = temporary / 'output'
+        output.mkdir()
+        validate_composer_version(php_version, temporary, composer_command)
+        snapshot(php_source, sources['php']['commit'], php_root)
+        snapshot(web_source, sources['web']['commit'], web_root)
+        pnpm_environment = os.environ.copy()
+        run_pnpm(pnpm, ['install', '--frozen-lockfile'], web_root, pnpm_environment, 900)
+        # 先按原生锁安装，再修改独立源码投影的版本并编译；禁止编译后只改清单。
+        stamp_web(web_root, web_version)
+        run_pnpm(pnpm, ['run', 'build'], web_root, pnpm_environment, 900)
+        web_output = output / 'packages/core-web'
+        web_output.mkdir(parents=True)
+        web_packages = {}
+        for suffix in PACKAGES:
+            run_pnpm(pnpm, ['pack', '--pack-destination', str(web_output)],
+                     web_root / 'packages' / suffix, pnpm_environment, 120)
+            path = web_output / f'peanut-admin-{suffix}-{web_version}.tgz'
+            web_packages['@peanut-admin/' + suffix] = inspect_web_archive(path, suffix, web_version)
+        php_path = output / 'packages/core-php' / f'peanut-admin-core-{php_version}.zip'
+        php_hashes = build_php_archive(php_root, php_path, php_version)
+        source_url = 'https://github.com/peanut-business/peanut-admin-core-php.git'
+        php_package = read_json(php_root / 'composer.json')
+        php_package.pop('require-dev', None)
+        php_package.pop('autoload-dev', None)
+        php_package['source'] = {'type': 'git', 'url': source_url, 'reference': sources['php']['commit']}
+        php_package['dist'] = {'type': 'zip', 'url': '../' + php_path.relative_to(output).as_posix(),
+                               'reference': sources['php']['commit'], 'shasum': php_hashes['sha1']}
+        receipt = {
+            'schema_version': 1,
+            'status': 'frozen-core-build-inputs-not-product-release',
+            'sources': sources,
+            'core_php': {'package': 'peanut-admin/core', 'constraint': php_version,
+                         'resolved_version': php_version, 'source_type': 'git',
+                         'source_url': source_url, 'source_reference': sources['php']['commit']},
+            'core_php_archive': {'path': php_path.relative_to(output).as_posix(), **php_hashes},
+            'composer_repository': {'type': 'package', 'package': php_package},
+            'core_web': {'source_type': 'git',
+                         'source_url': 'https://github.com/peanut-business/peanut-admin-core-web.git',
+                         'source_reference': sources['web']['commit'], 'packages': web_packages},
+            'remaining': ['Integrate into the existing product packager',
+                          'Resolve and verify application locks using native package managers',
+                          'Build all clients including the SSR runtime',
+                          'Validate the final installed and upgraded product archive']}
+        for key, source in (('php', php_source), ('web', web_source)):
+            if identity(source, sources[key]['repository']) != sources[key]:
+                raise ValueError('Core input changed while freezing; discard this output.')
+        write_json(output / 'release-core-inputs.json', receipt)
+        if destination.exists():
+            raise ValueError('Output appeared concurrently; refusing to replace it.')
+        output.rename(destination)
+        return receipt
+    finally:
+        shutil.rmtree(temporary)
+
+
+def freeze_local(php_source: Path, web_source: Path, destination: Path,
+                 php_version: str, php_identity: str, web_identity: str,
+                 identity_helper: Path, identity_php: Path) -> dict:
+    """Package the explicitly configured local Core copies without Git claims."""
+    php_version = version(php_version)
+    if not destination.is_absolute() or destination.exists():
+        raise ValueError('Output must be a new absolute directory.')
+    php_source, web_source = php_source.resolve(strict=True), web_source.resolve(strict=True)
+    if any(destination.resolve() == source or source in destination.resolve().parents
+           for source in (php_source, web_source)):
+        raise ValueError('Core archive output must be outside both source snapshots.')
+    if not re.fullmatch(r'[a-f0-9]{64}', php_identity) or not re.fullmatch(r'[a-f0-9]{64}', web_identity):
+        raise ValueError('Local Core source identities must be canonical SHA-256 values.')
+    if not identity_helper.is_absolute() or not identity_helper.is_file() or not identity_php.is_absolute() or not identity_php.is_file():
+        raise ValueError('The registered PHP source identity helper and executable are required.')
+    actual_php_identity = local_source_identity(php_source, identity_helper, identity_php)
+    actual_web_identity = local_source_identity(web_source, identity_helper, identity_php)
+    if actual_php_identity['snapshot_sha256'] != php_identity or actual_web_identity['snapshot_sha256'] != web_identity:
+        raise ValueError('Local Core source identity changed before freezing.')
+    php_identity = actual_php_identity['snapshot_sha256']
+    web_identity = actual_web_identity['snapshot_sha256']
+    php_manifest = read_json(php_source / 'composer.json')
+    if php_manifest.get('name') != 'peanut-admin/core' or not (php_source / 'LICENSE').is_file():
+        raise ValueError('Selected local PHP Core package identity is invalid.')
+    web_manifest = read_json(web_source / 'package.json')
+    web_version = version(web_manifest.get('version'))
+    for suffix in PACKAGES:
+        package = read_json(web_source / 'packages' / suffix / 'package.json')
+        if package.get('name') != '@peanut-admin/' + suffix or package.get('version') != web_version:
+            raise ValueError('Local Web Core packages must retain one declared version and package identity.')
+    pnpm = pnpm_command()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = Path(tempfile.mkdtemp(prefix='.peanut-local-core-', dir=destination.parent))
+    try:
+        php_root, web_root = temporary / 'php-source', temporary / 'web-source'
+        shutil.copytree(php_source, php_root, symlinks=False)
+        shutil.copytree(web_source, web_root, symlinks=False)
+        output = temporary / 'output'
+        output.mkdir()
+        environment = os.environ.copy()
+        run_pnpm(pnpm, ['install', '--frozen-lockfile'], web_root, environment, 900)
+        run_pnpm(pnpm, ['run', 'build'], web_root, environment, 900)
+        web_output = output / 'packages/core-web'
+        web_output.mkdir(parents=True)
+        web_packages = {}
+        for suffix in PACKAGES:
+            run_pnpm(pnpm, ['pack', '--pack-destination', str(web_output)],
+                     web_root / 'packages' / suffix, environment, 120)
+            archive = web_output / f'peanut-admin-{suffix}-{web_version}.tgz'
+            web_packages['@peanut-admin/' + suffix] = inspect_web_archive(archive, suffix, web_version)
+        php_path = output / 'packages/core-php' / f'peanut-admin-core-{php_version}.zip'
+        php_hashes = build_php_archive(php_root, php_path, php_version, stamp_version=True)
+        php_package = read_json(php_root / 'composer.json')
+        php_package.pop('require-dev', None)
+        php_package.pop('autoload-dev', None)
+        php_package.pop('source', None)
+        php_package['dist'] = {'type': 'zip', 'url': '../' + php_path.relative_to(output).as_posix(),
+                               'reference': php_identity, 'shasum': php_hashes['sha1']}
+        receipt = {
+            'schema_version': 1,
+            'status': 'frozen-core-build-inputs-not-product-release',
+            'sources': {'php': {'kind': 'local', 'snapshot_sha256': php_identity},
+                        'web': {'kind': 'local', 'snapshot_sha256': web_identity}},
+            'core_php': {'package': 'peanut-admin/core', 'constraint': php_version,
+                         'resolved_version': php_version, 'source_type': 'local',
+                         'source_identity': {'kind': 'local', 'snapshot_sha256': php_identity}},
+            'core_php_archive': {'path': php_path.relative_to(output).as_posix(), **php_hashes},
+            'composer_repository': {'type': 'package', 'package': php_package},
+            'core_web': {'source_type': 'local',
+                         'source_identity': {'kind': 'local', 'snapshot_sha256': web_identity},
+                         'packages': web_packages},
+            'remaining': ['Resolve and verify application locks using native package managers',
+                          'Build all clients including the SSR runtime',
+                          'Validate the final installed and upgraded product archive'],
+        }
+        write_json(output / 'release-core-inputs.json', receipt)
+        if destination.exists():
+            raise ValueError('Output appeared concurrently; refusing to replace it.')
+        output.rename(destination)
+        return receipt
+    finally:
+        shutil.rmtree(temporary)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--local', action='store_true', help='Package local Core source snapshots without Git identity.')
+    parser.add_argument('--php-core-dir', type=Path, required=True)
+    parser.add_argument('--web-core-dir', type=Path, required=True)
+    parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--version', help='Default exact version for both formal Core projections.')
+    parser.add_argument('--php-version', help='Optional independent PHP Core version.')
+    parser.add_argument('--web-version', help='Optional independent Web Core version.')
+    parser.add_argument('--php-source-sha256', help='Local PHP Core snapshot identity.')
+    parser.add_argument('--web-source-sha256', help='Local Web Core snapshot identity.')
+    parser.add_argument('--source-identity-helper', type=Path,
+                        help='Existing ScaffoldSourceIdentity.php used to authenticate local Core snapshots.')
+    parser.add_argument('--source-identity-php', type=Path,
+                        help='Absolute registered PHP executable used to evaluate the source identity.')
+    parser.add_argument('--composer', type=Path,
+                        help='Explicit prepared project-composer entry for isolated builds; never installs globally.')
+    args = parser.parse_args()
+    try:
+        if args.composer is not None and not args.composer.is_absolute():
+            raise ValueError('--composer must be an absolute executable path, not a shell command.')
+        if args.local:
+            if args.version or args.web_version or args.composer is not None or not args.php_version \
+                    or not args.php_source_sha256 or not args.web_source_sha256 \
+                    or args.source_identity_helper is None or args.source_identity_php is None:
+                raise ValueError('Local mode requires --php-version and both source SHA-256 values only.')
+            receipt = freeze_local(args.php_core_dir, args.web_core_dir, args.output,
+                                   args.php_version, args.php_source_sha256, args.web_source_sha256,
+                                   args.source_identity_helper, args.source_identity_php)
+        else:
+            if not args.version or args.php_source_sha256 or args.web_source_sha256 \
+                    or args.source_identity_helper is not None or args.source_identity_php is not None:
+                raise ValueError('Formal mode requires --version and does not accept local source identities.')
+            receipt = freeze(args.php_core_dir, args.web_core_dir, args.output,
+                             args.php_version or args.version, args.web_version or args.version, args.composer)
+    except (ValueError, OSError, subprocess.SubprocessError, tarfile.TarError, zipfile.BadZipFile) as error:
+        parser.exit(1, f'freeze-core-release: {error}\n')
+    print(json.dumps({'status': receipt['status'], 'sources': receipt['sources'],
+                      'web_packages': len(receipt['core_web']['packages'])}, ensure_ascii=False))
+
+
+if __name__ == '__main__':
+    main()

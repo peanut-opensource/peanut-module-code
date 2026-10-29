@@ -1,0 +1,2177 @@
+{
+  "openapi": "3.0.3",
+  "x-peanut-contract-source": {
+    "route_inventory": "server/route/registry_source.php::peanut_route_endpoint_inventory",
+    "module_fragments": "server/app/modules/*/*/api/metadata/openapi.php"
+  },
+  "info": {
+    "title": "Peanut Module Code HTTP API",
+    "version": "3.0.0",
+    "description": "Application HTTP contract for the identity, Tenant, article, file and notification entry points. Runtime authorization and Tenant binding remain enforced by the server middleware."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth"
+    },
+    {
+      "name": "Tenant"
+    },
+    {
+      "name": "Article"
+    },
+    {
+      "name": "File"
+    },
+    {
+      "name": "Notice"
+    },
+    {
+      "name": "Readiness"
+    },
+    {
+      "name": "ImportExport"
+    },
+    {
+      "name": "PlatformOps"
+    }
+  ],
+  "paths": {
+    "/adminapi/user/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "userLogin",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApiResponse"
+          }
+        }
+      }
+    },
+    "/adminapi/tenant/session/select": {
+      "post": {
+        "tags": [
+          "Tenant"
+        ],
+        "operationId": "selectTenant",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TenantSelectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiResponse"
+          }
+        }
+      }
+    },
+    "/api/article/lists": {
+      "x-peanut-required-modules": ["peanut.article"],
+      "get": {
+        "tags": [
+          "Article"
+        ],
+        "operationId": "listArticles",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageNo"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "in": "query",
+            "name": "cid",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "default",
+                "new",
+                "hot"
+              ],
+              "default": "default"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "公开文章分页",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationArticleListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/article/detail": {
+      "x-peanut-required-modules": ["peanut.article"],
+      "get": {
+        "tags": [
+          "Article"
+        ],
+        "operationId": "articleDetail",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "公开文章详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationArticleDetailResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "x-peanut-errors": [
+          "ARTICLE_NOT_FOUND"
+        ]
+      }
+    },
+    "/adminapi/peanut.file.upload.file": {
+      "post": {
+        "tags": [
+          "File"
+        ],
+        "operationId": "uploadFile",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "cid": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "上传成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileUploadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "x-peanut-errors": [
+          "UPLOAD_FILE_REQUIRED"
+        ]
+      }
+    },
+    "/api/storage/delivery": {
+      "get": {
+        "tags": [
+          "File"
+        ],
+        "operationId": "deliverTenantFile",
+        "description": "Delivers a ready Tenant-owned public or private file only while its Tenant is active. The application URL carries a short-lived single-use token, so links issued under the previous expires/signature contract are invalid. Every request rechecks Tenant state, responses are no-store, direct local or Provider object URLs are not part of the delivery contract, and existing file_key identities are unchanged.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenant_id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "file_key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^file_[a-f0-9]{32}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-gated file contents",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store, private"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/adminapi/peanut.file.list": {
+      "get": {
+        "tags": [
+          "File"
+        ],
+        "operationId": "listFiles",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "enum": [
+                10,
+                20,
+                30
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "cid",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ]
+            }
+          },
+          {
+            "$ref": "#/components/parameters/PageNo"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前租户素材分页",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+        "/api/sms/sendCode": {
+      "x-peanut-required-modules": ["peanut.notification"],
+      "post": {
+        "tags": [
+          "Notice"
+        ],
+        "operationId": "sendVerificationCode",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "scene"
+                ],
+                "properties": {
+                  "scene": {
+                    "type": "string"
+                  },
+                  "mobile": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "验证码发送请求已受理",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationMutationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "x-peanut-errors": [
+          "VERIFICATION_CODE_SEND_REJECTED"
+        ]
+      }
+    },
+    "/adminapi/readiness/checklist": {
+      "get": {
+        "tags": [
+          "Readiness"
+        ],
+        "operationId": "getFirstRunReadinessChecklist",
+        "description": "Returns a Tenant-safe, read-only projection of first-run readiness. Configured values are not promoted to external connectivity or production qualification, and infrastructure details are omitted.",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Readiness checklist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessChecklistResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiResponse"
+          }
+        }
+      }
+    },
+    "/adminapi/peanut.import-export.configuration.export": {
+      "x-peanut-required-modules": ["peanut.import-export"],
+      "get": {
+        "tags": [
+          "ImportExport"
+        ],
+        "operationId": "exportTenantConfiguration",
+        "description": "Exports the authenticated Tenant's logical configuration as a schema-validated package. Tenant IDs and secret material are never included; configured secrets are represented by references that must be rebound at the destination.",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Configuration package",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigurationTransferPackageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/adminapi/peanut.import-export.configuration.dry-run": {
+      "x-peanut-required-modules": ["peanut.import-export"],
+      "post": {
+        "tags": [
+          "ImportExport"
+        ],
+        "operationId": "previewTenantConfigurationImport",
+        "description": "Validates a configuration package, checks its checksum and Tenant scope, reports conflicts and missing secret bindings, and performs no configuration write.",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigurationTransferRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Configuration import plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigurationTransferPlanResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "x-peanut-errors": [
+          "TRANSFER_REQUEST_INVALID"
+        ]
+      }
+    },
+    "/adminapi/peanut.import-export.configuration.apply": {
+      "x-peanut-required-modules": ["peanut.import-export"],
+      "post": {
+        "tags": [
+          "ImportExport"
+        ],
+        "operationId": "applyTenantConfigurationImport",
+        "description": "Applies a validated Tenant configuration package atomically after conflict and secret-rebinding checks, then records a Tenant audit event. The request cannot select a Tenant or carry callback keys, passwords, tokens or keys.",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigurationTransferRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied configuration import plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigurationTransferPlanResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "x-peanut-errors": [
+          "TRANSFER_REQUEST_INVALID"
+        ]
+      }
+    },
+    "/platformapi/v1/ops/backups": {
+      "get": {
+        "tags": [
+          "PlatformOps"
+        ],
+        "operationId": "getPlatformBackupCenter",
+        "description": "Returns the fixed backup Provider, the latest verified path-free manifest projection, and at most 20 recent backup tasks.",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiResponse"
+          }
+        }
+      }
+    },
+    "/platformapi/v1/ops/upgrade-readiness": {
+      "get": {
+        "tags": [
+          "PlatformOps"
+        ],
+        "operationId": "getPlatformUpgradeReadiness",
+        "description": "Returns the read-only source/target, migration, Module, scaffold, backup, restore-evidence and maintenance-window projection. The target is accepted only from the fixed deployment-staged bundle; the request cannot supply a path, URL, command, release key, or credential.",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiResponse"
+          }
+        }
+      }
+    },
+    "/platformapi/v1/ops/upgrades": {
+      "get": {
+        "tags": [
+          "PlatformOps"
+        ],
+        "operationId": "getPlatformUpgradeExecutions",
+        "description": "Returns at most ten application upgrade tasks with immutable source and target identities, ordered step status, stop code and recovery pointer.",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiResponse"
+          }
+        }
+      }
+    },
+    "/platformapi/v1/ops/modules": {
+      "get": {
+        "tags": [
+          "PlatformOps"
+        ],
+        "operationId": "getPlatformModuleOperations",
+        "description": "Returns at most ten deployment-owned Module operation tasks with their immutable Package identity, ordered step status, stable stop code and path-free recovery pointer.",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiResponse"
+          }
+        }
+      }
+    },
+    "/platformapi/v1/ops/providers": {
+      "get": {
+        "tags": [
+          "PlatformOps"
+        ],
+        "operationId": "getPlatformProviderQualifications",
+        "description": "Returns a secret-free, read-only aggregation of configured, connectivity, callback, credential-rotation, production qualification and recent failure states. Reading this endpoint never runs a probe, sends a message, or performs a financial operation.",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Provider qualification snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformProviderQualificationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiResponse"
+          }
+        }
+      }
+    },
+    "/platformapi/v1/ops/maintenance": {
+      "get": {
+        "tags": [
+          "PlatformOps"
+        ],
+        "operationId": "getPlatformMaintenanceWindow",
+        "description": "Returns the current scheduled or active maintenance window.",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiResponse"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "PlatformOps"
+        ],
+        "operationId": "schedulePlatformMaintenanceWindow",
+        "description": "Schedules the sole maintenance window. Once its time range is active, all HTTP mutation routes except the two maintenance-control routes are rejected and audited.",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"rev-[0-9]+\"$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformMaintenanceScheduleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiResponse"
+          }
+        }
+      }
+    },
+    "/platformapi/v1/ops/maintenance/{maintenance_key}/close": {
+      "post": {
+        "tags": [
+          "PlatformOps"
+        ],
+        "operationId": "closePlatformMaintenanceWindow",
+        "description": "Closes the current maintenance window and restores normal HTTP mutation handling.",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "maintenance_key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^maintenance_[a-f0-9]{32}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"rev-[0-9]+\"$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiResponse"
+          }
+        }
+      }
+    },
+    "/platformapi/v1/ops/tasks/backup": {
+      "post": {
+        "tags": [
+          "PlatformOps"
+        ],
+        "operationId": "submitPlatformBackup",
+        "description": "Submits the single registered paired DB/files backup. Host, database, path, command, credential and retry fields are not accepted.",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformBackupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiResponse"
+          }
+        }
+      }
+    },
+    "/platformapi/v1/ops/tasks/restore": {
+      "post": {
+        "tags": [
+          "PlatformOps"
+        ],
+        "operationId": "submitPlatformRestoreVerification",
+        "description": "Restores one verified paired backup to the registered isolated target, verifies data and files, then removes only that target. Host, database, path, command, credential and retry fields are not accepted.",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformRestoreVerificationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiResponse"
+          }
+        }
+      }
+    },
+    "/platformapi/v1/ops/tasks/upgrade": {
+      "post": {
+        "tags": [
+          "PlatformOps"
+        ],
+        "operationId": "submitPlatformUpgradeExecution",
+        "description": "Submits the sole fixed application-upgrade workflow. Source and target identities come from current Runtime plus the deployment-staged PC41 descriptor. The request cannot provide a path, URL, command, Release, image, credential, retry count or deployment target.",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "maxProperties": 0
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiResponse"
+          }
+        }
+      }
+    },
+    "/platformapi/v1/ops/tasks/module": {
+      "post": {
+        "tags": [
+          "PlatformOps"
+        ],
+        "operationId": "submitPlatformModuleOperation",
+        "description": "Submits one deployment-prepared Module update, retire or Purge request by opaque request key. The request cannot provide an archive, path, URL, command, host, database, credential, confirmation plan or target.",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformModuleOperationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiResponse"
+          }
+        }
+      }
+    },
+    "/platformapi/v1/ops/tasks/{task_key}": {
+      "get": {
+        "tags": [
+          "PlatformOps"
+        ],
+        "operationId": "getPlatformOpsTask",
+        "security": [
+          {
+            "bearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^job_[a-f0-9]{32}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApiResponse"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "parameters": {
+      "PageNo": {
+        "in": "query",
+        "name": "page_no",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        }
+      },
+      "PageSize": {
+        "in": "query",
+        "name": "page_size",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200,
+          "default": 15
+        }
+      }
+    },
+    "schemas": {
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "account",
+          "password"
+        ],
+        "properties": {
+          "account": {
+            "type": "string",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "format": "password"
+          },
+          "terminal": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "TenantSelectRequest": {
+        "type": "object",
+        "required": [
+          "tenant_id"
+        ],
+        "properties": {
+          "tenant_id": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "PlatformMaintenanceScheduleRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reason_key",
+          "starts_at",
+          "ends_at"
+        ],
+        "properties": {
+          "reason_key": {
+            "type": "string",
+            "enum": [
+              "planned-upgrade",
+              "database-maintenance",
+              "security-maintenance"
+            ]
+          },
+          "starts_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ends_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PlatformBackupRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider_key"
+        ],
+        "properties": {
+          "provider_key": {
+            "type": "string",
+            "enum": [
+              "peanut.paired-db-files"
+            ]
+          }
+        }
+      },
+      "PlatformModuleOperationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "request_key"
+        ],
+        "properties": {
+          "request_key": {
+            "type": "string",
+            "pattern": "^modreq_[a-f0-9]{32}$"
+          }
+        }
+      },
+      "PlatformRestoreVerificationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider_key",
+          "backup_reference_key",
+          "target_key"
+        ],
+        "properties": {
+          "provider_key": {
+            "type": "string",
+            "enum": [
+              "peanut.paired-db-files"
+            ]
+          },
+          "backup_reference_key": {
+            "type": "string",
+            "pattern": "^backup_[a-f0-9]{32}$"
+          },
+          "target_key": {
+            "type": "string",
+            "enum": [
+              "isolated-new-target"
+            ]
+          }
+        }
+      },
+      "ConfigurationTransferRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "package",
+          "secret_bindings",
+          "conflict_policy"
+        ],
+        "properties": {
+          "package": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ConfigurationTransferPackage"
+              },
+              {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 1048576
+              }
+            ]
+          },
+          "secret_bindings": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 1
+            },
+            "maxProperties": 128
+          },
+          "conflict_policy": {
+            "type": "string",
+            "enum": [
+              "abort",
+              "overwrite",
+              "skip"
+            ]
+          }
+        }
+      },
+      "ConfigurationTransferPackageResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/ConfigurationTransferPackage"
+              }
+            }
+          }
+        ]
+      },
+      "ConfigurationTransferPlanResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/ConfigurationTransferPlan"
+              }
+            }
+          }
+        ]
+      },
+      "ConfigurationTransferPackage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema_version",
+          "protocol",
+          "manifest",
+          "scope",
+          "created_at",
+          "assets",
+          "entries",
+          "checksum"
+        ],
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "protocol": {
+            "type": "string",
+            "enum": [
+              "peanut.configuration-transfer"
+            ]
+          },
+          "manifest": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "identity",
+              "version"
+            ],
+            "properties": {
+              "identity": {
+                "type": "string",
+                "enum": [
+                  "peanut.admin"
+                ]
+              },
+              "version": {
+                "type": "string",
+                "pattern": "^[0-9]+\\\\.[0-9]+\\\\.[0-9]+$",
+                "maxLength": 32
+              }
+            }
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "tenant"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\\\.[0-9]{3}Z$"
+          },
+          "assets": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "strategy"
+            ],
+            "properties": {
+              "strategy": {
+                "type": "string",
+                "enum": [
+                  "logical-reference-only"
+                ]
+              }
+            }
+          },
+          "entries": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/ConfigurationTransferEntry"
+            }
+          },
+          "checksum": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      },
+      "ConfigurationTransferEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "adapter",
+          "key",
+          "value",
+          "secrets"
+        ],
+        "properties": {
+          "adapter": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9.-]{0,63}$"
+          },
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9.-]{0,190}(?::[a-z][a-z0-9-]{0,63})?$"
+          },
+          "value": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "secrets": {
+            "type": "array",
+            "maxItems": 128,
+            "items": {
+              "$ref": "#/components/schemas/ConfigurationTransferSecret"
+            }
+          }
+        }
+      },
+      "ConfigurationTransferSecret": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reference",
+          "state"
+        ],
+        "properties": {
+          "reference": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9._-]{0,190}$"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "configured",
+              "unconfigured"
+            ]
+          }
+        }
+      },
+      "ConfigurationTransferPlan": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "protocol",
+          "schema_version",
+          "scope",
+          "checksum",
+          "dry_run",
+          "status",
+          "can_apply",
+          "conflict_policy",
+          "counts",
+          "entries",
+          "conflicts",
+          "missing_secret_references"
+        ],
+        "properties": {
+          "protocol": {
+            "type": "string",
+            "enum": [
+              "peanut.configuration-transfer"
+            ]
+          },
+          "schema_version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "tenant"
+            ]
+          },
+          "checksum": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "dry_run": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "blocked",
+              "applied"
+            ]
+          },
+          "can_apply": {
+            "type": "boolean"
+          },
+          "conflict_policy": {
+            "type": "string",
+            "enum": [
+              "abort",
+              "overwrite",
+              "skip"
+            ]
+          },
+          "counts": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "total",
+              "create",
+              "replace",
+              "unchanged",
+              "skip",
+              "conflict"
+            ],
+            "properties": {
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "create": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "replace": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unchanged": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "skip": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "conflict": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "entries": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/ConfigurationTransferPlanEntry"
+            }
+          },
+          "conflicts": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/ConfigurationTransferConflict"
+            }
+          },
+          "missing_secret_references": {
+            "type": "array",
+            "maxItems": 128,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9._-]{0,190}$"
+            }
+          },
+          "applied": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/ConfigurationTransferPlanEntry"
+            }
+          },
+          "skipped": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/ConfigurationTransferPlanEntry"
+            }
+          },
+          "applied_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "skipped_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "ConfigurationTransferPlanEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "adapter",
+          "key",
+          "action",
+          "exists",
+          "current_revision",
+          "secrets"
+        ],
+        "properties": {
+          "adapter": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9.-]{0,63}$"
+          },
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9.-]{0,190}(?::[a-z][a-z0-9-]{0,63})?$"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "create",
+              "replace",
+              "replace-secret",
+              "unchanged",
+              "skip",
+              "conflict"
+            ]
+          },
+          "exists": {
+            "type": "boolean"
+          },
+          "current_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true
+          },
+          "secrets": {
+            "type": "array",
+            "maxItems": 128,
+            "items": {
+              "$ref": "#/components/schemas/ConfigurationTransferSecret"
+            }
+          }
+        }
+      },
+      "ConfigurationTransferConflict": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "adapter",
+          "key",
+          "current_revision",
+          "action"
+        ],
+        "properties": {
+          "adapter": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9.-]{0,63}$"
+          },
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9.-]{0,190}(?::[a-z][a-z0-9-]{0,63})?$"
+          },
+          "current_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "replace",
+              "skip",
+              "conflict"
+            ]
+          }
+        }
+      },
+      "PlatformProviderQualificationResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/PlatformProviderQualificationSnapshot"
+              }
+            }
+          }
+        ]
+      },
+      "PlatformProviderQualificationSnapshot": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema_version",
+          "generated_at",
+          "providers"
+        ],
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlatformProviderQualification"
+            }
+          }
+        }
+      },
+      "PlatformProviderQualification": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider_key",
+          "category",
+          "scope",
+          "configured",
+          "connected",
+          "callback_verified",
+          "credential_rotated_at",
+          "observed_at",
+          "expires_at",
+          "qualified",
+          "status_code",
+          "recent_failure",
+          "evidence_digest"
+        ],
+        "properties": {
+          "provider_key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9._-]{2,95}$"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "payment",
+              "notification",
+              "oauth",
+              "storage"
+            ]
+          },
+          "scope": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "key"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "tenant",
+                  "instance"
+                ]
+              },
+              "key": {
+                "type": "string",
+                "pattern": "^scope_[a-f0-9]{64}$"
+              }
+            }
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "callback_verified": {
+            "type": "boolean"
+          },
+          "credential_rotated_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "qualified": {
+            "type": "boolean"
+          },
+          "status_code": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]{2,95}$"
+          },
+          "recent_failure": {
+            "nullable": true,
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "code",
+                  "observed_at"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9_]{2,95}$"
+                  },
+                  "observed_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            ]
+          },
+          "evidence_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      },
+      "ReadinessChecklistResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/ReadinessChecklist"
+              }
+            }
+          }
+        ]
+      },
+      "ReadinessChecklist": {
+        "type": "object",
+        "required": [
+          "production_ready",
+          "summary",
+          "items"
+        ],
+        "properties": {
+          "production_ready": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReadinessItem"
+            }
+          }
+        }
+      },
+      "ReadinessItem": {
+        "type": "object",
+        "required": [
+          "key",
+          "scope",
+          "status",
+          "verification_level",
+          "impact_key",
+          "action_key",
+          "entry",
+          "production_blocking",
+          "facts"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "brand",
+              "notification",
+              "storage",
+              "backup",
+              "worker",
+              "domain_tls",
+              "account_security"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "tenant",
+              "instance"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "configured",
+              "observed",
+              "action_required",
+              "unverified",
+              "not_implemented"
+            ]
+          },
+          "verification_level": {
+            "type": "string"
+          },
+          "impact_key": {
+            "type": "string"
+          },
+          "action_key": {
+            "type": "string"
+          },
+          "entry": {
+            "type": "object",
+            "required": [
+              "kind",
+              "route",
+              "audience"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "route",
+                  "owner"
+                ]
+              },
+              "route": {
+                "type": "string",
+                "nullable": true
+              },
+              "audience": {
+                "type": "string",
+                "enum": [
+                  "tenant_admin",
+                  "platform_operator",
+                  "deployment_owner"
+                ]
+              }
+            }
+          },
+          "production_blocking": {
+            "type": "boolean"
+          },
+          "facts": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+    "ErrorEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "msg",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer",
+          "minimum": 40000,
+          "maximum": 59999
+        },
+        "msg": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object",
+          "nullable": true,
+          "properties": {
+            "error_code": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]{2,127}$"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "example": {
+        "code": 40300,
+        "msg": "无权执行该操作",
+        "data": {
+          "error_code": "API_PERMISSION_DENIED"
+        }
+      }
+    },
+    "ApiResponse": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "code": {
+            "type": "integer"
+          },
+          "show": {
+            "type": "boolean"
+          },
+          "msg": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/JsonValue"
+          }
+        }
+      },
+      "JsonValue": {
+        "description": "JSON-compatible response or configuration value.",
+        "nullable": true,
+        "oneOf": [
+          {"type": "string"},
+          {"type": "number"},
+          {"type": "integer"},
+          {"type": "boolean"},
+          {"type": "object", "additionalProperties": true},
+          {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {"type": "string"},
+                {"type": "number"},
+                {"type": "integer"},
+                {"type": "boolean"},
+                {"type": "object", "additionalProperties": true}
+              ]
+            }
+          }
+        ]
+      }
+    },
+  "responses": {
+    "ApiResponse": {
+        "description": "Standard Peanut Module Code API response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiResponse"
+            }
+          }
+        }
+      },
+    "ErrorResponse": {
+      "description": "统一 API 错误响应；data.error_code 仅在异常提供稳定错误码时出现。",
+      "headers": {
+        "X-Request-Id": {
+          "description": "请求追踪 ID",
+          "schema": {
+            "type": "string"
+          }
+        }
+      },
+      "content": {
+        "application/json": {
+          "schema": {
+            "$ref": "#/components/schemas/ErrorEnvelope"
+          }
+        }
+      }
+    }
+  }
+}
+}

@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://peanut-admin.example/schemas/release-versions.v3.json",
+  "title": "Peanut Module Code release versions v3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "protocol", "source_product_version", "instance_version", "scaffold_template", "generated_instance_default", "core_php", "core_web"],
+  "properties": {
+    "schema_version": { "const": 3 },
+    "protocol": { "const": "peanut.release-versions.v3" },
+    "source_product_version": { "$ref": "#/$defs/semver" },
+    "instance_version": { "oneOf": [{ "$ref": "#/$defs/semver" }, { "type": "null" }] },
+    "scaffold_template": { "$ref": "#/$defs/semver" },
+    "generated_instance_default": { "$ref": "#/$defs/semver" },
+    "core_php": { "$ref": "#/$defs/composerPackage" },
+    "core_web": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_type", "source_url", "source_reference", "packages"],
+      "properties": {
+        "source_type": { "const": "git" },
+        "source_url": { "type": "string", "pattern": "^https://" },
+        "source_reference": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "packages": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["@peanut-admin/client", "@peanut-admin/vue", "@peanut-admin/ui-vue", "@peanut-admin/nuxt", "@peanut-admin/uniapp", "@peanut-admin/testing"],
+          "properties": {
+            "@peanut-admin/client": { "$ref": "#/$defs/npmPackage" },
+            "@peanut-admin/vue": { "$ref": "#/$defs/npmPackage" },
+            "@peanut-admin/ui-vue": { "$ref": "#/$defs/npmPackage" },
+            "@peanut-admin/nuxt": { "$ref": "#/$defs/npmPackage" },
+            "@peanut-admin/uniapp": { "$ref": "#/$defs/npmPackage" },
+            "@peanut-admin/testing": { "$ref": "#/$defs/npmPackage" }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "composerPackage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["package", "constraint", "resolved_version", "source_type", "source_url", "source_reference"],
+      "properties": {
+        "package": { "const": "peanut-admin/core" },
+        "constraint": { "type": "string", "minLength": 1 },
+        "resolved_version": { "type": "string", "minLength": 1 },
+        "source_type": { "const": "git" },
+        "source_url": { "type": "string", "pattern": "^https://" },
+        "source_reference": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+      }
+    },
+    "npmPackage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "archive", "sha256"],
+      "properties": {
+        "version": { "$ref": "#/$defs/semver" },
+        "archive": { "type": "string", "pattern": "^packages/core-web/peanut-admin-[a-z-]+-[0-9A-Za-z.+-]+\\.tgz$" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    }
+  }
+}

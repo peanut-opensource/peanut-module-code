@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)"
+PROJECT_ROOT=""
+PROJECT_ROOT_SPECIFIED=0
+if [[ -n "${PEANUT_ADMIN_PROJECT_ROOT+x}" ]]; then
+  PROJECT_ROOT="$PEANUT_ADMIN_PROJECT_ROOT"
+  PROJECT_ROOT_SPECIFIED=1
+fi
+for argument in "$@"; do
+  case "$argument" in
+    --project-root=*)
+      [[ "$PROJECT_ROOT_SPECIFIED" -eq 0 ]] \
+        || { printf 'check-openapi: Project root was specified more than once\n' >&2; exit 2; }
+      PROJECT_ROOT="${argument#--project-root=}"
+      PROJECT_ROOT_SPECIFIED=1
+      ;;
+    *)
+      printf 'check-openapi: unknown argument: %s\n' "$argument" >&2
+      exit 2
+      ;;
+  esac
+done
+
+if [[ "$PROJECT_ROOT_SPECIFIED" -eq 1 ]]; then
+  [[ "$PROJECT_ROOT" == /* && -d "$PROJECT_ROOT" ]] \
+    || { printf 'check-openapi: Project root must be an absolute existing directory: %s\n' "$PROJECT_ROOT" >&2; exit 1; }
+  PROJECT_ROOT="$(CDPATH= cd -- "$PROJECT_ROOT" && pwd -P)"
+fi
+
+TMP_BASE="${TMPDIR:-/tmp}"
+[[ "$TMP_BASE" == /* && -d "$TMP_BASE" ]] \
+  || { printf 'check-openapi: temporary directory base is unavailable: %s\n' "$TMP_BASE" >&2; exit 1; }
+TMP_DIR="$(mktemp -d "${TMP_BASE%/}/peanut-openapi-check.XXXXXX")"
+trap 'rm -rf -- "$TMP_DIR"' EXIT
+
+php "$ROOT_DIR/scripts/generate-api-contracts.php" "--output-root=$TMP_DIR" >/dev/null
+
+EXPECTED_LIST="$TMP_DIR/.expected-artifacts"
+ACTUAL_LIST="$TMP_DIR/.actual-artifacts"
+{
+  printf '%s\n' \
+    'server/generated/openapi.json' \
+    'server/generated/api-catalog.json' \
+    'web/src/generated/openapi.d.ts'
+  if [[ -d "$TMP_DIR/web/src/modules" ]]; then
+    find "$TMP_DIR/web/src/modules" -path '*/generated/openapi.ts' -type f -print \
+      | sed "s#^$TMP_DIR/##"
+  fi
+} | LC_ALL=C sort -u >"$EXPECTED_LIST"
+{
+  printf '%s\n' \
+    'server/generated/openapi.json' \
+    'server/generated/api-catalog.json' \
+    'web/src/generated/openapi.d.ts'
+  if [[ -d "$ROOT_DIR/web/src/modules" ]]; then
+    find "$ROOT_DIR/web/src/modules" -path '*/generated/openapi.ts' -print \
+      | sed "s#^$ROOT_DIR/##"
+  fi
+} | LC_ALL=C sort -u >"$ACTUAL_LIST"
+
+status=0
+while IFS= read -r relative_path; do
+  expected="$TMP_DIR/$relative_path"
+  actual="$ROOT_DIR/$relative_path"
+  if [[ ! -e "$actual" && ! -L "$actual" ]]; then
+    printf 'check-openapi: missing generated artifact: %s\n' "$actual" >&2
+    status=1
+  elif [[ ! -f "$actual" || -L "$actual" ]]; then
+    printf 'check-openapi: generated artifact is not a regular non-symlink file: %s\n' "$actual" >&2
+    status=1
+  elif ! cmp -s -- "$expected" "$actual"; then
+    printf 'check-openapi: generated artifact drift: %s\n' "$actual" >&2
+    status=1
+  fi
+done <"$EXPECTED_LIST"
+
+while IFS= read -r relative_path; do
+  [[ -z "$relative_path" ]] && continue
+  printf 'check-openapi: unexpected generated artifact: %s\n' "$ROOT_DIR/$relative_path" >&2
+  status=1
+done < <(comm -13 "$EXPECTED_LIST" "$ACTUAL_LIST")
+
+if [[ "$PROJECT_ROOT_SPECIFIED" -eq 1 ]]; then
+  PROJECT_SPEC="$PROJECT_ROOT/docs/api/openapi.yaml"
+  if [[ ! -e "$PROJECT_SPEC" && ! -L "$PROJECT_SPEC" ]]; then
+    printf 'check-openapi: missing Project OpenAPI mirror: %s\n' "$PROJECT_SPEC" >&2
+    status=1
+  elif [[ ! -f "$PROJECT_SPEC" || -L "$PROJECT_SPEC" ]]; then
+    printf 'check-openapi: Project OpenAPI mirror is not a regular non-symlink file: %s\n' "$PROJECT_SPEC" >&2
+    status=1
+  elif ! cmp -s -- "$TMP_DIR/server/generated/openapi.json" "$PROJECT_SPEC"; then
+    printf 'check-openapi: Project OpenAPI mirror drift: %s\n' "$PROJECT_SPEC" >&2
+    status=1
+  fi
+fi
+
+if [[ "$status" -ne 0 ]]; then
+  exit "$status"
+fi
+
+artifact_count="$(wc -l <"$EXPECTED_LIST" | tr -d '[:space:]')"
+printf 'OPENAPI-CHECK-001 passed: %s generated artifacts match authoritative application sources\n' "$artifact_count"

@@ -1,0 +1,86 @@
+{
+    "name": "peanut-business/peanut-module-code",
+    "description": "Peanut Module Code application backend",
+    "type": "project",
+    "keywords": [
+        "admin",
+        "scaffold",
+        "thinkphp",
+        "vue"
+    ],
+    "homepage": "https://github.com/peanut-business/peanut-admin-code",
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/peanut-business/peanut-admin-core-php.git"
+        }
+    ],
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "application owner"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "topthink/framework": "^8.0",
+        "topthink/think-multi-app": "^1.1.1",
+        "topthink/think-orm": "^3.0|^4.0",
+        "topthink/think-filesystem": "^2.0|^3.0",
+        "firebase/php-jwt": "^7.1",
+        "dragonmantank/cron-expression": "^3.3",
+        "qiniu/php-sdk": "^7.4",
+        "aws/aws-sdk-php": "^3.0",
+        "aliyuncs/oss-sdk-php": "^2.4",
+        "qcloud/cos-sdk-v5": "^2.5",
+        "peanut-admin/core": "5.0.2",
+        "symfony/html-sanitizer": "^7.3",
+        "composer/semver": "^3.4",
+        "opis/json-schema": "^2.6",
+        "topthink/think-migration": "3.1.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "12.5.31",
+        "topthink/think-dumper": "^1.0",
+        "topthink/think-trace": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "app\\": "app",
+            "PeanutAdmin\\Modules\\File\\": "app/modules/peanut/file/src/",
+            "PeanutAdmin\\Modules\\Identity\\": "app/modules/peanut/identity/src/",
+            "PeanutAdmin\\Modules\\Integration\\": "app/modules/peanut/integration/src/",
+            "PeanutAdmin\\Modules\\Ops\\": "app/modules/peanut/ops/src/",
+            "PeanutAdmin\\Modules\\ReferenceCodes\\": "app/modules/peanut/reference_codes/src/",
+            "PeanutAdmin\\Modules\\Settings\\": "app/modules/peanut/settings/src/",
+            "PeanutAdmin\\Modules\\Task\\": "app/modules/peanut/task/src/"
+        },
+        "exclude-from-classmap": [
+            "app/modules/*/*/database/migrations/",
+            "app/modules/*/*/*/database/migrations/",
+            "tests/Modules/Official/ImportExport/feature-harness.php",
+            "tests/Modules/Official/Notification/feature-harness.php"
+        ]
+    },
+    "config": {
+        "preferred-install": "dist"
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "@php docker/scripts/prepare-vendor.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "PeanutAdmin\\Testing\\": [
+                "tests/CoreIntegration/testing/src/",
+                "vendor/peanut-admin/core/testing/src/"
+            ]
+        },
+        "classmap": [
+            "vendor/peanut-admin/core/kernel/tests/",
+            "vendor/peanut-admin/core/data-permission/tests/"
+        ],
+        "files": []
+    }
+}

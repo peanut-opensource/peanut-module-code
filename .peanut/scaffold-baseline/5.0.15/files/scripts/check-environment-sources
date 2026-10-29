@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+"""Check configuration ownership and transient installation input boundaries."""
+
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent.parent
+SKIP_PARTS = {"node_modules", "vendor", "tests", "fixtures"}
+SKIP_PREFIXES = ("scaffold/releases/", "docs/maintenance/", "docs/product-status/audits/")
+SOURCE_SUFFIXES = {".php", ".py", ".sh", ".ts", ".js", ".mjs", ".yml", ".yaml"}
+
+
+def active_sources() -> list[Path]:
+    roots = ["scripts", "server", "web/config", "platform", "pc", "uniapp", "deploy", ".github/workflows"]
+    files: list[Path] = []
+    for root in roots:
+        for path in (ROOT / root).rglob("*"):
+            relative = path.relative_to(ROOT).as_posix()
+            script_without_suffix = relative.startswith("scripts/") and path.suffix == ""
+            if not path.is_file() or (path.suffix not in SOURCE_SUFFIXES and not script_without_suffix):
+                continue
+            if any(part in SKIP_PARTS for part in path.relative_to(ROOT).parts) or relative.startswith(SKIP_PREFIXES):
+                continue
+            files.append(path)
+    return sorted(set(files))
+
+
+def backend_contract(errors: list[str]) -> None:
+    example_keys = {
+        match.group(1)
+        for line in (ROOT / "server/.env.example").read_text(encoding="utf-8").splitlines()
+        if (match := re.match(r"^([A-Z][A-Z0-9_]*)=", line))
+    }
+    transient = {"ADMIN_INITIAL_EMAIL", "ADMIN_INITIAL_PASSWORD", "PLATFORM_INITIAL_EMAIL", "PLATFORM_INITIAL_PASSWORD", "PEANUT_DEMO_TENANT_ID"}
+    persisted = transient & example_keys
+    if persisted:
+        errors.append(f"transient installation keys are persisted in server/.env.example: {sorted(persisted)}")
+    if "MYSQL_ROOT_PASSWORD" in example_keys:
+        errors.append("Docker MYSQL_ROOT_PASSWORD must not enter the backend application environment")
+
+
+def database_environment_contract(errors: list[str]) -> None:
+    legacy_alias = "DB_" + "ROOT_PASS"
+    file_alias = "MYSQL_ROOT_PASSWORD" + "_FILE"
+    legacy_allowlist = {
+        "deploy/legacy-env-migrate",
+        "deploy/tests/deploy-release-candidate-contract.sh",
+        "scripts/project-development-database.sh",
+        "docs/development/current-code-lifecycle.md",
+    }
+    deprecated_file_alias_documentation = {
+        "docs/development/current-code-lifecycle.md",
+    }
+    for path in ROOT.rglob("*"):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(ROOT).as_posix()
+        if relative.startswith("scaffold/releases/") or any(part in {"node_modules", "vendor", ".git", ".local", "__pycache__"} for part in path.relative_to(ROOT).parts):
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        if file_alias in text and relative not in deprecated_file_alias_documentation:
+            errors.append(f"deprecated MySQL root password file variable is forbidden: {relative}")
+        if legacy_alias in text and relative not in legacy_allowlist:
+            errors.append(f"legacy database root password alias is forbidden: {relative}")
+
+    compose = (ROOT / "server/docker/compose.yaml").read_text(encoding="utf-8")
+    if "MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:" not in compose:
+        errors.append("server/docker/compose.yaml must map MYSQL_ROOT_PASSWORD directly")
+
+
+def scan_sources(errors: list[str]) -> None:
+    for path in active_sources():
+        relative = path.relative_to(ROOT).as_posix()
+        if relative == "scripts/check-environment-sources":
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        if re.search(r"(?:^|\s)-(?:e|env)\s+(?:ADMIN_INITIAL_|PLATFORM_INITIAL_|PEANUT_DEMO_TENANT_ID)", text, re.MULTILINE):
+            errors.append(f"transient identity is injected with a container environment option: {relative}")
+
+
+def frontend_contract(errors: list[str]) -> None:
+    required = [
+        "web/.env.example", "web/.env.development", "web/.env.production",
+        "web/.env.standalone", "web/.env.multi-tenant", "platform/.env.example",
+        "platform/.env.production", "pc/.env.example", "pc/.env.production",
+        "uniapp/.env.example", "uniapp/.env.production",
+    ]
+    for relative in required:
+        if not (ROOT / relative).is_file():
+            errors.append(f"managed client environment template is missing: {relative}")
+
+
+def main() -> int:
+    errors: list[str] = []
+    backend_contract(errors)
+    database_environment_contract(errors)
+    frontend_contract(errors)
+    scan_sources(errors)
+    if errors:
+        for error in errors:
+            print(f"environment-source-check: {error}", file=sys.stderr)
+        return 1
+    print("environment-source-check: configuration ownership and installation boundaries checked")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

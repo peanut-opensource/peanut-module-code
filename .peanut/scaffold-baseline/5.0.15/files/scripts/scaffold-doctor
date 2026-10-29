@@ -1,0 +1,282 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+APP_DIR="$ROOT_DIR"
+CORE_DIR=""
+LOCAL_CORE_MODE=0
+RESOURCE_ID=""
+REGISTRY=""
+
+die() { printf 'scaffold-doctor: %s\n' "$*" >&2; exit 1; }
+usage() { printf '%s\n' "Usage: $0 --resource-id <registered-id> [--path <application>] [--core-dir <core>]"; }
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --resource-id) [[ $# -gt 1 ]] || die '--resource-id requires a value'; RESOURCE_ID="$2"; shift 2 ;;
+    --path) [[ $# -gt 1 ]] || die '--path requires a value'; APP_DIR="$2"; shift 2 ;;
+    --core-dir) [[ $# -gt 1 && -n "$2" ]] || die '--core-dir requires a value'; CORE_DIR="$2"; LOCAL_CORE_MODE=1; shift 2 ;;
+    --help|-h) usage; exit 0 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+done
+[[ -n "$RESOURCE_ID" ]] || die '--resource-id is required; resource identity is never guessed'
+command -v jq >/dev/null || die 'jq is required'
+APP_DIR="$(CDPATH= cd -- "$APP_DIR" && pwd)"
+if [[ "$LOCAL_CORE_MODE" == 1 ]]; then
+  [[ -d "$CORE_DIR" ]] || die "core checkout is missing: $CORE_DIR"
+  CORE_DIR="$(CDPATH= cd -- "$CORE_DIR" && pwd)"
+fi
+REGISTRY="$APP_DIR/resources/project-resources.json"
+[[ -f "$REGISTRY" ]] || die "resource registry missing: $REGISTRY"
+jq -e --arg id "$RESOURCE_ID" '.. | objects | select(.stable_resource_id == $id)' "$REGISTRY" >/dev/null || die "resource is not registered: $RESOURCE_ID"
+COMPOSER_BIN="$APP_DIR/scripts/project-composer"
+
+for tool in php node; do command -v "$tool" >/dev/null || die "$tool is unavailable"; done
+[[ -x "$COMPOSER_BIN" ]] || die "project Composer entry point is unavailable: $COMPOSER_BIN"
+if command -v pnpm >/dev/null; then PM=pnPM; elif command -v npm >/dev/null; then PM=npm; else die 'pnpm or npm is unavailable'; fi
+printf 'tooling=php:%s composer:%s node:%s package-manager:%s\n' "$(php -r 'echo PHP_VERSION;')" "$("$COMPOSER_BIN" --version --no-ansi | head -1)" "$(node --version)" "$PM"
+
+for file in server/composer.json server/composer.lock web/package.json web/pnpm-lock.yaml plugins.lock RELEASE_METADATA.json release-versions.json; do
+  [[ -f "$APP_DIR/$file" ]] || die "missing required dependency/manifest file: $file"
+done
+if [[ "$APP_DIR" != "$ROOT_DIR" ]]; then
+  [[ -f "$APP_DIR/.peanut/application-manifest.json" ]] || die 'generated application manifest is missing'
+  jq -e '.protocol == "peanut.application-scaffold.v2" and (.application.profile | IN("minimal","standard","full"))' "$APP_DIR/.peanut/application-manifest.json" >/dev/null || die 'application manifest is invalid'
+fi
+php -r 'json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR);' "$APP_DIR/server/composer.lock"
+node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]));' "$APP_DIR/web/package.json"
+node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]));' "$APP_DIR/RELEASE_METADATA.json"
+node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]));' "$APP_DIR/plugins.lock"
+node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]));' "$APP_DIR/release-versions.json"
+
+if jq -e '.schema_version == 3 and .protocol == "peanut.release-versions.v3"' "$APP_DIR/release-versions.json" >/dev/null; then
+  php -r '
+$contract = json_decode((string)file_get_contents($argv[1]), true, 64, JSON_THROW_ON_ERROR);
+$composer = json_decode((string)file_get_contents($argv[2]), true, 512, JSON_THROW_ON_ERROR);
+$declared = json_decode((string)file_get_contents($argv[3]), true, 64, JSON_THROW_ON_ERROR)["require"]["peanut-admin/core"] ?? null;
+$matches = array_values(array_filter($composer["packages"] ?? [], static fn(array $p): bool => ($p["name"] ?? null) === "peanut-admin/core"));
+$expected = $contract["core_php"] ?? null;
+if (count($matches) !== 1 || !is_array($expected) || $declared !== $expected["constraint"]
+    || ($matches[0]["version"] ?? null) !== $expected["resolved_version"]
+    || ($matches[0]["source"]["type"] ?? null) !== $expected["source_type"]
+    || ($matches[0]["source"]["url"] ?? null) !== $expected["source_url"]
+    || ($matches[0]["source"]["reference"] ?? null) !== $expected["source_reference"]
+    || (($matches[0]["dist"]["reference"] ?? $expected["source_reference"]) !== $expected["source_reference"])) {
+    fwrite(STDERR, "PHP Core manifest/lock/version-contract identity mismatch\n"); exit(2);
+}
+' "$APP_DIR/release-versions.json" "$APP_DIR/server/composer.lock" "$APP_DIR/server/composer.json" \
+    || die 'PHP Core manifest/lock/version-contract identity mismatch'
+
+  # 共用固定 registry / 本地开发归档检查，资源授权仍由本脚本前置守卫负责。
+  node "$ROOT_DIR/scripts/release-dependency-locks.mjs" "$APP_DIR" --installed || exit $?
+
+  if [[ "$LOCAL_CORE_MODE" == 1 ]]; then
+    while IFS=$'\t' read -r package version; do
+      package_dir="${package#@peanut-admin/}"
+      actual="$(jq -r '.version // empty' "$CORE_DIR/packages/$package_dir/package.json")"
+      [[ "$actual" == "$version" ]] || die "local Core Web identity mismatch: $package expected=$version actual=$actual"
+    done < <(jq -r '.core_web.packages | to_entries[] | [.key,.value.version] | @tsv' "$APP_DIR/release-versions.json")
+  fi
+
+  RESIDUE_PATTERN='/Users/[^[:space:]]+/peanut-admin|peanut-admin\.007345\.xyz'
+  if rg -n --hidden --glob '!**/server/vendor/**' --glob '!**/node_modules/**' --glob '!**/scripts/scaffold-doctor' --glob '!**/.peanut/**' "$RESIDUE_PATTERN" "$APP_DIR" >/dev/null 2>&1; then
+    die 'source project absolute path or Peanut Module Code domain residue detected'
+  fi
+  printf 'scaffold-doctor: OK resource=%s app=%s scope=php,four-clients mode=%s\n' "$RESOURCE_ID" "$APP_DIR" "$([[ "$LOCAL_CORE_MODE" == 1 ]] && printf local-core-development || printf fixed-candidate)"
+  exit 0
+fi
+
+required_php="$(jq -r '.require["peanut-admin/core"] // empty' "$APP_DIR/server/composer.json")"
+required_web="$(node -e 'const m=require(process.argv[1]); process.stdout.write(m.dependencies?.["@peanut-admin/admin"] ?? "")' "$APP_DIR/web/package.json")"
+[[ -n "$required_php" ]] || die 'PHP Core direct dependency is missing from server/composer.json'
+[[ -n "$required_web" ]] || die 'Web Core direct dependency is missing from web/package.json'
+
+# Read the exact PHP package identity without requiring vendor installation.
+php_lock_identity="$(php -r '
+$lock = json_decode((string) file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR);
+$matches = array_values(array_filter(
+    $lock["packages"] ?? [],
+    static fn(array $package): bool => ($package["name"] ?? null) === "peanut-admin/core",
+));
+if (count($matches) !== 1) {
+    fwrite(STDERR, "expected exactly one peanut-admin/core package in composer.lock\n");
+    exit(2);
+}
+$package = $matches[0];
+$identity = [
+    "version" => $package["version"] ?? "",
+    "source_type" => $package["source"]["type"] ?? "",
+    "source_url" => $package["source"]["url"] ?? "",
+    "source_reference" => $package["source"]["reference"] ?? "",
+    "dist_type" => $package["dist"]["type"] ?? "",
+    "dist_reference" => $package["dist"]["reference"] ?? "",
+];
+if (count(array_filter($identity, "is_string")) !== count($identity)
+    || $identity["version"] === "" || $identity["source_type"] !== "git"
+    || $identity["source_url"] === ""
+    || preg_match("/\\A[0-9a-f]{40}\\z/i", $identity["source_reference"]) !== 1) {
+    fwrite(STDERR, "peanut-admin/core lock identity is incomplete\n");
+    exit(2);
+}
+$sourceUrl = parse_url($identity["source_url"]);
+if (!is_array($sourceUrl) || ($sourceUrl["scheme"] ?? null) !== "https"
+    || !is_string($sourceUrl["host"] ?? null) || ($sourceUrl["host"] ?? "") === ""
+    || !is_string($sourceUrl["path"] ?? null) || ($sourceUrl["path"] ?? "") === ""
+    || isset($sourceUrl["user"]) || isset($sourceUrl["pass"])
+    || isset($sourceUrl["query"]) || isset($sourceUrl["fragment"])) {
+    fwrite(STDERR, "peanut-admin/core source URL is not a safe public HTTPS repository identity\n");
+    exit(2);
+}
+if ($identity["dist_type"] === "path"
+    || ($identity["dist_reference"] !== "" && $identity["dist_reference"] !== $identity["source_reference"])) {
+    fwrite(STDERR, "peanut-admin/core dist identity is mutable or differs from source\n");
+    exit(2);
+}
+echo json_encode($identity, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+' "$APP_DIR/server/composer.lock")" || die 'PHP Core lock identity is missing, duplicated, or incomplete'
+locked_php="$(jq -r '.version' <<<"$php_lock_identity")"
+php_source_url="$(jq -r '.source_url' <<<"$php_lock_identity")"
+php_source_reference="$(jq -r '.source_reference' <<<"$php_lock_identity")"
+[[ "$required_php" == "$locked_php" ]] || die "PHP Core manifest/lock mismatch: manifest=$required_php lock=$locked_php"
+
+# Parse only the supported pnpm v9 root-importer shape; ambiguity fails closed.
+web_lock_identity="$(node - "$APP_DIR/web/pnpm-lock.yaml" <<'NODE'
+const { readFileSync } = require('fs')
+
+const fail = (message) => {
+  process.stderr.write(`${message}\n`)
+  process.exit(2)
+}
+// Decode the scalar forms accepted for keys and values in the fixed pnpm v9 shape.
+const scalar = (value) => {
+  const trimmed = value.trim()
+  if (trimmed.startsWith("'") && trimmed.endsWith("'")) return trimmed.slice(1, -1).replace(/''/g, "'")
+  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    try { return JSON.parse(trimmed) } catch { fail('invalid quoted scalar in pnpm lock') }
+  }
+  return trimmed
+}
+// Require one decoded mapping key at the exact indentation, including quoted variants.
+const oneIndex = (lines, key, indentation, label, start = 0, end = lines.length) => {
+  const matches = []
+  for (let index = start; index < end; index += 1) {
+    const match = lines[index].match(/^( *)(\S.*):$/)
+    if (match && match[1].length === indentation && scalar(match[2]) === key) matches.push(index)
+  }
+  if (matches.length !== 1) fail(`expected exactly one ${label} in pnpm lock`)
+  return matches[0]
+}
+// Bound one indentation-delimited mapping without interpreting general YAML.
+const sectionEnd = (lines, start, indentation, end) => {
+  for (let index = start + 1; index < end; index += 1) {
+    if (lines[index].trim() !== '' && lines[index].match(/^ */)[0].length <= indentation) return index
+  }
+  return end
+}
+
+const lines = readFileSync(process.argv[2], 'utf8').replace(/\r\n/g, '\n').split('\n')
+const lockVersions = []
+for (const line of lines) {
+  const match = line.match(/^( *)(\S.*?):\s*(\S.*)$/)
+  if (match && match[1].length === 0 && scalar(match[2]) === 'lockfileVersion') lockVersions.push(scalar(match[3]))
+}
+if (lockVersions.length !== 1 || lockVersions[0] !== '9.0') {
+  fail('scaffold-doctor supports exactly one pnpm lockfileVersion 9.0 declaration')
+}
+const importers = oneIndex(lines, 'importers', 0, 'importers section')
+const packages = oneIndex(lines, 'packages', 0, 'packages section', importers + 1)
+const snapshots = oneIndex(lines, 'snapshots', 0, 'snapshots section', packages + 1)
+const root = oneIndex(lines, '.', 2, 'root importer', importers + 1, packages)
+const rootEnd = sectionEnd(lines, root, 2, packages)
+const dependencies = oneIndex(lines, 'dependencies', 4, 'root dependencies section', root + 1, rootEnd)
+const dependenciesEnd = sectionEnd(lines, dependencies, 4, rootEnd)
+const dependencyEntries = []
+for (let index = dependencies + 1; index < dependenciesEnd; index += 1) {
+  const match = lines[index].match(/^( *)(\S.*):$/)
+  if (match && match[1].length === 6 && scalar(match[2]) === '@peanut-admin/admin') dependencyEntries.push(index)
+}
+if (dependencyEntries.length !== 1) fail('expected exactly one @peanut-admin/admin root dependency in pnpm lock')
+const dependency = dependencyEntries[0]
+const dependencyEnd = sectionEnd(lines, dependency, 6, dependenciesEnd)
+const dependencyIdentity = new Map()
+for (const line of lines.slice(dependency + 1, dependencyEnd)) {
+  if (line.trim() === '' || line.trimStart().startsWith('#')) continue
+  const match = line.match(/^        (\S.*?):\s*(\S.*)$/)
+  if (!match) fail('@peanut-admin/admin root dependency uses an unsupported pnpm lock shape')
+  const key = scalar(match[1])
+  if (!['specifier', 'version'].includes(key) || dependencyIdentity.has(key)) {
+    fail('@peanut-admin/admin root dependency identity is duplicated or unsupported')
+  }
+  dependencyIdentity.set(key, scalar(match[2]))
+}
+if (dependencyIdentity.size !== 2 || !dependencyIdentity.has('specifier') || !dependencyIdentity.has('version')) {
+  fail('@peanut-admin/admin root dependency identity is incomplete')
+}
+const specifier = dependencyIdentity.get('specifier')
+const resolved = dependencyIdentity.get('version')
+const version = resolved.split('(', 1)[0]
+if (!specifier || !version) fail('@peanut-admin/admin root dependency identity is empty')
+
+const packageEntries = []
+for (let index = packages + 1; index < snapshots; index += 1) {
+  const match = lines[index].match(/^( *)(\S.*):$/)
+  if (match && match[1].length === 2 && scalar(match[2]) === `@peanut-admin/admin@${version}`) packageEntries.push(index)
+}
+if (packageEntries.length !== 1) fail('expected exactly one @peanut-admin/admin package identity in pnpm lock')
+const packageEnd = sectionEnd(lines, packageEntries[0], 2, snapshots)
+const resolutions = []
+for (const line of lines.slice(packageEntries[0] + 1, packageEnd)) {
+  const match = line.match(/^    (\S.*?):\s*(\S.*)$/)
+  if (match && scalar(match[1]) === 'resolution') resolutions.push(match[2])
+}
+if (resolutions.length !== 1) {
+  fail('@peanut-admin/admin package integrity is incomplete, ambiguous, or unsupported')
+}
+const resolution = resolutions[0].match(/^\{integrity: (sha512-([A-Za-z0-9+/]+={0,2}))\}$/)
+if (!resolution) fail('@peanut-admin/admin package resolution must contain only one sha512 SRI')
+const integrity = resolution[1]
+const encodedDigest = resolution[2]
+const digest = Buffer.from(encodedDigest, 'base64')
+if (digest.length !== 64 || digest.toString('base64') !== encodedDigest) {
+  fail('@peanut-admin/admin package integrity is not a canonical sha512 SRI')
+}
+process.stdout.write(JSON.stringify({ specifier, version, integrity }))
+NODE
+)" || die 'Web Core lock identity is missing, duplicated, ambiguous, or unsupported'
+locked_web_specifier="$(jq -r '.specifier' <<<"$web_lock_identity")"
+locked_web="$(jq -r '.version' <<<"$web_lock_identity")"
+web_integrity="$(jq -r '.integrity' <<<"$web_lock_identity")"
+[[ "$required_web" == "$locked_web_specifier" ]] || die "Web Core manifest/lock mismatch: manifest=$required_web lock=$locked_web_specifier"
+[[ "$required_web" == "$locked_web" ]] || die "Web Core requires an exact manifest/lock version: manifest=$required_web resolved=$locked_web"
+
+mode='released-package'
+if [[ "$LOCAL_CORE_MODE" == 1 ]]; then
+  [[ -f "$CORE_DIR/packages/php/composer.json" ]] || die 'core PHP package is missing'
+  [[ -f "$CORE_DIR/packages/web/package.json" ]] || die 'core Web package is missing'
+  core_php="$(jq -r '.version // empty' "$CORE_DIR/packages/php/composer.json")"
+  core_web="$(node -e 'const m=require(process.argv[1]); process.stdout.write(m.version ?? "")' "$CORE_DIR/packages/web/package.json")"
+  [[ "$locked_php" == "$core_php" ]] || die "PHP Core version mismatch: lock=$locked_php local-core=$core_php"
+  [[ "$locked_web" == "$core_web" ]] || die "Web Core version mismatch: lock=$locked_web local-core=$core_web"
+  mode='local-core-development'
+fi
+
+printf 'scope=php,web mode=%s\n' "$mode"
+printf 'core-dependency ecosystem=php constraint=%s locked-version=%s source-url=%s source-reference=%s\n' "$required_php" "$locked_php" "$php_source_url" "$php_source_reference"
+printf 'core-dependency ecosystem=web specifier=%s locked-version=%s integrity=%s\n' "$required_web" "$locked_web" "$web_integrity"
+
+if [[ "$LOCAL_CORE_MODE" == 1 ]]; then
+  printf 'local-core path=%s php-version=%s web-version=%s\n' "$CORE_DIR" "$core_php" "$core_web"
+  if [[ -L "$APP_DIR/server/vendor/peanut-admin/core" ]]; then
+    [[ "$(realpath "$APP_DIR/server/vendor/peanut-admin/core")" == "$(realpath "$CORE_DIR/packages/php")" ]] || die 'PHP Core symlink resolves outside selected core'
+  fi
+  if [[ -L "$APP_DIR/web/node_modules/@peanut-admin/admin" ]]; then
+    [[ "$(realpath "$APP_DIR/web/node_modules/@peanut-admin/admin")" == "$(realpath "$CORE_DIR/packages/web")" ]] || die 'Web Core symlink resolves outside selected core'
+  fi
+fi
+
+RESIDUE_PATTERN='/Users/[^[:space:]]+/peanut-admin|peanut-admin\.007345\.xyz'
+if rg -n --hidden --glob '!**/server/vendor/**' --glob '!**/web/node_modules/**' --glob '!**/scripts/scaffold-doctor' --glob '!**/.peanut/**' "$RESIDUE_PATTERN" "$APP_DIR" >/dev/null 2>&1; then
+  die 'source project absolute path or Peanut Module Code domain residue detected'
+fi
+printf 'scaffold-doctor: OK resource=%s app=%s scope=php,web mode=%s\n' "$RESOURCE_ID" "$APP_DIR" "$mode"

@@ -1,0 +1,77 @@
+# Git ignore for Peanut Module Code
+
+# Each subproject owns its dependencies, build output and local configuration
+# in its own .gitignore, including when that subproject is opened separately.
+# Match dependency directories and development symlinks alike.
+**/vendor
+**/node_modules
+
+# Production deployment secrets
+# Released admin/platform static files are tracked in each product Git release.
+deploy/production.env
+/.env
+/.local/
+/.ops/
+/updates/
+/backups/
+/release/
+/.peanut/application-release.json
+/.peanut/upgrades/
+/.peanut/deploy-update.pending
+/release-manifest.txt
+# Backend deployment metadata is rebuilt from the same committed full APP.
+/server/.peanut/release-identity.json
+/server/.peanut/internal-candidate.json
+/server/.peanut/RELEASE_METADATA.json
+/server/.peanut/release-versions.json
+/server/.peanut/LICENSE
+/server/.peanut/NOTICE
+/server/.peanut/THIRD_PARTY_NOTICES.md
+/server/.peanut/RELEASE_SBOM.spdx.json
+/server/plugins/*/plugin.json
+/server/plugins.lock
+/server/resources/project-resources.json
+/server/docker/scripts/upgrade
+/server/docker/scripts/product-upgrade-host
+/server/docker/scripts/scaffold-runtime/ScaffoldPathGuard.php
+/server/docker/scripts/ops-backup-worker
+/server/docker/scripts/ops-restore-worker
+/server/public/pc/
+/server/public/mobile/
+/server/docker/mysql/*
+!/server/docker/mysql/.gitkeep
+/server/docker/secrets/*
+!/server/docker/secrets/.gitkeep
+**/__pycache__/
+*.py[cod]
+/docs/maintenance/fact-audit-2026-09-09/conversation-coverage.json
+/docs/maintenance/fact-audit-2026-09-09/execution-state.json
+
+# Shared package-manager cache
+**/.pnpm-store/
+
+# System
+.DS_Store
+*.log
+
+# Claude / AI tooling
+.claude/
+web/.claude/
+/.vscode/*
+!/.vscode/settings.json
+
+# Generated indexes & tool caches (regenerable — not source)
+.codegraph/
+.playwright-cli/
+.playwright-mcp/
+
+# Ad-hoc comparison screenshots (not referenced by docs)
+/likeadmin-dept-list.png
+/peanut-dept-list.png
+
+# Runtime/test output is not repository source
+/output/
+
+# Generated applications retain their managed documentation source and lock.
+/docs-site/.vitepress/cache/
+/docs-site/.vitepress/dist/

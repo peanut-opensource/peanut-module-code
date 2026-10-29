@@ -1,0 +1,19 @@
+{
+  "name": "peanut-business/peanut-content-tools",
+  "description": "Generated peanut.content-tools Module skeleton.",
+  "type": "peanut-admin-module",
+  "version": "1.0.1",
+  "license": "Apache-2.0",
+  "autoload": {
+    "psr-4": {
+      "PeanutAdmin\\Modules\\ContentTools\\": "src/"
+    }
+  },
+  "extra": {
+    "peanut": {
+      "editions": [
+        "multi-tenant"
+      ]
+    }
+  }
+}

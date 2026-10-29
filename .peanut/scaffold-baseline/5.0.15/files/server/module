@@ -1,0 +1,87 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use think\App;
+use think\Console;
+use think\console\Output;
+
+// Private application bridge for `peanut module`; native Console owns parsing and execution.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit(1);
+}
+
+try {
+    $request = json_decode(stream_get_contents(STDIN), true, 512, JSON_THROW_ON_ERROR);
+    $commands = [
+        'create' => ['module:create', \app\command\ModuleCreate::class],
+        'check' => ['module:check', \app\command\ModuleCheck::class],
+        'compile' => ['module:compile', \app\command\ModuleCompile::class],
+        'pack' => ['module:pack', \app\command\ModulePack::class],
+        'bundle-pack' => ['bundle:pack', \app\command\BundlePack::class],
+        'adopt' => ['module:adopt-package', \app\command\ModuleAdoptPackage::class],
+        'install' => ['module:install-package', \app\command\ModuleInstallPackage::class],
+        'upgrade' => ['module:update-package', \app\command\ModuleUpdatePackage::class],
+        'disable' => ['module:disable-package', \app\command\ModuleDisablePackage::class],
+        'uninstall' => ['module:uninstall-package', \app\command\ModuleUninstallPackage::class],
+        'sync' => ['module:sync', \app\command\ModuleSync::class],
+        'reconcile' => ['plugin:reconcile', \app\command\PluginReconcile::class],
+        'make' => ['plugin:make', \app\command\PluginMake::class],
+        'lock' => ['plugin:lock', \app\command\PluginLock::class],
+        'release-composition' => ['plugin:release-composition', \app\command\PluginReleaseComposition::class],
+        'work' => ['ops-module:task', \app\command\OpsModuleTask::class],
+    ];
+    if (!is_array($request) || !is_string($request['operation'] ?? null)
+        || !isset($commands[$request['operation']]) || !is_array($request['arguments'] ?? null)
+        || !array_is_list($request['arguments'])) {
+        throw new InvalidArgumentException('MODULE_BRIDGE_REQUEST_INVALID');
+    }
+    foreach ($request['arguments'] as $argument) {
+        if (!is_string($argument) || str_contains($argument, "\0")) {
+            throw new InvalidArgumentException('MODULE_BRIDGE_ARGUMENT_INVALID');
+        }
+    }
+    [$name, $class] = $commands[$request['operation']];
+    if ($request['operation'] === 'work') {
+        array_unshift($request['arguments'], 'work');
+    }
+    $_SERVER['argv'] = [__FILE__, $name, ...$request['arguments']];
+    $_SERVER['argc'] = count($_SERVER['argv']);
+} catch (JsonException|InvalidArgumentException $exception) {
+    fwrite(STDERR, $exception->getMessage() . PHP_EOL);
+    exit(1);
+}
+
+require __DIR__ . '/vendor/autoload.php';
+
+try {
+    $app = new App(__DIR__);
+    $console = new class ($app, $class, $request['operation'] === 'create') extends Console {
+        public function __construct(App $app, private string $commandClass, private bool $sourceOnly)
+        {
+            parent::__construct($app);
+        }
+
+        protected function initialize(): void
+        {
+            // Preserve source generation before installation, as in the original native entry.
+            if (!$this->sourceOnly) {
+                parent::initialize();
+            }
+        }
+
+        protected function loadCommands(): void
+        {
+            $this->addCommand($this->commandClass);
+            $this->addCommand(\think\console\command\Help::class);
+        }
+    };
+    $console->setAutoExit(false);
+    exit($console->run());
+} catch (Throwable $exception) {
+    $output = new Output();
+    $output->renderException($exception);
+    exit(1);
+}

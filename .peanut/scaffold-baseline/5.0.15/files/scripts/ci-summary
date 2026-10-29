@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+candidate=''
+declare -a checks=()
+for argument in "$@"; do
+  case "$argument" in
+    --candidate=*) candidate="${argument#--candidate=}" ;;
+    --check=*) checks+=("${argument#--check=}") ;;
+    *)
+      printf 'ci-summary: unknown argument: %s\n' "$argument" >&2
+      exit 2
+      ;;
+  esac
+done
+
+[[ "$candidate" =~ ^[0-9a-f]{40}$ ]] || {
+  printf 'ci-summary: candidate must be a full commit SHA\n' >&2
+  exit 2
+}
+[[ "${#checks[@]}" -gt 0 ]] || {
+  printf 'ci-summary: at least one check is required\n' >&2
+  exit 2
+}
+
+summary_file="${GITHUB_STEP_SUMMARY:-}"
+status=0
+passed=0
+failed=0
+cancelled=0
+skipped=0
+
+write() {
+  printf '%s\n' "$1"
+  if [[ -n "$summary_file" ]]; then
+    printf '%s\n' "$1" >>"$summary_file"
+  fi
+}
+
+write '## CI candidate summary'
+write ''
+write "Candidate: \`${candidate}\`"
+write ''
+write '| Check | Result | Expected | Decision |'
+write '| --- | --- | --- | --- |'
+
+for record in "${checks[@]}"; do
+  IFS=':' read -r name result expected extra <<<"$record"
+  if [[ -z "$name" || -z "$result" || -z "$expected" || -n "${extra:-}" ]]; then
+    printf 'ci-summary: invalid check record: %s\n' "$record" >&2
+    exit 2
+  fi
+  case "$result" in
+    success) passed=$((passed + 1)) ;;
+    failure) failed=$((failed + 1)) ;;
+    cancelled) cancelled=$((cancelled + 1)) ;;
+    skipped) skipped=$((skipped + 1)) ;;
+    *)
+      printf 'ci-summary: unknown job result for %s: %s\n' "$name" "$result" >&2
+      exit 2
+      ;;
+  esac
+
+  decision='accepted'
+  if [[ "$expected" == 'false' ]]; then
+    if [[ "$result" == 'skipped' ]]; then
+      decision='not applicable by classifier'
+    elif [[ "$result" != 'success' ]]; then
+      decision='unexpected result'
+      status=1
+    else
+      decision='extra successful check'
+    fi
+  elif [[ "$expected" == 'true' || "$expected" == 'required' ]]; then
+    if [[ "$result" != 'success' ]]; then
+      decision='required check did not succeed'
+      status=1
+    fi
+  else
+    printf 'ci-summary: invalid expectation for %s: %s\n' "$name" "$expected" >&2
+    exit 2
+  fi
+  write "| ${name} | ${result} | ${expected} | ${decision} |"
+done
+
+write ''
+write "Result counts: success=${passed}, failure=${failed}, cancelled=${cancelled}, skipped=${skipped}."
+if [[ "$status" -ne 0 ]]; then
+  write 'CI-SUMMARY-001 failed: one or more required checks did not succeed.'
+  exit "$status"
+fi
+write 'CI-SUMMARY-001 passed: every required check succeeded; skipped checks were classified as not applicable.'

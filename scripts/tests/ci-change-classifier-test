@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd -P)"
+tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/peanut-ci-classifier.XXXXXX")"
+trap 'rm -rf -- "$tmp_dir"' EXIT
+
+classify() {
+  local name="$1"
+  shift
+  local paths="$tmp_dir/${name}.paths"
+  local output="$tmp_dir/${name}.out"
+  printf '%s\n' "$@" >"$paths"
+  "$ROOT/scripts/ci-change-classifier" --paths-file="$paths" >"$output"
+  printf '%s\n' "$output"
+}
+
+expect() {
+  local output="$1"
+  local value="$2"
+  grep -Fx "$value" "$output" >/dev/null || {
+    printf 'ci-change-classifier-test: expected %s in %s\n' "$value" "$output" >&2
+    exit 1
+  }
+}
+
+docs="$(classify docs docs/public/api-contracts.md)"
+expect "$docs" 'docs=true'
+expect "$docs" 'server=false'
+expect "$docs" 'integration=false'
+
+deleted="$(classify deleted server/app/modules/official/integration/api/metadata/openapi.php)"
+expect "$deleted" 'api=true'
+expect "$deleted" 'server=true'
+expect "$deleted" 'web=true'
+expect "$deleted" 'integration=true'
+
+renamed="$(classify renamed docs/old.md server/app/modules/official/sample/api/metadata/openapi.php)"
+expect "$renamed" 'docs=true'
+expect "$renamed" 'api=true'
+
+core_package="$(classify core-package packages/core-web/peanut-admin-client.tgz)"
+expect "$core_package" 'web=true'
+expect "$core_package" 'platform=true'
+expect "$core_package" 'pc=true'
+expect "$core_package" 'uniapp=true'
+
+lock="$(classify lock server/composer.lock)"
+expect "$lock" 'server=true'
+expect "$lock" 'create_app=true'
+expect "$lock" 'integration=true'
+
+module_frontend="$(classify module-frontend web/src/modules/official-sample/contribution.ts)"
+expect "$module_frontend" 'web=true'
+expect "$module_frontend" 'create_app=true'
+expect "$module_frontend" 'integration=true'
+
+installation="$(classify installation scripts/build-edition-installers)"
+expect "$installation" 'server=true'
+expect "$installation" 'create_app=true'
+expect "$installation" 'integration=true'
+
+workflow="$(classify workflow .github/workflows/ci.yml)"
+for group in server web platform pc uniapp create_app integration api docs; do
+  expect "$workflow" "${group}=true"
+done
+
+unknown="$(classify unknown future/product-input.lock)"
+expect "$unknown" 'conservative=true'
+expect "$unknown" 'server=true'
+expect "$unknown" 'integration=true'
+
+fallback="$tmp_dir/fallback.out"
+"$ROOT/scripts/ci-change-classifier" \
+  --base=refs/heads/definitely-missing \
+  --head=HEAD \
+  --comparison=direct \
+  --fallback-full >"$fallback"
+expect "$fallback" 'baseline=fallback-full'
+expect "$fallback" 'conservative=true'
+expect "$fallback" 'server=true'
+
+empty="$tmp_dir/empty.paths"
+: >"$empty"
+if "$ROOT/scripts/ci-change-classifier" --paths-file="$empty" >"$tmp_dir/empty.out" 2>"$tmp_dir/empty.err"; then
+  echo 'ci-change-classifier-test: zero-change classification unexpectedly passed' >&2
+  exit 1
+fi
+grep -F 'refusing an empty green run' "$tmp_dir/empty.err" >/dev/null
+
+printf 'CI-CHANGE-CLASSIFIER-TEST-001 passed: 10 mapping/baseline/fail-closed scenarios\n'

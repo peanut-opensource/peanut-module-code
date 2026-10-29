@@ -1,0 +1,26 @@
+{
+    "schema_version": 1,
+    "project_id": "peanut-module-code",
+    "authority": {
+        "role": "application",
+        "owner": "Peanut Module Code maintainers",
+        "source": "this versioned file",
+        "credentials_policy": "references only; secrets are never stored in Git",
+        "allocation_status": "unallocated; register environment-specific resources before connection or startup"
+    },
+    "resources": {
+        "tooling": [],
+        "databases": [],
+        "local_listeners": [],
+        "containers": [],
+        "optional_services": [],
+        "backups": [],
+        "external_services": [],
+        "queues": {
+            "status": "not_registered"
+        },
+        "object_storage": {
+            "status": "not_registered"
+        }
+    }
+}

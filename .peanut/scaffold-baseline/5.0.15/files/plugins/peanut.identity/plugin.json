@@ -1,0 +1,68 @@
+{
+    "schema_version": 1,
+    "key": "peanut.identity",
+    "version": "4.0.0-rc.32",
+    "source": {
+        "type": "canonical-contents",
+        "reference": "canonical-plugin-contents-v1",
+        "sha256": "017e8824052e9ef86c576908f1ba8c78d02c3c90ba7a8aa7757eb7d5fa1f2ff3"
+    },
+    "trust": {
+        "channel": "bundled",
+        "origin": {
+            "type": "repository-contents",
+            "reference": "canonical-plugin-contents-v1"
+        },
+        "archive": {
+            "status": "not-issued",
+            "sha256": null
+        },
+        "signature": {
+            "status": "not-issued",
+            "key_id": null
+        },
+        "sbom": {
+            "status": "not-issued",
+            "sha256": null
+        },
+        "license": {
+            "identifier": "Apache-2.0",
+            "status": "declared"
+        },
+        "qualification": {
+            "status": "bundled-locked",
+            "review": "not-reviewed",
+            "vulnerability_response": "not-configured",
+            "marketplace": "blocked"
+        },
+        "compatibility": {
+            "modules": [
+                {
+                    "key": "peanut.identity",
+                    "version": "4.0.0-rc.32",
+                    "kernel_constraint": "^1.0",
+                    "dependencies": [],
+                    "permissions": {
+                        "path": null,
+                        "sha256": null
+                    }
+                }
+            ]
+        }
+    },
+    "composer": [
+        {
+            "name": "peanut-business/peanut-identity",
+            "version": "4.0.0-rc.32",
+            "sha256": "23d60254208c9ea0b9c4b46fa8f86b1e30053656a3aa35f4ce0cc227656336ec"
+        }
+    ],
+    "npm": [],
+    "frontend": [],
+    "modules": [
+        {
+            "key": "peanut.identity",
+            "root": "server/app/modules/peanut/identity"
+        }
+    ]
+}

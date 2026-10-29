@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "vitest": ["../tools/quality/node_modules/vitest"],
+      "@vue/test-utils": ["../tools/quality/node_modules/@vue/test-utils"]
+    },
+    "types": []
+  },
+  "include": [
+    "src/modules/peanut-file/optional-runtime/tests/**/*.ts",
+    "src/modules/peanut-import-export/optional-runtime/tests/**/*.ts",
+    "src/modules/peanut-notification/optional-runtime/tests/**/*.ts",
+    "src/modules/peanut-task/optional-runtime/tests/**/*.ts",
+    "src/modules/peanut-reference-codes/runtime/tests/**/*.ts",
+    "src/modules/peanut-settings/runtime/tests/**/*.ts",
+    "src/modules/peanut-content-tools/tests/**/*.ts",
+    "src/env.d.ts",
+    "src/modules/peanut-rich-text/tests/**/*.ts"
+  ],
+  "exclude": []
+}

@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "key": "peanut.reference-codes",
+  "name": "Reference Codes",
+  "description": "Tenant dictionaries, deployment reference values and versioned reference-code definitions.",
+  "version": "1.0.22",
+  "kernel_constraint": "^1.0",
+  "license": "Apache-2.0",
+  "php_package": "peanut-business/peanut-reference-codes",
+  "web_package": "@peanut-admin/peanut-reference-codes",
+  "dependencies": [
+    {
+      "module_key": "peanut.identity",
+      "version": "4.0.0-rc.32"
+    }
+  ],
+  "backend": {
+    "provider": "PeanutAdmin\\Modules\\ReferenceCodes\\ModuleProvider",
+    "menus": "resources/menus.json",
+    "permissions": "resources/permissions.json",
+    "reference_code_sets": "resources/reference-code-sets.json",
+    "migrations": "database/migrations"
+  },
+  "frontend": {
+    "entry": "web/src/modules/peanut-reference-codes/contribution.ts"
+  },
+  "database": {
+    "owned_tables": [
+      "pa_dict_type",
+      "pa_dict_data",
+      "pa_system_dict_type",
+      "pa_system_dict_data",
+      "pa_reference_code_set",
+      "pa_reference_code_entry",
+      "pa_reference_code_entry_version"
+    ]
+  },
+  "contracts": {
+    "exports": [
+      "PeanutAdmin\\Modules\\ReferenceCodes\\Contract\\DictionaryQuery",
+      "PeanutAdmin\\Modules\\ReferenceCodes\\Contract\\TenantDictionaryCommands",
+      "PeanutAdmin\\Modules\\ReferenceCodes\\Contract\\SystemReferenceCodeQuery",
+      "PeanutAdmin\\Modules\\ReferenceCodes\\Service\\ReferenceCodeCatalogService"
+    ],
+    "events": []
+  },
+  "tenant": {
+    "enableable": true,
+    "disable_behavior": "reject_new_operations",
+    "requires": [
+      "peanut.identity"
+    ]
+  }
+}

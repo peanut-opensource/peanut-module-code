@@ -1,0 +1,104 @@
+name: ${COMPOSE_PROJECT_NAME:-peanut-app}
+
+services:
+  php:
+    image: ${PHP_IMAGE:?set PHP_IMAGE in server/docker/.env}
+    restart: unless-stopped
+    stop_signal: SIGTERM
+    # The owner verifies non-dumpable FPM workers through their actual /proc paths.
+    # Workers must still have zero effective/permitted/inheritable/ambient capabilities.
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - no-new-privileges:true
+    working_dir: /run/peanut-owner/server
+    command: ["/bin/sh", "/run/peanut-owner/server/docker/scripts/php-entrypoint.sh"]
+    volumes:
+      - ../:/run/peanut-owner/server
+      - ../:/var/www/peanut-http/server:ro
+      # Source APP identity and lock stay at their canonical parent paths.
+      # Only the owner reads Plugin manifests to compile the native HTTP admission.
+      - ../../.peanut/application-manifest.json:/run/peanut-owner/.peanut/application-manifest.json:ro
+      - ../../release-versions.json:/run/peanut-owner/release-versions.json:ro
+      - ../../RELEASE_METADATA.json:/run/peanut-owner/RELEASE_METADATA.json:ro
+      - ../../plugins.lock:/run/peanut-owner/plugins.lock:ro
+      - ../../plugins:/run/peanut-owner/plugins:ro
+      - ../../.peanut/application-manifest.json:/var/www/peanut-http/.peanut/application-manifest.json:ro
+      - ../../release-versions.json:/var/www/peanut-http/release-versions.json:ro
+      - ../../RELEASE_METADATA.json:/var/www/peanut-http/RELEASE_METADATA.json:ro
+      - ../../plugins.lock:/var/www/peanut-http/plugins.lock:ro
+      - type: tmpfs
+        target: /var/www/peanut-http/server/docker
+        read_only: true
+        tmpfs:
+          size: 1048576
+          mode: 0000
+      - type: tmpfs
+        target: /var/www/peanut-http/server/private/maintenance
+        read_only: true
+        tmpfs:
+          size: 1048576
+          mode: 0000
+      - ../private/installation:/var/www/peanut-http/server/private/installation
+      - ../private/storage:/var/www/peanut-http/server/private/storage
+      - ../private/resources/pending:/var/www/peanut-http/server/private/resources/pending
+      - ../public/storage:/var/www/peanut-http/server/public/storage
+      - ../runtime/cache:/var/www/peanut-http/server/runtime/cache
+      - ../runtime/log:/var/www/peanut-http/server/runtime/log
+      - ../runtime/session:/var/www/peanut-http/server/runtime/session
+      - ../runtime/temp:/var/www/peanut-http/server/runtime/temp
+      - ../runtime/storage:/var/www/peanut-http/server/runtime/storage
+      - ../runtime/generator:/var/www/peanut-http/server/runtime/generator
+      - ../runtime/file:/var/www/peanut-http/server/runtime/file
+      - ./conf/php.ini:/usr/local/etc/php/conf.d/zz-peanut.ini:ro
+      - ./conf/php.ini:/var/www/peanut-http/usr/local/etc/php/conf.d/zz-peanut.ini:ro
+      - ./conf/php-fpm.conf:/usr/local/etc/php-fpm.d/zz-peanut.conf:ro
+      - ./conf/crontab:/etc/cron.d/peanut-app:ro
+      - ./scripts/schedule.sh:/usr/local/bin/peanut-schedule:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php-fpm -t >/dev/null 2>&1 && test -f /run/peanut-owner/server/vendor/autoload.php && test -f /var/www/peanut-http/run/peanut-http/context.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  nginx:
+    image: ${NGINX_IMAGE:?set NGINX_IMAGE in server/docker/.env}
+    restart: unless-stopped
+    ports:
+      - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-21080}:80"
+    volumes:
+      - ../public:/var/www/peanut-admin/server/public:ro
+      - ../runtime/upgrade:/var/www/peanut-admin/server/runtime/upgrade:ro
+      - ./conf/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      php:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nginx -t >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  mysql:
+    # Registered-database composition never selects this service. Its fixed
+    # inactive image allows Compose interpolation without local DB settings;
+    # start.sh still requires explicit image and root credentials for bundled DB.
+    image: ${MYSQL_IMAGE:-mysql:8.4.11@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb}
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-}
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - ./mysql:/var/lib/mysql
+      - ./conf/mysql.cnf:/etc/mysql/conf.d/peanut.cnf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_ROOT_PASSWORD\" mysqladmin ping -h 127.0.0.1 -u root --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s

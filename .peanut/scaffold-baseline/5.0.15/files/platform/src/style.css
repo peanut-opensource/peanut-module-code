@@ -1,0 +1,199 @@
+:root {
+  font-family: Inter, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  color: #172033;
+  background: #f4f6fa;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+.login-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #102a56, #2457e6);
+}
+.login-card {
+  width: min(420px, calc(100vw - 32px));
+  border: 0;
+}
+.brand {
+  color: #2457e6;
+  font-size: 12px;
+  letter-spacing: 1.4px;
+  font-weight: 800;
+}
+h1 {
+  margin: 6px 0;
+}
+.wide {
+  width: 100%;
+  margin-top: 16px;
+}
+.muted {
+  color: #7c8799;
+  font-size: 13px;
+  margin-left: 14px;
+}
+.app-shell {
+  min-height: 100vh;
+}
+.app-shell > .el-container {
+  min-width: 0;
+}
+.el-aside {
+  background: #102a56;
+}
+.logo {
+  color: white;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  letter-spacing: 0.8px;
+}
+.logo b {
+  color: #7cc4ff;
+  margin-left: 5px;
+}
+.app-shell .el-aside .el-menu {
+  --el-menu-text-color: #d5def0;
+  --el-menu-active-color: #fff;
+  --el-menu-bg-color: #102a56;
+  --el-menu-hover-bg-color: #183a73;
+  border: 0;
+}
+.el-menu-item {
+  color: #d5def0;
+}
+.el-menu-item:hover,
+.el-menu-item.is-active {
+  background: #183a73;
+  color: #fff;
+}
+.app-shell .el-aside .el-menu-item:focus-visible,
+.app-shell .el-aside .el-sub-menu__title:focus-visible {
+  outline: 2px solid #7cc4ff;
+  outline-offset: -2px;
+}
+.el-header {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  border-bottom: 1px solid #e6e9ef;
+}
+.platform-header-title {
+  min-width: 0;
+}
+.platform-header-title b {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.platform-header-title .muted {
+  display: inline;
+}
+.platform-header-actions {
+  display: flex;
+  flex-shrink: 0;
+}
+.navigation-toggle {
+  display: none;
+}
+.app-shell .el-table .el-scrollbar__wrap:focus-visible {
+  outline: 2px solid #2457e6;
+  outline-offset: -2px;
+}
+.table-scroll-hint {
+  color: #556179;
+  font-size: 13px;
+}
+.el-main {
+  padding: 24px;
+}
+.el-alert {
+  margin-bottom: 16px;
+}
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.metric-grid span,
+.metric-grid small {
+  display: block;
+  color: #7c8799;
+}
+.metric-grid strong {
+  display: block;
+  font-size: 30px;
+  margin: 8px 0;
+}
+.toolbar,
+.card-header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.card-header {
+  margin-bottom: 0;
+}
+@media (max-width: 760px) {
+  .app-shell {
+    flex-direction: column;
+  }
+  .app-shell .platform-navigation {
+    display: none;
+    position: fixed;
+    top: 56px;
+    left: 0;
+    z-index: 100;
+    width: min(280px, 100vw) !important;
+    max-height: calc(100dvh - 56px);
+    overflow-y: auto;
+    box-shadow: 4px 8px 18px #102a5633;
+  }
+  .app-shell .platform-navigation.navigation-open {
+    display: block;
+  }
+  .logo {
+    height: 48px;
+    padding: 0 24px;
+  }
+  .app-shell .el-header {
+    position: sticky;
+    top: 0;
+    z-index: 99;
+    height: 56px;
+    padding: 0 8px;
+  }
+  .navigation-toggle {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+  .platform-header-title .muted {
+    display: none;
+  }
+  .platform-header-actions .el-button + .el-button {
+    margin-left: 0;
+  }
+  .app-shell > .el-container {
+    width: 100%;
+  }
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .el-main {
+    padding: 14px;
+  }
+}

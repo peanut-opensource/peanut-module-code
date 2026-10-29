@@ -1,0 +1,10 @@
+{
+  "extends": "../../../tsconfig.json",
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.vue",
+    "contribution.ts",
+    "../../env.d.ts"
+  ],
+  "exclude": ["tests/**"]
+}

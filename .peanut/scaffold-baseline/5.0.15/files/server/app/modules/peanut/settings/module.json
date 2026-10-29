@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "key": "peanut.settings",
+  "name": "Settings",
+  "description": "Deployment, tenant and target-scoped settings with tenant website configuration.",
+  "version": "1.0.22",
+  "kernel_constraint": "^1.0",
+  "license": "Apache-2.0",
+  "php_package": "peanut-business/peanut-settings",
+  "web_package": "@peanut-admin/peanut-settings",
+  "dependencies": [
+    {
+      "module_key": "peanut.identity",
+      "version": "4.0.0-rc.32"
+    },
+    {
+      "module_key": "peanut.file",
+      "version": "^1.0"
+    }
+  ],
+  "backend": {
+    "provider": "PeanutAdmin\\Modules\\Settings\\ModuleProvider",
+    "menus": "resources/menus.json",
+    "permissions": "resources/permissions.json",
+    "setting_definitions": "resources/setting-definitions.json",
+    "migrations": "database/migrations"
+  },
+  "frontend": {
+    "entry": "web/src/modules/peanut-settings/contribution.ts"
+  },
+  "database": {
+    "owned_tables": [
+      "pa_setting_definition",
+      "pa_setting_deployment_value",
+      "pa_setting_tenant_value",
+      "pa_setting_target_value",
+      "pa_tenant_setting"
+    ]
+  },
+  "contracts": {
+    "exports": [
+      "PeanutAdmin\\Modules\\Settings\\Contract\\TenantSettingsCommands",
+      "PeanutAdmin\\Modules\\Settings\\Contract\\TenantSettingsQuery",
+      "PeanutAdmin\\Modules\\Settings\\Contract\\TenantApplicationSettings",
+      "PeanutAdmin\\Modules\\Settings\\Service\\WebsiteConfigService",
+      "PeanutAdmin\\Modules\\Settings\\Service\\SettingCatalogService",
+      "PeanutAdmin\\Modules\\Settings\\Contract\\TenantSettingsTransfer",
+      "PeanutAdmin\\Modules\\Settings\\Contract\\TenantSettingSnapshot",
+      "PeanutAdmin\\Modules\\Settings\\Contract\\DeploymentSettingsTransfer",
+      "PeanutAdmin\\Modules\\Settings\\Contract\\DeploymentSettingsTransferException"
+    ],
+    "events": []
+  },
+  "tenant": {
+    "enableable": true,
+    "disable_behavior": "reject_new_operations",
+    "requires": [
+      "peanut.file",
+      "peanut.identity"
+    ]
+  }
+}

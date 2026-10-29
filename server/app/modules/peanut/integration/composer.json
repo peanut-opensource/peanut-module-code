@@ -1,0 +1,24 @@
+{
+  "name": "peanut-business/peanut-integration",
+  "description": "Peanut Admin official external integration module",
+  "type": "library",
+  "version": "1.0.22",
+  "license": "Apache-2.0",
+  "require": {
+    "php": "^8.3",
+    "peanut-admin/core": "^5.0.2",
+    "peanut-business/peanut-identity": "4.0.0-rc.32"
+  },
+  "autoload": {
+    "psr-4": {
+      "PeanutAdmin\\Modules\\Integration\\": "src/"
+    }
+  },
+  "extra": {
+    "peanut": {
+      "editions": [
+        "multi-tenant"
+      ]
+    }
+  }
+}

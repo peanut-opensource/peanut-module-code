@@ -1,0 +1,4 @@
+[
+  {"key":"peanut.reference-codes.read","type":"api","name":"查看参考代码","risk_level":"normal"},
+  {"key":"peanut.reference-codes.manage","type":"action","name":"管理参考代码","risk_level":"sensitive"}
+]

@@ -1,0 +1,470 @@
+#!/usr/bin/env python3
+"""One admitted Task/Notification HTTP consumer; never starts a worker or retries HTTP."""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import hashlib
+import http.client
+import json
+import os
+from pathlib import Path
+import re
+import stat
+import subprocess
+import sys
+import urllib.parse
+
+STEPS = ("diagnostics", "inbox", "mark-read", "recover")
+HISTORICAL_JOB_IDS = frozenset(range(4, 12))
+SOURCE_FILES = (
+    "server/composer.lock",
+    "server/app/modules/peanut/task/src/Job/Persistence/TaskJobStore.php",
+    "server/app/modules/peanut/notification/src/Delivery/Application/NotificationService.php",
+    "server/app/modules/peanut/notification/src/Delivery/Task/InboxTaskHandler.php",
+    "server/app/modules/peanut/notification/src/Infrastructure/Authorization/NotificationAsyncAuthorization.php",
+    "server/app/modules/peanut/workflow/src/Application/WorkflowNotificationDelivery.php",
+    "server/app/modules/fixture/workflow_business/src/Integration/WorkflowBusinessNotificationProducer.php",
+    "server/app/modules/fixture/workflow_business/src/Integration/WorkflowBusinessNotificationWorkerDefinition.php",
+    "server/app/modules/fixture/workflow_business/src/Integration/WorkflowBusinessNotificationHandler.php",
+    "scripts/project-resource-lease",
+)
+
+
+class Refused(Exception):
+    pass
+
+
+def require(ok, code):
+    if not ok:
+        raise Refused(code)
+
+
+def digest(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def keys(value, required):
+    require(isinstance(value, dict) and set(value) == set(required.split()), "INPUT_FIELDS")
+
+
+def integer(value):
+    require(type(value) is int and value > 0, "POSITIVE_INTEGER_REQUIRED")
+
+
+def match(value, pattern):
+    require(isinstance(value, str) and re.fullmatch(pattern, value) is not None, "INPUT_FORMAT")
+
+
+def document(path, expected=None, private=False):
+    path = Path(path)
+    st = path.lstat()
+    require(stat.S_ISREG(st.st_mode) and not path.is_symlink() and st.st_nlink == 1, "INPUT_REGULAR_FILE")
+    if private:
+        require(stat.S_IMODE(st.st_mode) == 0o600 and st.st_uid == os.getuid(), "CREDENTIAL_PERMISSIONS")
+    raw = path.read_bytes()
+    require(len(raw) <= 262144, "INPUT_SIZE")
+    if expected is not None:
+        require(digest(raw) == expected, "INPUT_SHA256")
+    return json.loads(raw), digest(raw)
+
+
+def timestamp(value):
+    parsed = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    require(parsed.tzinfo is not None, "TIMEZONE_REQUIRED")
+    return parsed
+
+
+def pointer(value, path):
+    require(isinstance(path, str) and path.startswith("/"), "ASSERTION_POINTER")
+    for part in path[1:].split("/"):
+        part = part.replace("~1", "/").replace("~0", "~")
+        value = value[int(part)] if isinstance(value, list) else value[part]
+    return value
+
+
+def request_identity(step, admission, fixture):
+    method, path, _, headers = request_plan(step, fixture)
+    return {"owner": admission["owner"], "operation_id": admission["operation_id"],
+            "case_id": admission["case_id"], "step": step, "method": method, "path": path,
+            "tenant_id": fixture["tenant_id"], "account_id": fixture["principal"]["account_id"],
+            "member_id": fixture["principal"]["member_id"],
+            "principal_token_sha256": fixture["principal"]["token_sha256"],
+            "instance_key": fixture["instance_key"], "sequence_no": fixture["sequence_no"],
+            "outbox_key": fixture["outbox_key"], "task": fixture["task"], "message": fixture["message"],
+            "strategy": fixture["strategy"] if step == "recover" else None,
+            "idempotency_key": headers.get("Idempotency-Key"), "if_match": headers.get("If-Match")}
+
+
+def native_evidence(step, admission, fixture, fixture_hash):
+    """Consume existing issuer records; configuration and a positive integer grant nothing."""
+    binding, _ = document(admission["resource_permission_receipt"], admission["resource_permission_sha256"])
+    authority = binding["authority"]
+    require(binding["source"]["root"] == fixture["app_root"] and binding["source"]["head"] == fixture["source_commit"], "NATIVE_SOURCE_BINDING")
+    require(binding["source"]["php_binary_sha256"] == fixture["php"]["sha256"], "NATIVE_PHP_BINDING")
+    require(authority["owner"] == admission["owner"] and authority["thread"] == admission["owner"], "NATIVE_OWNER_BINDING")
+    require(type(authority["expires_at"]) is int and authority["expires_at"] > dt.datetime.now(dt.timezone.utc).timestamp(), "NATIVE_LEASE_EXPIRED")
+    require(authority["session"] and authority["operation"] in ("read", "transaction"), "NATIVE_BUSINESS_LEASE_REQUIRED")
+    rows, _ = document(fixture["row_scope_receipt"], fixture["row_scope_sha256"])
+    # This is the actual RW08 fixture sub-output, not the preparation result's contract_ready flag.
+    keys(rows, "binding principal tenant_id step request_identity mysql_access")
+    require(rows["binding"] == binding and rows["principal"] == fixture["principal"] and rows["tenant_id"] == fixture["tenant_id"] and rows["step"] == step, "REAL_FIXTURE_BINDING")
+    identity = request_identity(step, admission, fixture)
+    require(rows["request_identity"] == identity, "EXACT_ROW_OPERATION_REQUIRED")
+    access = rows["mysql_access"]
+    require(access["operation"] == authority["operation"] and access["complete"] is True and access["tables"], "NATIVE_ROW_SCOPE_REQUIRED")
+    tables = {entry["table"]: entry for entry in access["tables"]}
+    require(len(tables) == len(access["tables"]), "DUPLICATE_SCOPE_TABLE")
+    if step in ("mark-read", "recover"):
+        require(authority["operation"] == "transaction", "MUTATION_NOT_ADMITTED")
+    for table in ("pa_task_job",):
+        entry = tables.get(table)
+        if entry is not None and entry["access"] == "write":
+            require(entry["rows"] != "*", "HISTORICAL_QUEUE_WRITE_SCOPE_UNFENCED")
+            require(all(int(row[0]) not in HISTORICAL_JOB_IDS for row in entry["rows"]), "HISTORICAL_QUEUE_ROW_SCOPE")
+    protection, _ = document(admission["protection_receipt"], admission["protection_sha256"])
+    require(protection["protocol"] in ("peanut.source-plugin-backup.v1", "peanut.source-application-backup.v1") and protection["status"] == "captured", "NATIVE_PREIMAGE_REQUIRED")
+    require(protection["binding"] == binding, "PROTECTION_OWNER_SOURCE_DATABASE_BINDING")
+    require(set(tables).issubset(protection["scope"]["tables"]), "BUSINESS_TABLES_NOT_PROTECTED")
+    # Historical tasks must be in a real native table preimage, even though never selected.
+    if step == "recover" or "pa_task_job" in tables:
+        require("pa_task_job" in protection["scope"]["tables"], "HISTORICAL_TASK_PREIMAGE_REQUIRED")
+    require(protection["observed_at"] >= authority["created_at"] and protection["observed_at"] <= dt.datetime.now(dt.timezone.utc).timestamp(), "PROTECTION_TIME_BINDING")
+    for reference in (protection["backup_payload"], protection["restore_instructions"]):
+        path = Path(reference["path"])
+        require(path.is_file() and not path.is_symlink() and digest(path.read_bytes()) == reference["sha256"], "NATIVE_BACKUP_ARTIFACT_CHANGED")
+    require({r["phase"] for r in protection["receipts"]} == {"probe-before", "dump", "probe-after"}, "NATIVE_CAPTURE_PHASES")
+    for reference in protection["receipts"]:
+        match(reference["sha256"], r"[0-9a-f]{64}")
+        process, _ = document(reference["path"], reference["sha256"])
+        require(process["phase"] == reference["phase"] and process["rc"] == 0 and process["local_process_terminal"] is True and process["remote_success_terminal_confirmed"] is True, "NATIVE_CAPTURE_NOT_TERMINAL")
+        output = process["stdout"]
+        output_path = Path(output["path"])
+        require(output_path.is_file() and not output_path.is_symlink() and digest(output_path.read_bytes()) == output["sha256"] and output_path.stat().st_size == output["bytes"], "NATIVE_CAPTURE_OUTPUT_CHANGED")
+        if reference["phase"] == "dump":
+            require(output == protection["backup_payload"], "NATIVE_DUMP_PAYLOAD_MISMATCH")
+    # Bind real authenticated response to the exact token, actor and tenant without logging it.
+    login, _ = document(fixture["authentication_receipt"], fixture["authentication_sha256"], private=True)
+    authenticated = login["data"]
+    require(authenticated["state"] == "authenticated" and digest(authenticated["access_token"].encode()) == fixture["principal"]["token_sha256"], "REAL_AUTHENTICATED_TOKEN_REQUIRED")
+    context = authenticated["context"]
+    require(context["audience"] == "tenant" and context["tenant_id"] == str(fixture["tenant_id"]) and context["account_id"] == str(fixture["principal"]["account_id"]) and context["tenant_member_id"] == str(fixture["principal"]["member_id"]), "AUTHENTICATED_ACTOR_TENANT_MISMATCH")
+    if step == "recover":
+        prior, _ = document(fixture["diagnostics_receipt"], fixture["diagnostics_sha256"])
+        require(prior["outcome"] == "ASSERTIONS_PASSED_THIS_HTTP_ONLY" and prior["step"] == "diagnostics" and prior["http_status"] == 200 and prior["source_commit"] == fixture["source_commit"], "REAL_PRIOR_DIAGNOSTICS_REQUIRED")
+        for field in ("owner", "tenant_id", "account_id", "member_id", "principal_token_sha256", "instance_key", "sequence_no", "outbox_key", "task"):
+            require(prior["request_identity"][field] == identity[field], "PRIOR_DIAGNOSTICS_IDENTITY_CHANGED")
+        require(prior["verified_response"] == {"instance_key": fixture["instance_key"], "sequence_no": fixture["sequence_no"], "outbox_key": fixture["outbox_key"], "task": fixture["task"]}, "PRIOR_DIAGNOSTICS_ROW_CHANGED")
+    # The current dispatch writer allocates once in the existing work-package record.
+    control, _ = document(admission["dispatch_control"], admission["dispatch_sha256"])
+    require(Path(admission["dispatch_control"]).parts[-3:] == ("TASKS", "dispatch", "tasks.json"), "CURRENT_DISPATCH_CONTROL_REQUIRED")
+    validate_allocation(control, admission, fixture, fixture_hash, authority, identity)
+    return binding, access, identity
+
+
+def validate_allocation(control, admission, fixture, fixture_hash, authority, identity):
+    step = identity["step"]
+    packages = []
+    def visit(value):
+        if isinstance(value, dict):
+            if isinstance(value.get("work_packages"), list):
+                packages.extend(value["work_packages"])
+            for child in value.values():
+                visit(child)
+        elif isinstance(value, list):
+            for child in value:
+                visit(child)
+    visit(control)
+    selected = [p for p in packages if p.get("id") == admission["package_id"]]
+    require(len(selected) == 1, "NATIVE_WORK_PACKAGE_REQUIRED")
+    package = selected[0]
+    require(package["owner_thread"] == authority["thread"] and package["stage"] == "live_consumer" and package["state"] == "running_native_task_started", "SOURCE_PACKAGE_IS_NOT_LIVE_PERMISSION")
+    budget = package["runtime_budget"]
+    require(budget["case_id"] == admission["case_id"] and type(budget["remaining_http_requests"]) is int and budget["remaining_http_requests"] > 0, "ORIGINAL_BUDGET_NOT_ALLOCATED")
+    original = budget["original_ref"]
+    match(original["sha256"], r"[0-9a-f]{64}")
+    original_record, _ = document(original["path"], original["sha256"])
+    remaining = pointer(original_record, original["remaining_pointer"])
+    require(type(remaining) is int and remaining >= budget["remaining_http_requests"] and pointer(original_record, original["case_pointer"]) == admission["case_id"], "ORIGINAL_NUMERIC_BUDGET_REQUIRED")
+    allocations = budget["allocations"]
+    allocated = [a for a in allocations if a["operation_id"] == admission["operation_id"]]
+    require(len(allocated) == 1 and sum(a["http_requests"] for a in allocations if a["state"] == "allocated") <= budget["remaining_http_requests"], "BUDGET_ALLOCATION_AMBIGUOUS")
+    allocation = allocated[0]
+    expected = {"operation_id": admission["operation_id"], "owner": admission["owner"], "session": authority["session"], "tenant_id": fixture["tenant_id"], "step": step, "case_id": admission["case_id"], "fixture_sha256": fixture_hash, "request_identity": identity, "result_path": admission["result_path"], "http_requests": 1, "state": "allocated"}
+    require(all(allocation.get(k) == v for k, v in expected.items()), "EXACT_SINGLE_REQUEST_ALLOCATION_REQUIRED")
+    require(sum(1 for p in packages for a in p.get("runtime_budget", {}).get("allocations", []) if a.get("operation_id") == admission["operation_id"]) == 1, "OPERATION_ID_ALREADY_ALLOCATED")
+
+
+def verify_current_lease(fixture, binding, access):
+    """Existing native verifier, not a caller-supplied script or a new permission issuer."""
+    tool = Path(fixture["app_root"]) / "scripts/project-resource-lease"
+    result = subprocess.run(["/bin/bash", str(tool), "show", "--lease", binding["authority"]["lease"], "--verify-locks"], capture_output=True, text=True, timeout=30, check=False)
+    require(result.returncode == 0 and len(result.stdout) < 131072, "CURRENT_NATIVE_LEASE_REFUSED")
+    before, separator, after = result.stdout.partition("\nresources\n")
+    require(separator, "NATIVE_LEASE_OUTPUT")
+    metadata = dict(line.split("\t", 1) for line in before.splitlines())
+    authority = binding["authority"]
+    for field in ("lease", "owner", "thread", "session"):
+        if field != "session":
+            require(metadata[field] == str(authority[field]), "CURRENT_NATIVE_LEASE_CHANGED")
+    require(metadata["status"] == "ACTIVE" and metadata["candidate"] == fixture["source_commit"] and int(metadata["expires_at"]) >= authority["expires_at"], "CURRENT_NATIVE_LEASE_CHANGED")
+    require(metadata["created_at"] == str(authority["created_at"]) and metadata["gate"] == authority["gate"], "CURRENT_NATIVE_LEASE_CHANGED")
+    resources = [line.split("\t", 1) for line in after.splitlines()]
+    require(["workflow-session", authority["session"]] in resources, "CURRENT_NATIVE_SESSION_CHANGED")
+    require(["registry-sha256", binding["registry_sha256"]] in resources, "CURRENT_NATIVE_REGISTRY_CHANGED")
+    require(any(kind == "mysql-access" and json.loads(value) == access for kind, value in resources), "CURRENT_NATIVE_ROW_SCOPE_CHANGED")
+
+
+def verify_dispatch_origin(admission):
+    path = Path(admission["dispatch_control"])
+    require(path.resolve() == path, "CANONICAL_DISPATCH_CONTROL_REQUIRED")
+    root = path.parents[2]
+    for arguments, expected in ((["rev-parse", "--show-toplevel"], str(root)), (["remote", "get-url", "origin"], "git@github.com:peanut-business/peanut-admin-project.git")):
+        result = subprocess.run(["git", "-C", str(root), *arguments], capture_output=True, text=True, timeout=10, check=False)
+        require(result.returncode == 0 and result.stdout.strip() == expected, "EXISTING_DISPATCH_REPOSITORY_REQUIRED")
+
+
+def reserve_journal(result, receipt):
+    """The exact allocation is spent conservatively even if the process dies before send."""
+    fd = os.open(result, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w") as stream:
+        receipt.update({"outcome": "UNKNOWN", "allocated_http_requests": 1, "dispatch_state": "may_send_once"})
+        stream.write(json.dumps(receipt) + "\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    directory = os.open(result.parent, os.O_RDONLY)
+    try:
+        os.fsync(directory)
+    finally:
+        os.close(directory)
+
+
+def persist_result(result, receipt):
+    # Keep the original durable UNKNOWN intact until the complete after-receipt is durable.
+    temporary = result.with_name(result.name + "." + str(os.getpid()) + ".partial")
+    fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w") as stream:
+        stream.write(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(temporary, result)
+    directory = os.open(result.parent, os.O_RDONLY)
+    try:
+        os.fsync(directory)
+    finally:
+        os.close(directory)
+
+
+def response_identity(step, fixture, payload):
+    """Mandatory native response fields; extra JSON pointers can only add assertions."""
+    if fixture["expected_status"] >= 400:
+        require(payload["data"]["error_code"] == fixture["expected_problem_code"], "DENIAL_PROBLEM_CODE")
+        return {"problem_code": fixture["expected_problem_code"]}
+    data = payload["data"]
+    if step in ("inbox", "mark-read"):
+        message = fixture["message"]
+        require(message is not None, "EXACT_MESSAGE_ASSERTION_REQUIRED")
+        records = data["items"] if step == "inbox" else [data]
+        matching = [r for r in records if r["message_key"] == message["message_key"]]
+        require(len(matching) == 1, "EXACT_OWN_MESSAGE_NOT_RETURNED")
+        expected_revision = message["revision"] + (1 if step == "mark-read" and message["status"] == "unread" else 0)
+        expected_status = "read" if step == "mark-read" else message["status"]
+        require(matching[0]["revision"] == expected_revision and matching[0]["status"] == expected_status, "MESSAGE_REVISION_STATUS")
+        return {"message_key": message["message_key"], "revision": expected_revision, "status": expected_status}
+    if step == "recover":
+        require(data["sequence_no"] == fixture["sequence_no"] and data["accepted"] is True, "RECOVERY_EVENT_NOT_ACCEPTED")
+        return {"sequence_no": data["sequence_no"], "accepted": True, "delivery_proven": False}
+    matching = [r for r in data["items"] if r["sequence_no"] == fixture["sequence_no"]]
+    require(len(matching) == 1, "EXACT_EVENT_NOT_RETURNED")
+    event = matching[0]
+    if fixture["outbox_key"] is None:
+        require(event["outboxes"] == [] and event["status"] == "pending_materialization", "MATERIALIZATION_STATE")
+    else:
+        found = [r for r in event["outboxes"] if r["outbox_key"] == fixture["outbox_key"]]
+        require(len(found) == 1, "EXACT_OUTBOX_NOT_RETURNED")
+        task = found[0]["task"]
+        require(task["job_key"] == fixture["task"]["job_key"] and task["revision"] == fixture["task"]["revision"] and task["status"] == fixture["task"]["status"], "EXACT_TASK_NOT_RETURNED")
+    return {"instance_key": fixture["instance_key"], "sequence_no": fixture["sequence_no"], "outbox_key": fixture["outbox_key"], "task": fixture["task"]}
+
+
+def inputs(args):
+    admission, admission_hash = document(args.admission, args.admission_sha256)
+    keys(admission, "schema_version owner operation_id case_id fixture_sha256 protection_receipt protection_sha256 resource_permission_receipt resource_permission_sha256 source_commit expires_at steps result_path protected_job_ids dispatch_control dispatch_sha256 package_id")
+    match(args.admission_sha256, r"[0-9a-f]{64}")
+    for field in ("fixture_sha256", "protection_sha256", "resource_permission_sha256", "dispatch_sha256"):
+        match(admission[field], r"[0-9a-f]{64}")
+    require(admission["schema_version"] == 1 and admission["owner"] and admission["operation_id"], "ADMISSION_IDENTITY")
+    require(admission["case_id"] in ("FUN-05", "WF-D05", "WF-D06", "WF-D07", "WF-D08", "WF-D09", "WF-D10", "WF-D11"), "ORIGINAL_CASE_REQUIRED")
+    require(admission["steps"] == [args.step], "SINGLE_STEP_REQUIRED")
+    require(timestamp(admission["expires_at"]) > dt.datetime.now(dt.timezone.utc), "ADMISSION_EXPIRED")
+    match(admission["source_commit"], r"[0-9a-f]{40}")
+    require(isinstance(admission["protected_job_ids"], list) and admission["protected_job_ids"], "PROTECTED_JOBS_REQUIRED")
+    for job_id in admission["protected_job_ids"]:
+        integer(job_id)
+    require(HISTORICAL_JOB_IDS.issubset(admission["protected_job_ids"]), "HISTORICAL_JOBS_MUST_BE_EXCLUDED")
+    # Receipt hashes pin external admission evidence; they do not manufacture native permission.
+    document(admission["protection_receipt"], admission["protection_sha256"])
+    document(admission["resource_permission_receipt"], admission["resource_permission_sha256"])
+    fixture, fixture_hash = document(args.fixture, admission["fixture_sha256"])
+    keys(fixture, "schema_version source_commit app_root source_sha256 php origin host_header tenant_id principal instance_key sequence_no outbox_key task message strategy idempotency_key expected_status expected_problem_code assertions row_scope_receipt row_scope_sha256 authentication_receipt authentication_sha256 diagnostics_receipt diagnostics_sha256")
+    require(fixture["schema_version"] == 1 and fixture["source_commit"] == admission["source_commit"], "SOURCE_IDENTITY")
+    integer(fixture["tenant_id"])
+    keys(fixture["principal"], "account_id member_id session_reference token_sha256")
+    for field in ("account_id", "member_id"):
+        integer(fixture["principal"][field])
+    require(bool(fixture["principal"]["session_reference"]), "REAL_SESSION_REQUIRED")
+    match(fixture["principal"]["token_sha256"], r"[0-9a-f]{64}")
+    match(fixture["row_scope_sha256"], r"[0-9a-f]{64}")
+    match(fixture["authentication_sha256"], r"[0-9a-f]{64}")
+    if args.step == "recover":
+        match(fixture["diagnostics_sha256"], r"[0-9a-f]{64}")
+    document(fixture["row_scope_receipt"], fixture["row_scope_sha256"])
+    app = Path(fixture["app_root"])
+    require(app.is_absolute() and app.resolve() == app, "CANONICAL_APP_ROOT")
+    require(isinstance(fixture["source_sha256"], dict) and set(fixture["source_sha256"]) == set(SOURCE_FILES), "EXACT_SOURCE_FILES_REQUIRED")
+    for relative, expected in fixture["source_sha256"].items():
+        match(expected, r"[0-9a-f]{64}")
+        path = app / relative
+        require(path.resolve().is_relative_to(app) and path.is_file(), "SOURCE_PATH")
+        require(digest(path.read_bytes()) == expected, "INSTALLED_SOURCE_CHANGED")
+    keys(fixture["php"], "binary sha256 version runtime_receipt runtime_receipt_sha256")
+    for field in ("sha256", "runtime_receipt_sha256"):
+        match(fixture["php"][field], r"[0-9a-f]{64}")
+    php = Path(fixture["php"]["binary"])
+    require(php.is_absolute() and php.is_file() and os.access(php, os.X_OK), "STABLE_PHP_BINARY")
+    require(digest(php.read_bytes()) == fixture["php"]["sha256"], "PHP_BINARY_CHANGED")
+    match(fixture["php"]["version"], r"8\.3\.[0-9]+")
+    document(fixture["php"]["runtime_receipt"], fixture["php"]["runtime_receipt_sha256"])
+    origin = urllib.parse.urlsplit(fixture["origin"])
+    require(origin.scheme in ("http", "https") and origin.hostname and not origin.username and not origin.password and origin.path in ("", "/") and not origin.query and not origin.fragment, "REGISTERED_ORIGIN_REQUIRED")
+    require(origin.scheme == "https" or origin.hostname in ("127.0.0.1", "localhost", "::1"), "HTTP_LOOPBACK_ONLY")
+    match(fixture["host_header"], r"[A-Za-z0-9.:-]+")
+    match(fixture["instance_key"], r"instance_[0-9a-f]{32}")
+    integer(fixture["sequence_no"])
+    if fixture["outbox_key"] is not None:
+        match(fixture["outbox_key"], r"outbox_[0-9a-f]{32}")
+        keys(fixture["task"], "id job_key revision status")
+        integer(fixture["task"]["id"])
+        require(fixture["task"]["id"] not in admission["protected_job_ids"], "PROTECTED_JOB")
+        match(fixture["task"]["job_key"], r"job_[0-9a-f]{32}")
+        integer(fixture["task"]["revision"])
+        require(fixture["task"]["status"] in ("queued", "running", "dead", "succeeded", "cancelled"), "TASK_STATUS")
+        if args.step == "recover":
+            require(fixture["task"]["status"] == "dead", "RECOVERY_REQUIRES_KNOWN_DEAD_JOB")
+    else:
+        require(fixture["task"] is None and fixture["strategy"] == "reauthorize", "MATERIALIZATION_IDENTITY")
+    require(fixture["strategy"] in ("retry_original", "reauthorize"), "RECOVERY_STRATEGY")
+    if fixture["message"] is not None:
+        keys(fixture["message"], "message_key revision status")
+        match(fixture["message"]["message_key"], r"notice_[0-9a-f]{32}")
+        integer(fixture["message"]["revision"])
+        require(fixture["message"]["status"] in ("unread", "read"), "MESSAGE_STATUS")
+    require(args.step not in ("mark-read", "inbox") or fixture["message"] is not None, "EXACT_MESSAGE_REQUIRED")
+    match(fixture["idempotency_key"], r"[A-Za-z0-9][A-Za-z0-9_.:-]{7,127}")
+    require(type(fixture["expected_status"]) is int and fixture["expected_status"] in (200, 401, 403, 404, 409), "EXPECTED_STATUS")
+    if fixture["expected_status"] >= 400:
+        match(fixture["expected_problem_code"], r"[A-Z][A-Z0-9_]{2,100}")
+    else:
+        require(fixture["expected_problem_code"] is None, "SUCCESS_HAS_NO_PROBLEM_CODE")
+    require(isinstance(fixture["assertions"], list) and fixture["assertions"], "REAL_ASSERTIONS_REQUIRED")
+    for assertion in fixture["assertions"]:
+        keys(assertion, "pointer equals")
+        match(assertion["pointer"], r"/.*")
+    result = Path(admission["result_path"])
+    require(result.is_absolute() and result.parent.resolve() == result.parent and not result.exists() and not result.is_symlink(), "RESULT_MUST_BE_CANONICAL_AND_ABSENT")
+    binding, access, identity = native_evidence(args.step, admission, fixture, fixture_hash)
+    return admission, fixture, origin, result, admission_hash, fixture_hash, binding, access, identity
+
+
+def request_plan(step, fixture):
+    prefix = "/adminapi/api/v1/"
+    instance = prefix + "workflow/instances/" + fixture["instance_key"] + "/notifications"
+    headers = {}
+    if step == "diagnostics":
+        return "GET", instance + "?page=1&page_size=100", None, headers
+    if step == "inbox":
+        return "GET", prefix + "notifications?status=all&page=1&page_size=100", None, headers
+    if step == "mark-read":
+        headers["If-Match"] = '"rev-' + str(fixture["message"]["revision"]) + '"'
+        return "POST", prefix + "notifications/" + fixture["message"]["message_key"] + "/read", {}, headers
+    headers["Idempotency-Key"] = fixture["idempotency_key"]
+    return "POST", instance + "/recover", {
+        "sequence_no": fixture["sequence_no"], "outbox_key": fixture["outbox_key"],
+        "expected_job_revision": None if fixture["task"] is None else fixture["task"]["revision"],
+        "strategy": fixture["strategy"],
+    }, headers
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("mode", choices=("plan", "execute"))
+    parser.add_argument("--step", choices=STEPS, required=True)
+    parser.add_argument("--fixture", required=True)
+    parser.add_argument("--admission", required=True)
+    parser.add_argument("--admission-sha256", required=True)
+    parser.add_argument("--credentials", help="0600 JSON containing only access_token; execute only")
+    args = parser.parse_args()
+    admission, fixture, origin, result, ahash, fhash, binding, access, identity = inputs(args)
+    method, path, body, headers = request_plan(args.step, fixture)
+    receipt = {"schema_version": 1, "operation_id": admission["operation_id"], "case_id": admission["case_id"],
+               "step": args.step, "admission_sha256": ahash, "fixture_sha256": fhash,
+               "source_commit": fixture["source_commit"], "tenant_id": fixture["tenant_id"],
+               "request_identity": identity, "native_authority": binding["authority"],
+               "dispatch_sha256": admission["dispatch_sha256"], "package_id": admission["package_id"],
+               "http_requests": 0, "outcome": "NOT_RUN", "worker": "DEFERRED_NO_NATIVE_JOB_SELECTOR"}
+    if args.mode == "plan":
+        print(json.dumps({**receipt, "method": method, "path": path, "result_path": str(result)}, ensure_ascii=False))
+        return 0
+    require(args.credentials is not None, "CREDENTIAL_FILE_REQUIRED")
+    credentials, _ = document(args.credentials, private=True)
+    keys(credentials, "access_token")
+    token = credentials["access_token"]
+    match(token, r"pa_tat_[A-Za-z0-9_-]+")
+    require(digest(token.encode()) == fixture["principal"]["token_sha256"], "FIXTURE_TOKEN_MISMATCH")
+    verify_dispatch_origin(admission)
+    verify_current_lease(fixture, binding, access)
+    document(admission["dispatch_control"], admission["dispatch_sha256"])
+    # O_EXCL reserves this admitted operation before network. UNKNOWN is never replayed.
+    reserve_journal(result, receipt)
+    connection = None
+    try:
+        require(timestamp(admission["expires_at"]) > dt.datetime.now(dt.timezone.utc), "ADMISSION_EXPIRED")
+        connection_type = http.client.HTTPSConnection if origin.scheme == "https" else http.client.HTTPConnection
+        connection = connection_type(origin.hostname, origin.port, timeout=20)
+        headers.update({"Authorization": "Bearer " + token, "Host": fixture["host_header"], "Accept": "application/json", "Content-Type": "application/json"})
+        receipt["http_requests"] = 1
+        connection.request(method, path, None if body is None else json.dumps(body).encode(), headers)
+        response = connection.getresponse()
+        raw = response.read(2_000_001)
+        receipt.update({"http_status": response.status, "response_sha256": digest(raw)})
+        require(len(raw) <= 2_000_000, "RESPONSE_SIZE")
+        payload = json.loads(raw)
+        require(response.status == fixture["expected_status"], "HTTP_STATUS")
+        receipt["verified_response"] = response_identity(args.step, fixture, payload)
+        for assertion in fixture["assertions"]:
+            actual = json.dumps(pointer(payload, assertion["pointer"]), sort_keys=True)
+            require(actual == json.dumps(assertion["equals"], sort_keys=True), "RESPONSE_ASSERTION")
+        receipt["outcome"] = "ASSERTIONS_PASSED_THIS_HTTP_ONLY"
+        receipt["assertions_checked"] = len(fixture["assertions"])
+    except Exception as error:
+        # Keep UNKNOWN even on a received error: the caller must reconcile actual effects.
+        receipt["error"] = str(error) if isinstance(error, Refused) else type(error).__name__
+    finally:
+        if connection is not None:
+            connection.close()
+        try:
+            persist_result(result, receipt)
+        except Exception:
+            print(json.dumps({"outcome": "UNKNOWN", "error": "RESULT_PERSISTENCE_FAILED", "result_path": str(result)}))
+            return 2
+    print(json.dumps(receipt, ensure_ascii=False))
+    return 0 if receipt["outcome"] == "ASSERTIONS_PASSED_THIS_HTTP_ONLY" else 2
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except (Refused, OSError, ValueError, KeyError, TypeError, IndexError) as error:
+        print(json.dumps({"outcome": "REFUSED_BEFORE_HTTP", "error": str(error) if isinstance(error, Refused) else type(error).__name__}))
+        sys.exit(2)
