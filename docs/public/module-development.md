@@ -42,6 +42,14 @@ Identity 升级若变更核心权限目录，升级完成后须在新的 CLI 进
 
 租户开通使用套餐与许可证：套餐包含已安装模块及明确权限组合，租户的唯一当前许可证引用套餐并记录期限和状态。平台通过 plans 和 tenants/license 管理，逐租户模块 enable/disable 接口与命令已退出。安装包不会自动改已有套餐或授予成员权限；升级许可证只改变可用上限。成员权限沿应用的角色、成员管理入口办理，并核对实际权限键及租户 Scope；平台 operators/roles/replace 是平台操作员角色入口，不等同租户成员授权。
 
+Standalone 实例的部署 owner（应用 server 目录的本地系统 owner 或 root）通过 Identity 包内原生 CLI 维护其唯一 default 租户现有 application-default 套餐：
+
+```sh
+php server/app/modules/peanut/identity/bin/standalone-entitlements --application=<native-app-slug> --selection-file=/absolute/selection.json
+```
+
+selection.json 显式提供 `expected_plan_revision`、`expected_license_revision`、`module_keys`、`permission_keys` 和 `change_reason`。模块必须已安装且 active，选择继续执行套餐的依赖和权限校验。命令校验当前原生应用身份为 standalone，只替换该默认套餐的选择并推进授权 revision，保留现有许可证的 status、effective_at 和 expires_at，不创建或激活许可、不授予成员角色。多租户实例、其他租户、共享给其他租户的套餐和嵌套任务调用均拒绝。系统审计使用已有 nullable operator/account 投影，记录真实 local CLI uid、username、host、原因及前后值，不构造平台操作员身份。
+
 以下动作彼此独立：
 
 1. 发现源码不代表已经安装。

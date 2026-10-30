@@ -117,6 +117,59 @@ final readonly class PlanLicenseAdminService
         });
     }
 
+    /** Deployment-owner CLI maintenance; preserves the current license's state and term. */
+    public function saveStandaloneEntitlements(array $input): array
+    {
+        $execution = app(\app\common\execution\CurrentExecutionContext::class);
+        if (PHP_SAPI !== 'cli' || !$execution->current() instanceof \app\common\execution\InstanceExecutionContext
+            || $execution->operation() !== 'console.identity:standalone-entitlements') {
+            throw new \DomainException('STANDALONE_ENTITLEMENTS_ROOT_REQUIRED');
+        }
+        $this->fields($input, ['expected_plan_revision','expected_license_revision','module_keys','permission_keys','change_reason']);
+        $expectedPlan = $this->integer($input['expected_plan_revision'] ?? null);
+        $expectedLicense = $this->integer($input['expected_license_revision'] ?? null);
+        $modules = $this->keys($input['module_keys'] ?? null);
+        $permissions = $this->keys($input['permission_keys'] ?? null);
+        $reason = $this->text($input['change_reason'] ?? null, 500);
+        return Db::transaction(function () use ($execution,$expectedPlan,$expectedLicense,$modules,$permissions,$reason): array {
+            $plan = Db::name('plan')->where('code','application-default')->lock(true)->find();
+            $tenant = Db::name('tenant')->where('code','default')->lock(true)->find();
+            if ($plan === null || $tenant === null || $plan['status'] !== 'active' || $tenant['status'] !== 'active') {
+                throw AdminAccessException::conflict('STANDALONE_ENTITLEMENTS_DEFAULT_REQUIRED','The active default tenant and application-default plan are required.');
+            }
+            $planId = (int) $plan['id'];
+            $tenantId = (int) $tenant['id'];
+            $license = Db::name('tenant_license')->where('tenant_id',$tenantId)->lock(true)->find();
+            if ($license === null || (int) $license['plan_id'] !== $planId
+                || Db::name('tenant_license')->where('plan_id',$planId)->where('tenant_id','<>',$tenantId)->lock(true)->find() !== null) {
+                throw AdminAccessException::conflict('STANDALONE_ENTITLEMENTS_LICENSE_REQUIRED','The default plan must belong only to the existing default tenant license.');
+            }
+            if ((int) $plan['revision'] !== $expectedPlan || (int) $license['revision'] !== $expectedLicense) {
+                throw AdminAccessException::revisionMismatch();
+            }
+            $this->assertSelection($modules,$permissions);
+            $before = ['plan'=>$this->plan($planId),'license'=>$this->entitlements->license($tenantId)];
+            $now = $this->now();
+            $this->replaceDetails($planId,$modules,$permissions);
+            Db::name('plan')->where('id',$planId)->update(['revision'=>new Raw('revision + 1'),'updated_at'=>$now]);
+            Db::name('tenant_license')->where('tenant_id',$tenantId)->update(['revision'=>new Raw('revision + 1'),'updated_at'=>$now]);
+            Db::name('tenant')->where('id',$tenantId)->update(['authorization_revision'=>new Raw('authorization_revision + 1'),'updated_at'=>$now]);
+            $after = ['plan'=>$this->plan($planId),'license'=>$this->entitlements->license($tenantId)];
+            $uid = posix_geteuid();
+            $this->audit->appendPlatformEvent(
+                eventType: 'standalone.entitlements.saved', action: 'identity.standalone.entitlements.manage', outcome: 'success',
+                reasonCode: null, operatorId: null, accountId: null, targetType: 'tenant-license', targetId: (string) $license['id'],
+                requestId: $execution->requestId(), operationId: null, ipAddress: null, userAgentHash: null,
+                beforeJson: json_encode($before,JSON_THROW_ON_ERROR), afterJson: json_encode($after,JSON_THROW_ON_ERROR),
+                metadataJson: json_encode(['tenant_id'=>$tenantId,'change_reason'=>$reason,'actor'=>[
+                    'kind'=>'local-cli','uid'=>$uid,'username'=>posix_getpwuid($uid)['name'],
+                    'actor_key'=>$execution->instance()->actorKey,'host'=>$execution->instance()->host,
+                ]],JSON_THROW_ON_ERROR),
+            );
+            return ['tenant_id'=>$tenantId] + $after;
+        });
+    }
+
     /** Trusted fresh-install composition only. No role grant or subsequent module-install adoption. */
     public function initializeInstallation(array $moduleKeys, string $tenantCode): array
     {

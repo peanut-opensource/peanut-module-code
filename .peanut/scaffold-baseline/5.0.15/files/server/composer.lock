@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f4d448ff1d3a689051685f7569e65a1b",
+    "content-hash": "29b0b678aea6c539c8d9ce8acf292351",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -1811,11 +1811,11 @@
         },
         {
             "name": "peanut-business/peanut-identity",
-            "version": "4.0.0-rc.40",
+            "version": "4.0.0-rc.42",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/identity",
-                "reference": "1acc996691f4612c2156d671eada12cd83fb1301"
+                "reference": "9b8ff0387cddfc11f7fd2a4d722c4069ab5a238a"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",

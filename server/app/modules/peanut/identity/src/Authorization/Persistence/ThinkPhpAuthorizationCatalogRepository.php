@@ -20,7 +20,11 @@ final class ThinkPhpAuthorizationCatalogRepository implements \PeanutAdmin\Kerne
 {
     public function syncPermission(\PeanutAdmin\Kernel\Authorization\Persistence\PermissionDefinition $definition): int
     {
-        if (str_starts_with($definition->key, 'custom.') || str_starts_with($definition->key, 'platform.custom.')
+        // Module synchronizers supply compiled, namespaced definitions; instance bundles retain their own owner.
+        $unownedCustomKey = str_starts_with($definition->key, 'custom.')
+            && (!str_starts_with($definition->moduleKey, 'custom.')
+                || !str_starts_with($definition->key, $definition->moduleKey . '.'));
+        if ($unownedCustomKey || str_starts_with($definition->key, 'platform.custom.')
             || str_starts_with($definition->moduleKey, 'instance.')) {
             throw new DomainException('The instance permission namespace is reserved.');
         }
