@@ -56,6 +56,7 @@
 <script lang="ts" setup>
   import { computed, onMounted, reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRoute } from 'vue-router';
   import { ElMessage, type FormInstance } from 'element-plus';
   import { hasPermission } from '@/hooks/permission';
   import {
@@ -65,9 +66,10 @@
     type OpenPlatformConfigForm,
   } from '@/modules/peanut-oauth/api';
 
+  const route = useRoute();
   const { t } = useI18n();
   const canView = computed(() =>
-    hasPermission('peanut.oauth.open-platform.config')
+    hasPermission('peanut.oauth.open-platform.config', route.path)
   );
   const loading = ref(false);
   const submitLoading = ref(false);

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace PeanutAdmin\Modules\Notification\Infrastructure\Authorization;
 
-use app\common\services\authorization\AdminAuthorizationService;
+use app\common\contract\authorization\AdminAuthorizationQuery;
 use PeanutAdmin\Kernel\Async\VerifiedJobEnvelope;
 use PeanutAdmin\Kernel\Auth\AuthException;
 use PeanutAdmin\Kernel\Context\AuthorizationDecision;
@@ -13,14 +13,14 @@ use PeanutAdmin\Modules\Identity\Contract\TenantMemberDirectory;
 use PeanutAdmin\Modules\Identity\Contract\TenantSessionAccess;
 use PeanutAdmin\Modules\Notification\Contract\NotificationProducerRegistry;
 use PeanutAdmin\Modules\Notification\Delivery\Package;
-use PeanutAdmin\Modules\Notification\Delivery\Persistence\NotificationRepository;
+use PeanutAdmin\Modules\Notification\Delivery\Persistence\NotificationStore;
 use think\facade\Db;
 
 /** Every signed delivery keeps its real submitting session and current owning authorization. */
 final readonly class NotificationAsyncAuthorization
 {
-    public function __construct(private AdminAuthorizationService $authorization, private TenantSessionAccess $sessions,
-        private TenantMemberDirectory $members, private NotificationRepository $repository, private NotificationProducerRegistry $producers,
+    public function __construct(private AdminAuthorizationQuery $authorization, private TenantSessionAccess $sessions,
+        private TenantMemberDirectory $members, private NotificationStore $repository, private NotificationProducerRegistry $producers,
         private \PeanutAdmin\Kernel\Module\ModuleAvailability $modules) {}
 
     public function bind(AuthorizedOperationContext $context, string $outboxKey): void

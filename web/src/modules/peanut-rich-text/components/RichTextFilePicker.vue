@@ -11,10 +11,12 @@
 
 <script setup lang="ts">
   import { onBeforeUnmount, shallowRef, watch } from 'vue';
-  import FileAssetSelector from '@/modules/peanut-file/optional-runtime/src/FileAssetSelector.vue';
-  import { createFileAssetRuntime } from '@/modules/peanut-file/optional-runtime/src/runtime';
-  import type { AssetCandidate } from '@/modules/peanut-file/optional-runtime/src/contracts';
-  import type { StableMediaReference } from '@/modules/peanut-content-tools/src/contracts';
+  import {
+    createFileAssetRuntime,
+    FileAssetSelector,
+    type AssetCandidate,
+  } from '@peanut-admin/peanut-file/optional-runtime';
+  import type { StableMediaReference } from '@peanut-admin/peanut-content-tools/surface';
 
   const props = defineProps<{
     contextKey: string;

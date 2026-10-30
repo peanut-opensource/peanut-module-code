@@ -26,8 +26,14 @@ final class DeptApplicationService
 
     public function validationRules(string $scene): array
     {
-        $rules = ['id' => 'require|integer|gt:0', 'name' => 'require|length:1,120',
-            'pid' => 'require|integer|egt:0', 'leader' => 'max:50', 'mobile' => 'max:20',
+        $rules = ['id' => ['require', static fn(mixed $value): bool => (is_int($value) || is_string($value))
+                && preg_match('/^[1-9][0-9]*$/D', (string) $value) === 1
+                && filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) !== false],
+            'name' => 'require|length:1,120',
+            'pid' => ['require', static fn(mixed $value): bool => (is_int($value) || is_string($value))
+                && preg_match('/^(0|[1-9][0-9]*)$/D', (string) $value) === 1
+                && filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]) !== false],
+            'leader' => 'max:50', 'mobile' => 'max:20',
             'sort' => 'integer|egt:0', 'status' => 'require|in:0,1'];
         if ($scene === 'add') {
             unset($rules['id']);

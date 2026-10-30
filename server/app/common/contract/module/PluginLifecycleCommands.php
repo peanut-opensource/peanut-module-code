@@ -16,7 +16,7 @@ interface PluginLifecycleCommands
     public function installPlan(string $pluginKey, ?callable $consumePlan = null): array;
 
     /** @return array<string,mixed> */
-    public function reconcile(string $pluginKey): array;
+    public function reconcile(string $pluginKey, bool $preparedRelease = false): array;
 
     /** Prepare the selected already installed graph once, then reconcile it in dependency order. */
     public function reconcileInstalled(array $pluginKeys): array;

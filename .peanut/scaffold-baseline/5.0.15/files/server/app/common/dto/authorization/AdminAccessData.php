@@ -10,5 +10,6 @@ final readonly class AdminAccessData
     public function __construct(
         public array $menu,
         public array $permissions,
+        public array $actionBindings = [],
     ) {}
 }

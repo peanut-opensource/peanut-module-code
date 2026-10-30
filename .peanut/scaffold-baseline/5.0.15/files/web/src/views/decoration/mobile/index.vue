@@ -96,7 +96,11 @@
                             :key="item.name + item.image"
                             class="preview-grid-item"
                           >
-                            <img v-if="item.image" :src="item.image" alt="" />
+                            <img
+                              v-if="item.image"
+                              :src="images.preview(item.image)"
+                              alt=""
+                            />
                             <span v-else class="preview-placeholder">图</span>
                             <small>{{ item.name || '服务' }}</small>
                           </div>
@@ -112,7 +116,11 @@
                             :key="item.name + item.image"
                             class="preview-grid-item"
                           >
-                            <img v-if="item.image" :src="item.image" alt="" />
+                            <img
+                              v-if="item.image"
+                              :src="images.preview(item.image)"
+                              alt=""
+                            />
                             <span v-else class="preview-placeholder">图</span>
                             <small>{{ item.name || '导航' }}</small>
                           </div>
@@ -125,7 +133,9 @@
                       >
                         <img
                           v-if="visibleItems(component)[0]?.image"
-                          :src="visibleItems(component)[0].image"
+                          :src="
+                            images.preview(visibleItems(component)[0].image)
+                          "
                           alt=""
                         />
                         <span v-else>{{ component.title }}</span>
@@ -220,14 +230,17 @@
                       <div class="image-field">
                         <img
                           v-if="metaContent.title_img"
-                          :src="String(metaContent.title_img)"
+                          :src="images.preview(metaContent.title_img)"
                           alt="标题图片"
                         />
                         <FilePicker
                           :type="10"
                           :limit="1"
                           button-text="选择标题图片"
-                          @select="(urls) => setMetaImage('title_img', urls)"
+                          @select="
+                            (urls, files) =>
+                              setMetaImage('title_img', urls, files)
+                          "
                         />
                       </div>
                     </el-form-item>
@@ -240,14 +253,17 @@
                       <div class="image-field">
                         <img
                           v-if="metaContent.bg_image"
-                          :src="String(metaContent.bg_image)"
+                          :src="images.preview(metaContent.bg_image)"
                           alt="背景图片"
                         />
                         <FilePicker
                           :type="10"
                           :limit="1"
                           button-text="选择背景图片"
-                          @select="(urls) => setMetaImage('bg_image', urls)"
+                          @select="
+                            (urls, files) =>
+                              setMetaImage('bg_image', urls, files)
+                          "
                         />
                       </div>
                     </el-form-item>
@@ -372,7 +388,7 @@
                         <div class="image-field">
                           <img
                             v-if="content(component).qrcode"
-                            :src="String(content(component).qrcode)"
+                            :src="images.preview(content(component).qrcode)"
                             alt="客服二维码"
                           />
                           <FilePicker
@@ -380,8 +396,13 @@
                             :limit="1"
                             button-text="选择二维码"
                             @select="
-                              (urls) =>
-                                setContentImage(component, 'qrcode', urls)
+                              (urls, files) =>
+                                setContentImage(
+                                  component,
+                                  'qrcode',
+                                  urls,
+                                  files
+                                )
                             "
                           />
                         </div>
@@ -411,9 +432,12 @@
                       <ItemEditor
                         :items="items(component)"
                         :article-options="articleOptions"
+                        :preview="images.preview"
                         :show-enabled="true"
                         :max="100"
-                        @image="(item, urls) => setItemImage(item, urls)"
+                        @image="
+                          (item, urls, files) => setItemImage(item, urls, files)
+                        "
                         @add="addItem(component)"
                         @remove="(index) => removeItem(component, index)"
                         @move="
@@ -478,12 +502,16 @@
                       <ItemEditor
                         :items="items(component)"
                         :article-options="articleOptions"
+                        :preview="images.preview"
                         :show-enabled="component.name !== 'banner'"
                         :show-background="component.name === 'banner'"
                         :max="component.name === 'nav' ? 100 : 5"
-                        @image="(item, urls) => setItemImage(item, urls)"
+                        @image="
+                          (item, urls, files) => setItemImage(item, urls, files)
+                        "
                         @background="
-                          (item, urls) => setItemBackground(item, urls)
+                          (item, urls, files) =>
+                            setItemBackground(item, urls, files)
                         "
                         @add="addItem(component)"
                         @remove="(index) => removeItem(component, index)"
@@ -498,7 +526,7 @@
 
               <el-space class="actions">
                 <el-button
-                  v-permission="['decoration/mobile/page/save']"
+                  v-permission="['peanut.settings.manage']"
                   type="primary"
                   :loading="submitLoading"
                   @click="handleSubmit"
@@ -518,6 +546,8 @@
   import { computed, defineComponent, reactive, ref, type PropType } from 'vue';
   import { ElMessage } from 'element-plus';
   import FilePicker from '@/components/file-picker/index.vue';
+  import usePublicImageReferences from '@/hooks/public-image-references';
+  import type { FileRecord } from '@/modules/peanut-file/api';
   import {
     getMobileDecorationLists,
     getMobileDecorationDetail,
@@ -542,6 +572,10 @@
   const ItemEditor = defineComponent({
     components: { FilePicker },
     props: {
+      preview: {
+        type: Function as PropType<(value: unknown) => string>,
+        required: true,
+      },
       items: { type: Array as PropType<DecorationItem[]>, required: true },
       articleOptions: {
         type: Array as PropType<DecorationArticleOption[]>,
@@ -560,14 +594,14 @@
     template: `
       <div class="item-editor">
         <div v-for="(item, index) in items" :key="index" class="item-row">
-          <FilePicker :type="10" :limit="1" button-text="选择图片" @select="(urls) => $emit('image', item, urls)" />
-          <img v-if="item.image" :src="item.image" alt="" />
-          <FilePicker v-if="showBackground" :type="10" :limit="1" button-text="选择背景" @select="(urls) => $emit('background', item, urls)" />
-          <img v-if="showBackground && item.bg" :src="item.bg" alt="" />
+          <FilePicker :type="10" :limit="1" button-text="选择图片" @select="(urls, files) => $emit('image', item, urls, files)" />
+          <img v-if="item.image" :src="preview(item.image)" alt="" />
+          <FilePicker v-if="showBackground" :type="10" :limit="1" button-text="选择背景" @select="(urls, files) => $emit('background', item, urls, files)" />
+          <img v-if="showBackground && item.bg" :src="preview(item.bg)" alt="" />
           <el-input v-model="item.name" placeholder="名称" />
               <el-select v-model="item.link.target_type" style="width: 130px" @change="ensureQuery(item)">
             <el-option label="站内页面" value="shop" />
-            <el-option label="文章" value="article" />
+            <el-option :label="articleOptions.length ? '文章' : '文章（暂无可选项）'" value="article" :disabled="articleOptions.length === 0" />
             <el-option label="自定义链接" value="custom" />
             <el-option label="小程序" value="mini_program" />
               </el-select>
@@ -617,6 +651,7 @@
   const loading = ref(false);
   const submitLoading = ref(false);
   const articleOptions = ref<DecorationArticleOption[]>([]);
+  const images = usePublicImageReferences();
   const activeType = ref(1);
   const page = reactive<DecorationPage>({
     id: 0,
@@ -690,14 +725,14 @@
       : String(metaContent.value.bg_color || '#f5f7fa')
   );
   const previewBackgroundImage = computed(() => {
-    const image = String(metaContent.value.bg_image || '');
+    const image = images.preview(metaContent.value.bg_image);
     return image ? `url(${image})` : 'none';
   });
   const visibleItems = (component: MutableComponent) =>
     items(component).filter((item) => Number(item.is_show ?? 1) === 1);
   const bannerPreviewStyle = (component: MutableComponent) => {
     if (component.name !== 'banner') return {};
-    const background = String(visibleItems(component)[0]?.bg || '');
+    const background = images.preview(visibleItems(component)[0]?.bg);
     return background
       ? {
           backgroundImage: `url(${background})`,
@@ -719,6 +754,7 @@
       }
       const { data } = await getMobileDecorationDetail(summary.id);
       Object.assign(page, data);
+      images.replace(data.resource_urls);
       ensureQueries();
       if (type === 5 && !Array.isArray(data.data))
         Object.assign(theme, data.data);
@@ -743,18 +779,39 @@
   const setContentImage = (
     component: MutableComponent,
     key: string,
-    urls: string[]
+    urls: string[],
+    files: FileRecord[]
   ) => {
-    component.content[key] = urls[0] || '';
+    component.content[key] = images.select(
+      urls,
+      files,
+      String(component.content[key] || '')
+    );
   };
-  const setItemImage = (item: DecorationItem, urls: string[]) => {
-    item.image = urls[0] || '';
+  const setItemImage = (
+    item: DecorationItem,
+    urls: string[],
+    files: FileRecord[]
+  ) => {
+    item.image = images.select(urls, files, item.image);
   };
-  const setItemBackground = (item: DecorationItem, urls: string[]) => {
-    item.bg = urls[0] || '';
+  const setItemBackground = (
+    item: DecorationItem,
+    urls: string[],
+    files: FileRecord[]
+  ) => {
+    item.bg = images.select(urls, files, item.bg);
   };
-  const setMetaImage = (key: 'title_img' | 'bg_image', urls: string[]) => {
-    metaContent.value[key] = urls[0] || '';
+  const setMetaImage = (
+    key: 'title_img' | 'bg_image',
+    urls: string[],
+    files: FileRecord[]
+  ) => {
+    metaContent.value[key] = images.select(
+      urls,
+      files,
+      String(metaContent.value[key] || '')
+    );
   };
   const newItem = (): DecorationItem => ({
     image: '',

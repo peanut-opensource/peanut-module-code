@@ -6,7 +6,7 @@ namespace PeanutAdmin\Modules\Identity\Authorization;
 
 use JsonException;
 use PeanutAdmin\Kernel\Auth\TenantContext;
-use PeanutAdmin\Modules\Identity\Module\Model\TenantModule;
+use PeanutAdmin\Modules\Identity\Module\TenantEntitlementService;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Account;
 use PeanutAdmin\Modules\Identity\Persistence\Model\MemberRole;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Permission;
@@ -20,9 +20,7 @@ use think\facade\Db;
 
 final class ThinkPhpTenantAuthorizationRepository implements \PeanutAdmin\Kernel\Authorization\TenantAuthorizationRepository
 {
-    private const AVAILABLE_MODULE_CONDITION = "tenant_module.status = 'enabled' AND installation.status = 'active'"
-        . ' AND (tenant_module.effective_at IS NULL OR tenant_module.effective_at <= UTC_TIMESTAMP(3))'
-        . ' AND (tenant_module.expires_at IS NULL OR tenant_module.expires_at > UTC_TIMESTAMP(3))';
+    public function __construct(private readonly TenantEntitlementService $entitlements) {}
 
     /** Native authority inputs only; the caller retains the existing permission decision. */
     public function readFence(TenantContext $context, array $permissionKeys, array $moduleKeys, bool $lock): string
@@ -78,18 +76,14 @@ final class ThinkPhpTenantAuthorizationRepository implements \PeanutAdmin\Kernel
         $facts['grants'] = $read(RolePermission::where('tenant_id', $context->tenantId)->whereIn('role_id', $roleIds)
             ->whereIn('permission_id', array_column($facts['permissions'], 'id'))
             ->field('role_id,permission_id')->order('role_id,permission_id'));
-        $facts['modules'] = $read(TenantModule::where('tenant_id', $context->tenantId)->whereIn('module_key', $moduleKeys)
-            ->field('module_key,status,authorization_revision,effective_at,expires_at')->order('module_key'));
+        $facts['license'] = $this->entitlements->revisionFacts($context->tenantId, $lock);
         $sessionQuery = static fn() => TenantSession::where('tenant_id', $context->tenantId)
             ->where('account_id', $context->accountId)->where('tenant_member_id', $context->memberId)
             ->where('session_key', $context->sessionKey)->where('client_key', $context->clientKey);
         $facts['session'] = $read($sessionQuery()
             ->field('id,status,client_key,account_security_revision,tenant_security_revision,member_security_revision,idle_expires_at,absolute_expires_at'));
-        // Current database-clock conditions detect expiry without requiring a revision change.
-        $facts['effective_modules'] = $read(TenantModule::where('tenant_id', $context->tenantId)->whereIn('module_key', $moduleKeys)
-            ->where('status', 'enabled')->where(fn($q) => $q->whereNull('effective_at')->whereOr('effective_at', '<=', new Raw('UTC_TIMESTAMP(3)')))
-            ->where(fn($q) => $q->whereNull('expires_at')->whereOr('expires_at', '>', new Raw('UTC_TIMESTAMP(3)')))
-            ->field('module_key')->order('module_key'));
+        // The live license window detects expiry without requiring a stored revision change.
+        $facts['effective_modules'] = $this->entitlements->moduleKeys($context->tenantId, $lock);
         $facts['session_current'] = $read($sessionQuery()->where('status', 'active')
             ->where('idle_expires_at', '>', new Raw('UTC_TIMESTAMP(3)'))
             ->where('absolute_expires_at', '>', new Raw('UTC_TIMESTAMP(3)'))->field('id'));
@@ -165,18 +159,7 @@ final class ThinkPhpTenantAuthorizationRepository implements \PeanutAdmin\Kernel
             ->order('role.id')
             ->select()
             ->toArray();
-        $modules = TenantModule::alias('tenant_module')
-            ->leftJoin('module_installation installation', 'installation.module_key = tenant_module.module_key')
-            ->where('tenant_module.tenant_id', $tenantId)
-            ->field([
-                'tenant_module.module_key', 'tenant_module.status', 'tenant_module.authorization_revision',
-                'tenant_module.effective_at', 'tenant_module.expires_at',
-                'installation.status' => 'installation_status', 'installation.revision' => 'installation_revision',
-            ])
-            ->fieldRaw('CASE WHEN ' . self::AVAILABLE_MODULE_CONDITION . ' THEN 1 ELSE 0 END AS permission_available')
-            ->order('tenant_module.module_key')
-            ->select()
-            ->toArray();
+        $modules = $this->entitlements->revisionFacts($tenantId);
 
         try {
             return hash('sha256', json_encode([
@@ -206,20 +189,12 @@ final class ThinkPhpTenantAuthorizationRepository implements \PeanutAdmin\Kernel
         }
         $permissions = [];
         if ($roleIds !== []) {
-            $availableModules = TenantModule::alias('tenant_module')
-                ->join(
-                    'module_installation installation',
-                    'installation.module_key = tenant_module.module_key',
-                )
-                ->where('tenant_module.tenant_id', $tenantId)
-                ->whereRaw(self::AVAILABLE_MODULE_CONDITION)
-                ->column('tenant_module.module_key');
             $permissions = RolePermission::alias('role_permission')
                 ->join('permission permission', "permission.id = role_permission.permission_id AND permission.status = 'active'")
                 ->where('role_permission.tenant_id', $tenantId)
                 ->whereIn('role_permission.role_id', $roleIds)
                 ->whereNotLike('permission.key', 'platform.%')
-                ->whereIn('permission.module_key', array_values(array_unique(['core', ...$availableModules])))
+                ->whereIn('permission.key', $this->entitlements->permissionKeys($tenantId))
                 ->distinct(true)
                 ->order('permission.key')
                 ->column('permission.key');

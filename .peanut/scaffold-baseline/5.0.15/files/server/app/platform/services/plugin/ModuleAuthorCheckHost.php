@@ -6,7 +6,7 @@ namespace app\platform\services\plugin;
 
 use app\platform\exception\plugin\PluginPackageException;
 use app\common\module\PackageCheck;
-use app\platform\validation\module\StrictVersionConstraintMatcher;
+use PeanutAdmin\Kernel\Module\StrictVersionConstraintMatcher;
 use Throwable;
 
 /** Read-only author preflight shared by the Module CLI and automation. */

@@ -8,14 +8,14 @@ use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 use think\facade\Db;
 use PeanutAdmin\Modules\Notification\Delivery\Application\NotificationException;
 use PeanutAdmin\Modules\Notification\Delivery\Package;
-use PeanutAdmin\Modules\Notification\Delivery\Persistence\NotificationRepository;
+use PeanutAdmin\Modules\Notification\Delivery\Persistence\NotificationStore;
 use PeanutAdmin\Modules\Task\Contract\JobRecord;
 use PeanutAdmin\Modules\Task\Contract\TrustedJobPublisher;
 
 final readonly class NotificationOutboxDispatcher
 {
     public function __construct(
-        private NotificationRepository $repository,
+        private NotificationStore $repository,
         private TrustedJobPublisher $publisher,
     ) {}
 

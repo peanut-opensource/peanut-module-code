@@ -19,7 +19,7 @@ Usage:
   scripts/project-codegraph worktrees
   scripts/project-codegraph sync
 
-ensure   Initialize the current worktree if missing, otherwise sync it.
+ensure   Skip a missing index; sync the current worktree when already indexed.
 status   Report the current index and every existing Git worktree without writing.
 worktrees  Alias for status, emphasizing worktree discovery.
 sync     Sync an already initialized current-worktree index.
@@ -30,15 +30,14 @@ EOF
 
 [[ -f "$REGISTRY_PATH" ]] || die "CodeGraph registry is missing: $REGISTRY_PATH"
 command -v jq >/dev/null 2>&1 || die 'jq is required'
-command -v codegraph >/dev/null 2>&1 || die 'codegraph is required for this project; install it before code analysis'
 
 jq -e '
   .schema_version == 1
   and .project_id == "peanut-admin"
-  and (.policy.project_applicability == "required_for_code_analysis")
+  and (.policy.project_applicability == "use_existing_index_for_code_analysis")
   and (.policy.per_worktree_index == true)
   and (.policy.sharing == "forbidden_to_copy_or_symlink_between_worktrees")
-' "$REGISTRY_PATH" >/dev/null || die 'CodeGraph registry is invalid or does not require per-worktree indexing'
+' "$REGISTRY_PATH" >/dev/null || die 'CodeGraph registry is invalid or does not declare existing per-worktree indexing'
 
 git_root="$(git -C "$ROOT_DIR" rev-parse --show-toplevel 2>/dev/null)" \
   || die 'Peanut Module Code Git root is unavailable'
@@ -72,6 +71,7 @@ index_state() {
     printf 'present_unchecked'
     return 0
   fi
+  command -v codegraph >/dev/null 2>&1 || { printf 'present_tool_unavailable'; return 0; }
   output="$(codegraph status "$path" 2>&1 || true)"
   if printf '%s\n' "$output" | grep -q 'Index is up to date'; then
     printf 'present_up_to_date'
@@ -94,7 +94,7 @@ index_mtime() {
 status_report() {
   local path state current_state count=0 indexed=0
   printf 'registry=%s\n' "$REGISTRY_PATH"
-  printf 'policy=required_for_code_analysis\n'
+  printf 'policy=use_existing_index_for_code_analysis\n'
   printf 'current_worktree=%s\n' "$ROOT_DIR"
   printf 'current_head=%s\n' "$(current_head)"
   current_state="$(index_state "$ROOT_DIR")"
@@ -113,9 +113,11 @@ status_report() {
   printf 'existing_worktrees=%d\n' "$count"
   printf 'worktrees_with_index=%d\n' "$indexed"
   if [[ "$current_state" == missing ]]; then
-    printf 'next_action=scripts/project-codegraph ensure\n'
+    printf 'next_action=skip_missing_index_user_decides_creation\n'
   elif [[ "$current_state" == present_pending || "$current_state" == present_needs_review ]]; then
     printf 'next_action=scripts/project-codegraph sync\n'
+  elif [[ "$current_state" == present_tool_unavailable ]]; then
+    printf 'next_action=report_unavailable_codegraph_tool\n'
   else
     printf 'next_action=ready_for_registered_code_analysis\n'
   fi
@@ -127,16 +129,17 @@ shift || true
 case "$command_name" in
   ensure)
     if [[ ! -d "$ROOT_DIR/.codegraph" ]]; then
-      printf 'project-codegraph: initializing current worktree %s\n' "$ROOT_DIR"
-      codegraph init "$ROOT_DIR"
+      printf 'project-codegraph: no current index; skipping (creation requires user request)\n'
     else
       printf 'project-codegraph: syncing current worktree %s\n' "$ROOT_DIR"
+      command -v codegraph >/dev/null 2>&1 || die 'codegraph is unavailable for the existing index'
       codegraph sync "$ROOT_DIR"
     fi
     status_report
     ;;
   sync)
-    [[ -d "$ROOT_DIR/.codegraph" ]] || die 'current worktree has no .codegraph; run scripts/project-codegraph ensure'
+    [[ -d "$ROOT_DIR/.codegraph" ]] || die 'current worktree has no .codegraph; creation requires a user request'
+    command -v codegraph >/dev/null 2>&1 || die 'codegraph is unavailable for the existing index'
     codegraph sync "$ROOT_DIR"
     status_report
     ;;

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "41698818632bda328f6e7383b598181e",
+    "content-hash": "f4d448ff1d3a689051685f7569e65a1b",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -1699,15 +1699,16 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/peanut-business/peanut-admin-core-php.git",
-                "reference": "62383f26e0128d176bb86080bb031ffb1e018ab1"
+                "reference": "13cf5b7776526e885cb69dbf0849e784a4cacaec"
             },
             "dist": {
                 "type": "zip",
                 "url": "../packages/core-php/peanut-admin-core-5.0.3-alpha.1.zip",
-                "reference": "62383f26e0128d176bb86080bb031ffb1e018ab1",
-                "shasum": "1903d5df8f674cc4ef8251c11ac734e32f1ee9bb"
+                "reference": "13cf5b7776526e885cb69dbf0849e784a4cacaec",
+                "shasum": "e67b5434a9db52c38aaa217f6f6965776c953c2c"
             },
             "require": {
+                "composer/semver": "^3.4.4",
                 "ext-fileinfo": "*",
                 "ext-json": "*",
                 "ext-openssl": "*",
@@ -1746,13 +1747,14 @@
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/content_tools",
-                "reference": "a56ef29a2218745e5a39d5ae336b2ffeafc17d30"
+                "reference": "a1c6b7bb6a7f3f07bb77ef51542332e3d3855041"
             },
             "type": "peanut-admin-module",
             "extra": {
                 "peanut": {
                     "editions": [
-                        "multi-tenant"
+                        "multi-tenant",
+                        "standalone"
                     ]
                 }
             },
@@ -1772,11 +1774,11 @@
         },
         {
             "name": "peanut-business/peanut-file",
-            "version": "1.0.32",
+            "version": "1.0.33",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/file",
-                "reference": "c3c72603b0f93927c18b8e00e46a31f049d7ec02"
+                "reference": "68117b29b8c7bcf271d0683f52acbf6d881786f9"
             },
             "require": {
                 "aws/aws-sdk-php": "^3.0",
@@ -1788,7 +1790,8 @@
             "extra": {
                 "peanut": {
                     "editions": [
-                        "multi-tenant"
+                        "multi-tenant",
+                        "standalone"
                     ]
                 }
             },
@@ -1808,11 +1811,11 @@
         },
         {
             "name": "peanut-business/peanut-identity",
-            "version": "4.0.0-rc.36",
+            "version": "4.0.0-rc.40",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/identity",
-                "reference": "edf33e3f339c9202333e6a3a244e4a994444e352"
+                "reference": "1acc996691f4612c2156d671eada12cd83fb1301"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -1822,7 +1825,8 @@
             "extra": {
                 "peanut": {
                     "editions": [
-                        "multi-tenant"
+                        "multi-tenant",
+                        "standalone"
                     ]
                 }
             },
@@ -1842,11 +1846,11 @@
         },
         {
             "name": "peanut-business/peanut-integration",
-            "version": "1.0.25",
+            "version": "1.0.26",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/integration",
-                "reference": "a3c557b7f8610bb3a6946167291ed04334e30ffb"
+                "reference": "5d43e1136a0c24985b2539e641b5bba995edd175"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -1857,7 +1861,8 @@
             "extra": {
                 "peanut": {
                     "editions": [
-                        "multi-tenant"
+                        "multi-tenant",
+                        "standalone"
                     ]
                 }
             },
@@ -1877,11 +1882,11 @@
         },
         {
             "name": "peanut-business/peanut-ops",
-            "version": "1.0.28",
+            "version": "1.0.29",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/ops",
-                "reference": "f7639c970a278d940b4d270a7cac3097d9c9827c"
+                "reference": "66ecc097cebd67c7e47d967ad9273c7a745c134b"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -1893,7 +1898,8 @@
             "extra": {
                 "peanut": {
                     "editions": [
-                        "multi-tenant"
+                        "multi-tenant",
+                        "standalone"
                     ]
                 }
             },
@@ -1917,7 +1923,7 @@
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/reference_codes",
-                "reference": "1939fb213ab59de11030352051f23d0a4ebbe54b"
+                "reference": "3f27f1f79f328689b4a75f6a260beceefca08743"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -1928,7 +1934,8 @@
             "extra": {
                 "peanut": {
                     "editions": [
-                        "multi-tenant"
+                        "multi-tenant",
+                        "standalone"
                     ]
                 }
             },
@@ -1952,7 +1959,7 @@
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/settings",
-                "reference": "90671ea3f7b44210a9e9e8fa914317d3d6b77049"
+                "reference": "394eb86b40fdb344d46d22075110cc5279ef674d"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -1963,7 +1970,8 @@
             "extra": {
                 "peanut": {
                     "editions": [
-                        "multi-tenant"
+                        "multi-tenant",
+                        "standalone"
                     ]
                 }
             },
@@ -1987,7 +1995,7 @@
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/task",
-                "reference": "ef7f628b7809e4c6d9cce8ef1743bf4a311b8a8c"
+                "reference": "98e6b3d8d20402dc4c67967b1bf6fa9641e008e4"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -1998,7 +2006,8 @@
             "extra": {
                 "peanut": {
                     "editions": [
-                        "multi-tenant"
+                        "multi-tenant",
+                        "standalone"
                     ]
                 }
             },

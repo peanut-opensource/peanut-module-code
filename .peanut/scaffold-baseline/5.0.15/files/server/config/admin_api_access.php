@@ -20,6 +20,7 @@ return [
         'POST adminapi/tenant/session/logout',
     ],
     'authenticated' => [
+        'GET /adminapi/core.tenant.license',
         // Ticket issuance always revalidates the actual Session and compiled Document owner policy.
         'POST adminapi/peanut.collaboration.ticket',
         // File resolves its operation and current Document/File policy inside the use case.

@@ -3,7 +3,7 @@
   "key": "peanut.identity",
   "name": "Identity and access management",
   "description": "Required account credentials, staff membership, organization, authorization, tenant onboarding and security audit foundation. Customer CRM remains peanut.member.",
-  "version": "4.0.0-rc.38",
+    "version": "4.0.0-rc.40",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-identity",
@@ -16,6 +16,7 @@
   "database": {
     "owned_tables": [
       "pa_account",
+      "pa_api_endpoint",
       "pa_auth_security_event",
       "pa_credential",
       "pa_data_condition_definition",
@@ -32,6 +33,8 @@
       "pa_menu_definition",
       "pa_module_installation",
       "pa_permission",
+      "pa_permission_api",
+      "pa_permission_api_config",
       "pa_platform_audit_event",
       "pa_platform_operator",
       "pa_platform_operator_role",
@@ -53,10 +56,16 @@
       "pa_tenant_audit_event",
       "pa_tenant_entry_binding",
       "pa_tenant_member",
-      "pa_tenant_module",
       "pa_tenant_owner_invitation",
       "pa_tenant_session",
-      "pa_tenant_session_token"
+      "pa_tenant_session_token",
+      "pa_plan",
+      "pa_plan_module",
+      "pa_plan_permission",
+      "pa_tenant_license"
+    ],
+    "retired_tables": [
+      "pa_tenant_module"
     ]
   },
   "contracts": {
@@ -92,6 +101,7 @@
       "PeanutAdmin\\Modules\\Identity\\Authorization\\Application\\RoleAdminService",
       "PeanutAdmin\\Modules\\Identity\\Authorization\\CorePermissionCatalog",
       "PeanutAdmin\\Modules\\Identity\\Authorization\\CorePermissionCatalogSynchronizer",
+      "PeanutAdmin\\Modules\\Identity\\Authorization\\ApiPermissionCatalog",
       "PeanutAdmin\\Modules\\Identity\\Authorization\\ModuleAuthorizationCatalogSynchronizer",
       "PeanutAdmin\\Modules\\Identity\\Authorization\\CatalogLifecycleService",
       "PeanutAdmin\\Modules\\Identity\\Http\\TenantAuthEndpoint",
@@ -106,7 +116,6 @@
       "PeanutAdmin\\Modules\\Identity\\Menu\\CoreMenuCatalog",
       "PeanutAdmin\\Modules\\Identity\\Menu\\MenuCatalogSynchronizer",
       "PeanutAdmin\\Modules\\Identity\\Module\\ModuleAvailabilityService",
-      "PeanutAdmin\\Modules\\Identity\\Module\\TenantModuleConfigurationService",
       "PeanutAdmin\\Modules\\Identity\\Organization\\Application\\DepartmentAdminService",
       "PeanutAdmin\\Modules\\Identity\\Platform\\Application\\PlatformAccessAdminService",
       "PeanutAdmin\\Modules\\Identity\\Platform\\Application\\PlatformTenantAdminService",
@@ -141,8 +150,9 @@
       "PeanutAdmin\\Modules\\Identity\\Contract\\TenantSessionAccess",
       "PeanutAdmin\\Modules\\Identity\\Contract\\TenantSessionAccessException",
       "PeanutAdmin\\Modules\\Identity\\Contract\\TenantAuthorizationQuery",
-      "PeanutAdmin\\Modules\\Identity\\Contract\\TenantAuthorizationCommands",
-      "PeanutAdmin\\Modules\\Identity\\Menu\\MenuAdministrationService"
+      "PeanutAdmin\\Modules\\Identity\\Menu\\MenuAdministrationService",
+      "PeanutAdmin\\Modules\\Identity\\Module\\TenantEntitlementService",
+      "PeanutAdmin\\Modules\\Identity\\Platform\\Application\\PlanLicenseAdminService"
     ],
     "events": []
   },

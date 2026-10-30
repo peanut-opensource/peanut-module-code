@@ -1,6 +1,6 @@
 {
     "name": "peanut-module-code-platform",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "private": true,
     "description": "Peanut Module Code instance platform control plane",
     "author": "花生科技",
@@ -21,8 +21,8 @@
     },
     "dependencies": {
         "@element-plus/icons-vue": "2.3.2",
-        "@peanut-admin/ui-vue": "5.0.2",
-        "@peanut-admin/vue": "5.0.2",
+        "@peanut-admin/ui-vue": "file:../packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz",
+        "@peanut-admin/vue": "file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz",
         "axios": "0.34.0",
         "element-plus": "2.14.3",
         "openapi-fetch": "0.17.0",

@@ -171,7 +171,6 @@ final class InstallationPreflightHost
             && (file_exists($applicationManifest) || is_link($applicationManifest));
         $required = [
             'Composer autoload' => $this->serverRoot . '/vendor/autoload.php',
-            '原生初始迁移' => $this->serverRoot . '/database/migrations/20261101000000_initial_baseline.php',
             '初始表结构' => $this->serverRoot . '/database/schema/baseline-schema.sql',
             '原生初始 Seeder' => $this->serverRoot . '/database/seeds/InitialSeeder.php',
             '初始数据' => $this->serverRoot . '/database/schema/baseline-data.sql',
@@ -189,6 +188,15 @@ final class InstallationPreflightHost
         ];
         if (!$serverLayout && !$generatedApplication && !$sourceDevelopment) {
             $required['源码开发身份'] = $sourceRoot . '/.git';
+        }
+        try {
+            require_once $this->serverRoot . '/database/InitialInstallationSource.php';
+            foreach (\InitialInstallationSource::migrationFiles($this->serverRoot) as $index => $file) {
+                $required['原生初始迁移 ' . ($index + 1)] = $file;
+            }
+        } catch (Throwable $exception) {
+            return $this->failed('installation-files', 'INSTALL_FILES_INVALID',
+                $exception->getMessage(), '恢复本实例原安装来源及对应文件后重新运行预检');
         }
         $missing = [];
         foreach ($required as $label => $path) {
@@ -335,8 +343,7 @@ final class InstallationPreflightHost
             $actual = $map($installed['packages']);
             $pinned = static function (string $name) use ($manifest, $runtime): bool {
                 $constraint = $manifest['require'][$name] ?? null;
-                return is_string($constraint)
-                    && preg_match('/^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$/D', $constraint) === 1
+                return ReleaseDependencyIdentity::fixed($constraint)
                     && in_array($runtime[$name][0] ?? null, [$constraint, 'v' . $constraint], true);
             };
             if (!$runtime || array_intersect_key($runtime, $development)

@@ -33,8 +33,4 @@ final readonly class MultiTenantDataScopePolicy implements DataScopePolicy
         $model->setAttr('tenant_id', $tenantId);
     }
 
-    public function usesTenantColumn(): bool
-    {
-        return true;
-    }
 }

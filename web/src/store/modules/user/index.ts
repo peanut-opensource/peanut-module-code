@@ -32,6 +32,7 @@ const useUserStore = defineStore('user', {
     certification: undefined,
     role: '',
     permissions: [],
+    action_bindings: [],
     menu: [],
     canSwitchTenant: false,
     tenantName: '',

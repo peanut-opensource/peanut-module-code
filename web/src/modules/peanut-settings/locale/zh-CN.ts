@@ -5,8 +5,9 @@ export default {
   'officialSettings.notAvailable': '设置不可用',
   'officialSettings.loadError': '无法加载设置',
   'officialSettings.requestId': '请求编号',
-  'officialSettings.empty.title': '暂无设置',
-  'officialSettings.empty.message': '当前租户没有可用的设置。',
+  'officialSettings.empty.title': '暂无模块扩展设置',
+  'officialSettings.empty.message':
+    '当前模块没有声明扩展设置；网站和应用设置可通过对应菜单管理。',
   'officialSettings.field.source': '来源',
   'officialSettings.field.configured': '已配置',
   'officialSettings.field.revision': '版本',

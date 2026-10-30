@@ -43,7 +43,14 @@
 </template>
 
 <script setup lang="ts">
-  import { onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
+  import {
+    onBeforeUnmount,
+    onMounted,
+    ref,
+    shallowRef,
+    toRaw,
+    watch,
+  } from 'vue';
   import { Editor } from '@tiptap/core';
   import DOMPurify from 'dompurify';
   import Collaboration from '@tiptap/extension-collaboration';
@@ -51,8 +58,8 @@
   import type {
     SurfaceCallbacks,
     ContentCollaborationBinding,
-  } from '@/modules/peanut-content-tools/src/contracts';
-  import type ContentToolRegistry from '@/modules/peanut-content-tools/src/registry';
+  } from '@peanut-admin/peanut-content-tools/surface';
+  import type { ContentToolRegistry } from '@peanut-admin/peanut-content-tools/surface';
   import {
     DOCUMENT_VERSION,
     parseRichTextDocument,
@@ -90,7 +97,9 @@
   let mounted = false;
   let picker: AbortController | undefined;
   let boundDocument: Doc | undefined;
+  let emittedProjection: RichTextDocumentValue | undefined;
   const dispose = () => {
+    emittedProjection = undefined;
     boundDocument?.off('destroy', dispose);
     boundDocument = undefined;
     picker?.abort();
@@ -128,9 +137,10 @@
         throw new Error('RICH_TEXT_COLLABORATION_BINDING_INVALID');
       }
       if (binding && !binding.ready && !binding.frozen) return;
-      if (binding?.document instanceof Doc) {
-        boundDocument = binding.document;
-        boundDocument.on('destroy', dispose);
+      const document = binding?.document;
+      if (document instanceof Doc) {
+        boundDocument = document;
+        document.on('destroy', dispose);
       }
       const value = parseRichTextDocument(props.modelValue);
       editor.value = new Editor({
@@ -195,6 +205,7 @@
           if (props.collaborationBinding) return;
           try {
             const projection = envelope(current);
+            emittedProjection = projection;
             emit('update:modelValue', projection);
             emit('dirty-change', true);
           } catch {
@@ -238,8 +249,13 @@
   );
   watch(
     () => props.modelValue,
-    () => {
+    (next) => {
+      // Documents are replaced as a whole; only our own validated echo skips parsing.
+      const localEcho =
+        emittedProjection !== undefined && toRaw(next) === emittedProjection;
+      emittedProjection = undefined;
       if (!mounted || props.collaborationBinding) return;
+      if (localEcho) return;
       // A rejected projection disposes the instance; corrected input must
       // pass the same validation and read-only/collaboration gates again.
       if (!editor.value || error.value) {
@@ -260,8 +276,7 @@
         error.value = '内容结构或旧媒体引用无法识别，未修改原内容';
         emit('error', 'RICH_TEXT_PROJECTION_INVALID');
       }
-    },
-    { deep: true }
+    }
   );
   onBeforeUnmount(() => {
     mounted = false;

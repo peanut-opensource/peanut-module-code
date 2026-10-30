@@ -29,12 +29,6 @@ abstract class TenantOwnedModel extends BaseModel
     final public function setDataScopePolicy(DataScopePolicy $policy): void
     {
         $this->dataScopePolicy = $policy;
-        if (!$policy->usesTenantColumn()) {
-            $this->setOption('disuse', array_values(array_unique([
-                ...(array) $this->getOption('disuse', []),
-                'tenant_id',
-            ])));
-        }
     }
 
     /** ThinkORM global-scope callback; application code must never call it directly. */

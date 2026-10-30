@@ -6,6 +6,13 @@ within the original tenant transaction, not private Document Models. Instance
 custody checks use a bounded explicit tenant/document pair without locking Doc or
 entering a nested tenant Scope; business row locks retain Doc/State/operation order.
 
+`DocumentCollaborativeWrites::loadAuthorizedCollaboration` returns both
+`authorization` metadata and `content` from one current authorization and locked
+Document/State read. Collaboration compares that metadata with its ticket before
+returning content; the service binding and subsequent room/connection locks remain
+inside the same transaction. This result is not an authorization shortcut across
+RPC, request or transaction boundaries.
+
 `peanut.document` owns business-bound document identities, solo projections,
 committed versions and controlled references. A selected business module declares
 its dependency on Document and contributes a `DocumentOwnerPolicy` through its
@@ -88,6 +95,10 @@ returned in the same outer Admin execution lifetime. New, cloned or serialized
 DTOs are data, not proof. The private PHP WeakMap binds all snapshot fields,
 current actor/session/revision, owner and opaque root identity, with a 120-second
 monotonic lifetime. No proof crosses requests, containers, jobs or processes.
+Its issued snapshot contains readonly scalars and decoded JSON arrays; verifying
+that same object reuses the recorded canonical digest. Verification still reads
+and hashes the persisted revision and repeats live authorization in its business
+transaction, so this reuse does not extend across a persistence or RPC boundary.
 Ordinary reads without an external Admin root still work but do not mint proof.
 The existing prohibition on preparing a version in an outer transaction remains.
 

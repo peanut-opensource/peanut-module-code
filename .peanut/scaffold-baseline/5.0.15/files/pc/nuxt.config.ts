@@ -62,7 +62,7 @@ export default defineNuxtConfig({
   ],
 
   appConfig: {
-    moduleSlots: {} as Record<string, string>,
+    moduleSlots: {},
     moduleKeys: moduleEntries.map((entry: string) => {
       const directory = entry.slice(0, entry.lastIndexOf('/'));
       return directory

@@ -480,6 +480,7 @@
 <script lang="ts" setup>
   import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRoute } from 'vue-router';
   import { Download, Plus, Refresh, Search } from '@element-plus/icons-vue';
   import { ElMessage } from 'element-plus';
   import type { FormInstance } from 'element-plus';
@@ -506,6 +507,7 @@
     type MemberTagRecord,
   } from '@/modules/peanut-member/api';
 
+  const route = useRoute();
   const { t } = useI18n();
   const { loading, setLoading } = useLoading(true);
   const renderData = ref<MemberRecord[]>([]);
@@ -918,7 +920,7 @@
 
   const fetchTags = async () => {
     tagsRequest?.abort();
-    if (!hasPermission('peanut.member.tag.list')) return;
+    if (!hasPermission('peanut.member.tag.list', route.path)) return;
     const controller = new AbortController();
     tagsRequest = controller;
     const key = contextKey.value;
@@ -974,7 +976,7 @@
       queryParams.createTime = [];
       pagination.current = 1;
       pagination.total = 0;
-      if (hasPermission('peanut.member.list')) fetchData(1);
+      if (hasPermission('peanut.member.list', route.path)) fetchData(1);
       else setLoading(false);
       fetchTags();
     },

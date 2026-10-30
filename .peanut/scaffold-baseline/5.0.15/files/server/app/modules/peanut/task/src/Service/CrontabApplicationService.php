@@ -54,11 +54,11 @@ class CrontabApplicationService
 
     public function add(array $params): bool
     {
-        $this->commands->assertAllowed(trim((string) $params['command']));
+        $this->commands->assertTenantAware(trim((string) $params['command']));
         Crontab::create([
             'name'       => (string) $params['name'],
             'type'       => (int) $params['type'],
-            'command'    => (string) $params['command'],
+            'command'    => trim((string) $params['command']),
             'params'     => (string) ($params['params'] ?? ''),
             'status'     => (int) $params['status'],
             'expression' => (string) $params['expression'],
@@ -71,12 +71,12 @@ class CrontabApplicationService
 
     public function edit(array $params): bool
     {
-        $this->commands->assertAllowed(trim((string) $params['command']));
+        $this->commands->assertTenantAware(trim((string) $params['command']));
         Db::transaction(function () use ($params): void {
             $crontab = Crontab::where([])
                 ->where('id', (int) $params['id'])->lock(true)->findOrEmpty();
             if ($crontab->isEmpty()) {
-                throw new \runtimeException('定时任务不存在');
+                throw BusinessException::notFound('TASK_CRONTAB_NOT_FOUND', '定时任务不存在');
             }
             $crontab->save([
                 'name' => (string) $params['name'],
@@ -96,7 +96,7 @@ class CrontabApplicationService
     {
         $crontab = Crontab::find($id);
         if ($crontab === null) {
-            throw new \runtimeException('定时任务不存在');
+            throw BusinessException::notFound('TASK_CRONTAB_NOT_FOUND', '定时任务不存在');
         }
         $crontab->delete();
         return true;
@@ -107,7 +107,7 @@ class CrontabApplicationService
     {
         $crontab = Crontab::find($id);
         if ($crontab === null) {
-            throw new \runtimeException('定时任务不存在');
+            throw BusinessException::notFound('TASK_CRONTAB_NOT_FOUND', '定时任务不存在');
         }
         if ($operate === 'start') {
             $crontab->status = CrontabEnum::START;

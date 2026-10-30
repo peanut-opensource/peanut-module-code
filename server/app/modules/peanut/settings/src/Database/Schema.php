@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Settings\Database;
 
 use InvalidArgumentException;
-use PeanutAdmin\Kernel\Persistence\Tenancy\TenantColumnScope;
-use PeanutAdmin\Kernel\Persistence\Tenancy\TenantPersistenceMode;
 
 final class Schema
 {
@@ -93,14 +91,12 @@ SQL,
         ];
     }
 
-    public static function createSql(
-        string $table,
-        TenantPersistenceMode $mode = TenantPersistenceMode::TenantScoped,
-    ): string {
+    public static function createSql(string $table): string
+    {
         return match ($table) {
             'pa_setting_definition', 'pa_setting_deployment_value' => self::CREATE_SQL[$table],
-            'pa_setting_tenant_value' => self::tenantValueSql($mode),
-            'pa_setting_target_value' => self::targetValueSql($mode),
+            'pa_setting_tenant_value' => self::tenantValueSql(),
+            'pa_setting_target_value' => self::targetValueSql(),
             default => throw new InvalidArgumentException("Unknown settings table: {$table}"),
         };
     }
@@ -114,14 +110,13 @@ SQL,
         return "DROP TABLE IF EXISTS `{$table}`";
     }
 
-    private static function tenantValueSql(TenantPersistenceMode $mode): string
+    private static function tenantValueSql(): string
     {
-        $scope = new TenantColumnScope($mode);
-        return sprintf(
-            <<<'SQL'
+        return <<<'SQL'
 CREATE TABLE `pa_setting_tenant_value` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-%s  `definition_id` BIGINT UNSIGNED NOT NULL,
+  `tenant_id` BIGINT UNSIGNED NOT NULL,
+  `definition_id` BIGINT UNSIGNED NOT NULL,
   `value_state` VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `value_json` JSON NULL,
   `ciphertext` VARBINARY(8192) NULL,
@@ -134,9 +129,10 @@ CREATE TABLE `pa_setting_tenant_value` (
   `created_at` DATETIME(3) NOT NULL,
   `updated_at` DATETIME(3) NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_setting_tenant_value` (%s`definition_id`),
+  UNIQUE KEY `uk_setting_tenant_value` (`tenant_id`, `definition_id`),
   KEY `idx_setting_tenant_definition` (`definition_id`),
-%s  CONSTRAINT `fk_setting_tenant_definition` FOREIGN KEY (`definition_id`) REFERENCES `pa_setting_definition` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `fk_setting_tenant_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `pa_tenant` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `fk_setting_tenant_definition` FOREIGN KEY (`definition_id`) REFERENCES `pa_setting_definition` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_setting_tenant_member` FOREIGN KEY (`updated_by_member_id`) REFERENCES `pa_tenant_member` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `chk_setting_tenant_state` CHECK (`value_state` IN ('set', 'unset')),
   CONSTRAINT `chk_setting_tenant_interval` CHECK (`expires_at` IS NULL OR `expires_at` > `effective_at`),
@@ -148,21 +144,16 @@ CREATE TABLE `pa_setting_tenant_value` (
     ))
   )
 ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
-SQL,
-            $scope->whenTenant("  `tenant_id` BIGINT UNSIGNED NOT NULL,\n"),
-            $scope->whenTenant('`tenant_id`, '),
-            $scope->whenTenant("  CONSTRAINT `fk_setting_tenant_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `pa_tenant` (`id`) ON DELETE RESTRICT,\n"),
-        );
+SQL;
     }
 
-    private static function targetValueSql(TenantPersistenceMode $mode): string
+    private static function targetValueSql(): string
     {
-        $scope = new TenantColumnScope($mode);
-        return sprintf(
-            <<<'SQL'
+        return <<<'SQL'
 CREATE TABLE `pa_setting_target_value` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-%s  `definition_id` BIGINT UNSIGNED NOT NULL,
+  `tenant_id` BIGINT UNSIGNED NOT NULL,
+  `definition_id` BIGINT UNSIGNED NOT NULL,
   `target_resource_key` VARCHAR(160) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `target_id` VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `value_state` VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -177,9 +168,10 @@ CREATE TABLE `pa_setting_target_value` (
   `created_at` DATETIME(3) NOT NULL,
   `updated_at` DATETIME(3) NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_setting_target_value` (%s`definition_id`, `target_resource_key`, `target_id`),
+  UNIQUE KEY `uk_setting_target_value` (`tenant_id`, `definition_id`, `target_resource_key`, `target_id`),
   KEY `idx_setting_target_definition` (`definition_id`),
-%s  CONSTRAINT `fk_setting_target_definition` FOREIGN KEY (`definition_id`) REFERENCES `pa_setting_definition` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `fk_setting_target_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `pa_tenant` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `fk_setting_target_definition` FOREIGN KEY (`definition_id`) REFERENCES `pa_setting_definition` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_setting_target_member` FOREIGN KEY (`updated_by_member_id`) REFERENCES `pa_tenant_member` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `chk_setting_target_state` CHECK (`value_state` IN ('set', 'unset')),
   CONSTRAINT `chk_setting_target_interval` CHECK (`expires_at` IS NULL OR `expires_at` > `effective_at`),
@@ -191,10 +183,6 @@ CREATE TABLE `pa_setting_target_value` (
     ))
   )
 ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
-SQL,
-            $scope->whenTenant("  `tenant_id` BIGINT UNSIGNED NOT NULL,\n"),
-            $scope->whenTenant('`tenant_id`, '),
-            $scope->whenTenant("  CONSTRAINT `fk_setting_target_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `pa_tenant` (`id`) ON DELETE RESTRICT,\n"),
-        );
+SQL;
     }
 }

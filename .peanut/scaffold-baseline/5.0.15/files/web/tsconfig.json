@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "ES2020",
-    "moduleResolution": "node",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "strict": true,
     "jsx": "preserve",
     "sourceMap": true,
@@ -19,6 +19,7 @@
   "include": ["src/**/*", "src/**/*.vue"],
   "exclude": [
     "node_modules",
+    "src/directive/permission/index.spec.ts",
     "src/modules/fixture-workflow-business/**",
     "src/modules/**/optional-runtime/tests/**",
     "src/modules/peanut-reference-codes/runtime/tests/**",

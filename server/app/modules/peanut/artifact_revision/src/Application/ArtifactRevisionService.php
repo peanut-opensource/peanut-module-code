@@ -162,19 +162,6 @@ final readonly class ArtifactRevisionService
                     $artifactKey,
                     true,
                 ) ?? throw ArtifactRevisionException::notFound();
-                if ($artifact->revision !== $expectedArtifactRevision) {
-                    throw ArtifactRevisionException::conflict();
-                }
-                $revision = $this->repository->revision(
-                    $context->tenantContext->tenantId,
-                    $artifactType,
-                    $artifactKey,
-                    $revisionKey,
-                    true,
-                ) ?? throw ArtifactRevisionException::notFound();
-                if ($revision->isFinalized() || $revision->revision !== $expectedRevision) {
-                    throw ArtifactRevisionException::conflict();
-                }
                 $finalized = $this->repository->finalizeRevision(
                     $context->tenantContext->tenantId,
                     $artifact->id,

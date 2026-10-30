@@ -22,24 +22,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isRequestMethod(
-  value: string
-): value is NonNullable<UniNamespace.RequestOptions['method']> {
-  switch (value) {
-    case 'OPTIONS':
-    case 'GET':
-    case 'HEAD':
-    case 'POST':
-    case 'PUT':
-    case 'DELETE':
-    case 'TRACE':
-    case 'CONNECT':
-      return true;
-    default:
-      return false;
-  }
-}
-
 function baseUrl(): string {
   if (configuredBaseUrl) return configuredBaseUrl;
   const runtime: unknown = globalThis;
@@ -80,15 +62,9 @@ function decodeResponse(response: unknown): ClientDecodeResult {
   };
 }
 
-const transport = createUniAppClientTransport({
+const transport = createUniAppClientTransport<Record<string, unknown>>({
   baseUrl: baseUrl(),
   request: (options) => {
-    if (!isRequestMethod(options.method)) {
-      throw new Error('UNIAPP_REQUEST_METHOD_INVALID');
-    }
-    if (options.data !== undefined && !isRecord(options.data)) {
-      throw new Error('UNIAPP_REQUEST_DATA_INVALID');
-    }
     return uni.request({
       url: options.url,
       method: options.method,
@@ -130,7 +106,7 @@ const createSessionClient = (generation: number) => {
         }
       },
       businessError: (error) =>
-        uni.showToast({ title: error.message || '请求失败', icon: 'none' }),
+        uni.showToast({ title: error.message, icon: 'none' }),
     },
   });
 };

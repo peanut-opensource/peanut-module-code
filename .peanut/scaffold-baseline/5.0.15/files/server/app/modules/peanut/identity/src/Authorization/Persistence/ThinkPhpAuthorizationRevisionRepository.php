@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Identity\Authorization\Persistence;
 
 use DomainException;
-use PeanutAdmin\Modules\Identity\Module\Model\TenantModule;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Role;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Tenant;
 use PeanutAdmin\Modules\Identity\Persistence\Model\TenantMember;
@@ -27,11 +26,6 @@ final class ThinkPhpAuthorizationRevisionRepository implements \PeanutAdmin\Kern
     public function bumpRole(int $tenantId, int $roleId): int
     {
         return $this->bump(Role::where('tenant_id', $tenantId)->where('id', $roleId));
-    }
-
-    public function bumpTenantModule(int $tenantId, string $moduleKey): int
-    {
-        return $this->bump(TenantModule::where('tenant_id', $tenantId)->where('module_key', $moduleKey));
     }
 
     private function bump(BaseQuery $query): int

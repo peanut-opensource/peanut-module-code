@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 $secret = env('COLLABORATION_SECRET', '');
+$caFile = env('COLLABORATION_CA_FILE', '');
 if (!is_string($secret) || ($secret !== '' && (strlen($secret) < 32 || strlen($secret) > 4096
     || preg_match('/[\r\n\x00]/', $secret)))) {
     throw new RuntimeException('COLLABORATION_SECRET_INVALID');
@@ -16,12 +17,12 @@ return [
     'service_instance_id' => env('COLLABORATION_SERVICE_INSTANCE_ID', ''),
     'key_id' => env('COLLABORATION_SERVICE_KEY_ID', ''),
     'secret' => $secret,
-    // Explicit HTTP origins are development-only; HTTPS always verifies the configured CA.
+    // HTTPS uses system trust unless the managed private CA is explicitly selected.
     'control_origin' => env('COLLABORATION_CONTROL_ORIGIN', ''),
     // The historical key also carries an explicit ws:// URL in development.
     'public_wss_url' => env('COLLABORATION_PUBLIC_WSS_URL', ''),
-    'ca_bundle_file' => env('COLLABORATION_CA_FILE', '') === 'private/collaboration/service/ca.pem'
-        ? dirname(__DIR__, 5) . '/private/collaboration/service/ca.pem' : '',
+    'ca_bundle_file' => $caFile === 'private/collaboration/service/ca.pem'
+        ? dirname(__DIR__, 5) . '/private/collaboration/service/ca.pem' : $caFile,
     'ca_sha256' => env('COLLABORATION_CA_SHA256', ''),
     'clock_window_seconds' => 30,
     'connection_lease_seconds' => 15,

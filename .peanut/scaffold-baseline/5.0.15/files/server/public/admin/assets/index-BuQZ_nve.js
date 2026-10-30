@@ -1,1 +1,0 @@
-import{d as o,f as a,Q as r,o as s,c as n}from"./index-tZ05gGCu.js";const d=o({__name:"index",setup(c){const e=a(),t=r().params.path;return e.replace({path:t}),(u,_)=>(s(),n("div"))}});export{d as default};

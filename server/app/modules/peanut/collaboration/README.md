@@ -9,8 +9,11 @@ a broadcast or native SyncStatus is not a database commit.
 ## Service authentication
 
 The managed application configuration supplies the fixed instance/service/key,
-origins, secret and CA reference. Explicit HTTP/WS is accepted only when the
-application's APP_ENV is development; HTTPS/WSS keeps normal CA verification.
+origins and secret. HTTPS uses the existing Guzzle transport's system trust by
+default. A private CA is selected by the paired managed CA file and SHA-256;
+invalid or incomplete nonempty references fail instead of selecting system trust.
+Explicit HTTP/WS is accepted only when the application's APP_ENV is development;
+HTTPS/WSS keeps normal certificate verification.
 No browser selects these values. Internal
 calls reject ambient human/Task identity and authenticate only the service.
 
@@ -49,6 +52,10 @@ a separately reviewed stopped/drained migration. Recovery never unlocks unknown 
 ## Authorization and batch persistence
 
 The authorized transport endpoint returns only the configured WS/WSS URL and document context.
+Its `/collaboration` path matches the current ingress. Default ports, explicit
+ports 1–65535, DNS case and IPv6 URL hosts do not require a different permission.
+Credentials, query/fragment, control characters and other schemes remain invalid;
+the application configuration supplies the URL, never a browser request.
 The browser supplies its existing native user token to Hocuspocus, which forwards
 `{token,document_name}` to the authenticated backend authorize API. Both fields
 are untrusted: configured instance/edition, native TenantAuthService session/member

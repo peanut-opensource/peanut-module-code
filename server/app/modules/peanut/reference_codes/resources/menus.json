@@ -1,3 +1,4 @@
 [
-  {"key":"peanut.reference-codes.page","parent_key":"core.applications","scope":"tenant","type":"page","name":"参考代码","route_name":"OfficialReferenceCodes","route_path":"/system/reference-codes","component_key":"peanut.reference-codes.page","required_permission":"peanut.reference-codes.read","icon":"icon-list","sort_order":71,"client_keys":["admin-web"]}
+  {"key":"peanut.reference-codes.page","parent_key":"core.applications","scope":"tenant","type":"page","name":"参考代码","route_name":"OfficialReferenceCodes","route_path":"/system/reference-codes","component_key":"peanut.reference-codes.page","required_permission":"peanut.reference-codes.read","icon":"icon-list","sort_order":71,"client_keys":["admin-web"]},
+  {"key":"peanut.reference-codes.dictionary","parent_key":"core.system","scope":"tenant","type":"page","name":"字典管理","route_name":"SystemDict","route_path":"/system/dict","component_key":"peanut.reference-codes.dictionary","required_permission":"peanut.reference-codes.read","icon":"icon-list","sort_order":76,"client_keys":["admin-web"]}
 ]

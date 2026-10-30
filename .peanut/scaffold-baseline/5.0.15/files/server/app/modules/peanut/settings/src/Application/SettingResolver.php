@@ -10,11 +10,10 @@ use JsonException;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Host\AuthorizedExternalOperation;
 use PeanutAdmin\Kernel\Persistence\Tenancy\TenantColumnScope;
-use PeanutAdmin\Kernel\Persistence\Tenancy\TenantPersistenceMode;
 use PeanutAdmin\Modules\Identity\Tenancy\Application\TenantWorkspaceQueryService;
-use PeanutAdmin\Kernel\Persistence\Model\EditionTenantModel;
+use PeanutAdmin\Kernel\Authorization\Application\AdminAccessException;
 use PeanutAdmin\Kernel\Tenancy\TenantScope;
-use PeanutAdmin\Modules\Settings\Cache\RevisionedSettingCache;
+use PeanutAdmin\Modules\Settings\Cache\ArrayRevisionedSettingCache;
 use PeanutAdmin\Modules\Settings\Definition\SettingDefinition;
 use PeanutAdmin\Modules\Settings\Model\DeploymentSettingValue;
 use PeanutAdmin\Modules\Settings\Model\SettingDefinitionRecord;
@@ -33,13 +32,11 @@ final readonly class SettingResolver
 
     public function __construct(
         private SecretProtector $protector,
-        private RevisionedSettingCache $cache,
-        private TenantPersistenceMode $persistenceMode = TenantPersistenceMode::TenantScoped,
-        private ?int $instanceTenantId = null,
-        private ?TenantWorkspaceQueryService $tenants = null,
+        private ArrayRevisionedSettingCache $cache,
+        private TenantWorkspaceQueryService $tenants,
         private array $projectSettings = [],
     ) {
-        $this->tenantColumnScope = new TenantColumnScope($this->persistenceMode, $this->instanceTenantId);
+        $this->tenantColumnScope = new TenantColumnScope();
     }
 
     public function resolveTenant(
@@ -582,8 +579,8 @@ final readonly class SettingResolver
 
         return Db::transaction(function () use ($definition, $scope, $targetResourceKey, $targetId): array {
             try {
-                ($this->tenants ?? new TenantWorkspaceQueryService())->tenant($scope->tenantId());
-            } catch (\Throwable) {
+                $this->tenants->tenant($scope->tenantId());
+            } catch (AdminAccessException) {
                 throw SettingException::notFound();
             }
             $definitionRow = $this->definitionRow($definition);
@@ -598,16 +595,12 @@ final readonly class SettingResolver
                     ? $this->row(TenantSettingValue::scope(
                         'tenant',
                         $scope,
-                        $this->persistenceMode,
-                        $this->instanceTenantId,
                     )->where('definition_id', $definitionId)->find())
                     : null,
                 'target' => $definition->allows('target') && $targetResourceKey !== null && $targetId !== null
                     ? $this->row(TargetSettingValue::scope(
                         'tenant',
                         $scope,
-                        $this->persistenceMode,
-                        $this->instanceTenantId,
                     )
                         ->where('definition_id', $definitionId)
                         ->where('target_resource_key', $targetResourceKey)
@@ -656,19 +649,7 @@ final readonly class SettingResolver
 
     private function tenantScope(int $tenantId): TenantScope
     {
-        try {
-            $scope = TenantScope::fromTrustedContext($tenantId, 'settings-resolution');
-            EditionTenantModel::tenantAttributes(
-                $scope,
-                $this->persistenceMode,
-                $this->instanceTenantId,
-                [],
-            );
-
-            return $scope;
-        } catch (\RuntimeException) {
-            throw SettingException::notFound();
-        }
+        return TenantScope::fromTrustedContext($tenantId, 'settings-resolution');
     }
 
     private function storedValueInvalid(): SettingException

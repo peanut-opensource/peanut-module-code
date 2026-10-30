@@ -127,6 +127,7 @@
 <script lang="ts" setup>
   import { computed, onMounted, reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRoute } from 'vue-router';
   import { ElMessage, type FormInstance } from 'element-plus';
   import FilePicker from '@/components/file-picker/index.vue';
   import { hasPermission } from '@/hooks/permission';
@@ -137,9 +138,10 @@
     type OfficialAccountConfigForm,
   } from '@/modules/peanut-oauth/api';
 
+  const route = useRoute();
   const { t } = useI18n();
   const canView = computed(() =>
-    hasPermission('peanut.oauth.official-account.config')
+    hasPermission('peanut.oauth.official-account.config', route.path)
   );
   const loading = ref(false);
   const submitLoading = ref(false);

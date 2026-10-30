@@ -4,19 +4,15 @@ declare(strict_types=1);
 
 namespace app\common\services\installation;
 
-use app\common\composition\ModuleComposition;
 use app\common\module\ModuleMigrationRun;
 use app\common\exception\installation\InstallationExecutionException;
-use app\common\services\audit\AuditContractHost;
 use app\common\value\installation\ApplicationSourceIdentity;
 use app\common\value\installation\ServerReleaseIdentity;
 use app\platform\infrastructure\module\ThinkPhpModuleGovernanceProvider;
-use app\platform\services\module\ProductTenantModuleProfileService;
 use app\platform\infrastructure\plugin\ModuleCatalogApplier;
 use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
-use PeanutAdmin\Kernel\Module\ModuleRuntimeRepository;
 use PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries;
-use Closure;
+use PeanutAdmin\Modules\Identity\Platform\Application\PlanLicenseAdminService;
 use PDO;
 use RuntimeException;
 use think\db\PDOConnection;
@@ -31,15 +27,11 @@ final class InstallationExecutionHost
     private ?string $currentInstallationModule = null;
     private readonly string $serverRoot;
 
-    /** @param Closure(CompiledModuleRegistry):ModuleRuntimeRepository $moduleRuntimeFactory */
     public function __construct(
         string $serverRoot,
         private readonly ModuleCatalogApplier $catalogs,
-        private readonly \PeanutAdmin\Modules\Identity\Contract\AdminDirectoryQuery $tenantDirectory,
-        private readonly Closure $moduleRuntimeFactory,
-        private readonly AuditContractHost $audit,
         private readonly TenantModuleStateQueries $moduleStates,
-        private readonly ModuleComposition $moduleComposition,
+        private readonly PlanLicenseAdminService $licenses,
         private readonly CompiledModuleRegistry $definitions,
     ) {
         $this->serverRoot = rtrim($serverRoot, DIRECTORY_SEPARATOR);
@@ -69,10 +61,14 @@ final class InstallationExecutionHost
             'safe_retry' => true, 'completion_lock_present' => $this->completionLockPresent()];
     }
 
-    /** Read-only permission admission on the framework's actual master PDO. */
+    /** Read-only database check and permission diagnostics on the actual master PDO. */
     public function databaseCheck(): array
     {
-        $status = $this->status();
+        return $this->databaseCheckForStatus($this->status());
+    }
+
+    private function databaseCheckForStatus(array $status): array
+    {
         if ($status['state'] !== 'uninstalled' || !$status['safe_retry']) {
             return $status + ['permissions_verified' => false];
         }
@@ -90,8 +86,19 @@ final class InstallationExecutionHost
             if ($database !== $connection->getConfig('database')) {
                 throw new RuntimeException('INSTALL_DATABASE_CONNECTION_MISMATCH');
             }
-            $required = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'ALTER', 'DROP', 'INDEX', 'REFERENCES', 'CREATE TEMPORARY TABLES'];
-            $observed = [];
+        } catch (Throwable $exception) {
+            $reason = $exception instanceof RuntimeException && str_starts_with($exception->getMessage(), 'INSTALL_DATABASE_')
+                ? $exception->getMessage() : 'INSTALL_DATABASE_CONNECTION_UNAVAILABLE';
+            return [...$status, 'category' => 'unknown', 'stage' => 'database_check',
+                'reason' => $reason, 'safe_retry' => false,
+                'writes' => [...$status['writes'], 'database' => 'none'],
+                'permissions_verified' => false, 'database_check' => 'unknown',
+                'remedy' => '核对实际连接及库身份后重新检查；没有执行安装或授予权限。'];
+        }
+
+        $required = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'ALTER', 'DROP', 'INDEX', 'REFERENCES', 'CREATE TEMPORARY TABLES'];
+        $observed = [];
+        try {
             $scope = '`' . str_replace('`', '``', $database) . '`.*';
             $escapedScope = '`' . strtr($database, ['\\' => '\\\\', '`' => '``', '_' => '\\_', '%' => '\\%']) . '`.*';
             foreach ($pdo->query('SHOW GRANTS FOR CURRENT_USER()')->fetchAll(PDO::FETCH_NUM) as $row) {
@@ -109,16 +116,14 @@ final class InstallationExecutionHost
                 }
                 $observed = array_merge($observed, explode(', ', $match[1]));
             }
-            $missing = array_values(array_diff($required, $observed));
-            return $status + ['permissions_verified' => $missing === [], 'permissions_missing_or_unconfirmed' => $missing,
-                'database_check' => $missing === [] ? 'ready' : 'blocked',
-                'permission_remedy' => $missing === [] ? null : '请资源 owner 核对目标库的精确有效权限；本检查不授权或写入数据库。'];
         } catch (Throwable) {
-            return [...$status, 'category' => 'unknown', 'stage' => 'database_check',
-                'reason' => 'INSTALL_DATABASE_PERMISSIONS_UNKNOWN', 'safe_retry' => false,
-                'permissions_verified' => false, 'database_check' => 'unknown',
-                'remedy' => '核对实际连接、库身份及权限后重新检查；没有执行安装或授予权限。'];
+            // Grant text is diagnostic only; native migrations report effective SQL permission failures.
+            $observed = [];
         }
+        $missing = array_values(array_diff($required, $observed));
+        return $status + ['permissions_verified' => $missing === [], 'permissions_missing_or_unconfirmed' => $missing,
+            'database_check' => 'ready',
+            'permission_remedy' => $missing === [] ? null : '权限文本未能确认全部权限（可能由角色授予）；仅供诊断，不阻止安装。实际权限错误由原生迁移报告，本检查不授权或写入数据库。'];
     }
 
     /** @return array<string,mixed> */
@@ -341,13 +346,11 @@ final class InstallationExecutionHost
                 );
             }
 
-            $databaseCheck = $this->databaseCheck();
-            if (($databaseCheck['permissions_verified'] ?? false) !== true) {
-                throw new InstallationExecutionException('INSTALL_DATABASE_PERMISSIONS_UNKNOWN',
-                    '数据库有效安装权限未确认，尚未执行安装。', 409, null,
-                    ['stage' => 'database_check', 'reason' => 'INSTALL_DATABASE_PERMISSIONS_UNKNOWN',
-                        'remedy' => '由资源 owner 核对精确库权限后重新检查。',
-                        'writes' => ['database' => 'none'], 'safe_retry' => true]);
+            $databaseCheck = $this->databaseCheckForStatus($status);
+            if (($databaseCheck['database_check'] ?? null) !== 'ready') {
+                throw new InstallationExecutionException((string) $databaseCheck['reason'],
+                    '数据库连接或库身份未确认，尚未执行安装。', 409, null,
+                    array_intersect_key($databaseCheck, array_flip(['category', 'stage', 'reason', 'remedy', 'writes', 'safe_retry'])));
             }
             $resuming = $status['code'] === 'INSTALL_RESUME_READY';
             if ($resuming && !array_key_exists('official_modules', $input)) {
@@ -588,20 +591,8 @@ final class InstallationExecutionHost
                 'operation' => (string) ($result['operation'] ?? ''),
             ];
         }
-        $profile = (new ProductTenantModuleProfileService(
-            $this->runtimeForProfile($registry),
-            $governance,
-            $this->audit,
-            $this->tenantDirectory,
-            $this->moduleComposition,
-        ))->applyInstallationSelection($moduleKeys, $tenantBootstrap['code']);
-        return ['operations' => $operations, 'profile' => $profile];
-    }
-
-    /** Construct persistence after reconciliation over the same immutable deployment declaration. */
-    private function runtimeForProfile(CompiledModuleRegistry $registry): ModuleRuntimeRepository
-    {
-        return ($this->moduleRuntimeFactory)($registry);
+        $license = $this->licenses->initializeInstallation($moduleKeys, $tenantBootstrap['code']);
+        return ['operations' => $operations, 'license' => $license];
     }
 
     /** @param list<string> $moduleKeys @return array<string,int> */

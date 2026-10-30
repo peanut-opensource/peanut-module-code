@@ -25,7 +25,7 @@ use PeanutAdmin\Modules\Integration\Contract\ExternalProvider;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Context\TenantSystemContext;
 use PeanutAdmin\Modules\OAuth\Contract\OAuthCommands;
-use PeanutAdmin\Modules\OAuth\Contract\OAuthPersistence;
+use PeanutAdmin\Modules\OAuth\Infrastructure\Persistence\ThinkPhpOAuthPersistence;
 use PeanutAdmin\Modules\OAuth\Contract\Dto\OAuthAuthorizationResult;
 use PeanutAdmin\Modules\OAuth\Contract\Dto\OAuthLoginResult;
 
@@ -50,7 +50,7 @@ final class OAuthCommandService implements OAuthCommands
         private readonly AdvisoryLockExecution $locks,
         private readonly TenantApplicationSettings $applicationSettings,
         private readonly ExternalTenantResolutionService $externalTenants,
-        private readonly OAuthPersistence $persistence,
+        private readonly ThinkPhpOAuthPersistence $persistence,
         private readonly OAuthTransport $transport,
         private readonly string $defaultAvatar,
     ) {}

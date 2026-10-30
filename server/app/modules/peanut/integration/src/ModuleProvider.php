@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace PeanutAdmin\Modules\Integration;
 
-use app\common\execution\CurrentExecutionContext;
-use PeanutAdmin\Modules\Identity\Contract\AdminDirectoryQuery;
 use PeanutAdmin\Modules\Integration\Application\MachineScopeCatalog;
 use PeanutAdmin\Modules\Integration\Contract\ExternalChannelBindingStore;
 use PeanutAdmin\Modules\Integration\Contract\ExternalChannelBindings;
 use PeanutAdmin\Modules\Integration\Contract\ExternalBindingTransfer;
-use PeanutAdmin\Modules\Integration\Contract\ExternalIntegrationBootstrapCommands;
 use PeanutAdmin\Modules\Integration\Contract\ExternalTenantAudit;
 use PeanutAdmin\Modules\Integration\Contract\ExternalTenantBindingRepository;
 use PeanutAdmin\Modules\Integration\Contract\ExternalTenantResolutionService;
@@ -29,7 +26,6 @@ use PeanutAdmin\IntegrationSecurity\Crypto\AesGcmWebhookSecretProtector;
 use PeanutAdmin\IntegrationSecurity\Crypto\WebhookSecretProtector;
 use PeanutAdmin\IntegrationSecurity\Webhook\HostAddressResolver;
 use PeanutAdmin\IntegrationSecurity\Webhook\SystemHostAddressResolver;
-use PeanutAdmin\IntegrationSecurity\Webhook\WebhookDestinationPolicy;
 use PeanutAdmin\IntegrationSecurity\Webhook\WebhookTransport;
 use PeanutAdmin\Kernel\Module\ModuleProvider as ModuleProviderContract;
 use think\App;
@@ -50,21 +46,9 @@ final class ModuleProvider implements ModuleProviderContract
             ExternalTenantResolutionService::class => ExternalTenantResolver::class,
             ExternalChannelBindings::class => ExternalChannelBindingService::class,
             ExternalBindingTransfer::class => ExternalBindingTransferService::class,
-            ExternalIntegrationBootstrapCommands::class => fn(App $app): ExternalIntegrationBootstrapCommands => new ExternalIntegrationBootstrapCommands(
-                $app->make(ExternalChannelBindingStore::class),
-                $app->make(CurrentExecutionContext::class),
-                $app->make(AdminDirectoryQuery::class),
-            ),
-            ThinkPhpIntegrationSecurityRepository::class => fn(App $app): ThinkPhpIntegrationSecurityRepository => new ThinkPhpIntegrationSecurityRepository(
-                $app->make(CurrentExecutionContext::class),
-                $app->make(\app\common\services\audit\AuditContractHost::class),
-            ),
             IntegrationSecurityRepository::class => ThinkPhpIntegrationSecurityRepository::class,
             HostAddressResolver::class => SystemHostAddressResolver::class,
             WebhookTransport::class => CurlWebhookTransport::class,
-            WebhookDestinationPolicy::class => fn(App $app): WebhookDestinationPolicy => new WebhookDestinationPolicy(
-                $app->make(HostAddressResolver::class),
-            ),
             WebhookSecretProtector::class => fn(App $app): WebhookSecretProtector => $this->webhookSecrets($app),
             MachineScopeCatalog::class => fn(App $app): MachineScopeCatalog => new MachineScopeCatalog(
                 $this->machineScopes($app),

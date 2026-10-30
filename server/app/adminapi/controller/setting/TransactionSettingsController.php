@@ -26,23 +26,26 @@ class TransactionSettingsController extends BaseAdminController
     public function setConfig()
     {
         $post = $this->request->post();
+        if (array_diff(array_keys($post), ['cancel_unpaid_orders', 'cancel_unpaid_orders_times', 'verification_orders', 'verification_orders_times']) !== []) {
+            throw BusinessException::invalid('TRANSACTION_INPUT_INVALID', '交易设置包含未知字段');
+        }
 
         // 基础校验
-        if (!isset($post['cancel_unpaid_orders']) || !in_array((int) $post['cancel_unpaid_orders'], [0, 1], true)) {
+        if (!in_array($post['cancel_unpaid_orders'] ?? null, [0, 1, '0', '1'], true)) {
             throw BusinessException::invalid('TRANSACTION_CANCEL_MODE_INVALID', '请选择系统取消待付款订单方式');
         }
-        if (!isset($post['verification_orders']) || !in_array((int) $post['verification_orders'], [0, 1], true)) {
+        if (!in_array($post['verification_orders'] ?? null, [0, 1, '0', '1'], true)) {
             throw BusinessException::invalid('TRANSACTION_VERIFY_MODE_INVALID', '请选择系统自动核销订单方式');
         }
-        if ((int) $post['cancel_unpaid_orders'] === 1) {
-            $t = (int) ($post['cancel_unpaid_orders_times'] ?? 0);
-            if ($t <= 0) {
+        if ((int) $post['cancel_unpaid_orders'] === 1 || array_key_exists('cancel_unpaid_orders_times', $post)) {
+            $t = $post['cancel_unpaid_orders_times'] ?? null;
+            if ((!is_int($t) && !is_string($t)) || filter_var($t, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 4294967295]]) === false) {
                 throw BusinessException::invalid('TRANSACTION_CANCEL_DELAY_INVALID', '系统取消待付款订单时间须大于 0');
             }
         }
-        if ((int) $post['verification_orders'] === 1) {
-            $t = (int) ($post['verification_orders_times'] ?? 0);
-            if ($t <= 0) {
+        if ((int) $post['verification_orders'] === 1 || array_key_exists('verification_orders_times', $post)) {
+            $t = $post['verification_orders_times'] ?? null;
+            if ((!is_int($t) && !is_string($t)) || filter_var($t, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 4294967295]]) === false) {
                 throw BusinessException::invalid('TRANSACTION_VERIFY_DELAY_INVALID', '系统自动核销订单时间须大于 0');
             }
         }

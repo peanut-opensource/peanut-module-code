@@ -7,7 +7,7 @@ namespace app\common\module;
 use app\common\infrastructure\module\ModuleHostLayoutFactory;
 use app\platform\exception\plugin\PluginPackageException;
 use app\platform\validation\module\OpisManifestSchemaValidator;
-use app\platform\validation\module\StrictVersionConstraintMatcher;
+use PeanutAdmin\Kernel\Module\StrictVersionConstraintMatcher;
 use app\platform\value\plugin\ModuleFrontendLayout;
 use PeanutAdmin\Kernel\Module\ManifestDocument;
 use PeanutAdmin\Kernel\Module\ManifestLoader;

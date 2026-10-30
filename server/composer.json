@@ -12,13 +12,6 @@
     "repositories": [
         {
             "type": "path",
-            "url": "app/modules/peanut/article",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
             "url": "app/modules/peanut/workflow",
             "options": {
                 "symlink": false
@@ -26,7 +19,21 @@
         },
         {
             "type": "path",
-            "url": "app/modules/peanut/payment",
+            "url": "app/modules/peanut/entitlement_quota",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
+            "url": "app/modules/peanut/artifact_revision",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
+            "url": "app/modules/peanut/article",
             "options": {
                 "symlink": false
             }
@@ -40,7 +47,28 @@
         },
         {
             "type": "path",
+            "url": "app/modules/peanut/payment",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
             "url": "app/modules/peanut/oauth",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
+            "url": "app/modules/peanut/member",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
+            "url": "app/modules/peanut/import_export",
             "options": {
                 "symlink": false
             }
@@ -67,38 +95,52 @@
             }
         },
         {
-            "type": "path",
-            "url": "app/modules/peanut/member",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/import_export",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/entitlement_quota",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/artifact_revision",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/task",
-            "options": {
-                "symlink": false
+            "type": "package",
+            "package": {
+                "name": "peanut-admin/core",
+                "description": "Peanut Admin technical kernel and ThinkPHP integration",
+                "type": "library",
+                "license": "Apache-2.0",
+                "support": {
+                    "source": "https://github.com/peanut-business/peanut-admin-core-php"
+                },
+                "require": {
+                    "composer/semver": "^3.4.4",
+                    "ext-fileinfo": "*",
+                    "ext-json": "*",
+                    "ext-openssl": "*",
+                    "ext-pdo": "*",
+                    "ext-sodium": "*",
+                    "opis/json-schema": "^2.6.0",
+                    "php": "^8.3",
+                    "topthink/think-orm": "^4.0.51"
+                },
+                "suggest": {
+                    "aliyuncs/oss-sdk-php": "Required by hosts that construct AliyunStorageDriver.",
+                    "qcloud/cos-sdk-v5": "Required by hosts that construct QcloudStorageDriver.",
+                    "qiniu/php-sdk": "Required by hosts that construct QiniuStorageDriver."
+                },
+                "autoload": {
+                    "psr-4": {
+                        "PeanutAdmin\\DataPermission\\": "data-permission/src/",
+                        "PeanutAdmin\\FileMedia\\": "file-media/src/",
+                        "PeanutAdmin\\IntegrationSecurity\\": "integration-security/src/",
+                        "PeanutAdmin\\Kernel\\": "kernel/src/",
+                        "PeanutAdmin\\Settings\\": "settings/src/"
+                    }
+                },
+                "version": "5.0.3-alpha.1",
+                "source": {
+                    "type": "git",
+                    "url": "https://github.com/peanut-business/peanut-admin-core-php.git",
+                    "reference": "13cf5b7776526e885cb69dbf0849e784a4cacaec"
+                },
+                "dist": {
+                    "type": "zip",
+                    "url": "../packages/core-php/peanut-admin-core-5.0.3-alpha.1.zip",
+                    "reference": "13cf5b7776526e885cb69dbf0849e784a4cacaec",
+                    "shasum": "e67b5434a9db52c38aaa217f6f6965776c953c2c"
+                }
             }
         },
         {
@@ -131,7 +173,7 @@
         },
         {
             "type": "path",
-            "url": "app/modules/peanut/identity",
+            "url": "app/modules/peanut/task",
             "options": {
                 "symlink": false
             }
@@ -145,64 +187,23 @@
         },
         {
             "type": "path",
-            "url": "app/modules/peanut/content_tools",
+            "url": "app/modules/peanut/identity",
             "options": {
                 "symlink": false
             }
         },
         {
-            "type": "package",
-            "package": {
-                "name": "peanut-admin/core",
-                "description": "Peanut Admin technical kernel and ThinkPHP integration",
-                "type": "library",
-                "license": "Apache-2.0",
-                "support": {
-                    "source": "https://github.com/peanut-business/peanut-admin-core-php"
-                },
-                "require": {
-                    "ext-fileinfo": "*",
-                    "ext-json": "*",
-                    "ext-openssl": "*",
-                    "ext-pdo": "*",
-                    "ext-sodium": "*",
-                    "opis/json-schema": "^2.6.0",
-                    "php": "^8.3",
-                    "topthink/think-orm": "^4.0.51"
-                },
-                "suggest": {
-                    "aliyuncs/oss-sdk-php": "Required by hosts that construct AliyunStorageDriver.",
-                    "qcloud/cos-sdk-v5": "Required by hosts that construct QcloudStorageDriver.",
-                    "qiniu/php-sdk": "Required by hosts that construct QiniuStorageDriver."
-                },
-                "autoload": {
-                    "psr-4": {
-                        "PeanutAdmin\\DataPermission\\": "data-permission/src/",
-                        "PeanutAdmin\\FileMedia\\": "file-media/src/",
-                        "PeanutAdmin\\IntegrationSecurity\\": "integration-security/src/",
-                        "PeanutAdmin\\Kernel\\": "kernel/src/",
-                        "PeanutAdmin\\Settings\\": "settings/src/"
-                    }
-                },
-                "version": "5.0.3-alpha.1",
-                "source": {
-                    "type": "git",
-                    "url": "https://github.com/peanut-business/peanut-admin-core-php.git",
-                    "reference": "62383f26e0128d176bb86080bb031ffb1e018ab1"
-                },
-                "dist": {
-                    "type": "zip",
-                    "url": "../packages/core-php/peanut-admin-core-5.0.3-alpha.1.zip",
-                    "reference": "62383f26e0128d176bb86080bb031ffb1e018ab1",
-                    "shasum": "1903d5df8f674cc4ef8251c11ac734e32f1ee9bb"
-                }
+            "type": "path",
+            "url": "app/modules/peanut/content_tools",
+            "options": {
+                "symlink": false
             }
         }
     ],
     "license": "Apache-2.0",
     "authors": [
         {
-            "name": "application owner"
+            "name": "\u82b1\u751f\u79d1\u6280"
         }
     ],
     "require": {
@@ -223,25 +224,25 @@
         "opis/json-schema": "^2.6",
         "topthink/think-migration": "3.1.1",
         "peanut-business/peanut-content-tools": "1.0.1",
-        "peanut-business/peanut-file": "1.0.32",
-        "peanut-business/peanut-identity": "4.0.0-rc.38",
-        "peanut-business/peanut-integration": "1.0.25",
-        "peanut-business/peanut-ops": "1.0.28",
+        "peanut-business/peanut-identity": "4.0.0-rc.40",
+        "peanut-business/peanut-file": "1.0.33",
+        "peanut-business/peanut-task": "1.0.26",
+        "peanut-business/peanut-integration": "1.0.26",
+        "peanut-business/peanut-ops": "1.0.29",
         "peanut-business/peanut-reference-codes": "1.0.24",
         "peanut-business/peanut-settings": "1.0.24",
-        "peanut-business/peanut-task": "1.0.26",
-        "peanut-business/artifact-revision": "4.0.0-rc.35",
-        "peanut-business/entitlement-quota": "4.0.0-rc.34",
-        "peanut-business/peanut-import-export": "1.0.25",
-        "peanut-business/peanut-member": "1.0.21",
-        "peanut-business/peanut-notification": "1.0.23",
-        "peanut-business/peanut-rich-text": "1.0.10",
-        "peanut-business/peanut-document": "1.0.12",
-        "peanut-business/peanut-oauth": "1.0.7",
-        "peanut-business/peanut-collaboration": "1.0.13",
-        "peanut-business/peanut-payment": "1.0.21",
-        "peanut-business/workflow": "4.0.0-rc.38",
-        "peanut-business/peanut-article": "1.0.14"
+        "peanut-business/peanut-notification": "1.0.26",
+        "peanut-business/peanut-rich-text": "1.0.11",
+        "peanut-business/peanut-document": "1.0.13",
+        "peanut-business/peanut-import-export": "1.0.27",
+        "peanut-business/peanut-member": "1.0.22",
+        "peanut-business/peanut-oauth": "1.0.9",
+        "peanut-business/peanut-payment": "1.0.23",
+        "peanut-business/peanut-collaboration": "1.0.14",
+        "peanut-business/peanut-article": "1.0.14",
+        "peanut-business/artifact-revision": "4.0.0-rc.36",
+        "peanut-business/entitlement-quota": "4.0.0-rc.35",
+        "peanut-business/workflow": "4.0.0-rc.40"
     },
     "require-dev": {
         "phpunit/phpunit": "12.5.31",

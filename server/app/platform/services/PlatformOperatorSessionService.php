@@ -10,14 +10,13 @@ use app\platform\context\PlatformOperatorContext;
 use PeanutAdmin\Modules\Identity\Auth\PlatformAuthentication;
 use PeanutAdmin\Kernel\Auth\AuthException;
 use PeanutAdmin\Modules\Identity\Auth\PlatformAuthService;
-use PeanutAdmin\Kernel\Platform\Authorization\PlatformAuthorizationEvaluator;
 use PeanutAdmin\Kernel\Platform\Authorization\PlatformAuthorizationRepository;
 
 final readonly class PlatformOperatorSessionService
 {
     public function __construct(
         private PlatformAuthService $authentication,
-        private PlatformAuthorizationEvaluator $authorization,
+        private PlatformApiAuthorization $authorization,
         private PlatformAuthorizationRepository $permissions,
     ) {}
 

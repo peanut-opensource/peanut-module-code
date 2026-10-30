@@ -23,7 +23,6 @@ use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 use PeanutAdmin\Kernel\Idempotency\IdempotencyKey;
 use PeanutAdmin\Kernel\Idempotency\IdempotencyService;
 use PeanutAdmin\Kernel\Tenancy\TenantScope;
-use RuntimeException;
 use Throwable;
 use UnexpectedValueException;
 use think\facade\Db;
@@ -325,7 +324,6 @@ final readonly class EntitlementQuotaService
                     $tenantId,
                     $updatedWindow->policyRevisionId,
                 ) ?? throw EntitlementQuotaException::integrityFailure();
-                $policy->assertSnapshotIntegrity();
                 $reserved = $this->repository->livePendingAmount($tenantId, $updatedWindow->id, $timestamp);
                 $receipt = $this->receipt(
                     $operation,
@@ -491,10 +489,8 @@ final readonly class EntitlementQuotaService
             return $result;
         } catch (EntitlementQuotaException|ApiException $exception) {
             throw $exception;
-        } catch (UnexpectedValueException $exception) {
-            throw $this->mapUnexpectedFailure($exception);
-        } catch (RuntimeException $exception) {
-            throw $this->mapRepositoryFailure($exception);
+        } catch (UnexpectedValueException) {
+            throw EntitlementQuotaException::integrityFailure();
         } catch (Throwable) {
             throw EntitlementQuotaException::internal();
         }
@@ -686,7 +682,6 @@ final readonly class EntitlementQuotaService
         string $canonical,
         string $digest,
     ): void {
-        $policy->assertSnapshotIntegrity();
         if (!hash_equals($policy->policyRevisionKey, $snapshot->policyRevisionKey)
             || !hash_equals($policy->meterKey, $snapshot->meterKey)
             || !hash_equals($policy->unitKey, $snapshot->unitKey)
@@ -831,43 +826,6 @@ final readonly class EntitlementQuotaService
         }
 
         return $this->isoTime($parsed);
-    }
-
-    private function mapRepositoryFailure(RuntimeException $exception): EntitlementQuotaException
-    {
-        $message = strtolower($exception->getMessage());
-        if (str_contains($message, 'snapshot')
-            || str_contains($message, 'digest')
-            || str_contains($message, 'integrity')) {
-            return EntitlementQuotaException::integrityFailure();
-        }
-        if (str_contains($message, 'capacity') || str_contains($message, 'exceed')) {
-            return EntitlementQuotaException::exceeded();
-        }
-        if (str_contains($message, 'unavailable') || str_contains($message, 'not found')) {
-            return EntitlementQuotaException::notFound();
-        }
-        if (str_contains($message, 'suspended')) {
-            return EntitlementQuotaException::denied();
-        }
-        if (str_contains($message, 'changed')
-            || str_contains($message, 'conflict')
-            || str_contains($message, 'pending')
-            || str_contains($message, 'state')
-            || str_contains($message, 'identity already exists')) {
-            return EntitlementQuotaException::conflict();
-        }
-
-        return EntitlementQuotaException::internal();
-    }
-
-    private function mapUnexpectedFailure(UnexpectedValueException $exception): EntitlementQuotaException
-    {
-        $message = strtolower($exception->getMessage());
-
-        return !str_contains($message, 'overflow') && str_contains($message, 'changed')
-            ? EntitlementQuotaException::conflict()
-            : EntitlementQuotaException::integrityFailure();
     }
 
     /** @return array{error_code: string, http_status: int, message: string} */

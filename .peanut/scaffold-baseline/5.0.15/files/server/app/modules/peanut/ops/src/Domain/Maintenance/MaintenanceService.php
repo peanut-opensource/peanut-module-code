@@ -25,8 +25,7 @@ final readonly class MaintenanceService
     {
         $this->assertAllowed($context, Package::READ_PERMISSION);
         try {
-            $window = $this->store->current($context);
-            return $window === null ? null : $this->validatedWindow($window);
+            return $this->store->current($context);
         } catch (OpsConsoleException $exception) {
             throw $exception;
         } catch (Throwable) {
@@ -80,15 +79,13 @@ final readonly class MaintenanceService
             'request_digest' => $requestDigest,
         ]);
         try {
-            return $this->validatedWindow(
-                $this->store->schedule(
-                    $context,
-                    $candidate,
-                    $expectedRevision,
-                    $idempotencyDigest,
-                    $requestDigest,
-                    $audit,
-                ),
+            return $this->store->schedule(
+                $context,
+                $candidate,
+                $expectedRevision,
+                $idempotencyDigest,
+                $requestDigest,
+                $audit,
             );
         } catch (OpsConsoleException $exception) {
             throw $exception;
@@ -120,15 +117,13 @@ final readonly class MaintenanceService
             'idempotency_digest' => $idempotencyDigest, 'request_digest' => $requestDigest,
         ]);
         try {
-            return $this->validatedWindow(
-                $this->store->close(
-                    $context,
-                    $maintenanceKey,
-                    $expectedRevision,
-                    $idempotencyDigest,
-                    $requestDigest,
-                    $audit,
-                ),
+            return $this->store->close(
+                $context,
+                $maintenanceKey,
+                $expectedRevision,
+                $idempotencyDigest,
+                $requestDigest,
+                $audit,
             );
         } catch (OpsConsoleException $exception) {
             throw $exception;
@@ -161,15 +156,4 @@ final readonly class MaintenanceService
         }
     }
 
-    private function validatedWindow(MaintenanceWindow $window): MaintenanceWindow
-    {
-        return new MaintenanceWindow(
-            $window->maintenanceKey,
-            $window->state,
-            $window->reasonKey,
-            $window->startsAt,
-            $window->endsAt,
-            $window->revision,
-        );
-    }
 }

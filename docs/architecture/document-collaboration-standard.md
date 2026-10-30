@@ -26,7 +26,7 @@
 
 **依赖规则：**业务模块使用标准文档时依赖 `peanut.document`，文档/文件界面通过 `peanut.content-tools` 选择具体编辑器或预览器；富文本由现有 `peanut.rich-text` 提供适配器，业务附件仍由 `peanut.file` 保管。`DocumentEditor/DocumentViewer` 是文档侧的权限、版本与保存封装，内部委托 `ContentEditor/ContentViewer`，不能另写一套格式选择器；文件侧同理。工具注册由可信应用组合根完成，content-tools 不反向导入具体 provider，provider 不依赖 Document 私表，以免循环。仅启用多人协作才装配 `peanut.collaboration` 和 Node；工作流只消费固定文档版本，不成为必需依赖。
 
-本次以“内容工具”作为上层名称，不将 `peanut.rich-text` 全库替换重命名：旧模块标识、已执行迁移、组件和 API 兼容入口保留；DOCX/XLSX/PPTX/PDF/图片/媒体编辑与查看工具统一在内容工具模块下接入和管理，而不是塞进 File 或 Document。部署容器、工具适配器和独立模块不是一一对应关系。详细包与接口职责见 [内容工具合同](content-surface-and-format-adapters.md)。
+本次以“内容工具”作为上层名称，不将 `peanut.rich-text` 全库替换重命名：旧模块标识、已执行迁移和富文本 provider 组件保留；独立 CRUD/HMAC 管理入口退出，文档身份、归属、版本和保存由 Document owner 负责。既有 RichText 表、修订和引用保持不变，未知 owner 记录不重新归属或开放写入。DOCX/XLSX/PPTX/PDF/图片/媒体编辑与查看工具统一在内容工具模块下接入和管理，而不是塞进 File 或 Document。部署容器、工具适配器和独立模块不是一一对应关系。详细包与接口职责见 [内容工具合同](content-surface-and-format-adapters.md)。
 
 ## 2. 标准文档模型与归属
 
@@ -165,7 +165,7 @@ interface FileRef { fileKey: string; kind: 'image' | 'video' | 'audio' | 'file';
 
 | 组件 / 类型入口 | Props（目标） | Emits / 行为 |
 | --- | --- | --- |
-| `RichTextEditor`：`@peanut-admin/peanut-rich-text/editor` | `modelValue`, `mode: 'read'|'solo'|'collaborative'`, `provider?: CollaborationBinding`, `disabled?`, `toolbar?` | 单人模式 `update:modelValue`；协同模式 Yjs 由 DocumentEditor 管理，**不得**每次 onUpdate 再把 JSON 当独立保存源；`change`, `connection-state`, `error`，卸载清理连接 |
+| `RichTextEditor`：`@peanut-admin/peanut-rich-text/editor` | `modelValue`, `mode: 'read'|'solo'|'collaborative'`, `provider?: CollaborationBinding`, `disabled?`, `toolbar?` | `modelValue` 使用不可变整文档替换，调用方不得原位修改对象；单人模式 `update:modelValue`；协同模式 Yjs 由 DocumentEditor 管理，**不得**每次 onUpdate 再把 JSON 当独立保存源；`change`, `connection-state`, `error`，卸载清理连接 |
 | `DocumentEditor`：`@peanut-admin/peanut-document/editor`（新增） | `documentId`, `mode`, `readOnly?`, `initialRevisionId?` | 按已授权格式能力选择真正的富文本或专用文件编辑器；未装 Office 引擎明确只读/不可编辑；所有保存经 PHP 版本与权限合同；`ready`, `save-state`, `version-created`, `error` |
 | `DocumentViewer`：`@peanut-admin/peanut-document/viewer`（新增） | `documentId`, `revisionId?`, `allowDownloads?` | 统一只读分发：根据服务端内容类型/MIME/权限选择富文本、PDF、图片、视频、Office 等已注册预览器或安全降级；`load`, `capabilities`, `error` |
 | `FileAssetPicker`（适配已有 `FileAssetSelector.vue`） | `selectedFileKey`, `allowedKinds`, `documentId?`, `disabled?` | `select({fileKey, kind, variantKey?})`, `cancel`, `error`；后端按真实文件授权校验，不把传入的 documentId 当权利凭证 |
@@ -278,7 +278,7 @@ APP 的可选配置入口为 `python3 server/docker/scripts/configure-collaborat
 
 迁移原则：**新增 `peanut.document` 所有的新文档表，不重命名、改写、删除旧迁移或直接清空旧文档**；盘点旧数据 tenant、关联消费者、修订、CRDT 二进制是否有效并预演迁移。只有经业务所有者明确匹配且租户一致时才迁入新正式文档；无法识别 owner 的旧文档保持只读隔离、出报表供人工认领，不偷用创建人为默认 owner，不对整个租户开放读写。
 
-旧 `peanut.rich-text.document.*` 对已知消费者安排受控兼容期：先保留读或适配到新 Document API；新写流按业务归属迁走，并禁止编辑同一文档的两套持久化。先盘点下游 APP 对 API/组件的使用，再决定弃用版本与升级说明；依赖声明、模块权限和菜单均随迁移修改，旧固定 release/scaffold 快照不回写。任何迁移应有备份、幂等校验、逐租户数量/哈希比对和恢复/拒绝策略；Code 当前部署/单多租户的 APP 升级按既有机制，不发明新 SQL 自动执行后门。
+旧 `peanut.rich-text.document.*` 管理 API 退出活跃产品入口，不建立新旧双写或兼容写通道。既有表、修订、引用及未知 owner 记录保留；归属未确认的记录保持只读隔离，不由模块精简或前端移除触发数据迁移、认领或删除。Document owner 的正式 API 是唯一新编辑/保存入口；旧固定 release/scaffold 快照不回写。适用 APP 通过既有源码升级机制接收本变更，不发明新 SQL 自动执行后门。
 
 ## 9. 最低充分验收边界
 

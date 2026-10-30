@@ -201,6 +201,14 @@ export default function readDecorationPage(value: unknown): DecorationPage {
   const meta = Array.isArray(value.meta)
     ? value.meta.map(readComponent)
     : objectField(value.meta);
+  const resourceUrls: Record<string, string> = {};
+  if (value.resource_urls !== undefined) {
+    if (!record(value.resource_urls)) return invalid();
+    Object.entries(value.resource_urls).forEach(([key, url]) => {
+      if (typeof url !== 'string') invalid();
+      resourceUrls[key] = url;
+    });
+  }
   return {
     ...value,
     id: value.id,
@@ -209,5 +217,6 @@ export default function readDecorationPage(value: unknown): DecorationPage {
     data,
     meta,
     update_time: updateTime,
+    resource_urls: resourceUrls,
   };
 }

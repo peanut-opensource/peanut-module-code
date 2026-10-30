@@ -1,12 +1,16 @@
 import { DirectiveBinding } from 'vue';
 import { hasPermission } from '@/hooks/permission';
+import router from '@/router';
 
 function checkPermission(el: HTMLElement, binding: DirectiveBinding) {
   const { value } = binding;
 
   if (Array.isArray(value)) {
     if (value.length > 0) {
-      if (!hasPermission(value) && el.parentNode) {
+      if (
+        !hasPermission(value, router.currentRoute.value.path) &&
+        el.parentNode
+      ) {
         el.parentNode.removeChild(el);
       }
     }

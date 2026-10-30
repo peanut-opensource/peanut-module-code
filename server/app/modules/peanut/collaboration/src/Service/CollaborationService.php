@@ -217,14 +217,14 @@ final readonly class CollaborationService implements \PeanutAdmin\Modules\Collab
             TicketIdentity::fromLedger(NativeCollaborationProvider::json($ticket->issued_identity_json)),
             function (TenantContext $actor) use ($body, $connection, $ticket, $mode): array {
                 return Db::transaction(function () use ($actor, $body, $connection, $ticket, $mode): array {
-                    $doc = $this->documents->authorizeCollaboration($actor, (int) $ticket->document_id, $mode);
-                    $this->sameTicketDocument($ticket, $doc);
-                    $data = $this->documents->loadAuthorizedCollaboration(
+                    $loaded = $this->documents->loadAuthorizedCollaboration(
                         $actor,
                         (int) $ticket->document_id,
                         self::owner(NativeCollaborationProvider::json($ticket->owner_reference_json)),
                         $mode,
                     );
+                    $this->sameTicketDocument($ticket, $loaded['authorization']);
+                    $data = $loaded['content'];
                     $room = $this->native->lockedRoom(self::text($body, 'room_key'), self::positive($body, 'lease_epoch'));
                     // Keep Document-before-room lock order; reject a changed grant before committing the load.
                     $current = $this->lockedConnection($connection->connection_key, $room);
@@ -590,14 +590,17 @@ final readonly class CollaborationService implements \PeanutAdmin\Modules\Collab
     {
         $value = $this->configuration['public_wss_url'] ?? null;
         $url = is_string($value) ? parse_url($value) : false;
+        $host = $url['host'] ?? '';
+        $scheme = strtolower($url['scheme'] ?? '');
+        $validHost = filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) !== false
+            || (str_starts_with($host, '[') && str_ends_with($host, ']')
+                && filter_var(substr($host, 1, -1), FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false);
         if (!is_array($url) || array_diff(array_keys($url), ['scheme', 'host', 'port', 'path']) !== []
-            || !(($url['scheme'] ?? null) === 'wss'
-                || (($this->configuration['environment'] ?? null) === 'development' && ($url['scheme'] ?? null) === 'ws'))
+            || !($scheme === 'wss'
+                || (($this->configuration['environment'] ?? null) === 'development' && $scheme === 'ws'))
             || ($url['path'] ?? null) !== '/collaboration'
-            || !is_string($url['host'] ?? null) || strlen($url['host']) > 253
-            || preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/D', $url['host']) !== 1
-            || !is_int($url['port'] ?? null) || $url['port'] < 1024 || $url['port'] > 65535
-            || $value !== $url['scheme'] . '://' . $url['host'] . ':' . $url['port'] . '/collaboration') {
+            || $host === '' || !$validHost || preg_match('/[\x00-\x20\x7f\\\\]/', $value) === 1
+            || (isset($url['port']) && $url['port'] < 1)) {
             throw new ApiProblem('COLLAB_UNAVAILABLE', 503, '公开协作传输配置尚未核定');
         }
         return $value;

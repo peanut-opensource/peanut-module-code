@@ -50,6 +50,7 @@
 
         <el-form-item>
           <el-button
+            v-permission="['peanut.settings.manage']"
             type="primary"
             :loading="submitLoading"
             @click="handleSubmit"

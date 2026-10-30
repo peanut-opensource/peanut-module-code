@@ -23,7 +23,7 @@ class DecorationTabbarApplicationService
 
     public function detail(TenantContext $context): array
     {
-        return $this->decoration->tabbar($context, false);
+        return $this->decoration->tabbar($context, forEdit: true);
     }
 
     public function save(TenantContext $context, array $style, array $items): bool

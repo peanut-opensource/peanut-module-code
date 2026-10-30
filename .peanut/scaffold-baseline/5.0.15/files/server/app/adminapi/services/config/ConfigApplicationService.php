@@ -96,10 +96,12 @@ class ConfigApplicationService
     {
         $setting = $this->applicationSettings->memberProfile($context);
         $avatar = trim((string) $setting['user_avatar']);
+        $displayAvatar = $avatar !== '' ? $avatar : $this->defaultAvatar;
         return [
-            'default_avatar' => $this->files->getFileUrl(
-                $avatar !== '' ? $avatar : $this->defaultAvatar,
-            ),
+            'default_avatar' => $avatar,
+            'default_avatar_url' => $displayAvatar !== '' && $displayAvatar === $this->defaultAvatar
+                ? '/' . ltrim($this->defaultAvatar, '/')
+                : $this->files->getFileUrl($displayAvatar),
         ];
     }
 
@@ -107,8 +109,11 @@ class ConfigApplicationService
         AuthenticatedMemberContext|TenantContext $context,
         array $params,
     ): bool {
+        $avatar = (string) $params['default_avatar'];
         $this->applicationSettings->replaceMemberProfile($context, [
-            'user_avatar' => $this->files->setTenantFileUrl($context, (string) $params['default_avatar']),
+            'user_avatar' => $avatar !== '' && $avatar === $this->defaultAvatar
+                ? $avatar
+                : $this->files->setTenantFileUrl($context, $avatar),
         ]);
         return true;
     }

@@ -66,6 +66,7 @@ export interface DecorationPage {
   data: DecorationComponent[] | Record<string, unknown>;
   meta: DecorationComponent[] | Record<string, unknown>;
   update_time?: number | string;
+  resource_urls?: Record<string, string>;
 }
 
 export interface DecorationPageSummary {
@@ -93,6 +94,7 @@ export interface DecorationTabbarItem {
 }
 
 export interface DecorationTabbar {
+  resource_urls?: Record<string, string>;
   style: {
     default_color: string;
     selected_color: string;
@@ -133,7 +135,19 @@ export function getDecorationTabbar() {
 }
 
 export function saveDecorationTabbar(data: DecorationTabbar) {
-  return axios.post('/adminapi/decoration/tabbar/save', data);
+  return axios.post('/adminapi/decoration/tabbar/save', {
+    style: {
+      default_color: data.style.default_color,
+      selected_color: data.style.selected_color,
+    },
+    list: data.list.map((item) => ({
+      name: item.name,
+      selected: item.selected,
+      unselected: item.unselected,
+      link: item.link,
+      is_show: item.is_show,
+    })),
+  });
 }
 
 export function getPcDecorationLists() {

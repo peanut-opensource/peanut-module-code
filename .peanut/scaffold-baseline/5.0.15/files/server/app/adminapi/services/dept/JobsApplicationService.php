@@ -9,7 +9,6 @@ use app\common\exception\BusinessException;
 use think\facade\Db;
 use app\common\model\dept\Jobs;
 use app\common\services\XlsxExportService;
-use PeanutAdmin\Kernel\Context\TenantContextRequirement;
 use app\common\support\ExportPageInfo;
 use app\common\support\PaginationInput;
 use PeanutAdmin\Kernel\Auth\TenantContext;
@@ -24,12 +23,33 @@ class JobsApplicationService
         private readonly XlsxExportService $xlsxExport,
     ) {}
 
-    /** 将 Peanut 旧版 is_disable 请求转换为 LikeAdmin status 契约。 */
-    public function normalizeInput(array $params): array
+    public function normalizeInput(array $params, string $scene = 'lists'): array
     {
-        $params = TenantContextRequirement::withoutTenantId($params);
-        if (!array_key_exists('status', $params) && array_key_exists('is_disable', $params)) {
-            $params['status'] = (int) $params['is_disable'] === 0 ? 1 : 0;
+        $allowed = match ($scene) {
+            'add' => ['name','code','sort','remark','status'],
+            'edit' => ['id','name','code','sort','remark','status'],
+            'detail', 'delete' => ['id'],
+            'status' => ['id','status'],
+            'lists' => ['name','code','status','page_no','page_size','pageNo','pageSize','limit','export','page_type','page_start','page_end','file_name'],
+            default => throw new \LogicException('JOB_INPUT_SCENE_INVALID'),
+        };
+        if (array_diff(array_keys($params), $allowed) !== []) {
+            throw BusinessException::invalid('JOB_INPUT_INVALID', '岗位请求包含未声明字段');
+        }
+        $defaults = $scene === 'lists' ? ['name'=>'','code'=>'']
+            : (in_array($scene,['add','edit'],true) ? ['sort'=>0,'remark'=>''] : []);
+        foreach ($defaults as $field=>$value) {
+            if (!array_key_exists($field,$params)) { $params[$field] = $value; }
+        }
+        foreach (['name','code'] as $field) {
+            if (isset($params[$field]) && is_string($params[$field])) { $params[$field] = trim($params[$field]); }
+        }
+        if ($scene === 'lists' && ($params['status'] ?? null) === '') { unset($params['status']); }
+        $rules = $this->validationRules($scene);
+        if ($scene === 'lists' && !array_key_exists('status',$params)) { unset($rules['status']); }
+        (new \think\Validate())->rule($rules)->failException(true)->check($params);
+        foreach (['id','status','sort'] as $field) {
+            if (isset($params[$field])) { $params[$field] = (int) $params[$field]; }
         }
         return $params;
     }
@@ -37,12 +57,26 @@ class JobsApplicationService
     public function validationRules(string $scene): array
     {
         $rules = [
-            'id' => 'require|integer|gt:0', 'name' => 'require|length:1,50',
-            'code' => 'require|max:64', 'sort' => 'integer|egt:0',
-            'remark' => 'max:200', 'status' => 'require|in:0,1',
+            'id' => ['require', static fn(mixed $value): bool => (is_int($value) || is_string($value))
+                && preg_match('/^[1-9][0-9]*$/D', (string) $value) === 1
+                && filter_var($value,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]) !== false],
+            'name' => ['require','length:1,50',static fn(mixed $value): bool => is_string($value)],
+            'code' => ['require','max:64',static fn(mixed $value): bool => is_string($value)],
+            'sort' => [static fn(mixed $value): bool => (is_int($value) || is_string($value))
+                && preg_match('/^(0|[1-9][0-9]*)$/D',(string)$value) === 1
+                && filter_var($value,FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]) !== false],
+            'remark' => ['max:200',static fn(mixed $value): bool => is_string($value)],
+            'status' => ['require',static fn(mixed $value): bool => in_array($value,[0,1,'0','1'],true)],
         ];
         if ($scene === 'add') {
             unset($rules['id']);
+        }
+        if (in_array($scene, ['detail','delete'], true)) { return ['id'=>$rules['id']]; }
+        if ($scene === 'status') { return array_intersect_key($rules,array_flip(['id','status'])); }
+        if ($scene === 'lists') {
+            return ['name'=>['max:50',static fn(mixed $value): bool => is_string($value)],
+                'code'=>['max:64',static fn(mixed $value): bool => is_string($value)],
+                'status'=>[static fn(mixed $value): bool => in_array($value,[0,1,'0','1'],true)]];
         }
         return $rules;
     }
@@ -95,18 +129,19 @@ class JobsApplicationService
     {
         $jobs = self::jobs($context)->where('id', $id)->findOrEmpty();
         if ($jobs->isEmpty()) {
-            return [];
+            throw BusinessException::notFound('ADMIN_JOB_NOT_FOUND', '岗位不存在');
         }
         return self::formatRows([$jobs->toArray()])[0];
     }
 
     public function add(TenantContext $context, array $params): bool
     {
-        $params = self::normalizeInput($params);
+        $params = $this->normalizeInput($params, 'add');
         return Db::transaction(function () use ($context, $params): bool {
             self::assertUnique($context, (string) $params['name'], (string) $params['code']);
             $status = (int) $params['status'];
             Jobs::create([
+                'tenant_id'  => $context->tenantId,
                 'name'       => trim((string) $params['name']),
                 'code'       => trim((string) $params['code']),
                 'sort'       => (int) ($params['sort'] ?? 0),
@@ -120,7 +155,7 @@ class JobsApplicationService
 
     public function edit(TenantContext $context, array $params): bool
     {
-        $params = self::normalizeInput($params);
+        $params = $this->normalizeInput($params, 'edit');
         return Db::transaction(function () use ($context, $params): bool {
             $id = (int) $params['id'];
             $jobs = self::jobs($context)->where('id', $id)->lock(true)->findOrEmpty();
@@ -275,7 +310,7 @@ class JobsApplicationService
 
     private static function jobs(TenantContext $context)
     {
-        return Jobs::where([]);
+        return Jobs::where('tenant_id', $context->tenantId);
     }
 
     private static function formatTime($value): string

@@ -6,7 +6,7 @@ namespace PeanutAdmin\Modules\Identity\Invitation;
 
 use app\common\services\audit\AuditContractHost;
 use PeanutAdmin\Kernel\Context\PlatformContext;
-use PeanutAdmin\Kernel\Platform\Authorization\PlatformAuthorizationEvaluator;
+use app\platform\services\PlatformApiAuthorization;
 use DateTimeImmutable;
 use DateTimeZone;
 use PeanutAdmin\Kernel\Audit\AuditOutcome;
@@ -24,7 +24,7 @@ final class TenantOwnerInvitationAdminService
 
     public function __construct(
         private readonly PlatformTenantAdminService $tenants,
-        private readonly PlatformAuthorizationEvaluator $authorization,
+        private readonly PlatformApiAuthorization $authorization,
         private readonly OwnerInvitationDeliveryPort $delivery,
         private readonly OwnerInvitationRuntimePolicy $runtimePolicy,
         private readonly AuditContractHost $audit,

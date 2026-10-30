@@ -18,7 +18,6 @@ use app\common\model\setting\CustomerServiceSetting;
 use PeanutAdmin\Modules\Settings\Contract\TenantSettingsQuery;
 use PeanutAdmin\Modules\Settings\Contract\TenantSettingsCommands;
 use PeanutAdmin\Kernel\Context\TenantSystemContext;
-use PeanutAdmin\Modules\Identity\Contract\TenantAuthorizationCommands;
 use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
 use think\DbManager;
 use think\db\PDOConnection;
@@ -33,8 +32,6 @@ final readonly class ApplicationTenantBootstrapService
         'pa_decorate_tabbar',
         'pa_decorate_tabbar_setting',
         'pa_external_channel_binding',
-        'pa_permission',
-        'pa_role_permission',
         'pa_tenant_setting',
         'pa_transaction_setting',
     ];
@@ -45,7 +42,6 @@ final readonly class ApplicationTenantBootstrapService
         private TenantSettingsQuery $tenantSettings,
         private TenantSettingsCommands $settingCommands,
         private ExternalIntegrationBootstrapCommands $externalBindings,
-        private TenantAuthorizationCommands $authorization,
         private DbManager $database,
         private CompiledModuleRegistry $modules,
         private ?NotificationBootstrapCommands $notifications = null,
@@ -71,11 +67,8 @@ final readonly class ApplicationTenantBootstrapService
         $this->executionContexts->run($execution, function () use (
             $execution,
             $tenantId,
-            $ownerMemberId,
-            $ownerRoleId,
             $tenantCode,
         ): void {
-            $this->grantOwnerPermissions($tenantId, $ownerMemberId, $ownerRoleId);
             $this->seedCrontab($execution->system);
             $this->seedNoticeScenes($execution);
             $this->seedDecoration();
@@ -111,22 +104,6 @@ final readonly class ApplicationTenantBootstrapService
         return true;
     }
 
-    private function grantOwnerPermissions(int $tenantId, int $ownerMemberId, int $ownerRoleId): void
-    {
-        $execution = new SystemExecutionContext(new TenantSystemContext(
-            $tenantId,
-            'platform.tenant-bootstrap',
-            'identity.bootstrap-owner-permissions',
-            $this->executionContexts->require()->requestId(),
-        ));
-        $this->executionContexts->run($execution, fn() => $this->authorization->grantActiveModulePermissions(
-            $tenantId,
-            $ownerMemberId,
-            $ownerRoleId,
-            'peanut.admin',
-        ));
-    }
-
     private function seedCrontab(TenantSystemContext $context): void
     {
         $defaults = [
@@ -146,22 +123,6 @@ final readonly class ApplicationTenantBootstrapService
                 'create_time' => 0,
                 'update_time' => 0,
             ],
-            [
-                'name' => '代码生成归档清理',
-                'type' => 1,
-                'command' => 'generator:cleanup',
-                'params' => '',
-                'status' => 1,
-                'expression' => '0 3 * * *',
-                'error' => '',
-                'last_time' => 0,
-                'time' => 0,
-                'max_time' => 0,
-                'sort' => 20,
-                'remark' => '清理已使用或过期的代码生成下载令牌和隔离归档',
-                'create_time' => 0,
-                'update_time' => 0,
-            ],
         ];
         if (!in_array('peanut.payment', $this->modules->moduleKeys(), true)) {
             $defaults = array_values(array_filter(
@@ -169,7 +130,9 @@ final readonly class ApplicationTenantBootstrapService
                 static fn(array $row): bool => $row['command'] !== 'refund:reconcile',
             ));
         }
-        $this->tasks->seedDefaults($context, $defaults);
+        if ($defaults !== []) {
+            $this->tasks->seedDefaults($context, $defaults);
+        }
     }
 
     private function seedNoticeScenes(SystemExecutionContext $execution): void

@@ -5,22 +5,21 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Identity\Module\Persistence;
 
 use DateTimeImmutable;
-use DateTimeZone;
 use PeanutAdmin\Kernel\Module\ModuleException;
 use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
 use PeanutAdmin\Kernel\Module\ModuleInstallationRecord;
 use PeanutAdmin\Kernel\Module\ModuleRuntimeRepository;
 use PeanutAdmin\Modules\Identity\Module\Model\ModuleInstallation;
-use PeanutAdmin\Modules\Identity\Module\Model\TenantModule;
-use PeanutAdmin\Kernel\Module\TenantModuleMutationRepository;
 use PeanutAdmin\Kernel\Module\TenantModuleRecord;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Tenant;
-use think\db\Raw;
+use PeanutAdmin\Modules\Identity\Module\TenantEntitlementService;
+use think\facade\Db;
 
-final readonly class ThinkPhpModuleRuntimeRepository implements ModuleRuntimeRepository, TenantModuleMutationRepository
+final readonly class ThinkPhpModuleRuntimeRepository implements ModuleRuntimeRepository
 {
     public function __construct(
         private CompiledModuleRegistry $registry,
+        private TenantEntitlementService $entitlements,
         private bool $lockAvailabilityReads = false,
     ) {}
 
@@ -83,107 +82,19 @@ final readonly class ThinkPhpModuleRuntimeRepository implements ModuleRuntimeRep
                 max(1, (int) $tenant['authorization_revision'] + $installation->revision),
             );
         }
-        $query = TenantModule::where('tenant_id', $tenantId)->where('module_key', $moduleKey);
-        if ($this->lockAvailabilityReads) {
-            $query->lock(true);
+        $license = $this->entitlements->license($tenantId, $this->lockAvailabilityReads);
+        if ($license === null || Db::name('plan_module')->where('plan_id', $license['plan_id'])
+            ->where('module_key', $moduleKey)->lock($this->lockAvailabilityReads)->find() === null) {
+            return null;
         }
-        $row = $query->field(
-            'tenant_id,module_key,status,effective_at,expires_at,authorization_revision',
-        )->find()?->toArray();
 
-        return $row === null ? null : new TenantModuleRecord(
-            (int) $row['tenant_id'],
-            (string) $row['module_key'],
-            (string) $row['status'],
-            $row['effective_at'] === null ? null : new DateTimeImmutable((string) $row['effective_at']),
-            $row['expires_at'] === null ? null : new DateTimeImmutable((string) $row['expires_at']),
-            (int) $row['authorization_revision'],
+        return new TenantModuleRecord(
+            $tenantId,
+            $moduleKey,
+            $license['status'] === 'active' ? 'enabled' : 'disabled',
+            new DateTimeImmutable($license['effective_at']),
+            $license['expires_at'] === null ? null : new DateTimeImmutable($license['expires_at']),
+            $license['revision'],
         );
-    }
-
-    public function enabledDependents(int $tenantId, string $moduleKey): array
-    {
-        return array_values(array_map('strval', TenantModule::where('tenant_id', $tenantId)
-            ->where('status', 'enabled')
-            ->where('module_key', '<>', $moduleKey)
-            ->order('module_key')
-            ->column('module_key')));
-    }
-
-    public function enable(
-        int $tenantId,
-        string $moduleKey,
-        array $config,
-        DateTimeImmutable $now,
-        string $source = 'manual',
-        ?DateTimeImmutable $effectiveAt = null,
-        ?DateTimeImmutable $expiresAt = null,
-    ): TenantModuleRecord {
-        $timestamp = $this->format($now);
-        $data = [
-            'status' => 'enabled',
-            'source' => $source,
-            'config_json' => json_encode($config, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES),
-            'effective_at' => $effectiveAt === null ? null : $this->format($effectiveAt),
-            'expires_at' => $expiresAt === null ? null : $this->format($expiresAt),
-            'enabled_at' => $timestamp,
-            'disabled_at' => null,
-            'disabled_reason' => null,
-            'updated_at' => $timestamp,
-        ];
-        $existing = TenantModule::where('tenant_id', $tenantId)
-            ->where('module_key', $moduleKey)
-            ->lock(true)
-            ->field('config_revision,authorization_revision')
-            ->find();
-        if ($existing === null) {
-            TenantModule::insert([
-                'tenant_id' => $tenantId,
-                'module_key' => $moduleKey,
-                ...$data,
-                'config_revision' => 1,
-                'authorization_revision' => 1,
-                'created_at' => $timestamp,
-            ]);
-        } else {
-            TenantModule::where('tenant_id', $tenantId)->where('module_key', $moduleKey)->update([
-                ...$data,
-                'config_revision' => new Raw('config_revision + 1'),
-                'authorization_revision' => new Raw('authorization_revision + 1'),
-            ]);
-        }
-        $this->bumpTenant($tenantId, $timestamp);
-
-        return $this->tenantModule($tenantId, $moduleKey)
-            ?? throw new ModuleException('MODULE_TENANT_DISABLED', 'Enabled module could not be reloaded.');
-    }
-
-    public function disable(int $tenantId, string $moduleKey, DateTimeImmutable $now): TenantModuleRecord
-    {
-        $timestamp = $this->format($now);
-        TenantModule::where('tenant_id', $tenantId)->where('module_key', $moduleKey)->update([
-            'status' => 'disabled',
-            'disabled_at' => $timestamp,
-            'authorization_revision' => new Raw('authorization_revision + 1'),
-            'updated_at' => $timestamp,
-        ]);
-        $this->bumpTenant($tenantId, $timestamp);
-
-        return $this->tenantModule($tenantId, $moduleKey)
-            ?? throw new ModuleException('MODULE_TENANT_DISABLED', 'Disabled module could not be reloaded.');
-    }
-
-    private function bumpTenant(int $tenantId, string $timestamp): void
-    {
-        Tenant::where('id', $tenantId)->update([
-            'authorization_revision' => new Raw('authorization_revision + 1'),
-            'revision' => new Raw('revision + 1'),
-            'updated_at' => $timestamp,
-        ]);
-    }
-
-    private function format(DateTimeImmutable $value): string
-    {
-        return $value->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s.v');
     }
 }

@@ -8,7 +8,6 @@ use PeanutAdmin\Modules\File\Contract\FileStorage;
 use app\common\exception\BusinessException;
 use PeanutAdmin\Modules\File\Composition\Storage\StorageDriverFactory;
 use PeanutAdmin\Modules\File\Infrastructure\Storage\StorageAccess;
-use app\common\tenancy\DataScopePolicy;
 use PeanutAdmin\Modules\File\Value\Storage\StoragePath;
 use PeanutAdmin\Modules\File\Value\Storage\StoragePurpose;
 use PeanutAdmin\Modules\File\Model\Storage\StorageAccount;
@@ -23,7 +22,6 @@ use PeanutAdmin\FileMedia\Delivery\DeliveryVisibility;
 use PeanutAdmin\FileMedia\Delivery\ReplayMode;
 use PeanutAdmin\FileMedia\Delivery\SignedDeliveryTokenService;
 use PeanutAdmin\FileMedia\Storage\StorageObjectKey;
-use PeanutAdmin\Modules\Identity\Tenancy\DefaultTenantContextResolver;
 use PeanutAdmin\Modules\Identity\Contract\AdminDirectoryQuery;
 use think\db\BaseQuery;
 use think\db\Raw;
@@ -44,8 +42,6 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
 
     public function __construct(
         private StorageDriverFactory $drivers,
-        private DataScopePolicy $dataScopePolicy,
-        private DefaultTenantContextResolver $defaultTenant,
         private string $signingSecret,
         private string $applicationOrigin,
         private AdminDirectoryQuery $directory,
@@ -220,7 +216,7 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
         if (preg_match('/^file_[0-9a-f]{32}$/D', $reference) === 1) {
             $object = $this->deliverableObjectForTenant($tenantId, $reference);
             if ($object === null || $object['access_type'] !== 'public' || !StoragePurpose::allowsDocumentPreviewInheritance($object['purpose'])) {
-                throw new \RuntimeException('素材对象不属于当前租户');
+                throw BusinessException::invalid('FILE_REFERENCE_INVALID', '素材引用无效');
             }
             return $reference;
         }
@@ -425,9 +421,6 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
         }
         // Enrichment may use an older RR snapshot; every locked File field remains authoritative.
         $object = [...$object, ...$locked];
-        if (!$this->dataScopePolicy->usesTenantColumn()) {
-            $object['tenant_id'] = $tenantId;
-        }
         return $object;
     }
 
@@ -707,9 +700,7 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
         $selectedVariantKey = null;
         if ($operation === 'preview' && (!$canDownload || $variantKey !== null)) {
             $query = Db::name('file_derivative')->where('source_file_key', $fileKey);
-            if ($this->dataScopePolicy->usesTenantColumn()) {
-                $query->where('tenant_id', $context->tenantId);
-            }
+            $query->where('tenant_id', $context->tenantId);
             if ($variantKey !== null) {
                 $query->where('variant_key', $variantKey);
             }
@@ -1119,7 +1110,7 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
     {
         $reference = trim($reference);
         $field = 'f.file_key';
-        $tenantId = $this->dataScopePolicy->usesTenantColumn() ? null : $this->standaloneTenantId();
+        $tenantId = null;
         if (preg_match('/^file_[0-9a-f]{32}$/D', $reference) !== 1) {
             $reference = ltrim($reference, '/');
             if (str_starts_with($reference, 'storage/')) {
@@ -1131,9 +1122,6 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
             $reference = StorageObjectKey::assert($reference);
             $field = 'f.object_key';
             $referenceTenantId = (int) $matches[1];
-            if ($tenantId !== null && $referenceTenantId !== $tenantId) {
-                return null;
-            }
             $tenantId = $referenceTenantId;
         }
         $object = $this->findOwnedObject(
@@ -1153,9 +1141,7 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
     private function assertPublicDerivative(array $object): void
     {
         $query = Db::name('file_derivative')->where('derivative_file_key', $object['file_key']);
-        if ($this->dataScopePolicy->usesTenantColumn()) {
-            $query->where('tenant_id', (int) $object['tenant_id']);
-        }
+        $query->where('tenant_id', (int) $object['tenant_id']);
         $derivative = $query->find();
         if (is_array($derivative)) {
             $source = $this->deliverableObjectForTenant((int) $object['tenant_id'], (string) $derivative['source_file_key']);
@@ -1174,7 +1160,7 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
         }
         FileObject::create([
             ...$data,
-            ...($this->dataScopePolicy->usesTenantColumn() ? ['tenant_id' => $tenantId] : []),
+            'tenant_id' => $tenantId,
             'status' => 'pending_write',
             'revision' => 1,
             'created_at' => new Raw('UTC_TIMESTAMP(3)'),
@@ -1252,23 +1238,7 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
         if ($tenantId < 1) {
             throw new \DomainException('STORAGE_TENANT_INVALID');
         }
-        if ($this->dataScopePolicy->usesTenantColumn()) {
-            return $tenantId;
-        }
-        $defaultTenantId = $this->standaloneTenantId();
-        if ($tenantId !== $defaultTenantId) {
-            throw new \DomainException('STORAGE_OBJECT_OWNER_MISMATCH');
-        }
-        return $defaultTenantId;
-    }
-
-    private function standaloneTenantId(): int
-    {
-        return $this->defaultTenant->system(
-            'storage-service',
-            'storage.resolve-default-tenant',
-            'storage-service-default-tenant',
-        )->tenantId;
+        return $tenantId;
     }
 
     private function ownerPrefix(int $tenantId): string
@@ -1292,19 +1262,10 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
             ->field('s.space_key,s.name AS space_name,s.bucket,s.region,s.endpoint,s.access_domain,s.local_path,s.status AS space_status');
         if ($tenantId !== null) {
             $query->whereLike('f.object_key', $this->ownerPrefix($tenantId) . '%');
-            if ($this->dataScopePolicy->usesTenantColumn()) {
-                $query->where('f.tenant_id', $tenantId);
-            }
+            $query->where('f.tenant_id', $tenantId);
         } else {
             // 无指定租户仅用于公共资源查找，不能返回私有对象。
             $query->where('f.access_type', 'public');
-        }
-        if (!$this->dataScopePolicy->usesTenantColumn()) {
-            if (!is_int($tenantId) || $tenantId < 1) {
-                throw new \LogicException('STORAGE_STANDALONE_TENANT_UNAVAILABLE');
-            }
-            // Identity resolved and validated the default owner before this query.
-            $query->fieldRaw($tenantId . ' AS tenant_id');
         }
         return $query;
     }

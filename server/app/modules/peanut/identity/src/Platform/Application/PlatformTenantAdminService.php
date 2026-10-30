@@ -7,15 +7,9 @@ namespace PeanutAdmin\Modules\Identity\Platform\Application;
 use DateTimeImmutable;
 use DateTimeZone;
 use DomainException;
-use JsonException;
 use PeanutAdmin\Modules\Identity\Audit\AuditService;
 use PeanutAdmin\Kernel\Authorization\Application\AdminAccessException;
 use PeanutAdmin\Kernel\Context\PlatformContext;
-use PeanutAdmin\Kernel\Module\ModuleException;
-use PeanutAdmin\Modules\Identity\Module\Model\TenantModule;
-use PeanutAdmin\Kernel\Module\TenantModuleManager;
-use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
-use PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries;
 use PeanutAdmin\Modules\Identity\Persistence\Model\PlatformOperator;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Role;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Tenant;
@@ -30,10 +24,7 @@ final readonly class PlatformTenantAdminService
     private const TENANT_CODE_PATTERN = '/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/D';
 
     public function __construct(
-        private TenantModuleManager $modules,
         private AuditService $audit,
-        private CompiledModuleRegistry $moduleRegistry,
-        private TenantModuleStateQueries $moduleStates,
     ) {}
 
     /** @return array<string, mixed> */
@@ -184,98 +175,6 @@ final readonly class PlatformTenantAdminService
         });
     }
 
-    /** @param array<string, mixed> $config
-     * @return array<string, mixed>
-     */
-    public function enableModule(
-        PlatformContext $actor,
-        int $tenantId,
-        string $moduleKey,
-        array $config,
-        string $source,
-        ?DateTimeImmutable $effectiveAt,
-        ?DateTimeImmutable $expiresAt,
-        string $changeReason,
-    ): array {
-        $changeReason = $this->changeReason($changeReason);
-        if (!in_array($source, ['manual', 'product_profile', 'license'], true)) {
-            throw AdminAccessException::invalid('MODULE_SOURCE_INVALID', 'The module source is invalid.');
-        }
-        if ($effectiveAt !== null && $expiresAt !== null && $expiresAt <= $effectiveAt) {
-            throw AdminAccessException::invalid('MODULE_PERIOD_INVALID', 'Module expires_at must be later than effective_at.');
-        }
-        try {
-            return Db::transaction(function () use (
-                $actor,
-                $tenantId,
-                $moduleKey,
-                $config,
-                $source,
-                $effectiveAt,
-                $expiresAt,
-                $changeReason,
-            ): array {
-                $this->requireOperator($actor);
-                $this->moduleStates->lockTenantMutation($this->moduleRegistry, [$moduleKey]);
-                if ($this->tenant($tenantId, true)['status'] !== TenantStatus::Active->value) {
-                    throw AdminAccessException::conflict('MODULE_TENANT_DISABLED', 'Only an active tenant can enable a module.');
-                }
-                $before = $this->tenantModule($tenantId, $moduleKey, true);
-                $this->modules->enable(
-                    $tenantId,
-                    $moduleKey,
-                    $config,
-                    new DateTimeImmutable('now', new DateTimeZone('UTC')),
-                    $source,
-                    $effectiveAt,
-                    $expiresAt,
-                );
-                $after = $this->tenantModule($tenantId, $moduleKey)
-                    ?? throw new AdminAccessException('MODULE_WRITE_FAILED', 500, 'The module state could not be loaded.');
-                $this->auditModuleChange($actor, $tenantId, $moduleKey, 'tenant-module.enabled', $before, $after, $changeReason);
-
-                return $after;
-            });
-        } catch (ModuleException $exception) {
-            throw $this->moduleError($exception);
-        }
-    }
-
-    /** @return array<string, mixed> */
-    public function disableModule(
-        PlatformContext $actor,
-        int $tenantId,
-        string $moduleKey,
-        string $changeReason,
-    ): array {
-        $changeReason = $this->changeReason($changeReason);
-        try {
-            return Db::transaction(function () use ($actor, $tenantId, $moduleKey, $changeReason): array {
-                $this->requireOperator($actor);
-                $availabilityKeys = [$moduleKey];
-                foreach ($this->moduleRegistry->modules as $manifest) {
-                    if (in_array($moduleKey, $manifest->data['tenant']['requires'] ?? [], true)) {
-                        $availabilityKeys[] = (string) $manifest->data['key'];
-                    }
-                }
-                $this->moduleStates->lockTenantMutation($this->moduleRegistry, $availabilityKeys);
-                $this->tenant($tenantId, true);
-                $before = $this->tenantModule($tenantId, $moduleKey, true);
-                if ($before === null) {
-                    throw AdminAccessException::notFound();
-                }
-                $this->modules->disable($tenantId, $moduleKey, new DateTimeImmutable('now', new DateTimeZone('UTC')));
-                $after = $this->tenantModule($tenantId, $moduleKey)
-                    ?? throw new AdminAccessException('MODULE_WRITE_FAILED', 500, 'The module state could not be loaded.');
-                $this->auditModuleChange($actor, $tenantId, $moduleKey, 'tenant-module.disabled', $before, $after, $changeReason);
-
-                return $after;
-            });
-        } catch (ModuleException $exception) {
-            throw $this->moduleError($exception);
-        }
-    }
-
     /** @return array{0: string, 1: string, 2: string, 3: string} */
     private function validateTenantFields(string $name, string $displayName, string $locale, string $timezone): array
     {
@@ -351,33 +250,6 @@ final readonly class PlatformTenantAdminService
         return $this->normalize($row);
     }
 
-    /** @return array<string, mixed>|null */
-    private function tenantModule(int $tenantId, string $moduleKey, bool $forUpdate = false): ?array
-    {
-        $query = TenantModule::where('tenant_id', $tenantId)->where('module_key', $moduleKey);
-        if ($forUpdate) {
-            $query->lock(true);
-        }
-        $row = $query->field([
-            'id', 'tenant_id', 'module_key', 'status', 'source', 'config_json' => 'stored_config_json',
-            'config_revision', 'authorization_revision', 'effective_at', 'expires_at', 'enabled_at',
-            'disabled_at', 'disabled_reason', 'created_at', 'updated_at',
-        ])->find()?->toArray();
-        if ($row === null) {
-            return null;
-        }
-        try {
-            $config = $row['stored_config_json'] === null
-                ? [] : json_decode((string) $row['stored_config_json'], true, 512, JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
-            throw new AdminAccessException('DATABASE_DATA_INVALID', 500, 'Stored module configuration is invalid.');
-        }
-        $row['config'] = is_array($config) ? $config : [];
-        unset($row['stored_config_json']);
-
-        return $this->normalize($row);
-    }
-
     /** @param array<string, mixed> $row
      * @return array<string, mixed>
      */
@@ -434,68 +306,6 @@ final readonly class PlatformTenantAdminService
                 $after,
             );
         }
-    }
-
-    /** @param array<string, mixed>|null $before
-     * @param array<string, mixed> $after
-     */
-    private function auditModuleChange(
-        PlatformContext $actor,
-        int $tenantId,
-        string $moduleKey,
-        string $eventType,
-        ?array $before,
-        array $after,
-        string $changeReason,
-    ): void {
-        $metadata = ['tenant_id' => (string) $tenantId, 'module_key' => $moduleKey, 'change_reason' => $changeReason];
-        $before = $this->moduleAuditSnapshot($before);
-        $after = $this->moduleAuditSnapshot($after);
-        $this->audit->platform(
-            $actor->operatorId,
-            $actor->accountId,
-            $actor->requestId,
-            $eventType,
-            'platform.tenant.module.manage',
-            $metadata,
-            'tenant-module',
-            $tenantId . ':' . $moduleKey,
-            $before,
-            $after,
-        );
-        $this->audit->tenantPlatformOperator(
-            $tenantId,
-            $actor->operatorId,
-            $actor->accountId,
-            $eventType,
-            'platform.tenant.module.manage',
-            $actor->requestId,
-            $metadata,
-            'tenant-module',
-            $moduleKey,
-            $before,
-            $after,
-        );
-    }
-
-    private function moduleError(ModuleException $exception): AdminAccessException
-    {
-        return new AdminAccessException(
-            $exception->errorCode,
-            $exception->errorCode === 'MODULE_CONFIG_INVALID' ? 422 : 409,
-            $exception->getMessage(),
-        );
-    }
-
-    /** @param array<string, mixed>|null $module
-     * @return array<string, mixed>|null
-     */
-    private function moduleAuditSnapshot(?array $module): ?array
-    {
-        return $module === null ? null : array_intersect_key($module, array_flip([
-            'id', 'tenant_id', 'module_key', 'status', 'source', 'config_revision', 'authorization_revision',
-            'effective_at', 'expires_at', 'enabled_at', 'disabled_at', 'disabled_reason',
-        ]));
     }
 
     /** @template T

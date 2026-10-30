@@ -890,11 +890,12 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
 
     public function verifyPreparedVersion(TenantContext $context, VersionSnapshot $snapshot, DocumentOwnerReference $expectedOwner): void
     {
+        // Issued keys come only from snapshotFromRevision: readonly scalars and decoded JSON arrays.
+        // The same object cannot change; the persisted revision is still re-read and hashed below.
         $proof = $this->preparedVersions[$snapshot] ?? null;
         if ($proof === null || !$this->execution->current() instanceof AdminExecutionContext
             || $proof['root'] !== $this->execution->rootIdentity() || hrtime(true) >= $proof['expires_at']
-            || $proof['actor'] !== self::preparedActor($context) || $proof['owner'] != $expectedOwner
-            || !hash_equals($proof['canonical'], self::snapshotHash($snapshot))) {
+            || $proof['actor'] !== self::preparedActor($context) || $proof['owner'] != $expectedOwner) {
             throw BusinessException::forbidden('DOCUMENT_PREPARED_VERSION_DENIED', '文档版本准备证明无效或已过期');
         }
         if (!(($pdo = Db::connect()->getPdo()) instanceof \PDO) || !$pdo->inTransaction()) {
@@ -1058,15 +1059,22 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
 
     public function authorizeCollaboration(TenantContext $context, int $documentId, string $mode, bool $enable = false): array
     {
+        return $this->withAuthorizedCollaboration($context, $documentId, $mode, $enable,
+            static fn(Document $document, DocumentState $state, array $authorization): array => $authorization);
+    }
+
+    /** Keep authorization and its consumer inside the same native transaction and DocAuth run. */
+    private function withAuthorizedCollaboration(TenantContext $context, int $documentId, string $mode, bool $enable, \Closure $consume): array
+    {
         if (!in_array($mode, ['read','write'], true) || $enable && $mode !== 'write') {
             throw BusinessException::invalid('DOCUMENT_COLLABORATION_MODE_INVALID', '协作模式无效');
         }
         $this->requireCollaborationTransaction($context->tenantId, false);
         $action = $mode === 'write' ? 'edit' : 'view';
         $grant = $this->authorization->prepareGrant($context, $documentId, $action);
-        return $this->authorization->run($context, function (TenantContext $current) use ($documentId, $mode, $enable, $action, $grant): array {
+        return $this->authorization->run($context, function (TenantContext $current) use ($documentId, $enable, $action, $grant, $consume): array {
             $this->authorization->requireModule($current, 'peanut.collaboration');
-            $document = $this->authorization->document($current, $documentId, $mode === 'write' ? 'edit' : 'view', true);
+            $document = $this->authorization->document($current, $documentId, $action, true);
             if ($document->content_kind !== 'rich_text' || $document->status !== 'active') {
                 throw BusinessException::conflict('DOCUMENT_COLLABORATION_KIND_INVALID', '当前文档不允许协作');
             }
@@ -1077,12 +1085,13 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
             if ($enable && !(bool) $document->collaboration_enabled) {
                 $document->save(['collaboration_enabled' => 1,'lease_epoch' => max(1, (int) $document->lease_epoch)]);
             }
-            return ['document_id' => $documentId,'tenant_id' => $current->tenantId,
+            $authorization = ['document_id' => $documentId,'tenant_id' => $current->tenantId,
                 'owner' => self::ownerArray(DocumentAuthorizationService::reference($document)),
                 'authorization_revision' => $this->authorization->revision($current, $document, $action, $grant),
                 'document_auth_revision' => (int) $document->auth_revision,'state_seq' => (int) $document->state_seq,
                 'state_sha256' => $state->state_sha256,'lease_epoch' => (int) $document->lease_epoch,
                 'collaboration_enabled' => (bool) $document->collaboration_enabled];
+            return $consume($document, $state, $authorization);
         });
     }
 
@@ -1093,27 +1102,18 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
 
     public function loadAuthorizedCollaboration(TenantContext $context, int $documentId, DocumentOwnerReference $owner, string $mode): array
     {
-        if (!in_array($mode, ['read','write'], true)) {
-            throw BusinessException::invalid('DOCUMENT_COLLABORATION_MODE_INVALID', '协作模式无效');
-        }
-        $this->requireCollaborationTransaction($context->tenantId, false);
-        return $this->authorization->run($context, function (TenantContext $current) use ($documentId, $owner, $mode): array {
-            $document = $this->authorization->document($current, $documentId, $mode === 'write' ? 'edit' : 'view', true);
-            if (DocumentAuthorizationService::reference($document) != $owner || $document->content_kind !== 'rich_text'
-                || !(bool) $document->collaboration_enabled) {
-                throw BusinessException::forbidden('COLLABORATION_DOCUMENT_BINDING_INVALID', '协作读取与当前文档不一致');
-            }
-            $state = DocumentState::where('document_id', $documentId)->lock(true)->find();
-            $this->acceptedWrites->requireProvider()->assertServiceDocument($documentId, $owner);
-            if ($state === null || (int) $state->state_seq !== (int) $document->state_seq) {
-                throw BusinessException::conflict('RECOVERY_REQUIRED', '文档持久状态不完整');
-            }
-            return ['document_id' => $documentId,'state_seq' => (int) $state->state_seq,'state_sha256' => $state->state_sha256,
-                'binary_base64' => $state->yjs_state_binary === null ? null : base64_encode($state->yjs_state_binary),
-                'initialization_required' => $state->yjs_state_binary === null,
-                'structured_content' => self::json($state->projected_json),'schema_version' => $state->projection_schema_version,
-                'lease_epoch' => (int) $document->lease_epoch,'store_id' => $this->baselineReceipt($document, $state)];
-        });
+        return $this->withAuthorizedCollaboration($context, $documentId, $mode, false,
+            function (Document $document, DocumentState $state, array $authorization) use ($documentId, $owner): array {
+                if (DocumentAuthorizationService::reference($document) != $owner || !(bool) $document->collaboration_enabled) {
+                    throw BusinessException::forbidden('COLLABORATION_DOCUMENT_BINDING_INVALID', '协作读取与当前文档不一致');
+                }
+                $this->acceptedWrites->requireProvider()->assertServiceDocument($documentId, $owner);
+                return ['authorization' => $authorization, 'content' => ['document_id' => $documentId,'state_seq' => (int) $state->state_seq,'state_sha256' => $state->state_sha256,
+                    'binary_base64' => $state->yjs_state_binary === null ? null : base64_encode($state->yjs_state_binary),
+                    'initialization_required' => $state->yjs_state_binary === null,
+                    'structured_content' => self::json($state->projected_json),'schema_version' => $state->projection_schema_version,
+                    'lease_epoch' => (int) $document->lease_epoch,'store_id' => $this->baselineReceipt($document, $state)]];
+            });
     }
 
     public function recoverCollaborationEpoch(int $documentId, DocumentOwnerReference $owner, int $expectedEpoch, string $requestId): array

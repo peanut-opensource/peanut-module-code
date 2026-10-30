@@ -2,7 +2,7 @@
   "name": "peanut-business/peanut-file",
   "description": "Official Tenant file and media module",
   "type": "library",
-  "version": "1.0.32",
+  "version": "1.0.33",
   "license": "Apache-2.0",
   "require": {
     "php": "^8.3",
@@ -18,7 +18,8 @@
   "extra": {
     "peanut": {
       "editions": [
-        "multi-tenant"
+        "multi-tenant",
+        "standalone"
       ]
     }
   }

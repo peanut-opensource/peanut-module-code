@@ -45,11 +45,22 @@ export function getDictTypeAll() {
 }
 
 export function addDictType(data: DictTypeForm) {
-  return axios.post('/adminapi/dict/type/add', data);
+  return axios.post('/adminapi/dict/type/add', {
+    name: data.name,
+    type: data.type,
+    is_disable: data.is_disable,
+    remark: data.remark,
+  });
 }
 
 export function editDictType(data: DictTypeForm) {
-  return axios.post('/adminapi/dict/type/edit', data);
+  return axios.post('/adminapi/dict/type/edit', {
+    id: data.id,
+    name: data.name,
+    type: data.type,
+    is_disable: data.is_disable,
+    remark: data.remark,
+  });
 }
 
 export function deleteDictType(id: number) {
@@ -107,11 +118,25 @@ export function getDictDataByType(typeValue: string) {
 }
 
 export function addDictData(data: DictDataForm) {
-  return axios.post('/adminapi/dict/data/add', data);
+  return axios.post('/adminapi/dict/data/add', {
+    type_id: data.type_id,
+    name: data.name,
+    value: data.value,
+    sort: data.sort,
+    is_disable: data.is_disable,
+    remark: data.remark,
+  });
 }
 
 export function editDictData(data: DictDataForm) {
-  return axios.post('/adminapi/dict/data/edit', data);
+  return axios.post('/adminapi/dict/data/edit', {
+    id: data.id,
+    name: data.name,
+    value: data.value,
+    sort: data.sort,
+    is_disable: data.is_disable,
+    remark: data.remark,
+  });
 }
 
 export function deleteDictData(id: number) {

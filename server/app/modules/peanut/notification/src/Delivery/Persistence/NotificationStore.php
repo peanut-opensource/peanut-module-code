@@ -25,7 +25,7 @@ use think\db\BaseQuery;
 use think\db\Raw;
 
 /** Retains notification/outbox invariants while using ThinkPHP persistence. */
-final class NotificationStore implements NotificationRepository
+final class NotificationStore
 {
     public function __construct(private readonly TenantMemberDirectory $members) {}
 

@@ -37,7 +37,6 @@ export interface AdminForm {
   id?: number;
   account: string;
   name: string;
-  avatar: string;
   dept_id: number[];
   jobs_id: number[];
   role_id: number[];

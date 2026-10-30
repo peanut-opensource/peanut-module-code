@@ -88,10 +88,10 @@ CREATE TABLE `pa_ops_module_request` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_ops_module_request_key` (`request_key`),
   UNIQUE KEY `uk_ops_module_request_sha` (`request_sha256`),
-  CONSTRAINT `chk_ops_module_request_archive` CHECK (((`operation` = _utf8mb4'update') = (`archive_sha256` is not null))),
-  CONSTRAINT `chk_ops_module_request_operation` CHECK ((`operation` in (_utf8mb4'update',_utf8mb4'retire',_utf8mb4'purge'))),
-  CONSTRAINT `chk_ops_module_request_plan` CHECK (((`operation` in (_utf8mb4'retire',_utf8mb4'purge')) = ((`confirm_plan_json` is not null) and (`confirm_plan_sha256` is not null)))),
-  CONSTRAINT `chk_ops_module_request_state` CHECK ((`state` in (_utf8mb4'prepared',_utf8mb4'claimed')))
+  CONSTRAINT `chk_ops_module_request_archive` CHECK (((`operation` in (_utf8mb4'install',_utf8mb4'update')) = (`archive_sha256` is not null))),
+  CONSTRAINT `chk_ops_module_request_operation` CHECK ((`operation` in (_utf8mb4'install',_utf8mb4'update',_utf8mb4'retire',_utf8mb4'purge'))),
+  CONSTRAINT `chk_ops_module_request_plan` CHECK (((`operation` in (_ascii'retire',_ascii'purge')) = ((`confirm_plan_json` is not null) and (`confirm_plan_sha256` is not null)))),
+  CONSTRAINT `chk_ops_module_request_state` CHECK ((`state` in (_ascii'prepared',_ascii'claimed')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_ops_backup_evidence' => <<<'SQL'

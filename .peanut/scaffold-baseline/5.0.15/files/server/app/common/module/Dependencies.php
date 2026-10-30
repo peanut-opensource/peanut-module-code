@@ -30,6 +30,12 @@ final readonly class Dependencies
         return $this->withLock(fn(): array => $this->prepare($plugin->moduleRoots, $resolver, $installed));
     }
 
+    /** Verify release-machine output without changing native manifests or invoking build tools. */
+    public function verifyInstalled(PluginDescriptor $plugin, PluginLockResolver $resolver, array $installed): array
+    {
+        return $this->prepare($plugin->moduleRoots, $resolver, $installed, verifyOnly: true);
+    }
+
     /** Prepare admitted real Module nodes once; a native consumer may reuse that result under the same lock.
      * @param null|list<string> $selectedModuleKeys
      * @param null|callable(array<string,mixed>):array<string,mixed> $consume
@@ -183,7 +189,7 @@ final readonly class Dependencies
         }
     }
 
-    private function prepare(array $moduleRoots, PluginLockResolver $resolver, array $installed, ?array $releaseClients = null): array
+    private function prepare(array $moduleRoots, PluginLockResolver $resolver, array $installed, ?array $releaseClients = null, bool $verifyOnly = false): array
     {
         $project = dirname($this->serverRoot);
         $known = [];
@@ -198,7 +204,9 @@ final readonly class Dependencies
         $runtimeRequirements = [];
         $clients = [];
         $optional = [];
+        $standalone = \think\facade\Config::get('deployment.mode') === 'standalone';
         foreach ($releaseClients ?? [] as $client) {
+            if ($standalone && $client === 'platform') { continue; }
             $clients[$client] = ['manifest' => $this->json($project . '/' . $client . '/package.json'), 'modules' => [], 'optional' => []];
         }
         foreach ($moduleRoots as $key => $root) {
@@ -280,8 +288,9 @@ final readonly class Dependencies
             }
             foreach (ModuleFrontendLayout::contributions($manifest['frontend'] ?? [], $key) as $contribution) {
                 $client = explode('/', $contribution['root'])[0];
+                if ($standalone && $client === 'platform') { continue; }
                 if ($releaseClients !== null && !in_array($client, $releaseClients, true)) { continue; }
-                if (PHP_SAPI !== 'cli') {
+                if (PHP_SAPI !== 'cli' || $verifyOnly) {
                     $clients[$client] = [];
                     continue;
                 }
@@ -297,7 +306,7 @@ final readonly class Dependencies
                 // Root dependencies are left intact for the native solver to evaluate alongside them.
             }
         }
-        if (PHP_SAPI !== 'cli') {
+        if (PHP_SAPI !== 'cli' || $verifyOnly) {
             $parser = new VersionParser();
             foreach ($runtimeRequirements as $requirements) {
                 foreach ($requirements as $name => $range) {
@@ -486,16 +495,34 @@ final readonly class Dependencies
     private function run(array $command, string $directory): array
     {
         $project = dirname($this->serverRoot);
+        $tool = $command[0];
+        $selectionPath = $project . '/.local/core-dev.json';
+        if ($tool === 'composer' && (file_exists($selectionPath) || is_link($selectionPath))) {
+            $selection = $this->json($selectionPath);
+            if (is_link($selectionPath) || ($selection['schema_version'] ?? null) !== 1
+                || ($selection['application_root'] ?? null) !== realpath($project)) {
+                throw new PluginPackageException('MODULE_DEPENDENCY_SOURCE_CONFLICT', 'The local Core selection must belong to this application.');
+            }
+            foreach (['php_core_dir', 'backend_env'] as $field) {
+                $value = $selection[$field] ?? null;
+                if (!is_string($value) || !str_starts_with($value, '/') || preg_match('/[\x00-\x1f\x7f]/', $value) === 1) {
+                    throw new PluginPackageException('MODULE_DEPENDENCY_SOURCE_CONFLICT', 'The local Core selection requires absolute source and environment paths.');
+                }
+            }
+            $command = [$project . '/scripts/local-core-composer', 'install',
+                '--core-dir', $selection['php_core_dir'], '--backend-env', $selection['backend_env']];
+            $tool = 'local-core-composer';
+        }
         $host = $this->json($project . '/.local/toolchain/host.json');
         $python = $host['commands']['python3'] ?? null;
         if (!is_array($python) || !is_string($python[0] ?? null) || !str_starts_with($python[0], '/')) {
             throw new PluginPackageException('MODULE_DEPENDENCY_TOOLCHAIN_REQUIRED', 'Register the application Python command with project-env before installing module dependencies.');
         }
         $runner = [...$python, $project . '/scripts/project-env', '--root', $project];
-        // Native manifests participate in project-env's fingerprint. Prepare their new registered
-        // environment before exec; never bypass its fingerprint or fall back to ambient tools.
+        // Prepare the registered tool environment; business dependency changes alone
+        // do not invalidate it. Never fall back to ambient tools.
         $this->execute([...$runner, 'prepare'], $project, 'project-env');
-        return $this->execute([...$runner, 'exec', '--', ...$command], $directory, $command[0]);
+        return $this->execute([...$runner, 'exec', '--', ...$command], $directory, $tool);
     }
 
     private function execute(array $command, string $directory, string $tool): array

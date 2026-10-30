@@ -66,6 +66,7 @@ export default {
     server: { deps: { inline: [/vue/, /pinia/, /element-plus/] } },
     environment: 'node',
     include: [
+      'src/directive/permission/index.spec.ts',
       'src/modules/peanut-file/optional-runtime/tests/**/*.spec.ts',
       'src/modules/peanut-import-export/optional-runtime/tests/**/*.spec.ts',
       'src/modules/peanut-notification/optional-runtime/tests/**/*.spec.ts',

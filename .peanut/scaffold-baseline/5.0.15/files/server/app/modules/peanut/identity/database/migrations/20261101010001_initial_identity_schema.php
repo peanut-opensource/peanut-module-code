@@ -49,9 +49,9 @@ CREATE TABLE `pa_auth_security_event` (
   PRIMARY KEY (`id`),
   KEY `idx_auth_event_account` (`account_id`,`occurred_at`),
   KEY `idx_auth_event_identifier` (`identifier_hmac`,`occurred_at`),
-  KEY `idx_auth_event_ip` (`ip_address`,`occurred_at`),
   KEY `idx_auth_event_request` (`request_id`),
   KEY `idx_auth_event_time` (`occurred_at`,`id`),
+  KEY `idx_auth_event_ip` (`ip_address`,`occurred_at`),
   CONSTRAINT `chk_auth_event_audience` CHECK ((`audience` in (_utf8mb4'tenant',_utf8mb4'platform'))),
   CONSTRAINT `chk_auth_event_outcome` CHECK ((`outcome` in (_utf8mb4'success',_utf8mb4'denied',_utf8mb4'error')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -190,9 +190,6 @@ CREATE TABLE `pa_protected_resource` (
 SQL,
         'pa_system_menu' => <<<'SQL'
 CREATE TABLE `pa_system_menu` (
-  `menu_key` varchar(160) NOT NULL,
-  `parent_key` varchar(160) DEFAULT NULL,
-  `module_key` varchar(96) NOT NULL DEFAULT 'application',
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `pid` int unsigned NOT NULL DEFAULT '0',
   `type` char(1) NOT NULL DEFAULT 'C' COMMENT 'M目录 C菜单 A按钮',
@@ -207,6 +204,9 @@ CREATE TABLE `pa_system_menu` (
   `is_disable` tinyint(1) NOT NULL DEFAULT '0',
   `upstream_defaults_json` json DEFAULT NULL,
   `menu_conflict_json` json DEFAULT NULL,
+  `menu_key` varchar(160) NOT NULL,
+  `parent_key` varchar(160) DEFAULT NULL,
+  `module_key` varchar(96) NOT NULL DEFAULT 'application',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_system_menu_key` (`menu_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统菜单';
@@ -386,6 +386,7 @@ CREATE TABLE `pa_login_challenge` (
   `token_hash` char(64) NOT NULL,
   `account_id` bigint unsigned NOT NULL,
   `purpose` varchar(32) NOT NULL,
+  `client_key` varchar(64) NOT NULL,
   `status` varchar(16) NOT NULL DEFAULT 'active',
   `source_session_key` char(26) DEFAULT NULL,
   `ip_address` varchar(45) DEFAULT NULL,
@@ -394,7 +395,6 @@ CREATE TABLE `pa_login_challenge` (
   `used_at` datetime(3) DEFAULT NULL,
   `revoked_at` datetime(3) DEFAULT NULL,
   `created_at` datetime(3) NOT NULL,
-  `client_key` varchar(64) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_login_challenge_key` (`challenge_key`),
   UNIQUE KEY `uk_login_challenge_token` (`token_hash`),
@@ -407,9 +407,6 @@ CREATE TABLE `pa_login_challenge` (
 SQL,
         'pa_menu_definition' => <<<'SQL'
 CREATE TABLE `pa_menu_definition` (
-  `is_show` tinyint NOT NULL DEFAULT '1',
-  `is_cache` tinyint NOT NULL DEFAULT '0',
-  `is_disable` tinyint NOT NULL DEFAULT '0',
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `key` varchar(160) NOT NULL,
   `module_key` varchar(96) NOT NULL,
@@ -426,10 +423,13 @@ CREATE TABLE `pa_menu_definition` (
   `client_keys_json` json NOT NULL,
   `status` varchar(16) NOT NULL DEFAULT 'active',
   `manifest_digest` char(64) NOT NULL,
-  `upstream_defaults_json` json DEFAULT NULL,
-  `menu_conflict_json` json DEFAULT NULL,
   `created_at` datetime(3) NOT NULL,
   `updated_at` datetime(3) NOT NULL,
+  `upstream_defaults_json` json DEFAULT NULL,
+  `menu_conflict_json` json DEFAULT NULL,
+  `is_show` tinyint NOT NULL DEFAULT '1',
+  `is_cache` tinyint NOT NULL DEFAULT '0',
+  `is_disable` tinyint NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_menu_definition_key` (`key`),
   UNIQUE KEY `uk_menu_route_name` (`scope`,`route_name`),

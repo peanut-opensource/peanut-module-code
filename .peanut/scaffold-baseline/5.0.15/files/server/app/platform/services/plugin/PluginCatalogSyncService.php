@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace app\platform\services\plugin;
 
-use app\platform\composition\plugin\PluginModuleRegistryFactory;
+use app\platform\composition\plugin\ModuleDefinitionRegistryFactory;
 use app\platform\exception\plugin\PluginLifecycleException;
-use app\platform\infrastructure\plugin\DevelopmentModuleDiscovery;
 use app\platform\infrastructure\plugin\ModuleCatalogApplier;
 
 /** Applies module.json catalog contributions through the same compiled Plugin registry used at runtime. */
@@ -22,10 +21,7 @@ final readonly class PluginCatalogSyncService
     /** @return array<string,mixed> */
     public function sync(?string $moduleKey = null): array
     {
-        $roots = array_values((new DevelopmentModuleDiscovery(dirname($this->serverRoot)))->moduleRoots());
-        $compiled = (new PluginModuleRegistryFactory($this->serverRoot))
-            ->fromDeploymentConfig(array_replace($this->moduleConfig, ['roots' => $roots]))
-            ->compiled();
+        $compiled = (new ModuleDefinitionRegistryFactory($this->serverRoot))->fromCompiled($this->moduleConfig);
         $registered = [];
         foreach ($compiled->modules as $manifest) {
             $key = (string) ($manifest->data['key'] ?? '');

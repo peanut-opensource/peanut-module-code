@@ -29,6 +29,7 @@ final class PluginReconcile extends ModuleContextualCommand
             ->setDescription('Reconcile immutable locked Plugin installations')
             ->addOption('official-locked', null, Option::VALUE_NONE, 'Reconcile every official.* Plugin in plugins.lock')
             ->addOption('release-locked', null, Option::VALUE_NONE, 'Reconcile official and already installed Plugins in plugins.lock')
+            ->addOption('prepared-release', null, Option::VALUE_NONE, 'Verify already prepared release dependencies without builds')
             ->addOption('selected-installed', null, Option::VALUE_REQUIRED | Option::VALUE_IS_ARRAY, 'Prepare and reconcile only these already installed locked package keys')
             ->addOption('plan-only', null, Option::VALUE_NONE, 'Read the locked Plugin plans without lifecycle changes');
     }
@@ -39,6 +40,11 @@ final class PluginReconcile extends ModuleContextualCommand
         $officialLocked = (bool) $input->getOption('official-locked');
         $releaseLocked = (bool) $input->getOption('release-locked');
         $selected = array_values(array_unique((array) $input->getOption('selected-installed')));
+        $preparedRelease = (bool) $input->getOption('prepared-release');
+        if ($preparedRelease && (!$releaseLocked || $officialLocked || $selected !== [])) {
+            $output->writeln('{"error":"PLUGIN_RECONCILE_SCOPE_CONFLICT"}');
+            return 1;
+        }
         if ((bool) $input->getOption('plan-only')) {
             return $this->releasePlan($input, $output, $releaseLocked && !$officialLocked && $selected === []);
         }
@@ -65,7 +71,7 @@ final class PluginReconcile extends ModuleContextualCommand
 
         return $this->runPluginOperation(
             $output,
-            function ($service) use ($releaseLocked): array {
+            function ($service) use ($releaseLocked, $preparedRelease): array {
                 $config = Config::get('modules', []);
                 $lockPath = is_array($config) ? trim((string) ($config['plugin_lock'] ?? '')) : '';
                 if ($lockPath === '') {
@@ -97,7 +103,7 @@ final class PluginReconcile extends ModuleContextualCommand
                     ),
                 ];
                 foreach ($keys as $key) {
-                    $result = $service->reconcile($key);
+                    $result = $service->reconcile($key, $preparedRelease);
                     $operation = (string) ($result['operation'] ?? '');
                     if (!array_key_exists($operation, $results)) {
                         throw new PluginLifecycleException(

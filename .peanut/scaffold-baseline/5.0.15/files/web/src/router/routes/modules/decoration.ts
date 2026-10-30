@@ -19,7 +19,8 @@ const DECORATION: AppRouteRecordRaw = {
       meta: {
         locale: 'menu.decoration.mobile',
         requiresAuth: true,
-        roles: ['admin'],
+        requiredPermissions: ['peanut.settings.read'],
+        tenantModuleKey: 'peanut.settings',
       },
     },
     {
@@ -29,7 +30,8 @@ const DECORATION: AppRouteRecordRaw = {
       meta: {
         locale: 'menu.decoration.tabbar',
         requiresAuth: true,
-        roles: ['admin'],
+        requiredPermissions: ['peanut.settings.read'],
+        tenantModuleKey: 'peanut.settings',
       },
     },
     {
@@ -39,7 +41,8 @@ const DECORATION: AppRouteRecordRaw = {
       meta: {
         locale: 'menu.decoration.pc',
         requiresAuth: true,
-        roles: ['admin'],
+        requiredPermissions: ['peanut.settings.read'],
+        tenantModuleKey: 'peanut.settings',
       },
     },
   ],

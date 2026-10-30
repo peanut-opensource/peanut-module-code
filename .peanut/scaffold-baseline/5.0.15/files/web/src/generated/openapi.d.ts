@@ -1896,6 +1896,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/adminapi/core.tenant.license": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCurrentTenantLicense"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platformapi/session/login": {
         parameters: {
             query?: never;
@@ -2424,38 +2440,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/platformapi/tenants/modules/enable": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["enablePlatformTenantModule"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/platformapi/tenants/modules/disable": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["disablePlatformTenantModule"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/platformapi/instance-tools/modules": {
         parameters: {
             query?: never;
@@ -2482,6 +2466,38 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["installInstanceModule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platformapi/instance-tools/modules/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["updateInstanceModule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platformapi/instance-tools/modules/tasks/{task_key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getInstanceModuleTask"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2609,6 +2625,134 @@ export interface paths {
             cookie?: never;
         };
         get: operations["downloadPlatformDiagnostics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platformapi/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listTenantPlans"];
+        put: operations["updateTenantPlan"];
+        post: operations["createTenantPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platformapi/tenants/license": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getTenantLicense"];
+        put: operations["updateTenantLicense"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platformapi/permission/bundles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listPermissionBundles"];
+        put: operations["updatePermissionBundle"];
+        post: operations["createPermissionBundle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platformapi/permission/menus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listMenuPermissionBindings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platformapi/permission/menus/binding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["replaceMenuPermissionBinding"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platformapi/permission/apis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listRegisteredApis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platformapi/permission/apis/bindings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPermissionApiBindings"];
+        put: operations["replacePermissionApiBindings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/permission/bundles/apis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getTenantPermissionBundleApis"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4397,6 +4541,11 @@ export interface components {
             roles: components["schemas"]["StringList"];
             menu: components["schemas"]["AdminMenuNode"][];
             permissions: components["schemas"]["StringList"];
+            action_bindings: {
+                page_path: string;
+                action_key: string;
+                permission_key: string;
+            }[];
             tenantName: string;
             website: components["schemas"]["WebsiteConfig"];
             canSwitchTenant: boolean;
@@ -4445,7 +4594,6 @@ export interface components {
             username?: string;
             name: string;
             nickname?: string;
-            avatar?: string;
             /** @description Effective UTF-8 byte bounds from getPasswordPolicy. */
             password?: string;
             password_confirm?: string;
@@ -4515,7 +4663,7 @@ export interface components {
             sort: number;
             create_time: string;
             num: number;
-            menu_keys: components["schemas"]["StringList"];
+            permission_keys: components["schemas"]["StringList"];
             status: string;
             revision: number;
         };
@@ -4523,7 +4671,7 @@ export interface components {
             id?: number;
             name: string;
             desc?: string;
-            menu_keys?: components["schemas"]["StringList"];
+            sort?: number;
         };
         Department: {
             id: number;
@@ -4578,8 +4726,6 @@ export interface components {
             remark?: string;
             /** @enum {integer} */
             status: 0 | 1;
-            /** @enum {integer} */
-            is_disable?: 0 | 1;
         };
         WebsiteConfig: {
             name: string;
@@ -4626,6 +4772,10 @@ export interface components {
         };
         MemberProfileConfig: {
             default_avatar: string;
+            default_avatar_url: string;
+        };
+        MemberProfileWriteRequest: {
+            default_avatar: string;
         };
         LoginConfig: {
             login_way: (1 | 2)[];
@@ -4650,9 +4800,14 @@ export interface components {
             /** @enum {integer} */
             type: 1 | 2 | 3 | 4 | 5;
             name: string;
-            data: components["schemas"]["ApplicationDynamicValue"][];
-            meta: {
+            data: components["schemas"]["ApplicationDynamicValue"][] | {
                 [key: string]: components["schemas"]["ApplicationDynamicValue"];
+            };
+            meta: components["schemas"]["ApplicationDynamicValue"][] | {
+                [key: string]: components["schemas"]["ApplicationDynamicValue"];
+            };
+            resource_urls: {
+                [key: string]: string;
             };
         } & {
             [key: string]: components["schemas"]["ApplicationDynamicValue"];
@@ -4661,12 +4816,17 @@ export interface components {
             id: number;
             /** @enum {integer} */
             type: 1 | 2 | 3 | 4 | 5;
-            data: components["schemas"]["ApplicationDynamicValue"][];
-            meta?: {
+            data: components["schemas"]["ApplicationDynamicValue"][] | {
+                [key: string]: components["schemas"]["ApplicationDynamicValue"];
+            };
+            meta?: components["schemas"]["ApplicationDynamicValue"][] | {
                 [key: string]: components["schemas"]["ApplicationDynamicValue"];
             };
         };
         DecorationTabbar: {
+            resource_urls: {
+                [key: string]: string;
+            };
             style: {
                 [key: string]: components["schemas"]["ApplicationDynamicValue"];
             };
@@ -4682,6 +4842,22 @@ export interface components {
             } & {
                 [key: string]: components["schemas"]["ApplicationDynamicValue"];
             })[];
+        };
+        DecorationTabbarSaveRequest: {
+            style: {
+                default_color: string;
+                selected_color: string;
+            };
+            list: {
+                name: string;
+                selected: string;
+                unselected: string;
+                link: {
+                    [key: string]: components["schemas"]["ApplicationDynamicValue"];
+                };
+                /** @enum {integer} */
+                is_show: 0 | 1;
+            }[];
         };
         ArticleOption: {
             id: number;
@@ -5053,7 +5229,7 @@ export interface components {
             permission_catalog: "platform.*";
             /** @enum {boolean} */
             tenant_business_access: false;
-            operations: ("platform.tenant.create" | "platform.tenant.lifecycle" | "platform.tenant.provision-owner" | "platform.tenant.module.manage")[];
+            operations: ("platform.tenant.create" | "platform.tenant.lifecycle" | "platform.tenant.provision-owner" | "platform.tenant.license.manage")[];
         };
         PlatformOperator: {
             id: number | string;
@@ -5142,25 +5318,6 @@ export interface components {
         } & {
             [key: string]: components["schemas"]["ApplicationDynamicValue"];
         };
-        PlatformTenantModuleRecord: {
-            id: string;
-            tenant_id: string;
-            module_key: string;
-            status: string;
-            source: string;
-            config_revision: string;
-            authorization_revision: string;
-            effective_at: string | null;
-            expires_at: string | null;
-            enabled_at: string | null;
-            disabled_at: string | null;
-            disabled_reason: string | null;
-            created_at: string;
-            updated_at: string;
-            config: {
-                [key: string]: components["schemas"]["ApplicationDynamicValue"];
-            };
-        };
         PlatformTenantOwner: {
             member_id: number;
             tenant_id: number;
@@ -5248,6 +5405,11 @@ export interface components {
             tenant_enabled_count: number;
             blockers: string[];
             dependents: string[];
+            tenant: {
+                enableable: boolean;
+                required: boolean;
+                requires: string[];
+            };
         };
         PlatformModuleLifecycleResult: {
             operation: string;
@@ -5436,6 +5598,93 @@ export interface components {
             ready?: boolean;
         } & {
             [key: string]: components["schemas"]["ApplicationDynamicValue"];
+        };
+        TenantPlan: {
+            id: number;
+            code: string;
+            name: string;
+            /** @enum {string} */
+            status: "active" | "inactive";
+            revision: number;
+            module_keys: string[];
+            permission_keys: string[];
+        };
+        TenantLicense: {
+            id: number;
+            tenant_id: number;
+            plan_id: number;
+            plan_code: string;
+            plan_name: string;
+            /** @enum {string} */
+            status: "active" | "suspended";
+            /** Format: date-time */
+            effective_at: string;
+            /** Format: date-time */
+            expires_at: string | null;
+            revision: number;
+            effective: boolean;
+            /** @enum {string} */
+            state: "active" | "suspended" | "upcoming" | "expired";
+        };
+        TenantLicenseData: {
+            tenant_id: number;
+            license: components["schemas"]["TenantLicense"] | null;
+        };
+        TenantPlanCreate: {
+            code: string;
+            name: string;
+            module_keys: string[];
+            permission_keys: string[];
+            change_reason: string;
+        };
+        TenantPlanUpdate: {
+            id: number;
+            expected_revision: number;
+            /** @enum {string} */
+            status: "active" | "inactive";
+            name: string;
+            module_keys: string[];
+            permission_keys: string[];
+            change_reason: string;
+        };
+        TenantLicenseWrite: {
+            tenant_id: number;
+            plan_id: number;
+            /** @enum {string} */
+            status: "active" | "suspended";
+            /** Format: date-time */
+            effective_at: string;
+            /** Format: date-time */
+            expires_at: string | null;
+            expected_revision: number;
+            change_reason: string;
+        };
+        PermissionBundle: {
+            key: string;
+            name: string;
+            module_key: string;
+            /** @enum {string} */
+            source: "system" | "module" | "custom";
+            /** @enum {string} */
+            audience: "tenant" | "platform";
+            /** @enum {string} */
+            status: "active" | "retired";
+            revision: string;
+            configured: boolean;
+            api_ids: string[];
+        };
+        RegisteredPermissionApi: {
+            id: string;
+            method: string;
+            path: string;
+            /** @enum {string} */
+            audience: "tenant" | "platform" | "member" | "installation";
+            module_key: string;
+            access_mode: string;
+            /** @enum {string} */
+            status: "active" | "retired";
+            default_permission_keys: string[];
+            prerequisite_permission_keys: string[];
         };
         InstallationApplicationIdentity: {
             slug: string;
@@ -6167,17 +6416,17 @@ export interface components {
                 total: number;
             };
         };
-        /** @description 旧控制器保留原始请求；未列字段会被忽略。 */
+        /** @description 仅接受列出的标识字段；未声明字段会被拒绝。 */
         ReferenceCodeLegacyIdentifierRequest: {
             id: number;
         };
-        /** @description 旧控制器保留原始请求；未列字段会被忽略。 */
+        /** @description 仅接受列出的标识与状态字段；未声明字段会被拒绝。 */
         ReferenceCodeLegacyStatusRequest: {
             id: number;
             /** @enum {integer} */
             is_disable: 0 | 1;
         };
-        /** @description 服务只写入列出的字段；旧控制器会忽略其他字段。 */
+        /** @description 仅接受列出的创建字段；租户归属等未声明字段会被拒绝。 */
         ReferenceCodeLegacyTypeCreateRequest: {
             name: string;
             type: string;
@@ -6185,7 +6434,7 @@ export interface components {
             is_disable?: 0 | 1;
             remark?: string;
         };
-        /** @description 服务只写入列出的字段；旧控制器会忽略其他字段。 */
+        /** @description 仅接受列出的标识与更新字段；未声明字段会被拒绝。 */
         ReferenceCodeLegacyTypeUpdateRequest: {
             id: number;
             name: string;
@@ -6194,7 +6443,7 @@ export interface components {
             is_disable?: 0 | 1;
             remark?: string;
         };
-        /** @description 服务只写入列出的字段；旧控制器会忽略其他字段。 */
+        /** @description 仅接受列出的创建字段；租户归属等未声明字段会被拒绝。 */
         ReferenceCodeLegacyEntryCreateRequest: {
             type_id: number;
             name: string;
@@ -6204,7 +6453,7 @@ export interface components {
             is_disable?: 0 | 1;
             remark?: string;
         };
-        /** @description 服务只写入列出的字段；旧控制器会忽略其他字段。 */
+        /** @description 仅接受列出的标识与更新字段；重新指定父类型等未声明字段会被拒绝。 */
         ReferenceCodeLegacyEntryUpdateRequest: {
             id: number;
             name: string;
@@ -9534,7 +9783,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MemberProfileConfig"];
+                "application/json": components["schemas"]["MemberProfileWriteRequest"];
             };
         };
         responses: {
@@ -9893,7 +10142,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["DecorationTabbar"];
+                "application/json": components["schemas"]["DecorationTabbarSaveRequest"];
             };
         };
         responses: {
@@ -10537,6 +10786,33 @@ export interface operations {
                         code: 20000;
                         msg: string;
                         data: components["schemas"]["Workbench"];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    getCurrentTenantLicense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["TenantLicenseData"];
                     };
                 };
             };
@@ -11715,85 +11991,6 @@ export interface operations {
             422: components["responses"]["ErrorResponse"];
         };
     };
-    enablePlatformTenantModule: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    tenant_id: number;
-                    module_key: string;
-                    change_reason: string;
-                    config?: {
-                        [key: string]: components["schemas"]["ApplicationDynamicValue"];
-                    };
-                    /** Format: date-time */
-                    effective_at?: string;
-                    /** Format: date-time */
-                    expires_at?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {integer} */
-                        code: 20000;
-                        msg: string;
-                        data: components["schemas"]["PlatformTenantModuleRecord"];
-                    };
-                };
-            };
-            401: components["responses"]["ErrorResponse"];
-            403: components["responses"]["ErrorResponse"];
-            422: components["responses"]["ErrorResponse"];
-        };
-    };
-    disablePlatformTenantModule: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    tenant_id: number;
-                    module_key: string;
-                    change_reason: string;
-                };
-            };
-        };
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {integer} */
-                        code: 20000;
-                        msg: string;
-                        data: components["schemas"]["PlatformTenantModuleRecord"];
-                    };
-                };
-            };
-            401: components["responses"]["ErrorResponse"];
-            403: components["responses"]["ErrorResponse"];
-            422: components["responses"]["ErrorResponse"];
-        };
-    };
     listInstanceModules: {
         parameters: {
             query?: {
@@ -11860,6 +12057,75 @@ export interface operations {
                         code: 20000;
                         msg: string;
                         data: components["schemas"]["PlatformModuleLifecycleResult"];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    updateInstanceModule: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    package: string;
+                    expected_sha256: string;
+                    signature_key_id?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["PlatformOpsTask"];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    getInstanceModuleTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["PlatformOpsTask"];
                     };
                 };
             };
@@ -12147,6 +12413,531 @@ export interface operations {
             };
             401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    listTenantPlans: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: {
+                            lists: components["schemas"]["TenantPlan"][];
+                            count: number;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    updateTenantPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TenantPlanUpdate"];
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["TenantPlan"];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    createTenantPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TenantPlanCreate"];
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["TenantPlan"];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    getTenantLicense: {
+        parameters: {
+            query: {
+                tenant_id: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["TenantLicenseData"];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    updateTenantLicense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TenantLicenseWrite"];
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["TenantLicenseData"];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    listPermissionBundles: {
+        parameters: {
+            query?: {
+                audience?: "tenant" | "platform";
+                page_no?: number;
+                page_size?: number;
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: {
+                            items: components["schemas"]["PermissionBundle"][];
+                            total: number;
+                            page_no: number;
+                            page_size: number;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    updatePermissionBundle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    permission_key: string;
+                    name: string;
+                    /** @enum {string} */
+                    status: "active" | "retired";
+                    expected_revision: number | string;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["PermissionBundle"];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            412: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            428: components["responses"]["ErrorResponse"];
+        };
+    };
+    createPermissionBundle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    key: string;
+                    name: string;
+                    /** @enum {string} */
+                    audience: "tenant" | "platform";
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["PermissionBundle"];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    listMenuPermissionBindings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: {
+                            items: {
+                                menu_key: string;
+                                parent_key: string | null;
+                                /** @enum {string} */
+                                type: "C" | "A";
+                                name: string;
+                                page_path: string;
+                                action_key: string;
+                                permission_key: string;
+                                default_permission_key: string | null;
+                                revision: string;
+                            }[];
+                            total: number;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    replaceMenuPermissionBinding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    menu_key: string;
+                    permission_key: string | null;
+                    action_key: string | null;
+                    expected_revision: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: {
+                            menu_key: string;
+                            parent_key: string | null;
+                            /** @enum {string} */
+                            type: "C" | "A";
+                            name: string;
+                            page_path: string;
+                            action_key: string;
+                            permission_key: string;
+                            default_permission_key: string | null;
+                            revision: string;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            412: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            428: components["responses"]["ErrorResponse"];
+        };
+    };
+    listRegisteredApis: {
+        parameters: {
+            query?: {
+                audience?: "tenant" | "platform";
+                page_no?: number;
+                page_size?: number;
+                search?: string;
+                status?: "active" | "retired";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: {
+                            items: components["schemas"]["RegisteredPermissionApi"][];
+                            total: number;
+                            page_no: number;
+                            page_size: number;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    getPermissionApiBindings: {
+        parameters: {
+            query: {
+                permission_key: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["PermissionBundle"];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    replacePermissionApiBindings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    permission_key: string;
+                    expected_revision: number | string;
+                    api_ids: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["PermissionBundle"];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            412: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            428: components["responses"]["ErrorResponse"];
+        };
+    };
+    getTenantPermissionBundleApis: {
+        parameters: {
+            query: {
+                permission_key: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["PermissionBundle"];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
             422: components["responses"]["ErrorResponse"];
         };
     };

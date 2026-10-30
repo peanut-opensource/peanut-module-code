@@ -429,7 +429,16 @@ final class PluginPackageInstaller
         }
         $actual = [];
         $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($targetRoot, \FilesystemIterator::SKIP_DOTS),
+            new \RecursiveCallbackFilterIterator(
+                new \RecursiveDirectoryIterator($targetRoot, \FilesystemIterator::SKIP_DOTS),
+                static function (\SplFileInfo $file): bool {
+                    if ($file->isLink()) {
+                        throw new PluginPackageException('MODULE_PACKAGE_SOURCE_INVALID', 'Module package target contains a link.');
+                    }
+                    return !$file->isDir()
+                        || !in_array(strtolower($file->getFilename()), PluginArtifactWriter::EXCLUDED_SOURCE_DIRECTORIES, true);
+                },
+            ),
         );
         foreach ($iterator as $file) {
             if ($file->isLink() || !$file->isFile()) {

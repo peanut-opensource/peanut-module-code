@@ -52,8 +52,7 @@ class DecorationPageController extends BaseAdminController
 
     public function article()
     {
-        $params = $this->request->get();
-        $this->validate($params, DecorationPageValidate::class . '.article');
+        $params = $this->validateInput($this->request->get(), DecorationPageValidate::class . '.article', ['limit'])->validated();
         return $this->data($this->decorationPages->articleOptions(
             $this->tenantAdminContext(),
             (int) ($params['limit'] ?? 20),
@@ -62,8 +61,7 @@ class DecorationPageController extends BaseAdminController
 
     private function detail(array $allowedTypes)
     {
-        $params = $this->request->get();
-        $this->validate($params, DecorationPageValidate::class . '.detail');
+        $params = $this->validateInput($this->request->get(), DecorationPageValidate::class . '.detail', ['id'])->validated();
         return $this->data($this->decorationPages->detail(
             $this->tenantAdminContext(),
             (int) $params['id'],
@@ -73,8 +71,7 @@ class DecorationPageController extends BaseAdminController
 
     private function save(array $allowedTypes)
     {
-        $params = $this->request->post();
-        $this->validate($params, DecorationPageValidate::class . '.save');
+        $params = $this->validateInput($this->request->post(), DecorationPageValidate::class . '.save', ['id', 'type', 'data', 'meta'])->writable();
         $this->decorationPages->save(
             $this->tenantAdminContext(),
             $params,

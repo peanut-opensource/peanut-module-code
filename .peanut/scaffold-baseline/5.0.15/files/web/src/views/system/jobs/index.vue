@@ -66,7 +66,7 @@
         <el-col :span="12">
           <el-space>
             <el-button
-              v-permission="['jobs/add']"
+              v-permission="['core.job.create']"
               type="primary"
               @click="handleAdd"
             >
@@ -109,7 +109,7 @@
         <el-table-column :label="$t('systemJobs.columns.status')" width="90"
           ><template #default="{ row }"
             ><el-switch
-              v-permission="['jobs/edit']"
+              v-permission="['core.job.update']"
               :model-value="row.status === 1"
               @change="(v: string | number | boolean) => handleStatus(row, v as boolean)" /></template
         ></el-table-column>
@@ -119,7 +119,7 @@
           ><template #default="{ row }"
             ><el-space
               ><el-button
-                v-permission="['jobs/edit']"
+                v-permission="['core.job.update']"
                 link
                 size="small"
                 @click="handleEdit(row)"
@@ -129,7 +129,7 @@
                 @confirm="handleDelete(row)"
                 ><template #reference
                   ><el-button
-                    v-permission="['jobs/delete']"
+                    v-permission="['core.job.archive']"
                     link
                     type="danger"
                     size="small"
@@ -363,7 +363,6 @@
     code: '',
     sort: 0,
     status: 1,
-    is_disable: 0,
     remark: '',
   });
   const form = reactive<JobsForm>(defaultForm());
@@ -401,11 +400,15 @@
     if (!valid) return false;
     submitLoading.value = true;
     try {
-      if (isEdit.value) {
-        await editJobs({ ...form });
-      } else {
-        await addJobs({ ...form });
-      }
+      const payload = {
+        name: form.name,
+        code: form.code,
+        sort: form.sort,
+        status: form.status,
+        remark: form.remark,
+      };
+      if (isEdit.value) await editJobs({ ...payload, id: form.id });
+      else await addJobs(payload);
       ElMessage.success(t('systemJobs.tip.success'));
       modalVisible.value = false;
       await fetchData(pagination.current);

@@ -17,10 +17,13 @@ final class PlatformTenantEntryBindingController extends BasePlatformController
         if ($this->platformContext === null) {
             throw \app\common\http\ApiProblem::fromEnvelope('Platform authentication is required.', null, 40100);
         }
-        $tenantId = trim((string) $this->request->get('tenant_id', ''));
+        $tenantId = $this->request->get('tenant_id');
+        if ($tenantId !== null && $tenantId !== '') {
+            $this->validate(['tenant_id' => $tenantId], TenantEntryBindingValidate::class . '.lists');
+        }
         return $this->data($this->entryBindings->lists(
             $this->platformContext->core,
-            $tenantId === '' ? null : (int) $tenantId,
+            $tenantId === null || $tenantId === '' ? null : (int) $tenantId,
         ));
     }
 

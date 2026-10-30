@@ -9,12 +9,13 @@ use think\Validate;
 class DictDataValidate extends Validate
 {
     protected $rule = [
-        'id'      => 'require|integer|gt:0',
-        'type_id' => 'require|integer|gt:0',
-        'name'    => 'require|max:100',
-        'value'   => 'require|max:255',
-        'sort'    => 'integer|egt:0',
-        'is_disable' => 'require|in:0,1',
+        'id'      => 'require|positiveId',
+        'type_id' => 'require|positiveId',
+        'name'    => 'require|string|max:100',
+        'value'   => 'require|string|max:255',
+        'sort'    => 'sortOrder',
+        'is_disable' => 'flag',
+        'remark' => 'string|max:255',
     ];
 
     protected $message = [
@@ -27,10 +28,32 @@ class DictDataValidate extends Validate
     ];
 
     protected $scene = [
-        'add'  => ['type_id', 'name', 'value', 'sort'],
-        'edit' => ['id', 'name', 'value', 'sort'],
+        'add'  => ['type_id', 'name', 'value', 'sort', 'is_disable', 'remark'],
+        'edit' => ['id', 'name', 'value', 'sort', 'is_disable', 'remark'],
         'detail' => ['id'],
         'delete' => ['id'],
         'status' => ['id', 'is_disable'],
     ];
+
+    protected function positiveId(mixed $value): bool
+    {
+        return (is_int($value) || (is_string($value) && preg_match('/^[1-9][0-9]*$/D', $value) === 1))
+            && filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) !== false;
+    }
+
+    protected function flag(mixed $value): bool
+    {
+        return in_array($value, [0, 1, '0', '1'], true);
+    }
+
+    protected function sortOrder(mixed $value): bool
+    {
+        return (is_int($value) || is_string($value))
+            && filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 32767]]) !== false;
+    }
+
+    public function sceneStatus(): self
+    {
+        return $this->only(['id', 'is_disable'])->append('is_disable', 'require');
+    }
 }

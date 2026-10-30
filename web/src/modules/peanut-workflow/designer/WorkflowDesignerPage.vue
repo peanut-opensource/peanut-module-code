@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { computed, onBeforeUnmount, ref, shallowRef } from 'vue';
-  import { onBeforeRouteLeave } from 'vue-router';
+  import { onBeforeRouteLeave, useRoute } from 'vue-router';
   import { ElMessageBox } from 'element-plus';
   import { hasPermission } from '@/hooks/permission';
   import { useUserStore } from '@/store';
@@ -20,6 +20,7 @@
   import NodePanel from './NodePanel.vue';
   import WorkflowCanvas from './WorkflowCanvas.vue';
 
+  const route = useRoute();
   const api = createHostWorkflowApi();
   const moduleKey = ref('');
   const workflowKey = ref('');
@@ -84,12 +85,12 @@
   );
   const allowedWrite = computed(
     () =>
-      hasPermission('peanut.workflow.definition.write') &&
+      hasPermission('peanut.workflow.definition.write', route.path) &&
       !!moduleKey.value &&
       !!workflowKey.value
   );
   const allowedPublish = computed(() =>
-    hasPermission('peanut.workflow.definition.publish')
+    hasPermission('peanut.workflow.definition.publish', route.path)
   );
   let epoch = 0;
   let controller: AbortController | null = null;

@@ -52,7 +52,7 @@ final class DictionaryRuntime implements DictionaryQuery, TenantDictionaryComman
     public function enabledByType(TenantContext $context, string $type): array
     {
         return array_map(
-            fn(array $entry): DictionaryEntryDto => DictionaryEntryDto::fromCore(DictionaryEntry::fromArray($entry, (string) ($entry['source'] ?? 'tenant'))),
+            fn(DictionaryEntry $entry): DictionaryEntryDto => DictionaryEntryDto::fromCore($entry),
             $this->core->enabledByType($context, $type),
         );
     }

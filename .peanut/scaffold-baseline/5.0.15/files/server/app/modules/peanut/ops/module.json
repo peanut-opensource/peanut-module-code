@@ -3,7 +3,7 @@
   "key": "peanut.ops",
   "name": "Platform Operations",
   "description": "Platform-owned maintenance windows, persistent operations tasks, safe diagnostics, backup, restore and upgrade orchestration.",
-  "version": "1.0.28",
+  "version": "1.0.29",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-ops",

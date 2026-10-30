@@ -26,7 +26,7 @@ class RoleController extends BaseAdminController
     public function detail()
     {
         $params = $this->request->get();
-        $this->validate($params, ['id' => 'require|integer|gt:0']);
+        $this->validate($params, $this->roles->validationRules('detail'));
         return $this->data($this->roles->detail($this->tenantAdminContext(), (int) $params['id']));
     }
 
@@ -49,13 +49,19 @@ class RoleController extends BaseAdminController
     public function delete()
     {
         $params = $this->request->post();
-        $this->validate($params, ['id' => 'require|integer|gt:0']);
+        $this->validate($params, $this->roles->validationRules('delete'));
         $this->roles->delete($this->tenantAdminContext(), (int) $params['id']);
         return $this->success('操作成功');
     }
 
     private function roleParams(): array
     {
-        return $this->request->post();
+        $input = $this->request->post();
+        if (array_diff(array_keys($input), ['id', 'name', 'desc', 'sort']) !== []) {
+            throw \PeanutAdmin\Kernel\Authorization\Application\AdminAccessException::invalid(
+                'ROLE_INPUT_INVALID', 'Role details do not assign permissions. Use the permission-bundle assignment endpoint.',
+            );
+        }
+        return $input;
     }
 }

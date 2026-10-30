@@ -8,7 +8,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use PeanutAdmin\Modules\Identity\Audit\AuditService;
 use PeanutAdmin\Kernel\Auth\TenantContext;
-use PeanutAdmin\Modules\Identity\Module\Model\TenantModule;
+use PeanutAdmin\Modules\Identity\Module\TenantEntitlementService;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Permission;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Role;
 use PeanutAdmin\Modules\Identity\Persistence\Model\RolePermission;
@@ -19,7 +19,7 @@ use think\facade\Db;
 
 final readonly class RoleAdminService
 {
-    public function __construct(private AuditService $audit) {}
+    public function __construct(private AuditService $audit, private TenantEntitlementService $entitlements) {}
 
     /** @return array{items: list<array<string, mixed>>, total: int} */
     public function list(int $tenantId, \PeanutAdmin\Kernel\Authorization\Application\PageRequest $page): array
@@ -258,16 +258,8 @@ final readonly class RoleAdminService
 
     private function assignablePermissionQuery(int $tenantId): \think\db\BaseQuery
     {
-        $modules = TenantModule::where('tenant_id', $tenantId)->where('status', 'enabled')
-            ->where(function ($query): void {
-                $query->whereNull('effective_at')->whereOr('effective_at', '<=', new Raw('UTC_TIMESTAMP(3)'));
-            })->where(function ($query): void {
-                $query->whereNull('expires_at')->whereOr('expires_at', '>', new Raw('UTC_TIMESTAMP(3)'));
-            })->column('module_key');
-
-        return Permission::where('status', 'active')
-            // Application permissions are shipped by the host, not tenant-enabled Modules.
-            ->whereNotLike('key', 'platform.%')->whereIn('module_key', array_values(array_unique(['core', 'peanut.admin', ...$modules])));
+        return Permission::where('status', 'active')->whereNotLike('key', 'platform.%')
+            ->whereIn('key', $this->entitlements->permissionKeys($tenantId));
     }
 
     /** @param list<array<string, mixed>> $rows

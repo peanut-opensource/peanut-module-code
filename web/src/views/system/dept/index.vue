@@ -268,6 +268,7 @@
 
 <script lang="ts" setup>
   import { computed, ref, reactive } from 'vue';
+  import { useRoute } from 'vue-router';
   import { useI18n } from 'vue-i18n';
   import { ElMessage } from 'element-plus';
   import type { FormInstance } from 'element-plus';
@@ -292,6 +293,7 @@
     ROOT_DEPARTMENT_ID,
   } from './parent-options';
 
+  const route = useRoute();
   const { t } = useI18n();
   const { loading, setLoading } = useLoading(true);
   const directory = useDepartmentDirectory(getDeptList);
@@ -346,7 +348,7 @@
   const isEdit = ref(false);
   const isRootDepartmentEdit = ref(false);
   const canMoveDepartment = computed(() =>
-    hasPermission('core.department.move')
+    hasPermission('core.department.move', route.path)
   );
   const originalParentDepartmentId = ref<number | undefined>();
   const submitLoading = ref(false);

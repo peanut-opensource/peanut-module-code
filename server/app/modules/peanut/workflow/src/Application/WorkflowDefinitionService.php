@@ -13,11 +13,10 @@ use PeanutAdmin\Modules\Workflow\Definition\WorkflowGraph;
 use PeanutAdmin\Modules\Workflow\Persistence\Model\WorkflowDefinitionRecord as Definition;
 use PeanutAdmin\Modules\Workflow\Persistence\Model\WorkflowDefinitionVersionRecord as Version;
 use PeanutAdmin\Modules\Identity\Audit\AuditService;
-use PeanutAdmin\Modules\Task\Contract\TrustedJobPublisher;
 
 final readonly class WorkflowDefinitionService
 {
-    public function __construct(private WorkflowCommandTransaction $transactions, private WorkflowScenarioProvider $scenarios, private WorkflowAssignmentResolver $assignments, private AuditService $audit, private WorkflowLifecycleQueries $lifecycle, private \PeanutAdmin\Kernel\Module\ModuleAvailability $modules, private WorkflowAuthorizationResolver $authorization, private ?TrustedJobPublisher $tasks = null, private ?\PeanutAdmin\Modules\Notification\Contract\NotificationProducerRegistry $producers = null) {}
+    public function __construct(private WorkflowCommandTransaction $transactions, private WorkflowScenarioProvider $scenarios, private WorkflowAssignmentResolver $assignments, private AuditService $audit, private WorkflowLifecycleQueries $lifecycle, private WorkflowDefinitionValidator $validator, private WorkflowAuthorizationResolver $authorization) {}
 
     public function saveDraft(AuthorizedOperationContext $context, string $moduleKey, string $workflowKey, array $request, string $idempotencyKey): array
     {
@@ -165,7 +164,7 @@ final readonly class WorkflowDefinitionService
     private function checkScenario(AuthorizedOperationContext $context, string $moduleKey, string $workflowKey, WorkflowGraph $graph): void
     {
         $this->lifecycle->assertNewOperations($context->tenantContext->tenantId, true);
-        (new WorkflowDefinitionValidator($this->scenarios, $this->tasks, $this->modules, $this->producers))->validate($context, $moduleKey, $workflowKey, $graph);
+        $this->validator->validate($context, $moduleKey, $workflowKey, $graph);
     }
 
     public function activate(AuthorizedOperationContext $context, string $moduleKey, string $workflowKey, array $request, string $idempotencyKey): array

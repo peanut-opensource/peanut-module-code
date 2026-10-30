@@ -12,11 +12,12 @@
       "PeanutAdmin\\Modules\\Identity\\": "src/"
     }
   },
-  "version": "4.0.0-rc.38",
+    "version": "4.0.0-rc.40",
   "extra": {
     "peanut": {
       "editions": [
-        "multi-tenant"
+        "multi-tenant",
+        "standalone"
       ]
     }
   }

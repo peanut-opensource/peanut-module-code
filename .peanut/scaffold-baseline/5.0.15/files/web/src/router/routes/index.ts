@@ -9,6 +9,7 @@ import {
 // eslint-disable-next-line import/no-unresolved
 import instanceToolRoutes from 'virtual:peanut-instance-tool-routes';
 import { pluginRoutes } from './plugin-contributions';
+import { validateRouteTree } from '../route-meta';
 
 interface RouteModule {
   default?: RouteRecordRaw | RouteRecordRaw[];
@@ -49,14 +50,18 @@ if (__PEANUT_INSTANCE_TOOLS_COMPILED__ !== expectedInstanceTools) {
 const instanceToolsAllowed =
   __PEANUT_INSTANCE_TOOLS_COMPILED__ && allowsInstanceTools(configuredMode);
 
-export const appRoutes: RouteRecordRaw[] = routesForDeployment(
-  [...formatModules(modules, []), ...instanceToolRoutes, ...pluginRoutes],
-  mode,
-  instanceToolsAllowed
+export const appRoutes: RouteRecordRaw[] = validateRouteTree(
+  routesForDeployment(
+    [...formatModules(modules, []), ...instanceToolRoutes, ...pluginRoutes],
+    mode,
+    instanceToolsAllowed
+  )
 );
 
-export const appExternalRoutes: RouteRecordRaw[] = routesForDeployment(
-  formatModules(externalModules, []),
-  mode,
-  instanceToolsAllowed
+export const appExternalRoutes: RouteRecordRaw[] = validateRouteTree(
+  routesForDeployment(
+    formatModules(externalModules, []),
+    mode,
+    instanceToolsAllowed
+  )
 );

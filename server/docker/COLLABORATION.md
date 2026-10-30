@@ -47,12 +47,19 @@ dependencies, package metadata and API configuration, with the public CA added
 by an explicit overlay. There are no named volumes, application source mounts
 or Node document copies. Persistence stays behind the PHP APIs.
 
-For `websocket_scheme=wss`, provide the application's `server/docker/tls/certificate.pem`, `private-key.pem`
-and `ca.pem`. The private key must be 0600; the public CA must be 0444 or 0644.
+For `websocket_scheme=wss`, provide the application's `server/docker/tls/certificate.pem` and `private-key.pem`.
+The private key must be 0600. The certificate must chain to the clients' normal
+trust stores, or the deployment must explicitly select a private CA as described below.
 The certificate must cover the configured PHP/control names and WSS hostname.
 Both private origins use HTTPS on container-only port 8443; do not expose it as
-a host port. Record the exact public CA SHA-256 as `ca_sha256`. Configuration
-publication copies that public bundle to the application's
+a host port. Publicly trusted HTTPS uses `ca_sha256: ""`, with no CA file required;
+PHP uses Guzzle's system trust and the independent service uses Node's normal trust.
+The service owner selects its normal Compose configuration without the private-CA
+overlay for this mode. No existing CA file is deleted by changing the selection.
+
+For private HTTPS, additionally provide `server/docker/tls/ca.pem` (0444 or 0644)
+and record its exact SHA-256 as `ca_sha256`. Configuration publication validates
+and copies that public bundle to the application's
 `private/collaboration/service/ca.pem` and the service's `certs/ca.pem`, both 0644.
 The normal application permission preparation retains PHP UID 33 access. The
 Node container runs as UID 33 and only needs its public CA, with readable parent

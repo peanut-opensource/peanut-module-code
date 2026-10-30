@@ -8,14 +8,14 @@ use app\common\exception\BusinessException;
 use app\common\services\audit\AuditContractHost;
 use PeanutAdmin\Kernel\Tenancy\TenantEntryBindingResolver;
 use PeanutAdmin\Kernel\Context\PlatformContext;
-use PeanutAdmin\Kernel\Platform\Authorization\PlatformAuthorizationEvaluator;
+use app\platform\services\PlatformApiAuthorization;
 use PeanutAdmin\Kernel\Audit\AuditOutcome;
 use think\facade\Db;
 
 final readonly class TenantEntryBindingAdminService
 {
     public function __construct(
-        private PlatformAuthorizationEvaluator $authorization,
+        private PlatformApiAuthorization $authorization,
         private AuditContractHost $audit,
     ) {}
 

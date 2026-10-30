@@ -32,7 +32,7 @@
   const website = computed(() => appStore.config?.website);
   const logo = computed(() => resolveBrandLogo(website.value));
   const appName = computed(() => resolveBrandName(website.value));
-  const version = computed(() => appStore.config?.version || '0.1.0');
+  const version = computed(() => appStore.config?.version || '1.0.0');
   const intro = computed(() => resolveBrandSlogan(website.value));
 
   onMounted(async () => {

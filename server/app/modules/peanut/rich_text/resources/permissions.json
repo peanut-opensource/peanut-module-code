@@ -1,8 +1,0 @@
-[
-  {"key":"peanut.rich-text.document.list","type":"api","name":"List rich-text documents","risk_level":"normal"},
-  {"key":"peanut.rich-text.document.detail","type":"api","name":"Read rich-text document","risk_level":"normal"},
-  {"key":"peanut.rich-text.document.add","type":"action","name":"Create rich-text document","risk_level":"sensitive"},
-  {"key":"peanut.rich-text.document.edit","type":"action","name":"Edit rich-text document","risk_level":"sensitive"},
-  {"key":"peanut.rich-text.document.delete","type":"action","name":"Delete rich-text document","risk_level":"critical"},
-  {"key":"peanut.rich-text.document.collaboration","type":"api","name":"Join rich-text collaboration","risk_level":"sensitive"}
-]

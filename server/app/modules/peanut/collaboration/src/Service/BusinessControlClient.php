@@ -59,14 +59,18 @@ final readonly class BusinessControlClient
         $origin = $c['control_origin'] ?? '';
         $url = is_string($origin) ? parse_url($origin) : false;
         $developmentHttp = ($c['environment'] ?? null) === 'development' && ($url['scheme'] ?? null) === 'http';
-        $caBundleFile = $developmentHttp ? null : ($c['ca_bundle_file'] ?? null);
-        if (!$developmentHttp && (!is_string($caBundleFile) || $caBundleFile !== dirname(__DIR__, 6) . '/private/collaboration/service/ca.pem')) {
+        $caBundleFile = array_key_exists('ca_bundle_file', $c) ? $c['ca_bundle_file'] : '';
+        $caHash = $c['ca_sha256'] ?? '';
+        if (!$developmentHttp && ($caBundleFile === '' ? $caHash !== '' : (!is_string($caBundleFile)
+            || $caBundleFile !== dirname(__DIR__, 6) . '/private/collaboration/service/ca.pem'))) {
             throw new \DomainException('COLLABORATION_CA_REFERENCE_INVALID');
         }
-        if (!$developmentHttp && (!is_file($caBundleFile) || is_link($caBundleFile) || preg_match('/^[a-f0-9]{64}$/D', $c['ca_sha256'] ?? '') !== 1
-            || !hash_equals($c['ca_sha256'], hash_file('sha256', $caBundleFile)))) {
+        if (!$developmentHttp && $caBundleFile !== '' && (!is_file($caBundleFile) || is_link($caBundleFile)
+            || !is_string($caHash) || preg_match('/^[a-f0-9]{64}$/D', $caHash) !== 1
+            || !hash_equals($caHash, hash_file('sha256', $caBundleFile)))) {
             throw new \DomainException('COLLABORATION_CA_REFERENCE_CHANGED');
         }
+        $caBundleFile = $developmentHttp || $caBundleFile === '' ? null : $caBundleFile;
         if (($c['enabled'] ?? null) !== true || !$url || !(($url['scheme'] ?? '') === 'https' || $developmentHttp)
             || !isset($url['host']) || isset($url['user']) || isset($url['pass']) || isset($url['query']) || isset($url['fragment'])
             || !in_array($url['path'] ?? '', ['', '/'], true)
@@ -102,7 +106,7 @@ final readonly class BusinessControlClient
         $time = $h['x-collaboration-timestamp'] ?? '';
         $digest = hash('sha256', $response->body);
         $expected = hash_hmac('sha256', implode("\n", ['peanut.collaboration.' . $domain . '.response.v2', ...$prefix, $nonce,'POST',$path,$bodyHash,$time,(string) $response->status,$digest]), $c['secret']);
-        if (strlen($response->body) > ($domain === 'operator' ? 33554432 : 8388608) || ($h['x-collaboration-protocol'] ?? null) !== '2'
+        if (strlen($response->body) > 8388608 || ($h['x-collaboration-protocol'] ?? null) !== '2'
             || ($h['x-collaboration-holder-key'] ?? null) !== $input['holder_key']
             || ($h['x-collaboration-service-instance'] ?? null) !== $c['service_instance_id'] || ($h['x-collaboration-key-id'] ?? null) !== $c['key_id']
             || ($h['x-collaboration-nonce'] ?? null) !== $nonce || ($h['x-collaboration-body-sha256'] ?? null) !== $digest

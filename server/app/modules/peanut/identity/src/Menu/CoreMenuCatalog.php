@@ -10,10 +10,12 @@ final class CoreMenuCatalog
     public static function definitions(): array
     {
         return [
+            new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.workbench.index', 'core', 'tenant', null, 'page', '工作台', 'Workplace', '/dashboard/workplace', 'Workplace', 'workbench/index', ['admin-web'], 0, 'icon-dashboard'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.organization', 'core', 'tenant', null, 'group', '组织与权限', null, null, null, null, ['admin-web'], 10, 'icon-user-group'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.member.list', 'core', 'tenant', 'core.organization', 'page', '成员管理', 'tenant.members.list', '/app/members', 'core.member.list', 'core.member.read', ['admin-web'], 11, 'UserRound'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.department.list', 'core', 'tenant', 'core.organization', 'page', '部门管理', 'tenant.departments.list', '/app/departments', 'core.department.list', 'core.department.read', ['admin-web'], 12, 'Network'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.role.list', 'core', 'tenant', 'core.organization', 'page', '角色管理', 'tenant.roles.list', '/app/roles', 'core.role.list', 'core.role.read', ['admin-web'], 13, 'Shield'),
+            new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.job.list', 'core', 'tenant', 'core.organization', 'page', '岗位管理', 'SystemJobs', '/system/jobs', 'SystemJobs', 'core.job.read', ['admin-web'], 15, 'icon-user-group'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.governance.workbench', 'core', 'tenant', 'core.organization', 'page', '权限治理', 'tenant.governance.workbench', '/app/governance', 'core.governance.workbench', 'core.role.read', ['admin-web'], 14, 'SlidersHorizontal'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.business', 'core', 'tenant', null, 'group', '会员与财务', null, null, null, null, ['admin-web'], 20, 'icon-user'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.content', 'core', 'tenant', null, 'group', '内容与资源', null, null, null, null, ['admin-web'], 30, 'icon-folder'),
@@ -21,7 +23,7 @@ final class CoreMenuCatalog
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.system', 'core', 'tenant', null, 'group', '系统设置', null, null, null, null, ['admin-web'], 50, 'icon-settings'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.operations', 'core', 'tenant', null, 'group', '运维与审计', null, null, null, null, ['admin-web'], 60, 'icon-history'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.module.list', 'core', 'tenant', 'core.applications', 'page', '模块管理', 'tenant.modules.list', '/app/modules', 'core.module.list', 'core.module.read', ['admin-web'], 21, 'Blocks'),
-            new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.audit.list', 'core', 'tenant', 'core.operations', 'page', '审计日志', 'tenant.audit.list', '/app/audit', 'core.audit.list', 'core.audit.read', ['admin-web'], 22, 'ScrollText'),
+            new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.audit.list', 'core', 'tenant', 'core.operations', 'page', '审计日志', 'SystemLog', '/system/log', 'SystemLog', 'core.audit.read', ['admin-web'], 22, 'icon-history'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('platform.governance', 'platform', 'platform', null, 'group', '组织与权限', null, null, null, null, ['platform-web'], 10, 'Landmark'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('platform.tenancy', 'platform', 'platform', null, 'group', '租户运营', null, null, null, null, ['platform-web'], 5, 'Building2'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('platform.operations', 'platform', 'platform', null, 'group', '运维与审计', null, null, null, null, ['platform-web'], 20, 'Activity'),

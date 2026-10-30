@@ -22,8 +22,7 @@ class DecorationTabbarController extends BaseAdminController
 
     public function save()
     {
-        $params = $this->request->post();
-        $this->validate($params, DecorationTabbarValidate::class);
+        $params = $this->validateInput($this->request->post(), DecorationTabbarValidate::class, ['style', 'list'])->writable();
         $this->decorationTabbars->save(
             $this->tenantAdminContext(),
             (array) $params['style'],

@@ -17,7 +17,7 @@ final class PlatformTenantBoundaryController extends BasePlatformController
                 'platform.tenant.create',
                 'platform.tenant.lifecycle',
                 'platform.tenant.provision-owner',
-                'platform.tenant.module.manage',
+                'platform.tenant.license.manage',
             ],
         ]);
     }

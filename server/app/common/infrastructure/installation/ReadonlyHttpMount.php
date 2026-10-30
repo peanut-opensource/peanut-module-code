@@ -15,7 +15,7 @@ final readonly class ReadonlyHttpMount
         'public/storage', 'runtime/cache', 'runtime/log', 'runtime/session', 'runtime/temp', 'runtime/storage', 'runtime/generator', 'runtime/file'];
     private const SOURCE_INPUTS = ['.peanut/application-manifest.json', 'release-versions.json', 'plugins.lock', 'RELEASE_METADATA.json'];
 
-    private function __construct(private string $root) {}
+    private function __construct(private string $root, private ?array $inputs = null) {}
 
     public static function active(string $root): bool
     {
@@ -221,18 +221,42 @@ final readonly class ReadonlyHttpMount
         }
         $context = json_decode((string) file_get_contents(self::CONTEXT), true, 512, JSON_THROW_ON_ERROR);
         $stat = lstat($root);
+        $pointer = file_get_contents($root . '/runtime/upgrade/verified-deployment/current.json');
+        $deploymentPath = $root . '/private/installation/deployment.json';
+        $deployment = null;
+        if (file_exists($deploymentPath) || is_link($deploymentPath)) {
+            $deploymentStat = @lstat($deploymentPath);
+            if (!is_array($deploymentStat) || !is_file($deploymentPath) || is_link($deploymentPath) || $deploymentStat['nlink'] !== 1) {
+                throw new RuntimeException('SERVER_DEPLOYMENT_ADMISSION_UNAVAILABLE');
+            }
+            $deployment = file_get_contents($deploymentPath);
+        }
+        if (!is_string($pointer) || ($deployment !== null && !is_string($deployment))) {
+            throw new RuntimeException('HTTP_MOUNT_CONTEXT_MISMATCH');
+        }
+        $identityDigest = VerifiedServerDeployment::inputIdentityDigest($root);
+        $deploymentDigest = $deployment !== null ? hash('sha256', $deployment) : null;
         if (!is_array($context) || ($context['protocol'] ?? null) !== 'peanut.native-readonly-http.v1'
             || lstat(self::CONTEXT)['dev'] === $stat['dev']
             || ($context['worker_uid'] ?? null) !== posix_geteuid() || ($context['worker_gid'] ?? null) !== posix_getegid()
             || ($context['root'] ?? null) !== $root || ($context['device'] ?? null) !== $stat['dev']
             || ($context['inode'] ?? null) !== $stat['ino']
-            || ($context['identity_sha256'] ?? null) !== VerifiedServerDeployment::inputIdentityDigest($root)
-            || ($context['pointer_sha256'] ?? null) !== hash_file('sha256', $root . '/runtime/upgrade/verified-deployment/current.json')
-            || ($context['deployment_sha256'] ?? null) !== (is_file($root . '/private/installation/deployment.json')
-                ? hash_file('sha256', $root . '/private/installation/deployment.json') : null)) {
+            || ($context['identity_sha256'] ?? null) !== $identityDigest
+            || ($context['pointer_sha256'] ?? null) !== hash('sha256', $pointer)
+            || ($context['deployment_sha256'] ?? null) !== $deploymentDigest) {
             throw new RuntimeException('HTTP_MOUNT_CONTEXT_MISMATCH');
         }
-        return new self($root);
+        return new self($root, ['identity' => $identityDigest, 'pointer' => $pointer,
+            'deployment' => $deployment, 'deployment_sha256' => $deploymentDigest]);
+    }
+
+    /**
+     * Request-local inputs authenticated against the image-owned mount context.
+     * @return array{identity:string,pointer:string,deployment:?string,deployment_sha256:?string}|null
+     */
+    public function admissionInputs(): ?array
+    {
+        return $this->inputs;
     }
 
     /** Only tracked declarations cross the APP/server boundary; no Git or secrets mount. */

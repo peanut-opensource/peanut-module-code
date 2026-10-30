@@ -8,7 +8,7 @@ use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 use think\facade\Db;
 use PeanutAdmin\Modules\Notification\Delivery\Application\NotificationException;
 use PeanutAdmin\Modules\Notification\Delivery\Package;
-use PeanutAdmin\Modules\Notification\Delivery\Persistence\NotificationRepository;
+use PeanutAdmin\Modules\Notification\Delivery\Persistence\NotificationStore;
 use PeanutAdmin\Modules\Task\Contract\JobExecution;
 use PeanutAdmin\Modules\Task\Contract\RetryableTaskException;
 use PeanutAdmin\Modules\Task\Contract\TaskHandler;
@@ -17,7 +17,7 @@ use Throwable;
 final readonly class InboxTaskHandler implements TaskHandler
 {
     public function __construct(
-        private NotificationRepository $repository,
+        private NotificationStore $repository,
         private \PeanutAdmin\Modules\Notification\Infrastructure\Authorization\NotificationAsyncAuthorization $authorization,
     ) {}
 

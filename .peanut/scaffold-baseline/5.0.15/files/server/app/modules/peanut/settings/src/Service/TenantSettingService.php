@@ -7,7 +7,7 @@ namespace PeanutAdmin\Modules\Settings\Service;
 use PeanutAdmin\Modules\Settings\Value\TenantSettingsNamespace;
 use PeanutAdmin\Modules\Settings\Contract\TenantSettingSnapshot;
 use PeanutAdmin\Modules\Settings\Contract\TenantSettingsCommands;
-use PeanutAdmin\Modules\Settings\Contract\TenantSettingsProvider;
+use PeanutAdmin\Modules\Settings\Infrastructure\ThinkPhpTenantSettingsProvider;
 use PeanutAdmin\Modules\Settings\Contract\TenantSettingsQuery;
 use PeanutAdmin\Kernel\Context\AuthenticatedMemberContext;
 use PeanutAdmin\Kernel\Auth\TenantContext;
@@ -15,7 +15,7 @@ use PeanutAdmin\Kernel\Context\TenantSystemContext;
 
 final readonly class TenantSettingService implements TenantSettingsQuery, TenantSettingsCommands
 {
-    public function __construct(private TenantSettingsProvider $provider) {}
+    public function __construct(private ThinkPhpTenantSettingsProvider $provider) {}
 
     public function get(
         AuthenticatedMemberContext|TenantContext|TenantSystemContext $context,

@@ -13,7 +13,7 @@ export default {
   'officialReferenceCodes.pageOf': '第 {page} 页，共 {count} 页',
   'officialReferenceCodes.empty.setsTitle': '暂无参考代码集',
   'officialReferenceCodes.empty.setsMessage':
-    '当前没有已启用模块声明参考代码集。',
+    '当前没有已启用模块声明参考代码集；通用字典可通过字典管理菜单维护。',
   'officialReferenceCodes.empty.selectTitle': '请选择参考代码集',
   'officialReferenceCodes.empty.selectMessage':
     '选择所属模块和代码集以查看当前租户的条目。',

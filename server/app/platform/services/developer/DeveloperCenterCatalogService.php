@@ -215,7 +215,7 @@ final readonly class DeveloperCenterCatalogService
         }
         try {
             $document = json_decode((string) file_get_contents($path), true, 128, JSON_THROW_ON_ERROR);
-            $freshness = $this->apiCatalogFreshness($document['inputs'] ?? null);
+            $freshness = \app\common\services\authorization\GeneratedApiCatalog::freshness($this->serverRoot, $document['inputs'] ?? null);
             if ($freshness !== null) {
                 return [
                     'status' => $this->state('stale', 'API_CATALOG_STALE', $freshness),
@@ -232,52 +232,6 @@ final readonly class DeveloperCenterCatalogService
         } catch (Throwable $exception) {
             return ['status' => $this->failureState('API_CATALOG_INVALID', $exception), 'endpoints' => []];
         }
-    }
-
-    private function apiCatalogFreshness(mixed $inputs): ?string
-    {
-        if (!is_array($inputs) || !array_is_list($inputs) || $inputs === []) {
-            return 'The generated catalog does not register its source hashes. Regenerate it before using its routes.';
-        }
-        $projectRoot = dirname($this->serverRoot);
-        $previous = null;
-        foreach ($inputs as $input) {
-            if (!is_array($input) || array_keys($input) !== ['path', 'sha256']) {
-                return 'The generated catalog input registry is invalid. Regenerate it.';
-            }
-            $relative = $input['path'] ?? null;
-            $expected = $input['sha256'] ?? null;
-            if (!is_string($relative)
-                || ($relative !== 'release-versions.json' && !str_starts_with($relative, 'server/'))
-                || str_starts_with($relative, '/') || str_contains($relative, '\\')
-                || array_intersect(explode('/', $relative), ['', '.', '..']) !== []
-                || preg_match('/[\x00-\x1f]/', $relative) === 1
-                || !is_string($expected) || preg_match('/^[0-9a-f]{64}$/D', $expected) !== 1
-                || ($previous !== null && strcmp($previous, $relative) >= 0)) {
-                return 'The generated catalog input registry is invalid or not canonically sorted. Regenerate it.';
-            }
-            $sourceRelative = $relative;
-            if ($relative === 'release-versions.json'
-                && (file_exists($this->serverRoot . '/.peanut/release-identity.json')
-                    || is_link($this->serverRoot . '/.peanut/release-identity.json'))) {
-                // Server releases carry the exact APP version-source bytes inside their canonical inventory.
-                $sourceRelative = 'server/.peanut/release-versions.json';
-            }
-            $cursor = $projectRoot;
-            foreach (explode('/', $sourceRelative) as $part) {
-                $cursor .= '/' . $part;
-                if (is_link($cursor)) {
-                    return 'A registered API source is linked: ' . $relative . '. Regenerate the catalog.';
-                }
-            }
-            $source = $projectRoot . '/' . $sourceRelative;
-            $actual = is_file($source) && !is_link($source) ? hash_file('sha256', $source) : false;
-            if (!is_string($actual) || !hash_equals($expected, $actual)) {
-                return 'A registered API source changed or disappeared: ' . $relative . '. Regenerate the catalog.';
-            }
-            $previous = $relative;
-        }
-        return null;
     }
 
     /** @return array<string,string> */

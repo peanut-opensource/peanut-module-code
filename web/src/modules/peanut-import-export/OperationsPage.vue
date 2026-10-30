@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { onBeforeUnmount, provide } from 'vue';
+  import { useRoute } from 'vue-router';
   import { hasPermission } from '@/hooks/permission';
   import { tenantSessionFetch } from '@/api/tenant-session-fetch';
   import ImportExportPage from './optional-runtime/src/ImportExportPage.vue';
@@ -12,6 +13,7 @@
     importExportRuntimeKey,
   } from './optional-runtime/src';
 
+  const route = useRoute();
   const baseUrl = new URL(
     import.meta.env.VITE_API_BASE_URL || '/',
     window.location.origin
@@ -21,9 +23,9 @@
       baseUrl,
       fetch: tenantSessionFetch,
     }),
-    canRead: () => hasPermission(IMPORT_EXPORT_READ_PERMISSION),
-    canCreate: () => hasPermission(IMPORT_EXPORT_CREATE_PERMISSION),
-    canCancel: () => hasPermission(IMPORT_EXPORT_CANCEL_PERMISSION),
+    canRead: () => hasPermission(IMPORT_EXPORT_READ_PERMISSION, route.path),
+    canCreate: () => hasPermission(IMPORT_EXPORT_CREATE_PERMISSION, route.path),
+    canCancel: () => hasPermission(IMPORT_EXPORT_CANCEL_PERMISSION, route.path),
   });
 
   provide(importExportRuntimeKey, runtime);

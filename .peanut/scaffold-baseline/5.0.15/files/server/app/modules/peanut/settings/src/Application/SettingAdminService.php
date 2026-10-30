@@ -7,15 +7,14 @@ namespace PeanutAdmin\Modules\Settings\Application;
 use DateTimeImmutable;
 use DateTimeZone;
 use JsonException;
-use PeanutAdmin\Kernel\Persistence\Model\EditionTenantModel;
+use PeanutAdmin\Kernel\Persistence\Model\TenantModel;
 use PeanutAdmin\Modules\Identity\Contract\PlatformOperatorIdentityQuery;
 use PeanutAdmin\Modules\Identity\Contract\TenantMemberDirectory;
 use PeanutAdmin\Kernel\Persistence\Tenancy\TenantColumnScope;
-use PeanutAdmin\Kernel\Persistence\Tenancy\TenantPersistenceMode;
 use PeanutAdmin\Kernel\Tenancy\TenantScope;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Host\AuthorizedExternalOperation;
-use PeanutAdmin\Modules\Settings\Cache\ArrayRevisionedSettingCache;
+use PeanutAdmin\Kernel\Authorization\Application\AdminAccessException;
 use PeanutAdmin\Modules\Settings\Definition\SettingDefinition;
 use PeanutAdmin\Modules\Settings\Model\DeploymentSettingValue;
 use PeanutAdmin\Modules\Settings\Model\SettingDefinitionRecord;
@@ -35,13 +34,11 @@ final readonly class SettingAdminService
 
     public function __construct(
         private SecretProtector $protector,
-        private TenantPersistenceMode $persistenceMode = TenantPersistenceMode::TenantScoped,
-        private ?int $instanceTenantId = null,
-        private ?TenantMemberDirectory $members = null,
-        private ?PlatformOperatorIdentityQuery $operators = null,
-        private array $projectSettings = [],
+        private SettingResolver $resolver,
+        private TenantMemberDirectory $members,
+        private PlatformOperatorIdentityQuery $operators,
     ) {
-        $this->tenantColumnScope = new TenantColumnScope($this->persistenceMode, $this->instanceTenantId);
+        $this->tenantColumnScope = new TenantColumnScope();
     }
 
     public function replaceDeployment(
@@ -251,7 +248,7 @@ final readonly class SettingAdminService
 
             return $this->redactSecret(
                 $definition,
-                $this->resolver()->resolveTarget($definition, $authorized, $this->asOf($asOf)),
+                $this->resolver->resolveTarget($definition, $authorized, $this->asOf($asOf)),
             );
         });
     }
@@ -293,7 +290,7 @@ final readonly class SettingAdminService
 
             return $this->redactSecret(
                 $definition,
-                $this->resolver()->resolveTarget($definition, $authorized, $this->asOf($asOf)),
+                $this->resolver->resolveTarget($definition, $authorized, $this->asOf($asOf)),
             );
         });
     }
@@ -341,7 +338,7 @@ final readonly class SettingAdminService
         SettingDefinition $definition,
         ?DateTimeImmutable $asOf,
     ): EffectiveSetting {
-        $resolved = $this->resolver()->resolveDeployment($definition, $this->asOf($asOf));
+        $resolved = $this->resolver->resolveDeployment($definition, $this->asOf($asOf));
 
         return $this->redactSecret($definition, $resolved);
     }
@@ -351,20 +348,9 @@ final readonly class SettingAdminService
         int $tenantId,
         ?DateTimeImmutable $asOf,
     ): EffectiveSetting {
-        $resolved = $this->resolver()->resolveTenant($definition, $tenantId, $this->asOf($asOf));
+        $resolved = $this->resolver->resolveTenant($definition, $tenantId, $this->asOf($asOf));
 
         return $this->redactSecret($definition, $resolved);
-    }
-
-    private function resolver(): SettingResolver
-    {
-        return new SettingResolver(
-            $this->protector,
-            new ArrayRevisionedSettingCache(),
-            $this->persistenceMode,
-            $this->instanceTenantId,
-            projectSettings: $this->projectSettings,
-        );
     }
 
     private function asOf(?DateTimeImmutable $asOf): DateTimeImmutable
@@ -597,10 +583,8 @@ final readonly class SettingAdminService
                 if (!$tenantScope instanceof TenantScope) {
                     throw SettingException::notFound('SETTING_TARGET_UNAUTHORIZED');
                 }
-                $row = EditionTenantModel::tenantAttributes(
+                $row = TenantModel::tenantAttributes(
                     $tenantScope,
-                    $this->persistenceMode,
-                    $this->instanceTenantId,
                     $row,
                 );
                 $row['updated_by_member_id'] = $actorId;
@@ -649,10 +633,13 @@ final readonly class SettingAdminService
     private function assertActor(string $scopeName, ?TenantScope $scope, int $actorId): void
     {
         if ($scopeName === 'deployment') {
+            if ($actorId < 1) {
+                throw SettingException::notFound('SETTING_ACTOR_UNAUTHORIZED');
+            }
             try {
-                $accountId = $this->operators?->accountId($actorId) ?? 0;
-            } catch (\Throwable) {
-                $accountId = 0;
+                $accountId = $this->operators->accountId($actorId);
+            } catch (AdminAccessException) {
+                throw SettingException::notFound('SETTING_ACTOR_UNAUTHORIZED');
             }
             if ($accountId < 1) {
                 throw SettingException::notFound('SETTING_ACTOR_UNAUTHORIZED');
@@ -661,7 +648,7 @@ final readonly class SettingAdminService
             return;
         }
         if (!$scope instanceof TenantScope
-            || $this->members?->activeMembership($scope->tenantId(), $actorId) === null) {
+            || $this->members->activeMembership($scope->tenantId(), $actorId) === null) {
             throw SettingException::notFound('SETTING_TARGET_UNAUTHORIZED');
         }
     }
@@ -706,14 +693,10 @@ final readonly class SettingAdminService
             'tenant' => TenantSettingValue::scope(
                 'tenant',
                 $scope ?? throw SettingException::notFound(),
-                $this->persistenceMode,
-                $this->instanceTenantId,
             ),
             'target' => TargetSettingValue::scope(
                 'tenant',
                 $scope ?? throw SettingException::notFound(),
-                $this->persistenceMode,
-                $this->instanceTenantId,
             ),
             default => throw SettingException::invalid('SETTING_SCOPE_INVALID', 'The setting scope is invalid.'),
         };
@@ -759,19 +742,7 @@ final readonly class SettingAdminService
             throw SettingException::notFound();
         }
 
-        try {
-            $scope = TenantScope::fromTrustedContext($tenantId, $identity);
-            EditionTenantModel::tenantAttributes(
-                $scope,
-                $this->persistenceMode,
-                $this->instanceTenantId,
-                [],
-            );
-
-            return $scope;
-        } catch (\RuntimeException) {
-            throw SettingException::notFound();
-        }
+        return TenantScope::fromTrustedContext($tenantId, $identity);
     }
 
     private static function databaseDate(DateTimeImmutable $date): string

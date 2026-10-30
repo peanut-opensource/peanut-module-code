@@ -261,7 +261,11 @@
   fetchData();
 
   const onAvatarSuccess = (file: FileRecord) => {
-    basicForm.avatar = file.uri;
+    if (!file.file_key) {
+      ElMessage.error('上传响应缺少稳定文件引用');
+      return;
+    }
+    basicForm.avatar = file.file_key;
     basicForm.avatarUrl = file.url;
     ElMessage.success(t('userSetting.avatar.uploadSuccess'));
   };

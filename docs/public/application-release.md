@@ -59,12 +59,27 @@ git add -- server/public/platform
 scripts/deploy-update.sh --target=<审核main的完整提交>
 # 挂载式 Docker 实例：
 scripts/deploy-update.sh --target=<审核main的完整提交> --compose-project=<原实例项目名>
+# 已明确授权从其他现有分支部署时，显式选择同一分支：
+scripts/deploy-update.sh --target=<审核dev的完整提交> --branch=dev --compose-project=<原实例项目名>
 ```
 
-入口要求真实产品根、main、无受管修改，fetch 后目标仍等于审核的 origin/main，只允许 ff-only 及相同 Edition；目标须已包含该 Edition 的受管后台入口。pending 绑定旧／新提交、Edition 和原 Compose 项目。生产分支只采用 Git 静态文件，不调用 Node、npm 或 pnpm。
+入口要求真实产品根、当前检出等于所选分支（默认main）、无受管修改，fetch 后目标仍等于审核的该远端分支，只允许 ff-only 及相同 Edition；目标须已包含该 Edition 的受管后台入口。显式分支参数不授予新的部署权限。pending 绑定旧／新提交、Edition、原 Compose 项目和分支；早期未记分支的pending仅属于main。生产分支只采用 Git 静态文件，不调用 Node、npm 或 pnpm。
 
-Docker 模式复用原生 Compose 参数及适用 overlay、原 vendor receipt，正常停 nginx/php，在同一 php 服务的 owner 工作目录和网络执行原生 module:compile、migrate:run、clear --cache，再复用 start.sh 恢复。MySQL/卷保留；其他业务写者由 owner 预先排空。宿主 PHP 模式的停写和进程采用由调用者管理。
+首次从仍拒绝 Composer 输入变化的旧入口采用此维护能力时，先 fetch 已审核产品分支，以固定目标提交中的已审入口执行同一次更新；不先 pull 或覆盖旧入口。以下在原实例根执行，`target` 必须是已审核的完整提交，分支和项目名仍取该实例：
 
-已安装 Docker 实例的 Composer 输入变化仍明确拒绝，发生在程序采用／停服前；该维护能力未实现时，不借 start/prepared、伪造身份或手工 seal 绕过。无锁变化且 vendor 有效才复用。宿主模式仍按锁以 no-scripts/no-plugins 准备并执行现有 service discovery/vendor publish。
+```sh
+git fetch origin refs/heads/dev:refs/remotes/origin/dev
+target=<已审核dev的完整提交>
+bash -c "$(git show "$target:scripts/deploy-update.sh")" "$PWD/scripts/deploy-update.sh" \
+  --branch=dev --target="$target" --compose-project=<原实例项目名>
+```
+
+`$0` 保持原实例入口路径，固定脚本仍完整解析后再更新自身文件，并执行同一 pending、停写、ff-only 与恢复流程；后续直接使用正常入口。
+
+Docker 模式复用原生 Compose 参数及适用 overlay、原 vendor receipt，正常停 nginx/php，在同一 php 服务的 owner 工作目录和网络执行原生 module:compile、已准备依赖的 release-locked 模块采用、migrate:run、clear --cache，再复用 start.sh 恢复。MySQL/卷保留；其他业务写者由 owner 预先排空。宿主 PHP 模式的停写和进程采用由调用者管理。
+
+已安装 Docker 实例的 Composer 输入变化由同一 Git 更新入口在停写后处理：原 vendor 必须在旧 HEAD 上通过校验，采用新 HEAD 后调用原生 prepare-vendor 的 maintenance 模式。它将旧 vendor 保留在 runtime/vendor-previous-*，在实例实根按固定锁执行 no-scripts/no-plugins Composer install、既有 service discovery/vendor publish 和 receipt seal/check；失败恢复旧 vendor，保留 pending 并保持服务停止，不能把旧依赖与新程序重新开放。重新执行同一 pending 时按新锁校验或继续准备，不要求旧 vendor 匹配新锁。成功仍保留旧 vendor 供 owner 恢复。固定 PHP 镜像沿原实例配置，普通 start 仍禁止自动修复已安装实例的依赖。宿主模式沿原锁准备流程。
+
+随后原生 `reconcile --release-locked --prepared-release` 只校验已准备的 PHP 包与必要客户端入口，再通过既有模块生命周期采用已安装模块的锁定身份和迁移；不运行 Composer update、Node 或前端构建。未安装或非 active 包仍拒绝，不将产品更新变成首次模块安装。开发模块安装及其原生依赖／前端准备流程不变。
 
 失败保留 pending 与实际效果，先对账程序、PHP 依赖、静态文件、迁移和进程，不盲重发或自动恢复旧库。脚本成功不替代真实业务确认。本文不授予 main/tag、公开发布、生产、资金或破坏性数据操作权限。

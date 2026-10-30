@@ -6,7 +6,7 @@ namespace app\common\infrastructure\payment;
 
 use app\common\persistence\AdvisoryLockExecution;
 use PeanutAdmin\Kernel\Auth\TenantContext;
-use PeanutAdmin\Kernel\Tenancy\TenantLockNamespace;
+use PeanutAdmin\Kernel\Tenancy\TenantNamespace;
 use PeanutAdmin\Kernel\Tenancy\TenantScope;
 
 /** Payment-owned adapter for the tenant-scoped retry lock. */
@@ -25,7 +25,7 @@ final readonly class PaymentRetryLock
             (string) ($context->requestId ?? ''),
         );
 
-        return (new TenantLockNamespace($scope))->name('recharge:refund-retry:' . $recordId);
+        return TenantNamespace::lockName($scope, 'recharge:refund-retry:' . $recordId);
     }
 
     /** MySQL 会话级互斥覆盖完整渠道调用周期，避免快速失败时排队请求再次获准。 */

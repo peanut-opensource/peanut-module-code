@@ -29,7 +29,10 @@ final class ModuleMigrationRun extends Run
     public static function sources(array $manifests, string $serverRoot, bool $includeHost = false): array
     {
         $directories = [];
+        $initialFiles = [];
         if ($includeHost) {
+            require_once $serverRoot . '/database/InitialInstallationSource.php';
+            $initialFiles = \InitialInstallationSource::migrationFiles($serverRoot);
             $directories[] = [$serverRoot . '/database/migrations', null, [], null, $serverRoot];
         }
         foreach ($manifests as $key => $manifest) {
@@ -45,13 +48,20 @@ final class ModuleMigrationRun extends Run
         }
         $sources = [];
         $classes = [];
-        foreach ($directories as [$path, $owner, $tables, $description, $boundary]) {
+        $seen = [];
+        foreach ($initialFiles as $file) {
+            $directories[] = [dirname($file), null, [], null, $serverRoot, [$file]];
+        }
+        foreach ($directories as $entry) {
+            [$path, $owner, $tables, $description, $boundary] = $entry;
             $directory = realpath($path);
             $root = realpath($boundary);
             if ($directory === false || $root === false || !str_starts_with($directory, $root . DIRECTORY_SEPARATOR)) {
                 throw new PluginLifecycleException('MODULE_MIGRATION_PATH_INVALID', "Migration directory is missing or escapes its owner: {$path}");
             }
-            foreach (glob($directory . '/*.php') ?: [] as $file) {
+            foreach ($entry[5] ?? (glob($directory . '/*.php') ?: []) as $file) {
+                if ($includeHost && isset($seen[$file])) { continue; }
+                $seen[$file] = true;
                 $name = basename($file);
                 if (is_link($file) || preg_match('/^[0-9]{14}_[a-z][a-z0-9_]*\.php$/D', $name) !== 1
                     || !Util::isValidMigrationFileName($name)) {

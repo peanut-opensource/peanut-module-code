@@ -19,6 +19,18 @@ class DictTypeController extends BaseAdminController
     protected string $dictionaryTypesClass = DictTypeApplicationService::class;
     protected const CRUD_VALIDATE = DictTypeValidate::class;
     protected const CRUD_NOT_FOUND_MESSAGE = '字典类型不存在';
+    protected const CRUD_INPUT_FIELDS = [
+        'add' => ['name', 'type', 'is_disable', 'remark'],
+        'edit' => ['id', 'name', 'type', 'is_disable', 'remark'],
+        'detail' => ['id'],
+        'delete' => ['id'],
+        'status' => ['id', 'is_disable'],
+    ];
+    protected const CRUD_WRITABLE_FIELDS = [
+        'add' => ['name', 'type', 'is_disable', 'remark'],
+        'edit' => ['name', 'type', 'is_disable', 'remark'],
+        'status' => ['is_disable'],
+    ];
 
     protected function resolveCrudContext(): TenantContext
     {

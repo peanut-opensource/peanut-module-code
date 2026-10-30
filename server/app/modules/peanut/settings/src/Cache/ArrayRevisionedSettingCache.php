@@ -6,30 +6,18 @@ namespace PeanutAdmin\Modules\Settings\Cache;
 
 use PeanutAdmin\Modules\Settings\Application\EffectiveSetting;
 
-final class ArrayRevisionedSettingCache implements RevisionedSettingCache
+final class ArrayRevisionedSettingCache
 {
     /** @var array<string, EffectiveSetting> */
     private array $values = [];
 
-    private int $hitCount = 0;
-
     public function get(string $key): ?EffectiveSetting
     {
-        $value = $this->values[$key] ?? null;
-        if ($value !== null) {
-            ++$this->hitCount;
-        }
-
-        return $value;
+        return $this->values[$key] ?? null;
     }
 
     public function put(string $key, EffectiveSetting $setting): void
     {
         $this->values[$key] = $setting;
-    }
-
-    public function hits(): int
-    {
-        return $this->hitCount;
     }
 }

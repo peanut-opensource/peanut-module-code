@@ -523,6 +523,9 @@
       .check-badge.failed {
         color: var(--red);
       }
+      .check-badge.diagnostic {
+        color: var(--muted);
+      }
       .form-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -1240,7 +1243,7 @@
             <p class="eyebrow">DATABASE</p
             ><h1 id="databaseTitle">确认连接，准备初始化。</h1
             ><p class="intro"
-              >检查数据库连接、可用权限与安装状态。全部准备好后，才能开始写入初始数据。</p
+              >检查数据库连接与安装状态，查看权限诊断。连接和安装状态就绪后，即可开始初始化。</p
             >
             <div id="databaseSummary" class="notice" role="status"></div
             ><div id="databaseResult" class="check-list"></div>
@@ -1652,9 +1655,17 @@
           const icon = document.createElement('span');
           icon.className =
             'check-icon' +
-            (row.passed ? '' : row.waiting ? ' waiting' : ' failed');
+            (row.passed
+              ? ''
+              : row.waiting || row.diagnostic
+              ? ' waiting'
+              : ' failed');
           icon.setAttribute('aria-hidden', 'true');
-          icon.textContent = row.passed ? '✓' : row.waiting ? '·' : '!';
+          icon.textContent = row.passed
+            ? '✓'
+            : row.waiting || row.diagnostic
+            ? '·'
+            : '!';
           const body = document.createElement('div');
           body.className = 'check-body';
           const label = document.createElement('strong');
@@ -1666,8 +1677,12 @@
             body.append(detail);
           }
           const badge = document.createElement('span');
-          badge.className = 'check-badge' + (row.passed ? '' : ' failed');
-          badge.textContent = row.passed
+          badge.className =
+            'check-badge' +
+            (row.diagnostic ? ' diagnostic' : row.passed ? '' : ' failed');
+          badge.textContent = row.diagnostic
+            ? '仅供参考'
+            : row.passed
             ? '已通过'
             : row.waiting
             ? '待确认'
@@ -1892,7 +1907,7 @@
         summary(
           'databaseSummary',
           '正在检查数据库…',
-          '检查连接、安装状态与此数据库的有效权限，不写入数据。'
+          '检查连接与安装状态，并读取权限诊断，不写入数据。'
         );
         $('databaseResult').replaceChildren();
         try {
@@ -1905,8 +1920,8 @@
           databaseReady =
             installation.state === 'uninstalled' &&
             installation.safe_retry === true &&
-            installation.permissions_verified === true;
-          const available = installation.preflight?.status === 'ready';
+            installation.database_check === 'ready';
+          const available = installation.database_check === 'ready';
           const fresh =
             installation.state === 'uninstalled' &&
             installation.safe_retry === true;
@@ -1926,15 +1941,16 @@
               passed: fresh,
             },
             {
-              label: '数据库账号权限',
+              label: '数据库账号权限（仅供诊断）',
               detail:
                 installation.permissions_verified === true
-                  ? '已确认此数据库所需的结构与数据读写权限。'
+                  ? '权限文本包含此数据库所需的结构与数据读写权限。'
                   : installation.permissions_missing_or_unconfirmed?.length
-                  ? '尚未确认：' +
-                    installation.permissions_missing_or_unconfirmed.join('、')
-                  : '连接或权限尚未确认。',
-              passed: installation.permissions_verified === true,
+                  ? '权限文本未确认：' +
+                    installation.permissions_missing_or_unconfirmed.join('、') +
+                    '。权限可能由角色授予，不阻止安装；实际权限错误由迁移报告。'
+                  : '连接就绪后可查看权限诊断。',
+              diagnostic: true,
             },
           ]);
           summary(
@@ -1944,7 +1960,7 @@
               ? '现在可以设置管理员账号，并初始化应用。'
               : installation.remedy ||
                   installation.permission_remedy ||
-                  '请处理连接或权限问题后重新检查。',
+                  '请处理连接或安装状态问题后重新检查。',
             databaseReady ? 'success' : 'error'
           );
           if (!databaseReady)

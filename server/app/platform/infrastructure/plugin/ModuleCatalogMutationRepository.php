@@ -29,7 +29,7 @@ final readonly class ModuleCatalogMutationRepository
         $keys = array_values(array_diff(array_unique([
             ...$this->identity->activeModuleKeys(),
             ...$this->settings->activeModuleKeys(),
-        ]), ['core', 'platform']));
+        ]), CatalogLifecycleService::NON_MODULE_OWNERS));
         sort($keys, SORT_STRING);
         return $keys;
     }
@@ -86,6 +86,8 @@ final readonly class ModuleCatalogMutationRepository
     private function legacyIdentityEntry(array $entry): array
     {
         $label = match ($entry['resource']) {
+            'api-endpoints' => 'pa_api_endpoint',
+            'permission-api-bindings' => 'pa_permission_api',
             'permissions' => 'pa_permission',
             'protected-resources' => 'pa_protected_resource',
             'target-types' => 'pa_target_type',

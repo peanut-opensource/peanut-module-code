@@ -5,7 +5,7 @@
     "source": {
         "type": "canonical-contents",
         "reference": "canonical-plugin-contents-v1",
-        "sha256": "5e6ce203f9d5bde7d549e028208d5ba34732cde29ce3d05e2caf422b3da6927d"
+        "sha256": "aed5b5be554dacf8c4ece41e7b2332f78b04a8e5f85d02e67c45deb6f112dbbe"
     },
     "trust": {
         "channel": "bundled",
@@ -59,7 +59,7 @@
         {
             "name": "peanut-business/peanut-reference-codes",
             "version": "1.0.24",
-            "sha256": "5eee1f95b847d5a45c95ee93177f9791218776b0ce2dfc07695aede3a4c17bb7"
+            "sha256": "849efdcafe718bd18ff58ee974e7f175db171742f07764f58b07562bcf481ff0"
         }
     ],
     "npm": [

@@ -31,18 +31,11 @@ class JobsController extends BaseAdminController
 
     protected function validatedInput(mixed $_context, string $scene, array $params): array
     {
-        $params = $this->jobs->normalizeInput($params);
-        $rules = $this->jobs->validationRules($scene);
-        if (in_array($scene, ['detail', 'delete'], true)) {
-            $rules = ['id' => $rules['id'] ?? 'require|integer|gt:0'];
-        } elseif ($scene === 'status') {
-            $rules = [
-                'id' => $rules['id'] ?? 'require|integer|gt:0',
-                'status' => $rules['status'] ?? 'require|in:0,1',
-            ];
-        }
-        $this->validate($params, $rules);
-        return $params;
+        // Add/edit retain their raw arrays until the service's write boundary;
+        // the other Trait actions cast identifiers before invoking that service.
+        return in_array($scene, ['add', 'edit'], true)
+            ? $params
+            : $this->jobs->normalizeInput($params, $scene);
     }
 
     protected function renderDetail(array $result): Json

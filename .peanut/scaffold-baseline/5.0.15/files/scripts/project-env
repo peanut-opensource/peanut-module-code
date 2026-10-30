@@ -131,7 +131,7 @@ def add_package_manager_constraint(document: dict, required: dict, context: str)
     required[name].setdefault("manifest_constraints", []).append((f"{context}.devEngines.packageManager.version", version))
 
 
-def declared_runtime_constraints(required: dict, host: dict, inputs: dict) -> tuple[list[tuple[str, str]], dict[str, list[tuple[str, str]]]]:
+def declared_runtime_constraints(required: dict, host: dict) -> tuple[list[tuple[str, str]], dict[str, list[tuple[str, str]]]]:
     constraints = list(required.get("node", {}).get("manifest_constraints", []))
     manager_constraints = {}
     for name in ("npm", "pnpm"):
@@ -140,8 +140,7 @@ def declared_runtime_constraints(required: dict, host: dict, inputs: dict) -> tu
             manager_constraints.setdefault(name, []).extend(declared)
         if name not in host["commands"]:
             continue
-        manifest_path, manifest = package_manifest_for_cli(Path(host["commands"][name][-1]), name)
-        inputs[f"selected-tools/{name}/package.json"] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+        _, manifest = package_manifest_for_cli(Path(host["commands"][name][-1]), name)
         engines = manifest.get("engines", {})
         dev_engines = manifest.get("devEngines", {})
         if not isinstance(engines, dict) or not isinstance(dev_engines, dict):
@@ -175,16 +174,12 @@ def requirements(root: Path) -> tuple:
     candidate = root / "tools/toolchain.json"
     inputs = {}
 
-    def input_key(path: Path) -> str:
-        return path.resolve().relative_to(root.resolve()).as_posix()
-
     if candidate.is_file():
         source = within(root, "tools/toolchain.json")
         document = read_json(source)
         tools = document.get("tools", {})
         if not isinstance(tools, dict) or set(tools) != SUPPORTED:
             fail("toolchain must declare node, npm, pnpm, php, composer and python3")
-        inputs[input_key(source)] = hashlib.sha256(source.read_bytes()).hexdigest()
     else:
         tools = {}
         composer = root / "composer.json"
@@ -197,7 +192,6 @@ def requirements(root: Path) -> tuple:
                 extensions = [name[4:].lower().replace("-", "_") for name in data.get("require", {}) if name.lower().startswith("ext-")]
                 tools["php"] = {"constraint": constraint, "manifest_constraints": [("composer.require.php", constraint)], "extensions": extensions}
                 tools["composer"] = {"constraint": "selected-local-binding"}
-            inputs[input_key(composer)] = hashlib.sha256(composer.read_bytes()).hexdigest()
         if package.is_file():
             package = within(root, "package.json")
             data = json.loads(package.read_text(encoding="utf-8"))
@@ -225,7 +219,6 @@ def requirements(root: Path) -> tuple:
             if match:
                 tools.setdefault("pnpm", {})["version"] = match.group(1)
             add_package_manager_constraint(data, tools, "package")
-            inputs[input_key(package)] = hashlib.sha256(package.read_bytes()).hexdigest()
         if not tools:
             fail("project has no recognized composer.json or package.json tool requirements")
     resolved = {}
@@ -242,7 +235,6 @@ def requirements(root: Path) -> tuple:
             if not match:
                 fail("packageManager must pin an exact pnpm version")
             item["version"] = match.group(1)
-            inputs[input_key(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
         if "project_composer_file" in spec:
             if name != "composer" or "version" in spec:
                 fail("Composer has one version authority: project-composer")
@@ -254,13 +246,12 @@ def requirements(root: Path) -> tuple:
                 fail("cannot read the existing project-composer pin")
             item.update(version=version.group(1), sha256=digest.group(1))
             item["fixed_phar"] = f".local/toolchain/composer-{version.group(1)}.phar"
-            inputs[input_key(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
         if (not re.fullmatch(r"\d+\.\d+\.\d+", str(item.get("version", "")))
                 and not isinstance(item.get("constraint"), str)
                 and not isinstance(item.get("manifest_constraints"), list)):
             fail(f"exact tool version or manifest constraint required: {name}")
         resolved[name] = item
-    if "tools/toolchain.json" in inputs:
+    if candidate.is_file():
         for name, relative in (("php", "server/composer.json"), ("node", "web/package.json")):
             if name not in resolved:
                 continue
@@ -300,7 +291,6 @@ def requirements(root: Path) -> tuple:
                         constraints.append(("web.devEngines.runtime.version", runtime["version"]))
                 resolved[name]["manifest_constraints"] = constraints
                 add_package_manager_constraint(document, resolved, "web")
-            inputs[input_key(manifest_path)] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
     return resolved, inputs
 
 
@@ -331,12 +321,13 @@ def configuration(root: Path, host_path: Path, scope_identity: str) -> tuple:
                 fail(f"missing absolute tool file for {name}: {value}")
             watched.append(metadata(path))
             argv[index] = str(path.resolve())
+    composer_digest = None
     if "composer" in commands and "fixed_phar" in required.get("composer", {}):
         fixed_path = configured_path(path_base, required["composer"]["fixed_phar"]).resolve()
         composer_path = Path(commands["composer"][1]).resolve()
         if composer_path == fixed_path:
-            digest = hashlib.sha256(composer_path.read_bytes()).hexdigest()
-            if digest != required["composer"].get("sha256"):
+            composer_digest = hashlib.sha256(composer_path.read_bytes()).hexdigest()
+            if composer_digest != required["composer"].get("sha256"):
                 fail("project-fixed Composer PHAR does not match project-composer SHA-256")
             required["composer"]["fixed_selected"] = True
     # Package-manager scripts must use the same registered interpreter as children.
@@ -379,7 +370,8 @@ def configuration(root: Path, host_path: Path, scope_identity: str) -> tuple:
     host["caches"] = caches
     if "composer" in commands:
         composer_path = Path(commands["composer"][1])
-        composer_digest = hashlib.sha256(composer_path.read_bytes()).hexdigest()
+        if composer_digest is None:
+            composer_digest = hashlib.sha256(composer_path.read_bytes()).hexdigest()
         if required["composer"].get("fixed_selected"):
             if composer_digest != required["composer"].get("sha256"):
                 fail("project-fixed Composer PHAR does not match project-composer SHA-256")
@@ -402,11 +394,9 @@ def configuration(root: Path, host_path: Path, scope_identity: str) -> tuple:
             fail("selected Composer path, version or file digest changed; run peanut config")
         else:
             required["composer"]["version"] = selected_composer["version"]
-    for name in ("npm", "pnpm"):
-        if name in commands:
-            manifest_path, _ = package_manifest_for_cli(Path(commands[name][-1]), name)
-            inputs[f"selected-tools/{name}/package.json"] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
-    inputs.update(host=hashlib.sha256(host_path.read_bytes()).hexdigest(), runner=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
+    inputs["runtime_constraints"] = declared_runtime_constraints(required, host)
+    inputs["runner"] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    inputs["host"] = {name: host.get(name) for name in ("commands", "caches", "extra_path", "watch_paths", "selected_tools")}
     host["path_base"] = str(path_base)
     inherited = {k: os.environ.get(k) for k in ("PHPRC", "PHP_INI_SCAN_DIR", "NODE_OPTIONS", "PYTHONPATH", "PYTHONHOME")}
     fingerprint = hashlib.sha256(json.dumps([scope_identity, str(path_base), required, inputs, watched, inherited], sort_keys=True).encode()).hexdigest()
@@ -466,7 +456,7 @@ def probe(root: Path, required: dict, host: dict, env: dict) -> dict:
         for label, expression in required[name].get("manifest_constraints", []):
             if not isinstance(expression, str) or not semver_satisfies(versions[name], expression):
                 fail(f"{name} {versions[name]} does not satisfy {label}: {expression}")
-    node_constraints, manager_constraints = declared_runtime_constraints(required, host, {})
+    node_constraints, manager_constraints = declared_runtime_constraints(required, host)
     if "node" in versions:
         for label, expression in node_constraints:
             if not isinstance(expression, str) or not semver_satisfies(versions["node"], expression):

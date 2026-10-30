@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace PeanutAdmin\Modules\ImportExport;
 
-use app\common\persistence\TenantPersistenceConfiguration;
 use app\common\services\audit\AuditContractHost;
 use PeanutAdmin\Modules\Identity\Audit\AuditService;
 use app\common\services\authorization\AdminAuthorizationService;
@@ -22,7 +21,6 @@ use PeanutAdmin\Modules\ImportExport\Infrastructure\Authorization\AdminAsyncAuth
 use PeanutAdmin\Modules\ImportExport\Infrastructure\configuration\ConfigurationPackageCodec;
 use PeanutAdmin\Modules\ImportExport\Infrastructure\configuration\CoreSettingsConfigurationAdapter;
 use PeanutAdmin\Modules\ImportExport\Infrastructure\configuration\ExternalBindingConfigurationAdapter;
-use PeanutAdmin\Modules\ImportExport\Infrastructure\configuration\TenantModuleConfigurationAdapter;
 use PeanutAdmin\Modules\ImportExport\Infrastructure\configuration\TenantSettingsConfigurationAdapter;
 use PeanutAdmin\Modules\ImportExport\Infrastructure\File\AppFileMediaGateway;
 use PeanutAdmin\Modules\Task\Contract\TaskJobRuntime;
@@ -33,7 +31,6 @@ use PeanutAdmin\Modules\ImportExport\Engine\Execution\CsvOperationRunner;
 use PeanutAdmin\Modules\ImportExport\Engine\Execution\ImportExportTaskHandler;
 use PeanutAdmin\Modules\ImportExport\Engine\Execution\ImportExportTaskSubmissionProvider;
 use PeanutAdmin\Kernel\Module\ModuleProvider as ModuleProviderContract;
-use PeanutAdmin\Modules\Settings\Contract\DeploymentSettingsTransfer;
 use think\App;
 
 final class ModuleProvider implements ModuleProviderContract, TaskWorkerContributor
@@ -46,11 +43,11 @@ final class ModuleProvider implements ModuleProviderContract, TaskWorkerContribu
     public function bindings(): array
     {
         return [
+            DataProviderRegistry::class => fn(App $app): DataProviderRegistry => new DataProviderRegistry([
+                $app->make(OperationLogExportProvider::class),
+            ]),
             \PeanutAdmin\Modules\ImportExport\Engine\Persistence\ImportExportStore::class => function (App $app): \PeanutAdmin\Modules\ImportExport\Engine\Persistence\ImportExportStore {
-                $persistence = $app->make(TenantPersistenceConfiguration::class);
                 return new \PeanutAdmin\Modules\ImportExport\Engine\Persistence\ImportExportStore(
-                    $persistence->mode,
-                    $persistence->instanceTenantId,
                     $app->make(\app\common\execution\CurrentExecutionContext::class),
                     $app->make(AuditContractHost::class),
                 );
@@ -59,7 +56,7 @@ final class ModuleProvider implements ModuleProviderContract, TaskWorkerContribu
                 $tasks = $app->make(TaskJobRuntime::class);
                 return new ImportExportApplicationService(new ImportExportService(
                     $app->make(\PeanutAdmin\Modules\ImportExport\Engine\Persistence\ImportExportStore::class),
-                    new DataProviderRegistry([new OperationLogExportProvider()]),
+                    $app->make(DataProviderRegistry::class),
                     $tasks->publisher(new ImportExportTaskSubmissionProvider()),
                     $tasks->jobs(),
                     $app->make(AuditService::class),
@@ -71,11 +68,10 @@ final class ModuleProvider implements ModuleProviderContract, TaskWorkerContribu
                 return new ConfigurationTransferApplicationService(
                     [
                         $app->make(TenantSettingsConfigurationAdapter::class),
-                        $app->make(TenantModuleConfigurationAdapter::class),
                         $app->make(ExternalBindingConfigurationAdapter::class),
-                        new CoreSettingsConfigurationAdapter($app->make(DeploymentSettingsTransfer::class)),
+                        $app->make(CoreSettingsConfigurationAdapter::class),
                     ],
-                    new ConfigurationPackageCodec(),
+                    $app->make(ConfigurationPackageCodec::class),
                     $app->make(AuditContractHost::class),
                 );
             },
@@ -85,7 +81,7 @@ final class ModuleProvider implements ModuleProviderContract, TaskWorkerContribu
                 return new ImportExportTaskWorkerDefinition(
                     new ImportExportTaskHandler(new CsvOperationRunner(
                         $app->make(\PeanutAdmin\Modules\ImportExport\Engine\Persistence\ImportExportStore::class),
-                        new DataProviderRegistry([new OperationLogExportProvider()]),
+                        $app->make(DataProviderRegistry::class),
                         $app->make(AppFileMediaGateway::class),
                         $app->make(AuditService::class),
                     )),

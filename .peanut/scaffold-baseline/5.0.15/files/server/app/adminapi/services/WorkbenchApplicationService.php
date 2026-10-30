@@ -68,8 +68,8 @@ class WorkbenchApplicationService
     public function menu(TenantContext $context): array
     {
         $items = [
-            ['name' => '管理员', 'image' => 'menu_admin', 'url' => '/system/admin'],
-            ['name' => '角色管理', 'image' => 'menu_role', 'url' => '/system/role'],
+            ['name' => '管理员', 'image' => 'menu_admin', 'url' => '/app/members'],
+            ['name' => '角色管理', 'image' => 'menu_role', 'url' => '/app/roles'],
             ['name' => '部门管理', 'image' => 'menu_dept', 'url' => '/app/departments'],
             ['name' => '字典管理', 'image' => 'menu_dict', 'url' => '/system/dict'],
             ['name' => '素材中心', 'image' => 'menu_file', 'url' => '/system/file'],

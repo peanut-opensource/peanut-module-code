@@ -142,7 +142,7 @@ function readInstallationState(value: unknown): InstallationState {
 
 首次安装预检环境、配置、发行身份和依赖，解析模块依赖，执行适用初始迁移及账号/默认租户初始化，再健康检查并登记版本。Standalone不强制平台运营账号；重复执行不得清库、重建账号或重置系统。缺依赖给出安装提示，不直接落入类加载错误。安装模块、开通租户和授予人员权限是独立动作。
 
-上游源码升级由CLI固定模板并调用模板内原生 `scripts/scaffold-upgrade`，校验完整 inventory、逐文件 SHA-256 与版本/来源/目标身份，不能先运行未校验包内代码。产品 Git 更新使用 `scripts/deploy-update.sh`，不能与 CLI 模板源码升级混为一步。升级复用baseline三方比较、归属、冲突、锁、计划和文件恢复；源码apply不安装依赖、不构建客户端、不迁移DB或部署。依赖、构建、迁移和业务确认按本次变化另行处理。
+上游源码升级由CLI固定模板并调用模板内原生 `scripts/scaffold-upgrade`，校验完整 inventory、逐文件 SHA-256 与版本/来源/目标身份，不能先运行未校验包内代码。产品 Git 更新使用 `scripts/deploy-update.sh`，不能与 CLI 模板源码升级混为一步。升级复用baseline三方比较、归属、冲突、锁、计划和文件恢复；明确保留缺失受管路径时，以既有app-owned归属记录该缺失，不恢复旧文件或生成新baseline；后续重新采用须显式解决app-owned冲突，同一路径保持唯一归属。源码apply不安装依赖、不构建客户端、不迁移DB或部署。依赖、构建、迁移和业务确认按本次变化另行处理。
 
 产品在自己的Git `dev`开发，人工审核定版到`main`及tag。生产首次从固定main提交在空目录、空库准备依赖、构建和配置，经网页向导安装；既有实例在原目录更新固定main，按变化处理锁、构建、pending迁移、缓存/进程和业务确认。该协调尚未完整接通，具体保护与缺口见[产品Git交付](../public/application-release.md)。旧包更新器和固定 Git 包准备链已退役；`git pull`或单独迁移命令不等于完整升级。
 

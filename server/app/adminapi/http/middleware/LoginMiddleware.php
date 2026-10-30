@@ -57,7 +57,9 @@ final class LoginMiddleware
         } catch (\DomainException $exception) {
             // Only entry/identity policy rejections belong to this 403 envelope.
             // AuthException and infrastructure failures retain the standard mapping.
-            if (!in_array($exception->getMessage(), [
+            $bindingPolicyRejection = $exception->getMessage() === 'TENANT_ENTRY_BINDING_UNAVAILABLE'
+                && $exception->getPrevious() === null;
+            if (!$bindingPolicyRejection && !in_array($exception->getMessage(), [
                 'TENANT_ADMIN_HOST_UNAVAILABLE',
                 'TENANT_ADMIN_HOST_FORBIDDEN',
                 'TENANT_ENTRY_HOST_INVALID',

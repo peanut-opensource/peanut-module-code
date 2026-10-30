@@ -12,6 +12,4 @@ interface DataScopePolicy
     public function applyTo(BaseQuery $query): void;
 
     public function prepareWrite(Model $model): void;
-
-    public function usesTenantColumn(): bool;
 }

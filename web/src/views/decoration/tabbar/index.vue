@@ -26,7 +26,11 @@
                 >
                   <img
                     v-if="index === 0 ? item.selected : item.unselected"
-                    :src="index === 0 ? item.selected : item.unselected"
+                    :src="
+                      images.preview(
+                        index === 0 ? item.selected : item.unselected
+                      )
+                    "
                     alt=""
                   />
                   <span v-else class="tabbar-icon-placeholder">●</span>
@@ -108,25 +112,35 @@
                     <div class="icon-field">
                       <img
                         v-if="item.unselected"
-                        :src="item.unselected"
+                        :src="images.preview(item.unselected)"
                         alt=""
                       />
                       <FilePicker
                         :type="10"
                         :limit="1"
                         button-text="选择图标"
-                        @select="(urls) => setImage(item, 'unselected', urls)"
+                        @select="
+                          (urls, files) =>
+                            setImage(item, 'unselected', urls, files)
+                        "
                       />
                     </div>
                   </el-form-item>
                   <el-form-item label="选中图标">
                     <div class="icon-field">
-                      <img v-if="item.selected" :src="item.selected" alt="" />
+                      <img
+                        v-if="item.selected"
+                        :src="images.preview(item.selected)"
+                        alt=""
+                      />
                       <FilePicker
                         :type="10"
                         :limit="1"
                         button-text="选择图标"
-                        @select="(urls) => setImage(item, 'selected', urls)"
+                        @select="
+                          (urls, files) =>
+                            setImage(item, 'selected', urls, files)
+                        "
                       />
                     </div>
                   </el-form-item>
@@ -140,7 +154,13 @@
                       @change="ensureQuery(item)"
                     >
                       <el-option label="站内页面" value="shop" />
-                      <el-option label="文章" value="article" />
+                      <el-option
+                        :label="
+                          articleOptions.length ? '文章' : '文章（暂无可选项）'
+                        "
+                        value="article"
+                        :disabled="articleOptions.length === 0"
+                      />
                       <el-option label="自定义链接" value="custom" />
                       <el-option label="小程序" value="mini_program" />
                     </el-select>
@@ -200,7 +220,7 @@
             >
             <div class="actions">
               <el-button
-                v-permission="['decoration/tabbar/save']"
+                v-permission="['peanut.settings.manage']"
                 type="primary"
                 :loading="submitLoading"
                 @click="handleSubmit"
@@ -218,6 +238,8 @@
   import { computed, reactive, ref } from 'vue';
   import { ElMessage } from 'element-plus';
   import FilePicker from '@/components/file-picker/index.vue';
+  import usePublicImageReferences from '@/hooks/public-image-references';
+  import type { FileRecord } from '@/modules/peanut-file/api';
   import {
     getDecorationTabbar,
     getDecorationArticleOptions,
@@ -248,6 +270,7 @@
   const loading = ref(true);
   const submitLoading = ref(false);
   const articleOptions = ref<DecorationArticleOption[]>([]);
+  const images = usePublicImageReferences();
   const visibleItems = computed(() =>
     form.list.filter((item) => item.is_show === 1)
   );
@@ -256,6 +279,7 @@
     loading.value = true;
     try {
       const { data } = await getDecorationTabbar();
+      images.replace(data.resource_urls);
       Object.assign(form.style, data.style);
       form.list.splice(
         0,
@@ -299,9 +323,10 @@
   const setImage = (
     item: DecorationTabbarItem,
     field: 'selected' | 'unselected',
-    urls: string[]
+    urls: string[],
+    files: FileRecord[]
   ) => {
-    item[field] = urls[0] || '';
+    item[field] = images.select(urls, files, item[field]);
   };
   const ensureQuery = (item: DecorationTabbarItem) => {
     item.link.query ||= {};

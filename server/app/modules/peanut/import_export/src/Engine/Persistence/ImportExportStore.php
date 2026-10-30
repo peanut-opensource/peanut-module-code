@@ -18,7 +18,6 @@ use PeanutAdmin\Modules\ImportExport\Engine\Contract\RowIssue;
 use PeanutAdmin\Modules\ImportExport\Engine\Persistence\Model\ImportExportOperationRecord;
 use PeanutAdmin\Modules\ImportExport\Engine\Persistence\Model\ImportExportRowErrorRecord;
 use PeanutAdmin\Kernel\Persistence\Tenancy\TenantColumnScope;
-use PeanutAdmin\Kernel\Persistence\Tenancy\TenantPersistenceMode;
 use Throwable;
 use think\db\BaseQuery;
 use think\db\Raw;
@@ -28,13 +27,10 @@ final class ImportExportStore
     private TenantColumnScope $tenantScope;
 
     public function __construct(
-        TenantPersistenceMode $mode = TenantPersistenceMode::TenantScoped,
-        ?int $instanceTenantId = null,
         private readonly ?CurrentExecutionContext $execution = null,
         private readonly ?AuditContractHost $maintenanceAudit = null,
     ) {
-        $this->tenantScope = new TenantColumnScope($mode, $instanceTenantId);
-        $this->tenantScope->assertRuntimeConfigured();
+        $this->tenantScope = new TenantColumnScope();
     }
 
     /** @param array<string, string> $mapping */
@@ -523,9 +519,7 @@ final class ImportExportStore
             'import_export_row_error' => ImportExportRowErrorRecord::where([]),
             default => throw ImportExportException::internal(),
         };
-        if ($this->tenantScope->usesTenantColumn()) {
-            $query->where('tenant_id', $tenantId);
-        }
+        $query->where('tenant_id', $tenantId);
 
         return $query;
     }
@@ -537,7 +531,7 @@ final class ImportExportStore
     {
         $this->tenantScope->assertTenantId($tenantId);
 
-        return $this->tenantScope->usesTenantColumn() ? ['tenant_id' => $tenantId, ...$data] : $data;
+        return ['tenant_id' => $tenantId, ...$data];
     }
 
     private function assertStorageMode(): void

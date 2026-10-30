@@ -13,7 +13,7 @@ final class RedactionPolicy
         'password', 'passwd', 'salt', 'token', 'secret', 'privatekey',
         'apikey', 'accesskey', 'aeskey', 'certificate', 'cert', 'mchkey',
         'apiv3key', 'signkey', 'encryptionkey', 'decryptionkey',
-        'authorization', 'cookie', 'ticket',
+        'authorization', 'cookie', 'ticket', 'signature',
     ];
 
     private const SENSITIVE_EXACT_KEYS = [

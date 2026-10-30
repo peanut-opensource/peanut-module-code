@@ -1,11 +1,11 @@
 {
     "schema_version": 1,
     "key": "peanut.rich-text",
-    "version": "1.0.10",
+    "version": "1.0.11",
     "source": {
         "type": "canonical-contents",
         "reference": "canonical-plugin-contents-v1",
-        "sha256": "b5eb923f968e9cc3333669d7e257ce612e62ff4be738b8f45712b86abebf17e9"
+        "sha256": "884717eeff784dc3144b6c72a54b6f185248cd5563ff58f06da00072ee3464d6"
     },
     "trust": {
         "channel": "bundled",
@@ -39,7 +39,7 @@
             "modules": [
                 {
                     "key": "peanut.rich-text",
-                    "version": "1.0.10",
+                    "version": "1.0.11",
                     "kernel_constraint": "^1.0",
                     "dependencies": [
                         {
@@ -56,8 +56,8 @@
                         }
                     ],
                     "permissions": {
-                        "path": "resources/permissions.json",
-                        "sha256": "d5aa3760edb3e82684b77fb0980125b7789b1cdfa34d10d8eb8f5eabd2573813"
+                        "path": null,
+                        "sha256": null
                     }
                 }
             ]
@@ -66,15 +66,15 @@
     "composer": [
         {
             "name": "peanut-business/peanut-rich-text",
-            "version": "1.0.10",
-            "sha256": "d14a35020cde67a4f4f9db671edd740caffad766f63329bf17268005bf1b9535"
+            "version": "1.0.11",
+            "sha256": "d6e9ff33895ff3fbbfc9177d3a6436f682afe9fe2f3b7eff27c532c0e632831b"
         }
     ],
     "npm": [
         {
             "name": "@peanut-admin/peanut-rich-text",
             "version": "1.0.6",
-            "integrity": "sha256-pdjGdqCbb7Kt+0vI/+gTvl+Z6RoFNX03ygjmkEDKkuE="
+            "integrity": "sha256-1q0F6ICS9+3s7GlqxpoRHNtuP5n/kgqpsTuvyTqr+P0="
         }
     ],
     "frontend": [
@@ -83,7 +83,7 @@
             "package": "@peanut-admin/peanut-rich-text",
             "version": "1.0.6",
             "entry": "web/src/modules/peanut-rich-text/contribution.ts",
-            "sha256": "e41774bcc128d91a31073c10cd40a94d5f2ccb732aee5f9d84372b42d5ec88a7"
+            "sha256": "f966310e8ebd9cff1ad555fca0bc57c8ffe7e9efdfc46e09cf6cce0cafd4a7e5"
         }
     ],
     "modules": [

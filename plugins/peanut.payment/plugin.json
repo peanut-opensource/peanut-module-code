@@ -1,11 +1,11 @@
 {
     "schema_version": 1,
     "key": "peanut.payment",
-    "version": "1.0.21",
+    "version": "1.0.23",
     "source": {
         "type": "canonical-contents",
         "reference": "canonical-plugin-contents-v1",
-        "sha256": "f202a745cd9465d6bbbbd69f991e99dd1a84bd20342dc516b51508bd4964e66e"
+        "sha256": "fa71777765af632d27d3a0e134001c50bb1da30c93b165931f32c268d9011f8d"
     },
     "trust": {
         "channel": "bundled",
@@ -39,7 +39,7 @@
             "modules": [
                 {
                     "key": "peanut.payment",
-                    "version": "1.0.21",
+                    "version": "1.0.23",
                     "kernel_constraint": "^1.0",
                     "dependencies": [
                         {
@@ -82,8 +82,8 @@
     "composer": [
         {
             "name": "peanut-business/peanut-payment",
-            "version": "1.0.21",
-            "sha256": "b2304544b4581ed6c7694738dd7e3a045e2d9e42ced15f9e226fb41b1f99d659"
+            "version": "1.0.23",
+            "sha256": "b567f14c9320e33d8a96a895e14575be137124f110fe908c87bf60d876ada554"
         }
     ],
     "npm": [

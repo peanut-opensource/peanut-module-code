@@ -9,7 +9,7 @@ use DateTimeZone;
 use DomainException;
 use JsonException;
 use PeanutAdmin\Modules\Identity\Module\Model\ModuleInstallation;
-use PeanutAdmin\Modules\Identity\Module\Model\TenantModule;
+use PeanutAdmin\Modules\Identity\Module\TenantEntitlementService;
 use PeanutAdmin\Modules\Identity\Persistence\Model\MenuDefinition as MenuDefinitionRecord;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Permission;
 use think\model\type\Json;
@@ -18,6 +18,8 @@ use think\facade\Log;
 
 final class ThinkPhpMenuCatalogRepository implements \PeanutAdmin\Kernel\Menu\MenuCatalogRepository
 {
+    public function __construct(private readonly TenantEntitlementService $entitlements) {}
+
     public function synchronize(\PeanutAdmin\Kernel\Menu\MenuDefinition $definition, string $manifestDigest): void
     {
         $permissionId = $definition->requiredPermission === null
@@ -151,13 +153,15 @@ final class ThinkPhpMenuCatalogRepository implements \PeanutAdmin\Kernel\Menu\Me
     {
         $rows = MenuDefinitionRecord::alias('menu')
             ->leftJoin('permission permission', 'permission.id = menu.required_permission_id')
+            ->leftJoin('permission instance_permission', 'instance_permission.id = menu.instance_permission_id')
             ->where('menu.scope', $scope)
             ->where('menu.status', 'active')
             ->field([
                 'menu.key', 'menu.module_key', 'menu.scope', 'menu.parent_key', 'menu.type', 'menu.name',
                 'menu.route_name', 'menu.route_path', 'menu.component_key', 'menu.icon', 'menu.sort_order',
-                'permission.key' => 'required_permission', 'menu.client_keys_json',
+                'menu.client_keys_json',
             ])
+            ->fieldRaw('COALESCE(instance_permission.`key`, permission.`key`) AS required_permission')
             ->order('menu.sort_order')
             ->order('menu.key')
             ->select()
@@ -206,18 +210,7 @@ final class ThinkPhpMenuCatalogRepository implements \PeanutAdmin\Kernel\Menu\Me
 
     public function activeTenantModules(int $tenantId): array
     {
-        $now = $this->now();
-
-        return array_values(array_map('strval', TenantModule::where('tenant_id', $tenantId)
-            ->where('status', 'enabled')
-            ->where(function ($query) use ($now): void {
-                $query->whereNull('effective_at')->whereOr('effective_at', '<=', $now);
-            })
-            ->where(function ($query) use ($now): void {
-                $query->whereNull('expires_at')->whereOr('expires_at', '>', $now);
-            })
-            ->order('module_key')
-            ->column('module_key')));
+        return $this->entitlements->moduleKeys($tenantId);
     }
 
     private function permissionId(string $key): int

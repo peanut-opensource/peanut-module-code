@@ -20,10 +20,9 @@ $pluginLockDefault = $serverRelease || ApplicationSourceIdentity::hasRuntime($se
 
 return [
     // Module roots are an explicit deployment input. An empty list keeps the
-    // platform control plane available while TenantModule management fails closed.
+    // platform control plane available while module availability fails closed.
     'roots' => $roots,
     'plugin_lock' => (string) env('PEANUT_PLUGIN_LOCK', $pluginLockDefault),
     'kernel_version' => (string) env('PEANUT_MODULE_KERNEL_VERSION', '1.0.0'),
     'registered_client_keys' => ['admin-web', 'platform-web', 'pc-web', 'uniapp'],
-    'tenant_hooks' => [],
 ];

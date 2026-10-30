@@ -8,6 +8,7 @@ use think\facade\Db;
 use app\common\model\setting\HotSearch;
 use PeanutAdmin\Modules\Settings\Contract\TenantApplicationSettings;
 use PeanutAdmin\Kernel\Auth\TenantContext;
+use app\common\exception\BusinessException;
 
 /**
  * 热门搜索设置 Logic
@@ -42,13 +43,21 @@ class HotSearchApplicationService
      */
     public function setConfig(TenantContext $context, array $params): bool
     {
+        if (array_diff(array_keys($params), ['status', 'data']) !== []
+            || !in_array($params['status'] ?? null, [0, 1, '0', '1'], true)
+            || !is_array($params['data'] ?? null) || !array_is_list($params['data'])) {
+            throw BusinessException::invalid('HOT_SEARCH_INPUT_INVALID', '热门搜索配置格式错误');
+        }
         $rows = [];
-        foreach ((array) ($params['data'] ?? []) as $item) {
-            $name = trim((string) ($item['name'] ?? ''));
-            if ($name === '') {
-                continue;
+        foreach ($params['data'] as $item) {
+            if (!is_array($item) || array_diff(array_keys($item), ['id', 'name', 'sort']) !== []
+                || !is_string($item['name'] ?? null)
+                || trim($item['name']) === '' || mb_strlen($item['name']) > 200
+                || (!is_int($item['sort'] ?? 0) && !is_string($item['sort'] ?? 0))
+                || filter_var($item['sort'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 65535]]) === false) {
+                throw BusinessException::invalid('HOT_SEARCH_INPUT_INVALID', '热门搜索词条格式错误');
             }
-            $rows[] = ['name' => $name, 'sort' => (int) ($item['sort'] ?? 0)];
+            $rows[] = ['name' => trim($item['name']), 'sort' => (int) ($item['sort'] ?? 0)];
         }
 
         return Db::transaction(function () use ($context, $params, $rows): bool {

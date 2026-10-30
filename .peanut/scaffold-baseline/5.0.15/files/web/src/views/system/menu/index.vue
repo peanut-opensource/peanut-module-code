@@ -153,13 +153,28 @@
         <el-form-item
           v-if="form.type !== 'M'"
           prop="paths"
-          :label="$t('systemMenu.field.paths')"
+          :label="
+            $t(
+              form.type === 'A'
+                ? 'systemMenu.field.action'
+                : 'systemMenu.field.paths'
+            )
+          "
         >
           <el-input
             v-model="form.paths"
             :disabled="form.managed"
-            :placeholder="$t('systemMenu.field.paths.placeholder')"
+            :placeholder="
+              $t(
+                form.type === 'A'
+                  ? 'systemMenu.field.action.placeholder'
+                  : 'systemMenu.field.paths.placeholder'
+              )
+            "
           />
+          <p v-if="form.type === 'A'">{{
+            $t('systemMenu.field.action.hint')
+          }}</p>
         </el-form-item>
         <el-form-item
           v-if="form.type === 'C'"
@@ -173,10 +188,50 @@
           />
         </el-form-item>
         <el-form-item prop="perms" :label="$t('systemMenu.field.perms')">
-          <el-input
+          <el-select
             v-model="form.perms"
-            :disabled="form.managed"
-            :placeholder="$t('systemMenu.field.perms.placeholder')"
+            :disabled="permissionLoading || !!permissionError"
+            :loading="permissionLoading"
+            filterable
+            clearable
+            :placeholder="
+              $t(
+                form.managed
+                  ? 'systemMenu.field.perms.managed.placeholder'
+                  : 'systemMenu.field.perms.placeholder'
+              )
+            "
+          >
+            <el-option
+              v-if="
+                form.managed &&
+                form.perms &&
+                !permissionOptions.some((item) => item.key === form.perms)
+              "
+              :value="form.perms"
+              :label="`${$t('systemMenu.field.perms.default')}（${
+                form.perms
+              }）`"
+            />
+            <el-option
+              v-for="permission in permissionOptions"
+              :key="permission.key"
+              :value="permission.key"
+              :label="`${permission.name}（${permission.key}）`"
+            />
+          </el-select>
+          <p>{{
+            $t(
+              form.managed
+                ? 'systemMenu.field.perms.managed.hint'
+                : 'systemMenu.field.perms.hint'
+            )
+          }}</p>
+          <el-alert
+            v-if="permissionError"
+            :title="permissionError"
+            type="error"
+            :closable="false"
           />
         </el-form-item>
         <el-form-item prop="sort" :label="$t('systemMenu.field.sort')">
@@ -195,7 +250,11 @@
       </el-form>
       <template #footer>
         <el-button @click="modalVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitLoading" @click="handleSubmit"
+        <el-button
+          type="primary"
+          :loading="submitLoading"
+          :disabled="permissionLoading || !!permissionError"
+          @click="handleSubmit"
           >保存</el-button
         >
       </template>
@@ -204,12 +263,16 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, ref, reactive } from 'vue';
+  import { computed, ref, reactive, onBeforeUnmount } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { ElMessage } from 'element-plus';
   import type { FormInstance, TagProps } from 'element-plus';
   import { Plus, Refresh } from '@element-plus/icons-vue';
   import useLoading from '@/hooks/loading';
+  import {
+    getRolePermissionCatalog,
+    type RolePermissionOption,
+  } from '@/api/system/role';
   import {
     getMenuList,
     addMenu,
@@ -250,6 +313,16 @@
   }
 
   const parentTree = computed<MenuParentOption[]>(() => {
+    if (form.type === 'A') {
+      const pages = (nodes: MenuRecord[]): MenuParentOption[] =>
+        nodes.flatMap((node) => [
+          ...(node.type === 'C'
+            ? [{ menu_key: node.menu_key, name: node.name, children: [] }]
+            : []),
+          ...pages(node.children || []),
+        ]);
+      return pages(renderData.value);
+    }
     const strip = (nodes: MenuRecord[]): MenuParentOption[] =>
       nodes
         .filter(
@@ -279,6 +352,44 @@
   const isEdit = ref(false);
   const submitLoading = ref(false);
   const formRef = ref<FormInstance>();
+  const permissionOptions = ref<RolePermissionOption[]>([]);
+  const permissionLoading = ref(false);
+  const permissionError = ref('');
+  let permissionRequest = 0;
+  onBeforeUnmount(() => {
+    permissionRequest += 1;
+  });
+
+  const loadPermissions = async () => {
+    const request = ++permissionRequest;
+    permissionLoading.value = true;
+    permissionError.value = '';
+    permissionOptions.value = [];
+    try {
+      const items: RolePermissionOption[] = [];
+      let page = 1;
+      while (true) {
+        const { data } = await getRolePermissionCatalog({
+          page_no: page,
+          page_size: 100,
+        });
+        if (!data.items.length && items.length < data.total)
+          throw new Error(t('systemMenu.field.perms.error'));
+        items.push(...data.items);
+        if (items.length >= data.total) break;
+        page += 1;
+      }
+      if (request === permissionRequest) permissionOptions.value = items;
+    } catch (error) {
+      if (request === permissionRequest)
+        permissionError.value =
+          error instanceof Error
+            ? error.message
+            : t('systemMenu.field.perms.error');
+    } finally {
+      if (request === permissionRequest) permissionLoading.value = false;
+    }
+  };
 
   const defaultForm = (): MenuForm => ({
     id: undefined,
@@ -317,6 +428,10 @@
   };
 
   const resetForm = (patch: Partial<MenuForm> = {}) => {
+    permissionRequest += 1;
+    permissionError.value = '';
+    permissionLoading.value = false;
+    permissionOptions.value = [];
     Object.assign(form, defaultForm(), patch);
   };
 
@@ -324,21 +439,24 @@
     isEdit.value = false;
     resetForm({ parent_key: parent?.menu_key ?? null });
     modalVisible.value = true;
+    loadPermissions();
   };
 
   const handleEdit = (record: MenuRecord) => {
     isEdit.value = true;
     resetForm({ ...record, children: undefined });
     modalVisible.value = true;
+    loadPermissions();
   };
 
   const handleSubmit = async () => {
+    if (permissionLoading.value || permissionError.value) return;
     const valid = await formRef.value?.validate().catch(() => false);
     if (!valid) return;
     submitLoading.value = true;
     try {
       if (isEdit.value) {
-        await editMenu(form);
+        await editMenu({ ...form, perms: form.perms || '' });
       } else {
         await addMenu(form);
       }

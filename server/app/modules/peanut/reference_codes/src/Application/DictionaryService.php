@@ -82,7 +82,7 @@ final readonly class DictionaryService
         $this->command->setEntryDisabled($context, $id, $disabled);
     }
 
-    /** @return list<array<string,mixed>> */
+    /** @return list<DictionaryEntry> */
     public function enabledByType(TenantContext $context, string $type): array
     {
         $system = $this->system->enabledEntriesByType($type);
@@ -94,7 +94,7 @@ final readonly class DictionaryService
                 continue;
             }
             $seen[$entry->value] = true;
-            $result[] = $entry->toArray();
+            $result[] = $entry;
         }
         return $result;
     }

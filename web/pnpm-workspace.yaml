@@ -1,17 +1,18 @@
 packages:
-  - "src/modules/peanut-article"
   - "src/modules/peanut-workflow"
+  - "src/modules/peanut-article"
   - "src/modules/peanut-payment"
   - "src/modules/peanut-oauth"
+  - "src/modules/peanut-member"
+  - "src/modules/peanut-import-export"
   - "src/modules/peanut-document"
   - "src/modules/peanut-rich-text"
   - "src/modules/peanut-notification"
-  - "src/modules/peanut-member"
-  - "src/modules/peanut-import-export"
-  - "src/modules/peanut-content-tools"
-  - "src/modules/peanut-file"
   - "src/modules/peanut-integration"
   - "src/modules/peanut-reference-codes"
   - "src/modules/peanut-settings"
   - "src/modules/peanut-task"
+  - "src/modules/peanut-file"
+  - "src/modules/peanut-content-tools"
   - src/modules/*
+  - '!src/modules/fixture-workflow-business'

@@ -23,12 +23,7 @@ export default function setupPermissionGuard(router: Router) {
       await appStore.fetchServerMenuConfig();
     }
     if (to.meta.tenantModuleKey) {
-      const required = to.meta.requiredPermissions;
-      if (
-        !appStore.enabledTenantModules.includes(to.meta.tenantModuleKey) ||
-        (typeof required !== 'string' && !Array.isArray(required)) ||
-        !Permission.hasPermission(required)
-      ) {
+      if (!appStore.enabledTenantModules.includes(to.meta.tenantModuleKey)) {
         next(NOT_FOUND);
         NProgress.done();
         return;

@@ -8,7 +8,7 @@ use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 use think\facade\Db;
 use PeanutAdmin\Modules\Notification\Delivery\Application\NotificationException;
 use PeanutAdmin\Modules\Notification\Delivery\Package;
-use PeanutAdmin\Modules\Notification\Delivery\Persistence\NotificationRepository;
+use PeanutAdmin\Modules\Notification\Delivery\Persistence\NotificationStore;
 use PeanutAdmin\Modules\Notification\Delivery\Persistence\SmsDispatch;
 use PeanutAdmin\Modules\Notification\Delivery\Sms\SmsProvider;
 use PeanutAdmin\Modules\Notification\Delivery\Sms\SmsProviderException;
@@ -23,7 +23,7 @@ use Throwable;
 final readonly class SmsTaskHandler implements TaskHandler
 {
     public function __construct(
-        private NotificationRepository $repository,
+        private NotificationStore $repository,
         private SmsRecipientResolver $recipients,
         private SmsProvider $provider,
     ) {}

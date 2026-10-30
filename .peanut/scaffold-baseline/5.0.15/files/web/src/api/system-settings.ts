@@ -2,6 +2,7 @@ import axios from 'axios';
 
 export interface UserSetting {
   default_avatar: string;
+  default_avatar_url?: string;
 }
 
 export interface LoginSetting {
@@ -15,7 +16,9 @@ export interface LoginSetting {
 export const getUserSetting = () =>
   axios.get<UserSetting>('/adminapi/config/user');
 export const saveUserSetting = (data: UserSetting) =>
-  axios.post('/adminapi/config/user/save', data);
+  axios.post('/adminapi/config/user/save', {
+    default_avatar: data.default_avatar,
+  });
 export const getLoginSetting = () =>
   axios.get<LoginSetting>('/adminapi/config/login');
 export const saveLoginSetting = (data: LoginSetting) =>

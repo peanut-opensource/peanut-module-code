@@ -32,7 +32,7 @@ PUBLICATION_KEYS = {'COLLABORATION_CONFIG_REVISION', 'COLLABORATION_CONFIG_SHA25
 def public_wss_url(data):
     hostname=data.get('wss_hostname')
     port=data.get('wss_port')
-    if not isinstance(hostname,str) or len(hostname)>253 or not re.fullmatch(r'[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*',hostname) or type(port) is not int or not 1024<=port<=65535:
+    if not isinstance(hostname,str) or len(hostname)>253 or not re.fullmatch(r'[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*',hostname) or type(port) is not int or not 1<=port<=65535:
         raise ValueError('COLLABORATION_WSS_IDENTITY_INVALID')
     if data.get('websocket_scheme') not in ('ws', 'wss'):
         raise ValueError('COLLABORATION_WEBSOCKET_SCHEME_INVALID')
@@ -178,6 +178,8 @@ def validate_configuration(data, server):
         raise ValueError('COLLABORATION_WSS_BIND_INVALID')
     if not isinstance(data['secret'], str) or not 32 <= len(data['secret'].encode('utf-8')) <= 4096 or any(c in data['secret'] for c in ('\n', '\r', '\0')):
         raise ValueError('COLLABORATION_SECRET_INVALID')
+    if not isinstance(data['ca_sha256'], str) or (data['ca_sha256'] and not re.fullmatch(r'[a-f0-9]{64}', data['ca_sha256'])):
+        raise ValueError('COLLABORATION_CA_REFERENCE_INVALID')
     if not tls:
         if data['ca_sha256'] != '':
             raise ValueError('COLLABORATION_HTTP_CA_NOT_APPLICABLE')
@@ -188,11 +190,12 @@ def validate_configuration(data, server):
             raise ValueError('COLLABORATION_DIRECT_LISTENER_MISMATCH')
         return data
     ordinary(server / 'docker/tls/private-key.pem')
-    for relative in ('docker/tls/certificate.pem', 'docker/tls/ca.pem'):
-        ordinary(server / relative, False)
-    ca=server/'docker/tls/ca.pem'
-    if ca.stat().st_mode&0o777 not in (0o444,0o644) or ca.stat().st_size>1048576 or not re.fullmatch(r'[a-f0-9]{64}',data['ca_sha256']) or digest(ca.read_bytes())!=data['ca_sha256']:
-        raise ValueError('COLLABORATION_CA_REFERENCE_INVALID')
+    ordinary(server / 'docker/tls/certificate.pem', False)
+    if data['ca_sha256']:
+        ca=server/'docker/tls/ca.pem'
+        ordinary(ca, False)
+        if ca.stat().st_mode&0o777 not in (0o444,0o644) or ca.stat().st_size>1048576 or digest(ca.read_bytes())!=data['ca_sha256']:
+            raise ValueError('COLLABORATION_CA_REFERENCE_INVALID')
     return data
 
 
@@ -240,7 +243,7 @@ def independent_service_values(data, existing=None):
             'KEY_ID': data['key_id'], 'SERVICE_SECRET': data['secret'], 'CA_SHA256': data['ca_sha256'],
             'COMPOSE_PROJECT_NAME': data['compose_project'], 'NETWORK': data['network'],
             'PORT': port, 'BIND_ADDRESS': bind}
-    if data['websocket_scheme'] == 'ws':
+    if not data['ca_sha256']:
         runtime.pop('CA_SHA256', None)
         runtime.pop('NODE_EXTRA_CA_CERTS', None)
     return runtime
@@ -257,7 +260,7 @@ def publish_independent_service(server, data, owner):
         previous = stream.read()
     runtime = independent_service_values(data, environment(path, previous, compose=True))
     runtime_payload = env_payload(runtime, True)
-    if data['websocket_scheme'] == 'wss':
+    if data['ca_sha256']:
         for directory in (root / 'certs', server / 'private/collaboration', server / SERVICE_DIRECTORY):
             if not directory.exists(): directory.mkdir(mode=0o755)
             if directory.is_symlink() or directory.resolve() != directory or not directory.is_dir() or directory.stat().st_mode & 0o022:
@@ -284,7 +287,7 @@ def publication_values(data):
                    'COLLABORATION_SERVICE_INSTANCE_ID': data['service_instance_id'], 'COLLABORATION_SERVICE_KEY_ID': data['key_id'],
                    'COLLABORATION_SECRET': data['secret'], 'COLLABORATION_CONTROL_ORIGIN': data['control_origin'],
                    'COLLABORATION_PUBLIC_WSS_URL': public_wss_url(data),
-                   'COLLABORATION_CA_FILE': SERVICE_CA if data['websocket_scheme'] == 'wss' else '',
+                   'COLLABORATION_CA_FILE': SERVICE_CA if data['ca_sha256'] else '',
                    'COLLABORATION_CA_SHA256': data['ca_sha256']}
     return node, updates
 
@@ -312,10 +315,11 @@ def migrate_state(server, data, expected_revision):
                     or deployment not in (expected_legacy, node))) \
                 or environment(Path(data['service_root']) / '.env', compose=True) != independent_service_values(data):
             raise ValueError('COLLABORATION_STATE_MIGRATION_MISMATCH')
-        for ca in (Path(data['service_root']) / 'certs/ca.pem', server / SERVICE_CA):
-            ordinary(ca, False)
-            if digest(ca.read_bytes()) != data['ca_sha256']:
-                raise ValueError('COLLABORATION_CA_REFERENCE_INVALID')
+        if data['ca_sha256']:
+            for ca in (Path(data['service_root']) / 'certs/ca.pem', server / SERVICE_CA):
+                ordinary(ca, False)
+                if digest(ca.read_bytes()) != data['ca_sha256']:
+                    raise ValueError('COLLABORATION_CA_REFERENCE_INVALID')
         if completed:
             return result('migrate-state', values, node)
         atomic(projection, node_payload, digest(previous), projection_owner)
@@ -344,7 +348,7 @@ def enable(server, data, expected_revision):
                     or environment(root / '.env', compose=True) != independent_service_values(data) \
                     or environment(server / 'docker/collaboration.env', compose=True) != node:
                 raise ValueError('COLLABORATION_CONFIGURATION_PUBLICATION_MISMATCH')
-            if data['websocket_scheme'] == 'wss':
+            if data['ca_sha256']:
                 for ca in (root / 'certs/ca.pem', server / SERVICE_CA):
                     ordinary(ca, False)
                     if digest(ca.read_bytes()) != data['ca_sha256']:

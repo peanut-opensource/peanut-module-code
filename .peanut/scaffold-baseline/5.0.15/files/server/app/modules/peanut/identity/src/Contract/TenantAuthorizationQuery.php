@@ -75,7 +75,7 @@ final readonly class TenantAuthorizationQuery
             ->join('member_role membership', 'membership.tenant_id=tenant.id AND membership.tenant_member_id=member.id')
             ->join('role role', "role.tenant_id=tenant.id AND role.id=membership.role_id AND role.status='active'")
             ->join('role_permission binding', 'binding.tenant_id=tenant.id AND binding.role_id=role.id')
-            ->join('permission permission', "permission.id=binding.permission_id AND permission.module_key='peanut.admin' AND permission.status='active'")
+            ->join('permission permission', "permission.id=binding.permission_id AND permission.module_key IN ('peanut.admin','instance.tenant') AND permission.status='active'")
             ->where('tenant.id', $context->tenantId)->where('tenant.status', 'active')->where('member.id', $context->memberId)
             ->distinct(true)->order('permission.key')->column('permission.key')));
     }

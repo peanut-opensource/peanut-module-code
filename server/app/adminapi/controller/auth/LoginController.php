@@ -64,6 +64,7 @@ class LoginController extends BaseAdminController
             'roles'       => $roleNames,
             'menu'        => $accessData->menu,
             'permissions' => $accessData->permissions,
+            'action_bindings' => $accessData->actionBindings,
             'tenantName' => $admin['tenant_name'],
             'website' => $this->website->get($this->tenantAdminContext()),
             'canSwitchTenant' => !$this->executionContext()->tenantEntryBound()

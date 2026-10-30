@@ -19,7 +19,7 @@ use PeanutAdmin\Kernel\Authorization\Application\AdminAccessException;
 use PeanutAdmin\Modules\Identity\Authorization\Model\ProtectedResourceRecord;
 use PeanutAdmin\Modules\Identity\Authorization\Model\ResourceOperationConditionRecord;
 use PeanutAdmin\Modules\Identity\Authorization\Model\TargetTypeRecord;
-use PeanutAdmin\Modules\Identity\Module\Model\ModuleInstallation;
+use PeanutAdmin\Modules\Identity\Module\TenantEntitlementService;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Department;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Role;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Tenant;
@@ -32,6 +32,7 @@ final readonly class DataPolicyAdminService
     public function __construct(
         private TargetResolverRegistry $targetResolvers,
         private AuditService $audit,
+        private TenantEntitlementService $entitlements,
     ) {}
 
     /** @return array<string, mixed> */
@@ -547,25 +548,10 @@ final readonly class DataPolicyAdminService
 
     private function moduleAvailable(int $tenantId, string $moduleKey): bool
     {
-        if (in_array($moduleKey, ['core', 'platform'], true)) {
+        if ($moduleKey === 'core') {
             return true;
         }
-
-        return ModuleInstallation::alias('installation')
-            ->join('tenant_module tenant_module', 'tenant_module.module_key = installation.module_key')
-            ->where('installation.module_key', $moduleKey)
-            ->where('installation.status', 'active')
-            ->where('tenant_module.tenant_id', $tenantId)
-            ->where('tenant_module.status', 'enabled')
-            ->where(function ($query): void {
-                $query->whereNull('tenant_module.effective_at')
-                    ->whereOr('tenant_module.effective_at', '<=', new Raw('UTC_TIMESTAMP(3)'));
-            })
-            ->where(function ($query): void {
-                $query->whereNull('tenant_module.expires_at')
-                    ->whereOr('tenant_module.expires_at', '>', new Raw('UTC_TIMESTAMP(3)'));
-            })
-            ->value('tenant_module.id') !== null;
+        return in_array($moduleKey, $this->entitlements->moduleKeys($tenantId), true);
     }
 
     /** @return array<string, mixed> */

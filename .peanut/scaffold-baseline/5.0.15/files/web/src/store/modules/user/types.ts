@@ -1,6 +1,11 @@
 import type { ServerMenuRecord } from '../app/types';
 
 export type RoleType = '' | '*' | 'admin' | 'user';
+export interface ActionPermissionBinding {
+  page_path: string;
+  action_key: string;
+  permission_key: string;
+}
 export interface UserState {
   id?: number;
   root?: number;
@@ -21,6 +26,7 @@ export interface UserState {
   certification?: number;
   role: RoleType;
   permissions: string[];
+  action_bindings: ActionPermissionBinding[];
   menu: ServerMenuRecord[];
   canSwitchTenant?: boolean;
   tenantName: string;

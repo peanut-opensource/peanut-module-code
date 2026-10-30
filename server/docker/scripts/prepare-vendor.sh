@@ -3,11 +3,11 @@ set -eu
 
 # The caller supplies a verified runtime image ID. Composer runs only against
 # this server's composer.lock and never executes package plugins or scripts.
-[ "$#" -eq 3 ] || { echo 'Usage: prepare-vendor.sh start|prepared SERVER_DIR PHP_IMAGE' >&2; exit 64; }
+[ "$#" -eq 3 ] || { echo 'Usage: prepare-vendor.sh start|prepared|maintenance SERVER_DIR PHP_IMAGE' >&2; exit 64; }
 mode=$1
 server=$2
 php_image=$3
-case "$mode" in start|prepared) ;; *) exit 64 ;; esac
+case "$mode" in start|prepared|maintenance) ;; *) exit 64 ;; esac
 case "$server" in /*) ;; *) exit 64 ;; esac
 [ -d "$server" ] && [ ! -L "$server" ] || { echo 'server root is unsafe' >&2; exit 1; }
 printf '%s' "$php_image" | grep -Eq '^(sha256:[a-f0-9]{64}|[A-Za-z0-9][A-Za-z0-9._:/-]{0,160}@sha256:[a-f0-9]{64})$' || {
@@ -47,7 +47,31 @@ fi
 docker image inspect "$php_image" >/dev/null
 work=$server
 staging=''
-if [ "$mode" = start ]; then
+if [ "$mode" = maintenance ]; then
+    # deploy-update has stopped this instance's writers. Keep its old dependencies
+    # until fixed-lock Composer installation and the native receipt both succeed.
+    runtime="$server/runtime"
+    [ -d "$runtime" ] && [ ! -L "$runtime" ] \
+        && [ -f "$server/private/installation/installed.json" ] \
+        && [ ! -L "$server/private/installation/installed.json" ] \
+        && [ -d "$server/vendor" ] && [ ! -L "$server/vendor" ] || {
+        echo 'maintenance requires an installed instance and ordinary runtime/vendor directories' >&2; exit 1;
+    }
+    previous="$runtime/vendor-previous-$$"
+    [ ! -e "$previous" ] && [ ! -L "$previous" ] || { echo 'previous vendor path is occupied' >&2; exit 1; }
+    mv -- "$server/vendor" "$previous"
+    restore_vendor() {
+        result=$?
+        trap - 0 HUP INT TERM
+        if [ "$result" -ne 0 ]; then
+            if [ -e "$server/vendor" ] || [ -L "$server/vendor" ]; then rm -r -- "$server/vendor"; fi
+            mv -- "$previous" "$server/vendor"
+        fi
+        exit "$result"
+    }
+    trap restore_vendor 0
+    trap 'exit 1' HUP INT TERM
+elif [ "$mode" = start ]; then
     # A fresh full APP already owns its source tree. Only dependencies are installed here.
     # Existing or damaged vendor and installed instances still require maintenance.
     if [ -f "$server/../.peanut/application-manifest.json" ] && [ ! -L "$server/../.peanut" ] \

@@ -107,6 +107,7 @@
 
 <script lang="ts" setup>
   import { computed, reactive, ref } from 'vue';
+  import { useRoute } from 'vue-router';
   import { ElMessage, type UploadRequestOptions } from 'element-plus';
   import {
     Document,
@@ -126,6 +127,7 @@
     type FileType,
   } from '@/modules/peanut-file/api';
 
+  const route = useRoute();
   const props = withDefaults(
     defineProps<{
       type: FileType;
@@ -155,8 +157,8 @@
   });
   const canBrowse = computed(
     () =>
-      hasPermission('peanut.file.list') &&
-      hasPermission('peanut.file.category.list')
+      hasPermission('peanut.file.list', route.path) &&
+      hasPermission('peanut.file.category.list', route.path)
   );
   const uploadPermissionMap: Record<FileType, string> = {
     10: 'peanut.file.upload.image',
@@ -164,7 +166,7 @@
     30: 'peanut.file.upload.file',
   };
   const canUpload = computed(() =>
-    hasPermission(uploadPermissionMap[props.type])
+    hasPermission(uploadPermissionMap[props.type], route.path)
   );
   const loading = ref(false);
   const categories = ref<FileCateRecord[]>([]);

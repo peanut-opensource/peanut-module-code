@@ -15,7 +15,6 @@ export const pluginRoutes: RouteRecordRaw[] = (
         ...route,
         meta: {
           ...route.meta,
-          requiresAuth: route.meta?.requiresAuth === true,
           hideInMenu: true,
         },
       } as RouteRecordRaw)

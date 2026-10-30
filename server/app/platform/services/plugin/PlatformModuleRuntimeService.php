@@ -34,6 +34,7 @@ final readonly class PlatformModuleRuntimeService
         private TenantModuleStateQueries $tenantStates,
         private DeploymentModuleRequestService $deliveryRequests,
         private PlatformModuleOperationExecutionService $moduleOperations,
+        private \PeanutAdmin\Kernel\Module\CompiledModuleRegistry $definitions,
     ) {}
 
     /** @return array{items:list<array<string,mixed>>,total:int} */
@@ -65,6 +66,12 @@ final readonly class PlatformModuleRuntimeService
                     'package_version' => $descriptor->version,
                     'dependencies' => $dependencies,
                     'optional_dependencies' => array_values((array) ($manifest->data['optional_dependencies'] ?? [])),
+                    'tenant' => [
+                        'enableable' => ($manifest->data['tenant']['enableable'] ?? false) === true,
+                        'required' => in_array($key, $this->definitions->moduleKeys(), true)
+                            && $this->definitions->isRequiredTenantFoundation($key),
+                        'requires' => array_values((array) ($manifest->data['tenant']['requires'] ?? [])),
+                    ],
                 ];
             }
             $packageModules = array_keys($packageDetails);
@@ -96,6 +103,7 @@ final readonly class PlatformModuleRuntimeService
                 'package_version' => (string) $row['package_version'],
                 'dependencies' => [],
                 'optional_dependencies' => [],
+                'tenant' => ['enableable' => false, 'required' => false, 'requires' => []],
                 'package_modules' => [$key],
                 'lifecycle_protected' => false,
             ];
@@ -312,7 +320,7 @@ final readonly class PlatformModuleRuntimeService
                     $moduleKeys,
                 );
                 if ($this->tenantStates->hasEnabledModules($moduleKeys)) {
-                    throw new PluginLifecycleException('PLUGIN_TENANT_MODULE_ACTIVE', 'Disable every TenantModule in the Bundle first.');
+                    throw new PluginLifecycleException('PLUGIN_TENANT_MODULE_ACTIVE', 'Remove the Bundle modules from tenant license plans first.');
                 }
                 Db::transaction(function () use ($moduleKeys): void {
                     $this->catalogs->retire($moduleKeys);

@@ -6,7 +6,6 @@ use app\platform\controller\PlatformSessionController;
 use app\platform\controller\PlatformAccessController;
 use app\platform\controller\PlatformTenantBoundaryController;
 use app\platform\controller\PlatformTenantController;
-use app\platform\controller\PlatformTenantModuleController;
 use app\platform\controller\PlatformControlPlaneQueryController;
 use app\platform\controller\PlatformOpsController;
 use app\platform\controller\PlatformTenantInvitationController;
@@ -24,6 +23,31 @@ if (($peanutRouteApplication ?? null) !== 'platform') {
 }
 
 // Instance-local platform control plane. It never shares admin sessions, RBAC or routes.
+Route::get('permission/menus', [\app\platform\controller\PermissionApiController::class, 'menus'])
+    ->completeMatch()->middleware(PlatformLoginMiddleware::class)
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.read');
+Route::put('permission/menus/binding', [\app\platform\controller\PermissionApiController::class, 'replaceMenuBinding'])
+    ->completeMatch()->middleware(PlatformLoginMiddleware::class)
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.api.manage');
+Route::get('permission/bundles', [\app\platform\controller\PermissionApiController::class, 'bundles'])
+    ->completeMatch()->middleware(PlatformLoginMiddleware::class)
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.read');
+Route::post('permission/bundles', [\app\platform\controller\PermissionApiController::class, 'create'])
+    ->completeMatch()->middleware(PlatformLoginMiddleware::class)
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.api.manage');
+Route::put('permission/bundles', [\app\platform\controller\PermissionApiController::class, 'update'])
+    ->completeMatch()->middleware(PlatformLoginMiddleware::class)
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.api.manage');
+Route::get('permission/apis/bindings', [\app\platform\controller\PermissionApiController::class, 'detail'])
+    ->completeMatch()->middleware(PlatformLoginMiddleware::class)
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.read');
+Route::put('permission/apis/bindings', [\app\platform\controller\PermissionApiController::class, 'replace'])
+    ->completeMatch()->middleware(PlatformLoginMiddleware::class)
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.api.manage');
+Route::get('permission/apis', [\app\platform\controller\PermissionApiController::class, 'apis'])
+    ->completeMatch()->middleware(PlatformLoginMiddleware::class)
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.read');
+
 Route::post('session/login', [PlatformSessionController::class, 'login'])
     ->middleware(PlatformHostMiddleware::class);
 Route::post('session/refresh', [PlatformSessionController::class, 'refresh'])
@@ -126,6 +150,7 @@ Route::get('v1/ops/maintenance', [PlatformOpsController::class, 'maintenance'])
     ->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.ops.read');
 Route::get('v1/ops/logs', [PlatformOpsController::class, 'logs'])
+    ->option(['peanut_permission' => 'platform.ops.logs.read'])
     ->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.ops.read')
     ->middleware(PlatformPermissionMiddleware::class, 'platform.ops.logs.read');
@@ -136,6 +161,7 @@ Route::post('v1/ops/maintenance/:maintenance_key/close', [PlatformOpsController:
     ->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.ops.maintenance.manage');
 Route::get('v1/ops/diagnostics', [PlatformOpsController::class, 'diagnostics'])
+    ->option(['peanut_permission' => 'platform.ops.logs.read'])
     ->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.ops.read')
     ->middleware(PlatformPermissionMiddleware::class, 'platform.ops.logs.read');
@@ -146,10 +172,12 @@ Route::post('v1/ops/tasks/restore', [PlatformOpsController::class, 'restore'])
     ->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.ops.restore.manage');
 Route::post('v1/ops/tasks/upgrade', [PlatformOpsController::class, 'upgrade'])
+    ->option(['peanut_permission' => 'platform.ops.upgrade.manage'])
     ->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.ops.read')
     ->middleware(PlatformPermissionMiddleware::class, 'platform.ops.upgrade.manage');
 Route::post('v1/ops/tasks/module', [PlatformOpsController::class, 'moduleOperation'])
+    ->option(['peanut_permission' => 'platform.ops.module.manage'])
     ->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.ops.read')
     ->middleware(PlatformPermissionMiddleware::class, 'platform.ops.module.manage');
@@ -177,13 +205,22 @@ Route::post('tenants/suspend', [PlatformTenantController::class, 'suspend'])
 Route::post('tenants/close', [PlatformTenantController::class, 'close'])
     ->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.tenant.lifecycle');
-Route::post('tenants/modules/enable', [PlatformTenantModuleController::class, 'enable'])
-    ->middleware(PlatformLoginMiddleware::class)
-    ->middleware(PlatformPermissionMiddleware::class, 'platform.tenant.module.manage');
-Route::post('tenants/modules/disable', [PlatformTenantModuleController::class, 'disable'])
-    ->middleware(PlatformLoginMiddleware::class)
-    ->middleware(PlatformPermissionMiddleware::class, 'platform.tenant.module.manage');
 // ThinkPHP routes are prefix-sensitive: register the generic Tenant list after every /tenants/* route.
+Route::get('plans', [\app\platform\controller\PlanLicenseController::class, 'lists'])
+    ->completeMatch()->middleware(PlatformLoginMiddleware::class)
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.plan.read');
+Route::post('plans', [\app\platform\controller\PlanLicenseController::class, 'create'])
+    ->completeMatch()->middleware(PlatformLoginMiddleware::class)
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.plan.manage');
+Route::put('plans', [\app\platform\controller\PlanLicenseController::class, 'update'])
+    ->completeMatch()->middleware(PlatformLoginMiddleware::class)
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.plan.manage');
+Route::get('tenants/license', [\app\platform\controller\PlanLicenseController::class, 'license'])
+    ->completeMatch()->middleware(PlatformLoginMiddleware::class)
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.tenant.read');
+Route::put('tenants/license', [\app\platform\controller\PlanLicenseController::class, 'updateLicense'])
+    ->completeMatch()->middleware(PlatformLoginMiddleware::class)
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.tenant.license.manage');
 Route::get('tenants', [PlatformTenantController::class, 'lists'])
     ->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.tenant.read');

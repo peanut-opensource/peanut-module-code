@@ -1,4 +1,19 @@
 import axios from 'axios';
+import {
+  readPlan,
+  readPlanPage,
+  readPlanModules,
+  readTenantLicense,
+  type Plan,
+  type LicenseInput,
+} from './tenant-license';
+import {
+  readPermissionApi,
+  readPermissionBundle,
+  readPermissionMenuBinding,
+  readPermissionPage,
+  type PermissionAudience,
+} from './permission-bundles';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 import type {
   MaintenanceScheduleInput,
@@ -745,6 +760,124 @@ export function hasPlatformSession(): boolean {
 }
 
 export const api = {
+  planModules: async (page = 1) =>
+    readPlanModules(
+      await unwrap<unknown>(
+        client.get('/platformapi/instance-tools/modules', {
+          params: { page, page_size: 100 },
+        })
+      )
+    ),
+  plans: async (page = 1) =>
+    readPlanPage(
+      await unwrap<unknown>(
+        client.get('/platformapi/plans', { params: { page, page_size: 100 } })
+      )
+    ),
+  createPlan: async (data: {
+    code: string;
+    name: string;
+    module_keys: string[];
+    permission_keys: string[];
+    change_reason: string;
+  }) =>
+    readPlan(await unwrap<unknown>(client.post('/platformapi/plans', data))),
+  updatePlan: async (data: {
+    id: number;
+    expected_revision: number;
+    name: string;
+    status: Plan['status'];
+    module_keys: string[];
+    permission_keys: string[];
+    change_reason: string;
+  }) => readPlan(await unwrap<unknown>(client.put('/platformapi/plans', data))),
+  tenantLicense: async (tenantId: number) =>
+    readTenantLicense(
+      await unwrap<unknown>(
+        client.get('/platformapi/tenants/license', {
+          params: { tenant_id: tenantId },
+        })
+      )
+    ),
+  saveTenantLicense: async (data: LicenseInput) =>
+    readTenantLicense(
+      await unwrap<unknown>(client.put('/platformapi/tenants/license', data))
+    ),
+  permissionMenus: async () =>
+    readPermissionPage(
+      await unwrap<unknown>(client.get('/platformapi/permission/menus')),
+      readPermissionMenuBinding
+    ),
+  replacePermissionMenuBinding: async (data: {
+    menu_key: string;
+    permission_key: string | null;
+    action_key: string | null;
+    expected_revision: string;
+  }) =>
+    readPermissionMenuBinding(
+      await unwrap<unknown>(
+        client.put('/platformapi/permission/menus/binding', data)
+      )
+    ),
+  createPermissionBundle: async (data: {
+    key: string;
+    name: string;
+    audience: PermissionAudience;
+  }) =>
+    readPermissionBundle(
+      await unwrap<unknown>(
+        client.post('/platformapi/permission/bundles', data)
+      )
+    ),
+  updatePermissionBundle: async (data: {
+    permission_key: string;
+    name: string;
+    status: 'active' | 'retired';
+    expected_revision: string;
+  }) =>
+    readPermissionBundle(
+      await unwrap<unknown>(client.put('/platformapi/permission/bundles', data))
+    ),
+  permissionBundles: async (audience: PermissionAudience, page: number) =>
+    readPermissionPage(
+      await unwrap<unknown>(
+        client.get('/platformapi/permission/bundles', {
+          params: { audience, page_no: page, page_size: 100 },
+        })
+      ),
+      readPermissionBundle
+    ),
+  permissionApis: async (audience: PermissionAudience, page: number) =>
+    readPermissionPage(
+      await unwrap<unknown>(
+        client.get('/platformapi/permission/apis', {
+          params: { audience, page_no: page, page_size: 100 },
+        })
+      ),
+      readPermissionApi
+    ),
+  permissionBindings: async (permissionKey: string) =>
+    readPermissionBundle(
+      await unwrap<unknown>(
+        client.get('/platformapi/permission/apis/bindings', {
+          params: { permission_key: permissionKey },
+        })
+      )
+    ),
+  replacePermissionBindings: async (
+    permissionKey: string,
+    revision: string,
+    apiIds: string[]
+  ) =>
+    readPermissionBundle(
+      await unwrap<unknown>(
+        client.put('/platformapi/permission/apis/bindings', {
+          permission_key: permissionKey,
+          expected_revision: revision,
+          api_ids: apiIds,
+        })
+      )
+    ),
   async login(email: string, password: string) {
     advancePlatformSession();
     const snapshot = getPlatformSessionSnapshot();
@@ -877,23 +1010,6 @@ export const api = {
       client.get('/platformapi/tenants/modules', {
         params: { tenant_id: tenantId, page: 1, page_size: 100 },
       })
-    ),
-  changeModule: (
-    enabled: boolean,
-    tenantId: number,
-    moduleKey: string,
-    changeReason: string
-  ) =>
-    unwrap(
-      client.post(
-        `/platformapi/tenants/modules/${enabled ? 'enable' : 'disable'}`,
-        {
-          tenant_id: tenantId,
-          module_key: moduleKey,
-          config: {},
-          change_reason: changeReason,
-        }
-      )
     ),
   operators: () =>
     unwrap<Page<Operator>>(

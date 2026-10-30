@@ -1,11 +1,11 @@
 {
     "schema_version": 1,
     "key": "peanut.notification",
-    "version": "1.0.23",
+    "version": "1.0.26",
     "source": {
         "type": "canonical-contents",
         "reference": "canonical-plugin-contents-v1",
-        "sha256": "7fadf552de96aa5cca82b5809d3c75081119e80279cd5c7e182fe0c35a273ed6"
+        "sha256": "7b3592f35bb7c6ddf26f78119b4760cf90cc42914178318bc7072c3cbd0c0293"
     },
     "trust": {
         "channel": "bundled",
@@ -39,7 +39,7 @@
             "modules": [
                 {
                     "key": "peanut.notification",
-                    "version": "1.0.23",
+                    "version": "1.0.26",
                     "kernel_constraint": "^1.0",
                     "dependencies": [
                         {
@@ -66,8 +66,8 @@
     "composer": [
         {
             "name": "peanut-business/peanut-notification",
-            "version": "1.0.23",
-            "sha256": "54ddf6ad1a961e41a4ff0f57d88568d14c19ab0ba80b4037b67f5c348b993310"
+            "version": "1.0.26",
+            "sha256": "c62d6e962294bbe179d9f173594028463acf82d59536b5162c865e5278c8bbf3"
         }
     ],
     "npm": [

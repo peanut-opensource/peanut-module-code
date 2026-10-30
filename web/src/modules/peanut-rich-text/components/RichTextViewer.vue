@@ -9,8 +9,10 @@
 /></template>
 
 <script setup lang="ts">
-  import type { SurfaceCallbacks } from '@/modules/peanut-content-tools/src/contracts';
-  import type ContentToolRegistry from '@/modules/peanut-content-tools/src/registry';
+  import type {
+    ContentToolRegistry,
+    SurfaceCallbacks,
+  } from '@peanut-admin/peanut-content-tools/surface';
   import RichTextEditor from './RichTextEditor.vue';
   import type { RichTextDocumentValue } from '../src/document';
 

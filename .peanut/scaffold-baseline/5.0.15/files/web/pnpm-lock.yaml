@@ -29,11 +29,11 @@ importers:
         specifier: 2.3.2
         version: 2.3.2(vue@3.5.40(typescript@5.9.3))
       '@peanut-admin/ui-vue':
-        specifier: 5.0.2
-        version: 5.0.2(@peanut-admin/vue@5.0.2(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
+        specifier: file:../packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz
+        version: file:../packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz(@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
       '@peanut-admin/vue':
-        specifier: 5.0.2
-        version: 5.0.2(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
+        specifier: file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz
+        version: file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
       '@vueuse/core':
         specifier: ^9.3.0
         version: 9.13.0(vue@3.5.40(typescript@5.9.3))
@@ -206,8 +206,6 @@ importers:
       vue-tsc:
         specifier: 3.2.5
         version: 3.2.5(typescript@5.9.3)
-
-  src/modules/fixture-delivery-record: {}
 
   src/modules/peanut-content-tools: {}
 
@@ -692,16 +690,18 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@peanut-admin/ui-vue@5.0.2':
-    resolution: {integrity: sha512-W5ysL4HetnVNurOpR62doBN2ZzOuJ5q6NfzYBeVGW/9JQokYfAZ53ta9yFOe0FCFneP9372yy5MSGna3HsqL7Q==}
+  '@peanut-admin/ui-vue@file:../packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz':
+    resolution: {integrity: sha512-U3cMyLlUS82ZKQl9r80H5QTEXdopepTwsX00RCFXdR9YZfeyT5MuGoyXD8VijyfvVoCNYF9n4ug+tjV4KscNeg==, tarball: file:../packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz}
+    version: 5.0.3-alpha.1
     engines: {node: '>=22.12.0 <23'}
     peerDependencies:
-      '@peanut-admin/vue': 5.0.2
+      '@peanut-admin/vue': 5.0.3-alpha.1
       element-plus: ^2.14.3
       vue: ^3.4.21
 
-  '@peanut-admin/vue@5.0.2':
-    resolution: {integrity: sha512-TLM8YVtxh86qtg5iM6ElhrICGudql+LHFMJfNbgo3AK34BfoKGkojC9CyEMtIuOJtERRLZKTBVFo5xrbjPnlpA==}
+  '@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz':
+    resolution: {integrity: sha512-cFjydfSAf/nSnknM8QYfvtBJv/zXoMbGUW2JZICQldDFQ/1Dl7zTgkUOvhGgt421egrn+rF6pnrFdLUn+cB8UA==, tarball: file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz}
+    version: 5.0.3-alpha.1
     engines: {node: '>=22.12.0 <23'}
     peerDependencies:
       pinia: '>=2.0.23 <5'
@@ -4078,13 +4078,13 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@peanut-admin/ui-vue@5.0.2(@peanut-admin/vue@5.0.2(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
+  '@peanut-admin/ui-vue@file:../packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz(@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
     dependencies:
-      '@peanut-admin/vue': 5.0.2(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
+      '@peanut-admin/vue': file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
       element-plus: 2.14.3(vue@3.5.40(typescript@5.9.3))
       vue: 3.5.40(typescript@5.9.3)
 
-  '@peanut-admin/vue@5.0.2(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
+  '@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
     dependencies:
       pinia: 2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3))
       vue: 3.5.40(typescript@5.9.3)

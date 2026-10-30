@@ -1,7 +1,10 @@
 export default {
+  'systemRole.auth.bundles': 'Permission bundles',
+  'systemRole.auth.bundleHint':
+    'Bundles can be reused by menus, buttons and clients. Navigation never grants permissions.',
   'systemRole.auth.menuPermissions': 'Menu permissions',
   'systemRole.auth.actionPermissions': 'Action permissions',
-  'systemRole.auth.searchActions': 'Search action permissions',
+  'systemRole.auth.searchActions': 'Search bundles, keys or modules',
   'systemRole.auth.unavailable':
     'Currently unavailable; review before removing',
   'systemRole.auth.catalogIncomplete':
@@ -42,6 +45,7 @@ export default {
   'systemRole.auth.selectAll': 'Select / Clear All',
   'systemRole.auth.parentLinked': 'Parent-child Linkage',
 
-  'systemRole.delete.confirm': 'Archive this role? Historical records will be retained.',
+  'systemRole.delete.confirm':
+    'Archive this role? Historical records will be retained.',
   'systemRole.tip.success': 'Success',
 };

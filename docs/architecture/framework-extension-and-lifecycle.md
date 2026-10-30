@@ -21,7 +21,7 @@ Peanut 使用 ThinkPHP 原生机制承载配置、容器和进程运行，Core �
 | 日志、审计与追踪 | Think Log 原生通道 | 应用业务审计与技术日志分开；请求/任务可信上下文与秘密脱敏保留，框架日志不替代审计台账 |
 | 文件与第三方渠道 | Think filesystem、供应商 SDK | 文件账本/引用/权限/回收归 Code；Core 仅技术 planner 与必要协议；应用配置选择可信供应商实现 |
 | 模块声明与制品 | Provider/Bundle 的显式装配思想 | canonical manifest、plugins.lock、内容摘要、前端/worker/迁移 contribution 一起登记；不采用未经审阅的扫描自动发现 |
-| 租户启停钩子 | 框架事务内扩展点与明确业务回调 | 现有 TenantModuleEnableHook 是命令执行的事务内前置回调；与包安装、启动、定时生效事件分开 |
+| 租户权益 | 应用业务用例与原生事务 | 套餐/许可证定义可用上限，ModuleGuard 消费资格投影；不自动授予成员权限或触发定时补偿 |
 | 安装、迁移与升级 | 成熟迁移框架的台账思想 | 应用现有锁、checksum、applying/applied/failed 及恢复计划；Core 提供技术协议，不搬运完整实例升级业务 |
 | 客户端插件与作用域 | Vue/Nuxt/UniApp 官方扩展机制 | Web Core 负责 transport、UI 和环境适配，Code 持有业务 SDK/状态/页面；监听与资源清理跟随实际组件/请求/任务边界 |
 
@@ -67,23 +67,11 @@ final class ModuleProvider extends \think\Service
 
 模块的业务事件处理器、命令与任务仍须按所属模块公开面、运行许可、可信身份和 Scope 执行；原生 Event 不是授权边界。同步监听器可能中断当前操作；可靠通知、外部调用或异步业务必须由现有持久任务/状态台账负责，不能在 boot 或 HttpEnd 即席发送并假定可恢复。
 
-## 3. 租户启停钩子与幂等
+## 3. 套餐与许可证的业务边界
 
-模块 Provider 可以实现已有 `TenantModuleEnableHook`，其 moduleKey 用于钩子归属。应用也可以在可信源码配置 `server/config/modules.php` 的 `tenant_hooks` 中显式替换某模块的钩子：
+套餐定义共享的模块与权限组合清单，每个租户的当前许可证引用一个套餐并声明生效时间、到期时间和状态。模块安装、租户权益与成员角色授权分别判断；开通或升级许可证不授予成员角色，套餐到期也不删除已有角色关系。
 
-```php
-'tenant_hooks' => [
-    'example.orders' => \app\modules\example\orders\ApplicationTenantHook::class,
-],
-```
-
-钩子类由原生容器解析，必须实现该接口；键必须是已编译、允许租户启停的模块。未知/受保护模块、坏配置或坏实现拒绝装配。应用显式配置优先于模块 Provider 自带实现。平台启停与产品 profile 使用同一装配方法，不能自行创建无钩子 Manager 绕过扩展。
-
-调用语义：校验租户、安装状态、依赖及配置后，Manager 在记录写入之前同步调用钩子；业务用例拥有数据库事务与审计。钩子失败向外传播，数据库副作用由同一个事务回滚。实现只允许可回滚的数据操作；外部副作用另走业务持久机制，不声称数据库事务能够撤销网络调用。
-
-尚未过期的已启用记录（包含未来生效记录）重复启用，以及已停用记录重复停用，保持幂等，不重复执行钩子或推进状态 revision。配置更新仍使用原有配置业务合同。依赖和安全校验不因幂等早退被绕过。
-
-`enable()` 钩子表示启用命令被接受，不表示 effectiveAt 到点；expiresAt 到期也不会自动触发 disable 回调。到期访问由现有时间许可判断处理。需要到点业务动作时，应声明具体任务与幂等状态，不能把该接口当通用定时事件总线。
+租户业务权益由 Identity 提供，Core 的 ModuleRuntimeRepository / ModuleGuard 继续消费当前资格投影。没有逐模块启停钩子或另一套开通 Manager；业务设置使用所属模块的 setting_definitions 和 Settings 现有校验、作用域与事务能力。到期在实际授权时判断，不依赖定时回调改变开关；租户任务仍使用现有执行边界，已提交的撤权事实继续传播。
 
 ## 4. 请求、命令、任务与包生命周期
 

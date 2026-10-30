@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace PeanutAdmin\Modules\Task;
 
-use PeanutAdmin\Modules\Task\Service\CrontabSchedulerService;
 use PeanutAdmin\Modules\Task\Service\TaskSchedulerService;
 use PeanutAdmin\Modules\Task\Service\TaskBootstrapService;
 use PeanutAdmin\Modules\Task\Infrastructure\Runtime\ThinkPhpTaskJobRuntime;
@@ -20,10 +19,11 @@ use app\common\infrastructure\module\ModuleExecutionBoundary;
 use PeanutAdmin\Modules\Identity\Contract\AdminDirectoryQuery;
 use app\common\services\CrontabCommandService;
 use Closure;
-use app\common\persistence\TenantPersistenceConfiguration;
 use PeanutAdmin\Kernel\Module\ModuleProvider as ModuleProviderContract;
 use think\App;
 use PeanutAdmin\Modules\Task\Job\Persistence\TaskJobStore;
+use PeanutAdmin\DataPermission\Catalog\ResourceOperationCatalog;
+use PeanutAdmin\Modules\Identity\Module\TenantEntitlementService;
 
 final class ModuleProvider implements ModuleProviderContract
 {
@@ -32,16 +32,7 @@ final class ModuleProvider implements ModuleProviderContract
         return 'peanut.task';
     }
 
-    public function scheduler(
-        TaskJobRuntime $tasks,
-        CrontabSchedulerService $crontabs,
-        ExecutionContextStore $execution,
-    ): TaskScheduler {
-        return new TaskSchedulerService($tasks, $crontabs, $execution);
-    }
-
     public function jobs(
-        TenantPersistenceConfiguration $persistence,
         string $signingKey,
         ExecutionContextStore $executionContexts,
         CurrentExecutionContext $currentExecution,
@@ -51,9 +42,11 @@ final class ModuleProvider implements ModuleProviderContract
         Closure $dispatch,
         array $workerDefinitions,
         int $workerLimit,
+        ResourceOperationCatalog $operations,
+        TenantEntitlementService $entitlements,
     ): TaskJobRuntime {
         return new ThinkPhpTaskJobRuntime(
-            new TaskJobStore($persistence->mode, $persistence->instanceTenantId),
+            new TaskJobStore(),
             $signingKey,
             $executionContexts,
             $currentExecution,
@@ -63,6 +56,8 @@ final class ModuleProvider implements ModuleProviderContract
             $dispatch,
             $workerDefinitions,
             $workerLimit,
+            $operations,
+            $entitlements,
         );
     }
 
@@ -70,24 +65,29 @@ final class ModuleProvider implements ModuleProviderContract
     {
         return [
             TaskJobRuntime::class => fn(App $app): TaskJobRuntime => $this->jobs(
-                $app->make(TenantPersistenceConfiguration::class),
                 (string) $app->config->get('async.signing_key', ''),
                 $app->make(ExecutionContextStore::class),
                 $app->make(CurrentExecutionContext::class),
                 $app->make(AdminDirectoryQuery::class),
                 $app->make(ModuleExecutionBoundary::class),
                 $app->make(CrontabCommandService::class),
-                fn(string $command, array $parameters = [], string $driver = 'buffer') => $app->make('console')->call($command, $parameters, $driver),
+                function (string $command, array $parameters = [], string $driver = 'buffer') use ($app): \think\console\Output {
+                    array_unshift($parameters, $command);
+                    $output = new \think\console\Output($driver);
+                    $exitCode = $app->make('console')->find($command)->run(new \think\console\Input($parameters), $output);
+                    if ($exitCode !== 0) {
+                        throw new \RuntimeException('CRONTAB_COMMAND_FAILED');
+                    }
+                    return $output;
+                },
                 $app->make(TaskWorkerDefinitionRegistry::class)->resolve($app),
                 (int) $app->config->get('async.worker_limit', 25),
+                $app->make(ResourceOperationCatalog::class),
+                $app->make(TenantEntitlementService::class),
             ),
             TaskBootstrapCommands::class => TaskBootstrapService::class,
             TaskDiagnosticQuery::class => TaskDiagnosticService::class,
-            TaskScheduler::class => fn(App $app): TaskScheduler => $this->scheduler(
-                $app->make(TaskJobRuntime::class),
-                $app->make(CrontabSchedulerService::class),
-                $app->make(ExecutionContextStore::class),
-            ),
+            TaskScheduler::class => TaskSchedulerService::class,
         ];
     }
 }

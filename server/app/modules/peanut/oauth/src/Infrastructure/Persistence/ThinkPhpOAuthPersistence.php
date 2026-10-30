@@ -8,7 +8,6 @@ use PeanutAdmin\Modules\OAuth\Contract\Dto\OAuthAttemptRecord;
 use PeanutAdmin\Modules\OAuth\Contract\Dto\OAuthCompletionRecord;
 use PeanutAdmin\Modules\OAuth\Contract\Dto\OAuthIdentityRecord;
 use PeanutAdmin\Modules\OAuth\Contract\Dto\OAuthPrincipalRecord;
-use PeanutAdmin\Modules\OAuth\Contract\OAuthPersistence;
 use PeanutAdmin\Modules\OAuth\Model\OAuthAttempt;
 use PeanutAdmin\Modules\OAuth\Model\OAuthCompletionTicket;
 use PeanutAdmin\Modules\OAuth\Model\OAuthIdentity;
@@ -17,7 +16,7 @@ use PeanutAdmin\Kernel\Context\AuthenticatedMemberContext;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Context\TenantSystemContext;
 
-final class ThinkPhpOAuthPersistence implements OAuthPersistence
+final class ThinkPhpOAuthPersistence
 {
     public function createAttempt(TenantContext|TenantSystemContext $context, array $data): void
     {

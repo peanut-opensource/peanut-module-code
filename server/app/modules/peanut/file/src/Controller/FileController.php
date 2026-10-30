@@ -84,9 +84,12 @@ class FileController extends BaseAdminController
 
     public function move()
     {
-        $ids = (array) $this->request->post('ids', []);
+        $ids = $this->request->post('ids', []);
+        if (!is_array($ids)) {
+            throw BusinessException::invalid('FILE_IDS_INVALID', '素材 ID 集合无效');
+        }
         $this->files->move(
-            array_map('intval', $ids),
+            $ids,
             $this->integerValue($this->request->post('cid', 0), '目标分类无效'),
         );
         return $this->success('操作成功');
@@ -110,8 +113,11 @@ class FileController extends BaseAdminController
 
     public function delete()
     {
-        $ids = (array) $this->request->post('ids', []);
-        $result = $this->files->delete(array_map('intval', $ids));
+        $ids = $this->request->post('ids', []);
+        if (!is_array($ids)) {
+            throw BusinessException::invalid('FILE_IDS_INVALID', '素材 ID 集合无效');
+        }
+        $result = $this->files->delete($ids);
         return $this->success('操作成功', $result);
     }
 

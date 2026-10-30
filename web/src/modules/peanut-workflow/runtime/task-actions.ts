@@ -30,13 +30,3 @@ export function requiresReason(action: string): boolean {
     'retry',
   ].includes(action);
 }
-export function safeFormEntry(entry: string | null): string | null {
-  if (
-    !entry ||
-    !entry.startsWith('/') ||
-    entry.startsWith('//') ||
-    entry.includes('\\')
-  )
-    return null;
-  return entry;
-}

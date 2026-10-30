@@ -6,6 +6,7 @@
 return [
     // 指令定义
     'commands' => [
+        'module:compile' => \app\command\ModuleCompile::class,
         'identity:credential-recover' => \app\command\IdentityCredentialRecovery::class,
         'identity:revocations' => \PeanutAdmin\Modules\Identity\Console\RevocationFactsCommand::class,
         // 平台系统维护仅允许顶层CLI执行，不登记为租户调度命令。
@@ -21,8 +22,6 @@ return [
         'ops-module:request' => \app\command\OpsModuleRequest::class,
         'ops-module:task' => \app\command\OpsModuleTask::class,
         'developer:center' => \app\command\DeveloperCenterCatalog::class,
-        'tenant-module:apply-profile' => \app\command\TenantModuleProfile::class,
-        'tenant-module:enable-locked-private' => \app\command\TenantModuleEnableLockedPrivate::class,
     ],
     // Every command that may run from the Tenant scheduler must declare its owning Module.
     // Core commands use the built-in `core` capability; application Modules register their key.

@@ -15,7 +15,7 @@ use app\platform\value\plugin\PluginDescriptor;
 use app\platform\exception\plugin\PluginLifecycleException;
 use app\platform\infrastructure\plugin\PluginLockResolver;
 use app\platform\infrastructure\plugin\PluginArtifactWriter;
-use app\platform\validation\module\StrictVersionConstraintMatcher;
+use PeanutAdmin\Kernel\Module\StrictVersionConstraintMatcher;
 use app\platform\validation\module\OpisManifestSchemaValidator;
 use app\common\module\PackageCheck;
 use RuntimeException;
@@ -178,7 +178,7 @@ final class ScaffoldUpgradeRunner
         return $this->previewSource($projectRoot, $fromManifestPath, $toManifestPath, $sourceSelection);
     }
 
-    private function previewSource(string $projectRoot, string $fromManifestPath, string $toManifestPath, ?array $sourceSelection): array
+    private function previewSource(string $projectRoot, string $fromManifestPath, string $toManifestPath, ?array $sourceSelection, ?ScaffoldManifest &$verifiedTarget = null): array
     {
         $root = ScaffoldPathGuard::projectRoot($projectRoot);
         [$application, $applicationDigest] = $this->applicationManifest($root);
@@ -243,6 +243,7 @@ final class ScaffoldUpgradeRunner
                 $to,
                 $targetParameters,
                 $versionContract,
+                $development,
             );
             $actions = $this->projectPluginBoundary($actions, $pluginProjection, $targetPlugins, $pluginTarget);
         }
@@ -275,6 +276,28 @@ final class ScaffoldUpgradeRunner
                 'workflow_paths_sha256' => $workflow['paths'] === null ? null : hash('sha256', self::canonicalJson($workflow['paths'])),
                 'excluded_paths_sha256' => hash('sha256', self::canonicalJson($development['excluded_paths']))];
         }
+        if (isset($sourceSelection['template_package_path'])) {
+            $metadata = json_decode((string) file_get_contents($sourceSelection['template_package_path']), true, 512, JSON_THROW_ON_ERROR);
+            $identity['target_template_package'] = ['protocol' => $metadata['protocol'], 'version' => $metadata['version'],
+                'archive_sha256' => $metadata['archive']['sha256'],
+                'source' => $sourceSelection['channel'] === 'development' ? 'local' : 'official'];
+            if (!$this->hasRuntimeState($root)) {
+                $createPath = ScaffoldPathGuard::existingFileWithin(dirname($sourceSelection['template_package_path']),
+                    dirname($sourceSelection['template_package_path']) . '/template-create.json', 'SCAFFOLD_TEMPLATE_CREATE_REQUIRED');
+                $createBytes = (string) file_get_contents($createPath);
+                if (hash('sha256', $createBytes) !== $metadata['create_manifest_sha256']) {
+                    throw new RuntimeException('SCAFFOLD_TEMPLATE_CREATE_CHANGED');
+                }
+                $create = json_decode($createBytes, true, 512, JSON_THROW_ON_ERROR);
+                if (array_key_exists('installation_migrations', $create['application_manifest'])) {
+                    $identity['target_installation_migrations'] = $this->installationSnapshot($create['application_manifest']);
+                }
+            }
+        }
+        if (!isset($identity['target_installation_migrations']) && array_key_exists('installation_migrations', $application)) {
+            $identity['target_installation_migrations'] = $application['installation_migrations'];
+        }
+        $verifiedTarget = $to;
         $planDigest = hash('sha256', self::canonicalJson([$identity, $actions]));
         $candidate = 'scaffold-' . substr($planDigest, 0, 24);
         $status = $summary['conflicts'] === 0 && !$this->moduleCompatibilityBlocked($pluginTarget)
@@ -594,7 +617,7 @@ final class ScaffoldUpgradeRunner
     public function apply(string $projectRoot, string $planPath): array
     {
         return $this->locked($projectRoot, function (string $root) use ($planPath): array {
-            $plan = $this->loadPlan($root, $planPath);
+            $plan = $this->loadPlan($root, $planPath, false);
             $ledger = $this->ledger($root);
             if ($plan['status'] !== 'ready') {
                 throw new RuntimeException('SCAFFOLD_PLAN_BLOCKED');
@@ -604,8 +627,7 @@ final class ScaffoldUpgradeRunner
                 return ['status' => 'applied', 'candidate' => $plan['candidate'], 'idempotent' => true];
             }
             $this->assertPlanFresh($root, $plan);
-            $this->assertPlanRebound($root, $plan);
-            $to = $this->planTarget($root, $plan);
+            $to = $this->assertPlanRebound($root, $plan);
             $this->assertManifestDigest($to, $plan['identity']['to']['manifest_sha256']);
             // Installed notification delivery must be drained in the operator's maintenance window.
             if ($this->changesNotificationExecution($plan) && $this->hasRuntimeState($root)) {
@@ -1309,7 +1331,7 @@ final class ScaffoldUpgradeRunner
             || !is_dir($checkout) || is_link($checkout) || ($selection['channel'] ?? null) !== 'development'
             || !isset($selection['template_package_path']) || ($base['repository'] ?? null) !== $repository
             || ($base['channel'] ?? null) !== 'development' || !array_key_exists('release_version', $base)
-            || $base['release_version'] !== null || $fromVersion !== $to->version()
+            || $base['release_version'] !== null || Semver::compare($fromVersion, $to->version()) > 0
             || !in_array($profile, ['minimal', 'standard', 'full'], true)
             || !in_array($workflow, ['none', 'runtime', 'full'], true)) {
             throw new RuntimeException('SCAFFOLD_DEVELOPMENT_SOURCE_INVALID');
@@ -1415,7 +1437,6 @@ final class ScaffoldUpgradeRunner
             }
             $identities[$side] = array_intersect_key($source, array_flip(['commit', 'tree', 'inventory_sha256']));
         }
-        if ($base['commit'] === $target['commit']) { throw new RuntimeException('SCAFFOLD_DEVELOPMENT_NOT_SUCCESSOR'); }
         $git(['merge-base', '--is-ancestor', $base['commit'], $target['commit']], true);
         sort($excluded, SORT_STRING);
         return ['relation' => ['kind' => 'development_successor', 'repository' => $repository,
@@ -1676,11 +1697,22 @@ final class ScaffoldUpgradeRunner
                 $applicationFiles[$file['path']] = $file;
             }
         }
+        $installationSources = $this->hasRuntimeState($root) ? ($application['installation_migrations'] ?? []) : [];
+        foreach ($installationSources as $path => $digest) {
+            $current = $this->regularFileState(ScaffoldPathGuard::projectPath($root, $path), $path);
+            if (!$current['present'] || $current['sha256'] !== $digest) {
+                throw new RuntimeException('SCAFFOLD_INSTALLATION_SOURCE_CHANGED: ' . $path);
+            }
+            if (($applicationFiles[$path]['classification'] ?? null) === 'app-owned') {
+                unset($old[$path], $new[$path]);
+            }
+        }
         $renamedFrom = [];
         $renamedTo = [];
         foreach ($to->renames() as $rename) {
             $fromPath = (string) $rename['from'];
             $toPath = (string) $rename['to'];
+            if (isset($installationSources[$fromPath])) { continue; }
             $before = $old[$fromPath] ?? null;
             $after = $new[$toPath] ?? null;
             if ($before === null || $after === null || isset($old[$toPath]) || isset($new[$fromPath])
@@ -1758,6 +1790,10 @@ final class ScaffoldUpgradeRunner
             $projectPath = ScaffoldPathGuard::projectPath($root, $path);
             $current = $this->regularFileState($projectPath, $path);
             $instanceFile = $applicationFiles[$path] ?? null;
+            if (isset($installationSources[$path])) {
+                $actions[] = $this->action($path, $after ?? $before ?? [], 'omit', 'installation_source_retained', false, $current, null);
+                continue;
+            }
             if (($instanceFile['classification'] ?? null) === 'app-owned') {
                 $file = $after ?? $before ?? [];
                 $target = $after === null ? null : hash('sha256', $this->renderCurrentVersionArtifact($to, $after, $targetParameters, $versionContract));
@@ -2101,7 +2137,14 @@ final class ScaffoldUpgradeRunner
             }
             $key = (string) $entry['key'];
             $manifestPath = ScaffoldManifest::path($entry['manifest']);
-            if (isset($plugins[$key]) || !isset($files[$manifestPath])) {
+            if (isset($plugins[$key])) {
+                throw new RuntimeException('SCAFFOLD_TARGET_PLUGIN_LOCK_INVALID');
+            }
+            if (!isset($files[$manifestPath])) {
+                // Recorded locks include the APP's complete graph; only managed
+                // manifests belong to its upstream baseline. The live customer
+                // graph is validated separately by pluginProjection().
+                if ($manifest->isRecordedBaseline()) { continue; }
                 throw new RuntimeException('SCAFFOLD_TARGET_PLUGIN_LOCK_INVALID');
             }
             $moduleRoots = [];
@@ -2257,6 +2300,7 @@ final class ScaffoldUpgradeRunner
         ScaffoldManifest $release,
         array $parameters,
         array $versionContract,
+        ?array $development,
     ): array {
         $keys = [];
         foreach ($target as $key => $plugin) {
@@ -2371,6 +2415,10 @@ final class ScaffoldUpgradeRunner
             $preflight = new PackageCheck($stage, $this->targetModuleSchemaValidator($release, $stage));
             $modules = [];
             foreach ($projection['plugins'] as $key => $plugin) {
+                // A verified whole-template development source and unchanged
+                // managed baseline already fix these bytes independently of
+                // an immutable, independently issued Module package version.
+                $managedDevelopment = $development !== null && isset($managedUpstreamProofs[$key]);
                 foreach ($plugin['module_keys'] as $moduleKey) {
                     if (isset($modules[$moduleKey])) {
                         throw new RuntimeException('SCAFFOLD_PLUGIN_MODULE_OWNERSHIP_CONFLICT');
@@ -2380,16 +2428,19 @@ final class ScaffoldUpgradeRunner
                     if (in_array($key, $keys, true) && isset($current['plugins'][$key])) {
                         $oldManifest = json_decode((string) file_get_contents($root . '/' . $inspection['backend_relative'] . '/module.json'), true, 64, JSON_THROW_ON_ERROR);
                         $oldVersion = (string) ($oldManifest['version'] ?? '');
-                        $oldDigest = hash_file('sha256', $root . '/' . $inspection['backend_relative'] . '/module.json');
-                        $oldFrontend = \app\platform\value\plugin\ModuleFrontendLayout::contributions($oldManifest['frontend'] ?? [], $moduleKey);
-                        $oldRoots = [$inspection['backend_relative'], ...array_column($oldFrontend, 'root')];
-                        $targetRoots = [$inspection['backend_relative'], ...array_column($inspection['frontend_contributions'], 'root')];
-                        $changed = $this->pluginSourceFiles($root, $oldRoots) !== $this->pluginSourceFiles($stage, $targetRoots);
-                        if (version_compare($inspection['version'], $oldVersion) < 0
-                            || ($changed && version_compare($inspection['version'], $oldVersion) <= 0)
-                            || ($inspection['version'] === $oldVersion
-                                && $oldDigest !== hash_file('sha256', $stage . '/' . $inspection['backend_relative'] . '/module.json'))) {
+                        $comparison = version_compare($inspection['version'], $oldVersion);
+                        if ($comparison < 0) {
                             throw new RuntimeException('SCAFFOLD_OFFICIAL_MODULE_VERSION_IDENTITY_CONFLICT: ' . $moduleKey);
+                        }
+                        if (!$managedDevelopment && $comparison === 0) {
+                            $oldDigest = hash_file('sha256', $root . '/' . $inspection['backend_relative'] . '/module.json');
+                            $oldFrontend = \app\platform\value\plugin\ModuleFrontendLayout::contributions($oldManifest['frontend'] ?? [], $moduleKey);
+                            $oldRoots = [$inspection['backend_relative'], ...array_column($oldFrontend, 'root')];
+                            $targetRoots = [$inspection['backend_relative'], ...array_column($inspection['frontend_contributions'], 'root')];
+                            if ($this->pluginSourceFiles($root, $oldRoots) !== $this->pluginSourceFiles($stage, $targetRoots)
+                                || $oldDigest !== hash_file('sha256', $stage . '/' . $inspection['backend_relative'] . '/module.json')) {
+                                throw new RuntimeException('SCAFFOLD_OFFICIAL_MODULE_VERSION_IDENTITY_CONFLICT: ' . $moduleKey);
+                            }
                         }
                     }
                 }
@@ -2400,7 +2451,7 @@ final class ScaffoldUpgradeRunner
                         }
                     }
                     $installed = $current['plugins'][$key] ?? null;
-                    if (is_array($installed) && version_compare($plugin['version'], $installed['version']) === 0
+                    if (!$managedDevelopment && is_array($installed) && version_compare($plugin['version'], $installed['version']) === 0
                         && $plugin['manifest_sha256'] !== $installed['manifest_sha256']) {
                         throw new RuntimeException('SCAFFOLD_OFFICIAL_VERSION_IDENTITY_CONFLICT: ' . $key);
                     }
@@ -3073,10 +3124,12 @@ final class ScaffoldUpgradeRunner
                 }
                 $ownershipTransition = ($action['reason'] ?? null) === 'recipe_ownership_transition_required'
                     && ($action['target_sha256'] ?? null) === null;
-                $action['action'] = $ownershipTransition || $upstreamRemoved ? 'omit' : 'preserve';
+                $missingPreserved = ($action['current']['present'] ?? null) === false;
+                $action['action'] = $ownershipTransition || $upstreamRemoved || $missingPreserved ? 'omit' : 'preserve';
                 $action['reason'] = $ownershipTransition
                     ? 'recipe_ownership_transition_confirmed'
-                    : ($upstreamRemoved ? 'upstream_removed_preserve_confirmed' : 'conflict_preserve_confirmed');
+                    : ($upstreamRemoved ? 'upstream_removed_preserve_confirmed'
+                        : ($missingPreserved ? 'missing_file_preserve_confirmed' : 'conflict_preserve_confirmed'));
                 $action['conflict'] = false;
                 continue;
             }
@@ -3342,7 +3395,33 @@ final class ScaffoldUpgradeRunner
         if (preg_match('/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:[-+][0-9A-Za-z.-]+)?$/D', (string) $version) !== 1) {
             throw new RuntimeException('SCAFFOLD_APPLICATION_VERSION_INVALID');
         }
+        $this->installationSnapshot($data);
         return [$data, 'sha256:' . hash('sha256', (string) $raw)];
+    }
+
+    /** Installation source bytes, never evidence that a database migration ran. */
+    private function installationSnapshot(array $application): array
+    {
+        $snapshot = array_key_exists('installation_migrations', $application) ? $application['installation_migrations'] : [];
+        if (!is_array($snapshot)) { throw new RuntimeException('SCAFFOLD_INSTALLATION_SNAPSHOT_INVALID'); }
+        $files = array_column($application['files'], null, 'path');
+        foreach ($snapshot as $path => $digest) {
+            if (!is_string($path) || !is_string($digest) || preg_match('/^[a-f0-9]{64}$/D', $digest) !== 1
+                || preg_match('#^server/database/(?:installation|migrations|schema|seeds)/#D', ScaffoldManifest::path($path)) !== 1
+                || !isset($files[$path])) {
+                throw new RuntimeException('SCAFFOLD_INSTALLATION_SNAPSHOT_INVALID');
+            }
+            $file = $files[$path];
+            if (in_array($file['classification'] ?? null, ['managed', 'generated-managed'], true)) {
+                if (($file['baseline_sha256'] ?? null) !== $digest) {
+                    throw new RuntimeException('SCAFFOLD_INSTALLATION_SNAPSHOT_INVALID');
+                }
+            } elseif (($file['classification'] ?? null) !== 'app-owned' || ($file['sha256'] ?? null) !== $digest
+                || ($file['owner'] ?? null) !== 'application' || ($file['source'] ?? null) !== $path) {
+                throw new RuntimeException('SCAFFOLD_INSTALLATION_SNAPSHOT_INVALID');
+            }
+        }
+        return $snapshot;
     }
 
     private function legacyApplicationVersion(string $root): string
@@ -3418,7 +3497,7 @@ final class ScaffoldUpgradeRunner
         return ['files' => $files, 'digest' => 'sha256:' . hash('sha256', self::canonicalJson($files))];
     }
 
-    private function loadPlan(string $root, string $path): array
+    private function loadPlan(string $root, string $path, bool $validateTarget = true): array
     {
         $resolved = ScaffoldPathGuard::existingFileWithin($root, $path, 'SCAFFOLD_PLAN_PATH_INVALID');
         $data = json_decode((string) file_get_contents($resolved), true, 512, JSON_THROW_ON_ERROR);
@@ -3431,12 +3510,17 @@ final class ScaffoldUpgradeRunner
             || (isset($data['plan_sha256']) && !hash_equals('sha256:' . $digest, (string) $data['plan_sha256']))) {
             throw new RuntimeException('SCAFFOLD_PLAN_CHECKSUM_DRIFT');
         }
+        if (!is_array($data['app_owned_pre_state'] ?? null)
+            || !hash_equals($data['identity']['app_owned_pre_sha256'],
+                'sha256:' . hash('sha256', self::canonicalJson($data['app_owned_pre_state'])))) {
+            throw new RuntimeException('SCAFFOLD_PLAN_CHECKSUM_DRIFT');
+        }
         $developmentKeys = [isset($data['identity']['source_selection']['source_checkout'])
             || (($data['identity']['source_selection']['source_identity']['kind'] ?? null) === 'local'),
             isset($data['identity']['development_source']), isset($data['identity']['source_relation'])];
         if (in_array(true, $developmentKeys, true)) {
             if (in_array(false, $developmentKeys, true)) { throw new RuntimeException('SCAFFOLD_DEVELOPMENT_PLAN_BINDING_CHANGED'); }
-            $this->planTarget($root, $data);
+            if ($validateTarget) { $this->planTarget($root, $data); }
         }
         $expectedStatus = count(array_filter($data['actions'], static fn(array $action): bool => ($action['conflict'] ?? null) === true)) === 0
             && !$this->moduleCompatibilityBlocked($data['identity']['plugin_target'] ?? null)
@@ -3557,6 +3641,10 @@ final class ScaffoldUpgradeRunner
             || ScaffoldSourceIdentity::from($application['template'] ?? []) !== $to->sourceIdentity()
             || ($application['application']['version'] ?? null) !== $plan['identity']['application_version']
             || ($application['generation_source'] ?? null) !== ($plan['identity']['target_generation_source'] ?? null)
+            || (isset($plan['identity']['target_template_package'])
+                && ($application['template_package'] ?? null) !== $plan['identity']['target_template_package'])
+            || (isset($plan['identity']['target_installation_migrations'])
+                && ($application['installation_migrations'] ?? null) !== $plan['identity']['target_installation_migrations'])
             || ($application['edition'] ?? null) !== ($plan['identity']['edition'] ?? null)) {
             throw new RuntimeException('SCAFFOLD_VERIFY_APPLICATION_IDENTITY_MISMATCH');
         }
@@ -3578,9 +3666,15 @@ final class ScaffoldUpgradeRunner
                 || array_intersect(['baseline_path', 'baseline_sha256', 'baseline_mode'], array_keys($entry[0])) !== []) {
                 throw new RuntimeException('SCAFFOLD_VERIFY_RETAINED_OWNERSHIP_MISMATCH: ' . $path);
             }
-            unset($originalAppOwned[$path]);
+            if (!array_key_exists($path, $plan['app_owned_pre_state'])) {
+                unset($originalAppOwned[$path]);
+            }
         }
-        if (!hash_equals($plan['identity']['app_owned_pre_sha256'], 'sha256:' . hash('sha256', self::canonicalJson($originalAppOwned)))) {
+        $expectedAppOwned = $plan['app_owned_pre_state'];
+        foreach ($this->adoptedApplicationPaths($plan) as $path => $_) {
+            unset($expectedAppOwned[$path]);
+        }
+        if ($originalAppOwned !== $expectedAppOwned) {
             throw new RuntimeException('SCAFFOLD_VERIFY_APP_OWNED_CHANGED');
         }
         foreach ($application['files'] as $file) {
@@ -3598,13 +3692,15 @@ final class ScaffoldUpgradeRunner
     }
 
     /** Rebuild the plan from its immutable manifests so edited actions cannot claim another ownership class or path. */
-    private function assertPlanRebound(string $root, array $plan): void
+    private function assertPlanRebound(string $root, array $plan): ScaffoldManifest
     {
-        $expected = $this->preview(
+        $to = null;
+        $expected = $this->previewSource(
             $root,
             (string) $plan['manifest_paths']['from'],
             (string) $plan['manifest_paths']['to'],
             $plan['identity']['source_selection'] ?? null,
+            $to,
         );
         if (isset($plan['resolution'])) {
             $resolution = $plan['resolution'];
@@ -3626,6 +3722,7 @@ final class ScaffoldUpgradeRunner
             || !hash_equals((string) $expected['plan_sha256'], (string) ($plan['plan_sha256'] ?? ''))) {
             throw new RuntimeException('SCAFFOLD_PLAN_MANIFEST_REBIND_FAILED');
         }
+        return $to;
     }
 
     private function ledger(string $root): ScaffoldUpgradeLedger
@@ -3776,6 +3873,7 @@ final class ScaffoldUpgradeRunner
     {
         [$application] = $this->applicationManifest($root);
         $retained = $this->retainedUpstreamDeletions($root, $plan);
+        $adopted = $this->adoptedApplicationPaths($plan);
         $oldByPath = [];
         foreach ($application['files'] as $file) {
             $oldByPath[$file['path']] = $file;
@@ -3783,7 +3881,8 @@ final class ScaffoldUpgradeRunner
         $managedPaths = array_column($plan['actions'], 'path');
         $files = [];
         foreach ($application['files'] as $file) {
-            if (!in_array($file['classification'], ['managed','generated-managed'], true)) {
+            if (!in_array($file['classification'], ['managed','generated-managed'], true)
+                && !isset($retained[$file['path']]) && !isset($adopted[$file['path']])) {
                 $state = $this->regularFileState(ScaffoldPathGuard::projectPath($root, $file['path']), $file['path']);
                 $file['sha256'] = $state['sha256'];
                 $file['mode'] = $state['mode'];
@@ -3816,6 +3915,19 @@ final class ScaffoldUpgradeRunner
         $application['template'] = ['version' => $to->version(),'inventory_sha256' => $to->release()['inventory_sha256'],
             ...ScaffoldSourceIdentity::fields($to->sourceIdentity())];
         $application['generation_source'] = $plan['identity']['target_generation_source'];
+        if (isset($plan['identity']['target_installation_migrations'])) {
+            $application['installation_migrations'] = $plan['identity']['target_installation_migrations'];
+        }
+        if (isset($plan['identity']['target_template_package'])) {
+            $application['template_package'] = $plan['identity']['target_template_package'];
+            if (isset($to->data['internal_core_projection'])) {
+                $application['scaffold_candidate'] = ['manifest_sha256' => substr($to->digest(), 7),
+                    'core_inputs_sha256' => $to->data['internal_core_projection']['core_inputs_sha256'],
+                    'formal_release_eligible' => false];
+            } else {
+                unset($application['scaffold_candidate']);
+            }
+        }
         $edition = $plan['identity']['edition'] ?? null;
         if (is_array($edition)) {
             $application['edition'] = $edition;
@@ -3838,15 +3950,30 @@ final class ScaffoldUpgradeRunner
         return $application;
     }
 
-    /** A confirmed local retention has no incoming bytes or new upstream baseline. */
+    /** Only explicitly confirmed replacements may transfer an existing application path back to managed ownership. */
+    private function adoptedApplicationPaths(array $plan): array
+    {
+        $paths = [];
+        foreach ($plan['actions'] as $action) {
+            if (array_key_exists($action['path'], $plan['app_owned_pre_state'])
+                && ($action['reason'] ?? null) === 'conflict_replace_confirmed'
+                && in_array($action['action'], ['replace', 'regenerate', 'rename'], true)) {
+                $paths[$action['path']] = true;
+            }
+        }
+        return $paths;
+    }
+
+    /** Retained application paths, including confirmed absences, have no incoming bytes or new upstream baseline. */
     private function retainedUpstreamDeletions(string $root, array $plan): array
     {
         $paths = [];
         foreach ($plan['actions'] as $action) {
             if (($action['action'] ?? null) === 'omit'
-                && in_array($action['reason'] ?? null, ['upstream_removed_preserve_confirmed', 'conflict_upstream_delete_confirmed'], true)) {
+                && in_array($action['reason'] ?? null, ['upstream_removed_preserve_confirmed', 'conflict_upstream_delete_confirmed', 'installation_source_retained', 'missing_file_preserve_confirmed'], true)) {
                 $this->assertActionFresh($root, $action);
-                if ($action['current']['present']) {
+                if ($action['current']['present']
+                    || in_array($action['reason'], ['upstream_removed_preserve_confirmed', 'missing_file_preserve_confirmed'], true)) {
                     $paths[$action['path']] = true;
                 }
             }

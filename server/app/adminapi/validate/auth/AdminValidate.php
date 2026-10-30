@@ -89,7 +89,10 @@ class AdminValidate extends Validate
             ->remove('account', 'require')
             ->remove('name', 'require')
             ->remove('role_id', 'array')
-            ->append('role_id', 'integer|gt:0');
+            ->append('role_id', [static fn(mixed $value): bool => $value === null || $value === ''
+                || ((is_int($value) || is_string($value))
+                    && preg_match('/^[1-9][0-9]*$/D', (string) $value) === 1
+                    && filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) !== false)]);
     }
 
     public function sceneAdd(): self

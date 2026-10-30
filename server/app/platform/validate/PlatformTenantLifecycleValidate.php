@@ -16,8 +16,8 @@ final class PlatformTenantLifecycleValidate extends Validate
         'owner_email' => 'require|email|max:255',
         'initial_password' => 'passwordPolicy',
         'owner_display_name' => 'require|max:190',
-        'tenant_id' => 'require|integer|gt:0',
-        'expected_revision' => 'require|integer|gt:0',
+        'tenant_id' => 'require|positiveInteger',
+        'expected_revision' => 'require|positiveInteger',
         'change_reason' => 'require|max:500',
     ];
 
@@ -33,4 +33,11 @@ final class PlatformTenantLifecycleValidate extends Validate
         'suspend' => ['tenant_id', 'expected_revision', 'change_reason'],
         'close' => ['tenant_id', 'expected_revision', 'change_reason'],
     ];
+
+    protected function positiveInteger(mixed $value): bool
+    {
+        return (is_int($value) || is_string($value))
+            && preg_match('/^[1-9][0-9]*$/D', (string) $value) === 1
+            && filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) !== false;
+    }
 }

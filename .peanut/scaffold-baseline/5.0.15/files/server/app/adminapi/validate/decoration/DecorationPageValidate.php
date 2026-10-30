@@ -9,11 +9,11 @@ use think\Validate;
 class DecorationPageValidate extends Validate
 {
     protected $rule = [
-        'id' => 'require|integer|gt:0',
-        'type' => 'require|in:1,2,3,4,5',
+        'id' => 'require|positiveId',
+        'type' => 'require|pageType',
         'data' => 'require|array',
         'meta' => 'array',
-        'limit' => 'integer|between:1,100',
+        'limit' => 'articleLimit',
     ];
     protected $message = [
         'id.require' => '装修页面不能为空',
@@ -29,4 +29,21 @@ class DecorationPageValidate extends Validate
         'save' => ['id', 'type', 'data', 'meta'],
         'article' => ['limit'],
     ];
+
+    protected function positiveId(mixed $value): bool
+    {
+        return (is_int($value) || (is_string($value) && preg_match('/^[1-9][0-9]*$/D', $value) === 1))
+            && filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) !== false;
+    }
+
+    protected function pageType(mixed $value): bool
+    {
+        return in_array($value, [1, 2, 3, 4, 5, '1', '2', '3', '4', '5'], true);
+    }
+
+    protected function articleLimit(mixed $value): bool
+    {
+        return (is_int($value) || is_string($value))
+            && filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 100]]) !== false;
+    }
 }

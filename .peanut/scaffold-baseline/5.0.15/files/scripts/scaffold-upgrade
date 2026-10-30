@@ -188,7 +188,6 @@ foreach ([
     '/server/app/platform/infrastructure/plugin/PluginArtifactWriter.php',
     '/server/app/platform/validation/module/ModulePublicSurfacePolicy.php',
     '/server/app/platform/validation/module/OpisManifestSchemaValidator.php',
-    '/server/app/platform/validation/module/StrictVersionConstraintMatcher.php',
     '/server/app/common/module/PackageCheck.php',
 ] as $source) {
     require_once $root . $source;

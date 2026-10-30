@@ -6,7 +6,6 @@ namespace PeanutAdmin\Modules\Identity\access\Infrastructure;
 
 use PeanutAdmin\DataPermission\Constraint\ExistsByContract;
 use PeanutAdmin\DataPermission\Constraint\TargetSetConstraintApplier;
-use PeanutAdmin\DataPermission\Exception\DataAuthorizationException;
 use PeanutAdmin\Modules\Identity\DataPermission\Model\DataPermissionTargetRecord;
 use think\db\BaseQuery;
 use think\db\Query;
@@ -16,9 +15,6 @@ final readonly class ThinkPhpTargetSetConstraintApplier implements TargetSetCons
 {
     public function apply(BaseQuery $query, ExistsByContract $constraint): void
     {
-        if ($constraint->contractKey !== 'data_permission.target-set') {
-            throw new DataAuthorizationException('AUTHZ_CONSTRAINT_UNSUPPORTED', 'The EXISTS contract is not registered.');
-        }
         $outerColumn = $constraint->outerColumn->value;
         $targetTable = (new DataPermissionTargetRecord())->getTable();
         $subquery = (new Query($query->getConnection()))

@@ -406,6 +406,13 @@ final class FileAdministrationService implements FileAdministration
 
     private function normalizeIds(array $ids): array
     {
+        foreach ($ids as $id) {
+            if ((!is_int($id) && !(is_string($id) && preg_match('/^[1-9][0-9]*$/D', $id) === 1))
+                || filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false
+            ) {
+                throw new \InvalidArgumentException('素材 ID 无效');
+            }
+        }
         return PositiveIds::normalize(
             $ids,
             [PositiveIds::REJECT_INVALID, PositiveIds::REQUIRE_NON_EMPTY],

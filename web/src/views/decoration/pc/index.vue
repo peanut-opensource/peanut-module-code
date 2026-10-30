@@ -23,7 +23,7 @@
                   <template v-if="banner.content.enabled === 1">
                     <img
                       v-if="activePreviewItem?.image"
-                      :src="activePreviewItem.image"
+                      :src="images.preview(activePreviewItem.image)"
                       alt="Banner 预览"
                     />
                     <div v-else class="banner-placeholder">
@@ -83,12 +83,16 @@
                 <el-form :model="item" label-position="top">
                   <el-form-item label="图片">
                     <div class="image-field">
-                      <img v-if="item.image" :src="item.image" alt="Banner" />
+                      <img
+                        v-if="item.image"
+                        :src="images.preview(item.image)"
+                        alt="Banner"
+                      />
                       <FilePicker
                         :type="10"
                         :limit="1"
                         button-text="选择图片"
-                        @select="(urls) => setImage(item, urls)"
+                        @select="(urls, files) => setImage(item, urls, files)"
                       />
                     </div>
                   </el-form-item>
@@ -103,7 +107,15 @@
                         @change="ensureQuery(item)"
                       >
                         <el-option label="站内页面" value="shop" />
-                        <el-option label="文章" value="article" />
+                        <el-option
+                          :label="
+                            articleOptions.length
+                              ? '文章'
+                              : '文章（暂无可选项）'
+                          "
+                          value="article"
+                          :disabled="articleOptions.length === 0"
+                        />
                         <el-option label="自定义链接" value="custom" />
                         <el-option label="小程序" value="mini_program" />
                       </el-select>
@@ -180,7 +192,7 @@
               </el-form>
               <el-space class="actions">
                 <el-button
-                  v-permission="['decoration/pc/page/save']"
+                  v-permission="['peanut.settings.manage']"
                   type="primary"
                   :loading="submitLoading"
                   @click="handleSubmit"
@@ -200,6 +212,8 @@
   import { computed, reactive, ref } from 'vue';
   import { ElMessage } from 'element-plus';
   import FilePicker from '@/components/file-picker/index.vue';
+  import usePublicImageReferences from '@/hooks/public-image-references';
+  import type { FileRecord } from '@/modules/peanut-file/api';
   import {
     getPcDecorationLists,
     getPcDecorationDetail,
@@ -214,6 +228,7 @@
   const loading = ref(true);
   const submitLoading = ref(false);
   const articleOptions = ref<DecorationArticleOption[]>([]);
+  const images = usePublicImageReferences();
   const previewIndex = ref(0);
   const page = reactive<DecorationPage>({
     id: 0,
@@ -269,6 +284,7 @@
       }
       const { data } = await getPcDecorationDetail(summary.id);
       Object.assign(page, data);
+      images.replace(data.resource_urls);
       normalizeItems();
       previewIndex.value = 0;
     } finally {
@@ -291,8 +307,12 @@
     items.value.splice(index, 1);
     previewIndex.value = Math.min(previewIndex.value, items.value.length - 1);
   };
-  const setImage = (item: DecorationItem, urls: string[]) => {
-    item.image = urls[0] || '';
+  const setImage = (
+    item: DecorationItem,
+    urls: string[],
+    files: FileRecord[]
+  ) => {
+    item.image = images.select(urls, files, item.image);
   };
   const handleSubmit = async () => {
     if (

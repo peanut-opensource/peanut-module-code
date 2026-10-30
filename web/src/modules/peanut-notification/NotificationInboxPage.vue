@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { onBeforeUnmount, provide } from 'vue';
+  import { useRoute } from 'vue-router';
   import { hasPermission } from '@/hooks/permission';
   import { tenantSessionFetch } from '@/api/tenant-session-fetch';
   import InboxPage from './optional-runtime/src/NotificationInboxPage.vue';
@@ -11,6 +12,7 @@
     notificationRuntimeKey,
   } from './optional-runtime/src';
 
+  const route = useRoute();
   const baseUrl = new URL(
     import.meta.env.VITE_API_BASE_URL || '/',
     window.location.origin
@@ -20,8 +22,8 @@
       baseUrl,
       fetch: tenantSessionFetch,
     }),
-    canRead: () => hasPermission(NOTIFICATION_SMS_READ_PERMISSION),
-    canManage: () => hasPermission(NOTIFICATION_SMS_MANAGE_PERMISSION),
+    canRead: () => hasPermission(NOTIFICATION_SMS_READ_PERMISSION, route.path),
+    canManage: () => hasPermission(NOTIFICATION_SMS_MANAGE_PERMISSION, route.path),
   });
 
   provide(notificationRuntimeKey, runtime);

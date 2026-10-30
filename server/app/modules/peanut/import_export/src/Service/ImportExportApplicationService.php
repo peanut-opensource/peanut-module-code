@@ -9,6 +9,7 @@ use PeanutAdmin\Modules\ImportExport\Contract\Dto\CsvExportOperation;
 use PeanutAdmin\Modules\ImportExport\Contract\ImportExportCommands;
 use PeanutAdmin\Modules\ImportExport\Contract\ImportExportQueries;
 use PeanutAdmin\Modules\ImportExport\Engine\Application\ImportExportService;
+use PeanutAdmin\Modules\ImportExport\Engine\Application\OperationRecord;
 use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 
 final readonly class ImportExportApplicationService implements ImportExportCommands, ImportExportQueries
@@ -56,7 +57,7 @@ final readonly class ImportExportApplicationService implements ImportExportComma
     {
         $result = $this->service->list($context, $status, $page, $pageSize);
         return [
-            'items' => array_map(fn(object $item): AsyncExportOperation => $this->toOperation($item), $result['items']),
+            'items' => array_map(fn(OperationRecord $item): AsyncExportOperation => $this->toOperation($item), $result['items']),
             'page' => $result['page'],
             'page_size' => $result['page_size'],
             'total' => $result['total'],
@@ -81,10 +82,30 @@ final readonly class ImportExportApplicationService implements ImportExportComma
         return $this->toOperation($this->service->resultFile($context, $fileKey));
     }
 
-    private function toOperation(object $operation): AsyncExportOperation
+    private function toOperation(OperationRecord $operation): AsyncExportOperation
     {
-        /** @var array<string,mixed> $payload */
-        $payload = $operation->toPublicArray();
-        return AsyncExportOperation::fromPublicArray($payload);
+        return new AsyncExportOperation(
+            operationKey: $operation->operationKey,
+            providerKey: $operation->providerKey,
+            direction: $operation->direction,
+            format: 'csv',
+            status: $operation->status,
+            inputFileKey: $operation->inputFileKey,
+            resultFileKey: $operation->resultFileKey,
+            errorFileKey: $operation->errorFileKey,
+            taskJobKey: $operation->taskJobKey,
+            schemaRevision: $operation->schemaRevision,
+            mapping: $operation->mapping,
+            processedRows: $operation->processedRows,
+            acceptedRows: $operation->acceptedRows,
+            rejectedRows: $operation->rejectedRows,
+            totalRows: $operation->totalRows,
+            revision: $operation->revision,
+            lastErrorCode: $operation->lastErrorCode,
+            retentionUntil: $operation->retentionUntil,
+            createdAt: $operation->createdAt,
+            updatedAt: $operation->updatedAt,
+            completedAt: $operation->completedAt,
+        );
     }
 }

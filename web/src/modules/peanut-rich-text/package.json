@@ -12,6 +12,8 @@
     "./file-picker": "./src/file-picker.ts"
   },
   "dependencies": {
+    "@peanut-admin/peanut-content-tools": "workspace:*",
+    "@peanut-admin/peanut-file": "workspace:*",
     "@hocuspocus/provider": "4.6.0",
     "@tiptap/core": "3.30.5",
     "@tiptap/extension-collaboration": "3.30.5",

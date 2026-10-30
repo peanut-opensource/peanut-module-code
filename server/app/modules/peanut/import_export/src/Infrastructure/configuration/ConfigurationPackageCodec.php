@@ -15,14 +15,12 @@ final class ConfigurationPackageCodec
     public const SCHEMA_VERSION = 1;
 
     public const ADAPTER_TENANT_SETTINGS = 'tenant-settings';
-    public const ADAPTER_TENANT_MODULES = 'tenant-modules';
     public const ADAPTER_EXTERNAL_BINDINGS = 'external-bindings';
     public const ADAPTER_CORE_SETTINGS = 'core-settings';
 
     /** @var list<string> */
     public const ADAPTERS = [
         self::ADAPTER_TENANT_SETTINGS,
-        self::ADAPTER_TENANT_MODULES,
         self::ADAPTER_EXTERNAL_BINDINGS,
         self::ADAPTER_CORE_SETTINGS,
     ];

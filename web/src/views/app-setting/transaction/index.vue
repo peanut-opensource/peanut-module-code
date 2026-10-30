@@ -72,7 +72,12 @@
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" native-type="submit" :loading="saving">
+          <el-button
+            v-permission="['peanut.settings.manage']"
+            type="primary"
+            native-type="submit"
+            :loading="saving"
+          >
             {{ $t('transaction.save') }}
           </el-button>
         </el-form-item>

@@ -28,8 +28,8 @@
     SurfaceCapabilities,
     SurfaceIntent,
     ContentCollaborationBinding,
-  } from '@/modules/peanut-content-tools/src/contracts';
-  import type ContentToolRegistry from '@/modules/peanut-content-tools/src/registry';
+  } from '@peanut-admin/peanut-content-tools/surface';
+  import type { ContentToolRegistry } from '@peanut-admin/peanut-content-tools/surface';
   import RichTextEditor from './RichTextEditor.vue';
   import type { RichTextDocumentValue } from '../src/document';
 

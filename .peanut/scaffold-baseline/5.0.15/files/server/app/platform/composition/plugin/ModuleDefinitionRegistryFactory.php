@@ -7,8 +7,6 @@ namespace app\platform\composition\plugin;
 use app\common\infrastructure\module\ModuleHostLayoutFactory;
 use app\platform\infrastructure\plugin\PluginLockResolver;
 use app\platform\validation\module\OpisManifestSchemaValidator;
-use app\platform\validation\module\ReflectionContractInspector;
-use app\platform\validation\module\StrictVersionConstraintMatcher;
 use PeanutAdmin\Kernel\Idempotency\IdempotencySchema;
 use PeanutAdmin\Kernel\Migration\ModuleSchema;
 use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
@@ -190,8 +188,6 @@ final readonly class ModuleDefinitionRegistryFactory
         $reservedTableOwners = $this->historicalBusinessTableOwners();
         $compiler = new ModuleRegistryCompiler(
             new OpisManifestSchemaValidator($kernelRoot . '/resources/schemas/module-manifest.schema.json'),
-            new StrictVersionConstraintMatcher(),
-            new ReflectionContractInspector(),
             $kernelVersion,
             $this->frontendComponents($documents),
             $layout,

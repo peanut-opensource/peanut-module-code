@@ -1,11 +1,11 @@
 {
     "schema_version": 1,
     "key": "peanut.collaboration",
-    "version": "1.0.13",
+    "version": "1.0.14",
     "source": {
         "type": "canonical-contents",
         "reference": "canonical-plugin-contents-v1",
-        "sha256": "c774be22c8dae66576771410bc98e21b1fa40a2572c8c34da16be921ea265109"
+        "sha256": "197a062e9e40dbd2bc18914ce10f914beb19a9e388e8b643587d3eb128d41028"
     },
     "trust": {
         "channel": "bundled",
@@ -39,7 +39,7 @@
             "modules": [
                 {
                     "key": "peanut.collaboration",
-                    "version": "1.0.13",
+                    "version": "1.0.14",
                     "kernel_constraint": "^1.0",
                     "dependencies": [
                         {
@@ -70,8 +70,8 @@
     "composer": [
         {
             "name": "peanut-business/peanut-collaboration",
-            "version": "1.0.13",
-            "sha256": "a1f0ae0ba9d0c3133cdd27c8d8d75c4b189b082881ba423fa0758dd2338b6cc0"
+            "version": "1.0.14",
+            "sha256": "d58acc9b4c40b9d4f339320ce9f72a5c3f9032bd2f0b84dd5e4267b0a8086734"
         }
     ],
     "npm": [],

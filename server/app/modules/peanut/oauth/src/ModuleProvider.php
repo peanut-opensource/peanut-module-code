@@ -10,10 +10,9 @@ use PeanutAdmin\Modules\OAuth\Service\OAuthCommandService;
 use PeanutAdmin\Modules\OAuth\Contract\OAuthCallbackLocator;
 use PeanutAdmin\Modules\OAuth\Contract\OfficialAccountCallbacks;
 use PeanutAdmin\Modules\OAuth\Contract\OAuthCommands;
-use PeanutAdmin\Modules\OAuth\Contract\OAuthPersistence;
+use PeanutAdmin\Modules\OAuth\Infrastructure\Persistence\ThinkPhpOAuthPersistence;
 use PeanutAdmin\Modules\OAuth\Contract\OAuthQueries;
 use PeanutAdmin\Modules\OAuth\Infrastructure\Persistence\ThinkPhpOAuthCallbackLocator;
-use PeanutAdmin\Modules\OAuth\Infrastructure\Persistence\ThinkPhpOAuthPersistence;
 use app\common\infrastructure\oauth\WechatOAuthTransport;
 use PeanutAdmin\IntegrationSecurity\OAuth\OAuthTransport;
 use PeanutAdmin\Kernel\Module\ModuleProvider as ModuleProviderContract;
@@ -26,16 +25,10 @@ final class ModuleProvider implements ModuleProviderContract
         return 'peanut.oauth';
     }
 
-    public function queries(): OAuthQueries
-    {
-        return new OAuthQueryService(new ThinkPhpOAuthPersistence());
-    }
-
     public function bindings(): array
     {
         return [
             OAuthCallbackLocator::class => ThinkPhpOAuthCallbackLocator::class,
-            OAuthPersistence::class => ThinkPhpOAuthPersistence::class,
             OAuthTransport::class => WechatOAuthTransport::class,
             OfficialAccountCallbacks::class => \PeanutAdmin\Modules\OAuth\Service\OfficialAccountApplicationService::class,
             OAuthCommands::class => fn(App $app): OAuthCommands => new OAuthCommandService(
@@ -46,7 +39,7 @@ final class ModuleProvider implements ModuleProviderContract
                 $app->make(\app\common\persistence\AdvisoryLockExecution::class),
                 $app->make(\PeanutAdmin\Modules\Settings\Contract\TenantApplicationSettings::class),
                 $app->make(ExternalTenantResolutionService::class),
-                $app->make(OAuthPersistence::class),
+                $app->make(ThinkPhpOAuthPersistence::class),
                 $app->make(OAuthTransport::class),
                 (string) $app->config->get('project.default_image.user_avatar', ''),
             ),

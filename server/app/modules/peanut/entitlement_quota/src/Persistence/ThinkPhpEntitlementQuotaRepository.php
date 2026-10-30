@@ -6,6 +6,7 @@ namespace PeanutAdmin\Modules\EntitlementQuota\Persistence;
 
 use InvalidArgumentException;
 use PDO;
+use PeanutAdmin\Modules\EntitlementQuota\Application\EntitlementQuotaException;
 use PeanutAdmin\Modules\EntitlementQuota\Model\EntitlementGrant;
 use PeanutAdmin\Modules\EntitlementQuota\Model\EntitlementPolicyRevision;
 use PeanutAdmin\Modules\EntitlementQuota\Model\EntitlementReservation;
@@ -82,7 +83,7 @@ final readonly class ThinkPhpEntitlementQuotaRepository
                 ?? throw new RuntimeException('The entitlement grant could not be read back.');
         }
         if (!$grant->isActive()) {
-            throw new RuntimeException('The entitlement grant is suspended.');
+            throw EntitlementQuotaException::denied();
         }
 
         $policy = $this->policyRevision($tenantId, $policyRevisionKey, true);
@@ -138,7 +139,7 @@ final readonly class ThinkPhpEntitlementQuotaRepository
                     'updated_at' => $now,
                 ]);
             if ($updated !== 1) {
-                throw new RuntimeException('The entitlement grant revision has changed.');
+                throw EntitlementQuotaException::conflict();
             }
         }
 
@@ -207,7 +208,7 @@ final readonly class ThinkPhpEntitlementQuotaRepository
     ): EntitlementUsageWindow {
         $this->assertCallerOwnedTransaction();
         $policy = $this->policyRevisionById($tenantId, $policyRevisionId)
-            ?? throw new RuntimeException('The entitlement policy revision is unavailable.');
+            ?? throw EntitlementQuotaException::notFound();
         if ($policy->meterKey !== $meterKey
             || $windowStart < $policy->effectiveFrom
             || $windowEnd > $policy->effectiveUntil) {
@@ -285,9 +286,9 @@ final readonly class ThinkPhpEntitlementQuotaRepository
             throw new InvalidArgumentException('Entitlement reservation amounts must be positive integers.');
         }
         $window = $this->usageWindowById($tenantId, $usageWindowId, true)
-            ?? throw new RuntimeException('The entitlement usage window is unavailable.');
+            ?? throw EntitlementQuotaException::notFound();
         $policy = $this->policyRevisionById($tenantId, $window->policyRevisionId)
-            ?? throw new RuntimeException('The entitlement policy revision is unavailable.');
+            ?? throw EntitlementQuotaException::notFound();
         if ($policy->meterKey !== $window->meterKey || $policy->limitAmount !== $limitAmount) {
             throw new UnexpectedValueException('The entitlement usage window policy is inconsistent.');
         }
@@ -302,7 +303,7 @@ final readonly class ThinkPhpEntitlementQuotaRepository
             $amount,
         );
         if ($requiredAmount > $limitAmount) {
-            throw new RuntimeException('The entitlement quota capacity is exceeded.');
+            throw EntitlementQuotaException::exceeded();
         }
 
         try {
@@ -324,7 +325,7 @@ final readonly class ThinkPhpEntitlementQuotaRepository
             ]);
         } catch (PDOException $exception) {
             if ($this->isDuplicate($exception)) {
-                throw new RuntimeException('The entitlement reservation identity already exists.');
+                throw EntitlementQuotaException::conflict();
             }
             throw $exception;
         }
@@ -363,11 +364,11 @@ final readonly class ThinkPhpEntitlementQuotaRepository
         }
 
         $unlocked = $this->reservation($tenantId, $reservationKey)
-            ?? throw new RuntimeException('The entitlement reservation is unavailable.');
+            ?? throw EntitlementQuotaException::notFound();
         $window = $this->usageWindowById($tenantId, $unlocked->usageWindowId, true)
-            ?? throw new RuntimeException('The entitlement usage window is unavailable.');
+            ?? throw EntitlementQuotaException::notFound();
         $reservation = $this->reservation($tenantId, $reservationKey, true)
-            ?? throw new RuntimeException('The entitlement reservation is unavailable.');
+            ?? throw EntitlementQuotaException::notFound();
         if ($reservation->usageWindowId !== $window->id) {
             throw new UnexpectedValueException('The entitlement reservation window is inconsistent.');
         }
@@ -447,7 +448,7 @@ final readonly class ThinkPhpEntitlementQuotaRepository
                 'settled_at' => $now,
             ]);
         if ($updated !== 1) {
-            throw new RuntimeException('The entitlement reservation revision has changed.');
+            throw EntitlementQuotaException::conflict();
         }
         $this->appendLedger($reservation, $state, $memberId, $now);
     }

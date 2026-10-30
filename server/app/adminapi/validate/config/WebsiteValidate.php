@@ -8,6 +8,8 @@ use think\Validate;
 
 class WebsiteValidate extends Validate
 {
+    protected $must = ['default_avatar'];
+
     protected $rule = [
         'config' => 'array|checkCopyright',
         'service_title' => 'require|max:100',
@@ -15,7 +17,7 @@ class WebsiteValidate extends Validate
         'privacy_title' => 'require|max:100',
         'privacy_content' => 'max:200000',
         'clarity_code' => 'max:64|checkClarityId',
-        'default_avatar' => 'require|max:500',
+        'default_avatar' => 'string|max:500',
         'login_way' => 'require|array|checkLoginWay',
         'coerce_mobile' => 'require|in:0,1',
         'login_agreement' => 'require|in:0,1',
@@ -25,7 +27,7 @@ class WebsiteValidate extends Validate
 
     protected $message = [
         'config.array' => '备案配置格式错误',
-        'default_avatar.require' => '默认头像不能为空',
+        'default_avatar.string' => '默认头像必须是字符串，空字符串表示使用默认头像',
         'login_way.require' => '至少启用一种登录方式',
     ];
 
@@ -60,7 +62,7 @@ class WebsiteValidate extends Validate
             return '至少启用一种登录方式';
         }
         foreach ($value as $way) {
-            if (!in_array((int) $way, [1, 2], true)) {
+            if (!in_array($way, [1, 2, '1', '2'], true)) {
                 return '登录方式无效';
             }
         }

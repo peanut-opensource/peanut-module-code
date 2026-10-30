@@ -8,7 +8,6 @@ use DateTimeImmutable;
 use DateTimeZone;
 use JsonException;
 use PeanutAdmin\Kernel\Persistence\Tenancy\TenantColumnScope;
-use PeanutAdmin\Kernel\Persistence\Tenancy\TenantPersistenceMode;
 use PeanutAdmin\Modules\Task\Contract\JobRecord;
 use PeanutAdmin\Modules\Task\Job\Application\TaskJobException;
 use PeanutAdmin\Modules\Task\Job\Execution\JobClaim;
@@ -24,12 +23,9 @@ final class TaskJobStore
 {
     private TenantColumnScope $tenantScope;
 
-    public function __construct(
-        TenantPersistenceMode $mode = TenantPersistenceMode::TenantScoped,
-        ?int $instanceTenantId = null,
-    ) {
-        $this->tenantScope = new TenantColumnScope($mode, $instanceTenantId);
-        $this->tenantScope->assertRuntimeConfigured();
+    public function __construct()
+    {
+        $this->tenantScope = new TenantColumnScope();
     }
 
     public function enqueue(
@@ -637,9 +633,7 @@ final class TaskJobStore
             'task_job_event' => TaskJobEventRecord::where([]),
             default => throw TaskJobException::internal(),
         };
-        if ($this->tenantScope->usesTenantColumn()) {
-            $query->where('tenant_id', $tenantId);
-        }
+        $query->where('tenant_id', $tenantId);
 
         return $query;
     }
@@ -651,7 +645,7 @@ final class TaskJobStore
     {
         $this->tenantScope->assertTenantId($tenantId);
 
-        return $this->tenantScope->usesTenantColumn() ? ['tenant_id' => $tenantId, ...$data] : $data;
+        return ['tenant_id' => $tenantId, ...$data];
     }
 
     private function assertStorageMode(): void

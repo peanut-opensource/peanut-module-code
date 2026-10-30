@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-const API_CONTRACT_GENERATOR_VERSION = '3';
+const API_CONTRACT_GENERATOR_VERSION = '4';
 
 $toolRoot = dirname(__DIR__);
 $repositoryRoot = $toolRoot;
@@ -218,6 +218,7 @@ function hostMetadataFiles(string $repositoryRoot): array
             'server/app/api/metadata/application/shared.php',
             'server/app/api/metadata/application/adminapi.php',
             'server/app/api/metadata/application/platform.php',
+            'server/app/api/metadata/application/permission-bundles.php',
             'server/app/api/metadata/application/installation.php',
         ],
     );
@@ -483,6 +484,14 @@ function buildCatalog(string $repositoryRoot, array $contract, array $inventory)
         $key = routeKey((string) $endpoint['method'], (string) $endpoint['path']);
         $operation = $documented[$key] ?? null;
         [$auth, $permissions] = accessMetadata($endpoint, $exceptions[$key] ?? null);
+        $endpointKeys = array_values(array_unique(array_column(array_filter($permissions,
+            static fn(array $permission): bool => in_array($permission['kind'], ['tenant_action', 'platform_action'], true)), 'key')));
+        $primary = $endpoint['permission'] ?? ($endpointKeys[0] ?? null);
+        if (count($endpointKeys) > 1 && (!is_string($endpoint['permission']) || !in_array($primary, $endpointKeys, true))) {
+            throw new RuntimeException('Conjunctive route permissions require an explicit primary peanut_permission: ' . $key);
+        }
+        $defaultKeys = in_array($auth['mode'], ['tenant_permission', 'platform_permission'], true) && is_string($primary) ? [$primary] : [];
+        $prerequisites = array_values(array_diff($endpointKeys, $defaultKeys));
         $errors = inferredErrors($auth, $permissions);
         if (is_array($operation)) {
             foreach (array_keys($operation['responses'] ?? []) as $status) {
@@ -522,14 +531,24 @@ function buildCatalog(string $repositoryRoot, array $contract, array $inventory)
             ];
         }
         $endpoints[] = [
+            // The API identity is independent from any permission bundle or client menu.
+            'api_id' => hash('sha256', strtoupper((string) $endpoint['method']) . ' ' . strtolower(openApiPath((string) $endpoint['path'])) . ' ' . (string) $endpoint['application']),
             'method' => $endpoint['method'],
             'path' => openApiPath((string) $endpoint['path']),
             'runtime_path' => $endpoint['path'],
             'application' => $endpoint['application'],
+            'audience' => match ($endpoint['application']) {
+                'adminapi' => 'tenant',
+                'platform' => 'platform',
+                'api' => 'member',
+                default => 'installation',
+            },
             'owner' => $endpoint['owner'],
             'controller' => $endpoint['controller'],
             'action' => $endpoint['action'],
             'auth' => $auth,
+            'default_permission_keys' => $defaultKeys,
+            'prerequisite_permission_keys' => $prerequisites,
             'permissions' => $permissions,
             'errors' => $errors,
             'middleware' => $endpoint['middleware'],
@@ -877,6 +896,16 @@ function accessMetadata(array $endpoint, ?string $exception): array
         $mode = 'installation_setup';
     }
 
+    // Explicit exceptions describe contextual business authorization and take
+    // precedence over the shared Auth middleware on their route group.
+    if (in_array($exception, ['public', 'platform_public'], true)
+        && in_array($mode, ['public', 'tenant_permission', 'tenant_session', 'platform_permission', 'platform_session'], true)) {
+        $mode = 'public';
+    } elseif (in_array($exception, ['authenticated', 'platform_authenticated'], true)) {
+        $mode = 'authenticated';
+        $permissions = array_values(array_filter($permissions, static fn(array $permission): bool => !in_array($permission['kind'], ['tenant_action', 'platform_action'], true)));
+    }
+
     return [[
         'mode' => $mode,
         'exception_registration' => $exception,
@@ -1012,7 +1041,7 @@ function writeModuleTypes(string $repositoryRoot, string $outputRoot, array $con
 
 function routeKey(string $method, string $path): string
 {
-    return strtoupper($method) . ' ' . openApiPath($path);
+    return strtoupper(trim($method)) . ' /' . strtolower(trim(openApiPath($path), '/'));
 }
 
 function openApiPath(string $path): string

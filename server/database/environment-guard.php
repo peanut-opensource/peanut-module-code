@@ -1657,10 +1657,8 @@ function assertCurrentDatabase(PDO $pdo): array
     $quotedMigrationTable = '`' . str_replace('`', '``', $migrationTable) . '`';
     $appliedVersions = array_map('strval', $pdo->query('SELECT version FROM ' . $quotedMigrationTable)->fetchAll(PDO::FETCH_COLUMN));
     $expectedVersions = [];
-    foreach (glob(__DIR__ . '/migrations/*.php') ?: [] as $file) {
-        if (\Phinx\Util\Util::isValidMigrationFileName(basename($file))) {
-            $expectedVersions[] = (string) \Phinx\Util\Util::getVersionFromFileName(basename($file));
-        }
+    foreach (\app\common\module\ModuleMigrationRun::sources([], dirname(__DIR__), true) as $source) {
+        $expectedVersions[] = $source['migration_key'];
     }
     if ($expectedVersions === [] || array_diff($expectedVersions, $appliedVersions) !== []) {
         throw new RuntimeException('数据库原生迁移尚未完成');

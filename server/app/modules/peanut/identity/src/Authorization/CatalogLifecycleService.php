@@ -15,6 +15,9 @@ use think\facade\Db;
  */
 final readonly class CatalogLifecycleService
 {
+    /** Owners reserved for the platform, host and instance, not Module lifecycle. */
+    public const NON_MODULE_OWNERS = ['core', 'platform', 'peanut.admin', 'instance.tenant', 'instance.platform', 'member', 'installation'];
+
     /**
      * 已授权部署清单的首次登记；重复只接受相同且活动的身份，不能借重装覆盖版本或复活停用项。
      * 目录应用仍由宿主编排；本方法参与其外层事务，不开放任意字段更新或表选择。
@@ -239,7 +242,7 @@ final readonly class CatalogLifecycleService
         $keys = [];
         foreach (['pa_permission', 'pa_protected_resource', 'pa_target_type', 'pa_data_condition_definition', 'pa_menu_definition'] as $table) {
             foreach (Db::table($table)->where('status', 'active')->distinct(true)->order('module_key')->column('module_key') as $key) {
-                if (!in_array((string) $key, ['core', 'platform'], true)) {
+                if (!in_array((string) $key, self::NON_MODULE_OWNERS, true)) {
                     $keys[(string) $key] = true;
                 }
             }
@@ -263,10 +266,12 @@ final readonly class CatalogLifecycleService
         $removed = [];
         $preserved = [];
         $blockers = $this->crossModuleBlockers($moduleKeys, $permissions, $targets, $conditions, $operations, !$purge);
+        $this->append($removed, 'pa_api_endpoint', 'soft_retire', $this->activeIds('pa_api_endpoint', $moduleKeys));
         if ($purge) {
             foreach ([
                 ['pa_role_permission', $this->roleBindingIds($permissions, false)],
                 ['pa_platform_role_permission', $this->roleBindingIds($permissions, true)],
+                ['pa_permission_api', $this->foreignIds('pa_permission_api', 'permission_id', $permissions)],
                 ['pa_menu_definition', $this->ids('pa_menu_definition', $moduleKeys)],
                 ['pa_resource_operation_permission', $this->foreignIds('pa_resource_operation_permission', 'resource_operation_id', $operations)],
                 ['pa_resource_operation_target_type', $this->foreignIds('pa_resource_operation_target_type', 'resource_operation_id', $operations)],
@@ -303,6 +308,11 @@ final readonly class CatalogLifecycleService
     {
         Db::transaction(function () use ($moduleKeys): void {
             $now = $this->now();
+            if ($moduleKeys !== []) {
+                Db::name('api_endpoint')->whereIn('module_key', $moduleKeys)->update([
+                    'status' => 'retired', 'retired_at' => $now, 'updated_at' => $now,
+                ]);
+            }
             $permissions = $this->ids('pa_permission', $moduleKeys);
             $resources = $this->ids('pa_protected_resource', $moduleKeys);
             $operations = $this->foreignIds('pa_resource_operation', 'protected_resource_id', $resources);
@@ -326,6 +336,11 @@ final readonly class CatalogLifecycleService
     public function purge(array $moduleKeys): void
     {
         Db::transaction(function () use ($moduleKeys): void {
+            if ($moduleKeys !== []) {
+                Db::name('api_endpoint')->whereIn('module_key', $moduleKeys)->update([
+                    'status' => 'retired', 'retired_at' => $this->now(), 'updated_at' => $this->now(),
+                ]);
+            }
             $permissions = $this->ids('pa_permission', $moduleKeys);
             $resources = $this->ids('pa_protected_resource', $moduleKeys);
             $targets = $this->ids('pa_target_type', $moduleKeys);
@@ -432,6 +447,8 @@ final readonly class CatalogLifecycleService
         sort($ids, SORT_STRING);
         if ($ids !== [] || $includeEmpty) {
             $resource = match ($table) {
+                'pa_api_endpoint' => 'api-endpoints',
+                'pa_permission_api' => 'permission-api-bindings',
                 'pa_permission' => 'permissions',
                 'pa_protected_resource' => 'protected-resources',
                 'pa_target_type' => 'target-types',

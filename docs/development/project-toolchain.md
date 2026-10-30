@@ -8,9 +8,13 @@
 - `.local/toolchain/host.json`：本机私有工具路径、解释器与 CLI 文件绑定、缓存路径及 release/backups/Core 目录设置。由 `tools/toolchain.local.example.json` 提供基础格式，不提交真实桌面路径或凭据。Core 参数可相对所选 Code 根输入，`core.php`/`core.web` 始终保存绝对路径，固定绑定实际 Core 位置，避免改变 Code 工作目录后按另一基准解析；`.local` 配置不随 Git 合并，新工作区须重新运行 `peanut config`，Code 根或 Core 目录位置变化后也须重新运行并指定当前 Core 位置。commands、caches、extra_path、watch_paths、release 和 backups 路径继续接受相对或绝对值，相对路径统一以 Code 项目根为基准，运行时解析为绝对路径。`peanut config` 在当前 Code `.local/toolchain/cores/php|web/` 下分别保存 Core host 和缓存；Core host 用 `path_base` 记录 Code 根，Core 源码目录保持只读。Core 工具要求从各自的 `composer.json` 或 `package.json` 读取，并由 Code 自己的 `scripts/project-env --root <Core> --state-root <Code> --host <Code-local-host>` 执行，因此不要求 Core 仓有 `tools/toolchain.json` 或 `scripts/project-env`。
 - `scripts/project-env`：统一入口；可由系统已安装 Python 3.9+ 启动。项目业务命令仍使用登记的 Python 版本。入口不会解决工具缺失，缺失或版本不符须先由授权的环境维护操作修正。
 
-Core 的 prepared 指纹绑定 Code state root、该 Core 的 host scope、规范化的 manifest/toolchain 内容摘要、实际命令文件身份及登记观察项，不绑定临时 Core 副本的绝对源码路径。相同 Core scope 与相同声明内容可以复用 prepared 入口；PHP/Web scope相互独立，manifest 或工具身份变化会产生新的指纹。
+Core 的 prepared 指纹绑定 Code state root、该 Core 的 host scope、解析后的工具要求、实际命令文件身份及登记观察项，不绑定临时 Core 副本的绝对源码路径。相同 Core scope 与相同声明内容可以复用 prepared 入口；PHP/Web scope相互独立，工具约束、执行配置或工具身份变化会产生新的指纹；业务 manifest 的 description、业务依赖及 host 中的 release/backups 等非执行字段不使环境失效。
 
 本地联合开发的源码选择由 `.local/core-dev.json` 独立保存；首次 `scripts/core-dev select` 可复用 host 中已明确选择的 Core 绝对路径，已有源码选择优先，显式 `--php-core-dir/--web-core-dir` 可覆盖本次选择。`peanut config` 不回写已有源码选择。`core-dev install/link --client web,platform` 只链接所列 Web 客户端，一次安装并构建所选 Web Core；默认仍为四端。Web Core 安装/构建和 PHP Core Composer 操作分别使用本 Code 的 Web/PHP scope，通过 `project-env exec` 调用登记的 pnpm/Composer，不借 Corepack 或固定的应用 Composer wrapper 更换工具。scope 未准备时先显式 config；安装/构建不会隐式 prepare 或安装工具。既有 Core watch 同样通过 Web scope 执行，完整命令见[当前开发生命周期](current-code-lifecycle.md#9-应用生成安装与升级)。
+
+PHP 的 `local-core-composer` 仅在 ignored `.local/composer-core/composer.json` 中将 Core 依赖投影到所选源码的真实 Git 分支。已配置本地 path 模块若依赖 Core，其真实 manifest 元数据也在同一开发 manifest 内投影到该分支，模块版本保留原声明；Composer 通过原生 `package` 元数据和 `dist.type=path` 强制链接真实模块目录，不生成源码副本。局部 `update` 明确列出 Core 和这些受影响模块，其他包保持正式锁定版本；不使用 `-w/-W`、稳定版本 alias，也不修改正式 `server/composer.json`、锁或模块 manifest。此处复用 [Composer package repository](https://getcomposer.org/doc/05-repositories.md#package-2)、[path downloader](https://github.com/composer/composer/blob/2.10.2/src/Composer/Downloader/PathDownloader.php) 与[局部 update](https://getcomposer.org/doc/03-cli.md#update-u-upgrade)，只服务源码联调。
+
+原生模块生命周期的依赖准备同样读取本工程明确保存的 `.local/core-dev.json`：存在有效选择时，其 Composer 操作经正常 `project-env prepare/exec` 调用 `local-core-composer install`，沿用所选 PHP Core 和 backend env；helper 继续核对来源、锁与服务登记。不存在选择时保持正式 Composer 路径；无效或属于另一工程的选择明确失败，不回落固定包。该路由只处理 PHP 开发依赖，不隐式安装或重建 Web Core。
 
 ## 使用
 

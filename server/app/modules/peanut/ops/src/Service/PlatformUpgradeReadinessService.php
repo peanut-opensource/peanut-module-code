@@ -9,7 +9,7 @@ use app\platform\value\ops\PlatformUpgradeTarget;
 use app\common\value\installation\ApplicationReleaseVersions;
 use app\common\value\installation\ServerReleaseIdentity;
 use app\platform\infrastructure\module\ThinkPhpModuleGovernanceProvider;
-use app\platform\validation\module\StrictVersionConstraintMatcher;
+use PeanutAdmin\Kernel\Module\StrictVersionConstraintMatcher;
 use app\platform\exception\plugin\PluginLifecycleException;
 use app\platform\infrastructure\plugin\PluginLockResolver;
 use PeanutAdmin\Kernel\Context\PlatformContext;

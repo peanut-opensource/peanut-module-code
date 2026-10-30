@@ -8,7 +8,7 @@
     <el-row style="margin-bottom: 16px" justify="space-between">
       <el-col :span="12">
         <el-button
-          v-permission="['dict/data/add']"
+          v-permission="['peanut.reference-codes.manage']"
           type="primary"
           @click="handleAdd"
         >
@@ -42,7 +42,7 @@
       <el-table-column :label="$t('systemDict.data.columns.status')" width="80"
         ><template #default="{ row }"
           ><el-switch
-            v-permission="['dict/data/status']"
+            v-permission="['peanut.reference-codes.manage']"
             :model-value="row.is_disable === 0"
             @change="(v: string | number | boolean) => handleStatus(row, v as boolean)" /></template
       ></el-table-column>
@@ -52,7 +52,7 @@
         ><template #default="{ row }"
           ><el-space
             ><el-button
-              v-permission="['dict/data/edit']"
+              v-permission="['peanut.reference-codes.manage']"
               link
               size="small"
               @click="handleEdit(row)"
@@ -62,7 +62,7 @@
               @confirm="handleDelete(row)"
               ><template #reference
                 ><el-button
-                  v-permission="['dict/data/delete']"
+                  v-permission="['peanut.reference-codes.manage']"
                   link
                   type="danger"
                   size="small"

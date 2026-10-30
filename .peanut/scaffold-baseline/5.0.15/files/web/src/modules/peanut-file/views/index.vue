@@ -173,14 +173,16 @@
                 >设为私有</el-button
               >
               <el-popconfirm
-                v-permission="['peanut.file.delete']"
                 :title="$t('systemFile.op.batchDelete.confirm')"
                 @confirm="handleBatchDelete"
               >
                 <template #reference
-                  ><el-button size="small" type="danger">{{
-                    $t('systemFile.op.delete')
-                  }}</el-button></template
+                  ><el-button
+                    v-permission="['peanut.file.delete']"
+                    size="small"
+                    type="danger"
+                    >{{ $t('systemFile.op.delete') }}</el-button
+                  ></template
                 >
               </el-popconfirm>
             </el-space>
@@ -222,14 +224,17 @@
                     {{ $t('systemFile.op.rename') }}
                   </el-button>
                   <el-popconfirm
-                    v-permission="['peanut.file.delete']"
                     :title="$t('systemFile.op.delete.confirm')"
                     @confirm="handleDelete(item)"
                   >
                     <template #reference
-                      ><el-button link size="small" type="danger">{{
-                        $t('systemFile.op.delete')
-                      }}</el-button></template
+                      ><el-button
+                        v-permission="['peanut.file.delete']"
+                        link
+                        size="small"
+                        type="danger"
+                        >{{ $t('systemFile.op.delete') }}</el-button
+                      ></template
                     >
                   </el-popconfirm>
                 </div>

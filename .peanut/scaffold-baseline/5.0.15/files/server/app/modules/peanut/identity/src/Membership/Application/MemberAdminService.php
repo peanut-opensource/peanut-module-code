@@ -711,11 +711,13 @@ final readonly class MemberAdminService
         }
         $memberIds = array_map('intval', array_column($rows, 'id'));
         $roleKeys = [];
+        $roleIds = [];
         foreach (MemberRole::alias('member_role')
             ->join('role role', 'role.tenant_id = member_role.tenant_id AND role.id = member_role.role_id')
             ->where('member_role.tenant_id', $tenantId)->whereIn('member_role.tenant_member_id', $memberIds)
-            ->field(['member_role.tenant_member_id', 'role.key'])->order('role.key')->select()->toArray() as $role) {
+            ->field(['member_role.tenant_member_id', 'role.id', 'role.key'])->order('role.key')->select()->toArray() as $role) {
             $roleKeys[(int) $role['tenant_member_id']][] = (string) $role['key'];
+            $roleIds[(int) $role['tenant_member_id']][] = (int) $role['id'];
         }
         foreach ($rows as &$row) {
             $memberId = (int) $row['id'];
@@ -731,6 +733,7 @@ final readonly class MemberAdminService
                 'security_revision' => (string) $row['security_revision'],
                 'revision' => (string) $row['authorization_revision'],
                 'role_keys' => array_values(array_unique($roleKeys[$memberId] ?? [])),
+                'role_ids' => array_values(array_unique($roleIds[$memberId] ?? [])),
             ];
         }
         unset($row);

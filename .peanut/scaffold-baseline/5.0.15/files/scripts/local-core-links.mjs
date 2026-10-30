@@ -48,20 +48,7 @@ export function acquireClientLinks(repository, clients, operation) {
 }
 
 function assertPhpIdle(repository) {
-  const path = join(repository, '.local', 'php-runtime.pid');
-  let stat;
-  try { stat = lstatSync(path); } catch (error) { if (error.code !== 'ENOENT') throw error; }
-  if (stat) {
-    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) throw new Error('Native PHP runtime PID record is invalid');
-    const value = readFileSync(path, 'utf8').trim();
-    if (!/^[1-9]\d*$/.test(value) || Number(value) < 2) throw new Error('Native PHP runtime PID is invalid');
-    let live = true;
-    try { process.kill(Number(value), 0); }
-    catch (error) { if (error.code !== 'ESRCH') throw error; live = false; }
-    if (live) throw new Error('Native PHP runtime is active; its owner must stop it normally before changing Core dependencies or selection');
-  }
-  // A directly started PHP server may have no PID file. Its command still
-  // exposes the canonical router path; inspect it under the same startup lock.
+  // Native PHP consumers expose the canonical router path in their command.
   const processes = spawnSync('ps', ['-axo', 'comm=,args='], { encoding: 'utf8' });
   if (processes.status !== 0 || !processes.stdout) throw new Error('Cannot inspect native PHP runtime consumers');
   for (const line of processes.stdout.split('\n')) {

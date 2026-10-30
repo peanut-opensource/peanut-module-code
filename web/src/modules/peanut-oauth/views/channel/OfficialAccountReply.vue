@@ -208,6 +208,7 @@
 <script lang="ts" setup>
   import { computed, onMounted, reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRoute } from 'vue-router';
   import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
   import { hasPermission } from '@/hooks/permission';
   import {
@@ -223,12 +224,13 @@
     type OfficialAccountReplyType,
   } from '@/modules/peanut-oauth/api';
 
+  const route = useRoute();
   const { t } = useI18n();
   const canView = computed(() =>
-    hasPermission('peanut.oauth.official-account.reply.list')
+    hasPermission('peanut.oauth.official-account.reply.list', route.path)
   );
   const hasStatusPermission = computed(() =>
-    hasPermission('peanut.oauth.official-account.reply.update-status')
+    hasPermission('peanut.oauth.official-account.reply.update-status', route.path)
   );
   const loading = ref(false);
   const rows = ref<OfficialAccountReplyRecord[]>([]);

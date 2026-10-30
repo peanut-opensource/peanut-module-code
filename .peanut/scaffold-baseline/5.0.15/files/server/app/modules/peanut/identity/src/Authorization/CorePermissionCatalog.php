@@ -8,6 +8,7 @@ final class CorePermissionCatalog
 {
     /** @var list<string> */
     public const TENANT = [
+        'workbench/index',
         'core.member.read',
         'core.member.effective-access.read',
         'core.member.create',
@@ -21,6 +22,10 @@ final class CorePermissionCatalog
         'core.department.update',
         'core.department.move',
         'core.department.archive',
+        'core.job.read',
+        'core.job.create',
+        'core.job.update',
+        'core.job.archive',
         'core.role.read',
         'core.role.create',
         'core.role.update',
@@ -48,7 +53,9 @@ final class CorePermissionCatalog
         'platform.tenant.update',
         'platform.tenant.lifecycle',
         'platform.tenant.provision-owner',
-        'platform.tenant.module.manage',
+        'platform.plan.read',
+        'platform.plan.manage',
+        'platform.tenant.license.manage',
         'platform.operator.read',
         'platform.operator.create',
         'platform.operator.update',
@@ -60,6 +67,7 @@ final class CorePermissionCatalog
         'platform.role.archive',
         'platform.role.permission.assign',
         'platform.permission.read',
+        'platform.permission.api.manage',
         'platform.audit.read',
         'platform.upgrade.read',
         'platform.ops.read',

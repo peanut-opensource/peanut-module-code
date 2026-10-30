@@ -128,8 +128,14 @@ class ConfigController extends BaseAdminController
 
     private function save(string $scene, string $method)
     {
-        $params = $this->request->post();
-        $this->validate($params, WebsiteValidate::class . '.' . $scene);
+        $fields = match ($scene) {
+            'copyright' => ['config'],
+            'agreement' => ['service_title', 'service_content', 'privacy_title', 'privacy_content'],
+            'statistics' => ['clarity_code'],
+            'user' => ['default_avatar'],
+            'login' => ['login_way', 'coerce_mobile', 'login_agreement', 'third_auth', 'wechat_auth'],
+        };
+        $params = $this->validateInput($this->request->post(), WebsiteValidate::class . '.' . $scene, $fields)->writable();
         $this->configuration->$method($this->tenantAdminContext(), $params);
         return $this->success('操作成功');
     }

@@ -9,10 +9,11 @@ use think\Validate;
 class DictTypeValidate extends Validate
 {
     protected $rule = [
-        'id'   => 'require|integer|gt:0',
-        'name' => 'require|max:100',
-        'type' => 'require|max:100|alphaDash',
-        'is_disable' => 'require|in:0,1',
+        'id'   => 'require|positiveId',
+        'name' => 'require|string|max:100',
+        'type' => 'require|string|max:100|alphaDash',
+        'is_disable' => 'flag',
+        'remark' => 'string|max:255',
     ];
 
     protected $message = [
@@ -25,10 +26,26 @@ class DictTypeValidate extends Validate
     ];
 
     protected $scene = [
-        'add'  => ['name', 'type'],
-        'edit' => ['id', 'name', 'type'],
+        'add'  => ['name', 'type', 'is_disable', 'remark'],
+        'edit' => ['id', 'name', 'type', 'is_disable', 'remark'],
         'detail' => ['id'],
         'delete' => ['id'],
         'status' => ['id', 'is_disable'],
     ];
+
+    protected function positiveId(mixed $value): bool
+    {
+        return (is_int($value) || (is_string($value) && preg_match('/^[1-9][0-9]*$/D', $value) === 1))
+            && filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) !== false;
+    }
+
+    protected function flag(mixed $value): bool
+    {
+        return in_array($value, [0, 1, '0', '1'], true);
+    }
+
+    public function sceneStatus(): self
+    {
+        return $this->only(['id', 'is_disable'])->append('is_disable', 'require');
+    }
 }

@@ -6,19 +6,15 @@ namespace PeanutAdmin\Modules\Identity\Contract;
 
 use think\facade\Db;
 use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
+use PeanutAdmin\Modules\Identity\Module\TenantEntitlementService;
 
 /** 固定的租户模块状态投影，不返回配置正文或授权能力；安装清单与必需基础模块仍由原部署登记器决定。 */
 final readonly class TenantModuleStateQueries
 {
-    /** Lifecycle config projection; does not grant availability or any business permission. */
+    /** Current license ceiling for admitting new operations; member authorization remains independent. */
     public function acceptsNewOperations(int $tenantId, string $moduleKey, bool $lock = false): bool
     {
-        $row = Db::name('tenant_module')->where('tenant_id', $tenantId)->where('module_key', $moduleKey)->lock($lock)->field('status,config_json')->find();
-        if ($row === null || $row['status'] !== 'enabled') {
-            return false;
-        }
-        $config = $row['config_json'] === null ? [] : (is_array($row['config_json']) ? $row['config_json'] : json_decode((string) $row['config_json'], true, 128, JSON_THROW_ON_ERROR));
-        return ($config['lifecycle'] ?? 'running') === 'running';
+        return app(TenantEntitlementService::class)->allowsModule($tenantId, $moduleKey, lock: $lock);
     }
     /** Lock only the selected tenant dependency closure, before any tenant rows. @param list<string> $moduleKeys */
     public function lockTenantMutation(CompiledModuleRegistry $registry, array $moduleKeys): void
@@ -62,18 +58,14 @@ final readonly class TenantModuleStateQueries
         }
     }
 
-    /** Current locking read after availability locks; includes disabled rows and insertion gaps. @param list<string> $moduleKeys @return list<string> */
+    /** Lock all shared plan references after availability locks, including inactive plans. @param list<string> $moduleKeys @return list<string> */
     public function enabledReferencesForUpdate(array $moduleKeys): array
     {
         if ($moduleKeys === []) {
             return [];
         }
-        $rows = Db::name('tenant_module')->whereIn('module_key', $moduleKeys)
-            ->order('module_key')->order('tenant_id')->lock(true)->field('module_key,status')->select()->toArray();
-        return array_values(array_map(
-            static fn(array $row): string => (string) $row['module_key'],
-            array_filter($rows, static fn(array $row): bool => $row['status'] === 'enabled'),
-        ));
+        return array_map('strval', Db::name('plan_module')->whereIn('module_key', $moduleKeys)
+            ->order('module_key')->order('plan_id')->lock(true)->column('module_key'));
     }
 
     /**
@@ -116,9 +108,9 @@ final readonly class TenantModuleStateQueries
         if ($moduleKeys === []) {
             return 0;
         }
-        return (int) Db::name('tenant_module')->alias('tm')
-            ->join('tenant t', 't.id=tm.tenant_id')->where('t.code', $tenantCode)
-            ->where('tm.status', 'enabled')->whereIn('tm.module_key', $moduleKeys)->count();
+        return (int) Db::name('tenant_license')->alias('license')->join('tenant t', 't.id=license.tenant_id')
+            ->join('plan_module detail', 'detail.plan_id=license.plan_id')->where('t.code', $tenantCode)
+            ->whereIn('detail.module_key', $moduleKeys)->count();
     }
 
     /**
@@ -209,37 +201,33 @@ final readonly class TenantModuleStateQueries
     /** @return list<array{id:mixed,tenant_id:mixed,module_key:mixed,status:mixed,source:mixed,config_revision:mixed,effective_at:mixed,expires_at:mixed,enabled_at:mixed,disabled_at:mixed,disabled_reason:mixed,created_at:mixed,updated_at:mixed}> */
     public function stateRows(int $tenantId): array
     {
-        if ($tenantId < 1) {
-            return [];
-        }
-        return Db::name('tenant_module')->where('tenant_id', $tenantId)
-            ->field('id,tenant_id,module_key,status,source,config_revision,effective_at,expires_at,enabled_at,disabled_at,disabled_reason,created_at,updated_at')
-            ->order('module_key')->select()->toArray();
+        $license = app(TenantEntitlementService::class)->license($tenantId);
+        if ($license === null) { return []; }
+        return array_map(static fn(string $key): array => [
+            'id' => $license['id'], 'tenant_id' => $tenantId, 'module_key' => $key,
+            'status' => $license['effective'] ? 'enabled' : 'disabled', 'source' => 'license',
+            'config_revision' => 0, 'authorization_revision' => $license['revision'],
+            'effective_at' => $license['effective_at'], 'expires_at' => $license['expires_at'],
+            'enabled_at' => null, 'disabled_at' => null, 'disabled_reason' => null,
+            'created_at' => null, 'updated_at' => null,
+        ], Db::name('plan_module')->where('plan_id', $license['plan_id'])->order('module_key')->column('module_key'));
     }
 
     /** 保持数据库时钟的生效包含/到期排除条件，不将代码存在当作租户已开通。 @return list<string> */
     public function activeModuleKeys(int $tenantId): array
     {
-        if ($tenantId < 1) {
-            return [];
-        }
-        return array_values(array_map('strval', Db::name('tenant_module')->where('tenant_id', $tenantId)
-            ->where('status', 'enabled')
-            ->where(fn($query) => $query->whereNull('effective_at')->whereOr('effective_at', '<=', Db::raw('CURRENT_TIMESTAMP(3)')))
-            ->where(fn($query) => $query->whereNull('expires_at')->whereOr('expires_at', '>', Db::raw('CURRENT_TIMESTAMP(3)')))
-            ->order('module_key')->column('module_key')));
+        return $tenantId < 1 ? [] : app(TenantEntitlementService::class)->moduleKeys($tenantId);
     }
 
     /**
-     * 生命周期阻断按已启用登记，不按当前可用时间或租户状态过滤；不可复用activeModuleKeys缩小阻断。
+     * 生命周期阻断保留全部套餐引用，不按停售、许可证时间窗口或租户状态缩小阻断。
      * @return array<string,int>
      */
     public function enabledCounts(): array
     {
         $counts = [];
-        $rows = Db::name('tenant_module')->where('status', 'enabled')
-            ->field('module_key')->fieldRaw('COUNT(*) AS enabled_count')->group('module_key')->select()->toArray();
-        foreach ($rows as $row) {
+        foreach (Db::name('plan_module')->field('module_key')->fieldRaw('COUNT(*) AS enabled_count')
+            ->group('module_key')->select()->toArray() as $row) {
             $counts[(string) $row['module_key']] = (int) $row['enabled_count'];
         }
         return $counts;
@@ -248,17 +236,16 @@ final readonly class TenantModuleStateQueries
     /** @param list<string> $moduleKeys */
     public function hasEnabledModules(array $moduleKeys): bool
     {
-        return $moduleKeys !== [] && Db::name('tenant_module')->whereIn('module_key', $moduleKeys)
-            ->where('status', 'enabled')->count() !== 0;
+        return $moduleKeys !== [] && Db::name('plan_module')->whereIn('module_key', $moduleKeys)->count() !== 0;
     }
 
-    /** 每条启用登记保留一个键，重复值参与现有卸载计划，不返回租户配置或账户信息。 @param list<string> $moduleKeys @return list<string> */
+    /** 每条套餐引用保留一个键，重复值参与现有卸载计划，不返回租户配置或账户信息。 @param list<string> $moduleKeys @return list<string> */
     public function enabledModuleReferences(array $moduleKeys): array
     {
         if ($moduleKeys === []) {
             return [];
         }
-        return array_map('strval', Db::name('tenant_module')->whereIn('module_key', $moduleKeys)
-            ->where('status', 'enabled')->order('module_key')->column('module_key'));
+        return array_map('strval', Db::name('plan_module')->whereIn('module_key', $moduleKeys)
+            ->order('module_key')->column('module_key'));
     }
 }

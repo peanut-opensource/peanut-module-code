@@ -1,11 +1,11 @@
 {
     "schema_version": 1,
     "key": "peanut.artifact-revision",
-    "version": "4.0.0-rc.35",
+    "version": "4.0.0-rc.36",
     "source": {
         "type": "canonical-contents",
         "reference": "canonical-plugin-contents-v1",
-        "sha256": "54ac2b1f3b8c6eb9e0ec88e5e5fa38c982027c892829f2d9bc0f9bb2693fe446"
+        "sha256": "caf7c8516cf93c7839451291b6037df8195a16b48e6175247445f9b6da66514d"
     },
     "trust": {
         "channel": "bundled",
@@ -39,7 +39,7 @@
             "modules": [
                 {
                     "key": "peanut.artifact-revision",
-                    "version": "4.0.0-rc.35",
+                    "version": "4.0.0-rc.36",
                     "kernel_constraint": "^1.0",
                     "dependencies": [
                         {
@@ -58,8 +58,8 @@
     "composer": [
         {
             "name": "peanut-business/artifact-revision",
-            "version": "4.0.0-rc.35",
-            "sha256": "061563e39069356383ffae5bf8009901e7dfb5d12231a8d60b13b40fc6e87da4"
+            "version": "4.0.0-rc.36",
+            "sha256": "348ea4320814b7369be23ef15ebd2951f5f2f68cdfb6f39bcfa4a1efa158f48e"
         }
     ],
     "npm": [],

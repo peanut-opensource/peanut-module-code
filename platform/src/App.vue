@@ -117,7 +117,9 @@
           ><el-menu-item index="owners">租户所有者邀请</el-menu-item
           ><el-menu-item index="endpoints">入口域名与客户端</el-menu-item
           ><el-menu-item v-if="can('platform.tenant.read')" index="modules"
-            >租户模块开通</el-menu-item
+            >租户许可证</el-menu-item
+          ><el-menu-item v-if="can('platform.plan.read')" index="plans"
+            >套餐管理</el-menu-item
           ></el-sub-menu
         ><el-sub-menu index="organization-access"
           ><template #title>组织与权限</template
@@ -547,6 +549,15 @@
                 ><el-button link type="primary" @click="showTenant(row)"
                   >详情</el-button
                 ><el-button
+                  v-if="can('platform.tenant.read')"
+                  link
+                  type="primary"
+                  @click="
+                    targetTenantId = row.id;
+                    selectView('modules');
+                  "
+                  >许可证</el-button
+                ><el-button
                   v-if="row.status !== 'active' && row.status !== 'closed'"
                   link
                   type="success"
@@ -716,15 +727,22 @@
             ></el-table
           ></template
         >
+        <PlansPanel
+          v-else-if="view === 'plans'"
+          :can-manage="can('platform.plan.manage')"
+        />
         <template v-else-if="view === 'modules'"
           ><el-alert
-            title="此处只开通或停用当前租户的已安装模块；实例安装/升级在运行维护链路完成，人员权限仍在租户后台单独授予。"
+            title="模块权益由当前许可证的套餐及有效期派生；实例安装与成员授权分别管理。此表只读。"
             type="info"
-            :closable="false"
-          /><tenant-picker /><el-empty
+            :closable="false" /><tenant-picker /><TenantLicensePanel
+            v-if="targetTenantId"
+            :key="targetTenantId"
+            :tenant-id="Number(targetTenantId)"
+            :can-manage="can('platform.tenant.license.manage')"
+            @saved="loadView" /><el-empty
             v-if="!targetTenant"
-            description="请先选择操作目标租户"
-          /><el-table
+            description="请先选择操作目标租户" /><el-table
             v-else
             v-loading="loading"
             :data="modules"
@@ -733,11 +751,11 @@
             "
             ><el-table-column
               prop="module_key"
-              label="模块键"
-            /><el-table-column
+              label="模块键" /><el-table-column
               prop="installed_version"
-              label="安装版本"
-            /><el-table-column prop="installation_status" label="实例安装状态"
+              label="安装版本" /><el-table-column
+              prop="installation_status"
+              label="实例安装状态"
               ><template #default="{ row }">{{
                 statusLabel(row.installation_status)
               }}</template></el-table-column
@@ -747,34 +765,10 @@
               }}</template></el-table-column
             ><el-table-column prop="source" label="配置来源" /><el-table-column
               prop="config_revision"
-              label="配置版本"
-            /><el-table-column
+              label="配置版本" /><el-table-column
               prop="disabled_reason"
-              label="停用原因"
-            /><el-table-column
-              v-if="can('platform.tenant.module.manage')"
-              label="租户开通操作"
-              width="140"
-              ><template #default="{ row }"
-                ><el-button
-                  v-if="row.status === 'enabled'"
-                  link
-                  type="danger"
-                  :disabled="loading"
-                  @click="changeModule(row, false)"
-                  >停用</el-button
-                ><el-button
-                  v-else
-                  link
-                  type="success"
-                  :disabled="loading"
-                  @click="changeModule(row, true)"
-                  >启用</el-button
-                ></template
-              ></el-table-column
-            ></el-table
-          ></template
-        >
+              label="停用原因" /></el-table
+        ></template>
         <template v-else-if="view === 'storage'"
           ><el-alert
             title="一个实例可配置多个账号和多个公开/私有 Space；切换默认路由只影响新文件，旧文件始终绑定原 Space。"
@@ -917,7 +911,10 @@
           ></template
         >
         <template v-else-if="view === 'roles'"
-          ><div class="two-col"
+          ><PermissionBundlesPanel
+            v-if="can('platform.permission.read')"
+            :can-manage="can('platform.permission.api.manage')"
+          /><div class="two-col"
             ><el-card
               ><template #header>创建平台角色</template
               ><el-form label-position="top" @submit.prevent="createRole"
@@ -1178,6 +1175,9 @@
   } from './api/platform';
   import ProviderQualificationCard from './components/ProviderQualificationCard.vue';
   import DeveloperCenterPage from './components/DeveloperCenterPage.vue';
+  import PermissionBundlesPanel from './components/PermissionBundlesPanel.vue';
+  import PlansPanel from './components/PlansPanel.vue';
+  import TenantLicensePanel from './components/TenantLicensePanel.vue';
 
   const tokenFromUrl = new URLSearchParams(window.location.search).get(
     'invitation'
@@ -1437,7 +1437,8 @@
     tenants: '租户与生命周期',
     owners: '租户所有者邀请管理',
     endpoints: '入口域名与客户端',
-    modules: '租户模块开通',
+    modules: '租户许可证与模块权益',
+    plans: '套餐管理',
     developer: '开发者中心',
     storage: '存储基础设施',
     operators: '实例平台操作员',
@@ -2173,32 +2174,6 @@
       await run(
         () => api.disableEntryBinding(item.id, result.value),
         '入口绑定已停用'
-      );
-    } catch (cause) {
-      if (cause !== 'cancel' && cause !== 'close') error.value = message(cause);
-    }
-  }
-  async function changeModule(item: ModuleState, enabled: boolean) {
-    if (loading.value || !targetTenantId.value) return;
-    const tenantId = targetTenantId.value;
-    const request = viewRequest;
-    try {
-      const result = await ElMessageBox.prompt(
-        '填写变更原因',
-        `${enabled ? '启用' : '停用'} ${item.module_key}`,
-        { inputPattern: /\S+/, inputErrorMessage: '必须填写原因' }
-      );
-      if (
-        loading.value ||
-        view.value !== 'modules' ||
-        request !== viewRequest ||
-        tenantId !== targetTenantId.value
-      )
-        return;
-      await run(
-        () =>
-          api.changeModule(enabled, tenantId, item.module_key, result.value),
-        `模块已${enabled ? '启用' : '停用'}`
       );
     } catch (cause) {
       if (cause !== 'cancel' && cause !== 'close') error.value = message(cause);

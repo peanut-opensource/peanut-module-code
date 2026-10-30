@@ -1,7 +1,7 @@
 import { createI18n } from 'vue-i18n';
+import contributions from 'virtual:peanut-plugin-contributions';
 import en from './en-US';
 import cn from './zh-CN';
-import contributions from 'virtual:peanut-plugin-contributions';
 
 function moduleMessages(locale: 'en-US' | 'zh-CN'): Record<string, string> {
   const messages: Record<string, string> = {};

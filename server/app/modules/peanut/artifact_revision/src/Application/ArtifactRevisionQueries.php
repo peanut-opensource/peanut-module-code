@@ -23,7 +23,6 @@ final readonly class ArtifactRevisionQueries implements ArtifactRevisionQuery
         if ($revision === null || !$revision->isFinalized()) {
             return null;
         }
-        $revision->assertEnvelopeIntegrity();
         return new ArtifactRevisionSnapshot($revision->revisionKey, $revision->canonicalEnvelopeSha256, $revision->canonicalEnvelope(), $revision->createdByMemberId);
     }
 }

@@ -2,7 +2,7 @@
     "schema_version": 3,
     "protocol": "peanut.release-versions.v3",
     "source_product_version": "5.0.15",
-    "instance_version": "0.1.0",
+    "instance_version": "1.0.0",
     "scaffold_template": "5.0.15",
     "generated_instance_default": "0.1.0",
     "core_php": {
@@ -11,42 +11,42 @@
         "resolved_version": "5.0.3-alpha.1",
         "source_type": "git",
         "source_url": "https://github.com/peanut-business/peanut-admin-core-php.git",
-        "source_reference": "62383f26e0128d176bb86080bb031ffb1e018ab1"
+        "source_reference": "13cf5b7776526e885cb69dbf0849e784a4cacaec"
     },
     "core_web": {
         "source_type": "git",
         "source_url": "https://github.com/peanut-business/peanut-admin-core-web.git",
-        "source_reference": "d1089961bcc858a9288f044b990aaaae728ba2ae",
+        "source_reference": "dd5ed945f44c7e0bd4d55d0569a06afea3428db3",
         "packages": {
             "@peanut-admin/client": {
-                "version": "5.0.2",
-                "resolved": "https://registry.npmjs.org/@peanut-admin/client/-/client-5.0.2.tgz",
-                "integrity": "sha512-RSMwa21D072TPmpWT0YIeNH3YDHbB0xSMpuLKyoETjDM+tcyn8mOYWhsgVoZfLyoCV6mfODbEAbwayZNovJzdg=="
+                "version": "5.0.3-alpha.1",
+                "archive": "packages/core-web/peanut-admin-client-5.0.3-alpha.1.tgz",
+                "sha256": "2de6ee7ca61fb1d52bcdac82aa5eb6bd896a84b95a09ed7f121f169224efe7d7"
             },
             "@peanut-admin/vue": {
-                "version": "5.0.2",
-                "resolved": "https://registry.npmjs.org/@peanut-admin/vue/-/vue-5.0.2.tgz",
-                "integrity": "sha512-TLM8YVtxh86qtg5iM6ElhrICGudql+LHFMJfNbgo3AK34BfoKGkojC9CyEMtIuOJtERRLZKTBVFo5xrbjPnlpA=="
+                "version": "5.0.3-alpha.1",
+                "archive": "packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz",
+                "sha256": "8b937872c8328caae4618d6489e28aa401a637c4cc253af29fd3b33b8686c82e"
             },
             "@peanut-admin/ui-vue": {
-                "version": "5.0.2",
-                "resolved": "https://registry.npmjs.org/@peanut-admin/ui-vue/-/ui-vue-5.0.2.tgz",
-                "integrity": "sha512-W5ysL4HetnVNurOpR62doBN2ZzOuJ5q6NfzYBeVGW/9JQokYfAZ53ta9yFOe0FCFneP9372yy5MSGna3HsqL7Q=="
+                "version": "5.0.3-alpha.1",
+                "archive": "packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz",
+                "sha256": "86f6070e83a1bbe447ebfeacb36e059fa260749033899bc830b1ac73f8745571"
             },
             "@peanut-admin/nuxt": {
-                "version": "5.0.2",
-                "resolved": "https://registry.npmjs.org/@peanut-admin/nuxt/-/nuxt-5.0.2.tgz",
-                "integrity": "sha512-Tb1MPHqwfy0sQp08xlWoDiC11ujNpWVGQSoJZLRmit/JyYl666WSo/exNtZid8kar+qtmuYa4O39e/ZjEWeFww=="
+                "version": "5.0.3-alpha.1",
+                "archive": "packages/core-web/peanut-admin-nuxt-5.0.3-alpha.1.tgz",
+                "sha256": "42ed8f472ba98ae7dbeec5278a43aab6b00f2e2d5eda2ca08886af5fa5a57da7"
             },
             "@peanut-admin/uniapp": {
-                "version": "5.0.2",
-                "resolved": "https://registry.npmjs.org/@peanut-admin/uniapp/-/uniapp-5.0.2.tgz",
-                "integrity": "sha512-pMu5sqrg8ElpLxgmC3peD16Vl336Uph3jdJa9VI5g4RfzWm0F2fIGVmGNFnmh/bG2WS/5rlge8JTOrZLwf0OtA=="
+                "version": "5.0.3-alpha.1",
+                "archive": "packages/core-web/peanut-admin-uniapp-5.0.3-alpha.1.tgz",
+                "sha256": "0da340067a02daae546179ead342431dacdbe22aa6267208cdcbcbd249330ea5"
             },
             "@peanut-admin/testing": {
-                "version": "5.0.2",
-                "resolved": "https://registry.npmjs.org/@peanut-admin/testing/-/testing-5.0.2.tgz",
-                "integrity": "sha512-FN4FiWKS95iwEX41SG95Yx2WBc0UKJRURPLjMuPAI77BU2f69JPgd/XZPuUVFfZaqjpAJ9kC0kNGunkZYVC47Q=="
+                "version": "5.0.3-alpha.1",
+                "archive": "packages/core-web/peanut-admin-testing-5.0.3-alpha.1.tgz",
+                "sha256": "fd5506312ef53e839ce3659e0f6b143fbaec787139ee2ee21c19dd9304841d25"
             }
         }
     }

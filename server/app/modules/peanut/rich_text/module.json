@@ -2,8 +2,8 @@
   "schema_version": 1,
   "key": "peanut.rich-text",
   "name": "Structured Rich Text",
-  "description": "Versioned Tiptap/ProseMirror documents, media references, annotation anchors and realtime collaboration adapters.",
-  "version": "1.0.10",
+  "description": "Tiptap/ProseMirror content projection and editor/viewer adapters; document lifecycle belongs to peanut.document.",
+  "version": "1.0.11",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-rich-text",
@@ -27,8 +27,6 @@
   },
   "backend": {
     "provider": "PeanutAdmin\\Modules\\RichText\\ModuleProvider",
-    "menus": "resources/menus.json",
-    "permissions": "resources/permissions.json",
     "migrations": "database/migrations"
   },
   "frontend": {

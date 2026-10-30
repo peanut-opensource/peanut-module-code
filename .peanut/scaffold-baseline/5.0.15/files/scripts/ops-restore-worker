@@ -311,7 +311,16 @@ mysql_scalar() {
 
 failure_code='OPS_RESTORE_SCHEMA_INVALID'
 table_count="$(mysql_scalar "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()")"
-schema_migration_count="$(mysql_scalar 'SELECT COUNT(*) FROM pa_schema_migration')"
+# The restored database uses this APP's native migration configuration.
+# Keep the historical evidence field name for stored results and consumers.
+migration_count_sql="$("${maintenance[@]}" -r '
+require "vendor/autoload.php";
+(new \think\App(getcwd()))->initialize();
+$table = (string) \think\facade\Db::connect()->getConfig("prefix")
+    . (string) \think\facade\Config::get("database.migration_table", "migrations");
+echo "SELECT COUNT(*) FROM `" . str_replace("`", "``", $table) . "`";
+')"
+schema_migration_count="$(mysql_scalar "$migration_count_sql")"
 critical_table_count="$(mysql_scalar "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('pa_account','pa_tenant','pa_tenant_member','pa_role','pa_permission','pa_config')")"
 [[ "$table_count" =~ ^[1-9][0-9]*$ && "$schema_migration_count" =~ ^[1-9][0-9]*$ && "$critical_table_count" == 6 ]] \
   || false

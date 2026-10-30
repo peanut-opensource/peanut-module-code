@@ -1,4 +1,18 @@
 export default {
+  'systemMenu.field.perms.default': 'Source default permission bundle',
+  'systemMenu.field.perms.managed.placeholder':
+    'Select an existing bundle, or clear to restore the source default',
+  'systemMenu.field.perms.managed.hint':
+    'Select an active bundle in the same audience. Clearing restores the system or module default. This changes this menu access condition; role grants and API bindings remain separate.',
+  'systemMenu.field.action': 'Page action key',
+  'systemMenu.field.action.placeholder':
+    'For example role/add, matching the page v-permission action',
+  'systemMenu.field.action.hint':
+    'A button must belong directly to a page menu. This binds the action to the selected bundle on that page only; role grants remain separate.',
+  'systemMenu.field.perms.hint':
+    'Reference an independent permission bundle. Menus and buttons can reuse the same bundle; editing navigation never grants role permissions.',
+  'systemMenu.field.perms.error':
+    'The permission bundle catalog did not load completely. Reopen this dialog.',
   'menu.system': 'System',
   'menu.system.menu': 'Menu Management',
 
@@ -11,7 +25,7 @@ export default {
   'systemMenu.columns.name': 'Name',
   'systemMenu.columns.type': 'Type',
   'systemMenu.columns.icon': 'Icon',
-  'systemMenu.columns.perms': 'Permission',
+  'systemMenu.columns.perms': 'Required bundle',
   'systemMenu.columns.sort': 'Sort',
   'systemMenu.columns.status': 'Enabled',
   'systemMenu.columns.operations': 'Operations',
@@ -34,8 +48,9 @@ export default {
   'systemMenu.field.paths.placeholder': 'e.g. /system/menu',
   'systemMenu.field.component': 'Component',
   'systemMenu.field.component.placeholder': 'e.g. system/menu/index',
-  'systemMenu.field.perms': 'Permission',
-  'systemMenu.field.perms.placeholder': 'e.g. menu/lists',
+  'systemMenu.field.perms': 'Required bundle',
+  'systemMenu.field.perms.placeholder':
+    'Select an existing bundle, or leave empty',
   'systemMenu.field.sort': 'Sort',
   'systemMenu.field.flags': 'Options',
   'systemMenu.field.isShow': 'Visible',

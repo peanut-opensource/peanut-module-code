@@ -70,11 +70,12 @@ final class PlatformControlPlaneQueryController extends BasePlatformController
 
     private function positiveInteger(mixed $value): int
     {
-        $candidate = is_int($value) ? (string) $value : trim((string) $value);
-        if (preg_match('/^[1-9][0-9]*$/D', $candidate) !== 1 || filter_var($candidate, FILTER_VALIDATE_INT) === false) {
+        if ((!is_int($value) && !is_string($value))
+            || preg_match('/^[1-9][0-9]*$/D', (string) $value) !== 1
+            || filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) {
             throw AdminAccessException::invalid('ID_INVALID', 'A positive integer is required.');
         }
-        return (int) $candidate;
+        return (int) $value;
     }
 
 }

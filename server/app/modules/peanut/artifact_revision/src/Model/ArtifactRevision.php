@@ -207,7 +207,7 @@ final readonly class ArtifactRevision
         $envelope = $this->canonicalEnvelope();
         $expected = $this->expectedEnvelope();
         foreach (self::ENVELOPE_KEYS as $key) {
-            if (!array_key_exists($key, $envelope) || $envelope[$key] !== $expected[$key]) {
+            if ($envelope[$key] !== $expected[$key]) {
                 throw new UnexpectedValueException('Artifact revision envelope does not match its columns.');
             }
         }

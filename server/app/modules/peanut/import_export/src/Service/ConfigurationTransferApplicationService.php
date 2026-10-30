@@ -177,7 +177,6 @@ final class ConfigurationTransferApplicationService implements ConfigurationTran
         $keys = $scope === self::TENANT_SCOPE
             ? [
                 ConfigurationPackageCodec::ADAPTER_TENANT_SETTINGS,
-                ConfigurationPackageCodec::ADAPTER_TENANT_MODULES,
                 ConfigurationPackageCodec::ADAPTER_EXTERNAL_BINDINGS,
             ]
             : [ConfigurationPackageCodec::ADAPTER_CORE_SETTINGS];

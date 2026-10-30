@@ -23,8 +23,7 @@ class AdminController extends BaseAdminController
 
     public function detail()
     {
-        $params = ['id' => (int) $this->request->get('id')];
-        $this->validate($params, ['id' => 'require|integer|gt:0']);
+        $params = ['id' => $this->memberId($this->request->get('id'))];
         return $this->data($this->admins->detail($this->tenantAdminContext(), $params['id']));
     }
 
@@ -64,8 +63,7 @@ class AdminController extends BaseAdminController
 
     public function delete()
     {
-        $params = ['id' => (int) $this->request->post('id')];
-        $this->validate($params, ['id' => 'require|integer|gt:0']);
+        $params = ['id' => $this->memberId($this->request->post('id'))];
         $this->admins->delete($this->tenantAdminContext(), $params['id'], $this->adminId);
         return $this->success('操作成功');
     }
@@ -73,11 +71,23 @@ class AdminController extends BaseAdminController
     public function updateStatus()
     {
         $params = [
-            'id' => (int) $this->request->post('id'),
+            'id' => $this->memberId($this->request->post('id')),
             'disable' => $this->request->post('disable'),
         ];
-        $this->validate($params, ['id' => 'require|integer|gt:0', 'disable' => 'require|in:0,1']);
+        $this->validate($params, ['disable' => [
+            'require', static fn(mixed $value): bool => in_array($value, [0,1,'0','1'], true),
+        ]]);
         $this->admins->updateStatus($this->tenantAdminContext(), $params['id'], (int) $params['disable'], $this->adminId);
         return $this->success('操作成功');
+    }
+
+    private function memberId(mixed $value): int
+    {
+        $this->validate(['id' => $value], ['id' => [
+            'require', static fn(mixed $id): bool => (is_int($id) || is_string($id))
+                && preg_match('/^[1-9][0-9]*$/D', (string) $id) === 1
+                && filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) !== false,
+        ]]);
+        return (int) $value;
     }
 }

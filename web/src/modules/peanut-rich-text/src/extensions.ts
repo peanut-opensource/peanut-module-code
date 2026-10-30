@@ -1,12 +1,12 @@
 import { Extension, Mark, Node } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { h, render } from 'vue';
-import ContentViewer from '@/modules/peanut-content-tools/src/ContentViewer.vue';
-import type ContentToolRegistry from '@/modules/peanut-content-tools/src/registry';
-import type {
-  StableMediaReference,
-  SurfaceCallbacks,
-} from '@/modules/peanut-content-tools/src/contracts';
+import {
+  ContentViewer,
+  type ContentToolRegistry,
+  type StableMediaReference,
+  type SurfaceCallbacks,
+} from '@peanut-admin/peanut-content-tools/surface';
 
 const richTextExtensions = (options: {
   callbacks: SurfaceCallbacks;

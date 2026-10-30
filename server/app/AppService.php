@@ -61,21 +61,15 @@ use PeanutAdmin\Modules\File\Service\Storage\StorageService;
 use app\common\tenancy\DataScopePolicy;
 use app\common\tenancy\DefaultTenantEntryBindingLookup;
 use app\common\tenancy\MultiTenantDataScopePolicy;
-use app\common\validate\InputValidator;
 use PeanutAdmin\Modules\Identity\Invitation\OwnerInvitationDeliveryPort;
 use PeanutAdmin\Modules\Identity\Invitation\OwnerInvitationRuntimePolicy;
 use PeanutAdmin\Modules\Identity\Invitation\UnavailableOwnerInvitationDeliveryPort;
-use app\platform\identity\CorePlatformOperatorIdentityPort;
-use app\platform\identity\PlatformOperatorIdentityPort;
 use app\platform\services\ApplicationTenantBootstrapService;
 use app\platform\services\CoreTenantOwnerAdminProvisioner;
 use app\platform\services\PlatformOperatorSessionService;
 use app\platform\services\TenantGovernanceService;
 use PeanutAdmin\Modules\Identity\Contract\TenantOwnerAdminProvisioner;
 use app\platform\infrastructure\module\DeployedTenantModuleRegistry;
-use app\platform\validation\module\OpisTenantModuleConfigValidator;
-use app\platform\services\module\PlatformTenantModuleService;
-use app\platform\infrastructure\module\VerifiedTenantModuleRepository;
 use PeanutAdmin\Modules\Ops\Service\PlatformOpsApplicationService;
 use PeanutAdmin\Modules\Ops\Infrastructure\ApplicationRuntimeStatusProvider;
 use PeanutAdmin\Modules\Ops\Service\DeploymentModuleRequestService;
@@ -120,7 +114,6 @@ use PeanutAdmin\Modules\Identity\Authorization\ThinkPhpTenantAuthorizationReposi
 use PeanutAdmin\Modules\Identity\Audit\AuditService;
 use PeanutAdmin\Kernel\Identity\PasswordHasher;
 use PeanutAdmin\Modules\Identity\Identity\SelfService\AccountSelfService;
-use PeanutAdmin\Kernel\Idempotency\IdempotencyService;
 use PeanutAdmin\Modules\Identity\Http\TenantAuthEndpoint;
 use PeanutAdmin\Modules\Identity\Membership\Application\MemberAdminService;
 use PeanutAdmin\Modules\Identity\Organization\Application\DepartmentAdminService;
@@ -128,15 +121,12 @@ use PeanutAdmin\Kernel\Host\ApplicationHostPolicy;
 use PeanutAdmin\Modules\Identity\Module\Persistence\ThinkPhpModuleRuntimeRepository;
 use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
 use PeanutAdmin\Kernel\Module\ModuleRuntimeRepository;
-use PeanutAdmin\Modules\Identity\Module\TenantModuleConfigurationService;
-use PeanutAdmin\Kernel\Module\TenantModuleManager;
 use PeanutAdmin\Modules\Identity\Menu\ThinkPhpMenuCatalogRepository;
 use PeanutAdmin\Modules\Identity\Platform\Application\PlatformTenantAdminService;
 use PeanutAdmin\Modules\Identity\Platform\Application\TenantOwnerAdminService;
 use PeanutAdmin\Modules\Identity\Platform\Authorization\ThinkPhpPlatformAuthorizationRepository;
 use PeanutAdmin\Kernel\Platform\Authorization\PlatformAuthorizationEvaluator;
 use PeanutAdmin\Kernel\Platform\Authorization\PlatformAuthorizationRepository;
-use PeanutAdmin\Modules\Identity\Tenancy\DefaultTenantContextResolver;
 use PeanutAdmin\Kernel\Tenancy\TenantEntryBindingResolver;
 use PeanutAdmin\Modules\Ops\Domain\Application\PlatformPermissionChecker;
 use PeanutAdmin\Modules\Ops\Domain\Logs\RuntimeLogProviderRegistry;
@@ -151,7 +141,6 @@ use PeanutAdmin\Modules\Ops\Domain\Task\BackupRestoreProviderRegistry;
 use PeanutAdmin\Modules\Ops\Domain\Task\OpsTaskDispatcher;
 use PeanutAdmin\Modules\Ops\Domain\Task\OpsTaskService;
 use PeanutAdmin\Modules\Settings\Service\SettingCatalogService;
-use app\common\persistence\TenantPersistenceConfiguration;
 
 /** 应用组合根，集中注册 Host 基础设施、业务服务与官方 Module Runtime。 */
 class AppService extends Service
@@ -234,16 +223,8 @@ class AppService extends Service
             $this->app->make(\PeanutAdmin\Modules\ReferenceCodes\Service\ReferenceCodeCatalogService::class),
             $this->app->make(\PeanutAdmin\Modules\Identity\Authorization\CatalogLifecycleService::class),
         ));
-        $this->app->bind(IdempotencyService::class, fn(): IdempotencyService => new IdempotencyService(
-            $this->app->make(TenantPersistenceConfiguration::class)->mode,
-            $this->app->make(TenantPersistenceConfiguration::class)->instanceTenantId,
-        ));
         $this->app->bind(IdempotentCommandExecutor::class, ThinkPhpIdempotentCommandExecutor::class);
         $this->app->bind(OutboundHttpTransport::class, fn(): OutboundHttpTransport => new GuzzleOutboundHttpTransport(
-            $this->app->make(CurrentExecutionContext::class),
-        ));
-        $this->app->bind(InputValidator::class, fn(): InputValidator => new InputValidator(
-            $this->app,
             $this->app->make(CurrentExecutionContext::class),
         ));
         $this->app->bind(
@@ -255,11 +236,8 @@ class AppService extends Service
             fn(): InstallationExecutionHost => new InstallationExecutionHost(
                 dirname(__DIR__),
                 $this->app->make(ModuleCatalogApplier::class),
-                $this->app->make(\PeanutAdmin\Modules\Identity\Contract\AdminDirectoryQuery::class),
-                fn(\PeanutAdmin\Kernel\Module\CompiledModuleRegistry $registry): \PeanutAdmin\Kernel\Module\ModuleRuntimeRepository => $this->installationModuleRuntime($registry),
-                $this->app->make(AuditContractHost::class),
                 $this->app->make(\PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::class),
-                $this->app->make(ModuleComposition::class),
+                $this->app->make(\PeanutAdmin\Modules\Identity\Platform\Application\PlanLicenseAdminService::class),
                 $this->app->make(CompiledModuleRegistry::class),
             ),
         );
@@ -270,12 +248,6 @@ class AppService extends Service
         $this->app->bind(OperationLogService::class, fn(): OperationLogService => new OperationLogService(
             $this->app->make(AuditContractHost::class),
         ));
-    }
-
-    /** Composition-only construction; keep the original installation availability locks and late registry. */
-    private function installationModuleRuntime(\PeanutAdmin\Kernel\Module\CompiledModuleRegistry $registry): \PeanutAdmin\Kernel\Module\ModuleRuntimeRepository
-    {
-        return new \PeanutAdmin\Modules\Identity\Module\Persistence\ThinkPhpModuleRuntimeRepository($registry, true);
     }
 
     private function registerAuthentication(): void
@@ -329,6 +301,7 @@ class AppService extends Service
             $this->app->make(\PeanutAdmin\Modules\Identity\Contract\TenantMemberDirectory::class),
             $this->app->make(AdminDirectoryQuery::class),
             $this->app->make(TenantAuthorizationQuery::class),
+            $this->app->make(\app\common\services\authorization\EndpointPermissionGrant::class),
         ));
         $this->app->bind(AdminAuthorizationQuery::class, fn(): AdminAuthorizationQuery => $this->app->make(AdminAuthorizationService::class));
         $this->app->bind(CoreTenantModuleAdminBridge::class, fn(): CoreTenantModuleAdminBridge => new CoreTenantModuleAdminBridge(
@@ -337,12 +310,14 @@ class AppService extends Service
             $this->app->make(\PeanutAdmin\Kernel\Menu\MenuCatalogRepository::class),
             $this->app->make(TenantAuthorizationQuery::class),
             $this->app->make(\PeanutAdmin\Modules\Identity\Menu\MenuAdministrationService::class),
+            $this->app->make(\PeanutAdmin\Modules\Identity\Module\TenantEntitlementService::class),
         ));
         $this->app->bind(RoleAdministrationRuntime::class, fn(): RoleAdministrationRuntime => new RoleAdministrationRuntime(
-            new RoleAdminService($this->app->make(AuditService::class)),
-            $this->app->make(AdminAuthorizationService::class),
+            new RoleAdminService(
+                $this->app->make(AuditService::class),
+                $this->app->make(\PeanutAdmin\Modules\Identity\Module\TenantEntitlementService::class),
+            ),
             $this->app->make(TenantAuthorizationQuery::class),
-            $this->app->make(\PeanutAdmin\Modules\Identity\Menu\MenuAdministrationService::class),
         ));
         $this->app->bind(AdminDirectoryQuery::class, fn(): AdminDirectoryQuery => new AdminDirectoryQuery(
             $this->app->make(CurrentExecutionContext::class),
@@ -375,8 +350,6 @@ class AppService extends Service
         ));
         $this->app->bind(StorageService::class, fn(): StorageService => new StorageService(
             $this->app->make(StorageDriverFactory::class),
-            $this->app->make(DataScopePolicy::class),
-            $this->app->make(DefaultTenantContextResolver::class),
             (string) Config::get('jwt.secret', ''),
             (string) $this->app->request->domain(),
             $this->app->make(\PeanutAdmin\Modules\Identity\Contract\AdminDirectoryQuery::class),
@@ -445,26 +418,10 @@ class AppService extends Service
             $this->app->make(TokenIssuer::class),
             $this->platformIdentifierHmacKey(),
         ));
-        $this->app->bind(PlatformOperatorIdentityPort::class, CorePlatformOperatorIdentityPort::class);
         $this->app->bind(TenantOwnerAdminProvisioner::class, CoreTenantOwnerAdminProvisioner::class);
         $this->app->bind(DeployedTenantModuleRegistry::class, fn(): DeployedTenantModuleRegistry =>
             $this->app->make(ThinkPhpModuleGovernanceProvider::class)->registry());
         $this->app->bind(ModuleRuntimeRepository::class, ThinkPhpModuleRuntimeRepository::class);
-        $this->app->bind(TenantModuleConfigurationService::class, fn(): TenantModuleConfigurationService => new TenantModuleConfigurationService(
-            $this->app->make(DeployedTenantModuleRegistry::class)->compiled(),
-            $this->app->make(OpisTenantModuleConfigValidator::class),
-            $this->app->make(ModuleRuntimeRepository::class),
-            $this->app->make(AuditService::class),
-        ));
-        $this->app->bind(TenantModuleManager::class, fn(): TenantModuleManager => new TenantModuleManager(
-            $this->app->make(DeployedTenantModuleRegistry::class)->compiled(),
-            new VerifiedTenantModuleRepository(
-                new ThinkPhpModuleRuntimeRepository($this->app->make(CompiledModuleRegistry::class), true),
-                $this->app->make(DeployedTenantModuleRegistry::class),
-            ),
-            $this->app->make(OpisTenantModuleConfigValidator::class),
-            $this->app->make(ModuleComposition::class)->tenantHooks($this->app->make(DeployedTenantModuleRegistry::class)->compiled()),
-        ));
         $this->app->bind(PluginCatalogSyncService::class, fn(): PluginCatalogSyncService =>
             new PluginCatalogSyncService(
                 dirname(__DIR__),
@@ -482,6 +439,7 @@ class AppService extends Service
                 $this->app->make(\PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::class),
                 $this->app->make(DeploymentModuleRequestService::class),
                 $this->app->make(PlatformModuleOperationExecutionService::class),
+                $this->app->make(CompiledModuleRegistry::class),
             ));
         $this->app->bind(PlatformPermissionChecker::class, PlatformOpsPermissionChecker::class);
         $this->app->bind(OpsTaskDispatcher::class, ThinkPhpOpsTaskDispatcher::class);
@@ -536,10 +494,6 @@ class AppService extends Service
                 $this->app->make(ThinkPhpModuleGovernanceProvider::class),
             ));
         $this->app->bind(RuntimeStatusProvider::class, ApplicationRuntimeStatusProvider::class);
-        $this->app->bind(OpsStatusService::class, fn(): OpsStatusService => new OpsStatusService(
-            $this->app->make(PlatformPermissionChecker::class),
-            $this->app->make(RuntimeStatusProvider::class),
-        ));
         $this->app->bind(PlatformProviderQualificationService::class, function (): PlatformProviderQualificationService {
             $contributors = [new StorageQualificationContributor(
                 $this->platformIdentifierHmacKey(),

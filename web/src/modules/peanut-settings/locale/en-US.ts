@@ -5,9 +5,9 @@ export default {
   'officialSettings.notAvailable': 'Settings not available',
   'officialSettings.loadError': 'Unable to load settings',
   'officialSettings.requestId': 'Request ID',
-  'officialSettings.empty.title': 'No settings',
+  'officialSettings.empty.title': 'No Module extension settings',
   'officialSettings.empty.message':
-    'No settings are available for this Tenant.',
+    'No Module declares extension settings. Website and application settings are available from their menu entries.',
   'officialSettings.field.source': 'Source',
   'officialSettings.field.configured': 'Configured',
   'officialSettings.field.revision': 'Revision',

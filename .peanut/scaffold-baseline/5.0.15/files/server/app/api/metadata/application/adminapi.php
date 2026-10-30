@@ -109,7 +109,7 @@ $schemas = [
     ],
     'AdminInfo' => [
         'type' => 'object', 'additionalProperties' => false,
-        'required' => ['id', 'username', 'nickname', 'name', 'avatar', 'role', 'root', 'roles', 'menu', 'permissions', 'tenantName', 'website', 'canSwitchTenant', 'demoMode'],
+        'required' => ['id', 'username', 'nickname', 'name', 'avatar', 'role', 'root', 'roles', 'menu', 'permissions', 'action_bindings', 'tenantName', 'website', 'canSwitchTenant', 'demoMode'],
         'properties' => [
             'id' => ['oneOf' => [['type' => 'integer'], ['type' => 'string']]],
             'username' => ['type' => 'string'], 'nickname' => ['type' => 'string'],
@@ -119,6 +119,10 @@ $schemas = [
             'roles' => $ref('StringList'),
             'menu' => ['type' => 'array', 'items' => $ref('AdminMenuNode')],
             'permissions' => $ref('StringList'),
+            'action_bindings' => ['type' => 'array', 'items' => ['type' => 'object', 'additionalProperties' => false,
+                'required' => ['page_path', 'action_key', 'permission_key'], 'properties' => [
+                    'page_path' => ['type' => 'string'], 'action_key' => ['type' => 'string'], 'permission_key' => ['type' => 'string'],
+                ]]],
             'tenantName' => ['type' => 'string'],
             'website' => $ref('WebsiteConfig'),
             'canSwitchTenant' => ['type' => 'boolean'],
@@ -162,7 +166,7 @@ $schemas = [
             'id' => ['type' => 'integer', 'minimum' => 1], 'account' => ['type' => 'string', 'format' => 'email', 'maxLength' => 255],
             'username' => ['type' => 'string', 'format' => 'email', 'maxLength' => 255],
             'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 120], 'nickname' => ['type' => 'string'],
-            'avatar' => ['type' => 'string', 'maxLength' => 512], 'password' => ['type' => 'string', 'description' => 'Effective UTF-8 byte bounds from getPasswordPolicy.'],
+            'password' => ['type' => 'string', 'description' => 'Effective UTF-8 byte bounds from getPasswordPolicy.'],
             'password_confirm' => ['type' => 'string'], 'role_id' => $ref('IntegerList'), 'role_ids' => $ref('IntegerList'),
             'dept_id' => $ref('IntegerList'), 'jobs_id' => $ref('IntegerList'),
             'disable' => ['type' => 'integer', 'enum' => [0, 1]], 'multipoint_login' => ['type' => 'integer', 'enum' => [0, 1]],
@@ -204,19 +208,19 @@ $schemas = [
     ],
     'AdminRole' => [
         'type' => 'object', 'additionalProperties' => false,
-        'required' => ['id', 'name', 'desc', 'sort', 'create_time', 'num', 'menu_keys', 'status', 'revision'],
+        'required' => ['id', 'name', 'desc', 'sort', 'create_time', 'num', 'permission_keys', 'status', 'revision'],
         'properties' => [
             'id' => ['type' => 'integer'], 'name' => ['type' => 'string'], 'desc' => ['type' => 'string'],
             'sort' => ['type' => 'integer'], 'create_time' => ['type' => 'string'], 'num' => ['type' => 'integer', 'minimum' => 0],
-            'menu_keys' => $ref('StringList'), 'status' => ['type' => 'string'],
+            'permission_keys' => $ref('StringList'), 'status' => ['type' => 'string'],
             'revision' => ['type' => 'integer', 'minimum' => 1],
         ],
     ],
     'AdminRoleWriteRequest' => [
-        'type' => 'object', 'required' => ['name'],
+        'type' => 'object', 'additionalProperties' => false, 'required' => ['name'],
         'properties' => [
             'id' => ['type' => 'integer', 'minimum' => 1], 'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 120],
-            'desc' => ['type' => 'string'], 'menu_keys' => $ref('StringList'),
+            'desc' => ['type' => 'string'], 'sort' => ['type' => 'integer'],
         ],
     ],
     'Department' => [
@@ -251,12 +255,11 @@ $schemas = [
         ],
     ],
     'JobWriteRequest' => [
-        'type' => 'object', 'required' => ['name', 'code', 'status'],
+        'type' => 'object', 'additionalProperties' => false, 'required' => ['name', 'code', 'status'],
         'properties' => [
             'id' => ['type' => 'integer', 'minimum' => 1], 'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 50],
             'code' => ['type' => 'string', 'maxLength' => 64], 'sort' => ['type' => 'integer', 'minimum' => 0],
             'remark' => ['type' => 'string', 'maxLength' => 200], 'status' => ['type' => 'integer', 'enum' => [0, 1]],
-            'is_disable' => ['type' => 'integer', 'enum' => [0, 1]],
         ],
     ],
     'WebsiteConfig' => [
@@ -303,6 +306,10 @@ $schemas = [
         'properties' => ['clarity_code' => ['type' => 'string', 'pattern' => '^[A-Za-z0-9_-]*$', 'maxLength' => 64]],
     ],
     'MemberProfileConfig' => [
+        'type' => 'object', 'additionalProperties' => false, 'required' => ['default_avatar', 'default_avatar_url'],
+        'properties' => ['default_avatar' => ['type' => 'string', 'maxLength' => 500], 'default_avatar_url' => ['type' => 'string']],
+    ],
+    'MemberProfileWriteRequest' => [
         'type' => 'object', 'additionalProperties' => false, 'required' => ['default_avatar'],
         'properties' => ['default_avatar' => ['type' => 'string', 'maxLength' => 500]],
     ],
@@ -325,27 +332,48 @@ $schemas = [
     'DecorationPage' => [
         'type' => 'object',
         'additionalProperties' => $ref('ApplicationDynamicValue'),
-        'required' => ['id', 'type', 'name', 'data', 'meta'],
+        'required' => ['id', 'type', 'name', 'data', 'meta', 'resource_urls'],
         'properties' => [
             'id' => ['type' => 'integer'], 'type' => ['type' => 'integer', 'enum' => [1, 2, 3, 4, 5]], 'name' => ['type' => 'string'],
-            'data' => ['type' => 'array', 'items' => $ref('ApplicationDynamicValue')],
-            'meta' => ['type' => 'object', 'additionalProperties' => $ref('ApplicationDynamicValue')],
+            'data' => ['oneOf' => [['type' => 'array', 'items' => $ref('ApplicationDynamicValue')], ['type' => 'object', 'additionalProperties' => $ref('ApplicationDynamicValue')]]],
+            'meta' => ['oneOf' => [['type' => 'array', 'items' => $ref('ApplicationDynamicValue')], ['type' => 'object', 'additionalProperties' => $ref('ApplicationDynamicValue')]]],
+            'resource_urls' => ['type' => 'object', 'additionalProperties' => ['type' => 'string']],
         ],
     ],
     'DecorationPageSaveRequest' => [
-        'type' => 'object', 'required' => ['id', 'type', 'data'],
+        'type' => 'object', 'additionalProperties' => false, 'required' => ['id', 'type', 'data'],
         'properties' => [
             'id' => ['type' => 'integer', 'minimum' => 1], 'type' => ['type' => 'integer', 'enum' => [1, 2, 3, 4, 5]],
-            'data' => ['type' => 'array', 'items' => $ref('ApplicationDynamicValue')],
-            'meta' => ['type' => 'object', 'additionalProperties' => $ref('ApplicationDynamicValue')],
+            'data' => ['oneOf' => [['type' => 'array', 'items' => $ref('ApplicationDynamicValue')], ['type' => 'object', 'additionalProperties' => $ref('ApplicationDynamicValue')]]],
+            'meta' => ['oneOf' => [['type' => 'array', 'items' => $ref('ApplicationDynamicValue')], ['type' => 'object', 'additionalProperties' => $ref('ApplicationDynamicValue')]]],
         ],
     ],
     'DecorationTabbar' => [
-        'type' => 'object', 'additionalProperties' => false, 'required' => ['style', 'list'],
+        'type' => 'object', 'additionalProperties' => false, 'required' => ['style', 'list', 'resource_urls'],
         'properties' => [
+            'resource_urls' => ['type' => 'object', 'additionalProperties' => ['type' => 'string']],
             'style' => ['type' => 'object', 'additionalProperties' => $ref('ApplicationDynamicValue')],
             'list' => ['type' => 'array', 'items' => [
                 'type' => 'object', 'additionalProperties' => $ref('ApplicationDynamicValue'),
+                'required' => ['name', 'selected', 'unselected', 'link', 'is_show'],
+                'properties' => [
+                    'name' => ['type' => 'string'], 'selected' => ['type' => 'string'], 'unselected' => ['type' => 'string'],
+                    'link' => ['type' => 'object', 'additionalProperties' => $ref('ApplicationDynamicValue')],
+                    'is_show' => ['type' => 'integer', 'enum' => [0, 1]],
+                ],
+            ]],
+        ],
+    ],
+    'DecorationTabbarSaveRequest' => [
+        'type' => 'object', 'additionalProperties' => false, 'required' => ['style', 'list'],
+        'properties' => [
+            'style' => [
+                'type' => 'object', 'additionalProperties' => false,
+                'required' => ['default_color', 'selected_color'],
+                'properties' => ['default_color' => ['type' => 'string'], 'selected_color' => ['type' => 'string']],
+            ],
+            'list' => ['type' => 'array', 'items' => [
+                'type' => 'object', 'additionalProperties' => false,
                 'required' => ['name', 'selected', 'unselected', 'link', 'is_show'],
                 'properties' => [
                     'name' => ['type' => 'string'], 'selected' => ['type' => 'string'], 'unselected' => ['type' => 'string'],
@@ -782,7 +810,8 @@ $configContracts = [
 foreach ($configContracts as $route => [$schema, $getId, $saveId]) {
     $add($paths, 'GET', '/adminapi/config/' . $route, $operation($getId, 'TenantConfiguration', $ok($schema)));
     $saveResponse = $route === 'website' ? $ok($schema) : $mutation;
-    $add($paths, 'POST', '/adminapi/config/' . $route . '/save', $operation($saveId, 'TenantConfiguration', $saveResponse, requestBody: $jsonBody($ref($schema))));
+    $requestSchema = $route === 'user' ? 'MemberProfileWriteRequest' : $schema;
+    $add($paths, 'POST', '/adminapi/config/' . $route . '/save', $operation($saveId, 'TenantConfiguration', $saveResponse, requestBody: $jsonBody($ref($requestSchema))));
 }
 $add($paths, 'GET', '/adminapi/config/copyright', $operation('getCopyrightConfig', 'TenantConfiguration', $ok('CopyrightItemList')));
 $add($paths, 'POST', '/adminapi/config/copyright/save', $operation('saveCopyrightConfig', 'TenantConfiguration', $mutation, requestBody: $jsonBody($ref('CopyrightConfig'))));
@@ -799,7 +828,7 @@ $add($paths, 'GET', '/adminapi/decoration/mobile/article', $operation(
     [$query('limit', ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 20])],
 ));
 $add($paths, 'GET', '/adminapi/decoration/tabbar/detail', $operation('getDecorationTabbar', 'Decoration', $ok('DecorationTabbar')));
-$add($paths, 'POST', '/adminapi/decoration/tabbar/save', $operation('saveDecorationTabbar', 'Decoration', $mutation, requestBody: $jsonBody($ref('DecorationTabbar')), errors: ['DECORATION_TABBAR_INVALID']));
+$add($paths, 'POST', '/adminapi/decoration/tabbar/save', $operation('saveDecorationTabbar', 'Decoration', $mutation, requestBody: $jsonBody($ref('DecorationTabbarSaveRequest')), errors: ['DECORATION_TABBAR_INVALID']));
 
 // 生成器；下载返回二进制文件而不是 JSON envelope。
 $generatorPage = static fn(string $item): array => [
@@ -865,4 +894,5 @@ $overrides = [
 ];
 
 $paths['/adminapi/decoration/mobile/article']['x-peanut-required-modules'] = ['peanut.article'];
+$add($paths, 'GET', '/adminapi/core.tenant.license', $operation('getCurrentTenantLicense', 'TenantPlans', $ok('TenantLicenseData')));
 return ['paths' => $paths, 'overrides' => $overrides, 'components' => ['schemas' => $schemas]];

@@ -54,6 +54,9 @@ final readonly class ModuleCatalogApplier
         $before = $this->catalogRevision();
         Db::transaction(function () use ($compiledScope, $fullRegistry, $registry, $selected, $selectedKeys): void {
             $this->authorization->synchronize($compiledScope);
+            (new \PeanutAdmin\Modules\Identity\Authorization\ApiPermissionCatalog())->synchronize(
+                \app\common\services\authorization\GeneratedApiCatalog::load(dirname(__DIR__, 4)), $selectedKeys, $fullRegistry,
+            );
 
             $menus = $fullRegistry
                 ? $this->menuCatalog
@@ -122,6 +125,7 @@ final readonly class ModuleCatalogApplier
     {
         $rows = [];
         $rows['pa_permission'] = $this->authorization->revisionRows();
+        $rows['api_permissions'] = (new \PeanutAdmin\Modules\Identity\Authorization\ApiPermissionCatalog())->revisionRows();
         $rows['pa_menu_definition'] = (new MenuCatalogSynchronizer($this->menuCatalog))->revisionRows();
         $rows['pa_setting_definition'] = $this->settings->revisionRows();
         $rows['pa_reference_code_set'] = $this->referenceCodes->revisionRows();

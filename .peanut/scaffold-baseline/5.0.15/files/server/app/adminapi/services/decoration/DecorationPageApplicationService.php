@@ -38,7 +38,7 @@ class DecorationPageApplicationService
         if ($page->isEmpty() || !in_array((int) $page->type, $allowedTypes, true)) {
             throw BusinessException::notFound('DECORATION_PAGE_NOT_FOUND', '装修页面不存在或无权访问');
         }
-        return $this->decoration->formatPage($page->toArray());
+        return $this->decoration->formatPage($page->toArray(), forEdit: true);
     }
 
     public function detailByType(TenantContext $context, int $type): array

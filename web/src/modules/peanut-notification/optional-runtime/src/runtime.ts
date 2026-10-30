@@ -59,7 +59,7 @@ export interface NotificationRuntime {
 export interface NotificationRuntimeOptions {
   readonly transport: NotificationTransport;
   readonly canRead: () => boolean;
-  readonly canManage?: () => boolean;
+  readonly canManage: () => boolean;
 }
 
 const failure = (result: NotificationTransportResult): NotificationError => {
@@ -87,7 +87,7 @@ const failure = (result: NotificationTransportResult): NotificationError => {
 export const createNotificationRuntime = (
   options: NotificationRuntimeOptions
 ): NotificationRuntime => {
-  const canManage = options.canManage ?? options.canRead;
+  const canManage = options.canManage;
   const state = reactive<NotificationState>({
     items: [],
     status: 'all',

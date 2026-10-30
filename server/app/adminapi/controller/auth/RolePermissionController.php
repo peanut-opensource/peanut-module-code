@@ -54,6 +54,17 @@ final class RolePermissionController extends BaseAdminController
             + ['page_no' => $page->page, 'page_size' => $page->pageSize]);
     }
 
+    public function apis()
+    {
+        $input = $this->fields($this->request->get(), ['permission_key']);
+        $key = $input['permission_key'] ?? null;
+        if (!is_string($key) || $key === '' || strlen($key) > 160
+            || !app(\app\common\infrastructure\authorization\CoreTenantModuleAdminBridge::class)->registeredPermission($this->tenantAdminContext()->tenantId, $key)) {
+            throw AdminAccessException::notFound();
+        }
+        return $this->data(app(\PeanutAdmin\Modules\Identity\Authorization\ApiPermissionCatalog::class)->bundle($key));
+    }
+
     private function project(array $role): array
     {
         return ['role_id' => $role['id'], 'key' => $role['key'], 'revision' => $role['revision'],

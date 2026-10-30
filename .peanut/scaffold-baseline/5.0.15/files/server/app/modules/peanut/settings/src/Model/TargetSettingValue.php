@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace PeanutAdmin\Modules\Settings\Model;
 
-use PeanutAdmin\Kernel\Persistence\Model\EditionTenantModel;
+use PeanutAdmin\Kernel\Persistence\Model\TenantModel;
 use think\model\relation\BelongsTo;
 
-final class TargetSettingValue extends EditionTenantModel
+final class TargetSettingValue extends TenantModel
 {
     /** @var string */ protected $name = 'setting_target_value';
 

@@ -19,8 +19,8 @@ const APP_SETTING: AppRouteRecordRaw = {
       meta: {
         locale: 'menu.appSetting.readiness',
         requiresAuth: true,
-        requiredPermissions: ['readiness/checklist'],
-        roles: ['admin'],
+        requiredPermissions: ['peanut.settings.read'],
+        tenantModuleKey: 'peanut.settings',
       },
     },
     {
@@ -30,8 +30,8 @@ const APP_SETTING: AppRouteRecordRaw = {
       meta: {
         locale: 'menu.appSetting.website',
         requiresAuth: true,
-        requiredPermissions: ['config/website'],
-        roles: ['admin'],
+        requiredPermissions: ['peanut.settings.read'],
+        tenantModuleKey: 'peanut.settings',
       },
     },
     {
@@ -41,7 +41,8 @@ const APP_SETTING: AppRouteRecordRaw = {
       meta: {
         locale: 'menu.appSetting.user',
         requiresAuth: true,
-        roles: ['admin'],
+        requiredPermissions: ['peanut.settings.read'],
+        tenantModuleKey: 'peanut.settings',
       },
     },
     {
@@ -51,7 +52,8 @@ const APP_SETTING: AppRouteRecordRaw = {
       meta: {
         locale: 'menu.appSetting.hotSearch',
         requiresAuth: true,
-        roles: ['admin'],
+        requiredPermissions: ['peanut.settings.read'],
+        tenantModuleKey: 'peanut.settings',
       },
     },
     {
@@ -81,7 +83,8 @@ const APP_SETTING: AppRouteRecordRaw = {
       meta: {
         locale: 'menu.appSetting.transaction',
         requiresAuth: true,
-        roles: ['admin'],
+        requiredPermissions: ['peanut.settings.read'],
+        tenantModuleKey: 'peanut.settings',
       },
     },
   ],

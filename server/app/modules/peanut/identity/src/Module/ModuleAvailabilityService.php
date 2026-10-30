@@ -6,13 +6,11 @@ namespace PeanutAdmin\Modules\Identity\Module;
 
 use DateTimeImmutable;
 use PeanutAdmin\Modules\Identity\Module\Model\ModuleInstallation;
-use PeanutAdmin\Modules\Identity\Module\Model\TenantModule;
 use PeanutAdmin\Kernel\Tenancy\TenantScope;
-use think\Model;
 
 final readonly class ModuleAvailabilityService implements \PeanutAdmin\Kernel\Module\ModuleAvailability
 {
-    public function __construct(private \PeanutAdmin\Kernel\Module\CompiledModuleRegistry $registry) {}
+    public function __construct(private \PeanutAdmin\Kernel\Module\CompiledModuleRegistry $registry, private TenantEntitlementService $entitlements) {}
 
     public function assertAvailable(
         TenantScope $scope,
@@ -50,43 +48,8 @@ final readonly class ModuleAvailabilityService implements \PeanutAdmin\Kernel\Mo
         DateTimeImmutable $now,
         bool $lock = false,
     ): void {
-        if ($this->registry->isRequiredTenantFoundation($moduleKey)) {
-            return;
+        if (!$this->entitlements->allowsModule($scope->tenantId(), $moduleKey, $now, $lock)) {
+            throw new \PeanutAdmin\Kernel\Module\ModuleException('MODULE_TENANT_NOT_EFFECTIVE', "Module {$moduleKey} is outside the tenant license entitlement.");
         }
-        $tenantModule = TenantModule::scope('tenant', $scope)
-            ->where('module_key', $moduleKey)
-            ->lock($lock)
-            ->find();
-        if (!$tenantModule instanceof TenantModule || $tenantModule->getAttr('status') === 'disabled') {
-            throw new \PeanutAdmin\Kernel\Module\ModuleException('MODULE_TENANT_DISABLED', "Module {$moduleKey} is disabled for tenant.");
-        }
-        if (!$this->effective($tenantModule, $now)) {
-            throw new \PeanutAdmin\Kernel\Module\ModuleException('MODULE_TENANT_NOT_EFFECTIVE', "Module {$moduleKey} is outside its effective window.");
-        }
-    }
-
-    private function effective(Model $record, DateTimeImmutable $now): bool
-    {
-        $effectiveAt = $this->date($record->getAttr('effective_at'));
-        $expiresAt = $this->date($record->getAttr('expires_at'));
-
-        return $record->getAttr('status') === 'enabled'
-            && ($effectiveAt === null || $effectiveAt <= $now)
-            && ($expiresAt === null || $now < $expiresAt);
-    }
-
-    private function date(mixed $value): ?DateTimeImmutable
-    {
-        if ($value === null) {
-            return null;
-        }
-        if ($value instanceof DateTimeImmutable) {
-            return $value;
-        }
-        if ($value instanceof \DateTimeInterface) {
-            return DateTimeImmutable::createFromInterface($value);
-        }
-
-        return is_string($value) ? new DateTimeImmutable($value) : null;
     }
 }

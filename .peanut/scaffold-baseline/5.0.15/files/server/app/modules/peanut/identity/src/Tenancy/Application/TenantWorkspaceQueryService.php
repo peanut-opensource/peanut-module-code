@@ -11,16 +11,17 @@ use PeanutAdmin\Modules\Identity\Audit\Model\TenantAuditEventRecord;
 use PeanutAdmin\Kernel\Authorization\Application\AdminAccessException;
 use PeanutAdmin\Kernel\Authorization\Application\PageRequest;
 use PeanutAdmin\Modules\Identity\Module\Model\ModuleInstallation;
-use PeanutAdmin\Modules\Identity\Module\Model\TenantModule;
+use PeanutAdmin\Modules\Identity\Module\TenantEntitlementService;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Permission;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Tenant;
-use RuntimeException;
 use think\db\Query;
 use think\db\Raw;
 use think\model\type\Json;
 
 final readonly class TenantWorkspaceQueryService
 {
+    public function __construct(private TenantEntitlementService $entitlements) {}
+
     /** @return array<string, mixed> */
     public function tenant(int $tenantId): array
     {
@@ -37,25 +38,9 @@ final readonly class TenantWorkspaceQueryService
     /** @return list<array<string, mixed>> */
     public function permissions(int $tenantId): array
     {
-        $modules = TenantModule::alias('tenant_module')
-            ->join(
-                'module_installation installation',
-                "installation.module_key = tenant_module.module_key AND installation.status = 'active'",
-            )
-            ->where('tenant_module.tenant_id', $tenantId)
-            ->where('tenant_module.status', 'enabled')
-            ->where(function ($query): void {
-                $query->whereNull('tenant_module.effective_at')
-                    ->whereOr('tenant_module.effective_at', '<=', new Raw('UTC_TIMESTAMP(3)'));
-            })
-            ->where(function ($query): void {
-                $query->whereNull('tenant_module.expires_at')
-                    ->whereOr('tenant_module.expires_at', '>', new Raw('UTC_TIMESTAMP(3)'));
-            })
-            ->column('tenant_module.module_key');
         $rows = Permission::where('status', 'active')
             ->whereNotLike('key', 'platform.%')
-            ->whereIn('module_key', array_values(array_unique(['core', ...$modules])))
+            ->whereIn('key', $this->entitlements->permissionKeys($tenantId))
             ->field('id,key,module_key,type,name,description,risk_level')
             ->order('module_key')
             ->order('key')
@@ -68,26 +53,23 @@ final readonly class TenantWorkspaceQueryService
     /** @return list<array<string, mixed>> */
     public function modules(int $tenantId): array
     {
+        $available = array_fill_keys($this->entitlements->moduleKeys($tenantId), true);
+        $license = $this->entitlements->license($tenantId);
         $rows = ModuleInstallation::alias('installation')
-            ->leftJoin(
-                'tenant_module tenant_module',
-                'tenant_module.module_key = installation.module_key AND tenant_module.tenant_id = ' . $tenantId,
-            )
             ->field([
                 'installation.module_key', 'installation.module_key' => 'name',
                 'installation.installed_version' => 'version', 'installation.status' => 'deployment_status',
-                'status' => new Raw("COALESCE(tenant_module.status, 'disabled')"),
-                'tenant_module.source', 'tenant_module.config_json', 'tenant_module.config_revision' => 'revision',
-                'tenant_module.effective_at', 'tenant_module.expires_at',
-                'tenant_module.enabled_at', 'tenant_module.disabled_at',
             ])
             ->order('installation.module_key')
             ->select()
             ->toArray();
         foreach ($rows as &$row) {
             $row = $this->normalize($row);
-            $row['config'] = $this->decodeJson($row['config_json'] ?? null);
-            unset($row['config_json']);
+            $row['status'] = isset($available[$row['module_key']]) ? 'enabled' : 'disabled';
+            $row['source'] = 'license';
+            $row['revision'] = (string) ($license['revision'] ?? 0);
+            $row['effective_at'] = $license['effective_at'] ?? null;
+            $row['expires_at'] = $license['expires_at'] ?? null;
         }
         unset($row);
 
@@ -190,18 +172,4 @@ final readonly class TenantWorkspaceQueryService
         return $row;
     }
 
-    /** @return array<string, mixed> */
-    private function decodeJson(mixed $value): array
-    {
-        if ($value === null || $value === '') {
-            return [];
-        }
-        try {
-            $decoded = json_decode((string) $value, true, 512, JSON_THROW_ON_ERROR);
-        } catch (JsonException $exception) {
-            throw new RuntimeException('Stored module configuration is invalid.', 0, $exception);
-        }
-
-        return is_array($decoded) ? $decoded : [];
-    }
 }

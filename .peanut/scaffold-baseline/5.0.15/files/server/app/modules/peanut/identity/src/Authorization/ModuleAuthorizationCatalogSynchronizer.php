@@ -71,10 +71,6 @@ final readonly class ModuleAuthorizationCatalogSynchronizer
             if ($tenantIds !== $lockedTenantIds) {
                 throw new \DomainException('MODULE_AUTHORITY_TENANT_SET_CHANGED');
             }
-            Db::name('tenant_module')->whereIn('module_key', $moduleKeys)->update([
-                'authorization_revision' => Db::raw('authorization_revision+1'),
-                'updated_at' => Db::raw('UTC_TIMESTAMP(3)'),
-            ]);
             if ($tenantIds !== []) {
                 Db::name('tenant')->whereIn('id', $tenantIds)->update([
                     'authorization_revision' => Db::raw('authorization_revision+1'),
@@ -91,8 +87,11 @@ final readonly class ModuleAuthorizationCatalogSynchronizer
         $cursor = 0;
         $tenants = [];
         do {
-            $query = Db::name('tenant_module')->whereIn('module_key', $moduleKeys)
-                ->where('id', '>', $cursor)->field('id,tenant_id')->order('id')->limit(100);
+            $query = Db::name('tenant_license')->alias('license')
+                ->whereIn('license.plan_id', static function (\think\db\Query $query) use ($moduleKeys): void {
+                    $query->name('plan_module')->whereIn('module_key', $moduleKeys)->field('plan_id');
+                })
+                ->where('license.id', '>', $cursor)->field('license.id,license.tenant_id')->order('license.id')->limit(100);
             if ($lock) {
                 $query->lock('FOR UPDATE NOWAIT');
             }

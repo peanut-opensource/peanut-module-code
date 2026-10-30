@@ -63,31 +63,62 @@ if [[ "$ACTION" != services && "$ACTION" != services-check ]]; then
     mkdir -p "$LOCAL_COMPOSER_DIR"
 fi
 
-required_version="$(core_php -r '$manifest = json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR); echo $manifest["require"]["peanut-admin/core"] ?? "";' "$SERVER_DIR/composer.json")"
-[[ -n "$required_version" ]] || die 'server/composer.json does not pin peanut-admin/core'
 core_name="$(core_php -r '$manifest = json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR); echo $manifest["name"] ?? "";' "$CORE_PACKAGE_DIR/composer.json")"
 [[ "$core_name" == peanut-admin/core ]] || die 'selected checkout is not peanut-admin/core'
+# Service-only actions must not reinstall dependencies or rewrite local manifests.
+if [[ "$ACTION" != services && "$ACTION" != services-check ]]; then
+required_version="$(core_php -r '$manifest = json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR); echo $manifest["require"]["peanut-admin/core"] ?? "";' "$SERVER_DIR/composer.json")"
+[[ -n "$required_version" ]] || die 'server/composer.json does not pin peanut-admin/core'
 # The development path package uses its actual Git branch identity. Do not
 # disguise an unpublished checkout as the production lock version or an alias.
 core_branch="$(git -C "$CORE_PACKAGE_DIR" symbolic-ref --quiet --short HEAD)" \
     || die 'local development requires a named Core branch; use the locked package for detached candidates'
 core_requirement="dev-$core_branch"
+update_packages=(peanut-admin/core)
 
-# Service-only actions must not reinstall dependencies or rewrite local manifests.
-if [[ "$ACTION" != services && "$ACTION" != services-check ]]; then
-core_php -r '
+local_package_names="$(core_php -r '
 $source = json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR);
 $source["require"]["peanut-admin/core"] = $argv[6];
-$source["repositories"] = array_merge([
+$serverRoot = dirname($argv[1]);
+$developmentRepositories = [
     [
         "type" => "path",
         "url" => $argv[2],
         "options" => ["symlink" => true],
     ],
-], $source["repositories"] ?? []);
+];
+$localPackages = [];
+foreach ($source["repositories"] ?? [] as $repository) {
+    if (($repository["type"] ?? null) !== "path") {
+        continue;
+    }
+    $url = $repository["url"];
+    $path = realpath(str_starts_with($url, "/") ? $url : $serverRoot . "/" . $url);
+    if ($path === false || !is_file($path . "/composer.json")) {
+        throw new RuntimeException("Configured local package source is missing: " . $url);
+    }
+    $package = json_decode(file_get_contents($path . "/composer.json"), true, 512, JSON_THROW_ON_ERROR);
+    if (!isset($package["require"]["peanut-admin/core"])) {
+        continue;
+    }
+    if (!is_string($package["version"] ?? null) || $package["version"] === "") {
+        throw new RuntimeException("Local module must declare its real version: " . $package["name"]);
+    }
+    // Project only dependency metadata. Composer installs the original source
+    // through its native path downloader; no generated source tree or alias.
+    $package["require"]["peanut-admin/core"] = $argv[6];
+    $package["dist"] = [
+        "type" => "path",
+        "url" => $path,
+        "reference" => hash("sha1", json_encode($package, JSON_THROW_ON_ERROR) . $path),
+    ];
+    $package["transport-options"] = ["symlink" => true, "relative" => false];
+    $developmentRepositories[] = ["type" => "package", "package" => $package];
+    $localPackages[] = $package["name"];
+}
+$source["repositories"] = array_merge($developmentRepositories, $source["repositories"] ?? []);
 // The ignored manifest lives outside server/. Root every source/test path at
 // the selected application, including module-owned public namespaces.
-$serverRoot = dirname($argv[5]);
 foreach (["autoload", "autoload-dev"] as $section) {
     foreach (["psr-4", "psr-0"] as $kind) {
         foreach ($source[$section][$kind] ?? [] as $namespace => $paths) {
@@ -112,7 +143,11 @@ file_put_contents(
     $argv[4],
     json_encode($source, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL
 );
-' "$SERVER_DIR/composer.json" "$CORE_PACKAGE_DIR" "$SERVER_DIR/vendor" "$LOCAL_COMPOSER" "$SERVER_DIR/app" "$core_requirement"
+echo implode(PHP_EOL, array_unique($localPackages));
+' "$SERVER_DIR/composer.json" "$CORE_PACKAGE_DIR" "$SERVER_DIR/vendor" "$LOCAL_COMPOSER" "$SERVER_DIR/app" "$core_requirement")"
+while IFS= read -r package; do
+    [[ -z "$package" ]] || update_packages+=("$package")
+done <<< "$local_package_names"
 fi
 
 run_composer() {
@@ -197,35 +232,16 @@ refresh_application_services() {
     check_application_services || die 'ThinkPHP service discovery did not produce a usable registry'
 }
 
-LOCK_BACKUP=""
-preserve_application_lock() {
-    [[ -f "$SERVER_DIR/composer.lock" ]] || return 0
-    LOCK_BACKUP="$(mktemp "${TMPDIR:-/tmp}/peanut-admin-composer-lock.XXXXXX")"
-    cp "$SERVER_DIR/composer.lock" "$LOCK_BACKUP"
-}
-
-restore_application_lock() {
-    if [[ -n "$LOCK_BACKUP" && -f "$LOCK_BACKUP" ]]; then
-        cp "$LOCK_BACKUP" "$SERVER_DIR/composer.lock"
-        rm -f "$LOCK_BACKUP"
-    fi
-}
-
 case "$ACTION" in
     install)
-        # The committed lock remains the source of truth for every non-Core
-        # dependency. Re-seed the ignored local lock so application dependency
-        # updates cannot leave the path-repository workflow stale.
-        preserve_application_lock
-        trap restore_application_lock EXIT
+        # Unlock only Core and local modules whose Core requirement was projected.
+        # Third-party versions remain fixed by the committed application lock.
         cp "$SERVER_DIR/composer.lock" "$LOCAL_LOCK"
-        run_composer update peanut-admin/core --no-scripts --no-progress --prefer-dist
+        run_composer update "${update_packages[@]}" --no-scripts --no-progress --prefer-dist
         ;;
     update|refresh)
-        preserve_application_lock
-        trap restore_application_lock EXIT
         cp "$SERVER_DIR/composer.lock" "$LOCAL_LOCK"
-        run_composer update peanut-admin/core --no-scripts --no-progress --prefer-dist
+        run_composer update "${update_packages[@]}" --no-scripts --no-progress --prefer-dist
         ;;
     autoload)
         run_composer dump-autoload --no-scripts

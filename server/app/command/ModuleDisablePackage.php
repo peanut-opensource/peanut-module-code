@@ -43,7 +43,7 @@ final class ModuleDisablePackage extends ModuleContextualCommand
     private function remediation(string $code): string
     {
         return match ($code) {
-            'PLUGIN_TENANT_MODULE_ACTIVE' => 'Disable every TenantModule in the Package before disabling the Package.',
+            'PLUGIN_TENANT_MODULE_ACTIVE' => 'Remove the Package modules from tenant license plans before disabling the Package.',
             'MODULE_DEPENDENT_INSTALLED' => 'Retire or disable active dependent Packages first.',
             'MODULE_LIFECYCLE_PROTECTED' => 'Protected Modules cannot be disabled.',
             'MODULE_LIFECYCLE_BUSY' => 'Wait for the current Package lifecycle operation to finish and retry.',

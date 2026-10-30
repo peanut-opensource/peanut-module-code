@@ -19,6 +19,18 @@ class DictDataController extends BaseAdminController
     protected string $dictionaryDataClass = DictDataApplicationService::class;
     protected const CRUD_VALIDATE = DictDataValidate::class;
     protected const CRUD_NOT_FOUND_MESSAGE = '字典数据不存在';
+    protected const CRUD_INPUT_FIELDS = [
+        'add' => ['type_id', 'name', 'value', 'sort', 'is_disable', 'remark'],
+        'edit' => ['id', 'name', 'value', 'sort', 'is_disable', 'remark'],
+        'detail' => ['id'],
+        'delete' => ['id'],
+        'status' => ['id', 'is_disable'],
+    ];
+    protected const CRUD_WRITABLE_FIELDS = [
+        'add' => ['type_id', 'name', 'value', 'sort', 'is_disable', 'remark'],
+        'edit' => ['name', 'value', 'sort', 'is_disable', 'remark'],
+        'status' => ['is_disable'],
+    ];
 
     protected function resolveCrudContext(): TenantContext
     {

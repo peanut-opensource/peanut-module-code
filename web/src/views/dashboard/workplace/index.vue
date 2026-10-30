@@ -248,8 +248,8 @@
   );
 
   const shortcutLocaleKeys: Record<string, [string, string]> = {
-    '/system/admin': ['管理员', 'workplace.shortcut.admin'],
-    '/system/role': ['角色管理', 'menu.system.role'],
+    '/app/members': ['管理员', 'workplace.shortcut.admin'],
+    '/app/roles': ['角色管理', 'menu.system.role'],
     '/app/departments': ['部门管理', 'menu.system.dept'],
     '/system/dict': ['字典管理', 'menu.system.dict'],
     '/system/file': ['素材中心', 'workplace.shortcut.file'],

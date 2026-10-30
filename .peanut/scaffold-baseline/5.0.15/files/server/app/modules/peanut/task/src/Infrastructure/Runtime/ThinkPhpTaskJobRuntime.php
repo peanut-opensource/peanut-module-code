@@ -30,6 +30,8 @@ use PeanutAdmin\Kernel\Context\TenantSystemContext;
 use PeanutAdmin\Modules\Task\Job\Execution\JobClaim;
 use app\common\execution\SystemExecutionContext;
 use app\common\execution\SystemExecutionMetadata;
+use PeanutAdmin\DataPermission\Catalog\ResourceOperationCatalog;
+use PeanutAdmin\Modules\Identity\Module\TenantEntitlementService;
 
 final readonly class ThinkPhpTaskJobRuntime implements TaskJobRuntime
 {
@@ -45,6 +47,8 @@ final readonly class ThinkPhpTaskJobRuntime implements TaskJobRuntime
         private Closure $dispatch,
         private array $workerDefinitions,
         private int $workerLimit,
+        private ResourceOperationCatalog $operations,
+        private TenantEntitlementService $entitlements,
     ) {
         if (strlen($this->signingKey) < 32) {
             throw new \runtimeException('ASYNC_SIGNING_KEY_INVALID');
@@ -57,6 +61,8 @@ final readonly class ThinkPhpTaskJobRuntime implements TaskJobRuntime
             $this->repository,
             new TaskSubmissionRegistry($providers),
             $this->envelopes(),
+            $this->operations,
+            $this->entitlements,
             $this->signingKey,
         );
     }

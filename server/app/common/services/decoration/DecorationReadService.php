@@ -32,6 +32,7 @@ final readonly class DecorationReadService
         TenantContext|TenantSystemContext $context,
         bool $visibleOnly = false,
         string $operation = '',
+        bool $forEdit = false,
     ): array {
         $style = $this->tabbarStyle();
         $rows = DecorateTabbar::where([])
@@ -42,18 +43,22 @@ final readonly class DecorationReadService
                 continue;
             }
             $item['link'] = json_decode((string) $item['link'], true) ?: [];
-            $list[] = $this->schema->resourcesForRead($item);
+            $list[] = $forEdit ? $item : $this->schema->resourcesForRead($item);
         }
-        return ['style' => $style, 'list' => $list];
+        return ['style' => $style, 'list' => $list]
+            + ($forEdit ? ['resource_urls' => (object) $this->schema->resourceUrls($list)] : []);
     }
 
-    public function formatPage(array $page): array
+    public function formatPage(array $page, bool $forEdit = false): array
     {
         $data = json_decode((string) $page['data'], true, 512, JSON_THROW_ON_ERROR);
         $meta = trim((string) ($page['meta'] ?? '')) === ''
             ? [] : json_decode((string) $page['meta'], true, 512, JSON_THROW_ON_ERROR);
-        $page['data'] = $this->schema->resourcesForRead($data);
-        $page['meta'] = $this->schema->resourcesForRead($meta);
+        $page['data'] = $forEdit ? $data : $this->schema->resourcesForRead($data);
+        $page['meta'] = $forEdit ? $meta : $this->schema->resourcesForRead($meta);
+        if ($forEdit) {
+            $page['resource_urls'] = (object) $this->schema->resourceUrls([$data, $meta]);
+        }
         return $page;
     }
 

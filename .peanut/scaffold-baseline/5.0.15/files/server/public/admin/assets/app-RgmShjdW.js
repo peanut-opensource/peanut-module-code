@@ -1,1 +1,0 @@
-import{aT as n}from"./index-DUW-dXsS.js";function i(){return n.get("/adminapi/setting/hot-search/config")}function o(t){return n.post("/adminapi/setting/hot-search/save",t)}function s(){return n.get("/adminapi/setting/transaction/config")}function e(t){return n.post("/adminapi/setting/transaction/save",t)}export{s as a,e as b,i as g,o as s};

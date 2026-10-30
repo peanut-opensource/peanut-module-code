@@ -42,7 +42,8 @@ final readonly class VerifiedServerDeployment
                 throw new RuntimeException('SERVER_DEPLOYMENT_TRAFFIC_CLOSED');
             }
             self::assertProtectedPath($root, 'runtime/upgrade/verified-deployment/current.json', $httpMount);
-            $pointer = self::json(self::bytes($root . self::DIRECTORY . '/current.json'));
+            $inputs = $httpMount?->admissionInputs();
+            $pointer = self::json($inputs !== null ? $inputs['pointer'] : self::bytes($root . self::DIRECTORY . '/current.json'));
             if (($pointer['format'] ?? null) !== self::FORMAT
                 || !is_string($pointer['key'] ?? null)
                 || preg_match('/^[a-f0-9]{64}$/D', $pointer['key']) !== 1
@@ -180,10 +181,13 @@ final readonly class VerifiedServerDeployment
                     throw new RuntimeException('SERVER_DEPLOYMENT_ADMISSION_INVALID');
                 }
                 self::assertProtectedPath($this->serverRoot, $item['root'] . '/module.json', $this->httpMount);
-                $data = self::json($item['json']);
                 $object = json_decode($item['json'], false, 512, JSON_THROW_ON_ERROR);
-                $modules[] = ManifestDocument::fromDecodedJson($this->serverRoot . '/' . $item['root'], $data, $object);
-                $roots[$data['key']] = $this->serverRoot . '/' . $item['root'];
+                if (!is_object($object)) {
+                    throw new RuntimeException('SERVER_DEPLOYMENT_ADMISSION_INVALID');
+                }
+                $document = ManifestDocument::fromObject($this->serverRoot . '/' . $item['root'], $object);
+                $modules[] = $document;
+                $roots[$document->data['key']] = $this->serverRoot . '/' . $item['root'];
             }
             ModuleHostLayoutFactory::registerRuntimeAutoload($roots, $this->serverRoot);
             return new CompiledModuleRegistry(
@@ -273,16 +277,18 @@ final readonly class VerifiedServerDeployment
         $binding = ['modules' => hash('sha256', json_encode($config, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES)),
             'program_authority' => $httpMount !== null ? ['boundary' => 'native-readonly-http']
                 : ['boundary' => 'unix-dac', 'deployment_owner' => fileowner($root), 'root_mode' => fileperms($root) & 07777]];
+        $inputs = $httpMount?->admissionInputs();
         if ($source) {
             ReadonlyHttpMount::assertSourceInputs($root, $httpMount);
-            $binding['identity'] = ApplicationSourceIdentity::sourceDigest($root);
+            $binding['identity'] = $inputs !== null ? $inputs['identity'] : ApplicationSourceIdentity::sourceDigest($root);
             $binding['lock'] = hash('sha256', self::bytes(dirname($root) . '/plugins.lock'));
         }
         foreach (['identity' => $source ? null : self::identityPath($root), 'lock' => $source ? null : 'plugins.lock',
             'dependencies' => 'composer.lock', 'installed_dependencies' => 'vendor/composer/installed.json'] as $key => $path) {
             if ($path === null) { continue; }
             self::assertProtectedPath($root, $path, $httpMount);
-            $binding[$key] = hash('sha256', self::bytes($root . '/' . $path));
+            $binding[$key] = $key === 'identity' && $inputs !== null
+                ? $inputs['identity'] : hash('sha256', self::bytes($root . '/' . $path));
         }
         if (ApplicationSourceIdentity::hasRuntime($root)) {
             self::assertProtectedPath($root, 'vendor/.peanut-complete.json', $httpMount);
@@ -302,12 +308,15 @@ final readonly class VerifiedServerDeployment
                 }
             }
             $path = $root . '/private/installation/' . $file;
-            if ($key === 'deployment' && (file_exists($path) || is_link($path))
-                && (self::json(self::bytes($path))['protocol'] ?? null) === 'peanut.application-deployment.v1') {
+            $bytes = $key === 'deployment' && $inputs !== null ? $inputs['deployment']
+                : (file_exists($path) || is_link($path) ? self::bytes($path) : null);
+            if ($key === 'deployment' && $bytes !== null
+                && (self::json($bytes)['protocol'] ?? null) === 'peanut.application-deployment.v1') {
                 // Installation is an rw submount: its canonical head additionally requires owner DAC protection.
                 self::assertProtectedPath($root, 'private/installation/deployment.json');
             }
-            $binding[$key] = file_exists($path) || is_link($path) ? hash('sha256', self::bytes($path)) : null;
+            $binding[$key] = $key === 'deployment' && $inputs !== null ? $inputs['deployment_sha256']
+                : ($bytes !== null ? hash('sha256', $bytes) : null);
         }
         return $binding;
     }

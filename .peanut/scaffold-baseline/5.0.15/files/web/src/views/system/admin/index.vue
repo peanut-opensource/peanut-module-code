@@ -23,6 +23,7 @@
         <el-form-item prop="role_id" :label="$t('systemAdmin.search.role')">
           <el-select
             v-model="queryParams.role_id"
+            :disabled="!canReadRoles"
             clearable
             :placeholder="$t('systemAdmin.search.role.all')"
             style="width: 180px"
@@ -57,7 +58,8 @@
       <el-row style="margin-bottom: 16px">
         <el-col :span="12">
           <el-button
-            v-permission="['admin/add']"
+            v-permission="['core.member.create']"
+            :disabled="!canAssignRoles || !canReadRoles"
             type="primary"
             @click="handleAdd"
           >
@@ -122,11 +124,12 @@
         <el-table-column :label="$t('systemAdmin.columns.status')" width="130"
           ><template #default="{ row }"
             ><el-switch
-              v-permission="['admin/edit']"
+              v-permission="['core.member.update']"
               :model-value="row.disable === 0"
-              :disabled="isProtected(row)"
+              :disabled="isProtected(row) || !canChangeStatus(row.disable)"
               @change="(value: string | number | boolean) => handleStatus(row, value as boolean)"
-            /><el-tag
+            /><span>{{ row.disable_desc }}</span
+            ><el-tag
               v-if="row.root === 1"
               type="warning"
               size="small"
@@ -153,7 +156,7 @@
           ><template #default="{ row }"
             ><el-space
               ><el-button
-                v-permission="['admin/edit']"
+                v-permission="['core.member.update']"
                 link
                 size="small"
                 @click="handleEdit(row)"
@@ -164,7 +167,7 @@
                 @confirm="handleDelete(row)"
                 ><template #reference
                   ><el-button
-                    v-permission="['admin/delete']"
+                    v-permission="['core.member.leave']"
                     link
                     type="danger"
                     size="small"
@@ -208,33 +211,7 @@
           />
         </el-form-item>
 
-        <el-form-item prop="avatar" :label="$t('systemAdmin.field.avatar')">
-          <el-space align="start">
-            <el-avatar :size="72" :src="avatarUrl">
-              {{ form.name?.slice(0, 1) }}
-            </el-avatar>
-            <div>
-              <el-upload
-                :http-request="
-                  (options: UploadRequestOptions) => uploadFile(10, options)
-                "
-                :show-file-list="false"
-                accept="image/jpeg,image/png"
-                @success="onAvatarSuccess"
-              >
-                <template #trigger>
-                  <el-button>
-                    <template #icon><icon-upload /></template>
-                    {{ $t('systemAdmin.field.avatar.upload') }}
-                  </el-button>
-                </template>
-              </el-upload>
-              <div class="form-tip">{{
-                $t('systemAdmin.field.avatar.tip')
-              }}</div>
-            </div>
-          </el-space>
-        </el-form-item>
+        <p class="form-tip">头像由账号本人在个人设置维护。</p>
 
         <el-form-item prop="name" :label="$t('systemAdmin.field.name')">
           <el-input
@@ -255,6 +232,7 @@
         <el-form-item prop="jobs_id" :label="$t('systemAdmin.field.jobs')">
           <el-select
             v-model="form.jobs_id"
+            :disabled="!canReadJobs"
             multiple
             clearable
             :placeholder="$t('systemAdmin.field.jobs.placeholder')"
@@ -273,6 +251,7 @@
         >
           <el-select
             v-model="form.role_id"
+            :disabled="!canReadRoles || !canAssignRoles"
             multiple
             clearable
             :placeholder="$t('systemAdmin.field.roles.placeholder')"
@@ -318,6 +297,7 @@
         >
           <el-switch
             v-model="form.disable"
+            :disabled="!canEditStatus"
             :active-value="0"
             :inactive-value="1"
           />
@@ -428,18 +408,19 @@
 
 <script lang="ts" setup>
   import { computed, nextTick, reactive, ref } from 'vue';
+  import { useRoute } from 'vue-router';
   import { useI18n } from 'vue-i18n';
   import { ElMessage } from 'element-plus';
-  import type { FormInstance, UploadRequestOptions } from 'element-plus';
+  import type { FormInstance } from 'element-plus';
   import { Download, Plus, Refresh, Search } from '@element-plus/icons-vue';
   import useLoading from '@/hooks/loading';
+  import { hasPermission } from '@/hooks/permission';
   import { useUserStore } from '@/store';
   import {
     getPasswordPolicy,
     passwordWithinPolicy,
     type PasswordPolicy,
   } from '@/api/password-policy';
-  import { uploadFile, type FileRecord } from '@/modules/peanut-file/api';
   import { getRoleAll } from '@/api/system/role';
   import { getJobsAll } from '@/api/system/jobs';
   import {
@@ -460,6 +441,21 @@
 
   const { t } = useI18n();
   const userStore = useUserStore();
+  const route = useRoute();
+  const canAssignRoles = computed(() =>
+    hasPermission('core.member.role.assign', route.path)
+  );
+  const canChangeStatus = (disabled: number) =>
+    hasPermission(
+      disabled === 0 ? 'core.member.suspend' : 'core.member.activate',
+      route.path
+    );
+  const canReadRoles = computed(() =>
+    hasPermission('core.role.read', route.path)
+  );
+  const canReadJobs = computed(() =>
+    hasPermission('core.job.read', route.path)
+  );
   const { loading, setLoading } = useLoading(true);
   const renderData = ref<AdminRecord[]>([]);
   const formatLoginTime = (value: string): string => {
@@ -508,15 +504,20 @@
   };
 
   const loadOptions = async () => {
-    const [roles, jobs] = await Promise.all([getRoleAll(), getJobsAll()]);
-    roleOptions.value = roles.data.map((item) => ({
-      value: item.id,
-      label: item.name,
-    }));
-    jobsOptions.value = jobs.data.map((item) => ({
-      value: item.id,
-      label: item.name,
-    }));
+    if (canReadRoles.value) {
+      const { data } = await getRoleAll();
+      roleOptions.value = data.map((item) => ({
+        value: item.id,
+        label: item.name,
+      }));
+    }
+    if (canReadJobs.value) {
+      const { data } = await getJobsAll();
+      jobsOptions.value = data.map((item) => ({
+        value: item.id,
+        label: item.name,
+      }));
+    }
   };
 
   const search = () => fetchData(1);
@@ -560,9 +561,14 @@
     }
   }
   const isEdit = ref(false);
+  const originalDisable = ref(1);
+  const canEditStatus = computed(() =>
+    isEdit.value
+      ? canChangeStatus(originalDisable.value)
+      : hasPermission('core.member.activate', route.path)
+  );
   const submitLoading = ref(false);
   const formRef = ref<FormInstance>();
-  const avatarPreview = ref('');
 
   type AdminEditorForm = Omit<AdminForm, 'dept_id'> & { dept_id: number };
 
@@ -570,18 +576,16 @@
     id: undefined,
     account: '',
     name: '',
-    avatar: '',
     dept_id: 0,
     jobs_id: [],
     role_id: [],
     password: '',
     password_confirm: '',
-    disable: 0,
+    disable: hasPermission('core.member.activate', route.path) ? 0 : 1,
     multipoint_login: 1,
     root: 0,
   });
   const form = reactive<AdminEditorForm>(defaultForm());
-  const avatarUrl = computed(() => avatarPreview.value || form.avatar);
 
   const rules = computed(() => ({
     account: [
@@ -678,7 +682,6 @@
 
   const resetForm = (patch: Partial<AdminEditorForm> = {}) => {
     Object.assign(form, defaultForm(), patch);
-    avatarPreview.value = patch.avatar || '';
     nextTick(() => formRef.value?.clearValidate());
   };
 
@@ -694,12 +697,12 @@
     await loadPasswordPolicy();
     isEdit.value = true;
     const { data } = await getAdminDetail(record.id);
+    originalDisable.value = data.disable;
     departmentPickerRevision.value += 1;
     resetForm({
       id: data.id,
       account: data.account,
       name: data.name,
-      avatar: data.avatar,
       dept_id: data.dept_id[0] ?? 0,
       jobs_id: data.jobs_id || [],
       role_id: data.role_id || [],
@@ -757,12 +760,6 @@
         ? t('systemAdmin.status.disabled')
         : t('systemAdmin.status.normal');
     ElMessage.success(t('systemAdmin.tip.success'));
-  };
-
-  const onAvatarSuccess = (file: FileRecord) => {
-    form.avatar = file.uri;
-    avatarPreview.value = file.url;
-    ElMessage.success(t('systemAdmin.field.avatar.uploadSuccess'));
   };
 
   // ---- 两阶段导出 ----

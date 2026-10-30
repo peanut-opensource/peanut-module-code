@@ -27,13 +27,19 @@ final readonly class AccessInvalidationClient
         $origin = $c['control_origin'] ?? null;
         $url = is_string($origin) ? parse_url($origin) : false;
         $developmentHttp = ($c['environment'] ?? null) === 'development' && ($url['scheme'] ?? null) === 'http';
-        $ca = $developmentHttp ? null : ($c['ca_bundle_file'] ?? null);
+        $ca = array_key_exists('ca_bundle_file', $c) ? $c['ca_bundle_file'] : '';
+        $caHash = $c['ca_sha256'] ?? '';
+        if (!$developmentHttp && ($ca === '' ? $caHash !== '' : (!is_string($ca)
+            || $ca !== dirname(__DIR__, 6) . '/private/collaboration/service/ca.pem'
+            || !is_file($ca) || is_link($ca) || !is_string($caHash)
+            || preg_match('/^[a-f0-9]{64}$/D', $caHash) !== 1
+            || !hash_equals($caHash, hash_file('sha256', $ca))))) {
+            throw new RetryableTaskException('REVOCATION_CONTROL_UNAVAILABLE');
+        }
+        $ca = $developmentHttp || $ca === '' ? null : $ca;
         if (($c['enabled'] ?? null) !== true || !$url || !(($url['scheme'] ?? '') === 'https' || $developmentHttp)
             || !isset($url['host']) || isset($url['user']) || isset($url['pass']) || isset($url['query']) || isset($url['fragment'])
-            || !in_array($url['path'] ?? '', ['', '/'], true) || (!$developmentHttp && (!is_string($ca)
-            || $ca !== dirname(__DIR__, 6) . '/private/collaboration/service/ca.pem'
-            || !is_file($ca) || is_link($ca) || !is_string($c['ca_sha256'] ?? null)
-            || !hash_equals($c['ca_sha256'], hash_file('sha256', $ca)))) || !is_string($c['secret'] ?? null) || strlen($c['secret']) < 32
+            || !in_array($url['path'] ?? '', ['', '/'], true) || !is_string($c['secret'] ?? null) || strlen($c['secret']) < 32
             || ($input['instance_id'] ?? null) !== ($c['instance_id'] ?? null)
             || ($input['service_instance_id'] ?? null) !== ($c['service_instance_id'] ?? null)
             || !is_string($c['key_id'] ?? null) || preg_match('/^[A-Za-z0-9_-]{1,128}$/D', $c['key_id']) !== 1) {
@@ -80,9 +86,6 @@ final readonly class AccessInvalidationClient
         }
         if ($reply->status !== 200) {
             throw new RetryableTaskException('REVOCATION_NODE_UNCONFIRMED');
-        }
-        if (strlen($reply->body) > 65536) {
-            throw new \DomainException('REVOCATION_ACK_INVALID');
         }
         try {
             $value = json_decode($reply->body, true, 16, JSON_THROW_ON_ERROR);

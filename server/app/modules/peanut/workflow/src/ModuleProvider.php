@@ -33,10 +33,8 @@ final class ModuleProvider implements ModuleProviderContract
                 $app->make(\PeanutAdmin\Modules\Workflow\Adapter\WorkflowAssignmentResolver::class),
                 $app->make(\PeanutAdmin\Modules\Identity\Audit\AuditService::class),
                 $app->make(\PeanutAdmin\Modules\Workflow\Application\WorkflowLifecycleQueries::class),
-                $app->make(\PeanutAdmin\Kernel\Module\ModuleAvailability::class),
+                $app->make(\PeanutAdmin\Modules\Workflow\Application\WorkflowDefinitionValidator::class),
                 $app->make(\PeanutAdmin\Modules\Workflow\Adapter\WorkflowAuthorizationResolver::class),
-                $app->bound(\PeanutAdmin\Modules\Task\Contract\TrustedJobPublisher::class) ? $app->make(\PeanutAdmin\Modules\Task\Contract\TrustedJobPublisher::class) : null,
-                $app->bound(\PeanutAdmin\Modules\Notification\Contract\NotificationProducerRegistry::class) ? $app->make(\PeanutAdmin\Modules\Notification\Contract\NotificationProducerRegistry::class) : null,
             ),
             \PeanutAdmin\Modules\Workflow\Application\WorkflowCommands::class => fn(\think\App $app) => new \PeanutAdmin\Modules\Workflow\Application\WorkflowCommands(
                 $app->make(\PeanutAdmin\Modules\Workflow\Application\WorkflowCommandTransaction::class),

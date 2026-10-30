@@ -8,17 +8,24 @@
             :type="10"
             :limit="1"
             button-text="选择头像"
-            @select="(urls: string[]) => (user.default_avatar = urls[0] || '')"
+            @select="
+              (urls, files) =>
+                (user.default_avatar = images.select(
+                  urls,
+                  files,
+                  user.default_avatar
+                ))
+            "
           />
           <img
-            v-if="user.default_avatar"
-            :src="user.default_avatar"
+            v-if="images.preview(user.default_avatar)"
+            :src="images.preview(user.default_avatar)"
             class="avatar"
             alt="默认头像"
           />
         </el-form-item>
         <el-button
-          v-permission="['config/user/save']"
+          v-permission="['peanut.settings.manage']"
           type="primary"
           :loading="savingUser"
           @click="submitUser"
@@ -70,7 +77,7 @@
           />
         </el-form-item>
         <el-button
-          v-permission="['config/login/save']"
+          v-permission="['peanut.settings.manage']"
           type="primary"
           :loading="savingLogin"
           @click="submitLogin"
@@ -86,6 +93,7 @@
   import { reactive, ref } from 'vue';
   import { ElMessage } from 'element-plus';
   import FilePicker from '@/components/file-picker/index.vue';
+  import usePublicImageReferences from '@/hooks/public-image-references';
   import useLoading from '@/hooks/loading';
   import {
     getLoginSetting,
@@ -100,6 +108,7 @@
   const savingUser = ref(false);
   const savingLogin = ref(false);
   const user = reactive<UserSetting>({ default_avatar: '' });
+  const images = usePublicImageReferences();
   const login = reactive<LoginSetting>({
     login_way: [1, 2],
     coerce_mobile: 0,
@@ -116,6 +125,9 @@
         getLoginSetting(),
       ]);
       Object.assign(user, userResult.data);
+      images.replace({
+        [user.default_avatar]: userResult.data.default_avatar_url || '',
+      });
       Object.assign(login, loginResult.data);
     } finally {
       setLoading(false);

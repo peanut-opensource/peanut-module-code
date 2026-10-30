@@ -15,34 +15,6 @@ interface ApiResponse {
   data: unknown;
 }
 
-type FetchMethod =
-  | 'GET'
-  | 'HEAD'
-  | 'POST'
-  | 'PUT'
-  | 'DELETE'
-  | 'PATCH'
-  | 'OPTIONS'
-  | 'CONNECT'
-  | 'TRACE';
-
-const isFetchMethod = (value: unknown): value is FetchMethod => {
-  switch (value) {
-    case 'GET':
-    case 'HEAD':
-    case 'POST':
-    case 'PUT':
-    case 'DELETE':
-    case 'PATCH':
-    case 'OPTIONS':
-    case 'CONNECT':
-    case 'TRACE':
-      return true;
-    default:
-      return false;
-  }
-};
-
 // This composable exposes record-shaped GET queries and POST documents, not arbitrary fetch bodies.
 const isFetchRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -105,22 +77,13 @@ export function useRequest(options: { redirectOnUnauthorized?: boolean } = {}) {
     baseUrl = configuredBaseUrl || window.location.origin;
   }
   const client = createClient({
-    transport: createNuxtClientTransport({
+    transport: createNuxtClientTransport<Record<string, unknown>>({
       baseUrl,
       forwardHeaders,
       $fetch: async (url, options) => {
         const method = options?.method;
         const query = options?.query;
         const body = options?.body;
-        if (method !== undefined && !isFetchMethod(method)) {
-          throw new Error('PC_FETCH_METHOD_INVALID');
-        }
-        if (query !== undefined && !isFetchRecord(query)) {
-          throw new Error('PC_FETCH_QUERY_INVALID');
-        }
-        if (body !== undefined && body !== null && !isFetchRecord(body)) {
-          throw new Error('PC_FETCH_BODY_INVALID');
-        }
         try {
           return await $fetch<unknown>(
             url,
@@ -159,7 +122,7 @@ export function useRequest(options: { redirectOnUnauthorized?: boolean } = {}) {
           await navigateTo('/login');
       },
       businessError: (error) => {
-        if (import.meta.client) ElMessage.error(error.message || '请求失败');
+        if (import.meta.client) ElMessage.error(error.message);
       },
     },
   });

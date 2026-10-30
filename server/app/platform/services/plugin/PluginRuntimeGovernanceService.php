@@ -25,7 +25,7 @@ use PeanutAdmin\Kernel\Module\ModuleKey;
 use PeanutAdmin\Kernel\Module\ModuleException;
 use think\facade\Db;
 
-/** Deployment-scoped retire/purge state machine. It never mutates pa_tenant_module. */
+/** Deployment-scoped retire/purge state machine; tenant licenses remain a separate boundary. */
 final class PluginRuntimeGovernanceService
 {
     /** @param array<string,mixed> $moduleConfig @param null|callable(string):void $faultInjector */
@@ -627,7 +627,7 @@ final class PluginRuntimeGovernanceService
             }
             ModuleLifecyclePolicy::assertNoOutstandingWorkflow($moduleKeys);
             if ($this->tenantStates->enabledReferencesForUpdate($moduleKeys) !== []) {
-                throw new PluginLifecycleException('PLUGIN_TENANT_MODULE_ACTIVE', 'New TenantModule references block Module uninstall.');
+                throw new PluginLifecycleException('PLUGIN_TENANT_MODULE_ACTIVE', 'Tenant license plan references block Module uninstall.');
             }
             Db::name('plugin_installation')->where('plugin_key', $packageKey)->update([
                 'status' => 'maintenance', 'last_error_code' => $marker,

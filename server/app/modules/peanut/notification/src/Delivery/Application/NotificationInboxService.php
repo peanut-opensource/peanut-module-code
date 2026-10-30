@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Notification\Delivery\Application;
 
 use PeanutAdmin\Modules\Notification\Delivery\Package;
-use PeanutAdmin\Modules\Notification\Delivery\Persistence\NotificationRepository;
+use PeanutAdmin\Modules\Notification\Delivery\Persistence\NotificationStore;
 use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 use think\facade\Db;
 
 /** Recipient-owned inbox operations over the module's single notification ledger. */
 final readonly class NotificationInboxService
 {
-    public function __construct(private NotificationRepository $repository) {}
+    public function __construct(private NotificationStore $repository) {}
 
     /** @return array{items:list<NotificationMessage>,page:int,page_size:int,total:int} */
     public function inbox(AuthorizedOperationContext $context, string $status, int $page, int $pageSize): array

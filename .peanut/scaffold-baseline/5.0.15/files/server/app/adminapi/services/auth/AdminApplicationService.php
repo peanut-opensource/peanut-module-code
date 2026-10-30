@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace app\adminapi\services\auth;
 
 use app\common\exception\BusinessException;
+use app\common\dto\authorization\AdminPrincipal;
+use app\common\execution\CurrentExecutionContext;
+use app\common\services\authorization\AdminAuthorizationService;
 use DateTimeImmutable;
 use DateTimeZone;
 use PeanutAdmin\Modules\File\Contract\FileReferences;
@@ -14,7 +17,6 @@ use PeanutAdmin\Kernel\Context\TenantContextRequirement;
 use app\common\runtime\org\TenantAdminRuntime;
 use app\common\support\ExportPageInfo;
 use app\common\support\PaginationInput;
-use app\common\support\PositiveIds;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Modules\Identity\Membership\Application\MemberAdminService;
 use PeanutAdmin\Kernel\Identity\PasswordPolicy;
@@ -31,24 +33,41 @@ final class AdminApplicationService
         private readonly TenantAdminRuntime $tenantAdmins,
         private readonly FileReferences $files,
         private readonly PasswordPolicy $passwords,
+        private readonly CurrentExecutionContext $executionContext,
+        private readonly AdminAuthorizationService $authorization,
     ) {}
 
-    public function normalizeInput(array $params): array
+    public function normalizeInput(array $params, bool $write = false): array
     {
         $params = TenantContextRequirement::withoutTenantId($params);
         $params['account'] ??= $params['username'] ?? null;
         $params['name'] ??= $params['nickname'] ?? null;
         $params['role_id'] ??= $params['role_ids'] ?? null;
+        if (!$write) {
+            return $params;
+        }
+        if (array_key_exists('avatar', $params)) {
+            throw BusinessException::forbidden('ADMIN_AVATAR_SELF_SERVICE_REQUIRED', '头像只能由账号本人在个人设置修改');
+        }
+        foreach (['role_id', 'dept_id', 'jobs_id'] as $field) {
+            if (isset($params[$field])) {
+                if (!is_array($params[$field])) {
+                    throw BusinessException::invalid('MEMBER_IDS_INVALID', '角色、部门和岗位必须使用编号数组');
+                }
+                $params[$field] = self::normalizeIds($params[$field]);
+            }
+        }
         return $params;
     }
 
     public function validationRules(string $scene): array
     {
         $rules = [
-            'id' => 'require|integer|gt:0',
+            'id' => ['require', static fn(mixed $value): bool => (is_int($value) || is_string($value))
+                && preg_match('/^[1-9][0-9]*$/D', (string) $value) === 1
+                && filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) !== false],
             'account' => 'require|email|max:255',
             'name' => 'require|length:1,120',
-            'avatar' => 'max:512',
             'password' => [function ($value, array $data) use ($scene): bool|string {
                 if ($scene === 'edit' && (!array_key_exists('password', $data) || $value === '')) {
                     return true;
@@ -67,7 +86,7 @@ final class AdminApplicationService
             'role_id' => 'array',
             'dept_id' => 'array',
             'jobs_id' => 'array',
-            'disable' => 'require|in:0,1',
+            'disable' => ['require', static fn(mixed $value): bool => in_array($value, [0,1,'0','1'], true)],
             'multipoint_login' => 'require|in:0,1',
         ];
         if ($scene === 'add') {
@@ -119,11 +138,16 @@ final class AdminApplicationService
     /** 使用可信租户上下文提交一次 Core 命令；任一步失败由 Core 回滚全部写入。 */
     public function add(TenantContext $context, array $params): bool
     {
-        $params = self::normalizeInput($params);
+        $this->assertMemberPermission($context, 'create');
+        $params = self::normalizeInput($params, true);
         try {
             $roles = self::normalizeIds($params['role_id'] ?? []);
             if ($roles === []) {
                 throw BusinessException::invalid('ADMIN_ROLE_REQUIRED', '请选择角色');
+            }
+            $this->assertMemberPermission($context, 'role.assign');
+            if ((int) $params['disable'] === 0) {
+                $this->assertMemberPermission($context, 'activate');
             }
             $department = self::firstId($params['dept_id'] ?? []);
             $service = $this->tenantAdmins->members();
@@ -146,7 +170,8 @@ final class AdminApplicationService
     /** 先验证表单，再携带成员版本提交 Core 原子编辑；禁止代改账户密码。 */
     public function edit(TenantContext $context, array $params): bool
     {
-        $params = self::normalizeInput($params);
+        $this->assertMemberPermission($context, 'update');
+        $params = self::normalizeInput($params, true);
         try {
             if (!empty($params['password'])) {
                 throw BusinessException::forbidden('ADMIN_PASSWORD_SELF_SERVICE_REQUIRED', '密码只能由账号本人修改');
@@ -157,6 +182,11 @@ final class AdminApplicationService
             }
             $service = $this->tenantAdmins->members();
             $member = $service->get($context->tenantId, (int) $params['id']);
+            $currentRoles = self::normalizeIds($member['role_ids']);
+            if ($roles !== $currentRoles) {
+                $this->assertMemberPermission($context, 'role.assign');
+            }
+            $this->assertStatusPermission($context, $member, (int) $params['disable']);
             $service->updateAdministrator(
                 $context,
                 (int) $member['id'],
@@ -175,6 +205,7 @@ final class AdminApplicationService
 
     public function delete(TenantContext $context, int $id, int $selfId = 0): bool
     {
+        $this->assertMemberPermission($context, 'leave');
         if ($id === $selfId) {
             throw BusinessException::forbidden('ADMIN_SELF_OPERATION_FORBIDDEN', '不能操作当前登录的管理员');
         }
@@ -194,12 +225,13 @@ final class AdminApplicationService
 
     public function updateStatus(TenantContext $context, int $id, int $disable, int $selfId = 0): bool
     {
+        $this->assertMemberPermission($context, 'update');
         if ($id === $selfId) {
             throw BusinessException::forbidden('ADMIN_SELF_OPERATION_FORBIDDEN', '不能操作当前登录的管理员');
         }
         try {
             $service = $this->tenantAdmins->members();
-            self::transitionStatus($service, $context, $service->get($context->tenantId, $id), $disable);
+            $this->transitionStatus($service, $context, $service->get($context->tenantId, $id), $disable);
             return true;
         } catch (\Throwable $e) {
             throw $e;
@@ -259,8 +291,10 @@ final class AdminApplicationService
                 'avatar' => $this->files->getFileUrl((string) ($row['avatar_uri'] ?? '')),
                 'avatar_uri' => (string) ($row['avatar_uri'] ?? ''),
                 'root' => (int) $row['root'],
-                'disable' => in_array($row['status'], ['active', 'pending'], true) ? 0 : 1,
-                'disable_desc' => in_array($row['status'], ['active', 'pending'], true) ? '正常' : '禁用',
+                'disable' => $row['status'] === 'active' ? 0 : 1,
+                'disable_desc' => match ($row['status']) {
+                    'active' => '正常', 'pending' => '待激活', 'left' => '已离开', default => '禁用',
+                },
                 'multipoint_login' => 1,
                 'login_time' => ($row['last_login_at'] ?? null) === null
                     ? ''
@@ -283,12 +317,33 @@ final class AdminApplicationService
     }
 
     /** @param array<string,mixed> $member */
-    private static function transitionStatus(MemberAdminService $service, TenantContext $context, array $member, int $disable): void
+    private function transitionStatus(MemberAdminService $service, TenantContext $context, array $member, int $disable): void
     {
+        $this->assertStatusPermission($context, $member, $disable);
         if ($disable === 1 && $member['status'] === 'active') {
             $service->suspend($context, (int) $member['id'], (int) $member['revision']);
         } elseif ($disable === 0 && in_array($member['status'], ['pending', 'suspended'], true)) {
             $service->activate($context, (int) $member['id'], (int) $member['revision']);
+        }
+    }
+
+    /** Sensitive field changes retain their own permissions when an API's primary bundle is rebound. */
+    private function assertMemberPermission(TenantContext $context, string $operation): void
+    {
+        $current = $this->executionContext->tenantAdmin();
+        $actor = AdminPrincipal::fromArray($this->executionContext->tenantAdminPrincipal());
+        if ($current !== $context
+            || !$this->authorization->decide($context, $actor, 'core.member.' . $operation)->allowed) {
+            throw BusinessException::forbidden('MEMBER_PERMISSION_DENIED', '无权执行该成员操作');
+        }
+    }
+
+    private function assertStatusPermission(TenantContext $context, array $member, int $disable): void
+    {
+        if ($disable === 1 && $member['status'] === 'active') {
+            $this->assertMemberPermission($context, 'suspend');
+        } elseif ($disable === 0 && in_array($member['status'], ['pending', 'suspended'], true)) {
+            $this->assertMemberPermission($context, 'activate');
         }
     }
 
@@ -332,13 +387,28 @@ final class AdminApplicationService
     private static function firstId(array $ids): ?int
     {
         $ids = self::normalizeIds($ids);
+        if (count($ids) > 1) {
+            throw BusinessException::invalid('MEMBER_DEPARTMENT_INVALID', '只能选择一个主要部门');
+        }
         return $ids[0] ?? null;
     }
 
     /** @return list<int> */
     private static function normalizeIds(array $ids): array
     {
-        return PositiveIds::normalize($ids, [PositiveIds::FILTER_INVALID, PositiveIds::SORT]);
+        if (!array_is_list($ids) || count($ids) > 100) {
+            throw BusinessException::invalid('MEMBER_IDS_INVALID', '编号必须使用不超过100项的列表');
+        }
+        foreach ($ids as $id) {
+            if ((!is_int($id) && !is_string($id))
+                || preg_match('/^[1-9][0-9]*$/D', (string) $id) !== 1
+                || filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) {
+                throw BusinessException::invalid('MEMBER_IDS_INVALID', '编号必须为正整数');
+            }
+        }
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        sort($ids, SORT_NUMERIC);
+        return $ids;
     }
 
 }

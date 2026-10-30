@@ -11,6 +11,8 @@ use think\facade\Db;
 use PeanutAdmin\Modules\Task\Job\Application\TaskJobException;
 use PeanutAdmin\Modules\Task\Job\Persistence\TaskJobStore;
 use PeanutAdmin\Modules\Task\Job\Submission\TaskSubmissionRegistry;
+use PeanutAdmin\DataPermission\Catalog\ResourceOperationCatalog;
+use PeanutAdmin\Modules\Identity\Module\TenantEntitlementService;
 
 final readonly class TrustedJobPublisher
 {
@@ -18,6 +20,8 @@ final readonly class TrustedJobPublisher
         private TaskJobStore $repository,
         private TaskSubmissionRegistry $submissions,
         private TrustedEnvelopeCodec $envelopes,
+        private ResourceOperationCatalog $operations,
+        private TenantEntitlementService $entitlements,
         private ?string $negativeSigningKey = null,
     ) {}
 
@@ -90,6 +94,13 @@ final readonly class TrustedJobPublisher
         if (!hash_equals($provider->resourceKey(), $context->resourceKey)
             || !hash_equals($provider->operation(), $context->operation)
         ) {
+            throw TaskJobException::denied();
+        }
+        $moduleKey = $provider instanceof TaskWorkerDefinition
+            ? $provider->ownerModuleKey()
+            : $this->operations->find($context->resourceKey, $context->operation)?->moduleKey;
+        if ($moduleKey === null || ($moduleKey !== 'core'
+            && !in_array($moduleKey, $this->entitlements->moduleKeys($context->tenantContext->tenantId), true))) {
             throw TaskJobException::denied();
         }
         $submission = $provider->build($context, $input);

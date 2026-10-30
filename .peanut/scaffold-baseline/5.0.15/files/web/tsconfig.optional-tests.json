@@ -12,6 +12,7 @@
     "types": []
   },
   "include": [
+    "src/directive/permission/index.spec.ts",
     "src/modules/peanut-file/optional-runtime/tests/**/*.ts",
     "src/modules/peanut-import-export/optional-runtime/tests/**/*.ts",
     "src/modules/peanut-notification/optional-runtime/tests/**/*.ts",

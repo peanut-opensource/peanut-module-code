@@ -60,7 +60,7 @@ class CrontabValidate extends Validate
     protected function checkCommand($value): bool|string
     {
         try {
-            $this->commands->assertAllowed(trim((string) $value));
+            $this->commands->assertTenantAware(trim((string) $value));
             return true;
         } catch (\Throwable $e) {
             return $e->getMessage();

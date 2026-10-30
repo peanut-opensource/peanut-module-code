@@ -25,10 +25,7 @@ export default function useMenuTree() {
       copyRouter.sort((a, b) => {
         const left = a.meta?.order;
         const right = b.meta?.order;
-        return (
-          (typeof left === 'number' && Number.isFinite(left) ? left : 0) -
-          (typeof right === 'number' && Number.isFinite(right) ? right : 0)
-        );
+        return (left ?? 0) - (right ?? 0);
       });
     }
     function travel(

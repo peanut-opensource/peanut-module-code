@@ -12,11 +12,12 @@ use PeanutAdmin\Modules\Identity\Authorization\Model\ResourceOperationRecord;
 use PeanutAdmin\Modules\Identity\Authorization\Model\ResourceOperationTargetTypeRecord;
 use PeanutAdmin\Modules\Identity\Authorization\Model\TargetTypeRecord;
 use PeanutAdmin\Modules\Identity\Module\Model\ModuleInstallation;
-use PeanutAdmin\Modules\Identity\Module\Model\TenantModule;
-use think\db\Raw;
+use PeanutAdmin\Modules\Identity\Module\TenantEntitlementService;
 
 final readonly class ThinkPhpResourceOperationCatalog implements \PeanutAdmin\DataPermission\Catalog\ResourceOperationCatalog
 {
+    public function __construct(private TenantEntitlementService $entitlements) {}
+
     public function find(string $resourceKey, string $operation): ?\PeanutAdmin\DataPermission\Catalog\ResourceOperation
     {
         $row = ResourceOperationRecord::alias('ro')
@@ -36,17 +37,7 @@ final readonly class ThinkPhpResourceOperationCatalog implements \PeanutAdmin\Da
 
     public function availableOperations(int $tenantId, PageRequest $page): array
     {
-        $modules = ['core', ...TenantModule::alias('tm')
-            ->join('module_installation mi', "mi.module_key = tm.module_key AND mi.status = 'active'")
-            ->where('tm.tenant_id', $tenantId)
-            ->where('tm.status', 'enabled')
-            ->where(function ($query): void {
-                $query->whereNull('tm.effective_at')->whereOr('tm.effective_at', '<=', new Raw('CURRENT_TIMESTAMP(3)'));
-            })
-            ->where(function ($query): void {
-                $query->whereNull('tm.expires_at')->whereOr('tm.expires_at', '>', new Raw('CURRENT_TIMESTAMP(3)'));
-            })
-            ->column('tm.module_key')];
+        $modules = ['core', ...$this->entitlements->moduleKeys($tenantId)];
         $query = ResourceOperationRecord::alias('ro')
             ->join('protected_resource pr', "pr.id = ro.protected_resource_id AND pr.status = 'active'")
             ->where('ro.status', 'active')
@@ -76,18 +67,7 @@ final readonly class ThinkPhpResourceOperationCatalog implements \PeanutAdmin\Da
             return true;
         }
 
-        return TenantModule::alias('tm')
-            ->join('module_installation mi', "mi.module_key = tm.module_key AND mi.status = 'active'")
-            ->where('tm.tenant_id', $tenantId)
-            ->where('tm.module_key', $moduleKey)
-            ->where('tm.status', 'enabled')
-            ->where(function ($query): void {
-                $query->whereNull('tm.effective_at')->whereOr('tm.effective_at', '<=', new Raw('CURRENT_TIMESTAMP(3)'));
-            })
-            ->where(function ($query): void {
-                $query->whereNull('tm.expires_at')->whereOr('tm.expires_at', '>', new Raw('CURRENT_TIMESTAMP(3)'));
-            })
-            ->count() > 0;
+        return in_array($moduleKey, $this->entitlements->moduleKeys($tenantId), true);
     }
 
     public function registryRevision(): string

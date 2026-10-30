@@ -331,18 +331,7 @@ function installationTenantBootstrapContract(string $serverDir): array
 
 function installationSourceDevelopmentMode(string $serverDir): bool
 {
-    $root = dirname($serverDir);
-    return env('PEANUT_INSTALLATION_SOURCE_MODE', false) === 'development'
-        && file_exists($root . '/.git')
-        && !is_link($root . '/.git')
-        && (
-            is_file($root . '/.peanut/application-manifest.json')
-            || (
-                is_file($root . '/scaffold/application-template-inventory.json')
-                && is_file($root . '/scaffold/edition-profiles.json')
-            )
-        )
-        && is_file($root . '/release-versions.json');
+    return InitialInstallationSource::sourceDevelopmentMode($serverDir);
 }
 
 function ensureThinkPhpApplication(string $serverDir): App
@@ -686,10 +675,15 @@ function installFreshDatabase(string $serverDir, array $input, ?array $moduleKey
             throw new RuntimeException('INSTALL_STATE_PRESENT: 安装身份状态已存在，拒绝再次初始化数据库');
         }
         $initial = InitialInstallationSource::project($serverDir, $moduleKeys ?? InitialInstallationSource::MODULES);
-        $initialRoot = $serverDir . '/runtime/installation/database';
+        $initialRoot = $serverDir . '/runtime/temp/installation-database';
         foreach (['schema', 'migrations'] as $directory) {
             if (!is_dir($initialRoot . '/' . $directory) && !mkdir($initialRoot . '/' . $directory, 0775, true)) {
                 throw new RuntimeException('INSTALL_INITIAL_DIRECTORY_FAILED');
+            }
+        }
+        foreach (glob($initialRoot . '/migrations/*.php') ?: [] as $file) {
+            if (!unlink($file)) {
+                throw new RuntimeException('INSTALL_INITIAL_MIGRATION_CLEANUP_FAILED');
             }
         }
         foreach ($initial as $path => $content) {
@@ -699,9 +693,7 @@ function installFreshDatabase(string $serverDir, array $input, ?array $moduleKey
         }
         $sources = [];
         foreach (glob($initialRoot . '/migrations/*.php') ?: [] as $file) {
-            if (!unlink($file)) {
-                throw new RuntimeException('INSTALL_INITIAL_MIGRATION_CLEANUP_FAILED');
-            }
+            $sources[] = ['file' => $file];
         }
         foreach (glob($databaseDir . '/migrations/*.php') ?: [] as $file) {
             $target = $initialRoot . '/migrations/' . basename($file);

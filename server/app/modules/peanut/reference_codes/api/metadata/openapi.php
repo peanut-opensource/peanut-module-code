@@ -159,18 +159,18 @@ return [
     ],
     'components' => ['schemas' => [
         'ReferenceCodeLegacyIdentifierRequest' => [
-            'type' => 'object', 'description' => '旧控制器保留原始请求；未列字段会被忽略。',
+            'type' => 'object', 'additionalProperties' => false, 'description' => '仅接受列出的标识字段；未声明字段会被拒绝。',
             'required' => ['id'], 'properties' => ['id' => ['type' => 'integer', 'minimum' => 1]],
         ],
         'ReferenceCodeLegacyStatusRequest' => [
-            'type' => 'object', 'description' => '旧控制器保留原始请求；未列字段会被忽略。',
+            'type' => 'object', 'additionalProperties' => false, 'description' => '仅接受列出的标识与状态字段；未声明字段会被拒绝。',
             'required' => ['id', 'is_disable'], 'properties' => [
                 'id' => ['type' => 'integer', 'minimum' => 1],
                 'is_disable' => ['type' => 'integer', 'enum' => [0, 1]],
             ],
         ],
         'ReferenceCodeLegacyTypeCreateRequest' => [
-            'type' => 'object', 'description' => '服务只写入列出的字段；旧控制器会忽略其他字段。',
+            'type' => 'object', 'additionalProperties' => false, 'description' => '仅接受列出的创建字段；租户归属等未声明字段会被拒绝。',
             'required' => ['name', 'type'], 'properties' => [
                 'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 100],
                 'type' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 100, 'pattern' => '^[A-Za-z0-9_-]+$'],
@@ -179,7 +179,7 @@ return [
             ],
         ],
         'ReferenceCodeLegacyTypeUpdateRequest' => [
-            'type' => 'object', 'description' => '服务只写入列出的字段；旧控制器会忽略其他字段。',
+            'type' => 'object', 'additionalProperties' => false, 'description' => '仅接受列出的标识与更新字段；未声明字段会被拒绝。',
             'required' => ['id', 'name', 'type'], 'properties' => [
                 'id' => ['type' => 'integer', 'minimum' => 1],
                 'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 100],
@@ -189,7 +189,7 @@ return [
             ],
         ],
         'ReferenceCodeLegacyEntryCreateRequest' => [
-            'type' => 'object', 'description' => '服务只写入列出的字段；旧控制器会忽略其他字段。',
+            'type' => 'object', 'additionalProperties' => false, 'description' => '仅接受列出的创建字段；租户归属等未声明字段会被拒绝。',
             'required' => ['type_id', 'name', 'value'], 'properties' => [
                 'type_id' => ['type' => 'integer', 'minimum' => 1],
                 'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 100],
@@ -200,7 +200,7 @@ return [
             ],
         ],
         'ReferenceCodeLegacyEntryUpdateRequest' => [
-            'type' => 'object', 'description' => '服务只写入列出的字段；旧控制器会忽略其他字段。',
+            'type' => 'object', 'additionalProperties' => false, 'description' => '仅接受列出的标识与更新字段；重新指定父类型等未声明字段会被拒绝。',
             'required' => ['id', 'name', 'value'], 'properties' => [
                 'id' => ['type' => 'integer', 'minimum' => 1],
                 'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 100],

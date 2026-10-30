@@ -7,12 +7,12 @@ namespace PeanutAdmin\Modules\Notification\Delivery\Application;
 use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 use think\facade\Db;
 use PeanutAdmin\Modules\Notification\Delivery\Package;
-use PeanutAdmin\Modules\Notification\Delivery\Persistence\NotificationRepository;
+use PeanutAdmin\Modules\Notification\Delivery\Persistence\NotificationStore;
 
 final readonly class NotificationService
 {
     public function __construct(
-        private NotificationRepository $repository,
+        private NotificationStore $repository,
         private RecipientResolver $recipients,
         private ?AttachmentResolver $attachments,
         private TemplateRenderer $renderer,

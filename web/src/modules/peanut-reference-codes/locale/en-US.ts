@@ -13,7 +13,7 @@ export default {
   'officialReferenceCodes.pageOf': 'Page {page} of {count}',
   'officialReferenceCodes.empty.setsTitle': 'No reference-code sets',
   'officialReferenceCodes.empty.setsMessage':
-    'No enabled owner Module declares a reference-code set.',
+    'No enabled Module declares a reference-code set. General dictionaries are available from the Dictionary menu.',
   'officialReferenceCodes.empty.selectTitle': 'Select a reference-code set',
   'officialReferenceCodes.empty.selectMessage':
     "Choose an owner Module and set to view this Tenant's entries.",

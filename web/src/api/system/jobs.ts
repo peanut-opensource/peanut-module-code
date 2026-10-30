@@ -14,7 +14,14 @@ export interface JobsRecord {
 }
 
 /** 新增/编辑提交体：id 仅编辑时带 */
-export type JobsForm = Partial<JobsRecord> & { id?: number };
+export interface JobsForm {
+  id?: number;
+  name: string;
+  code: string;
+  sort?: number;
+  status: number;
+  remark?: string;
+}
 
 export interface JobsListParams {
   name?: string;
