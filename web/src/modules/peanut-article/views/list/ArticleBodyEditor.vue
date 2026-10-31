@@ -41,7 +41,7 @@
       :disabled="busy"
       @click="open"
     >
-      观察多人协作状态
+      {{ collaborationUnknown ? '观察多人协作状态' : '重新加载正文与编辑授权' }}
     </el-button>
     <el-button
       v-if="collaborationConflict || (targetAttempt && !attempt)"
@@ -125,6 +125,7 @@
     ensureArticleBody,
     getArticleBodyEditor,
     getArticleBodyTransport,
+    ArticleCollaborationDisabled,
     saveArticleBody,
     getArticleBodyOperation,
   } from '../../api';
@@ -565,9 +566,14 @@
       try {
         // This owner-authorized command initializes PHP state; only a fresh later transport is used.
         await getArticleBodyTransport(props.articleId, controller.signal);
-      } catch {
-        // A failed response does not establish whether the server committed the mode change.
-        if (current(controller, key, token)) collaborationUnknown.value = true;
+      } catch (error) {
+        if (!current(controller, key, token)) return;
+        if (error instanceof ArticleCollaborationDisabled) {
+          message.value = `${error.message}本次开启请求已被拒绝；可重新加载正文与编辑授权后继续。`;
+          return;
+        }
+        // Other failures do not establish whether the server committed the mode change.
+        collaborationUnknown.value = true;
       }
       if (!current(controller, key, token)) return;
       const reload = open();

@@ -30,12 +30,51 @@ export const getArticleBodyEditor = (id: number, signal: AbortSignal) =>
     params: { id },
     signal,
   });
-export const getArticleBodyTransport = (id: number, signal: AbortSignal) =>
-  axios.post<ArticleBodyTransport>(
-    '/adminapi/peanut.article.document.transport',
-    { id },
-    { signal }
-  );
+export class ArticleCollaborationDisabled extends Error {
+  constructor() {
+    super('当前租户未开通多人协作，请联系平台管理员确认协作权益。');
+  }
+}
+
+export const getArticleBodyTransport = async (
+  id: number,
+  signal: AbortSignal
+) => {
+  let disabled = false;
+  const defaults = axios.defaults.transformResponse;
+  const transforms = Array.isArray(defaults) ? [...defaults] : [];
+  if (typeof defaults === 'function') transforms.push(defaults);
+  try {
+    return await axios.post<ArticleBodyTransport>(
+      '/adminapi/peanut.article.document.transport',
+      { id },
+      {
+        signal,
+        // Retain this pre-transport guard rejection before the shared interceptor reduces it to a message.
+        transformResponse: [
+          ...transforms,
+          (value: unknown, _headers: unknown, status?: number) => {
+            disabled =
+              status === 403 &&
+              typeof value === 'object' &&
+              value !== null &&
+              'code' in value &&
+              value.code === 40300 &&
+              'data' in value &&
+              typeof value.data === 'object' &&
+              value.data !== null &&
+              'error_code' in value.data &&
+              value.data.error_code === 'MODULE_TENANT_DISABLED';
+            return value;
+          },
+        ],
+      }
+    );
+  } catch (error) {
+    if (disabled && !signal.aborted) throw new ArticleCollaborationDisabled();
+    throw error;
+  }
+};
 export const saveArticleBody = (
   input: ArticleBodySaveInput,
   signal: AbortSignal
