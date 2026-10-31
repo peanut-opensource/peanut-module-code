@@ -72,6 +72,15 @@ checks these fields before allocating a request ID or preparing a collaborative
 target. Once submitted, an unknown result retains the original ID and exact input
 for explicit recovery. Creating a version is not publishing the owning business.
 
+The embedded surface renders its existing save-state events as Chinese status
+text and shows the session member count with wrapping member chips. It retains
+the original error information and frozen-content export. This is a display of
+the existing lifecycle, not a new connection or save state machine. Remote cursors
+and selections are not supported by the current provider (`awareness: null`).
+There is no generic reconnect/reset button: use the host's existing recovery
+entry only after resolving pending targets/business operations and unconfirmed
+drafts. The surface does not clear them to recover a connection.
+
 ## Composition and authorization
 
 The public `DocumentOwnerRegistry` is an application-composition contract. The
