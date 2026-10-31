@@ -55,7 +55,9 @@ from that operation's PHP receipt, separately from provider autosave and socket
 sync. See [Document's module contract](../document/README.md) for its operations.
 
 Only the rich-text provider currently supplies this Yjs collaboration path;
-other content formats retain their declared adapter capabilities. Article is the
+other content formats retain their declared adapter capabilities. The authenticated
+online-member roster is available; remote carets and selection sharing are not
+currently supported. Article is the
 existing end-to-end business consumer. Document surface and RichText are shared
 assembly layers, not a second independent business consumer. A second business
 embedding and actual two-member save/reopen confirmation must be recorded when
