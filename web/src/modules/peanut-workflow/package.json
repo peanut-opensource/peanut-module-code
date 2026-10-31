@@ -6,6 +6,8 @@
   "exports": {
     ".": "./contribution.ts",
     "./runtime": "./runtime/contribution.ts",
+    "./runtime-view": "./runtime/WorkflowRuntimePage.vue",
+    "./forms": "./runtime/business-forms.ts",
     "./start": "./runtime/WorkflowStartButton.vue"
   },
   "peerDependencies": {
