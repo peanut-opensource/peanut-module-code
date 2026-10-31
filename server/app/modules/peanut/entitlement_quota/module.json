@@ -31,6 +31,12 @@
   "contracts": {
     "exports": [
       "PeanutAdmin\\Modules\\EntitlementQuota\\Application\\EntitlementQuotaService",
+      "PeanutAdmin\\Modules\\EntitlementQuota\\Application\\EntitlementQuotaDecision",
+      "PeanutAdmin\\Modules\\EntitlementQuota\\Application\\EntitlementQuotaReceipt",
+      "PeanutAdmin\\Modules\\EntitlementQuota\\Application\\EntitlementQuotaUsage",
+      "PeanutAdmin\\Modules\\EntitlementQuota\\Application\\EntitlementQuotaException",
+      "PeanutAdmin\\Modules\\EntitlementQuota\\Contract\\EntitlementMeter",
+      "PeanutAdmin\\Modules\\EntitlementQuota\\Contract\\EntitlementGrantSnapshot",
       "PeanutAdmin\\Modules\\EntitlementQuota\\Contract\\EntitlementMeterRegistry",
       "PeanutAdmin\\Modules\\EntitlementQuota\\Contract\\EntitlementPolicyProvider"
     ],
