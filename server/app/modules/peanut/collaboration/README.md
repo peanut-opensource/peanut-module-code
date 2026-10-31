@@ -63,6 +63,69 @@ assembly layers, not a second independent business consumer. A second business
 embedding and actual two-member save/reopen confirmation must be recorded when
 performed; the presence of these entry points does not prove either result.
 
+## Custom Tiptap provider composition
+
+Prefer `DocumentEditor` for a business document. A custom owner surface can use
+the same public provider below. Call once for a freshly authorized owner transport
+and current native session token; pass the returned binding to `RichTextEditor`'s
+`collaboration-binding` prop. This is the existing DocumentSurface assembly, not a
+second provider to attach alongside DocumentEditor.
+
+```ts
+import { shallowRef } from 'vue';
+import {
+  createCollaborationProvider,
+  type CollaborationBinding,
+  type ProviderOptions,
+} from '@peanut-admin/peanut-rich-text/editor';
+
+function openAuthorizedSurface(
+  options: Pick<ProviderOptions, 'url' | 'documentId' | 'documentName' | 'token'>,
+  showRecovery: (code: string) => void,
+) {
+  const binding = shallowRef<CollaborationBinding>();
+  const update = (patch: Partial<CollaborationBinding>) => {
+    if (binding.value) binding.value = { ...binding.value, ...patch };
+  };
+  const session = createCollaborationProvider({
+    ...options,
+    onReadyChanged: ready => update({ ready }),
+    onWritableChanged: writable => update({ writable }),
+    onSavedChanged: saved => update({ saved }),
+    onRecoveryRequired: code => {
+      update({ ready: false, writable: false, saved: false, frozen: true });
+      showRecovery(code);
+    },
+  });
+  binding.value = {
+    protocol: 'yjs/1',
+    document: session.document,
+    generation: session.tracker.generation,
+    ready: session.ready,
+    writable: session.writable,
+    saved: false,
+  };
+  return {
+    binding,
+    session,
+    dispose: () => {
+      binding.value = undefined;
+      session.destroy();
+    },
+  };
+}
+```
+
+The owner calls `dispose()` on unmount or account/member/tenant/object changes,
+and reauthorizes before opening another session. Keep recovery feedback visible;
+do not reconnect or discard pending business targets automatically. The provider
+creates the only Y.Doc; no JSON initialization or second JSON save is allowed in
+collaboration mode. Its `requestSaveTarget(requestId)` returns a committed proof,
+not an Article business-save receipt. Existing Document/Article target operations
+still own version creation and business binding. `onPresenceChanged` can display
+the authenticated member roster; native `awareness: null` means remote cursor
+and selection sharing remain unavailable. This example adds no awareness channel.
+
 ## Service authentication
 
 The managed application configuration supplies the fixed instance/service/key,

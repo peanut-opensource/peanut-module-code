@@ -83,6 +83,32 @@ drafts. The surface does not clear them to recover a connection.
 
 ## Composition and authorization
 
+### Component inputs and events
+
+`DocumentSurfaceOptions` is the shared input contract. Pass `documentId`, the
+server-fixed `owner`, and a `contextKey` partitioned by current account/member,
+tenant and object. Optional `callbacks` are ContentTools `SurfaceCallbacks`;
+`allowDownloads` defaults to false. `businessActions` only selects controls.
+`metadataResolver(signal)` returns current `{ detail, capabilities }` from the
+owner's edit-purpose endpoint; `resolveTransport(detail, capabilities, signal)`
+returns the matching `AuthorizedDocumentTransport`. Neither callback grants access.
+
+| Component | Additional inputs | Events and exposed operations |
+| --- | --- | --- |
+| `DocumentEditor` | `mode` defaults to `edit`; optional `readOnly`, `initialRevisionId` | `ready`, `load(DocumentDetail)`, `capabilities(SurfaceCapabilities)`, `save-state(DocumentSaveState)`, `operation-state(DocumentOperationFeedback)`, `error(code)`; exposes `prepareSaveTarget(requestId)` and `releaseSaveTargetHold()` |
+| `DocumentViewer` | Optional fixed `revisionId`; always read-only | `ready`, `load`, `capabilities`, `error`; no save command |
+| Internal `DocumentSurface` | Required `mode`, optional `readOnly`, `revisionId` | Same events as Editor; owns content adapter selection, solo save and the authorized provider lifetime |
+
+Use the public Editor/Viewer wrappers for embedding. `DocumentSurface` is their
+implementation, not an additional package subpath or a replaceable global
+renderer. Custom content presentation goes through the selected ContentTools
+adapter and existing callbacks. In templates, listen with kebab-case event names
+as above. A `load` event may also report a later durable `state_seq`; it does not
+change the owner's metadata baseline. `saved` confirms the current content only;
+an explicit business Save, immutable version and publication are separate steps.
+Article's editor/history show the complete existing composition; see
+[Article's guide](../article/README.md#embedding-article-editing-and-history).
+
 The public `DocumentOwnerRegistry` is an application-composition contract. The
 composition root constructs it from the selected, compiled providers' owner
 policy declarations and registers that instance in the native ThinkPHP container.

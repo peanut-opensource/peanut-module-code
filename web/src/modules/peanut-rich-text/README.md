@@ -12,6 +12,62 @@ RichText 仅作为 `peanut.content-tools` 的正式 provider，不维护文档�
 
 ## 正式复用
 
+### 组件合同与呈现替换
+
+| 入口 | Props | Events |
+| --- | --- | --- |
+| `./editor` → `RichTextEditor` | `modelValue`；可选 `contextKey`、`readOnly`、`callbacks`、`registry`、`collaborationBinding`、`collaborationState`、`collaboration` | `update:modelValue`、`update:collaborationState`、`ready`、`dirty-change(boolean)`、`error(code)` |
+| `./viewer` → `RichTextViewer` | `modelValue`；可选 `contextKey`、`callbacks`、`registry`；固定只读 | 未声明独立事件；其余 attrs/listeners 透传给 Editor |
+| 内部 `RichTextSurface`（`rich-text.tiptap` contribution） | `content`、`contextKey`、`callbacks`、`capabilities`、`registry`、`intent`；可选 `collaborationBinding` | `ready`、`dirty-change`、`save-request(RichTextDocumentValue)`、`error` |
+| `./file-picker` → `RichTextFilePicker` | `contextKey`、`canRead: () => boolean`；可选固定 `variantKey` | `select(StableMediaReference)`、`error(code)` |
+
+Surface 由 ContentTools 选择，不是新增的 package subpath。自定义外壳可组合公开
+Editor/Viewer；自定义格式 provider 则沿 ContentTools 的 typed contribution 注册，
+不能覆盖 Document 身份/保存责任。`collaboration` 是既有配置形状，不会单独建立连接；
+真实协同必须传 owner 持有的 binding。Surface 的 `save-request` 只在单人编辑点击保存
+时发出，协同模式不再提交 JSON 副本。
+
+### File callbacks 组合
+
+以下是已授权媒体解析结果的装配函数，可作为 owner 的 `resolveMedia` 回调返回值。
+`resolved` 必须来自 owner/File 的新授权元数据，不能由文件名或 URL 猜测 capability。
+选择器的 `select` 返回稳定引用；宿主弹层将该引用作为 `pickMedia(signal)` 的结果，
+取消返回 `null` 并响应 signal。组件不提供全局弹层或隐式文件权限。
+
+```ts
+import { createFileContentCallbacks } from '@peanut-admin/peanut-file/optional-runtime';
+import type {
+  ResolvedMediaSurface,
+  StableMediaReference,
+} from '@peanut-admin/peanut-content-tools/surface';
+
+function withFileCallbacks(
+  reference: StableMediaReference,
+  resolved: Omit<ResolvedMediaSurface, 'callbacks'>,
+  documentId: number,
+): ResolvedMediaSurface {
+  const viewerAdapterId = resolved.capabilities.viewerAdapterId;
+  if (!viewerAdapterId) throw new Error('FILE_PREVIEW_UNAVAILABLE');
+  return {
+    ...resolved,
+    callbacks: createFileContentCallbacks({
+      documentId,
+      variantKey: reference.variantKey,
+      viewerAdapterId,
+      canDownloadOriginal: () =>
+        resolved.capabilities.canDownloadOriginal &&
+        resolved.allowedOperations.includes('download_original'),
+    }),
+  };
+}
+```
+
+这是当前 DocumentSurface 使用的同一个 File callback 工厂，预览/下载仍经 File
+实时复核。身份或权限变更后销毁旧解析结果，重新授权；不缓存旧能力作为新身份的
+授权。不允许下载原件时预览只接受派生字节。回调不把临时交付 URL 写入正文。
+Tiptap 协同 provider 的公开装配示例见
+[Collaboration](../../../../server/app/modules/peanut/collaboration/README.md#custom-tiptap-provider-composition)。
+
 业务文档优先使用 Document 的 `DocumentEditor/DocumentViewer`，其真实消费者 `peanut-document/components/DocumentSurface.vue` 经 ContentEditor/ContentViewer 调度本模块的 `rich-text.tiptap` contribution，再使用 `RichTextSurface → RichTextEditor`。不为富文本另建身份、保存 API 或菜单。独立表单可使用公开编辑器：
 
 ```vue

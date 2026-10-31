@@ -22,6 +22,28 @@ Apply the new incremental migration through the normal Module lifecycle before u
 
 ## Reuse existing Article capabilities
 
+### Embedding Article editing and history
+
+The existing Web list page composes `ArticleBodyEditor.vue` and
+`ArticleBodyHistory.vue` in `web/src/modules/peanut-article/views/list/`.
+These are Article application components, not new npm package subpaths:
+
+| Component | Inputs | Output / responsibility |
+| --- | --- | --- |
+| `ArticleBodyEditor` | `articleId`, identity-partitioned `contextKey` | `metadata` (authorized editor metadata), `metadata-ready(boolean)`, `locked(boolean)`, `saved(ArticleBodySaved)`; exposes `save` using the existing Article command |
+| `ArticleBodyHistory` | `articleId`, `documentId`, `contextKey` | Loads version summaries with the existing Document API and embeds `DocumentViewer` with the selected immutable `revisionId`; no independent Save or publication |
+
+Reuse that composition when changing Article presentation. The editor embeds
+`DocumentEditor` with the fixed Article owner, edit-purpose metadata resolver and
+owner transport resolver. Retain the original owner revision, pending request and
+target while changing layout; do not POST the draft JSON to Article or save it
+again through another rich-text form. Only Article's completed business receipt
+updates the saved body binding. Document versions and collaboration persistence do
+not publish Article; publication still uses Article's existing status command and
+its fixed binding validation. A custom read view may use the public Document
+Viewer shown in [Document's guide](../document/README.md), with current owner
+authorization and an explicit revision for historical content.
+
 `module.json` exports `Contract\PublicArticleQueries` for storefront reads and member collections, `Contract\ArticleQueries` for administration reads, and `Contract\ArticleAdministration` for authorized commands. Resolve these through the existing Module provider in the current application context; do not import Article Models or read its private tables across modules. A real consumer is `app\api\controller\ArticleController`, which establishes the public tenant or authenticated member context before calling PublicArticleQueries. Admin and Document-owner operations retain their specific `peanut.article.*` permissions and current tenant/module admission checks.
 
 The existing UniApp SDK is `uniapp/src/modules/peanut-article/api/news.ts`; PC uses `pc/modules/peanut-article/api/article.ts` with its injected request client, and Web administration uses `web/src/modules/peanut-article/api.ts`. Each client keeps its own transport and authentication lifecycle. The UniApp search page and news page already consume `getArticleLists`; no additional query wrapper is needed:
