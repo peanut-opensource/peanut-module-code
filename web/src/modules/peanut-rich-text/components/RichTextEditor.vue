@@ -1,36 +1,50 @@
 <template>
   <section class="rich-text-editor">
     <p v-if="error" role="status">{{ error }}</p>
-    <div v-if="!readOnly && !error" role="toolbar" aria-label="正文格式">
+    <div
+      v-if="!readOnly && !error"
+      class="rich-text-editor__toolbar"
+      role="group"
+      aria-label="正文格式"
+    >
       <button
-        v-for="command in [
-          'bold',
-          'italic',
-          'heading',
-          'bullet',
-          'ordered',
-          'undo',
-          'redo',
-        ]"
-        :key="command"
+        v-for="command in toolbarCommands"
+        :key="command.id"
         type="button"
-        @mousedown.prevent="run(command)"
-        >{{ command }}</button
+        :disabled="!toolbarState[command.id].enabled"
+        :aria-pressed="
+          command.toggle ? toolbarState[command.id].active : undefined
+        "
+        @mousedown.prevent
+        @click="run(command.id)"
+        >{{ command.label }}</button
       >
       <input
         v-model="link"
+        :disabled="!editable"
         aria-label="链接地址"
         placeholder="https://example.com"
+        @keydown.enter.prevent="setLink"
       />
-      <button type="button" @click="setLink">设置链接</button>
+      <button type="button" :disabled="!editable" @click="setLink"
+        >设置链接</button
+      >
+      <button
+        type="button"
+        :disabled="!editable || !linkActive"
+        @mousedown.prevent
+        @click="removeLink"
+        >移除链接</button
+      >
       <button
         v-if="callbacks?.pickMedia"
         type="button"
-        :disabled="picking"
+        :disabled="picking || !editable"
         @click="insertMedia"
         >选择文件素材</button
       >
     </div>
+    <p v-if="linkError" role="status">{{ linkError }}</p>
     <div ref="host" class="rich-text-editor__content" />
     <p
       v-if="
@@ -44,6 +58,7 @@
 
 <script setup lang="ts">
   import {
+    computed,
     onBeforeUnmount,
     onMounted,
     ref,
@@ -94,6 +109,45 @@
   const error = ref('');
   const link = ref('');
   const picking = ref(false);
+  const linkError = ref('');
+  const toolbarCommands = [
+    { id: 'bold', label: '加粗', toggle: true },
+    { id: 'italic', label: '斜体', toggle: true },
+    { id: 'heading', label: '二级标题', toggle: true },
+    { id: 'bullet', label: '无序列表', toggle: true },
+    { id: 'ordered', label: '有序列表', toggle: true },
+    { id: 'undo', label: '撤销', toggle: false },
+    { id: 'redo', label: '重做', toggle: false },
+  ] as const;
+  type ToolbarCommand = (typeof toolbarCommands)[number]['id'];
+  const toolbarState = ref<
+    Record<ToolbarCommand, { enabled: boolean; active: boolean }>
+  >({
+    bold: { enabled: false, active: false },
+    italic: { enabled: false, active: false },
+    heading: { enabled: false, active: false },
+    bullet: { enabled: false, active: false },
+    ordered: { enabled: false, active: false },
+    undo: { enabled: false, active: false },
+    redo: { enabled: false, active: false },
+  });
+  const linkActive = ref(false);
+  const editable = computed(
+    () => !props.readOnly && toolbarState.value.bold.enabled
+  );
+  const updateToolbar = (current: Editor) => {
+    const enabled = current.isEditable;
+    toolbarState.value = {
+      bold: { enabled, active: current.isActive('bold') },
+      italic: { enabled, active: current.isActive('italic') },
+      heading: { enabled, active: current.isActive('heading', { level: 2 }) },
+      bullet: { enabled, active: current.isActive('bulletList') },
+      ordered: { enabled, active: current.isActive('orderedList') },
+      undo: { enabled: enabled && current.can().undo(), active: false },
+      redo: { enabled: enabled && current.can().redo(), active: false },
+    };
+    linkActive.value = current.isActive('link');
+  };
   let mounted = false;
   let picker: AbortController | undefined;
   let boundDocument: Doc | undefined;
@@ -108,6 +162,12 @@
     editor.value?.destroy();
     editor.value = undefined;
     link.value = '';
+    linkError.value = '';
+    linkActive.value = false;
+    for (const state of Object.values(toolbarState.value)) {
+      state.enabled = false;
+      state.active = false;
+    }
   };
   const unavailable = () =>
     !props.collaborationBinding &&
@@ -200,6 +260,7 @@
               ALLOWED_ATTR: ['href', 'rel', 'target', 'colspan', 'rowspan'],
             }),
         },
+        onTransaction: ({ editor: current }) => updateToolbar(current),
         onUpdate: ({ editor: current }) => {
           if (props.readOnly || unavailable()) return;
           if (props.collaborationBinding) return;
@@ -215,6 +276,7 @@
           }
         },
       });
+      updateToolbar(editor.value);
       emit('ready');
     } catch {
       dispose();
@@ -243,8 +305,12 @@
   );
   watch(
     () => props.collaborationBinding?.writable,
-    (writable) =>
-      editor.value?.setEditable(!props.readOnly && writable !== false),
+    (writable) => {
+      const current = editor.value;
+      if (!current) return;
+      current.setEditable(!props.readOnly && writable !== false);
+      updateToolbar(current);
+    },
     { flush: 'sync' }
   );
   watch(
@@ -282,10 +348,10 @@
     mounted = false;
     dispose();
   });
-  const run = (command: string) => {
+  const run = (command: ToolbarCommand) => {
     if (props.readOnly || !editor.value?.isEditable) return;
     const chain = editor.value.chain().focus();
-    const commands: Record<string, () => void> = {
+    const commands: Record<ToolbarCommand, () => void> = {
       bold: () => chain.toggleBold().run(),
       italic: () => chain.toggleItalic().run(),
       heading: () => chain.toggleHeading({ level: 2 }).run(),
@@ -294,14 +360,16 @@
       undo: () => chain.undo().run(),
       redo: () => chain.redo().run(),
     };
-    commands[command]?.();
+    commands[command]();
   };
   const setLink = () => {
     if (props.readOnly || !editor.value?.isEditable) return;
     if (!validLink(link.value.trim())) {
+      linkError.value = '请输入有效的 http、https 或 mailto 链接。';
       emit('error', 'RICH_TEXT_LINK_INVALID');
       return;
     }
+    linkError.value = '';
     editor.value
       .chain()
       .focus()
@@ -313,6 +381,12 @@
         class: null,
       })
       .run();
+  };
+  const removeLink = () => {
+    if (props.readOnly || !editor.value?.isEditable) return;
+    editor.value.chain().focus().extendMarkRange('link').unsetLink().run();
+    link.value = '';
+    linkError.value = '';
   };
   const insertMedia = async () => {
     if (
@@ -352,6 +426,16 @@
 </script>
 
 <style scoped>
+  .rich-text-editor__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .rich-text-editor__toolbar button[aria-pressed='true'] {
+    color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
+  }
   .rich-text-editor__content {
     min-height: 180px;
     padding: 12px;

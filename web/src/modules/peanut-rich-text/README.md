@@ -9,3 +9,25 @@ RichText 仅作为 `peanut.content-tools` 的正式 provider，不维护文档�
 身份/权限分区 `contextKey` 变化、卸载或权限模式变化会销毁 Tiptap、媒体 NodeView 和解析/选择请求。独立调用 Editor 的 owner 必须传入当前身份分区，授权仍由 owner/File 每次复核。
 
 当前编辑器接受owner提供的`collaborationBinding`：协议必须为`yjs/1`且document是真实Y.Doc；等待ready/frozen后绑定Tiptap Collaboration，按writable控制编辑，不再用JSON重复初始化或双写协作内容。仅传旧collaboration配置或已有序列化状态而没有合法binding时仍返回unavailable，不连接旧URL或伪造ticket。身份、绑定代次和销毁会释放旧会话。Hocuspocus provider源码入口已存在，实际双人同步、撤权、保存及重开仍需对应集成证据；sync不是持久ACK。
+
+## 正式复用
+
+业务文档优先使用 Document 的 `DocumentEditor/DocumentViewer`，其真实消费者 `peanut-document/components/DocumentSurface.vue` 经 ContentEditor/ContentViewer 调度本模块的 `rich-text.tiptap` contribution，再使用 `RichTextSurface → RichTextEditor`。不为富文本另建身份、保存 API 或菜单。独立表单可使用公开编辑器：
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { RichTextEditor } from '@peanut-admin/peanut-rich-text/editor';
+import { emptyDocument } from '@peanut-admin/peanut-rich-text/document';
+
+const value = ref(emptyDocument());
+</script>
+
+<template>
+  <RichTextEditor v-model="value" context-key="account:member:tenant:draft" />
+</template>
+```
+
+`modelValue` 输入、`update:modelValue` 输出均为 `RichTextDocumentValue`，不是 HTML；单人编辑经校验后发出整文档及 `dirty-change`。`ready` 表示编辑器就绪，`error(code)` 表示投影、链接、媒体或协同输入错误，不表示已保存。示例 contextKey 应由宿主替换为真实身份/租户/对象分区；独立编辑器不自行授权或持久化，业务保存仍需 owner 校验对象权限及租户。`readOnly` 或 binding 的 `writable=false` 禁止操作；协同输入、释放与保存确认沿上文合同。
+
+工具按钮支持鼠标和键盘激活，以中文标明功能并反馈当前格式，撤销/重做根据实际历史禁用。链接输入支持 Enter 设置，选中链接后可移除；非法链接显示提示且不改变正文。媒体只经已授权的 callbacks 选择，未提供时不出现文件按钮。只读模式不展示格式按钮。
