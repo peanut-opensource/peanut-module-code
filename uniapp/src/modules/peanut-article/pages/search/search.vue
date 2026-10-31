@@ -8,7 +8,7 @@
         confirm-type="search"
         @confirm="doSearch"
       />
-      <text class="search-btn" @click="doSearch">搜索</text>
+      <button class="search-btn" size="mini" @click="doSearch">搜索</button>
     </view>
 
     <view v-if="!searched && hotList.length" class="hot-section">
@@ -25,8 +25,18 @@
       </view>
     </view>
 
+    <view v-if="!searched && hotError" class="empty" role="alert">
+      <text>热门搜索加载失败</text>
+      <button size="mini" @click="loadHotSearch">重试</button>
+    </view>
     <view v-if="searched" class="result-list">
-      <view v-if="results.length === 0" class="empty">未找到相关资讯</view>
+      <view class="section-title">“{{ searchKeyword }}”的搜索结果</view>
+      <view v-if="loading" class="empty" role="status">正在搜索…</view>
+      <view v-else-if="searchError" class="empty" role="alert">
+        <text>{{ searchError }}</text>
+        <button size="mini" @click="loadResults(requestedPage)">重试</button>
+      </view>
+      <view v-else-if="results.length === 0" class="empty">未找到相关资讯</view>
       <view
         v-for="item in results"
         :key="item.id"
@@ -42,12 +52,28 @@
           </view>
         </view>
       </view>
+      <view v-if="total > pageSize" class="pagination">
+        <button
+          size="mini"
+          :disabled="loading || pageNo <= 1"
+          @click="loadResults(pageNo - 1)"
+          >上一页</button
+        >
+        <text>第 {{ pageNo }} / {{ Math.ceil(total / pageSize) }} 页</text>
+        <button
+          size="mini"
+          :disabled="loading || pageNo * pageSize >= total"
+          @click="loadResults(pageNo + 1)"
+          >下一页</button
+        >
+      </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue';
+  import { onScopeDispose, ref } from 'vue';
+  import { onHide, onShow, onUnload } from '@dcloudio/uni-app';
   import {
     getHotSearch,
     getArticleLists,
@@ -58,24 +84,88 @@
   const searched = ref(false);
   const results = ref<Article[]>([]);
   const hotList = ref<Array<{ id: number; name: string }>>([]);
+  const searchKeyword = ref('');
+  const loading = ref(false);
+  const searchError = ref('');
+  const hotError = ref(false);
+  const pageNo = ref(1);
+  const pageSize = 15;
+  const total = ref(0);
+  const requestedPage = ref(1);
+  let searchGeneration = 0;
+  let hotGeneration = 0;
+  let hotLoaded = false;
+  let interrupted = false;
+  let disposed = false;
 
-  onMounted(async () => {
-    try {
-      const data = await getHotSearch();
-      if (data.status === 1) hotList.value = data.data;
-    } catch (error) {
-      console.error('Failed to load hot search:', error);
-    }
+  function invalidate() {
+    interrupted = loading.value;
+    searchGeneration += 1;
+    hotGeneration += 1;
+    loading.value = false;
+  }
+
+  function dispose() {
+    disposed = true;
+    invalidate();
+  }
+
+  onHide(invalidate);
+  onUnload(dispose);
+  onScopeDispose(dispose);
+  onShow(() => {
+    if (disposed) return;
+    if (!hotLoaded) loadHotSearch();
+    if (interrupted) loadResults(requestedPage.value);
   });
 
-  async function doSearch() {
-    if (!keyword.value.trim()) return;
+  async function loadHotSearch() {
+    if (disposed) return;
+    const generation = ++hotGeneration;
+    hotError.value = false;
     try {
-      const data = await getArticleLists({ keyword: keyword.value });
+      const data = await getHotSearch();
+      if (generation !== hotGeneration) return;
+      if (data.status === 1) hotList.value = data.data;
+      hotLoaded = true;
+    } catch {
+      if (generation === hotGeneration) hotError.value = true;
+    }
+  }
+
+  function doSearch() {
+    const value = keyword.value.trim();
+    if (!value || disposed) return;
+    searchKeyword.value = value;
+    searched.value = true;
+    results.value = [];
+    total.value = 0;
+    pageNo.value = 1;
+    return loadResults(1);
+  }
+
+  async function loadResults(page: number) {
+    if (disposed) return;
+    const generation = ++searchGeneration;
+    requestedPage.value = page;
+    loading.value = true;
+    interrupted = false;
+    searchError.value = '';
+    try {
+      const data = await getArticleLists({
+        keyword: searchKeyword.value,
+        pageNo: page,
+        pageSize,
+      });
+      if (generation !== searchGeneration) return;
       results.value = data.lists;
-      searched.value = true;
-    } catch (error) {
-      console.error('Search failed:', error);
+      total.value = data.count;
+      pageNo.value = data.pageNo;
+    } catch {
+      if (generation === searchGeneration)
+        searchError.value = '搜索失败，请重试';
+    } finally {
+      if (generation === searchGeneration) loading.value = false;
     }
   }
 
@@ -112,6 +202,13 @@
     margin-left: 20rpx;
     color: #2979ff;
     font-size: 28rpx;
+  }
+  .pagination {
+    display: flex;
+    align-items: center;
+    gap: 16rpx;
+    font-size: 24rpx;
+    padding: 24rpx 0;
   }
   .hot-section {
     padding: 24rpx;

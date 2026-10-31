@@ -354,6 +354,7 @@
       throw new Error('ARTICLE_CONTEXT_CHANGED');
     const selected = parseCapabilities(capabilities.capabilities);
     const transportCapabilities = parseCapabilities(data.capabilities);
+    const transportUrl = new URL(data.wss_url);
     if (
       data.article_id !== props.articleId ||
       data.document_id !== metadata.document_id ||
@@ -368,7 +369,13 @@
       data.mode !== 'write' ||
       data.protocol !== 2 ||
       !data.document_name ||
-      !/^wss?:\/\/[^/?#@]+:[0-9]+\/collaboration$/.test(data.wss_url)
+      !['ws:', 'wss:'].includes(transportUrl.protocol) ||
+      !transportUrl.hostname ||
+      transportUrl.pathname !== '/collaboration' ||
+      transportUrl.username ||
+      transportUrl.password ||
+      transportUrl.search ||
+      transportUrl.hash
     )
       throw new Error('ARTICLE_TRANSPORT_INVALID');
     return {
