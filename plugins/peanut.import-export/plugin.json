@@ -5,7 +5,7 @@
     "source": {
         "type": "canonical-contents",
         "reference": "canonical-plugin-contents-v1",
-        "sha256": "bb2e2df9ce6c709119394773abb56086d8ee13300cbcafe782645bf6956b11b5"
+        "sha256": "f17b1fd3e530542223761d30c4986dc971ad8abc479b8ea2a4211120d1fa10a6"
     },
     "trust": {
         "channel": "bundled",
@@ -82,7 +82,7 @@
         {
             "name": "@peanut-admin/peanut-import-export",
             "version": "1.0.6",
-            "integrity": "sha256-WUsw7I2Czm25XDhsr+gfgDKHlCDAxOHSau6gOExGNZs="
+            "integrity": "sha256-wXPqGdSbESr3Kw1j1PBcYzoTjCyRb8XqPy3xGjhYxkg="
         }
     ],
     "frontend": [

@@ -5,7 +5,7 @@
     "source": {
         "type": "canonical-contents",
         "reference": "canonical-plugin-contents-v1",
-        "sha256": "fa71777765af632d27d3a0e134001c50bb1da30c93b165931f32c268d9011f8d"
+        "sha256": "b2cf5707eebb007a5c562294998137cc3c471c3380b4e1498a7212fbaabbeb56"
     },
     "trust": {
         "channel": "bundled",
@@ -95,7 +95,7 @@
         {
             "name": "@peanut-admin/peanut-payment-pc",
             "version": "1.0.0",
-            "integrity": "sha256-rRuvRSvWC/ZWcfhcM6VM80wQ33KVaPl8nSKbUy5PTJ8="
+            "integrity": "sha256-BbBfpoaTYM1vQHa7XJYwPN6VbIxuzK1ndO3Ztq78t/k="
         },
         {
             "name": "@peanut-admin/peanut-payment-uniapp",

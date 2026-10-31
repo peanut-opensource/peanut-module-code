@@ -49036,7 +49036,7 @@
                             "wss_url": {
                                 "type": "string",
                                 "format": "uri",
-                                "pattern": "^wss?://[^/?#@]+:[0-9]+/collaboration$"
+                                "description": "Server-configured /collaboration URL. WSS supports default or explicit ports, DNS and bracketed IPv6. WS is development-only. Credentials, query and fragment are rejected by the server."
                             }
                         },
                         "required": [

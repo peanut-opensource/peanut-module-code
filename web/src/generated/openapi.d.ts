@@ -8774,7 +8774,10 @@ export interface components {
                 mode: "read" | "write";
                 /** @enum {integer} */
                 protocol: 2;
-                /** Format: uri */
+                /**
+                 * Format: uri
+                 * @description Server-configured /collaboration URL. WSS supports default or explicit ports, DNS and bracketed IPv6. WS is development-only. Credentials, query and fragment are rejected by the server.
+                 */
                 wss_url: string;
             };
         };

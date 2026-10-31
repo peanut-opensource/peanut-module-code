@@ -5,7 +5,7 @@
     "source": {
         "type": "canonical-contents",
         "reference": "canonical-plugin-contents-v1",
-        "sha256": "65398ae5f0bc051a1f5d226174a6d8fb5c9f3b21fbd24c4f4ae3eee35c2ec893"
+        "sha256": "a54ef98374fee1c7c907bb0a7282d0b1f09f9def88db182a5e76cffff319231f"
     },
     "trust": {
         "channel": "bundled",
@@ -66,7 +66,7 @@
         {
             "name": "@peanut-modules/workflow-web",
             "version": "5.0.1",
-            "integrity": "sha256-PjGxbhPduoz7G3DhWAGRLNYBZqYNLU1EO8COsihCZzQ="
+            "integrity": "sha256-8168WvPYJ/EIw/NkUb72l30/MuPM2AjYeKj/FiMKrLw="
         }
     ],
     "frontend": [
