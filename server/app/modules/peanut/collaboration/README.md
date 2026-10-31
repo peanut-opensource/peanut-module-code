@@ -6,6 +6,61 @@ Document owns durable content, immutable explicit save targets, versions and
 committed receipts. Ordinary updates merge/broadcast before batch persistence;
 a broadcast or native SyncStatus is not a database commit.
 
+## Embed in a business module
+
+This is a backend capability module with no menu or standalone editor. Reuse the
+existing public entry points rather than creating another editing page:
+
+| Responsibility | Public entry point | Current consumer |
+| --- | --- | --- |
+| Authorize a business-owned transport | `CollaborationTransports::ownerTransport` | Article `ArticleBodyService::transport` |
+| Embed the authorized business document | `@peanut-admin/peanut-document/editor` → `DocumentEditor` | Article `ArticleBodyEditor.vue` |
+| Own a Yjs connection in a custom content surface | `@peanut-admin/peanut-rich-text/editor` → `createCollaborationProvider` | Document `DocumentSurface.vue` |
+| Pass the owner-held CRDT into a content editor | `@peanut-admin/peanut-content-tools/surface` → `ContentCollaborationBinding` | Document surface → RichText editor |
+
+The business service resolves its own object, checks its edit permission, obtains
+the document through Document's owner contract, and calls `ownerTransport` with
+the exact `DocumentOwnerReference`. Article's existing implementation is in
+[`ArticleBodyService`](../article/src/Service/ArticleBodyService.php). Inject the
+exported `CollaborationTransports` contract; do not instantiate this module's
+internal services or read its Room/Ticket tables from another module.
+
+For the usual business editor, supply `DocumentEditor` with the owner,
+`metadataResolver` and `resolveTransport` from that business module. The resolver
+maps `document_id`, `owner`, `authorization_revision`, `mode`, `wss_url` and
+`document_name` into `AuthorizedDocumentTransport`, together with the selected
+content `capabilityRevision`. Bind `contextKey` to the current business object and
+identity partition. Abort stale requests and destroy the old surface when either
+changes. Do not cache a resolved transport as a grant or synthesize a room name.
+
+The generic `transport(context, documentId, mode)` also serves authorized direct
+Document read/write resolution. Read resolution does not enable collaboration.
+Socket authorization independently derives current read/write permission from
+the native session and Document owner; selecting a UI mode does not grant it.
+The current `DocumentEditor` owner transport callback is edit-purpose and expects
+`mode: 'write'`; a read-only content preview is not proof of live read-presence.
+
+Custom surfaces may use the existing provider and binding directly. The surface
+owner creates and destroys the provider; the content adapter consumes the same
+Y.Doc and must not open a second connection. `ready` requires both initial sync
+and a committed proof. `writable` follows the authenticated scope; `saved` follows
+the PHP-backed committed snapshot. Stop input on recovery/disconnect, retain an
+explicitly labeled local draft if available, and resolve fresh authorization
+before reopening. Never replay the disconnected document automatically.
+
+Explicit business save uses the embedded editor's `prepareSaveTarget(requestId)`
+and the business module's existing Document target/version operation. Keep the
+same request ID while its outcome is unknown. The owner decides business success
+from that operation's PHP receipt, separately from provider autosave and socket
+sync. See [Document's module contract](../document/README.md) for its operations.
+
+Only the rich-text provider currently supplies this Yjs collaboration path;
+other content formats retain their declared adapter capabilities. Article is the
+existing end-to-end business consumer. Document surface and RichText are shared
+assembly layers, not a second independent business consumer. A second business
+embedding and actual two-member save/reopen confirmation must be recorded when
+performed; the presence of these entry points does not prove either result.
+
 ## Service authentication
 
 The managed application configuration supplies the fixed instance/service/key,
