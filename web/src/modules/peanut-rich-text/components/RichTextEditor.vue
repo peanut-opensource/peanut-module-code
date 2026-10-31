@@ -426,22 +426,53 @@
 </script>
 
 <style scoped>
+  .rich-text-editor {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
   .rich-text-editor__toolbar {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 12px;
   }
+  .rich-text-editor__toolbar > * {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .rich-text-editor__toolbar button {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .rich-text-editor__toolbar :is(button, input):focus-visible {
+    outline: 2px solid var(--el-color-primary, #409eff);
+    outline-offset: 2px;
+  }
   .rich-text-editor__toolbar button[aria-pressed='true'] {
     color: var(--el-color-primary);
     background: var(--el-color-primary-light-9);
   }
   .rich-text-editor__content {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
     min-height: 180px;
+    overflow-x: auto;
     padding: 12px;
     border: 1px solid var(--el-border-color);
   }
   .rich-text-editor__content :deep(.ProseMirror) {
-    outline: none;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .rich-text-editor__content :deep(.ProseMirror:focus-visible) {
+    outline: 2px solid var(--el-color-primary, #409eff);
+    outline-offset: -2px;
+  }
+  .rich-text-editor__content :deep(pre) {
+    max-width: 100%;
+    overflow-x: auto;
   }
 </style>
