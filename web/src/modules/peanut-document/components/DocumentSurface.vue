@@ -1,16 +1,35 @@
 <template>
-  <section :aria-busy="loading">
-    <p v-if="loading" role="status">正在加载并核验文档内容。</p>
-    <p v-if="message" role="status">{{ message }}</p>
-    <p v-if="frozen" role="status">
+  <section class="document-surface" :aria-busy="loading">
+    <div class="document-surface__status" role="status" aria-live="polite">
+      <strong>文档状态</strong>
+      <span>{{
+        loading ? '正在加载并核验文档内容。' : saveStateText[saveState]
+      }}</span>
+      <span v-if="targetPending">正在确认本次保存目标，请等待原请求结果。</span>
+      <span v-if="operationLocked">业务操作处理中，编辑器暂时关闭。</span>
+    </div>
+    <div v-if="message" class="document-surface__error" role="alert">
+      <strong>文档操作暂未完成</strong>
+      <span>{{ message }}</span>
+      <span>
+        请保留上述信息。恢复时使用宿主页面的原请求查询或重新接入入口，
+        先确认未保存草稿和进行中的业务操作。
+      </span>
+    </div>
+    <p v-if="frozen" class="document-surface__notice" role="status">
       本地未确认内容已保留，不能当作已保存。
       <button @click="exportUnconfirmed">导出本地 Yjs 副本</button>
     </p>
-    <ul v-if="online.length" aria-label="在线成员">
-      <li v-for="member in online" :key="member.memberId">
-        {{ member.nickname }}（成员 {{ member.memberId }}）
-      </li>
-    </ul>
+    <div v-if="grants?.collaboration_enabled" class="document-surface__members">
+      <strong>在线成员（{{ online.length }}）</strong>
+      <ul v-if="online.length" aria-label="在线成员">
+        <li v-for="member in online" :key="member.memberId">
+          {{ member.nickname }}（成员 {{ member.memberId }}）
+        </li>
+      </ul>
+      <span v-else>尚未收到在线成员信息。</span>
+      <small>成员列表随协作会话更新；当前不支持远端光标和选区显示。</small>
+    </div>
     <p v-if="businessFeedback" role="status">
       业务操作 {{ businessFeedback.operationId }}：{{
         businessFeedback.state
@@ -124,6 +143,19 @@
   );
   const registry = createRegistry();
   const loading = ref(false);
+  const saveState = ref<DocumentSaveState>('idle');
+  const saveStateText: Record<DocumentSaveState, string> = {
+    idle: '有内容尚未确认保存，请通过编辑器保存草稿。',
+    syncing: '正在连接并同步协作内容，尚未确认保存。',
+    persisting: '正在等待服务端确认保存，请保留当前页面。',
+    saved: '当前内容已确认保存；业务版本和发布仍由所属业务操作决定。',
+    error: '保存或加载未完成，内容不能视为已保存。',
+    readonly: '当前为只读状态，无法在此修改内容。',
+  };
+  const setSaveState = (state: DocumentSaveState) => {
+    saveState.value = state;
+    emit('saveState', state);
+  };
   const message = ref('');
   const businessFeedback = shallowRef<DocumentOperationFeedback>();
   const operationLocked = ref(false);
@@ -262,6 +294,7 @@
     attempt = undefined;
     editGeneration = 0;
     loading.value = false;
+    saveState.value = 'idle';
   };
   const failed = (code: string) => {
     if (collaboration && binding.value) {
@@ -275,7 +308,7 @@
       };
     } else clear();
     message.value = code;
-    emit('saveState', 'error');
+    setSaveState('error');
     emit('error', code);
   };
   const exportUnconfirmed = () => {
@@ -436,8 +469,7 @@
         callbacks: { ...props.callbacks, ...fileCallbacks },
       };
       emit('load', data);
-      emit(
-        'saveState',
+      setSaveState(
         permissions.collaboration_enabled && intent === 'edit'
           ? 'syncing'
           : editable.value
@@ -492,7 +524,7 @@
             if (!active.writable) state = 'readonly';
             else if (saved) state = 'saved';
             else if (binding.value.ready) state = 'persisting';
-            emit('saveState', state);
+            setSaveState(state);
           },
           onReadyChanged: (ready) => {
             if (!valid(current, key) || !binding.value || frozen.value) return;
@@ -500,7 +532,7 @@
               ...binding.value,
               ready,
             };
-            if (!ready) emit('saveState', 'syncing');
+            if (!ready) setSaveState('syncing');
           },
           onWritableChanged: (writable) => {
             if (!valid(current, key) || !binding.value || frozen.value) return;
@@ -509,7 +541,7 @@
               ready: active.ready,
               writable: writable && !targetPending.value,
             };
-            if (!writable) emit('saveState', 'readonly');
+            if (!writable) setSaveState('readonly');
           },
           onCommitted: (proof) => {
             if (
@@ -553,7 +585,7 @@
     if (changed && !binding.value) {
       editGeneration += 1;
       soloDirty.value = true;
-      emit('saveState', 'idle');
+      setSaveState('idle');
     }
   };
   const save = async (value: unknown) => {
@@ -571,7 +603,7 @@
     const current = new AbortController();
     saving = current;
     savingBusy.value = true;
-    emit('saveState', 'persisting');
+    setSaveState('persisting');
     try {
       if (!valid(current, key)) return;
       const structured = parseRichTextDocument(value);
@@ -615,7 +647,7 @@
       attempt = undefined;
       soloDirty.value = !caughtUp;
       emit('load', detail.value);
-      emit('saveState', caughtUp ? 'saved' : 'idle');
+      setSaveState(caughtUp ? 'saved' : 'idle');
     } catch (error) {
       if (valid(current, key))
         failed(
@@ -665,3 +697,65 @@
     },
   });
 </script>
+
+<style scoped>
+  .document-surface {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .document-surface > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .document-surface p {
+    margin: 0;
+  }
+
+  .document-surface__status,
+  .document-surface__error,
+  .document-surface__members {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 12px;
+    border: 1px solid var(--el-border-color, #dcdfe6);
+    border-radius: 6px;
+    background: var(--el-fill-color-light, #f5f7fa);
+  }
+
+  .document-surface__error,
+  .document-surface__notice {
+    color: var(--el-color-warning-dark-2, #a66a17);
+  }
+
+  .document-surface__members ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .document-surface__members li {
+    min-width: 0;
+    max-width: 100%;
+    padding: 4px 8px;
+    border-radius: 12px;
+    background: var(--el-fill-color, #f0f2f5);
+  }
+
+  .document-surface__members small {
+    flex-basis: 100%;
+    color: var(--el-text-color-secondary, #909399);
+  }
+</style>
