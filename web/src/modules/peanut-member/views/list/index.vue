@@ -37,6 +37,17 @@
             />
           </el-select>
         </el-form-item>
+        <el-form-item prop="status" :label="$t('member.filter.status')">
+          <el-select
+            v-model="queryParams.status"
+            :placeholder="$t('member.filter.status.all')"
+            style="width: 160px"
+            clearable
+          >
+            <el-option :value="'1'" :label="$t('member.status.normal')" />
+            <el-option :value="'0'" :label="$t('member.status.disabled')" />
+          </el-select>
+        </el-form-item>
         <el-form-item>
           <el-space>
             <el-button type="primary" @click="search">
@@ -117,6 +128,16 @@
           :label="$t('member.columns.balance')"
           width="100"
         />
+        <el-table-column :label="$t('member.columns.tags')" min-width="180">
+          <template #default="{ row }">
+            <el-space v-if="row.tags?.length" wrap>
+              <el-tag v-for="tag in row.tags" :key="tag.id" size="small">
+                {{ tag.name }}
+              </el-tag>
+            </el-space>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
         <el-table-column
           :label="$t('member.columns.operations')"
           width="260"
@@ -545,7 +566,8 @@
   const queryParams = reactive({
     keyword: '',
     channel: '' as number | '',
-    createTime: [] as string[],
+    status: '',
+    createTime: [] as string[] | null,
   });
   const channelOptions = computed(() => [
     { value: 1, label: t('member.channel.wechatMmp') },
@@ -563,10 +585,11 @@
   const listParams = (page = pagination.current): MemberListParams => ({
     keyword: queryParams.keyword || undefined,
     channel: queryParams.channel === '' ? undefined : queryParams.channel,
-    create_time_start: queryParams.createTime[0]
+    status: queryParams.status || undefined,
+    create_time_start: queryParams.createTime?.[0]
       ? `${queryParams.createTime[0]} 00:00:00`
       : undefined,
-    create_time_end: queryParams.createTime[1]
+    create_time_end: queryParams.createTime?.[1]
       ? `${queryParams.createTime[1]} 23:59:59`
       : undefined,
     page_no: page,
@@ -597,6 +620,7 @@
   const resetQuery = () => {
     queryParams.keyword = '';
     queryParams.channel = '';
+    queryParams.status = '';
     queryParams.createTime = [];
     fetchData(1);
   };
@@ -973,6 +997,7 @@
       resetForm();
       queryParams.keyword = '';
       queryParams.channel = '';
+      queryParams.status = '';
       queryParams.createTime = [];
       pagination.current = 1;
       pagination.total = 0;
