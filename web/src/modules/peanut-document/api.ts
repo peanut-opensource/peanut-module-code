@@ -8,6 +8,14 @@ import type {
   DocumentVersionsPage,
 } from './src/contracts';
 
+export type {
+  DocumentDetail,
+  DocumentCapabilities,
+  DocumentSaveReceipt,
+  DocumentSaveTargetReceipt,
+  DocumentVersionsPage,
+} from './src/contracts';
+
 export const getDocumentVersions = (
   documentId: number,
   beforeRevisionNo: number | undefined,

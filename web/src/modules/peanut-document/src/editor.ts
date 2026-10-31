@@ -7,6 +7,9 @@ export type {
   DocumentSurfaceOptions,
   DocumentSaveState,
   AuthorizedDocumentTransport,
+  DocumentDetail,
+  DocumentCapabilities,
+  DocumentOwner,
 } from './contracts';
 
 export const DocumentOperations = defineAsyncComponent(

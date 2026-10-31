@@ -19,6 +19,61 @@ its dependency on Document and contributes a `DocumentOwnerPolicy` through its
 compiled provider. Article contributes only its existing `article/body` slot;
 its publication and approval behavior remains owned by Article.
 
+## Reusing the existing entry points
+
+| Entry | Input and output | Existing consumer |
+| --- | --- | --- |
+| PHP `DocumentCommands` / `DocumentQueries` (declared in `contracts.exports`) | Current `TenantContext`, fixed `DocumentOwnerReference`, document ID and action-specific CAS/request ID; metadata, committed snapshot or durable receipt, never Models | Article's body service and compiled owner policy |
+| `@peanut-admin/peanut-document/editor` | `DocumentEditor` and `DocumentSurfaceOptions`; emits load, capabilities, save-state, operation-state and error; exposes `prepareSaveTarget` / `releaseSaveTargetHold` | `peanut-article/views/list/ArticleBodyEditor.vue` uses the same component source |
+| `@peanut-admin/peanut-document/viewer` | `DocumentViewer`, document ID, fixed owner and optional immutable revision ID; read-only content and load/error events | `peanut-article/views/list/ArticleBodyHistory.vue` uses the same component source |
+| `@peanut-admin/peanut-document/api` | Existing typed HTTP queries/commands with an `AbortSignal`; Axios response containing metadata, versions or receipts | Article editor save-target recovery and body history pagination |
+| `@peanut-admin/peanut-document/operations` | Existing `parseSaveTarget`, operation/result parsers and command types; invalid server results throw their `DOCUMENT_*` code | Article editor parses the original save-target response |
+
+These package subpaths map to the existing module sources; they do not install a
+second client or register routes. In a generated application, use its native
+module package registration. The current Article consumer imports the corresponding
+application source paths. No Article source or application assembly is changed by
+these exports.
+
+For an owner-authorized read surface:
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { DocumentViewer } from '@peanut-admin/peanut-document/viewer';
+
+const props = defineProps<{ documentId: number; articleId: number }>();
+const error = ref('');
+</script>
+
+<template>
+  <DocumentViewer
+    :document-id="props.documentId"
+    :owner="{ module_key: 'peanut.article', object_type: 'article', object_id: String(props.articleId), slot: 'body' }"
+    :allow-downloads="false"
+    @error="code => { error = code; }"
+  />
+  <p v-if="error" role="alert">{{ error }}</p>
+</template>
+```
+
+The owner must already exist and be contributed by its selected provider. IDs and
+frontend `businessActions` are not authority: the server checks the current actor,
+tenant, owner and action again. View and edit-purpose metadata are distinct. The
+editor entry also exports `DocumentOwner`, `DocumentDetail` and
+`DocumentCapabilities` for typed owner metadata resolvers. Dispose caller-owned
+HTTP requests with their `AbortController`; components abort their own requests
+and unload collaboration on unmount or identity/context changes. Surface errors
+must remain visible; unavailable collaboration is not an empty document.
+
+Version creation requires a nonblank reason of at most 255 Unicode characters;
+version restore requires a positive safe-integer revision ID. The operations UI
+checks these fields before allocating a request ID or preparing a collaborative
+target. Once submitted, an unknown result retains the original ID and exact input
+for explicit recovery. Creating a version is not publishing the owning business.
+
+## Composition and authorization
+
 The public `DocumentOwnerRegistry` is an application-composition contract. The
 composition root constructs it from the selected, compiled providers' owner
 policy declarations and registers that instance in the native ThinkPHP container.
