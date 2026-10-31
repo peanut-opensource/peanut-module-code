@@ -7,7 +7,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "ee1c32ac38adefca9a9b3aba24372ef6113af1243d4b56308a0e23a3dfbee599"
+                "sha256": "1c646a9c55b63abe0047066dbf308829e8fb9e2856d1ba01a0a77ae83fa3ced1"
             },
             "trust": {
                 "channel": "bundled",
@@ -127,7 +127,7 @@
                 }
             ],
             "manifest": "plugins/peanut.article/plugin.json",
-            "manifest_sha256": "c659e7604bca5ed68d261192f1b6b3522184d8425742d911ea7f78012daea83e"
+            "manifest_sha256": "f2cbc945cb16a43847ad3fcd55bb2a17713d9e575fde52b1de0d2cb23d8a7871"
         },
         {
             "key": "peanut.artifact-revision",
