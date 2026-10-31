@@ -22,6 +22,7 @@ export interface MiniProgramConfig {
   qr_code: string;
   app_id: string;
   app_secret: string;
+  app_secret_configured: boolean;
   request_domain: string;
   socket_domain: string;
   upload_file_domain: string;
@@ -167,17 +168,11 @@ export function getOfficialAccountReplyDetail(id: number) {
 }
 
 export function addOfficialAccountReply(data: OfficialAccountReplyForm) {
-  return axios.post(
-    '/adminapi/peanut.oauth.official-account.reply.add',
-    data
-  );
+  return axios.post('/adminapi/peanut.oauth.official-account.reply.add', data);
 }
 
 export function editOfficialAccountReply(data: OfficialAccountReplyForm) {
-  return axios.post(
-    '/adminapi/peanut.oauth.official-account.reply.edit',
-    data
-  );
+  return axios.post('/adminapi/peanut.oauth.official-account.reply.edit', data);
 }
 
 export function deleteOfficialAccountReply(id: number) {

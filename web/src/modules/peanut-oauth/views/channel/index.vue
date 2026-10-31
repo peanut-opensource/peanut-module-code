@@ -3,27 +3,35 @@
     <Breadcrumb :items="['menu.appSetting', 'menu.appSetting.channel']" />
     <el-card class="general-card">
       <template #header>{{ $t('menu.appSetting.channel') }}</template>
-      <div v-loading="loading">
-        <el-tabs model-value="official-account">
+      <div>
+        <el-tabs v-model="activeTab">
           <el-tab-pane
+            v-if="canView('official-account')"
+            lazy
             name="official-account"
             :label="$t('channel.tab.wechatOa')"
           >
             <OfficialAccountConfig />
           </el-tab-pane>
           <el-tab-pane
+            v-if="canView('official-account-menu')"
+            lazy
             name="official-account-menu"
             :label="$t('channel.tab.wechatOaMenu')"
           >
             <OfficialAccountMenu />
           </el-tab-pane>
           <el-tab-pane
+            v-if="canView('official-account-reply')"
+            lazy
             name="official-account-reply"
             :label="$t('channel.tab.wechatOaReply')"
           >
             <OfficialAccountReply />
           </el-tab-pane>
           <el-tab-pane
+            v-if="canView('open-platform')"
+            lazy
             name="open-platform"
             :label="$t('channel.tab.wechatOpen')"
           >
@@ -31,9 +39,29 @@
           </el-tab-pane>
 
           <!-- 既有 H5 网页渠道 -->
-          <el-tab-pane name="h5" :label="$t('channel.tab.h5')">
+          <el-tab-pane
+            v-if="canView('h5')"
+            lazy
+            name="h5"
+            :label="$t('channel.tab.h5')"
+          >
+            <el-alert
+              v-if="configState.h5.failed"
+              type="error"
+              :closable="false"
+            >
+              {{ $t('channel.tip.loadFailed') }}
+              <el-button
+                :loading="configState.h5.loading"
+                @click="fetchConfig('h5')"
+              >
+                {{ $t('channel.operation.retry') }}
+              </el-button>
+            </el-alert>
             <el-form
+              v-loading="configState.h5.loading"
               ref="webPageFormRef"
+              :disabled="!configState.h5.loaded || webPageSubmitLoading"
               :model="webPageForm"
               :rules="webPageRules"
               label-position="top"
@@ -94,9 +122,31 @@
           </el-tab-pane>
 
           <!-- 既有微信小程序渠道 -->
-          <el-tab-pane name="wechat_mini" :label="$t('channel.tab.wechatMini')">
+          <el-tab-pane
+            v-if="canView('wechat_mini')"
+            lazy
+            name="wechat_mini"
+            :label="$t('channel.tab.wechatMini')"
+          >
+            <el-alert
+              v-if="configState.wechat_mini.failed"
+              type="error"
+              :closable="false"
+            >
+              {{ $t('channel.tip.loadFailed') }}
+              <el-button
+                :loading="configState.wechat_mini.loading"
+                @click="fetchConfig('wechat_mini')"
+              >
+                {{ $t('channel.operation.retry') }}
+              </el-button>
+            </el-alert>
             <el-form
+              v-loading="configState.wechat_mini.loading"
               ref="miniProgramFormRef"
+              :disabled="
+                !configState.wechat_mini.loaded || miniProgramSubmitLoading
+              "
               :model="miniProgramForm"
               :rules="miniProgramRules"
               label-position="top"
@@ -155,7 +205,11 @@
                   v-model="miniProgramForm.app_secret"
                   type="password"
                   show-password
-                  :placeholder="$t('channel.field.secret.placeholder')"
+                  :placeholder="
+                    miniProgramForm.app_secret_configured
+                      ? $t('channel.officialAccount.secretMaskedPlaceholder')
+                      : $t('channel.field.secret.placeholder')
+                  "
                 />
               </el-form-item>
               <el-divider content-position="left">
@@ -193,10 +247,11 @@
 </template>
 
 <script lang="ts" setup>
-  import { reactive, ref } from 'vue';
+  import { reactive, ref, watch } from 'vue';
+  import { useRoute } from 'vue-router';
   import { useI18n } from 'vue-i18n';
   import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
-  import useLoading from '@/hooks/loading';
+  import { hasPermission } from '@/hooks/permission';
   import FilePicker from '@/components/file-picker/index.vue';
   import {
     getWebPageConfig,
@@ -212,7 +267,25 @@
   import OpenPlatform from './OpenPlatform.vue';
 
   const { t } = useI18n();
-  const { loading, setLoading } = useLoading(true);
+  const route = useRoute();
+  const channelPermissions = {
+    'official-account': 'peanut.oauth.official-account.config',
+    'official-account-menu': 'peanut.oauth.official-account.menu.detail',
+    'official-account-reply': 'peanut.oauth.official-account.reply.list',
+    'open-platform': 'peanut.oauth.open-platform.config',
+    'h5': 'peanut.oauth.web-page.config',
+    'wechat_mini': 'peanut.oauth.mini-program.config',
+  };
+  type ChannelTab = keyof typeof channelPermissions;
+  const canView = (tab: ChannelTab) =>
+    hasPermission(channelPermissions[tab], route.path);
+  const activeTab = ref(
+    (Object.keys(channelPermissions) as ChannelTab[]).find(canView) ?? ''
+  );
+  const configState = reactive({
+    h5: { loading: false, loaded: false, failed: false },
+    wechat_mini: { loading: false, loaded: false, failed: false },
+  });
   const webPageSubmitLoading = ref(false);
   const miniProgramSubmitLoading = ref(false);
   const webPageFormRef = ref<FormInstance>();
@@ -256,6 +329,7 @@
     qr_code: '',
     app_id: '',
     app_secret: '',
+    app_secret_configured: false,
     request_domain: '',
     socket_domain: '',
     upload_file_domain: '',
@@ -287,20 +361,36 @@
     { key: 'business_domain', label: 'channel.mini.domain.business' },
   ];
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchConfig = async (tab: 'h5' | 'wechat_mini') => {
+    const state = configState[tab];
+    if (!canView(tab) || state.loading) return;
+    state.loading = true;
+    state.failed = false;
     try {
-      const [webPageResult, miniProgramResult] = await Promise.all([
-        getWebPageConfig(),
-        getMiniProgramConfig(),
-      ]);
-      Object.assign(webPageForm, webPageResult.data);
-      Object.assign(miniProgramForm, miniProgramResult.data);
+      if (tab === 'h5') {
+        const { data } = await getWebPageConfig();
+        Object.assign(webPageForm, data);
+      } else {
+        const { data } = await getMiniProgramConfig();
+        Object.assign(miniProgramForm, data);
+      }
+      state.loaded = true;
+    } catch {
+      // The request layer reports the server error; retain a local retry action.
+      state.failed = true;
     } finally {
-      setLoading(false);
+      state.loading = false;
     }
   };
-  fetchData();
+  watch(
+    activeTab,
+    (tab) => {
+      if ((tab === 'h5' || tab === 'wechat_mini') && !configState[tab].loaded) {
+        void fetchConfig(tab);
+      }
+    },
+    { immediate: true }
+  );
 
   const handleWebPageSubmit = async () => {
     const valid = await webPageFormRef.value?.validate().catch(() => false);

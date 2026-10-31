@@ -17,6 +17,9 @@ export default {
   'channel.operation.save': 'Save',
   'channel.operation.copy': 'Copy',
   'channel.operation.clear': 'Clear',
+  'channel.operation.retry': 'Retry loading',
+  'channel.tip.loadFailed':
+    'Could not load configuration. Retry before editing.',
   'channel.tip.success': 'Saved successfully',
   'channel.tip.copied': 'Copied',
   'channel.h5.status': 'H5 Channel Status',
