@@ -46,11 +46,11 @@
             >
           </el-form-item>
           <el-form-item label="支付方式" required>
-            <el-radio-group v-model="payWay">
+            <el-radio-group v-model="payWay" :disabled="creating || prepaying">
               <el-radio
                 v-for="channel in config?.channels || []"
                 :key="channel.pay_way"
-                :label="channel.pay_way"
+                :value="channel.pay_way"
               >
                 {{ channel.name
                 }}<span
@@ -72,7 +72,7 @@
               native-type="submit"
               :loading="creating"
               :disabled="
-                !config || config.status !== 1 || !config.channels.length
+                !config || config.status !== 1 || !payWay || prepaying
               "
               >创建充值订单</el-button
             >
@@ -107,10 +107,18 @@
           >
         </dl>
         <el-button
+          class="mt-6"
+          :loading="refreshing"
+          :disabled="prepaying"
+          @click="refreshOrder"
+          >刷新支付结果</el-button
+        >
+        <el-button
           v-if="order.pay_status !== 1"
           type="primary"
           class="mt-6"
           :loading="prepaying"
+          :disabled="!payWay || creating || refreshing"
           @click="handlePrepay"
           >继续支付</el-button
         >
@@ -213,7 +221,7 @@
     type RechargeConfig,
     type RechargeOrder,
     type RechargePayment,
-  } from '~/modules/peanut-payment/api/recharge';
+  } from '@peanut-admin/peanut-payment-pc/api';
 
   definePageMeta({ layout: 'default', middleware: 'auth' });
 
@@ -230,6 +238,7 @@
   const creating = ref(false);
   const prepaying = ref(false);
   const listLoading = ref(false);
+  const refreshing = ref(false);
 
   onMounted(async () => {
     try {
@@ -244,6 +253,7 @@
   });
 
   async function handleCreate() {
+    if (creating.value || prepaying.value) return;
     const value = amount.value.trim();
     if (!/^\d+(?:\.\d{1,2})?$/.test(value) || Number(value) <= 0) {
       ElMessage.warning('请输入正确的充值金额');
@@ -259,7 +269,6 @@
       const created = await createRechargeOrder(request, value);
       // Read back the server-owned order before offering payment controls.
       order.value = await getRechargeDetail(request, created.id);
-      payWay.value = order.value.pay_way;
       await loadOrders();
       ElMessage.success('充值订单已创建');
     } catch {
@@ -270,13 +279,13 @@
   }
 
   async function handlePrepay() {
-    if (!order.value) return;
+    if (!order.value || !payWay.value || prepaying.value) return;
     prepaying.value = true;
     try {
       const result = await prepayRecharge(
         request,
         order.value.id,
-        order.value.pay_way
+        payWay.value
       );
       order.value = result.order;
       payment.value = result.payment;
@@ -303,9 +312,31 @@
   async function selectOrder(selected: RechargeOrder) {
     try {
       order.value = await getRechargeDetail(request, selected.id);
+      if (
+        config.value?.channels.some(
+          (item) => item.pay_way === order.value?.pay_way
+        )
+      ) {
+        payWay.value = order.value.pay_way;
+      }
       payment.value = null;
     } catch {
       // useRequest already reports the server message.
+    }
+  }
+
+  async function refreshOrder() {
+    if (!order.value || refreshing.value) return;
+    refreshing.value = true;
+    try {
+      order.value = await getRechargeDetail(request, order.value.id);
+      if (order.value.pay_status === 1) payment.value = null;
+      config.value = await getRechargeConfig(request);
+      await loadOrders();
+    } catch {
+      // useRequest already reports the server message.
+    } finally {
+      refreshing.value = false;
     }
   }
 

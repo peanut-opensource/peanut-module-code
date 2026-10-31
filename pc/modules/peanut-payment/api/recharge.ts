@@ -43,8 +43,8 @@ export interface RechargeOrder {
 export interface RechargeListResult {
   lists: RechargeOrder[];
   count: number;
-  page_no: number;
-  page_size: number;
+  pageNo: number;
+  pageSize: number;
 }
 
 export interface RechargePayment {
