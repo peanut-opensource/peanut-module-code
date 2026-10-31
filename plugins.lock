@@ -209,7 +209,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "015d3477cfbaba0b4fc439846b4ff333b204d8abaf324fac0a763681407672a6"
+                "sha256": "700a014a1ae16882c64bc637cc0f5f169f0feef469eeb2f9c9c5a33f8e67a4e0"
             },
             "trust": {
                 "channel": "bundled",
@@ -287,7 +287,7 @@
                 }
             ],
             "manifest": "plugins/peanut.collaboration/plugin.json",
-            "manifest_sha256": "53c0d4591e108d692cd0383e8e4cb67baea6ea02e013446fd976e577c484a010"
+            "manifest_sha256": "b43b4a1abec996b7ad50b2ebfd368ed1e77962243293e620f7708a3b81057552"
         },
         {
             "key": "peanut.content-tools",
@@ -378,7 +378,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "67a07978287b8ae152e22a4f92b99197977c3a4eb9f52090ec43707e50e265a6"
+                "sha256": "8e929f6c7c5428fe2f0f55f7ef9471dcdda9e18cdf5b21c7a7489bdadcb40cfd"
             },
             "trust": {
                 "channel": "bundled",
@@ -470,7 +470,7 @@
                 }
             ],
             "manifest": "plugins/peanut.document/plugin.json",
-            "manifest_sha256": "fbbc514f3964b414c0d404f309aa8cacbf9a6985c23bce5f0eecca6e1881b454"
+            "manifest_sha256": "da3bd560f746c8fa606adf2ca4d9849ac66b1541fb45198684cf95cfad327ede"
         },
         {
             "key": "peanut.entitlement-quota",
@@ -1569,7 +1569,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "e376565fea4919f1d971cdd02d4a2f1c5f7fef2404ef7baaf0c363b51191596e"
+                "sha256": "5ac4262ed9dc8cf7a805334db73385e79b7360f26c7cb74cd5e22ac47e789a29"
             },
             "trust": {
                 "channel": "bundled",
@@ -1657,7 +1657,7 @@
                 }
             ],
             "manifest": "plugins/peanut.rich-text/plugin.json",
-            "manifest_sha256": "24c07b80b6247c660a3589c9188d6f61e256efc5cd503d4426ef95ebda818037"
+            "manifest_sha256": "8727f0f848e9353b2500babc19a209fc26644c5a9c5db1e1f50049f4a377c1c0"
         },
         {
             "key": "peanut.settings",
