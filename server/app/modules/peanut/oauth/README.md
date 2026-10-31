@@ -31,6 +31,19 @@ function wechatSubject(OAuthQueries $oauth, TenantContext $context, int $memberI
 
 ## 客户端与管理页
 
+现有页面的真实链路是 PC `pages/oauth/callback.vue` 调用
+`callbackWechatPc(client, code, state)`：仅 `completed=true` 且有 token/member
+时建立宿主会话；否则暂存补全 ticket 并进入 `/oauth/complete`。回调错误保留错误信息，
+由用户返回登录重新授权，不自动重放一次性 code/state。返回地址只采用服务确认的站内路径。
+UniApp 的 `pages/oauth/callback.vue` / `complete.vue` 使用本端相同职责的 API 和会话，
+不是 PC 回调页的别名，不把 `/oauth/callback` 当作 UniApp 业务返回页循环进入。
+
+绑定沿已有 `oauth-binding` ModuleSlot → `OAuthBindButton.vue` →
+`bindWechatIdentity('mnp', code)`，仅微信小程序环境展示，code 来自本次 `uni.login`。
+该请求使用当前已认证会员；绑定成功提示不等于另建登录身份，也不替 Payment 授权。
+自定义用户中心复用此 contribution/slot，不新造全局绑定状态或复制会员档案。
+实际外部回调、资料补全和绑定均须真实配置及相应授权；本指南未执行，记为 NOT_RUN。
+
 - PC 的 contribution 注册 `oauth-login` 插槽、`OAuthLoginButton` 和 `/oauth/callback`、`/oauth/complete`。按钮复用本模块 `api/oauth.ts` 的 `beginWechatPc(client, returnPath)`；请求 client 由调用者注入，返回 `authorization_url` / `expires_in`，无需另建请求客户端。
 - UniApp 的 contribution 注册 `oauth-login`、`oauth-binding` 及回调/补全页。宿主 `ModuleSlot.vue` 已消费这两个插槽；登录和绑定按钮复用模块 API。组件状态属于组件实例，不是跨用户单例。
 - Web 的 contribution 注册 `/app-setting/channel`。页面复用模块 `api.ts` 的配置、菜单和回复 API，以及 FilePicker。配置 API 返回 DTO；写入函数只接收对应表单字段；失败由现有请求错误层处理。

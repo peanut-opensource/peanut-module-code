@@ -74,6 +74,42 @@ function quotaUsage(
 持有返回的 `reservationKey`，再在业务完成或取消的入口分别调用 `commit` 或 `release`。
 结算入口仍须对相同目标建立有效授权上下文；不能由浏览器传入可信上下文。
 
+## 无真实计量的写入接线示例
+
+以下仅展示已有方法签名，不定义或注册假计量、默认额度或放行策略，也未执行。
+假定消费业务已在自己的组合根绑定真实 `EntitlementMeterRegistry` 与
+`EntitlementPolicyProvider`，且 `$context` 对当前目标已授权。业务先保存原始
+request key 与预留回执，再推进其实际操作；示例不替外部副作用提供事务回滚。
+
+```php
+// $quota: EntitlementQuotaService；参数来自已授权业务入口，不取浏览器额度。
+$reservation = $quota->reserve(
+    $context, $meterKey, $targetType, $targetKey, $amount, $reserveRequestKey,
+);
+$reservationKey = $reservation->reservationKey;
+```
+
+业务确认成功的后续入口（重新授权同一目标）才提交；这是独立结算请求：
+
+```php
+$receipt = $quota->commit(
+    $context, $meterKey, $targetType, $targetKey, $reservationKey, $commitRequestKey,
+);
+```
+
+或者，已确认取消且可释放的后续入口使用以下请求；不在 commit 后再 release：
+
+```php
+$receipt = $quota->release(
+    $context, $meterKey, $targetType, $targetKey, $reservationKey, $releaseRequestKey,
+);
+```
+
+三种命令使用各自的幂等键；同一未知请求保留原键/输入并先核业务与预留结果，不因
+异常直接猜测成功、重复 reserve 或在未知外部结果时 release。registry 的 `find`
+只解析实际计量，policy 的 `snapshot` 决定授权策略；前端按钮、计量键和示例都不授予
+额度。当前没有真实计量/provider 消费者，运行和实际计量均为 NOT_RUN。
+
 ## 错误与当前采用范围
 
 `EntitlementQuotaException` 提供 `errorCode`、`httpStatus` 和消息：INVALID 为 422，
