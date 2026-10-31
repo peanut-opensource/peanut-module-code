@@ -1,6 +1,7 @@
 <template>
   <section
     v-if="allowed.length || feedback"
+    class="document-operations"
     aria-label="文档业务操作"
     :aria-busy="busy"
   >
@@ -556,3 +557,74 @@
     clear();
   });
 </script>
+
+<style scoped>
+  .document-operations {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--el-border-color, #dcdfe6);
+    border-radius: 6px;
+    background: var(--el-bg-color, #fff);
+    overflow-wrap: anywhere;
+  }
+
+  .document-operations select,
+  .document-operations input,
+  .document-operations button {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 34px;
+    padding: 6px 12px;
+    border: 1px solid var(--el-border-color, #dcdfe6);
+    border-radius: 4px;
+    background: var(--el-bg-color, #fff);
+    color: var(--el-text-color-regular, #606266);
+    font: inherit;
+    line-height: 1.5;
+  }
+
+  .document-operations input {
+    flex: 1 1 180px;
+  }
+
+  .document-operations button {
+    cursor: pointer;
+    white-space: normal;
+  }
+
+  .document-operations button:not(:disabled):hover,
+  .document-operations select:not(:disabled):hover,
+  .document-operations input:not(:disabled):hover {
+    border-color: var(--el-color-primary, #409eff);
+  }
+
+  .document-operations button:not(:disabled):hover {
+    background: var(--el-color-primary-light-9, #ecf5ff);
+    color: var(--el-color-primary, #409eff);
+  }
+
+  .document-operations :is(select, input, button):focus-visible {
+    outline: 2px solid var(--el-color-primary, #409eff);
+    outline-offset: 2px;
+  }
+
+  .document-operations :is(select, input, button):disabled {
+    border-color: var(--el-border-color-lighter, #ebeef5);
+    background: var(--el-disabled-bg-color, #f5f7fa);
+    color: var(--el-disabled-text-color, #a8abb2);
+    cursor: not-allowed;
+  }
+
+  .document-operations p {
+    flex-basis: 100%;
+    min-width: 0;
+    margin: 2px 0 0;
+    color: var(--el-text-color-secondary, #909399);
+    line-height: 1.6;
+  }
+</style>
