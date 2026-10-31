@@ -345,8 +345,7 @@
     comment.value = '';
     reassignTaskKey.value = '';
     newAssignee.value = '';
-    reassignTaskKey.value = '';
-    newAssignee.value = '';
+    error.value = '';
     dialog.value = true;
     notice.value = '';
   }
@@ -450,7 +449,8 @@
         result.status === 'blocked'
           ? '本次操作已记录，下一步骤阻塞，请查看原因。'
           : '操作已记录，以当前流程状态为准。';
-      await load();
+      await showInstance(result.instance_key);
+      if (!props.instanceKey) await load();
     } catch (cause) {
       if (!stillSelected()) return;
       fail(cause);
