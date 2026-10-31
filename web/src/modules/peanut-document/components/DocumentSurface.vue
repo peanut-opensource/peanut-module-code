@@ -436,7 +436,14 @@
         callbacks: { ...props.callbacks, ...fileCallbacks },
       };
       emit('load', data);
-      emit('saveState', editable.value ? 'saved' : 'readonly');
+      emit(
+        'saveState',
+        permissions.collaboration_enabled && intent === 'edit'
+          ? 'syncing'
+          : editable.value
+          ? 'saved'
+          : 'readonly'
+      );
       if (permissions.collaboration_enabled && intent === 'edit') {
         if (
           !editable.value ||
@@ -446,7 +453,6 @@
           message.value = '协同编辑不可用：等待受权工具能力与服务配置。';
           return;
         }
-        emit('saveState', 'syncing');
         const transport = await props.resolveTransport(
           data,
           permissions,

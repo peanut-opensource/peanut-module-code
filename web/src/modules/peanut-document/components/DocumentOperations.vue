@@ -19,6 +19,7 @@
         v-model="reason"
         maxlength="255"
         placeholder="版本原因"
+        aria-label="版本原因（必填，最多 255 字）"
         :disabled="busy || !!targetRequestId"
       />
       <input
@@ -27,6 +28,7 @@
         type="number"
         min="1"
         placeholder="不可变版本 ID"
+        aria-label="要恢复的不可变版本 ID（正整数）"
         :disabled="busy"
       />
       <button
@@ -35,11 +37,18 @@
           readOnly ||
           !document ||
           !action ||
+          !validInput ||
           (collaborationEnabled && action !== 'version.create' && !draftSaved)
         "
         @click="start"
-        >执行业务操作</button
+        >{{ action ? labels[action] : '请选择操作' }}</button
       >
+      <p v-if="action === 'version.create'" role="status">
+        请填写版本原因（1–255 字，不能全为空白），再创建不可变版本。
+      </p>
+      <p v-else-if="action === 'version.restore'" role="status">
+        请填写历史记录中的版本 ID（正整数）；恢复会创建新版本并保留原版本。
+      </p>
     </template>
     <button
       v-if="targetRequestId && !command"
@@ -147,6 +156,15 @@
   const action = ref<DocumentBusinessAction>();
   const reason = ref('');
   const revision = ref('');
+  const validInput = computed(() => {
+    if (action.value === 'version.create')
+      return !!reason.value.trim() && [...reason.value].length <= 255;
+    if (action.value === 'version.restore') {
+      const id = Number(revision.value);
+      return Number.isSafeInteger(id) && id > 0;
+    }
+    return true;
+  });
   const command = shallowRef<DocumentBusinessCommand>();
   const feedback = shallowRef<DocumentOperationFeedback>();
   const busy = ref(false);
@@ -387,6 +405,7 @@
       detail.auth_revision < 0 ||
       props.readOnly ||
       !selected ||
+      !validInput.value ||
       (props.collaborationEnabled &&
         selected !== 'version.create' &&
         !props.draftSaved) ||
@@ -399,7 +418,6 @@
         ? (targetRequestId ??= randomUuid())
         : randomUuid();
     if (selected === 'version.create') {
-      if (!reason.value.trim() || [...reason.value].length > 255) return;
       targetReason ??= reason.value;
       let stateSeq = detail.state_seq;
       if (props.collaborationEnabled) {
@@ -439,7 +457,6 @@
       };
     } else if (selected === 'version.restore') {
       const id = Number(revision.value);
-      if (!Number.isSafeInteger(id) || id < 1) return;
       command.value = {
         action: selected,
         input: {

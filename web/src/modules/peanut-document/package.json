@@ -7,7 +7,9 @@
   "exports": {
     ".": "./contribution.ts",
     "./editor": "./src/editor.ts",
-    "./viewer": "./src/viewer.ts"
+    "./viewer": "./src/viewer.ts",
+    "./api": "./api.ts",
+    "./operations": "./src/operations.ts"
   },
   "dependencies": {
     "yjs": "13.6.32"
