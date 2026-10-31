@@ -1,6 +1,22 @@
 <template>
   <div class="container">
     <el-card shadow="never">
+      <el-alert
+        v-if="listError || detailError"
+        :title="
+          t(listError ? 'noticeScene.error.load' : 'noticeScene.error.detail')
+        "
+        type="error"
+        :closable="false"
+        show-icon
+      />
+      <el-button
+        :loading="loading"
+        :disabled="openingId !== null || saving"
+        @click="fetchData"
+      >
+        {{ t('noticeScene.operation.refresh') }}
+      </el-button>
       <el-table v-loading="loading" :data="tableData" row-key="id" border>
         <el-table-column
           :label="$t('noticeScene.columns.name')"
@@ -51,6 +67,8 @@
               link
               type="primary"
               size="small"
+              :loading="openingId === row.id"
+              :disabled="loading || openingId !== null || saving"
               @click="openSettings(row)"
             >
               {{ $t('noticeScene.operation.settings') }}
@@ -64,9 +82,24 @@
       v-model="modalVisible"
       :title="currentScene?.name || $t('noticeScene.operation.settings')"
       width="620px"
+      :close-on-click-modal="!saving"
+      :close-on-press-escape="!saving"
+      :show-close="!saving"
       @closed="closeModal"
     >
-      <el-form ref="formRef" :model="form" label-position="top">
+      <el-alert
+        v-if="saveError"
+        :title="t('noticeScene.error.save')"
+        type="error"
+        :closable="false"
+        show-icon
+      />
+      <el-form
+        ref="formRef"
+        :model="form"
+        label-position="top"
+        :disabled="saving"
+      >
         <el-form-item :label="$t('noticeScene.field.variables')">
           <el-space wrap>
             <el-tag v-for="item in currentScene?.variables || []" :key="item">
@@ -104,8 +137,12 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="closeModal">取消</el-button>
-        <el-button type="primary" @click="saveSettings">确定</el-button>
+        <el-button :disabled="saving" @click="closeModal">{{
+          t('noticeScene.operation.cancel')
+        }}</el-button>
+        <el-button type="primary" :loading="saving" @click="saveSettings">{{
+          t('noticeScene.operation.save')
+        }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -124,6 +161,11 @@
 
   const { t } = useI18n();
   const loading = ref(false);
+  const saving = ref(false);
+  const openingId = ref<number | null>(null);
+  const listError = ref(false);
+  const detailError = ref(false);
+  const saveError = ref(false);
   const tableData = ref<NoticeSceneRecord[]>([]);
   const modalVisible = ref(false);
   const currentScene = ref<NoticeSceneRecord>();
@@ -136,39 +178,66 @@
   });
 
   const fetchData = async () => {
+    if (loading.value) return;
     loading.value = true;
+    listError.value = false;
+    detailError.value = false;
     try {
       const { data } = await getNoticeSceneList();
       tableData.value = data.list;
+    } catch {
+      listError.value = true;
     } finally {
       loading.value = false;
     }
   };
 
   const openSettings = async (record: NoticeSceneRecord) => {
-    const { data } = await getNoticeSceneDetail(record.id);
-    currentScene.value = data;
-    Object.assign(form, {
-      id: data.id,
-      sms_template_id: data.sms_template_id || '',
-      sms_content: data.sms_content || '',
-      sms_status: data.sms_status,
-    });
-    modalVisible.value = true;
+    if (openingId.value !== null || saving.value) return;
+    openingId.value = record.id;
+    detailError.value = false;
+    saveError.value = false;
+    try {
+      const { data } = await getNoticeSceneDetail(record.id);
+      currentScene.value = data;
+      Object.assign(form, {
+        id: data.id,
+        sms_template_id: data.sms_template_id || '',
+        sms_content: data.sms_content || '',
+        sms_status: data.sms_status,
+      });
+      modalVisible.value = true;
+    } catch {
+      detailError.value = true;
+    } finally {
+      openingId.value = null;
+    }
   };
 
   const closeModal = () => {
+    if (saving.value) return;
     modalVisible.value = false;
     currentScene.value = undefined;
+    saveError.value = false;
     formRef.value?.clearValidate();
   };
 
   const saveSettings = async () => {
-    const valid = await formRef.value?.validate().catch(() => false);
-    if (!valid) return;
-    await saveNoticeScene({ ...form });
-    ElMessage.success(t('noticeScene.tip.success'));
-    closeModal();
+    if (saving.value) return;
+    saving.value = true;
+    saveError.value = false;
+    try {
+      const valid = await formRef.value?.validate().catch(() => false);
+      if (!valid) return;
+      await saveNoticeScene({ ...form });
+      ElMessage.success(t('noticeScene.tip.success'));
+      modalVisible.value = false;
+    } catch {
+      saveError.value = true;
+      return;
+    } finally {
+      saving.value = false;
+    }
     await fetchData();
   };
 
