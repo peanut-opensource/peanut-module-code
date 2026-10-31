@@ -65,9 +65,15 @@ export default {
   'importExport.status': '任务状态',
   'importExport.error401': '会话已失效，请重新登录。',
   'importExport.error403': '你没有执行此操作的权限。',
+  'importExport.error404':
+    '任务或文件不存在、已过期或当前不可访问，请刷新列表。',
+  'importExport.error409': '任务状态已变化或请求标识冲突，请刷新后重试。',
+  'importExport.error422':
+    '请检查数据提供者、CSV 文件标识和列映射是否符合提供者要求。',
   'importExport.error503': '导入导出服务暂不可用，请稍后重试。',
   'importExport.error': '操作未能完成，请检查输入并重试。',
-  'importExport.mappingInvalid': '列映射必须是有效的 JSON 对象。',
+  'importExport.mappingInvalid':
+    '列映射必须是非空 JSON 对象，键为 CSV 表头，值为目标字段字符串。',
   'importExport.requestId': '请求编号',
   'importExport.loading': '正在加载导入导出任务…',
   'importExport.empty': '当前状态下暂无导入导出任务',

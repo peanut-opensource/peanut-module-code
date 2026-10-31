@@ -23,6 +23,9 @@
     const messages: Record<number, string> = {
       401: 'importExport.error401',
       403: 'importExport.error403',
+      404: 'importExport.error404',
+      409: 'importExport.error409',
+      422: 'importExport.error422',
       503: 'importExport.error503',
     };
     return t(messages[state.error?.status ?? 0] ?? 'importExport.error');
@@ -44,22 +47,26 @@
   ] as const;
   const submitImport = async (): Promise<void> => {
     formError.value = '';
+    let mapping: unknown;
     try {
-      const mapping = JSON.parse(mappingJson.value) as unknown;
+      mapping = JSON.parse(mappingJson.value) as unknown;
       if (
         typeof mapping !== 'object' ||
         mapping === null ||
-        Array.isArray(mapping)
+        Array.isArray(mapping) ||
+        Object.keys(mapping).length === 0 ||
+        Object.values(mapping).some((value) => typeof value !== 'string')
       )
         throw new Error();
-      await runtime.submitImport(
-        providerKey.value,
-        inputFileKey.value,
-        mapping as Record<string, string>
-      );
     } catch {
       formError.value = t('importExport.mappingInvalid');
+      return;
     }
+    await runtime.submitImport(
+      providerKey.value.trim(),
+      inputFileKey.value.trim(),
+      mapping as Record<string, string>
+    );
   };
   onMounted(runtime.load);
 </script>
@@ -121,13 +128,13 @@
         <div class="operations-actions">
           <ElButton
             type="primary"
-            :disabled="busy || !providerKey || !inputFileKey"
+            :disabled="busy || !providerKey.trim() || !inputFileKey.trim()"
             @click="submitImport"
             >{{ t('importExport.import') }}</ElButton
           >
           <ElButton
-            :disabled="busy || !providerKey"
-            @click="runtime.submitExport(providerKey)"
+            :disabled="busy || !providerKey.trim()"
+            @click="runtime.submitExport(providerKey.trim())"
             >{{ t('importExport.export') }}</ElButton
           >
         </div>
@@ -181,7 +188,12 @@
             ><tr v-for="operation in state.items" :key="operation.operationKey">
               <td>{{ operation.providerKey }}</td
               ><td>{{ t(`importExport.direction.${operation.direction}`) }}</td
-              ><td>{{ t(`importExport.status.${operation.status}`) }}</td>
+              ><td
+                >{{ t(`importExport.status.${operation.status}`) }}
+                <div v-if="operation.lastErrorCode" class="operation-error">{{
+                  operation.lastErrorCode
+                }}</div>
+              </td>
               <td
                 ><progress
                   :value="operation.processedRows"
@@ -305,5 +317,10 @@
   }
   progress {
     min-width: 120px;
+  }
+  .operation-error {
+    margin-top: 4px;
+    color: var(--el-color-danger);
+    font-size: 12px;
   }
 </style>

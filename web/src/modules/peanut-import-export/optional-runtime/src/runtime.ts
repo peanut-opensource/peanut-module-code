@@ -176,7 +176,8 @@ export const createImportExportRuntime = (
     }
   };
   const mutate = async (
-    operation: (signal: AbortSignal) => Promise<ImportExportTransportResult>
+    operation: (signal: AbortSignal) => Promise<ImportExportTransportResult>,
+    showQueued = false
   ): Promise<void> => {
     if (state.mutating || commandController !== null) return;
     const currentDispose = disposeEpoch;
@@ -192,6 +193,10 @@ export const createImportExportRuntime = (
         return;
       }
       parseOperationResponse(result.body);
+      if (showQueued) {
+        state.status = 'queued';
+        state.page = 1;
+      }
       await load();
     } catch (error) {
       if (currentDispose === disposeEpoch && !aborted(error))
@@ -217,24 +222,28 @@ export const createImportExportRuntime = (
     },
     async submitImport(providerKey, fileKey, mapping) {
       if (!options.canCreate()) return;
-      await mutate((signal) =>
-        options.transport.submitImport(
-          providerKey,
-          fileKey,
-          mapping,
-          (options.idempotencyKey ?? key)(),
-          signal
-        )
+      await mutate(
+        (signal) =>
+          options.transport.submitImport(
+            providerKey,
+            fileKey,
+            mapping,
+            (options.idempotencyKey ?? key)(),
+            signal
+          ),
+        true
       );
     },
     async submitExport(providerKey) {
       if (!options.canCreate()) return;
-      await mutate((signal) =>
-        options.transport.submitExport(
-          providerKey,
-          (options.idempotencyKey ?? key)(),
-          signal
-        )
+      await mutate(
+        (signal) =>
+          options.transport.submitExport(
+            providerKey,
+            (options.idempotencyKey ?? key)(),
+            signal
+          ),
+        true
       );
     },
     async cancel(operation) {

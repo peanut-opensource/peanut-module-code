@@ -11,7 +11,7 @@
     IMPORT_EXPORT_CREATE_PERMISSION,
     IMPORT_EXPORT_READ_PERMISSION,
     importExportRuntimeKey,
-  } from './optional-runtime/src';
+  } from '@peanut-admin/peanut-import-export/runtime';
 
   const route = useRoute();
   const baseUrl = new URL(
