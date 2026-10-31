@@ -17,6 +17,8 @@ export default {
   'channel.operation.save': '保存',
   'channel.operation.copy': '复制',
   'channel.operation.clear': '清除',
+  'channel.operation.retry': '重试加载',
+  'channel.tip.loadFailed': '配置加载失败，请重试后再编辑。',
   'channel.tip.success': '保存成功',
   'channel.tip.copied': '复制成功',
   'channel.h5.status': 'H5 渠道状态',
