@@ -7,35 +7,47 @@
       role="group"
       aria-label="正文格式"
     >
-      <button
-        v-for="command in toolbarCommands"
-        :key="command.id"
-        type="button"
-        :disabled="!toolbarState[command.id].enabled"
-        :aria-pressed="
-          command.toggle ? toolbarState[command.id].active : undefined
-        "
-        @mousedown.prevent
-        @click="run(command.id)"
-        >{{ command.label }}</button
+      <div
+        class="rich-text-editor__tool-group"
+        role="group"
+        aria-label="文字格式与历史"
       >
-      <input
-        v-model="link"
-        :disabled="!editable"
-        aria-label="链接地址"
-        placeholder="https://example.com"
-        @keydown.enter.prevent="setLink"
-      />
-      <button type="button" :disabled="!editable" @click="setLink"
-        >设置链接</button
+        <button
+          v-for="command in toolbarCommands"
+          :key="command.id"
+          type="button"
+          :disabled="!toolbarState[command.id].enabled"
+          :aria-pressed="
+            command.toggle ? toolbarState[command.id].active : undefined
+          "
+          @mousedown.prevent
+          @click="run(command.id)"
+          >{{ command.label }}</button
+        >
+      </div>
+      <div
+        class="rich-text-editor__tool-group rich-text-editor__links"
+        role="group"
+        aria-label="正文链接"
       >
-      <button
-        type="button"
-        :disabled="!editable || !linkActive"
-        @mousedown.prevent
-        @click="removeLink"
-        >移除链接</button
-      >
+        <input
+          v-model="link"
+          :disabled="!editable"
+          aria-label="链接地址"
+          placeholder="https://example.com"
+          @keydown.enter.prevent="setLink"
+        />
+        <button type="button" :disabled="!editable" @click="setLink"
+          >设置链接</button
+        >
+        <button
+          type="button"
+          :disabled="!editable || !linkActive"
+          @mousedown.prevent
+          @click="removeLink"
+          >移除链接</button
+        >
+      </div>
       <button
         v-if="callbacks?.pickMedia"
         type="button"
@@ -434,25 +446,79 @@
   .rich-text-editor__toolbar {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    align-items: center;
+    gap: 12px;
     margin-bottom: 12px;
+    padding: 12px;
+    border: 1px solid var(--el-border-color-lighter, #ebeef5);
+    border-radius: var(--el-border-radius-base, 4px);
+    background: var(--el-fill-color-light, #f5f7fa);
   }
-  .rich-text-editor__toolbar > * {
-    box-sizing: border-box;
+  .rich-text-editor__tool-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
     min-width: 0;
     max-width: 100%;
   }
+  .rich-text-editor__links {
+    flex: 1 1 320px;
+  }
+  .rich-text-editor__toolbar :is(button, input) {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 32px;
+    margin: 0;
+    padding: 5px 12px;
+    border: 1px solid var(--el-border-color, #dcdfe6);
+    border-radius: var(--el-border-radius-base, 4px);
+    color: var(--el-text-color-regular, #606266);
+    background: var(--el-bg-color, #fff);
+    font: inherit;
+    font-size: var(--el-font-size-base, 14px);
+    line-height: 20px;
+  }
   .rich-text-editor__toolbar button {
+    cursor: pointer;
     white-space: normal;
     overflow-wrap: anywhere;
+  }
+  .rich-text-editor__toolbar input {
+    flex: 1 1 180px;
+    width: 180px;
+  }
+  .rich-text-editor__toolbar input::placeholder {
+    color: var(--el-text-color-placeholder, #a8abb2);
+  }
+  .rich-text-editor__toolbar button:not(:disabled):hover {
+    border-color: var(--el-color-primary-light-5, #a0cfff);
+    color: var(--el-color-primary, #409eff);
+    background: var(--el-color-primary-light-9, #ecf5ff);
+  }
+  .rich-text-editor__toolbar button:not(:disabled):active {
+    border-color: var(--el-color-primary, #409eff);
+    color: var(--el-color-primary-dark-2, #337ecc);
+    background: var(--el-color-primary-light-8, #d9ecff);
+  }
+  .rich-text-editor__toolbar :is(button, input):disabled {
+    cursor: not-allowed;
+    border-color: var(--el-disabled-border-color, #e4e7ed);
+    color: var(--el-disabled-text-color, #a8abb2);
+    background: var(--el-disabled-bg-color, #f5f7fa);
   }
   .rich-text-editor__toolbar :is(button, input):focus-visible {
     outline: 2px solid var(--el-color-primary, #409eff);
     outline-offset: 2px;
   }
-  .rich-text-editor__toolbar button[aria-pressed='true'] {
-    color: var(--el-color-primary);
-    background: var(--el-color-primary-light-9);
+  .rich-text-editor__toolbar input:not(:disabled):focus {
+    border-color: var(--el-color-primary, #409eff);
+  }
+  .rich-text-editor__toolbar button[aria-pressed='true']:not(:disabled) {
+    border-color: var(--el-color-primary-light-5, #a0cfff);
+    color: var(--el-color-primary, #409eff);
+    background: var(--el-color-primary-light-9, #ecf5ff);
   }
   .rich-text-editor__content {
     box-sizing: border-box;
