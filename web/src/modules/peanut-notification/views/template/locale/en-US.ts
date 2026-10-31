@@ -43,6 +43,14 @@ export default {
   'noticeScene.status.enabled': 'Enabled',
   'noticeScene.status.disabled': 'Disabled',
   'noticeScene.operation.settings': 'Configure',
+  'noticeScene.operation.refresh': 'Refresh scenes',
+  'noticeScene.operation.cancel': 'Cancel',
+  'noticeScene.operation.save': 'Save',
+  'noticeScene.error.load': 'Unable to load scenes. Refresh to try again.',
+  'noticeScene.error.detail':
+    'Unable to open scene settings. Select Configure to try again.',
+  'noticeScene.error.save':
+    'Saving could not be confirmed. Your input is preserved; review it before retrying.',
   'noticeScene.field.variables': 'Variables',
   'noticeScene.field.templateId': 'Provider Template ID',
   'noticeScene.field.content': 'SMS Content',

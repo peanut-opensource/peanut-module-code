@@ -3,8 +3,8 @@
   import { useRoute } from 'vue-router';
   import { hasPermission } from '@/hooks/permission';
   import { tenantSessionFetch } from '@/api/tenant-session-fetch';
-  import InboxPage from './optional-runtime/src/NotificationInboxPage.vue';
   import {
+    NotificationInboxPage as InboxPage,
     createNotificationFetchTransport,
     createNotificationRuntime,
     NOTIFICATION_SMS_MANAGE_PERMISSION,
@@ -23,7 +23,8 @@
       fetch: tenantSessionFetch,
     }),
     canRead: () => hasPermission(NOTIFICATION_SMS_READ_PERMISSION, route.path),
-    canManage: () => hasPermission(NOTIFICATION_SMS_MANAGE_PERMISSION, route.path),
+    canManage: () =>
+      hasPermission(NOTIFICATION_SMS_MANAGE_PERMISSION, route.path),
   });
 
   provide(notificationRuntimeKey, runtime);
