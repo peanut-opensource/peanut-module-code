@@ -67,11 +67,18 @@ export default {
   'importExport.status': 'Operation status',
   'importExport.error401': 'Your session has expired. Sign in again.',
   'importExport.error403': 'You do not have permission for this action.',
+  'importExport.error404':
+    'The operation or file is missing, expired, or unavailable. Refresh the list.',
+  'importExport.error409':
+    'The operation changed or the request key conflicts. Refresh before retrying.',
+  'importExport.error422':
+    'Check the provider, CSV file key, and column mapping against the provider requirements.',
   'importExport.error503':
     'The import and export service is temporarily unavailable.',
   'importExport.error':
     'The operation could not be completed. Check your input and retry.',
-  'importExport.mappingInvalid': 'Column mapping must be a valid JSON object.',
+  'importExport.mappingInvalid':
+    'Column mapping must be a nonempty JSON object with CSV headings as keys and target field strings as values.',
   'importExport.requestId': 'Request ID',
   'importExport.loading': 'Loading import and export operations…',
   'importExport.empty': 'No operations match this status',
