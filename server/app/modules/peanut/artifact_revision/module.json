@@ -28,6 +28,8 @@
   "contracts": {
     "exports": [
       "PeanutAdmin\\Modules\\ArtifactRevision\\Application\\ArtifactRevisionService",
+      "PeanutAdmin\\Modules\\ArtifactRevision\\Application\\ArtifactRevisionReceipt",
+      "PeanutAdmin\\Modules\\ArtifactRevision\\Application\\ArtifactRevisionComparison",
       "PeanutAdmin\\Modules\\ArtifactRevision\\Contract\\ArtifactRevisionQuery",
       "PeanutAdmin\\Modules\\ArtifactRevision\\Contract\\Dto\\ArtifactRevisionSnapshot",
       "PeanutAdmin\\Modules\\ArtifactRevision\\Application\\ArtifactRevisionException"
