@@ -14,11 +14,15 @@ use PeanutAdmin\Kernel\Auth\AuthException;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Auth\ValidatedTenantSession;
 use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
+use PeanutAdmin\Modules\Identity\Contract\TenantMemberDirectory;
 
 /** Revalidates queued Admin work through the native Tenant Admin authorization service. */
 final readonly class AdminAsyncAuthorization implements AsyncAuthorizationRevalidator
 {
-    public function __construct(private AdminAuthorizationService $authorization) {}
+    public function __construct(
+        private AdminAuthorizationService $authorization,
+        private TenantMemberDirectory $members,
+    ) {}
 
     public function reauthorize(VerifiedJobEnvelope $envelope): AuthorizedOperationContext
     {
@@ -35,6 +39,10 @@ final readonly class AdminAsyncAuthorization implements AsyncAuthorizationRevali
         }
 
         try {
+            $member = $this->members->activeMembership($envelope->tenantId, $envelope->memberId);
+            if ($member === null || $member->accountId !== $envelope->accountId) {
+                throw $this->denied();
+            }
             $context = TenantContext::fromValidatedSession(new ValidatedTenantSession(
                 $envelope->memberId,
                 'async-' . hash('sha256', $envelope->operationId),
@@ -43,20 +51,10 @@ final readonly class AdminAsyncAuthorization implements AsyncAuthorizationRevali
                 $envelope->memberId,
                 'admin-async-worker',
                 new DateTimeImmutable('now', new DateTimeZone('UTC')),
-                1,
+                $member->authorizationRevision,
+                $member->tenantAuthorizationRevision,
             ), $envelope->traceId);
             $principal = $this->authorization->principal($context);
-            $context = TenantContext::fromValidatedSession(new ValidatedTenantSession(
-                $envelope->memberId,
-                'async-' . hash('sha256', $envelope->operationId),
-                $envelope->tenantId,
-                $envelope->accountId,
-                $envelope->memberId,
-                'admin-async-worker',
-                new DateTimeImmutable('now', new DateTimeZone('UTC')),
-                $principal->authorizationRevision,
-            ), $envelope->traceId);
-
             return $this->authorization->authorizedOperation(
                 $context,
                 $principal,

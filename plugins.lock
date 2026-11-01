@@ -644,7 +644,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "2dfdf3eb1f399a934c31380caac09f52ecf3822b36181fb2e6eb100efd361200"
+                "sha256": "26a7434e11dcbf52bba4bd1a51c096a7c122ff01445c012593344cf1d275b7b4"
             },
             "trust": {
                 "channel": "bundled",
@@ -705,7 +705,7 @@
                 }
             ],
             "manifest": "plugins/peanut.identity/plugin.json",
-            "manifest_sha256": "5e724b4aca1e458ee74fe8724063a0822188851d2a6c28cfdbae1e7e0fb91ed2"
+            "manifest_sha256": "4c8057f0069ce42054e74ede93568ca86bccbb70f08317164af0102f59cdc4bb"
         },
         {
             "key": "peanut.import-export",
@@ -713,7 +713,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "2376dfc7ffe85af43e2870299ccde858d9d8c8d84233594688db2934b891dde9"
+                "sha256": "24caa5cb0e09ac14ba5b681f26b7b68259f86e686a2de58f5b7906de816b1670"
             },
             "trust": {
                 "channel": "bundled",
@@ -809,7 +809,7 @@
                 }
             ],
             "manifest": "plugins/peanut.import-export/plugin.json",
-            "manifest_sha256": "3f23edffc474f9a2d66ea226a2779215d500f21188dbb888eb58c27f32d009a3"
+            "manifest_sha256": "5c7dabc9c7b6ae5890ffbd9d8c45fc1d1ea5b0651066f8f2cfa5c24045afed40"
         },
         {
             "key": "peanut.integration",
@@ -1757,7 +1757,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "22f3793e010905e17b9ff5d2821e7dafbd87eb3b6b5cc769f59adb1d06d73e5c"
+                "sha256": "48b5d965d8adbd2c10c86d2529c27678e19a831da84c3745cb6c7bd73d4adb37"
             },
             "trust": {
                 "channel": "bundled",
@@ -1837,7 +1837,7 @@
                 }
             ],
             "manifest": "plugins/peanut.task/plugin.json",
-            "manifest_sha256": "400d24f016a85ecf5f97b83191c1592e0290773397ca2c9fbf58980dd7375131"
+            "manifest_sha256": "c266cd0cfb08de6d8c99376b0ff1441460db8cfe9e6bd56f808d58d7d5b6cc83"
         },
         {
             "key": "peanut.workflow",

@@ -59,7 +59,7 @@ final readonly class ThinkPhpModuleRuntimeRepository implements ModuleRuntimeRep
         );
     }
 
-    public function tenantModule(int $tenantId, string $moduleKey): ?TenantModuleRecord
+    public function tenantModule(int $tenantId, string $moduleKey, ?\PeanutAdmin\Kernel\Auth\TenantContext $context = null): ?TenantModuleRecord
     {
         if ($this->registry->isRequiredTenantFoundation($moduleKey)) {
             $tenantQuery = Tenant::where('id', $tenantId);

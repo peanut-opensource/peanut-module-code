@@ -271,6 +271,7 @@ final class ThinkPhpTenantAuthRepository implements TenantAuthRepository
                 'member.account_id', 'member.security_revision' => 'member_security_revision',
                 'member.authorization_revision', 'account.security_revision' => 'account_security_revision',
                 'tenant.security_revision' => 'tenant_security_revision',
+                'tenant.authorization_revision' => 'tenant_authorization_revision',
             ])->lock(true)->find();
         if ($principal === null) {
             throw new DomainException('Tenant session principal is unavailable.');
@@ -309,6 +310,7 @@ final class ThinkPhpTenantAuthRepository implements TenantAuthRepository
             $clientKey,
             $now,
             (int) $principal['authorization_revision'],
+            (int) $principal['tenant_authorization_revision'],
         );
     }
 
@@ -335,6 +337,7 @@ final class ThinkPhpTenantAuthRepository implements TenantAuthRepository
                 'session.tenant_security_revision', 'session.member_security_revision',
                 'account.status' => 'account_status', 'account.security_revision' => 'current_account_security_revision',
                 'tenant.status' => 'tenant_status', 'tenant.security_revision' => 'current_tenant_security_revision',
+                'tenant.authorization_revision' => 'tenant_authorization_revision',
                 'member.status' => 'member_status', 'member.security_revision' => 'current_member_security_revision',
                 'member.authorization_revision',
             ]);
@@ -576,6 +579,7 @@ final class ThinkPhpTenantAuthRepository implements TenantAuthRepository
             TenantMemberStatus::from((string) $row['member_status']),
             (int) $row['current_member_security_revision'],
             (int) $row['authorization_revision'],
+            (int) $row['tenant_authorization_revision'],
         );
     }
 

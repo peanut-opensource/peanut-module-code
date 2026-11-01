@@ -22,6 +22,14 @@ final class ThinkPhpTenantAuthorizationRepository implements \PeanutAdmin\Kernel
 {
     public function __construct(private readonly TenantEntitlementService $entitlements) {}
 
+    public function permissionsForKeys(TenantContext $context, array $permissionKeys): \PeanutAdmin\Kernel\Authorization\EffectivePermissionSet
+    {
+        $permissions = $this->permissions($context->tenantId, $context->memberId);
+        return new \PeanutAdmin\Kernel\Authorization\EffectivePermissionSet(
+            array_values(array_intersect($permissionKeys, $permissions->keys())),
+        );
+    }
+
     /** Native authority inputs only; the caller retains the existing permission decision. */
     public function readFence(TenantContext $context, array $permissionKeys, array $moduleKeys, bool $lock): string
     {

@@ -85,7 +85,10 @@ final class ModuleProvider implements ModuleProviderContract, TaskWorkerContribu
                         $app->make(AppFileMediaGateway::class),
                         $app->make(AuditService::class),
                     )),
-                    new AdminAsyncAuthorization($app->make(AdminAuthorizationService::class)),
+                    new AdminAsyncAuthorization(
+                        $app->make(AdminAuthorizationService::class),
+                        $app->make(\PeanutAdmin\Modules\Identity\Contract\TenantMemberDirectory::class),
+                    ),
                 );
             },
             ImportExportWorkerRuntime::class => TaskImportExportRuntime::class,

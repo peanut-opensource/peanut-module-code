@@ -190,7 +190,7 @@ final readonly class AdminDirectoryQuery
      * 供受信任务恢复所有者资料；不授予操作权限，也不要求员工在线会话。
      * 指定成员时必须同时指定账号，且租户、账号、成员和内建所有者关系均仍有效。
      *
-     * @return null|array{id:int,account_id:int,authorization_revision:int}
+     * @return null|array{id:int,account_id:int,authorization_revision:int,tenant_authorization_revision:int}
      */
     public function activeTenantOwner(int $tenantId, ?int $memberId, ?int $accountId): ?array
     {
@@ -204,7 +204,7 @@ final readonly class AdminDirectoryQuery
             ->join('member_role membership', 'membership.tenant_id = member.tenant_id AND membership.tenant_member_id = member.id')
             ->join('role role', "role.tenant_id = membership.tenant_id AND role.id = membership.role_id AND role.`key` = 'core.tenant-owner' AND role.is_builtin = 1 AND role.status = 'active'")
             ->where('member.tenant_id', $tenantId)->where('member.status', 'active')
-            ->field('member.id,member.account_id,member.authorization_revision');
+            ->field('member.id,member.account_id,member.authorization_revision,tenant.authorization_revision AS tenant_authorization_revision');
         if ($memberId !== null && $accountId !== null) {
             $query->where('member.id', $memberId)->where('member.account_id', $accountId);
         }
@@ -214,6 +214,7 @@ final readonly class AdminDirectoryQuery
             'id' => (int) $owner['id'],
             'account_id' => (int) $owner['account_id'],
             'authorization_revision' => (int) $owner['authorization_revision'],
+            'tenant_authorization_revision' => (int) $owner['tenant_authorization_revision'],
         ] : null;
     }
 

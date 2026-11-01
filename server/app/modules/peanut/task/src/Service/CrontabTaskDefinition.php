@@ -189,6 +189,7 @@ final class CrontabTaskDefinition implements TaskSubmissionProvider, TaskWorkerD
             'task-worker',
             new DateTimeImmutable('now', new DateTimeZone('UTC')),
             (int) $owner['authorization_revision'],
+            (int) $owner['tenant_authorization_revision'],
         ), $traceId);
 
         return AuthorizedOperationContext::fromDecision(AuthorizationDecision::allow(

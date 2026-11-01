@@ -14,6 +14,24 @@ use think\db\Raw;
 
 final readonly class ThinkPhpPolicyRepository implements \PeanutAdmin\DataPermission\Policy\PolicyRepository
 {
+    public function revisions(int $tenantId, int $memberId, array $operationIds): array
+    {
+        $revisions = [];
+        foreach ($operationIds as $operationId) {
+            $revisions[$operationId] = $this->revision($tenantId, $memberId, $operationId);
+        }
+        return $revisions;
+    }
+
+    public function loadMany(int $tenantId, int $memberId, array $operationIds): array
+    {
+        $policies = [];
+        foreach ($operationIds as $operationId) {
+            $policies[$operationId] = $this->load($tenantId, $memberId, $operationId);
+        }
+        return $policies;
+    }
+
     public function revision(int $tenantId, int $memberId, int $operationId): \PeanutAdmin\DataPermission\Policy\PolicyRevision
     {
         $row = Tenant::alias('t')

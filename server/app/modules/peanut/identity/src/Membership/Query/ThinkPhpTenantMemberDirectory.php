@@ -101,7 +101,8 @@ final readonly class ThinkPhpTenantMemberDirectory implements TenantMemberDirect
         $row = $query->field(
             'member.tenant_id,member.id,member.account_id,member.display_name,member.primary_department_id,'
             . 'member.security_revision,member.authorization_revision,account.display_name AS account_display_name,'
-            . 'account.security_revision AS account_security_revision,tenant.security_revision AS tenant_security_revision',
+            . 'account.security_revision AS account_security_revision,tenant.security_revision AS tenant_security_revision,'
+            . 'tenant.authorization_revision AS tenant_authorization_revision',
         )->find()?->toArray();
         if ($row === null) {
             return null;
@@ -121,6 +122,7 @@ final readonly class ThinkPhpTenantMemberDirectory implements TenantMemberDirect
             (int) $row['tenant_security_revision'],
             (int) $row['security_revision'],
             (int) $row['authorization_revision'],
+            (int) $row['tenant_authorization_revision'],
             $row['primary_department_id'] === null ? null : (int) $row['primary_department_id'],
         );
     }

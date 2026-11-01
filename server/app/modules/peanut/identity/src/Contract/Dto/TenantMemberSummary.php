@@ -16,12 +16,13 @@ final readonly class TenantMemberSummary
         public int $tenantSecurityRevision,
         public int $securityRevision,
         public int $authorizationRevision,
+        public int $tenantAuthorizationRevision,
         public ?int $primaryDepartmentId = null,
     ) {
         if ($tenantId < 1 || $memberId < 1 || $accountId < 1
             || $displayName === '' || mb_strlen($displayName) > 160
             || $accountSecurityRevision < 1 || $tenantSecurityRevision < 1
-            || $securityRevision < 1 || $authorizationRevision < 1
+            || $securityRevision < 1 || $authorizationRevision < 1 || $tenantAuthorizationRevision < 1
             || ($primaryDepartmentId !== null && $primaryDepartmentId < 1)
         ) {
             throw new \InvalidArgumentException('TENANT_MEMBER_SUMMARY_INVALID');
