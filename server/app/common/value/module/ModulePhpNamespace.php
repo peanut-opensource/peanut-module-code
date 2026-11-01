@@ -33,7 +33,7 @@ final class ModulePhpNamespace
             || preg_match('/^[A-Z][A-Za-z0-9]*$/D', $moduleName) !== 1) {
             throw new InvalidArgumentException('Invalid generated Module PHP namespace input.');
         }
-        if (in_array($vendor, ['official', 'peanut'], true)) {
+        if ($vendor === 'peanut') {
             return self::production($moduleName);
         }
         if ($vendor === 'fixture') {
