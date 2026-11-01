@@ -8,6 +8,7 @@ use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 use PeanutAdmin\Kernel\Tenancy\TenantScope;
 use PeanutAdmin\Modules\Identity\Audit\AuditService;
 use PeanutAdmin\Modules\Workflow\Adapter\WorkflowAssignmentResolver;
+use PeanutAdmin\Modules\Workflow\Adapter\WorkflowAssignmentValidator;
 use PeanutAdmin\Modules\Workflow\Adapter\WorkflowAuthorizationResolver;
 use PeanutAdmin\Modules\Workflow\Adapter\WorkflowScenarioProvider;
 use PeanutAdmin\Modules\Workflow\Adapter\WorkflowAttachmentResolver;
@@ -329,6 +330,7 @@ final readonly class WorkflowCommands
                     if ($config['allocation_mode'] !== 'claim' || $item['assignee_member_id'] !== null || $link === null || !$this->assignments->eligible($authorized, $memberId, $link['sources_json'])) {
                         throw WorkflowException::assignmentDenied();
                     }
+                    $this->validateAssignments($authorized, $instance, $node, $nodeConfig, 'claim', [['member_id' => $memberId, 'sources' => $link['sources_json']]], $item);
                     $item->save(['assignee_member_id' => $memberId, 'owner_member_id' => $item['owner_source'] === 'automatic' ? $memberId : $item['owner_member_id'], 'assignment_state' => 'assigned', 'sources_json' => $link['sources_json'], 'revision' => (int) $item['revision'] + 1, 'updated_at' => $now]);
                 } else {
                     if ((int) $item['assignee_member_id'] !== $memberId || !$this->assignments->eligible($authorized, $memberId, $item['sources_json'])) {
@@ -621,6 +623,7 @@ final readonly class WorkflowCommands
                     if (!$this->assignments->eligible($authorized, $member, $item['sources_json'])) {
                         throw WorkflowException::assignmentDenied();
                     }
+                    $this->validateAssignments($authorized, $instance, $node, $graph->node($node['node_key']), 'reassign', [['member_id' => $member, 'sources' => $item['sources_json']]], $item);
                     $eventNode = $node;
                     $eventMetadata = [
                         'work_item_key' => (string) $item['work_item_key'],
@@ -680,6 +683,7 @@ final readonly class WorkflowCommands
                     }
                     $participants = $this->resolve($c, $config['participant_rules'], $basis, false);
                     $watchers = $this->resolve($c, $config['watcher_rules'], $basis, false);
+                    $this->validateAssignments($c, $instance, $node, $definition, 'enter', $people);
                     $node->save(['people_json' => $people]);
                     $seats = $config['allocation_mode'] === 'claim' ? [null] : $people;
                     foreach ($seats as $seat => $person) {
@@ -743,6 +747,37 @@ final readonly class WorkflowCommands
         }
         $node->save(['status' => 'blocked', 'blocked_reason' => 'Automatic step capacity exceeded.']);
         $instance->save(['status' => 'blocked', 'blocked_reason' => 'Automatic step capacity exceeded.']);
+    }
+
+    /** Publish only the trusted assignment projection; providers do not receive private Models. */
+    private function validateAssignments(AuthorizedOperationContext $c, Instance $instance, Node $node, array $definition, string $phase, array $members, ?Item $item = null): void
+    {
+        if (!$this->scenarios instanceof WorkflowAssignmentValidator) {
+            return;
+        }
+        $config = $definition['config'];
+        $this->scenarios->validateAssignments($c, (string) $instance['module_key'], (string) $instance['workflow_key'], [
+            'phase' => $phase,
+            'subject_type' => (string) $instance['subject_type'],
+            'subject_key' => (string) $instance['subject_key'],
+            'subject_revision_key' => (string) $instance['subject_revision_key'],
+            'instance_key' => (string) $instance['instance_key'],
+            'definition_version' => (int) $instance['definition_version'],
+            'cycle_no' => (int) $node['cycle_no'],
+            'node_key' => (string) $node['node_key'],
+            'node_execution_key' => (string) $node['node_execution_key'],
+            'node_type' => $definition['type'],
+            'allocation_mode' => $config['allocation_mode'],
+            'aggregation_policy' => $config['aggregation_policy'],
+            'allow_self_approval' => $config['allow_self_approval'],
+            'initiator_member_id' => (int) $instance['initiated_by_member_id'],
+            'business_department_key' => $instance['business_department_key'] === null ? null : (string) $instance['business_department_key'],
+            'previous_actor_member_id' => $node['previous_actor_member_id'] === null ? null : (int) $node['previous_actor_member_id'],
+            'work_item_key' => $item === null ? null : (string) $item['work_item_key'],
+            'seat_no' => $item === null ? null : (int) $item['seat_no'],
+            'previous_assignee_member_id' => $item === null || $item['assignee_member_id'] === null ? null : (int) $item['assignee_member_id'],
+            'members' => $members,
+        ]);
     }
 
     private function resolve(AuthorizedOperationContext $c, array $rules, array $basis, bool $excludeInitiator): array

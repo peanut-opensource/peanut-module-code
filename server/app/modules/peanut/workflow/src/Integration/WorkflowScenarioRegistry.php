@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Workflow\Integration;
 
 use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
+use PeanutAdmin\Modules\Workflow\Adapter\WorkflowAssignmentValidator;
 use PeanutAdmin\Modules\Workflow\Adapter\WorkflowScenarioProvider;
 use PeanutAdmin\Modules\Workflow\Application\WorkflowException;
 
 /** Source-code-only registration. Missing or conflicting business capability fails closed. */
-final class WorkflowScenarioRegistry implements WorkflowScenarioProvider
+final class WorkflowScenarioRegistry implements WorkflowScenarioProvider, WorkflowAssignmentValidator
 {
     private array $scenes = [];
     private array $resources = [];
@@ -62,6 +63,19 @@ final class WorkflowScenarioRegistry implements WorkflowScenarioProvider
             }
         }
         return $metadata;
+    }
+
+    public function validateAssignments(AuthorizedOperationContext $context, string $moduleKey, string $workflowKey, array $assignment): void
+    {
+        $entry = $this->scene($moduleKey, $workflowKey);
+        if (!$entry['provider'] instanceof WorkflowAssignmentValidator) {
+            return;
+        }
+        if ($context->resourceKey !== $entry['resource_key']
+            || ($assignment['subject_type'] ?? null) !== $entry['resource_key']) {
+            throw WorkflowException::assignmentDenied();
+        }
+        $entry['provider']->validateAssignments($context, $moduleKey, $workflowKey, $assignment);
     }
 
     public function businessDepartment(AuthorizedOperationContext $context, ?string $requestedKey): ?string
