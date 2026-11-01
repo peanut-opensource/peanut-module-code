@@ -35,6 +35,19 @@ final readonly class ThinkPhpResourceOperationCatalog implements \PeanutAdmin\Da
         return $row === null ? null : $this->operation($row);
     }
 
+    /** @param array<string, string> $operations @return array<string, \PeanutAdmin\DataPermission\Catalog\ResourceOperation> */
+    public function findMany(array $operations): array
+    {
+        $found = [];
+        foreach ($operations as $resourceKey => $operation) {
+            $resourceOperation = $this->find($resourceKey, $operation);
+            if ($resourceOperation !== null) {
+                $found[$resourceKey] = $resourceOperation;
+            }
+        }
+        return $found;
+    }
+
     public function availableOperations(int $tenantId, PageRequest $page): array
     {
         $modules = ['core', ...$this->entitlements->moduleKeys($tenantId)];
