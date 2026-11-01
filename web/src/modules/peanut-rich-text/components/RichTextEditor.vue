@@ -378,7 +378,6 @@
     if (props.readOnly || !editor.value?.isEditable) return;
     if (!validLink(link.value.trim())) {
       linkError.value = '请输入有效的 http、https 或 mailto 链接。';
-      emit('error', 'RICH_TEXT_LINK_INVALID');
       return;
     }
     linkError.value = '';
