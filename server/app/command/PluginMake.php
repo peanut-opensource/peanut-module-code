@@ -27,10 +27,15 @@ final class PluginMake extends ContextualCommand
     {
         try {
             $this->assertSourceAuthoringAccess();
+            $key = trim((string) $input->getArgument('plugin_key'));
+            $modules = array_values((array) $input->getOption('module'));
+            if (count($modules) !== 1 || !str_starts_with($modules[0], $key . '=')) {
+                throw new PluginArtifactToolException('MODULE_PACKAGE_SINGLE_MODULE_REQUIRED');
+            }
             $result = (new PluginArtifactWriter(dirname(__DIR__, 2)))->make(
-                (string) $input->getArgument('plugin_key'),
+                $key,
                 (string) $input->getArgument('version'),
-                array_values((array) $input->getOption('module')),
+                $modules,
             );
             $output->writeln((string) json_encode(['path' => $result['path'], 'key' => $result['manifest']['key']], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
             return 0;

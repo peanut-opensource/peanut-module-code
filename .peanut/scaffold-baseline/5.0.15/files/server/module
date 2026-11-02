@@ -20,7 +20,6 @@ try {
         'check' => ['module:check', \app\command\ModuleCheck::class],
         'compile' => ['module:compile', \app\command\ModuleCompile::class],
         'pack' => ['module:pack', \app\command\ModulePack::class],
-        'bundle-pack' => ['bundle:pack', \app\command\BundlePack::class],
         'adopt' => ['module:adopt-package', \app\command\ModuleAdoptPackage::class],
         'install' => ['module:install-package', \app\command\ModuleInstallPackage::class],
         'upgrade' => ['module:update-package', \app\command\ModuleUpdatePackage::class],

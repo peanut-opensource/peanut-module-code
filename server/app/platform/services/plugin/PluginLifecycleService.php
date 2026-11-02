@@ -239,10 +239,8 @@ final readonly class PluginLifecycleService implements PluginLifecycleCommands
     {
         $current = $this->pluginInstallation($pluginKey, false);
         if (!is_array($current)) {
-            if ($preparedDependencies !== null) {
-                throw new PluginLifecycleException('PLUGIN_NOT_INSTALLED', 'Selected package is no longer installed.');
-            }
-            return $this->install($pluginKey);
+            // A newly selected locked Module is installed once, under the same package lock.
+            return $this->installLocked($pluginKey, $preparedDependencies);
         }
 
         if ((string) $current['status'] !== 'active') {
