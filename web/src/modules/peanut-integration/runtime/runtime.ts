@@ -368,6 +368,7 @@ export const createIntegrationSecurityRuntime = (options: {
   const loadAttempts = async (deliveryKey: string): Promise<void> => {
     const surface = state.attempts;
     surface.deliveryKey = deliveryKey;
+    surface.items = [];
     await loadSurface(
       'attempts',
       surface,

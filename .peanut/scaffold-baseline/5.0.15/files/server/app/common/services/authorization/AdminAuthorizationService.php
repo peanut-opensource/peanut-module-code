@@ -18,7 +18,6 @@ use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 use PeanutAdmin\Kernel\Context\RequestedTargetSet;
 use PeanutAdmin\Modules\Identity\Contract\AdminDirectoryQuery;
 use PeanutAdmin\Modules\Identity\Contract\TenantAuthorizationQuery;
-use PeanutAdmin\Modules\Identity\Contract\TenantMemberDirectory;
 use PeanutAdmin\Modules\Identity\Platform\InstanceControlPlanePolicy;
 use app\common\validation\instance\InstanceToolAccessGuard;
 
@@ -28,7 +27,6 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
     public function __construct(
         private readonly CoreTenantModuleAdminBridge $moduleAdmin,
         private readonly AdminPermissionPolicy $permissionPolicy,
-        private readonly TenantMemberDirectory $members,
         private readonly AdminDirectoryQuery $directory,
         private readonly TenantAuthorizationQuery $identityAuthorization,
         private readonly EndpointPermissionGrant $endpointGrant,
@@ -36,19 +34,14 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
 
     public function principal(TenantContext $tenantContext): AdminPrincipal
     {
-        $member = $this->members->activeMembership($tenantContext->tenantId, $tenantContext->memberId);
-        if ($member === null
-            || $member->accountId !== $tenantContext->accountId) {
+        $snapshot = $this->directory->activePrincipalProfileWithRoles($tenantContext->tenantId, $tenantContext->accountId, true);
+        if ($snapshot === null || $snapshot['profile']['member']->memberId !== $tenantContext->memberId) {
             throw new \DomainException('TENANT_ADMIN_PRINCIPAL_UNAVAILABLE');
         }
-
-        $profile = $this->directory->activePrincipalProfile($member->tenantId, $member->accountId);
-        if ($profile === null) {
-            throw new \DomainException('TENANT_ADMIN_PRINCIPAL_UNAVAILABLE');
-        }
-
-        $roles = $this->identityAuthorization->roles($tenantContext->tenantId, $tenantContext->memberId);
-        $switchableTenantCount = $this->members->activeMembershipCount($member->accountId);
+        $profile = $snapshot['profile'];
+        $member = $profile['member'];
+        $roles = $snapshot['roles'];
+        $switchableTenantCount = $profile['switchable_tenant_count'];
         $root = false;
         foreach ($roles as $role) {
             $root = $root || ($role['key'] === 'core.tenant-owner' && $role['is_builtin']);
@@ -105,8 +98,9 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
             return PermissionDecision::deny($endpoint['path'], 'INVALID_TENANT_ADMIN_CONTEXT');
         }
         $prerequisites = json_decode($endpoint['prerequisite_permission_keys'], true, 32, JSON_THROW_ON_ERROR);
-        $registered = $this->moduleAdmin->registeredPermissionSubset($context->tenantId, [...$keys, ...$prerequisites]);
-        $owned = $this->moduleAdmin->basePermissions($context);
+        $inputs = $this->moduleAdmin->permissionInputs($context, [...$keys, ...$prerequisites]);
+        $registered = $inputs['registered'];
+        $owned = $inputs['owned'];
         foreach ($prerequisites as $required) {
             if (in_array($required, InstanceControlPlanePolicy::tenantAdminPermissions(), true)
                 || !$this->permissionPolicy->canAccess(false, $required, $registered, $owned)) {
@@ -129,6 +123,12 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
         if (!$admin instanceof AdminPrincipal) {
             return new AdminAccessData([], []);
         }
+        return $this->accessDataForPrincipal($tenantContext, $admin);
+    }
+
+    /** The caller has loaded and validated this principal in the current invocation. */
+    private function accessDataForPrincipal(TenantContext $tenantContext, AdminPrincipal $admin): AdminAccessData
+    {
         $bridge = $this->moduleAdmin;
         $native = $bridge->adminShellAccessData($tenantContext);
         $permissions = $native['permissions'];
@@ -159,15 +159,18 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
         return new AdminAccessData(
             menu: linear_to_tree($menus, 'children', 'menu_key', 'parent_key'),
             permissions: array_values(array_unique($permissions)),
-            actionBindings: $this->actionBindings($tenantContext),
+            actionBindings: $this->actionBindings(
+                $native['system_menu_rows'],
+                $native['managed_menu_keys'],
+                $native['assignable_menu_records'],
+            ),
         );
     }
 
-    private function actionBindings(TenantContext $context): array
+    private function actionBindings(array $rows, array $managedMenuKeys, array $assignableMenuRecords): array
     {
-        $rows = SystemMenu::order('id')->select()->toArray();
-        $managed = array_fill_keys($this->moduleAdmin->managedMenuKeys(), true);
-        $pages = array_column($this->moduleAdmin->assignableMenuRecords($context->tenantId), null, 'menu_key');
+        $managed = array_fill_keys($managedMenuKeys, true);
+        $pages = array_column($assignableMenuRecords, null, 'menu_key');
         foreach ($rows as $row) {
             if ($row['type'] === 'C' && !isset($managed[$row['menu_key']]) && (int) $row['is_disable'] === 0) {
                 $pages[$row['menu_key']] = $row;
@@ -197,7 +200,10 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
         }
 
         try {
-            return $this->accessData($tenantContext, $this->principal($tenantContext))->menu;
+            $admin = $this->principal($tenantContext);
+            return $this->validContext($tenantContext, $admin)
+                ? $this->accessDataForPrincipal($tenantContext, $admin)->menu
+                : [];
         } catch (\Throwable) {
             return [];
         }
@@ -230,6 +236,58 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
             return PermissionDecision::allow($accessUri);
         }
         return $this->permissionDecision($tenantContext, $admin, $accessUri);
+    }
+
+    /** Reuse this request's exact endpoint admission; pending keys use a fresh projection. */
+    public function decisions(TenantContext $tenantContext, array $accessUris): array
+    {
+        if ($accessUris === []) {
+            return [];
+        }
+        $decisions = [];
+        $pending = [];
+        foreach ($accessUris as $accessUri) {
+            if (InstanceControlPlanePolicy::isTenantAdminRoute($accessUri)) {
+                $decisions[$accessUri] = PermissionDecision::deny($accessUri, 'PLATFORM_ROUTE_FORBIDDEN');
+            } elseif ($this->endpointGrant->allows($tenantContext, $accessUri)) {
+                $decisions[$accessUri] = PermissionDecision::allow($accessUri);
+            } else {
+                $pending[] = $accessUri;
+            }
+        }
+        if ($pending === []) {
+            return $decisions;
+        }
+        // Unadmitted permissions still read current membership and credential together.
+        $profile = $this->directory->activePrincipalProfile($tenantContext->tenantId, $tenantContext->accountId);
+        if ($profile === null || $profile['member']->memberId !== $tenantContext->memberId) {
+            throw new \DomainException('TENANT_ADMIN_PRINCIPAL_UNAVAILABLE');
+        }
+        $member = $profile['member'];
+        if ($tenantContext->authorizationRevision < 1
+            || $member->authorizationRevision !== $tenantContext->authorizationRevision
+            || $tenantContext->sessionKey === '' || $tenantContext->clientKey === '' || $tenantContext->requestId === '') {
+            foreach ($pending as $accessUri) {
+                $decisions[$accessUri] = PermissionDecision::deny($accessUri, 'INVALID_TENANT_ADMIN_CONTEXT');
+            }
+            return $decisions;
+        }
+        $keys = array_map(static fn(string $uri): string => strtolower(trim($uri, '/')), $pending);
+        $inputs = $this->moduleAdmin->permissionInputs(
+            $tenantContext,
+            array_values(array_unique(array_filter($keys, static fn(string $key): bool => $key !== ''))),
+        );
+        $registered = $inputs['registered'];
+        $owned = $inputs['owned'];
+        foreach ($pending as $accessUri) {
+            $key = strtolower(trim($accessUri, '/'));
+            $allowed = !in_array($key, InstanceControlPlanePolicy::tenantAdminPermissions(), true)
+                && $this->permissionPolicy->canAccess(false, $accessUri, $registered, $owned);
+            $decisions[$accessUri] = $allowed
+                ? PermissionDecision::allow($accessUri)
+                : PermissionDecision::deny($accessUri, 'PERMISSION_NOT_GRANTED');
+        }
+        return $decisions;
     }
 
     private function permissionDecision(TenantContext $tenantContext, AdminPrincipal $admin, string $accessUri): PermissionDecision

@@ -19,28 +19,7 @@
         },
         {
             "type": "path",
-            "url": "app/modules/peanut/entitlement_quota",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/artifact_revision",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/article",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/collaboration",
+            "url": "app/modules/peanut/rich_text",
             "options": {
                 "symlink": false
             }
@@ -61,6 +40,13 @@
         },
         {
             "type": "path",
+            "url": "app/modules/peanut/notification",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
             "url": "app/modules/peanut/member",
             "options": {
                 "symlink": false
@@ -75,6 +61,13 @@
         },
         {
             "type": "path",
+            "url": "app/modules/peanut/entitlement_quota",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
             "url": "app/modules/peanut/document",
             "options": {
                 "symlink": false
@@ -82,14 +75,21 @@
         },
         {
             "type": "path",
-            "url": "app/modules/peanut/rich_text",
+            "url": "app/modules/peanut/collaboration",
             "options": {
                 "symlink": false
             }
         },
         {
             "type": "path",
-            "url": "app/modules/peanut/notification",
+            "url": "app/modules/peanut/artifact_revision",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
+            "url": "app/modules/peanut/article",
             "options": {
                 "symlink": false
             }
@@ -129,18 +129,25 @@
                         "PeanutAdmin\\Settings\\": "settings/src/"
                     }
                 },
-                "version": "5.0.3-alpha.1",
+                "version": "5.0.3-alpha.7",
                 "source": {
                     "type": "git",
                     "url": "https://github.com/peanut-business/peanut-admin-core-php.git",
-                    "reference": "13cf5b7776526e885cb69dbf0849e784a4cacaec"
+                    "reference": "df96d01875fcd1c15b47d9c01f6d83e3ebcb20b2"
                 },
                 "dist": {
                     "type": "zip",
-                    "url": "../packages/core-php/peanut-admin-core-5.0.3-alpha.1.zip",
-                    "reference": "13cf5b7776526e885cb69dbf0849e784a4cacaec",
-                    "shasum": "e67b5434a9db52c38aaa217f6f6965776c953c2c"
+                    "url": "../packages/core-php/peanut-admin-core-5.0.3-alpha.7.zip",
+                    "reference": "df96d01875fcd1c15b47d9c01f6d83e3ebcb20b2",
+                    "shasum": "b573d2fbb3a11c830a75234e8767c75e224a714f"
                 }
+            }
+        },
+        {
+            "type": "path",
+            "url": "app/modules/peanut/chart",
+            "options": {
+                "symlink": false
             }
         },
         {
@@ -218,30 +225,31 @@
         "aws/aws-sdk-php": "^3.0",
         "aliyuncs/oss-sdk-php": "^2.4",
         "qcloud/cos-sdk-v5": "^2.5",
-        "peanut-admin/core": "5.0.3-alpha.1",
+        "peanut-admin/core": "5.0.3-alpha.7",
         "symfony/html-sanitizer": "^7.3",
         "composer/semver": "^3.4",
         "opis/json-schema": "^2.6",
         "topthink/think-migration": "3.1.1",
         "peanut-business/peanut-content-tools": "1.0.1",
-        "peanut-business/peanut-identity": "4.0.0-rc.42",
+        "peanut-business/peanut-identity": "4.0.0-rc.49",
         "peanut-business/peanut-file": "1.0.33",
-        "peanut-business/peanut-task": "1.0.26",
+        "peanut-business/peanut-task": "1.0.27",
         "peanut-business/peanut-integration": "1.0.26",
         "peanut-business/peanut-ops": "1.0.29",
-        "peanut-business/peanut-reference-codes": "1.0.24",
+        "peanut-business/peanut-reference-codes": "1.0.25",
         "peanut-business/peanut-settings": "1.0.24",
-        "peanut-business/peanut-notification": "1.0.26",
-        "peanut-business/peanut-rich-text": "1.0.11",
-        "peanut-business/peanut-document": "1.0.13",
-        "peanut-business/peanut-import-export": "1.0.27",
-        "peanut-business/peanut-member": "1.0.22",
-        "peanut-business/peanut-oauth": "1.0.9",
-        "peanut-business/peanut-payment": "1.0.23",
-        "peanut-business/peanut-collaboration": "1.0.14",
+        "peanut-business/peanut-chart": "1.0.2",
         "peanut-business/peanut-article": "1.0.14",
         "peanut-business/artifact-revision": "4.0.0-rc.36",
+        "peanut-business/peanut-collaboration": "1.0.14",
+        "peanut-business/peanut-document": "1.0.13",
         "peanut-business/entitlement-quota": "4.0.0-rc.35",
+        "peanut-business/peanut-import-export": "1.0.27",
+        "peanut-business/peanut-member": "1.0.22",
+        "peanut-business/peanut-notification": "1.0.26",
+        "peanut-business/peanut-oauth": "1.0.9",
+        "peanut-business/peanut-payment": "1.0.23",
+        "peanut-business/peanut-rich-text": "1.0.11",
         "peanut-business/workflow": "4.0.0-rc.42"
     },
     "require-dev": {

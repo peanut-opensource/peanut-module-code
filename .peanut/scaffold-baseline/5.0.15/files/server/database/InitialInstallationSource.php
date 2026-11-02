@@ -72,7 +72,7 @@ final class InitialInstallationSource
 
     public const MODULES = [
         'peanut.identity', 'peanut.file', 'peanut.settings', 'peanut.reference-codes',
-        'peanut.task', 'peanut.ops', 'peanut.content-tools', 'peanut.integration',
+        'peanut.task', 'peanut.ops', 'peanut.content-tools', 'peanut.integration', 'peanut.chart',
     ];
 
     // These legacy Host tables have no Module owner. Module tables come only from module.json.

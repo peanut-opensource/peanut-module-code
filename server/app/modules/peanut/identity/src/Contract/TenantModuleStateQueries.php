@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Identity\Contract;
 
 use think\facade\Db;
+use PeanutAdmin\Modules\Identity\Module\Model\ModuleInstallation;
 use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
 use PeanutAdmin\Modules\Identity\Module\TenantEntitlementService;
 
@@ -119,11 +120,42 @@ final readonly class TenantModuleStateQueries
      */
     public function installationIdentity(string $moduleKey, bool $lock = false): ?array
     {
-        $query = Db::name('module_installation')->where('module_key', $moduleKey);
+        $row = $this->installationRecord($moduleKey, $lock);
+        return $row === null ? null : array_intersect_key($row, array_flip([
+            'installed_version', 'manifest_schema_version', 'manifest_digest', 'status',
+        ]));
+    }
+
+    /**
+     * Share the installed fact within one read-only HTTP Request, never across requests or transactions.
+     * Each consumer still checks the fact against its compiled manifest and original error contract.
+     * A consumer with a combined live JOIN can request only an already shared fact without adding a query.
+     * @return array{module_key:mixed,installed_version:mixed,manifest_schema_version:mixed,manifest_digest:mixed,status:mixed,revision:mixed}|null
+     */
+    public function installationRecord(string $moduleKey, bool $lock = false, bool $readIfMissing = true): ?array
+    {
+        $pdo = Db::connect()->getPdo();
+        $request = !$lock && !app()->runningInConsole() && app()->request->isGet()
+            && ($pdo === false || !$pdo->inTransaction()) ? app()->request : null;
+        $rows = $request?->middleware(self::class, []) ?? [];
+        if ($request !== null && array_key_exists($moduleKey, $rows)) {
+            return $rows[$moduleKey];
+        }
+        if (!$readIfMissing) {
+            return null;
+        }
+        $model = new ModuleInstallation();
+        $query = Db::name('module_installation')->pk($model->getPk())
+            ->schema($model->getOption('schema'))->where('module_key', $moduleKey);
         if ($lock) {
             $query->lock(true);
         }
-        return $query->field('installed_version,manifest_schema_version,manifest_digest,status')->find();
+        $row = $query->field('module_key,installed_version,manifest_schema_version,manifest_digest,status,revision')->find();
+        if ($request !== null) {
+            $rows[$moduleKey] = $row;
+            $request->withMiddleware([self::class => $rows]);
+        }
+        return $row;
     }
 
     /**

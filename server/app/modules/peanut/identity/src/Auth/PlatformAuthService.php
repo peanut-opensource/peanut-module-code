@@ -67,12 +67,8 @@ final class PlatformAuthService
             );
             throw new \PeanutAdmin\Kernel\Auth\AuthException('AUTH_RATE_LIMITED', 429);
         }
-        // Password padding belongs only to admitted password logins, not Token requests.
-        // Keep the configured hasher and generate before acquiring credential locks.
-        $dummyPasswordHash = $this->passwords->hash('peanut-admin-platform-invalid-pad');
         $result = Db::transaction(function () use (
             $normalizedEmail,
-            $dummyPasswordHash,
             $plainPassword,
             $identifierHmac,
             $ipAddress,
@@ -81,7 +77,7 @@ final class PlatformAuthService
             $now,
         ): PlatformAuthentication|\PeanutAdmin\Kernel\Auth\AuthException {
             $principal = $this->repository->principalByEmail($normalizedEmail, true);
-            $hash = $principal === null ? $dummyPasswordHash : $principal->secretHash;
+            $hash = $principal === null ? PasswordHasher::INVALID_CREDENTIAL_HASH : $principal->secretHash;
             if (
                 !$this->passwords->verify($plainPassword, $hash)
                 || $principal === null

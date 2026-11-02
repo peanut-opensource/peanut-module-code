@@ -3,7 +3,7 @@
   "key": "peanut.task",
   "name": "Task Scheduler",
   "description": "Tenant-owned schedules and trusted background task execution.",
-  "version": "1.0.26",
+  "version": "1.0.27",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-task",
@@ -11,7 +11,7 @@
   "dependencies": [
     {
       "module_key": "peanut.identity",
-      "version": "^4.0.0-rc.32"
+      "version": "^4.0.0-rc.48"
     }
   ],
   "backend": {

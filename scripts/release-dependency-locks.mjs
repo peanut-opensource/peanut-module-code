@@ -266,6 +266,7 @@ export function verifyDependencyLocks(versions, read, parseYaml, internal = fals
   const checked = [];
   for (const [client, suffixes] of Object.entries(required)) {
     const manifest = json(`${client}/package.json`);
+    const modules = nativeClientModulePackages(read, client);
     if (
       (mode === 'registry' || internal) &&
       Object.entries({
@@ -276,7 +277,8 @@ export function verifyDependencyLocks(versions, read, parseYaml, internal = fals
         ([name, value]) =>
           typeof value !== 'string' ||
           (/^(?:file:|link:|workspace:|\/|\.\.?\/)/.test(value) &&
-            !(internal && name.startsWith('@peanut-admin/')))
+            !(internal && coreWebPackages.includes(name)) &&
+            !(client === 'web' && modules[name] && value.startsWith('workspace:')))
       )
     )
       fail(`${client} local dependency`);
@@ -287,7 +289,7 @@ export function verifyDependencyLocks(versions, read, parseYaml, internal = fals
       ...manifest.dependencies,
       ...manifest.devDependencies,
       ...manifest.optionalDependencies,
-    }).filter(([name]) => name.startsWith('@peanut-admin/'));
+    }).filter(([name]) => coreWebPackages.includes(name));
     for (const [name, specifier] of selections) {
       const i = packages[name];
       if (
@@ -307,6 +309,16 @@ export function verifyDependencyLocks(versions, read, parseYaml, internal = fals
       )
         fail('pnpm lock version');
       const importer = lock.importers?.['.'];
+      for (const section of ['dependencies', 'devDependencies', 'optionalDependencies']) {
+        for (const [name, specifier] of Object.entries(manifest[section] ?? {})) {
+          if (!specifier.startsWith('workspace:')) continue;
+          const module = modules[name];
+          const reference = importer?.[section]?.[name];
+          if (!module || reference?.specifier !== specifier ||
+              reference.version !== `link:${module.url}` || !lock.importers?.[module.url])
+            fail(`pnpm Module workspace:${name}`);
+        }
+      }
       for (const [name, specifier] of selections) {
         const reference =
           importer?.dependencies?.[name] ??
@@ -564,7 +576,7 @@ export function verifyInstalledDependencies(applicationRoot, document, internal 
       ...manifest.devDependencies,
       ...manifest.optionalDependencies,
     })) {
-      if (!name.startsWith('@peanut-admin/')) continue;
+      if (!coreWebPackages.includes(name)) continue;
       const file = resolve(root, client, 'node_modules', name, 'package.json');
       const actual = independent
         ? installedPath(root, file)

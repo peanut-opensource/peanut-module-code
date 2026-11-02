@@ -17,9 +17,15 @@
       @save-request="requestSave"
       @error="emit('error', $event)"
     />
-    <button v-if="canDownload" :disabled="downloading" @click="download">
-      下载原件
+    <button
+      v-if="canDownload"
+      type="button"
+      :disabled="downloading"
+      @click="download"
+    >
+      {{ downloading ? '正在下载…' : '下载原件' }}
     </button>
+    <p v-if="downloadFailed" role="alert">下载失败，请重试。</p>
   </section>
 </template>
 
@@ -100,10 +106,12 @@
       !!props.callbacks.downloadOriginal
   );
   const downloading = ref(false);
+  const downloadFailed = ref(false);
   let downloadController: AbortController | undefined;
   const cancel = () => {
     downloadController?.abort();
     downloading.value = false;
+    downloadFailed.value = false;
   };
   const download = async () => {
     if (
@@ -116,10 +124,14 @@
     const current = new AbortController();
     downloadController = current;
     downloading.value = true;
+    downloadFailed.value = false;
     try {
       await props.callbacks.downloadOriginal(props.content, current.signal);
     } catch {
-      if (!current.signal.aborted) emit('error', 'CONTENT_DOWNLOAD_FAILED');
+      if (!current.signal.aborted) {
+        downloadFailed.value = true;
+        emit('error', 'CONTENT_DOWNLOAD_FAILED');
+      }
     } finally {
       if (downloadController === current) downloading.value = false;
     }

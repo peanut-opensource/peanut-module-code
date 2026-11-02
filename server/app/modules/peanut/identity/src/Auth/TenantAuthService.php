@@ -82,12 +82,8 @@ final class TenantAuthService
             throw new \PeanutAdmin\Kernel\Auth\AuthException('AUTH_RATE_LIMITED', 429);
         }
 
-        // Password padding belongs only to admitted password logins, not Token requests.
-        // Keep the configured hasher and generate before acquiring credential locks.
-        $dummyPasswordHash = $this->passwords->hash('peanut-admin-invalid-credential-pad');
         $result = Db::transaction(function () use (
             $normalizedEmail,
-            $dummyPasswordHash,
             $plainPassword,
             $tenantCode,
             $ipAddress,
@@ -98,7 +94,7 @@ final class TenantAuthService
             $autoEnterSingleTenant,
         ): TenantSelectionRequired|TenantAuthentication|\PeanutAdmin\Kernel\Auth\AuthException {
             $credential = $this->repository->credentialByEmail($normalizedEmail, true);
-            $hash = $credential === null ? $dummyPasswordHash : $credential->secretHash;
+            $hash = $credential === null ? PasswordHasher::INVALID_CREDENTIAL_HASH : $credential->secretHash;
             $passwordValid = $this->passwords->verify($plainPassword, $hash);
             if ($credential === null || !$passwordValid || !$this->credentialCanAuthenticate($credential, $now)) {
                 $this->repository->registerFailedLogin(

@@ -373,9 +373,16 @@ export const createSettingsRuntime = (
     return parseSettingResponse(result.body, responseEtag);
   };
 
-  const load = async (): Promise<void> => {
+  const load = async (key?: string): Promise<void> => {
     if (!options.canRead()) throw new Error('SETTINGS_READ_FORBIDDEN');
     const request = beginListRequest();
+    const applyError = (error: SettingRequestError): void => {
+      if (key === undefined || error.status === 401 || error.status === 403) {
+        applyPageError(error);
+      } else {
+        state.errors[key] = error;
+      }
+    };
     try {
       let result: SettingsTransportResult;
       try {
@@ -387,22 +394,32 @@ export const createSettingsRuntime = (
           isAbortError(error)
         )
           return;
-        applyPageError(transportError());
+        applyError(transportError());
         return;
       }
       if (!isCurrentListRequest(request) || request.controller.signal.aborted)
         return;
       if (result.status < 200 || result.status >= 300) {
-        applyPageError(requestError(result));
+        applyError(requestError(result));
         return;
       }
       try {
         const collectionEtag = strongEtag(result.headers.get('ETag'));
         if (collectionEtag === null)
           throw new Error('SETTINGS_RESPONSE_ETAG_INVALID');
-        applyRecords(parseSettingsList(result.body), collectionEtag);
+        const records = parseSettingsList(result.body);
+        if (key === undefined) {
+          applyRecords(records, collectionEtag);
+        } else {
+          const record = records.find(
+            (candidate) => resourceKey(candidate) === key
+          );
+          if (record === undefined) throw new Error('SETTINGS_RECORD_MISSING');
+          // Refresh only this conflict; other drafts retain their original ETags.
+          applyRecord(record);
+        }
       } catch {
-        applyPageError(protocolError(result));
+        applyError(protocolError(result));
       }
     } finally {
       finishListRequest(request);
@@ -584,10 +601,10 @@ export const createSettingsRuntime = (
   const runtime: SettingsRuntime = {
     state,
     canManage: options.canManage,
-    load,
+    load: () => load(),
     async reload(key) {
       currentRecord(key);
-      await load();
+      await load(key);
     },
     save,
     unset,

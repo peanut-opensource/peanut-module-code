@@ -40,8 +40,9 @@ final readonly class DeploymentModuleInstaller
         }
 
         return Db::transaction(function () use ($manifest, $registry, $moduleKey): array {
-            $identity = $this->identityLifecycle->registerDeployedManifest($manifest);
-            $this->catalogs->apply($registry->compiled(), [$moduleKey]);
+            $identity = $this->identityLifecycle->registerDeployedManifest($manifest, false);
+            $this->catalogs->apply($registry->compiled(), [$moduleKey], false);
+            $this->catalogs->invalidateTenantAuthorization([$moduleKey]);
             return $identity;
         });
     }

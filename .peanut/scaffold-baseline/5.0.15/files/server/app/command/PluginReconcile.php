@@ -8,6 +8,7 @@ use app\platform\exception\plugin\PluginLifecycleException;
 use app\platform\exception\plugin\PluginPackageException;
 use app\platform\composition\plugin\ModuleDefinitionRegistryFactory;
 use app\platform\infrastructure\plugin\PluginLockResolver;
+use app\platform\value\plugin\PluginDescriptor;
 use app\common\module\PackageCheck;
 use app\common\execution\ModuleContextualCommand;
 use PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries;
@@ -27,7 +28,7 @@ final class PluginReconcile extends ModuleContextualCommand
     {
         $this->setName('plugin:reconcile')
             ->setDescription('Reconcile immutable locked Plugin installations')
-            ->addOption('official-locked', null, Option::VALUE_NONE, 'Reconcile every official.* Plugin in plugins.lock')
+            ->addOption('official-locked', null, Option::VALUE_NONE, 'Reconcile the default initial Module packages in plugins.lock')
             ->addOption('release-locked', null, Option::VALUE_NONE, 'Reconcile official and already installed Plugins in plugins.lock')
             ->addOption('prepared-release', null, Option::VALUE_NONE, 'Verify already prepared release dependencies without builds')
             ->addOption('selected-installed', null, Option::VALUE_REQUIRED | Option::VALUE_IS_ARRAY, 'Prepare and reconcile only these already installed locked package keys')
@@ -37,6 +38,7 @@ final class PluginReconcile extends ModuleContextualCommand
     /** Resolves the fixed lock scope and applies each eligible lifecycle operation. */
     protected function handle(Input $input, Output $output): int
     {
+        require_once dirname(__DIR__, 2) . '/database/InitialInstallationSource.php';
         $officialLocked = (bool) $input->getOption('official-locked');
         $releaseLocked = (bool) $input->getOption('release-locked');
         $selected = array_values(array_unique((array) $input->getOption('selected-installed')));
@@ -78,9 +80,11 @@ final class PluginReconcile extends ModuleContextualCommand
                     throw new PluginLifecycleException('PLUGIN_LOCK_INVALID', 'Plugin lock path is not configured.');
                 }
                 $resolver = PluginLockResolver::forRuntime(dirname(__DIR__, 2), $lockPath);
-                $officialKeys = array_values(array_filter(
-                    array_keys($resolver->all()),
-                    static fn(string $key): bool => str_starts_with($key, 'peanut.'),
+                $officialKeys = array_keys(array_filter(
+                    $resolver->all(),
+                    static fn(PluginDescriptor $plugin): bool => array_intersect(
+                        array_keys($plugin->moduleRoots), \InitialInstallationSource::MODULES,
+                    ) !== [],
                 ));
                 $selection = $releaseLocked
                     ? $this->releasePluginSelection($resolver->all(), $officialKeys)
@@ -132,8 +136,10 @@ final class PluginReconcile extends ModuleContextualCommand
                 throw new PluginLifecycleException('PLUGIN_LOCK_INVALID', 'Plugin lock path is not configured.');
             }
             $resolver = PluginLockResolver::forRuntime(dirname(__DIR__, 2), $lock);
-            $official = array_values(array_filter(array_keys($resolver->all()),
-                static fn(string $key): bool => str_starts_with($key, 'peanut.')));
+            $official = array_keys(array_filter($resolver->all(),
+                static fn(PluginDescriptor $plugin): bool => array_intersect(
+                    array_keys($plugin->moduleRoots), \InitialInstallationSource::MODULES,
+                ) !== []));
             $selection = $this->releasePluginSelection($resolver->all(), $official);
             $this->dependencyOrderedPlugins($resolver, $selection['reconcile'], $config);
             $packages = [];

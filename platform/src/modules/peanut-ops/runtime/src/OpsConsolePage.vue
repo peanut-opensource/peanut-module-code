@@ -31,8 +31,9 @@
   const backupReferenceKey = ref('');
   const restoreTargetKey = ref('');
   const reasonKey = ref(runtime.maintenanceReasons[0] ?? '');
-  const startsAt = ref('');
-  const endsAt = ref('');
+  const startsAt = ref<Date | null>(null);
+  const endsAt = ref<Date | null>(null);
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const draftLogSource = ref(state.logSource);
   const draftLogSeverity = ref(state.logSeverity);
   const healthLabels: Record<HealthStatus, string> = {
@@ -77,12 +78,25 @@
   const chooseProvider = (): void => {
     restoreTargetKey.value = targets.value[0] ?? '';
   };
-  const schedule = (): Promise<void> =>
-    runtime.scheduleMaintenance({
+  const maintenanceTimeError = computed(() => {
+    if (startsAt.value === null || endsAt.value === null) return '';
+    const duration = endsAt.value.getTime() - startsAt.value.getTime();
+    if (duration <= 0) return '结束时间必须晚于开始时间。';
+    return duration > 86_400_000 ? '维护窗口不能超过 24 小时。' : '';
+  });
+  const schedule = (): Promise<void> => {
+    if (
+      startsAt.value === null ||
+      endsAt.value === null ||
+      maintenanceTimeError.value
+    )
+      return Promise.resolve();
+    return runtime.scheduleMaintenance({
       reasonKey: reasonKey.value,
-      startsAt: startsAt.value,
-      endsAt: endsAt.value,
+      startsAt: startsAt.value.toISOString(),
+      endsAt: endsAt.value.toISOString(),
     });
+  };
   const applyLogFilter = (): Promise<void> =>
     runtime.setLogFilter(draftLogSource.value, draftLogSeverity.value);
 
@@ -342,6 +356,10 @@
           <p class="ops-notice"
             >窗口生效期间，后端拒绝维护控制接口以外的 HTTP 写入并留存审计。</p
           >
+          <p class="ops-notice">
+            按本地时区 {{ timeZone }} 选择时间，提交时转换为
+            UTC；下方已有窗口时间以 UTC 显示。窗口最长 24 小时。
+          </p>
           <p v-if="state.maintenanceError" class="inline-error">{{
             state.maintenanceError.message
           }}</p>
@@ -374,13 +392,13 @@
               >开始时间<ElDatePicker
                 v-model="startsAt"
                 type="datetime"
-                value-format="YYYY-MM-DDTHH:mm:ss.SSS[Z]"
+                :disabled="state.mutating"
             /></label>
             <label
               >结束时间<ElDatePicker
                 v-model="endsAt"
                 type="datetime"
-                value-format="YYYY-MM-DDTHH:mm:ss.SSS[Z]"
+                :disabled="state.mutating"
             /></label>
             <ElButton
               type="primary"
@@ -388,8 +406,9 @@
                 !runtime.canMaintain() ||
                 state.mutating ||
                 reasonKey === '' ||
-                startsAt === '' ||
-                endsAt === ''
+                startsAt === null ||
+                endsAt === null ||
+                maintenanceTimeError !== ''
               "
               @click="schedule"
             >
@@ -404,6 +423,9 @@
               关闭维护窗口
             </ElButton>
           </div>
+          <p v-if="maintenanceTimeError" role="alert" class="inline-error">
+            {{ maintenanceTimeError }}
+          </p>
         </section>
       </ElTabPane>
 

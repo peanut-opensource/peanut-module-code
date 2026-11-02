@@ -22,7 +22,7 @@
         </el-col>
       </el-row>
 
-      <el-table row-key="id" :loading="loading" :data="renderData" border>
+      <el-table v-loading="loading" row-key="id" :data="renderData" border>
         <el-table-column
           prop="id"
           :label="$t('systemRole.columns.id')"
@@ -169,10 +169,30 @@
       <div v-loading="authLoading" style="width: 100%">
         <h4>{{ $t('systemRole.auth.bundles') }}</h4>
         <p>{{ $t('systemRole.auth.bundleHint') }}</p>
+        <el-alert
+          v-if="authRoleKey === 'core.tenant-owner'"
+          :title="$t('systemRole.auth.ownerFixed')"
+          type="info"
+          :closable="false"
+          show-icon
+        />
         <el-input
           v-model="permissionSearch"
           clearable
           :placeholder="$t('systemRole.auth.searchActions')"
+        />
+        <p v-if="!authLoading" role="status">
+          {{
+            $t('systemRole.auth.selectionSummary', {
+              selected: authForm.permission_keys.length,
+              visible: visiblePermissions.length,
+            })
+          }}
+        </p>
+        <el-empty
+          v-if="!authLoading && visiblePermissions.length === 0"
+          :description="$t('systemRole.auth.noMatches')"
+          :image-size="64"
         />
         <el-checkbox-group
           v-model="authForm.permission_keys"

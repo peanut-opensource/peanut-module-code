@@ -5,14 +5,14 @@
   "license": "Apache-2.0",
   "require": {
     "php": "^8.3",
-    "peanut-admin/core": "^5.0.2"
+    "peanut-admin/core": "^5.0.3-alpha.6"
   },
   "autoload": {
     "psr-4": {
       "PeanutAdmin\\Modules\\Identity\\": "src/"
     }
   },
-    "version": "4.0.0-rc.42",
+    "version": "4.0.0-rc.49",
   "extra": {
     "peanut": {
       "editions": [

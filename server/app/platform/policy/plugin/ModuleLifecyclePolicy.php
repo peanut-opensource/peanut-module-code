@@ -84,7 +84,7 @@ final class ModuleLifecyclePolicy
             ->join('plugin_installation plugin', 'plugin.plugin_key=member.plugin_key')
             ->where('plugin.status', '<>', 'uninstalled')->distinct(true)->column('member.module_key');
         foreach ($installedKeys as $installedKey) {
-            if (isset($roots[$installedKey]) || isset($targets[$installedKey])) {
+            if (isset($roots[$installedKey])) {
                 continue;
             }
             $path = ModuleHostLayoutFactory::pathLayout()->backendRelativePath(ModuleKey::fromString($installedKey));
@@ -93,6 +93,19 @@ final class ModuleLifecyclePolicy
                 throw new PluginLifecycleException('MODULE_INSTALLED_MANIFEST_UNAVAILABLE', 'An installed Module outside the lock has no readable source declaration.');
             }
             $roots[$installedKey] = $root;
+        }
+        // Host pages can consume a Module without belonging to another Module.
+        // Keep those native package requirements in the same lifecycle dependency check.
+        $project = dirname(rtrim(App::getRootPath(), '/'));
+        $webPath = $project . '/web/package.json';
+        if (is_file($webPath)) {
+            $web = json_decode((string) file_get_contents($webPath), true, 512, JSON_THROW_ON_ERROR);
+            foreach ($moduleKeys as $key) {
+                $manifest = (new ManifestLoader())->load($roots[$key])->data;
+                if (isset($manifest['web_package'], $web['dependencies'][$manifest['web_package']])) {
+                    $dependents[] = 'host:web->' . $key;
+                }
+            }
         }
         foreach ($roots as $dependentKey => $root) {
             if (isset($targets[$dependentKey])) {

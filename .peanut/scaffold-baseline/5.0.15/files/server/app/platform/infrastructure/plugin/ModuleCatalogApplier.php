@@ -33,7 +33,7 @@ final readonly class ModuleCatalogApplier
      * @param null|list<string> $moduleKeys Null applies the complete compiled registry; a list applies only that scope.
      * @return array{operation:string,modules:list<string>,catalog_revision:string,changes:array{menus:int,permissions:int,settings:int,reference_codes:int}}
      */
-    public function apply(CompiledModuleRegistry $registry, ?array $moduleKeys = null): array
+    public function apply(CompiledModuleRegistry $registry, ?array $moduleKeys = null, bool $invalidate = true): array
     {
         $manifests = [];
         foreach ($registry->modules as $manifest) {
@@ -52,7 +52,7 @@ final readonly class ModuleCatalogApplier
         $selected = array_intersect_key($manifests, array_fill_keys($selectedKeys, true));
         $compiledScope = $this->scope($registry, $selected);
         $before = $this->catalogRevision();
-        Db::transaction(function () use ($compiledScope, $fullRegistry, $registry, $selected, $selectedKeys): void {
+        $after = Db::transaction(function () use ($compiledScope, $fullRegistry, $registry, $selected, $selectedKeys, $before, $invalidate): string {
             $this->authorization->synchronize($compiledScope);
             (new \PeanutAdmin\Modules\Identity\Authorization\ApiPermissionCatalog())->synchronize(
                 \app\common\services\authorization\GeneratedApiCatalog::load(dirname(__DIR__, 4)), $selectedKeys, $fullRegistry,
@@ -76,16 +76,20 @@ final readonly class ModuleCatalogApplier
             }
 
             $mutations = new ModuleCatalogMutationRepository($this->settings, $this->identityLifecycle);
-            $mutations->retireMissing($selected);
+            $this->identityLifecycle->retireMissing($selected, false);
             if ($fullRegistry) {
                 $absent = array_values(array_diff($mutations->activeModuleKeys(), $selectedKeys));
                 if ($absent !== []) {
-                    $mutations->retire($absent);
+                    $this->retire($absent, false);
                 }
             }
+            $after = $this->catalogRevision();
+            if ($invalidate && !hash_equals($before, $after)) {
+                $this->authorization->invalidateTenantAuthorization(['core', ...$selectedKeys]);
+            }
+            return $after;
         });
 
-        $after = $this->catalogRevision();
         return [
             'operation' => hash_equals($before, $after) ? 'unchanged' : 'synced',
             'modules' => $selectedKeys,
@@ -95,15 +99,25 @@ final readonly class ModuleCatalogApplier
     }
 
     /** @param list<string> $moduleKeys */
-    public function retire(array $moduleKeys): void
+    public function retire(array $moduleKeys, bool $invalidate = true): void
     {
-        (new ModuleCatalogMutationRepository($this->settings, $this->identityLifecycle))->retire($moduleKeys);
+        Db::transaction(function () use ($moduleKeys, $invalidate): void {
+            $this->identityLifecycle->retire($moduleKeys, false);
+            $this->settings->retire($moduleKeys);
+            if ($invalidate) {
+                $this->authorization->invalidateTenantAuthorization($moduleKeys);
+            }
+        });
     }
 
     /** @param list<string> $moduleKeys */
     public function purge(array $moduleKeys): void
     {
-        (new ModuleCatalogMutationRepository($this->settings, $this->identityLifecycle))->purge($moduleKeys);
+        Db::transaction(function () use ($moduleKeys): void {
+            $this->settings->purge($moduleKeys);
+            $this->identityLifecycle->purge($moduleKeys, false);
+            $this->authorization->invalidateTenantAuthorization($moduleKeys);
+        });
     }
 
     /** @param list<string> $moduleKeys @return array{removed:list<array<string,mixed>>,preserved:list<array<string,mixed>>,blockers:list<array<string,mixed>>} */
@@ -145,9 +159,9 @@ final readonly class ModuleCatalogApplier
     }
 
     /** @param array<string,ManifestDocument> $manifests */
-    public function activatePackageDeployment(array $manifests, bool $upgrade, string $now): void
+    public function activatePackageDeployment(array $manifests, bool $upgrade, string $now, bool $invalidate = true): void
     {
-        $this->identityLifecycle->activatePackageDeployment($manifests, $upgrade, $now);
+        $this->identityLifecycle->activatePackageDeployment($manifests, $upgrade, $now, $invalidate);
     }
 
     /** @param list<string> $moduleKeys */
@@ -157,15 +171,15 @@ final readonly class ModuleCatalogApplier
     }
 
     /** @param list<string> $moduleKeys */
-    public function retirePackageModules(array $moduleKeys, string $now): void
+    public function retirePackageModules(array $moduleKeys, string $now, bool $invalidate = true): void
     {
-        $this->identityLifecycle->retirePackageModules($moduleKeys, $now);
+        $this->identityLifecycle->retirePackageModules($moduleKeys, $now, $invalidate);
     }
 
     /** @param list<string> $moduleKeys */
-    public function disableActivePackageModules(array $moduleKeys): void
+    public function disableActivePackageModules(array $moduleKeys, bool $invalidate = true): void
     {
-        $this->identityLifecycle->disableActivePackageModules($moduleKeys);
+        $this->identityLifecycle->disableActivePackageModules($moduleKeys, $invalidate);
     }
 
     /** @param list<string> $moduleKeys */

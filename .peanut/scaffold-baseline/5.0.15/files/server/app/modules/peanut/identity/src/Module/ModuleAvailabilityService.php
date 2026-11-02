@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Identity\Module;
 
 use DateTimeImmutable;
-use PeanutAdmin\Modules\Identity\Module\Model\ModuleInstallation;
+use PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries;
 use PeanutAdmin\Kernel\Tenancy\TenantScope;
 
 final readonly class ModuleAvailabilityService implements \PeanutAdmin\Kernel\Module\ModuleAvailability
 {
-    public function __construct(private \PeanutAdmin\Kernel\Module\CompiledModuleRegistry $registry, private TenantEntitlementService $entitlements) {}
+    public function __construct(
+        private \PeanutAdmin\Kernel\Module\CompiledModuleRegistry $registry,
+        private TenantEntitlementService $entitlements,
+        private TenantModuleStateQueries $installations = new TenantModuleStateQueries(),
+    ) {}
 
     public function assertAvailable(
         TenantScope $scope,
@@ -25,16 +29,16 @@ final readonly class ModuleAvailabilityService implements \PeanutAdmin\Kernel\Mo
     public function assertDeployment(string $moduleKey, bool $lock = false): void
     {
         $manifest = $this->registry->requireManifest($moduleKey);
-        $installation = ModuleInstallation::where('module_key', $moduleKey)->lock($lock)->find();
-        if (!$installation instanceof ModuleInstallation) {
+        $installation = $this->installations->installationRecord($moduleKey, $lock);
+        if ($installation === null) {
             throw new \PeanutAdmin\Kernel\Module\ModuleException('MODULE_NOT_INSTALLED', "Module {$moduleKey} is not installed.");
         }
-        if ($installation->getAttr('status') !== 'active') {
+        if ($installation['status'] !== 'active') {
             throw new \PeanutAdmin\Kernel\Module\ModuleException('MODULE_INSTALLATION_FAILED', "Module {$moduleKey} is not active.");
         }
-        if ((string) $installation->getAttr('installed_version') !== (string) ($manifest->data['version'] ?? '')
-            || (int) $installation->getAttr('manifest_schema_version') !== (int) ($manifest->data['schema_version'] ?? 0)
-            || !hash_equals($manifest->digest, (string) $installation->getAttr('manifest_digest'))) {
+        if ((string) $installation['installed_version'] !== (string) ($manifest->data['version'] ?? '')
+            || (int) $installation['manifest_schema_version'] !== (int) ($manifest->data['schema_version'] ?? 0)
+            || !hash_equals($manifest->digest, (string) $installation['manifest_digest'])) {
             throw new \PeanutAdmin\Kernel\Module\ModuleException(
                 'MODULE_INSTALLATION_MISMATCH',
                 "Installed Module manifest does not match the compiled registry: {$moduleKey}",

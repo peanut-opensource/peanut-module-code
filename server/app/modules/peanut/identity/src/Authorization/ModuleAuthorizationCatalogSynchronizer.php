@@ -62,48 +62,12 @@ final readonly class ModuleAuthorizationCatalogSynchronizer
         if ($moduleKeys === []) {
             return;
         }
-        Db::transaction(function () use ($moduleKeys): void {
-            $tenantIds = $this->affectedTenantIds($moduleKeys, false);
-            foreach ($tenantIds as $tenantId) {
-                Db::name('tenant')->where('id', $tenantId)->lock(true)->find();
-            }
-            $lockedTenantIds = $this->affectedTenantIds($moduleKeys, true);
-            if ($tenantIds !== $lockedTenantIds) {
-                throw new \DomainException('MODULE_AUTHORITY_TENANT_SET_CHANGED');
-            }
-            if ($tenantIds !== []) {
-                Db::name('tenant')->whereIn('id', $tenantIds)->update([
-                    'authorization_revision' => Db::raw('authorization_revision+1'),
-                    'revision' => Db::raw('revision+1'),
-                    'updated_at' => Db::raw('UTC_TIMESTAMP(3)'),
-                ]);
-            }
-        });
-    }
-
-    /** Complete selected-module population in fixed read/lock batches; no total tenant limit. */
-    private function affectedTenantIds(array $moduleKeys, bool $lock): array
-    {
-        $cursor = 0;
-        $tenants = [];
-        do {
-            $query = Db::name('tenant_license')->alias('license')
-                ->whereIn('license.plan_id', static function (\think\db\Query $query) use ($moduleKeys): void {
-                    $query->name('plan_module')->whereIn('module_key', $moduleKeys)->field('plan_id');
-                })
-                ->where('license.id', '>', $cursor)->field('license.id,license.tenant_id')->order('license.id')->limit(100);
-            if ($lock) {
-                $query->lock('FOR UPDATE NOWAIT');
-            }
-            $rows = $query->select()->toArray();
-            foreach ($rows as $row) {
-                $cursor = (int) $row['id'];
-                $tenants[(int) $row['tenant_id']] = true;
-            }
-        } while (count($rows) === 100);
-        $ids = array_keys($tenants);
-        sort($ids, SORT_NUMERIC);
-        return $ids;
+        // Core, foundation and API catalog changes affect tenants without optional plan rows too.
+        Db::name('tenant')->whereRaw('1 = 1')->update([
+            'authorization_revision' => Db::raw('authorization_revision+1'),
+            'revision' => Db::raw('revision+1'),
+            'updated_at' => Db::raw('UTC_TIMESTAMP(3)'),
+        ]);
     }
 
     private function synchronizePermissions(ManifestDocument $module): void

@@ -1,0 +1,20 @@
+{
+  "name": "peanut-business/peanut-chart",
+  "description": "Public ECharts components for application and Module consumers.",
+  "type": "peanut-admin-module",
+  "version": "1.0.2",
+  "license": "Apache-2.0",
+  "autoload": {
+    "psr-4": {
+      "PeanutAdmin\\Modules\\Chart\\": "src/"
+    }
+  },
+  "extra": {
+    "peanut": {
+      "editions": [
+        "multi-tenant",
+        "standalone"
+      ]
+    }
+  }
+}

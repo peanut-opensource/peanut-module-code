@@ -40,6 +40,37 @@ h1 {
 .app-shell {
   min-height: 100vh;
 }
+.platform-preset {
+  background: var(--el-bg-color-page);
+}
+.platform-preset .pa-shell__main {
+  display: flex;
+  min-height: 100vh;
+  min-width: 0;
+}
+.platform-breadcrumb {
+  margin-bottom: var(--pa-shell-spacing);
+}
+.platform-preset .pa-shell__main > .el-container > .el-main {
+  padding: var(--pa-shell-spacing);
+}
+.platform-preset .el-header {
+  height: var(--pa-shell-header-height);
+  background: var(--pa-shell-surface-color);
+}
+.platform-preset.pa-shell--layout-workspace .pa-shell__main > .el-container {
+  max-width: var(--pa-shell-content-max-width);
+  margin-inline: auto;
+}
+.platform-preset.pa-shell--navigation-top .pa-shell__main {
+  flex-direction: column;
+}
+.platform-preset.pa-shell--navigation-top .platform-navigation {
+  width: 100% !important;
+}
+.platform-preset.pa-shell--navigation-grouped .el-menu-item-group__title {
+  color: #a6badc;
+}
 .app-shell > .el-container {
   min-width: 0;
 }

@@ -3,8 +3,8 @@
   import { useRoute } from 'vue-router';
   import { hasPermission } from '@/hooks/permission';
   import { tenantSessionFetch } from '@/api/tenant-session-fetch';
-  import TaskJobPage from './optional-runtime/src/TaskJobPage.vue';
   import {
+    TaskJobPage,
     createTaskJobFetchTransport,
     createTaskJobRuntime,
     TASK_JOB_MANAGE_PERMISSION,

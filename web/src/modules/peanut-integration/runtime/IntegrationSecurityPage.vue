@@ -110,7 +110,10 @@
       scopes: csv(machineForm.scopes),
       expires_at: machineForm.expiresAt || null,
     });
-    if (runtime.state.machines.error === null) machineDialog.value = false;
+    if (runtime.state.machines.error === null) {
+      machineDialog.value = false;
+      machineFormRef.value?.resetFields();
+    }
   };
   const createWebhook = async () => {
     if (!(await webhookFormRef.value?.validate().catch(() => false))) return;
@@ -119,7 +122,10 @@
       url: webhookForm.url,
       events: csv(webhookForm.events),
     });
-    if (runtime.state.webhooks.error === null) webhookDialog.value = false;
+    if (runtime.state.webhooks.error === null) {
+      webhookDialog.value = false;
+      webhookFormRef.value?.resetFields();
+    }
   };
   const showAttempts = async (deliveryKey: string) => {
     attemptDialog.value = true;
@@ -226,6 +232,16 @@
             {{ row.scopes.join(', ') }}
           </template>
         </el-table-column>
+        <el-table-column
+          prop="expiresAt"
+          :label="t('integrationSecurity.expiresAt')"
+          min-width="190"
+        />
+        <el-table-column
+          prop="lastUsedAt"
+          :label="t('integrationSecurity.lastUsedAt')"
+          min-width="190"
+        />
         <el-table-column
           v-if="runtime.can.canManageMachines()"
           label=""
@@ -404,6 +420,11 @@
           prop="maskedIp"
           :label="t('integrationSecurity.network')"
           min-width="140"
+        />
+        <el-table-column
+          prop="status"
+          :label="t('integrationSecurity.status')"
+          width="120"
         /><el-table-column
           prop="lastSeenAt"
           :label="t('integrationSecurity.lastSeen')"
@@ -433,6 +454,12 @@
       :title="t('integrationSecurity.createMachineIdentity')"
       width="min(520px, 92vw)"
     >
+      <el-alert
+        v-if="runtime.state.machines.error"
+        type="error"
+        :title="errorMessage(runtime.state.machines.error)"
+        :closable="false"
+      />
       <el-form
         ref="machineFormRef"
         :model="machineForm"
@@ -446,7 +473,10 @@
             v-model="machineForm.scopes"
             :placeholder="t('integrationSecurity.scopesPlaceholder')"
           /> </el-form-item
-        ><el-form-item :label="t('integrationSecurity.expiresAt')">
+        ><el-form-item
+          prop="expiresAt"
+          :label="t('integrationSecurity.expiresAt')"
+        >
           <el-input
             v-model="machineForm.expiresAt"
             :placeholder="t('integrationSecurity.expiresAtPlaceholder')"
@@ -470,6 +500,12 @@
       :title="t('integrationSecurity.createWebhookEndpoint')"
       width="min(520px, 92vw)"
     >
+      <el-alert
+        v-if="runtime.state.webhooks.error"
+        type="error"
+        :title="errorMessage(runtime.state.webhooks.error)"
+        :closable="false"
+      />
       <el-form
         ref="webhookFormRef"
         :model="webhookForm"
@@ -504,6 +540,7 @@
       :title="t('integrationSecurity.deliveryAttempts')"
       width="min(720px, 94vw)"
     >
+      <p class="delivery-key">{{ runtime.state.attempts.deliveryKey }}</p>
       <el-alert
         v-if="runtime.state.attempts.error"
         type="error"
@@ -512,6 +549,7 @@
       /><el-table
         v-loading="runtime.state.attempts.loading"
         :data="runtime.state.attempts.items"
+        :empty-text="t('integrationSecurity.noAttempts')"
       >
         <el-table-column
           prop="attemptNumber"
@@ -534,7 +572,25 @@
           :label="t('integrationSecurity.durationMs')"
           width="90"
         />
+        <el-table-column
+          prop="attemptedAt"
+          :label="t('integrationSecurity.attemptedAt')"
+          min-width="190"
+        />
       </el-table>
+      <template #footer>
+        <el-button
+          :disabled="
+            !runtime.state.attempts.deliveryKey ||
+            runtime.state.attempts.loading
+          "
+          @click="
+            runtime.state.attempts.deliveryKey &&
+              runtime.loadAttempts(runtime.state.attempts.deliveryKey)
+          "
+          >{{ t('integrationSecurity.refresh') }}</el-button
+        >
+      </template>
     </el-dialog>
   </main>
 </template>
@@ -590,7 +646,8 @@
     font-size: 16px;
     margin: 0 0 12px;
   }
-  .disclosure {
+  .disclosure,
+  .delivery-key {
     display: block;
     overflow-wrap: anywhere;
     margin-top: 8px;

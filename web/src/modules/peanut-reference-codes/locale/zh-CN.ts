@@ -1,6 +1,8 @@
 export default {
   'officialReferenceCodes.title': '参考代码',
   'officialReferenceCodes.controls': '参考代码筛选',
+  'officialReferenceCodes.invalidAsOf':
+    '请输入有效的查询时间，包含毫秒和时区，例如 2026-10-31T00:00:00.000Z。',
   'officialReferenceCodes.selectSet': '请选择所属模块和代码集',
   'officialReferenceCodes.notAvailable': '参考代码集不可用',
   'officialReferenceCodes.loadError': '无法加载参考代码',

@@ -2,6 +2,8 @@ export const SETTINGS_PACKAGE =
   '@peanut-admin/peanut-settings/runtime' as const;
 export const SETTINGS_VERSION = '0.1.0' as const;
 
+export { default as SettingsPage } from './SettingsPage.vue';
+
 export {
   createSettingsFetchTransport,
   groupSettingRecords,

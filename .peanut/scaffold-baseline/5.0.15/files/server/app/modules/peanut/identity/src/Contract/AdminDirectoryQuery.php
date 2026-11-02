@@ -190,7 +190,7 @@ final readonly class AdminDirectoryQuery
      * 供受信任务恢复所有者资料；不授予操作权限，也不要求员工在线会话。
      * 指定成员时必须同时指定账号，且租户、账号、成员和内建所有者关系均仍有效。
      *
-     * @return null|array{id:int,account_id:int,authorization_revision:int}
+     * @return null|array{id:int,account_id:int,authorization_revision:int,tenant_authorization_revision:int}
      */
     public function activeTenantOwner(int $tenantId, ?int $memberId, ?int $accountId): ?array
     {
@@ -204,7 +204,7 @@ final readonly class AdminDirectoryQuery
             ->join('member_role membership', 'membership.tenant_id = member.tenant_id AND membership.tenant_member_id = member.id')
             ->join('role role', "role.tenant_id = membership.tenant_id AND role.id = membership.role_id AND role.`key` = 'core.tenant-owner' AND role.is_builtin = 1 AND role.status = 'active'")
             ->where('member.tenant_id', $tenantId)->where('member.status', 'active')
-            ->field('member.id,member.account_id,member.authorization_revision');
+            ->field('member.id,member.account_id,member.authorization_revision,tenant.authorization_revision AS tenant_authorization_revision');
         if ($memberId !== null && $accountId !== null) {
             $query->where('member.id', $memberId)->where('member.account_id', $accountId);
         }
@@ -214,13 +214,66 @@ final readonly class AdminDirectoryQuery
             'id' => (int) $owner['id'],
             'account_id' => (int) $owner['account_id'],
             'authorization_revision' => (int) $owner['authorization_revision'],
+            'tenant_authorization_revision' => (int) $owner['tenant_authorization_revision'],
         ] : null;
     }
 
-    /** @return null|array{tenant_name:string,username:string,avatar:string,last_login_at:mixed} */
-    public function activePrincipalProfile(int $tenantId, int $accountId): ?array
+    /** A single current membership/credential projection; the optional count serves the Admin shell.
+     * @return null|array{tenant_name:string,username:string,avatar:string,last_login_at:mixed,member:Dto\TenantMemberSummary,switchable_tenant_count?:int}
+     */
+    public function activePrincipalProfile(int $tenantId, int $accountId, bool $includeTenantCount = false): ?array
     {
-        $row = TenantMember::alias('member')
+        $row = $this->principalProfileQuery($tenantId, $accountId, $includeTenantCount)->find()?->toArray();
+
+        return $row === null ? null : $this->principalProfileFromRow($row, $includeTenantCount);
+    }
+
+    /**
+     * Current principal and active roles in one read, without retaining state between calls.
+     * @return null|array{profile:array{tenant_name:string,username:string,avatar:string,last_login_at:mixed,member:Dto\TenantMemberSummary,switchable_tenant_count?:int},roles:list<array{id:int,key:string,name:string,is_builtin:bool}>}
+     */
+    public function activePrincipalProfileWithRoles(int $tenantId, int $accountId, bool $includeTenantCount = false): ?array
+    {
+        // Select the same single profile before expanding roles: credentials are unique by identifier, not account.
+        $profileSql = $this->principalProfileQuery($tenantId, $accountId, $includeTenantCount)->limit(1)->buildSql();
+        $rows = \think\facade\Db::table($profileSql)->alias('principal_profile')
+            ->leftJoin('member_role membership', 'membership.tenant_id = principal_profile.tenant_id AND membership.tenant_member_id = principal_profile.member_id')
+            ->leftJoin('role role', "role.tenant_id = membership.tenant_id AND role.id = membership.role_id AND role.status = 'active'")
+            ->field([
+                'principal_profile.*',
+                'role.id' => 'principal_role_id',
+                'role.key' => 'principal_role_key',
+                'role.name' => 'principal_role_name',
+                'role.is_builtin' => 'principal_role_is_builtin',
+            ])
+            ->order('role.key')->order('role.id')->select()->toArray();
+        if ($rows === []) {
+            return null;
+        }
+        $profile = $this->principalProfileFromRow($rows[0], $includeTenantCount);
+        if ($profile === null) {
+            return null;
+        }
+        $roles = [];
+        foreach ($rows as $row) {
+            // An active principal with no active roles must remain available.
+            if ($row['principal_role_id'] === null) {
+                continue;
+            }
+            $roles[] = [
+                'id' => (int) $row['principal_role_id'],
+                'key' => (string) $row['principal_role_key'],
+                'name' => (string) $row['principal_role_name'],
+                'is_builtin' => (int) $row['principal_role_is_builtin'] === 1,
+            ];
+        }
+
+        return ['profile' => $profile, 'roles' => $roles];
+    }
+
+    private function principalProfileQuery(int $tenantId, int $accountId, bool $includeTenantCount): \think\db\Query
+    {
+        $query = TenantMember::alias('member')
             ->join('tenant tenant', "tenant.id = member.tenant_id AND tenant.status = 'active'")
             ->join('account account', "account.id = member.account_id AND account.status = 'active'")
             ->join('credential credential', "credential.account_id = account.id AND credential.kind = 'email_password' AND credential.identifier_type = 'email' AND credential.status = 'active'")
@@ -228,17 +281,52 @@ final readonly class AdminDirectoryQuery
             ->where('member.account_id', $accountId)
             ->where('member.status', 'active')
             ->field([
-                'tenant.name' => 'tenant_name',
-                'credential.identifier_normalized' => 'username',
-                'account.avatar_uri' => 'avatar',
-                'account.last_login_at',
-            ])->find()?->toArray();
+                'member.id' => 'member_id', 'member.tenant_id', 'member.account_id', 'member.display_name',
+                'member.primary_department_id', 'member.security_revision', 'member.authorization_revision',
+                'account.display_name' => 'account_display_name',
+                'account.security_revision' => 'account_security_revision',
+                'tenant.security_revision' => 'tenant_security_revision',
+                'tenant.authorization_revision' => 'tenant_authorization_revision',
+                'tenant.name' => 'tenant_name', 'credential.identifier_normalized' => 'username',
+                'account.avatar_uri' => 'avatar', 'account.last_login_at',
+            ]);
+        if ($includeTenantCount) {
+            $count = TenantMember::alias('candidate')
+                ->join('tenant candidate_tenant', "candidate_tenant.id = candidate.tenant_id AND candidate_tenant.status = 'active'")
+                ->join('account candidate_account', "candidate_account.id = candidate.account_id AND candidate_account.status = 'active'")
+                ->whereColumn('candidate.account_id', 'member.account_id')
+                ->where('candidate.status', 'active')->fieldRaw('COUNT(*)');
+            $query->fieldRaw('(' . $count->buildSql(false) . ') AS switchable_tenant_count');
+        }
+        return $query;
+    }
 
-        return $row === null ? null : [
+    /**
+     * @param array<string,mixed> $row
+     * @return null|array{tenant_name:string,username:string,avatar:string,last_login_at:mixed,member:Dto\TenantMemberSummary,switchable_tenant_count?:int}
+     */
+    private function principalProfileFromRow(array $row, bool $includeTenantCount): ?array
+    {
+        $displayName = trim((string) ($row['display_name'] ?: $row['account_display_name']));
+        if ($displayName === '') {
+            return null;
+        }
+        $result = [
             'tenant_name' => (string) $row['tenant_name'],
             'username' => (string) $row['username'],
             'avatar' => (string) ($row['avatar'] ?? ''),
-            'last_login_at' => $row['last_login_at'] ?? null,
+            'last_login_at' => $row['last_login_at'],
+            'member' => new Dto\TenantMemberSummary(
+                (int) $row['tenant_id'], (int) $row['member_id'], (int) $row['account_id'], $displayName,
+                (int) $row['account_security_revision'], (int) $row['tenant_security_revision'],
+                (int) $row['security_revision'], (int) $row['authorization_revision'],
+                (int) $row['tenant_authorization_revision'],
+                $row['primary_department_id'] === null ? null : (int) $row['primary_department_id'],
+            ),
         ];
+        if ($includeTenantCount) {
+            $result['switchable_tenant_count'] = (int) $row['switchable_tenant_count'];
+        }
+        return $result;
     }
 }

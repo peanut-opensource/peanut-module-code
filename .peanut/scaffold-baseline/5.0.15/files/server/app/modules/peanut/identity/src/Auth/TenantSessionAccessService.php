@@ -59,6 +59,7 @@ final readonly class TenantSessionAccessService implements TenantSessionAccess
             $clientKey,
             new DateTimeImmutable((string) $session['issued_at'], new DateTimeZone('UTC')),
             $member->authorizationRevision,
+            $member->tenantAuthorizationRevision,
         ), $requestId);
     }
 

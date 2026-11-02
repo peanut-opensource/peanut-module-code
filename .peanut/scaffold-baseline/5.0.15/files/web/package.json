@@ -36,6 +36,7 @@
         ]
     },
     "dependencies": {
+        "@peanut-admin/peanut-chart": "workspace:^1.0.0",
         "@element-plus/icons-vue": "2.3.2",
         "@peanut-admin/ui-vue": "file:../packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz",
         "@peanut-admin/vue": "file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz",
@@ -43,7 +44,6 @@
         "axios": "0.34.0",
         "dayjs": "^1.11.5",
         "dompurify": "^3.4.17",
-        "echarts": "6.1.0",
         "element-plus": "2.14.3",
         "lodash": "^4.17.21",
         "mitt": "^3.0.0",
@@ -53,7 +53,6 @@
         "query-string": "^8.0.3",
         "sortablejs": "^1.15.0",
         "vue": "^3.3.0",
-        "vue-echarts": "8.3.0",
         "vue-i18n": "^9.2.2",
         "vue-router": "^4.0.14"
     },

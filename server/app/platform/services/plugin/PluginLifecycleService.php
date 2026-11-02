@@ -417,14 +417,8 @@ final readonly class PluginLifecycleService implements PluginLifecycleCommands
             if ($this->tenantStates->enabledReferencesForUpdate($moduleKeys) !== []) {
                 throw new PluginLifecycleException('PLUGIN_TENANT_MODULE_ACTIVE', 'Remove the modules from tenant license plans before uninstall.');
             }
-            $this->catalogs->retire(array_map(
-                static fn(array $row): string => (string) $row['module_key'],
-                $modules,
-            ));
-            $this->catalogs->retirePackageModules(array_values(array_map(
-                static fn(array $row): string => (string) $row['module_key'],
-                $modules,
-            )), $now);
+            $this->catalogs->retire($moduleKeys, false);
+            $this->catalogs->retirePackageModules($moduleKeys, $now, false);
             Db::name('plugin_installation')->where('plugin_key', $pluginKey)->update([
                 'status' => 'uninstalled',
                 'revision' => Db::raw('revision+1'),
@@ -432,6 +426,7 @@ final readonly class PluginLifecycleService implements PluginLifecycleCommands
                 'last_error_code' => null,
                 'updated_at' => $now,
             ]);
+            $this->catalogs->invalidateTenantAuthorization($moduleKeys);
         });
         return [
             'plugin_key' => $pluginKey,
@@ -556,7 +551,7 @@ final readonly class PluginLifecycleService implements PluginLifecycleCommands
             $compiled = $this->registries
                 ->fromPluginLock($this->resolver, $this->moduleConfig)
                 ->compiled();
-            $this->catalogs->apply($compiled, array_keys($manifests));
+            $this->catalogs->apply($compiled, array_keys($manifests), false);
             foreach ($manifests as $moduleKey => $manifest) {
                 $ownership = Db::name('plugin_module')->where('module_key', $moduleKey)
                     ->field('plugin_key,created_at')->lock(true)->find();
@@ -577,7 +572,7 @@ final readonly class PluginLifecycleService implements PluginLifecycleCommands
                     Db::name('plugin_module')->where('module_key', $moduleKey)->update($catalogValues);
                 }
             }
-            $this->catalogs->activatePackageDeployment($manifests, $upgrade, $now);
+            $this->catalogs->activatePackageDeployment($manifests, $upgrade, $now, false);
             $parameters = $this->pluginParameters($plugin);
             $activatedAt = Db::name('plugin_installation')->where('plugin_key', $plugin->key)
                 ->lock(true)->value('activated_at');
@@ -590,7 +585,7 @@ final readonly class PluginLifecycleService implements PluginLifecycleCommands
                 'upgraded_at' => $upgrade ? $now : null,
                 'uninstalled_at' => null, 'last_error_code' => null, 'updated_at' => $now,
             ]);
-
+            $this->catalogs->invalidateTenantAuthorization(array_keys($manifests));
         });
     }
 

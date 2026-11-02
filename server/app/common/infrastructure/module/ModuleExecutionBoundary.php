@@ -110,7 +110,9 @@ final readonly class ModuleExecutionBoundary
     {
         $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
         $this->guard->assertDeployment($context->moduleKey);
-        $this->guard->assertTenant($context->tenantId, $context->moduleKey, $now);
+        $execution = $this->execution->get();
+        $admin = $execution instanceof AdminExecutionContext ? $execution->tenant : null;
+        $this->guard->assertTenant($context->tenantId, $context->moduleKey, $now, $admin);
     }
 
     private function assertBackgroundTenant(ModuleExecutionContext $context): void

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-  import { onBeforeUnmount, onMounted } from 'vue';
+  import { computed, onBeforeUnmount, ref, watch } from 'vue';
   import { useUserStore } from '@/store';
+  import { getSessionSnapshot, isLogin } from '@/utils/auth';
   import FileAssetSelector from './FileAssetSelector.vue';
   import {
     createFileAssetRuntime,
@@ -8,13 +9,39 @@
   } from './runtime';
 
   const user = useUserStore();
+  const sessionGeneration = ref(getSessionSnapshot().generation);
+  const unsubscribe = user.$subscribe(
+    () => {
+      sessionGeneration.value = getSessionSnapshot().generation;
+    },
+    { flush: 'sync' }
+  );
+  const contextKey = computed(() =>
+    JSON.stringify([
+      sessionGeneration.value,
+      user.accountId,
+      user.tenantName,
+      user.role,
+      user.permissions,
+    ])
+  );
   const runtime = createFileAssetRuntime({
     canRead: () => user.permissions.includes(FILE_ASSET_READ_PERMISSION),
   });
   const { state } = runtime;
 
-  onMounted(() => runtime.load());
-  onBeforeUnmount(runtime.dispose);
+  watch(
+    contextKey,
+    () => {
+      runtime.dispose();
+      if (isLogin() && user.accountId !== undefined) runtime.load(1);
+    },
+    { immediate: true, flush: 'sync' }
+  );
+  onBeforeUnmount(() => {
+    unsubscribe();
+    runtime.dispose();
+  });
 </script>
 
 <template>

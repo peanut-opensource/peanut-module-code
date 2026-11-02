@@ -64,7 +64,7 @@ Ops 的平台业务入口及其 `MaintenanceWindow`、`OpsStatusSnapshot`、`Ops
 
 设置目录通过 `SettingCatalogService` 加载并同步同一批已选模块，内部复用原JSON Schema、秘密默认值限制和修订同步器；目录移除只退休定义，不删除或覆盖部署、租户、对象设置值。宿主通过固定目录字段与计数计算原有修订指纹，不直接查询设置定义表，也不能用目录入口替代运行时设置授权。目录清理、权限失效和真正的数据删除仍是独立生命周期操作，不因同步成功而自动放行。
 
-Identity 目录复用已公开的 `ModuleAuthorizationCatalogSynchronizer` 和 `MenuCatalogSynchronizer` 提供固定定义摘要、活动计数；前者负责目录变化后的授权修订失效。模块选择、数据库过滤、租户去重、原锁顺序和外层事务保持，空选择不修改任何租户；失效只推进修订，不授予权限或开通模块。部署宿主不直接读写 Identity 私表，公开同步器也不意味着获准执行生命周期操作。
+Identity 目录复用已公开的 `ModuleAuthorizationCatalogSynchronizer` 和 `MenuCatalogSynchronizer` 提供固定定义摘要、活动计数；前者负责目录变化后的授权修订失效。模块选择与外层事务保持，空选择不修改任何租户；Core、基础模块和共享 API 目录变化在实际写者事务内推进全部租户授权修订，覆盖没有套餐模块选择行的租户。组合操作由外层统一失效，失效不授予权限或开通模块。部署宿主不直接读写 Identity 私表，公开同步器也不意味着获准执行生命周期操作。
 
 ## 4. 依赖是业务成立的前提
 

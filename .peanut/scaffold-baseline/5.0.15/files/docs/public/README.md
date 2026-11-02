@@ -9,6 +9,7 @@
 | 产品定版、部署更新与保护 | [产品 Git 交付](application-release.md) |
 | 查接口、刷新SDK | [API合同与SDK](api-and-sdk.md) |
 | 编写和交付业务模块 | [模块开发](module-development.md) |
+| 了解界面组件与应用覆盖边界 | [Core能力与应用覆盖](../architecture/core-capabilities-and-application-overrides.md) |
 | 产品首次开发与定版流程 | [产品开发流程](#产品开发与定版) |
 
 ## 产品开发与定版

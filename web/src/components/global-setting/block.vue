@@ -50,11 +50,6 @@
     if (key === 'menuFromServer' && value) {
       await appStore.fetchServerMenuConfig();
     }
-    if (key === 'topMenu') {
-      appStore.updateSettings({
-        menuCollapse: false,
-      });
-    }
     appStore.updateSettings({ [key]: value });
   };
 </script>

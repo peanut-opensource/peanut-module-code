@@ -99,19 +99,31 @@
       ></el-card
     ></section
   >
-  <el-container v-else class="app-shell"
-    ><el-aside
+  <component
+    v-else
+    :is="platformShell"
+    class="app-shell platform-preset"
+    :theme="platformPresentation.theme"
+    :layout="platformPresentation.layout"
+    :navigation-mode="platformPresentation.navigationMode"
+  >
+    <el-aside
       width="224px"
       class="platform-navigation"
       :class="{ 'navigation-open': navigationOpen }"
       @keydown.esc.capture="closeNavigation"
-      ><div class="logo">PEANUT <b>平台</b></div
+      ><div class="logo">{{ platformPresentation.brand }}</div
       ><el-menu
         id="platform-navigation-menu"
+        :mode="
+          platformPresentation.navigationMode === 'top'
+            ? 'horizontal'
+            : 'vertical'
+        "
         :default-active="view"
         @select="selectView"
         ><el-menu-item index="overview">概览</el-menu-item
-        ><el-sub-menu index="tenant-operations"
+        ><component :is="navigationGroup" index="tenant-operations"
           ><template #title>租户运营</template
           ><el-menu-item index="tenants">租户与生命周期</el-menu-item
           ><el-menu-item index="owners">租户所有者邀请</el-menu-item
@@ -120,21 +132,19 @@
             >租户许可证</el-menu-item
           ><el-menu-item v-if="can('platform.plan.read')" index="plans"
             >套餐管理</el-menu-item
-          ></el-sub-menu
-        ><el-sub-menu index="organization-access"
+          ></component
+        ><component :is="navigationGroup" index="organization-access"
           ><template #title>组织与权限</template
           ><el-menu-item index="operators">实例平台操作员</el-menu-item
-          ><el-menu-item index="roles"
-            >平台角色与权限</el-menu-item
-          ></el-sub-menu
-        ><el-sub-menu index="operations-audit"
+          ><el-menu-item index="roles">平台角色与权限</el-menu-item></component
+        ><component :is="navigationGroup" index="operations-audit"
           ><template #title>运维与审计</template
           ><el-menu-item v-if="can('platform.ops.read')" index="ops"
             >运行与维护</el-menu-item
           ><el-menu-item v-if="can('platform.module.read')" index="developer"
             >开发者中心</el-menu-item
           ><el-menu-item index="storage">存储基础设施</el-menu-item
-          ><el-menu-item index="audit">平台审计</el-menu-item></el-sub-menu
+          ><el-menu-item index="audit">平台审计</el-menu-item></component
         ></el-menu
       ></el-aside
     ><el-container
@@ -149,14 +159,97 @@
           >菜单</el-button
         ><div class="platform-header-title"
           ><b>{{ title }}</b
-          ><span class="muted">实例平台控制面</span></div
+          ><span class="muted"
+            >实例平台控制面 · 账户 {{ platformAccount }}</span
+          ></div
         ><div class="platform-header-actions"
+          ><el-popover
+            v-if="hasPresentationChoices"
+            trigger="click"
+            width="260"
+            :teleported="false"
+          >
+            <template #reference><el-button text>展示设置</el-button></template>
+            <el-form label-position="top">
+              <el-form-item
+                v-if="platformUserOptions.presets.length > 1"
+                label="展示预设"
+              >
+                <el-select
+                  :model-value="platformPresentation.preset"
+                  @change="selectPlatformPreset"
+                >
+                  <el-option
+                    v-for="value in platformUserOptions.presets"
+                    :key="value"
+                    :value="value"
+                    :label="value === 'admin' ? '默认管理台' : '工作台'"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-form-item
+                v-if="platformUserOptions.layouts.length > 1"
+                label="布局"
+              >
+                <el-select v-model="platformPresentation.layout"
+                  ><el-option
+                    v-for="value in platformUserOptions.layouts"
+                    :key="value"
+                    :value="value"
+                    :label="value === 'admin' ? '管理台' : '工作台'"
+                /></el-select>
+              </el-form-item>
+              <el-form-item
+                v-if="platformUserOptions.navigationModes.length > 1"
+                label="导航方式"
+              >
+                <el-select v-model="platformPresentation.navigationMode"
+                  ><el-option
+                    v-for="value in platformUserOptions.navigationModes"
+                    :key="value"
+                    :value="value"
+                    :label="
+                      { tree: '树形', grouped: '分组平铺', top: '顶部' }[value]
+                    "
+                /></el-select>
+              </el-form-item>
+              <el-form-item
+                v-if="platformUserOptions.densities.length > 1"
+                label="界面密度"
+              >
+                <el-select v-model="platformPresentation.theme.density"
+                  ><el-option
+                    v-for="value in platformUserOptions.densities"
+                    :key="value"
+                    :value="value"
+                    :label="value === 'compact' ? '紧凑' : '舒适'"
+                /></el-select>
+              </el-form-item>
+              <el-form-item
+                v-if="platformUserOptions.modes.length > 1"
+                label="主题模式"
+              >
+                <el-select v-model="platformPresentation.theme.mode"
+                  ><el-option
+                    v-for="value in platformUserOptions.modes"
+                    :key="value"
+                    :value="value"
+                    :label="value === 'dark' ? '暗色' : '亮色'"
+                /></el-select>
+              </el-form-item>
+            </el-form> </el-popover
           ><el-button text :loading="loading" @click="refreshView"
             >刷新</el-button
           ><el-button text @click="logout">退出登录</el-button></div
         ></el-header
       ><el-main
-        ><el-alert
+        ><el-breadcrumb class="platform-breadcrumb"
+          ><el-breadcrumb-item>{{
+            platformPresentation.brand
+          }}</el-breadcrumb-item
+          ><el-breadcrumb-item>{{ title }}</el-breadcrumb-item></el-breadcrumb
+        >
+        <el-alert
           v-if="error && view !== 'audit'"
           :title="error"
           type="error"
@@ -219,7 +312,8 @@
                     :closable="false"
                   /><el-descriptions :column="2" border
                     ><el-descriptions-item label="静态预检"
-                      >{{ readinessLabel(upgradeReadiness.preflight.state) }} ·
+                      >{{ readinessLabel(upgradeReadiness.preflight.state) }}
+                      ·
                       {{
                         opsReason(upgradeReadiness.preflight.code)
                       }}</el-descriptions-item
@@ -1067,8 +1161,9 @@
         ></template>
         <template v-else-if="view === 'developer'"
           ><developer-center-page
-        /></template> </el-main></el-container
-  ></el-container>
+        /></template> </el-main
+    ></el-container>
+  </component>
   <el-dialog
     v-model="provisionDialog"
     title="新建租户"
@@ -1136,6 +1231,8 @@
   } from 'vue';
   import {
     ElMessage,
+    ElMenuItemGroup,
+    ElSubMenu,
     ElMessageBox,
     ElButton,
     ElInput,
@@ -1178,6 +1275,22 @@
   import PermissionBundlesPanel from './components/PermissionBundlesPanel.vue';
   import PlansPanel from './components/PlansPanel.vue';
   import TenantLicensePanel from './components/TenantLicensePanel.vue';
+  import {
+    platformPresentation,
+    platformShell,
+    platformUserOptions,
+    selectPlatformPreset,
+  } from './peanut.overrides';
+
+  const hasPresentationChoices = Object.values(platformUserOptions).some(
+    (values) => values.length > 1
+  );
+
+  const navigationGroup = computed(() =>
+    platformPresentation.navigationMode === 'grouped'
+      ? ElMenuItemGroup
+      : ElSubMenu
+  );
 
   const tokenFromUrl = new URLSearchParams(window.location.search).get(
     'invitation'
@@ -1186,6 +1299,7 @@
   const invitation = ref<InvitationInspection | null>(null);
   const acceptPassword = ref('');
   const authenticated = ref(hasPlatformSession());
+  const platformAccount = ref('');
   const loading = ref(false);
   const error = ref('');
   const view = ref('overview');
@@ -1263,6 +1377,7 @@
   const stopPlatformSessionSync = onPlatformSessionChange((present) => {
     authenticated.value = present;
     platformPermissions.value = [];
+    platformAccount.value = '';
     tenants.value = [];
     invitations.value = [];
     bindings.value = [];
@@ -1614,6 +1729,7 @@
   }
   async function loadSessionInfo() {
     const info = await api.sessionInfo();
+    platformAccount.value = info.account_id;
     platformPermissions.value = info.permissions;
     if (!can('platform.tenant.read') && can('platform.ops.read'))
       view.value = 'ops';

@@ -12,6 +12,8 @@ use think\facade\Db;
  * Applies the Identity portion of an already authorized deployment catalog lifecycle.
  * The host owns approval, cross-owner blockers and the enclosing transaction.
  * Only fixed catalog actions are exposed, never a repository, table selector or ORM query.
+ * Composite owners suppress inner invalidation and advance revisions once in their
+ * enclosing native transaction after all catalog and installation writes.
  */
 final readonly class CatalogLifecycleService
 {
@@ -23,7 +25,7 @@ final readonly class CatalogLifecycleService
      * 目录应用仍由宿主编排；本方法参与其外层事务，不开放任意字段更新或表选择。
      * @return array{key:string,version:string,schema:int,digest:string,status:string}
      */
-    public function registerDeployedManifest(ManifestDocument $manifest): array
+    public function registerDeployedManifest(ManifestDocument $manifest, bool $invalidate = true): array
     {
         $identity = [
             'key' => (string) $manifest->data['key'],
@@ -33,7 +35,7 @@ final readonly class CatalogLifecycleService
             'status' => 'active',
         ];
         $now = $this->now();
-        return Db::transaction(function () use ($identity, $now): array {
+        return Db::transaction(function () use ($identity, $now, $invalidate): array {
             Db::name('module_installation')->duplicate(['module_key'])->insert([
                 'module_key' => $identity['key'],
                 'installed_version' => $identity['version'],
@@ -55,6 +57,9 @@ final readonly class CatalogLifecycleService
                 || (string) ($current['status'] ?? '') !== $identity['status']) {
                 throw new ModuleException('MODULE_INSTALLATION_MISMATCH', "Installed Module identity differs from the deployment registry: {$identity['key']}");
             }
+            if ($invalidate) {
+                app(ModuleAuthorizationCatalogSynchronizer::class)->invalidateTenantAuthorization([$identity['key']]);
+            }
             return $identity;
         });
     }
@@ -62,125 +67,152 @@ final readonly class CatalogLifecycleService
     /** @param array<string,ManifestDocument> $manifests */
     public function beginPackageDeployment(array $manifests, bool $upgrade, string $now): void
     {
-        foreach ($manifests as $manifest) {
-            $moduleKey = (string) $manifest->data['key'];
-            $values = [
-                'installed_version' => $manifest->data['version'],
-                'manifest_schema_version' => $manifest->data['schema_version'],
-                'manifest_digest' => $manifest->digest,
-                'status' => $upgrade ? 'upgrading' : 'installing',
-                'last_error_code' => null,
-                'updated_at' => $now,
-            ];
-            $exists = Db::name('module_installation')->where('module_key', $moduleKey)
-                ->lock(true)->value('module_key');
-            if ($exists === null) {
-                Db::name('module_installation')->insert([
-                    'module_key' => $moduleKey,
-                    ...$values,
-                    'revision' => 1,
-                    'installed_at' => $now,
-                    'created_at' => $now,
-                ]);
-                continue;
+        Db::transaction(function () use ($manifests, $upgrade, $now): void {
+            foreach ($manifests as $manifest) {
+                $moduleKey = (string) $manifest->data['key'];
+                $values = [
+                    'installed_version' => $manifest->data['version'],
+                    'manifest_schema_version' => $manifest->data['schema_version'],
+                    'manifest_digest' => $manifest->digest,
+                    'status' => $upgrade ? 'upgrading' : 'installing',
+                    'last_error_code' => null,
+                    'updated_at' => $now,
+                ];
+                $exists = Db::name('module_installation')->where('module_key', $moduleKey)
+                    ->lock(true)->value('module_key');
+                if ($exists === null) {
+                    Db::name('module_installation')->insert([
+                        'module_key' => $moduleKey,
+                        ...$values,
+                        'revision' => 1,
+                        'installed_at' => $now,
+                        'created_at' => $now,
+                    ]);
+                    continue;
+                }
+                Db::name('module_installation')->where('module_key', $moduleKey)
+                    ->update([...$values, 'revision' => Db::raw('revision+1')]);
             }
-            Db::name('module_installation')->where('module_key', $moduleKey)
-                ->update([...$values, 'revision' => Db::raw('revision+1')]);
-        }
+            app(ModuleAuthorizationCatalogSynchronizer::class)->invalidateTenantAuthorization(array_keys($manifests));
+        });
     }
 
     /** @param array<string,ManifestDocument> $manifests */
-    public function activatePackageDeployment(array $manifests, bool $upgrade, string $now): void
+    public function activatePackageDeployment(array $manifests, bool $upgrade, string $now, bool $invalidate = true): void
     {
-        foreach ($manifests as $manifest) {
-            $moduleKey = (string) $manifest->data['key'];
-            $activatedAt = Db::name('module_installation')->where('module_key', $moduleKey)
-                ->lock(true)->value('activated_at');
-            Db::name('module_installation')->where('module_key', $moduleKey)->update([
-                'installed_version' => $manifest->data['version'],
-                'manifest_schema_version' => $manifest->data['schema_version'],
-                'manifest_digest' => $manifest->digest,
-                'status' => 'active',
-                'revision' => Db::raw('revision+1'),
-                'activated_at' => $activatedAt ?? $now,
-                'upgraded_at' => $upgrade ? $now : null,
-                'last_error_code' => null,
-                'updated_at' => $now,
-            ]);
-        }
+        Db::transaction(function () use ($manifests, $upgrade, $now, $invalidate): void {
+            foreach ($manifests as $manifest) {
+                $moduleKey = (string) $manifest->data['key'];
+                $activatedAt = Db::name('module_installation')->where('module_key', $moduleKey)
+                    ->lock(true)->value('activated_at');
+                Db::name('module_installation')->where('module_key', $moduleKey)->update([
+                    'installed_version' => $manifest->data['version'],
+                    'manifest_schema_version' => $manifest->data['schema_version'],
+                    'manifest_digest' => $manifest->digest,
+                    'status' => 'active',
+                    'revision' => Db::raw('revision+1'),
+                    'activated_at' => $activatedAt ?? $now,
+                    'upgraded_at' => $upgrade ? $now : null,
+                    'last_error_code' => null,
+                    'updated_at' => $now,
+                ]);
+            }
+            if ($invalidate) {
+                app(ModuleAuthorizationCatalogSynchronizer::class)->invalidateTenantAuthorization(array_keys($manifests));
+            }
+        });
     }
 
     /** @param list<string> $moduleKeys */
     public function markPackageDeploymentFailed(array $moduleKeys, string $errorCode, string $now): void
     {
-        if ($moduleKeys !== []) {
-            Db::name('module_installation')->whereIn('module_key', $moduleKeys)->update([
-                'status' => 'failed',
-                'revision' => Db::raw('revision+1'),
-                'last_error_code' => $errorCode,
-                'updated_at' => $now,
-            ]);
-        }
+        Db::transaction(function () use ($moduleKeys, $errorCode, $now): void {
+            if ($moduleKeys !== []) {
+                Db::name('module_installation')->whereIn('module_key', $moduleKeys)->update([
+                    'status' => 'failed',
+                    'revision' => Db::raw('revision+1'),
+                    'last_error_code' => $errorCode,
+                    'updated_at' => $now,
+                ]);
+            }
+            app(ModuleAuthorizationCatalogSynchronizer::class)->invalidateTenantAuthorization($moduleKeys);
+        });
     }
 
     /** Preserve the historical error field while retiring installed members during normal uninstall. @param list<string> $moduleKeys */
-    public function retirePackageModules(array $moduleKeys, string $now): void
+    public function retirePackageModules(array $moduleKeys, string $now, bool $invalidate = true): void
     {
-        if ($moduleKeys !== []) {
-            Db::name('module_installation')->whereIn('module_key', $moduleKeys)->update([
-                'status' => 'maintenance',
-                'revision' => Db::raw('revision+1'),
-                'updated_at' => $now,
-            ]);
-        }
+        Db::transaction(function () use ($moduleKeys, $now, $invalidate): void {
+            if ($moduleKeys !== []) {
+                Db::name('module_installation')->whereIn('module_key', $moduleKeys)->update([
+                    'status' => 'maintenance',
+                    'revision' => Db::raw('revision+1'),
+                    'updated_at' => $now,
+                ]);
+            }
+            if ($invalidate) {
+                app(ModuleAuthorizationCatalogSynchronizer::class)->invalidateTenantAuthorization($moduleKeys);
+            }
+        });
     }
 
     /** Disable only currently active members, preserving the original database-clock timestamp semantics. @param list<string> $moduleKeys */
-    public function disableActivePackageModules(array $moduleKeys): void
+    public function disableActivePackageModules(array $moduleKeys, bool $invalidate = true): void
     {
-        if ($moduleKeys !== []) {
-            Db::name('module_installation')->whereIn('module_key', $moduleKeys)->where('status', 'active')->update([
-                'status' => 'maintenance',
-                'last_error_code' => null,
-                'revision' => Db::raw('revision+1'),
-                'updated_at' => Db::raw('UTC_TIMESTAMP(3)'),
-            ]);
-        }
+        Db::transaction(function () use ($moduleKeys, $invalidate): void {
+            if ($moduleKeys !== []) {
+                Db::name('module_installation')->whereIn('module_key', $moduleKeys)->where('status', 'active')->update([
+                    'status' => 'maintenance',
+                    'last_error_code' => null,
+                    'revision' => Db::raw('revision+1'),
+                    'updated_at' => Db::raw('UTC_TIMESTAMP(3)'),
+                ]);
+            }
+            if ($invalidate) {
+                app(ModuleAuthorizationCatalogSynchronizer::class)->invalidateTenantAuthorization($moduleKeys);
+            }
+        });
     }
 
     /** @param list<string> $moduleKeys */
     public function markPackageModulesForRecovery(array $moduleKeys, string $marker, string $now): void
     {
-        if ($moduleKeys !== []) {
-            Db::name('module_installation')->whereIn('module_key', $moduleKeys)->update([
-                'status' => 'maintenance',
-                'last_error_code' => $marker,
-                'revision' => Db::raw('revision+1'),
-                'updated_at' => $now,
-            ]);
-        }
+        Db::transaction(function () use ($moduleKeys, $marker, $now): void {
+            if ($moduleKeys !== []) {
+                Db::name('module_installation')->whereIn('module_key', $moduleKeys)->update([
+                    'status' => 'maintenance',
+                    'last_error_code' => $marker,
+                    'revision' => Db::raw('revision+1'),
+                    'updated_at' => $now,
+                ]);
+            }
+            app(ModuleAuthorizationCatalogSynchronizer::class)->invalidateTenantAuthorization($moduleKeys);
+        });
     }
 
     /** @param list<string> $moduleKeys */
     public function finalizePackageRemoval(array $moduleKeys, bool $purge, string $now): void
     {
-        if ($moduleKeys === []) {
-            return;
-        }
-        if ($purge) {
-            Db::name('module_installation')->whereIn('module_key', $moduleKeys)->delete();
-            return;
-        }
-        Db::name('module_installation')->whereIn('module_key', $moduleKeys)->update([
-            'status' => 'maintenance',
-            'last_error_code' => null,
-            'revision' => Db::raw('revision+1'),
-            'updated_at' => $now,
-        ]);
+        Db::transaction(function () use ($moduleKeys, $purge, $now): void {
+            if ($moduleKeys === []) {
+                return;
+            }
+            if ($purge) {
+                Db::name('module_installation')->whereIn('module_key', $moduleKeys)->delete();
+            } else {
+                Db::name('module_installation')->whereIn('module_key', $moduleKeys)->update([
+                    'status' => 'maintenance',
+                    'last_error_code' => null,
+                    'revision' => Db::raw('revision+1'),
+                    'updated_at' => $now,
+                ]);
+            }
+            app(ModuleAuthorizationCatalogSynchronizer::class)->invalidateTenantAuthorization($moduleKeys);
+        });
     }
 
     /** @param array<string, ManifestDocument> $manifests */
-    public function retireMissing(array $manifests): void
+    public function retireMissing(array $manifests, bool $invalidate = true): void
     {
         $moduleKeys = array_keys($manifests);
         if ($moduleKeys === []) {
@@ -208,7 +240,7 @@ final readonly class CatalogLifecycleService
                 }
             }
         }
-        Db::transaction(function () use ($declared, $operations, $moduleKeys): void {
+        Db::transaction(function () use ($declared, $operations, $moduleKeys, $invalidate): void {
             $now = $this->now();
             foreach ($declared as $table => $byModule) {
                 foreach ($moduleKeys as $moduleKey) {
@@ -225,14 +257,16 @@ final readonly class CatalogLifecycleService
                     $missing[] = (string) $row['id'];
                 }
             }
-            if ($missing === []) {
-                return;
+            if ($missing !== []) {
+                $this->deleteByForeignIds('pa_resource_operation_permission', 'resource_operation_id', $missing);
+                foreach (['pa_resource_operation_target_type', 'pa_resource_operation_condition'] as $table) {
+                    $this->updateByIds($table, $this->foreignIds($table, 'resource_operation_id', $missing), ['status' => 'retired']);
+                }
+                $this->updateByIds('pa_resource_operation', $missing, ['status' => 'retired', 'updated_at' => $now]);
             }
-            $this->deleteByForeignIds('pa_resource_operation_permission', 'resource_operation_id', $missing);
-            foreach (['pa_resource_operation_target_type', 'pa_resource_operation_condition'] as $table) {
-                $this->updateByIds($table, $this->foreignIds($table, 'resource_operation_id', $missing), ['status' => 'retired']);
+            if ($invalidate) {
+                app(ModuleAuthorizationCatalogSynchronizer::class)->invalidateTenantAuthorization($moduleKeys);
             }
-            $this->updateByIds('pa_resource_operation', $missing, ['status' => 'retired', 'updated_at' => $now]);
         });
     }
 
@@ -304,9 +338,9 @@ final readonly class CatalogLifecycleService
     }
 
     /** @param list<string> $moduleKeys */
-    public function retire(array $moduleKeys): void
+    public function retire(array $moduleKeys, bool $invalidate = true): void
     {
-        Db::transaction(function () use ($moduleKeys): void {
+        Db::transaction(function () use ($moduleKeys, $invalidate): void {
             $now = $this->now();
             if ($moduleKeys !== []) {
                 Db::name('api_endpoint')->whereIn('module_key', $moduleKeys)->update([
@@ -329,13 +363,16 @@ final readonly class CatalogLifecycleService
             foreach (['pa_resource_operation_target_type', 'pa_resource_operation_condition'] as $table) {
                 $this->updateByIds($table, $this->foreignIds($table, 'resource_operation_id', $operations), ['status' => 'retired']);
             }
+            if ($invalidate) {
+                app(ModuleAuthorizationCatalogSynchronizer::class)->invalidateTenantAuthorization($moduleKeys);
+            }
         });
     }
 
     /** @param list<string> $moduleKeys */
-    public function purge(array $moduleKeys): void
+    public function purge(array $moduleKeys, bool $invalidate = true): void
     {
-        Db::transaction(function () use ($moduleKeys): void {
+        Db::transaction(function () use ($moduleKeys, $invalidate): void {
             if ($moduleKeys !== []) {
                 Db::name('api_endpoint')->whereIn('module_key', $moduleKeys)->update([
                     'status' => 'retired', 'retired_at' => $this->now(), 'updated_at' => $this->now(),
@@ -357,6 +394,9 @@ final readonly class CatalogLifecycleService
             $this->deleteByIds('pa_target_type', $targets);
             $this->deleteByIds('pa_data_condition_definition', $conditions);
             $this->deleteByIds('pa_permission', $permissions);
+            if ($invalidate) {
+                app(ModuleAuthorizationCatalogSynchronizer::class)->invalidateTenantAuthorization($moduleKeys);
+            }
         });
     }
 

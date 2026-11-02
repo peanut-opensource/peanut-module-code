@@ -147,6 +147,10 @@ export const createFileAssetRuntime = (
       controller = null;
       state.items = [];
       state.selectedFileKey = null;
+      state.page = 1;
+      state.total = 0;
+      state.loading = false;
+      state.error = null;
     },
   };
 };

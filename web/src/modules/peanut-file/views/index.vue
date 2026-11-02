@@ -40,6 +40,17 @@
                 <template #icon><Plus /></template>
               </el-button>
             </div>
+            <el-alert
+              v-if="cateError"
+              :title="$t('systemFile.error.categories')"
+              type="error"
+              :closable="false"
+              show-icon
+            >
+              <el-button link @click="fetchCate">
+                {{ $t('systemFile.op.retry') }}
+              </el-button>
+            </el-alert>
             <ul class="cate-list">
               <li :class="{ active: currentCid === '' }">
                 <button class="cate-name" type="button" @click="selectCate('')">
@@ -189,7 +200,18 @@
           </div>
 
           <div v-loading="loading" style="width: 100%">
-            <div v-if="renderData.length" class="grid">
+            <el-alert
+              v-if="fileError"
+              :title="$t('systemFile.error.files')"
+              type="error"
+              :closable="false"
+              show-icon
+            >
+              <el-button link @click="fetchFiles(pagination.current)">
+                {{ $t('systemFile.op.retry') }}
+              </el-button>
+            </el-alert>
+            <div v-else-if="renderData.length" class="grid">
               <div
                 v-for="item in renderData"
                 :key="item.id"
@@ -240,13 +262,15 @@
                 </div>
               </div>
             </div>
-            <el-empty v-else />
+            <el-empty v-else-if="!loading" />
           </div>
 
           <div class="pager">
             <el-pagination
+              v-if="!fileError"
               v-model:current-page="pagination.current"
               v-model:page-size="pagination.pageSize"
+              :disabled="loading"
               :total="pagination.total"
               layout="prev, pager, next"
               @current-change="fetchFiles"
@@ -442,6 +466,7 @@
   // ---- 分类 ----
   let disposed = false;
   const cateList = ref<FileCateRecord[]>([]);
+  const cateError = ref(false);
   let cateRequestId = 0;
   const flatCateList = computed(() => {
     const result: Array<FileCateRecord & { depth: number }> = [];
@@ -462,19 +487,32 @@
     const requestContext = contextKey.value;
     cateRequestId += 1;
     const requestId = cateRequestId;
-    const { data } = await getFileCateList(type);
-    if (
-      disposed ||
-      requestId !== cateRequestId ||
-      type !== activeType.value ||
-      requestContext !== contextKey.value
-    )
-      return;
-    cateList.value = data;
+    cateError.value = false;
+    try {
+      const { data } = await getFileCateList(type);
+      if (
+        disposed ||
+        requestId !== cateRequestId ||
+        type !== activeType.value ||
+        requestContext !== contextKey.value
+      )
+        return;
+      cateList.value = data;
+    } catch {
+      if (
+        disposed ||
+        requestId !== cateRequestId ||
+        requestContext !== contextKey.value
+      )
+        return;
+      cateList.value = [];
+      cateError.value = true;
+    }
   };
 
   // ---- 文件 ----
   const renderData = ref<FileRecord[]>([]);
+  const fileError = ref(false);
   let fileListRequestId = 0;
   let fileListController: AbortController | undefined;
   const searchName = ref('');
@@ -504,6 +542,10 @@
     fileListRequestId += 1;
     const requestId = fileListRequestId;
     const requestContext = contextKey.value;
+    fileError.value = false;
+    renderData.value = [];
+    checkedIds.value = [];
+    pagination.current = page;
     setLoading(true);
     try {
       const { data } = await getFileList(
@@ -528,7 +570,13 @@
       pagination.total = data.count;
       checkedIds.value = [];
     } catch {
-      return;
+      if (
+        disposed ||
+        requestId !== fileListRequestId ||
+        requestContext !== contextKey.value
+      )
+        return;
+      fileError.value = true;
     } finally {
       if (requestId === fileListRequestId && type === activeType.value) {
         setLoading(false);
@@ -538,8 +586,14 @@
 
   const init = async () => {
     const requestContext = contextKey.value;
+    const type = activeType.value;
     await fetchCate();
-    if (disposed || requestContext !== contextKey.value) return;
+    if (
+      disposed ||
+      requestContext !== contextKey.value ||
+      type !== activeType.value
+    )
+      return;
     await fetchFiles(1);
   };
   init();
@@ -562,8 +616,7 @@
     pagination.current = 1;
     pagination.total = 0;
     setLoading(false);
-    await fetchCate();
-    await fetchFiles(1);
+    await init();
   };
 
   const selectCate = (cid: number | '') => {
@@ -699,6 +752,8 @@
       fileListRequestId += 1;
       renderData.value = [];
       cateList.value = [];
+      fileError.value = false;
+      cateError.value = false;
       currentCid.value = '';
       checkedIds.value = [];
       searchName.value = '';

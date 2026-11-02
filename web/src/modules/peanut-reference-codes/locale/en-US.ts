@@ -1,6 +1,8 @@
 export default {
   'officialReferenceCodes.title': 'Reference codes',
   'officialReferenceCodes.controls': 'Reference-code controls',
+  'officialReferenceCodes.invalidAsOf':
+    'Enter a valid instant with milliseconds and a timezone, for example 2026-10-31T00:00:00.000Z.',
   'officialReferenceCodes.selectSet': 'Select an owner and set',
   'officialReferenceCodes.notAvailable': 'Reference-code set not available',
   'officialReferenceCodes.loadError': 'Unable to load reference codes',

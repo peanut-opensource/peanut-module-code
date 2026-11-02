@@ -1,49 +1,72 @@
 <template>
-  <el-container class="layout" :class="{ mobile: appStore.hideMenu }">
-    <div v-if="navbar" class="layout-navbar">
-      <NavBar />
-    </div>
-    <el-container class="is-vertical">
-      <el-container>
-        <el-aside
-          v-if="renderMenu"
-          v-show="!hideMenu"
-          class="layout-sider"
-          :width="`${menuWidth}px`"
-          :style="{ paddingTop: navbar ? '60px' : '' }"
-        >
-          <div class="menu-wrapper">
-            <Menu />
-          </div>
-        </el-aside>
-        <el-drawer
-          v-if="hideMenu"
-          v-model="drawerVisible"
-          direction="ltr"
-          :size="`${appStore.menuWidth}px`"
-          :with-header="false"
-          :show-close="false"
-          @close="drawerCancel"
-        >
-          <Menu />
-        </el-drawer>
-        <el-container class="layout-content" :style="paddingStyle">
-          <TabBar v-if="appStore.tabBar" />
-          <TenantLicense />
-          <el-main class="layout-main">
-            <PageLayout />
-          </el-main>
-          <Footer v-if="footer" />
-        </el-container>
-      </el-container>
-    </el-container>
-  </el-container>
+  <component
+    :is="workspaceShell"
+    class="tenant-shell"
+    :theme="theme"
+    :layout="appearance.layout"
+    :navigation-mode="navigationMode"
+  >
+    <template #header>
+      <NavBar
+        v-if="appStore.navbar"
+        :navigation-mode="navigationMode"
+        :brand="appearance.brand"
+      >
+        <template #header-context
+          ><ShellContributions name="header-context"
+        /></template>
+        <template #header-actions
+          ><ShellContributions name="header-actions"
+        /></template>
+      </NavBar>
+    </template>
+    <template #sidebar>
+      <aside
+        v-if="appStore.menu && !isTop && !appStore.hideMenu"
+        class="tenant-sidebar"
+        :class="{
+          'is-collapsed': appStore.menuCollapse,
+        }"
+      >
+        <Menu :navigation-mode="navigationMode" />
+        <ShellContributions name="sidebar-footer" />
+      </aside>
+      <el-drawer
+        v-if="appStore.hideMenu"
+        v-model="drawerVisible"
+        direction="ltr"
+        :size="`${appStore.menuWidth}px`"
+        :with-header="false"
+      >
+        <Menu
+          :navigation-mode="navigationMode === 'top' ? 'tree' : navigationMode"
+        />
+        <ShellContributions name="sidebar-footer" />
+      </el-drawer>
+    </template>
+    <template #breadcrumb>
+      <el-breadcrumb v-if="appearance.breadcrumb" class="tenant-breadcrumb">
+        <el-breadcrumb-item v-for="item in breadcrumbs" :key="item.path">{{
+          item.label
+        }}</el-breadcrumb-item>
+      </el-breadcrumb>
+    </template>
+    <template #tabs><TabBar v-if="appStore.tabBar" /></template>
+    <TenantLicense />
+    <div class="tenant-page-tools"
+      ><ShellContributions name="page-tools"
+    /></div>
+    <main class="tenant-content"><PageLayout /></main>
+    <Footer v-if="appStore.footer" />
+  </component>
 </template>
 
 <script lang="ts" setup>
   import { ref, computed, watch, provide } from 'vue';
   import { useRouter, useRoute } from 'vue-router';
+  import { useI18n } from 'vue-i18n';
   import { useAppStore, useUserStore } from '@/store';
+  import { workspaceShell } from '@/core/runtime';
   import NavBar from '@/components/navbar/index.vue';
   import Menu from '@/components/menu/index.vue';
   import Footer from '@/components/footer/index.vue';
@@ -52,31 +75,41 @@
   import useResponsive from '@/hooks/responsive';
   import TenantLicense from '@/components/tenant-license/index.vue';
   import PageLayout from './page-layout.vue';
+  import ShellContributions from './shell-contributions.vue';
 
   const appStore = useAppStore();
   const userStore = useUserStore();
   const router = useRouter();
   const route = useRoute();
   const permission = usePermission();
+  const { t } = useI18n();
   useResponsive(true);
-  const navbarHeight = `60px`;
-  const navbar = computed(() => appStore.navbar);
-  const renderMenu = computed(
-    () => appStore.menu && (!appStore.topMenu || appStore.device === 'mobile')
+  const appearance = computed(() => appStore.shellAppearance);
+  const navigationMode = computed(() => appearance.value.navigationMode);
+  const isTop = computed(
+    () => navigationMode.value === 'top' && appStore.device !== 'mobile'
   );
-  const hideMenu = computed(() => appStore.hideMenu);
-  const footer = computed(() => appStore.footer);
-  const menuWidth = computed(() => {
-    return appStore.menuCollapse ? 48 : appStore.menuWidth;
-  });
-  const paddingStyle = computed(() => {
-    const paddingLeft =
-      renderMenu.value && !hideMenu.value
-        ? { paddingLeft: `${menuWidth.value}px` }
-        : {};
-    const paddingTop = navbar.value ? { paddingTop: navbarHeight } : {};
-    return { ...paddingLeft, ...paddingTop };
-  });
+  const theme = computed(() => ({
+    ...appearance.value.theme,
+    colors: { primary: appStore.themeColor, ...appearance.value.theme.colors },
+    tokens: {
+      '--pa-shell-sidebar-width': `${appStore.menuWidth}px`,
+      ...appearance.value.theme.tokens,
+    },
+  }));
+  const breadcrumbs = computed(() =>
+    route.matched
+      .filter((item) => item.meta.locale || item.meta.title)
+      .map((item) => {
+        const locale = String(item.meta.locale || '');
+        return {
+          path: item.path,
+          label: locale
+            ? t(locale)
+            : String(item.meta.title || item.name || ''),
+        };
+      })
+  );
   watch(
     () => userStore.role,
     (roleValue) => {
@@ -85,95 +118,68 @@
     }
   );
   const drawerVisible = ref(false);
-  const drawerCancel = () => {
-    drawerVisible.value = false;
-  };
   provide('toggleDrawerMenu', () => {
     drawerVisible.value = !drawerVisible.value;
   });
 </script>
 
-<style scoped lang="less">
-  @nav-size-height: 60px;
-  @layout-max-width: 1100px;
-
-  .layout {
-    width: 100%;
-    height: 100%;
-    flex-direction: column;
-
-    > :deep(.el-container) {
-      min-height: 0;
-    }
-  }
-
-  .layout-navbar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 100;
-    width: 100%;
-    height: @nav-size-height;
-  }
-
-  .layout-sider {
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 99;
-    height: 100%;
-    transition: all 0.2s cubic-bezier(0.34, 0.69, 0.1, 1);
-    &::after {
-      position: absolute;
-      top: 0;
-      right: -1px;
-      display: block;
-      width: 1px;
-      height: 100%;
-      background-color: var(--el-border-color);
-      content: '';
-    }
-
-    overflow-y: hidden;
-  }
-
-  .menu-wrapper {
-    height: 100%;
-    overflow: hidden;
-    :deep(.el-menu) {
-      ::-webkit-scrollbar {
-        width: 12px;
-        height: 4px;
-      }
-
-      ::-webkit-scrollbar-thumb {
-        border: 4px solid transparent;
-        background-clip: padding-box;
-        border-radius: 7px;
-        background-color: var(--el-text-color-placeholder);
-      }
-
-      ::-webkit-scrollbar-thumb:hover {
-        background-color: var(--el-text-color-secondary);
-      }
-    }
-  }
-
-  .layout-content {
-    min-width: 0;
+<style lang="less">
+  .tenant-shell {
     min-height: 100vh;
-    overflow-y: hidden;
-    flex-direction: column;
-    background-color: var(--el-fill-color-light);
-    transition: padding 0.2s cubic-bezier(0.34, 0.69, 0.1, 1);
+    background: var(--el-bg-color-page);
+    .navbar {
+      height: var(--pa-shell-header-height);
+    }
+    .pa-shell__workspace {
+      display: flex;
+      min-height: calc(100vh - var(--pa-shell-header-height));
+    }
+    .pa-shell__main {
+      flex: 1;
+      min-width: 0;
+      padding: var(--pa-shell-spacing);
+    }
+    .tenant-sidebar {
+      width: var(--pa-shell-sidebar-width);
+      flex-shrink: 0;
+      background: var(--pa-shell-surface-color);
+      border-right: 1px solid var(--pa-shell-border-color);
+      transition: width var(--pa-shell-motion-duration);
+      &.is-collapsed {
+        width: var(--pa-shell-sidebar-collapsed-width);
+        .el-menu-item-group__title {
+          display: none;
+        }
+      }
+      .menu-container {
+        height: auto;
+        min-height: 100%;
+      }
+    }
+    .tenant-breadcrumb {
+      margin-bottom: var(--pa-shell-spacing);
+    }
+    .tenant-page-tools:empty {
+      display: none;
+    }
+    .tenant-content {
+      min-width: 0;
+    }
+    &.pa-shell--layout-workspace .pa-shell__main {
+      max-width: var(--pa-shell-content-max-width);
+      margin-inline: auto;
+    }
+    &.pa-shell--navigation-top .pa-shell__workspace {
+      flex-direction: column;
+    }
+    a:focus-visible,
+    button:focus-visible {
+      outline-color: var(--pa-shell-focus-color);
+    }
   }
-
-  .layout-main {
-    min-width: 0;
-    padding: 0;
-  }
-
-  :deep(.el-drawer__body) {
-    padding: 0;
+  @media (max-width: 768px) {
+    .tenant-shell .pa-shell__main {
+      padding: var(--pa-shell-gap);
+    }
   }
 </style>

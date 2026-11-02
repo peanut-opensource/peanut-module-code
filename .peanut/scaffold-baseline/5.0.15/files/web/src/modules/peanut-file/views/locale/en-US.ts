@@ -21,6 +21,10 @@ export default {
     'Delete {name}, all subcategories, their files, and storage objects?',
 
   'systemFile.op.assetSelector': 'Image asset selector',
+  'systemFile.op.retry': 'Retry',
+  'systemFile.error.categories':
+    'Categories could not load. Retry or continue browsing all files.',
+  'systemFile.error.files': 'Files could not load. Please retry.',
   'systemFile.op.upload': 'Upload',
   'systemFile.op.rename': 'Rename',
   'systemFile.op.move': 'Move',

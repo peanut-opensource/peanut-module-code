@@ -32,6 +32,15 @@
       preload="metadata"
       @error="failed"
     />
+    <button
+      v-if="
+        status === 'failed' && capabilities.canView && callbacks.resolvePreview
+      "
+      type="button"
+      @click="previewAttempt += 1"
+    >
+      重新获取预览
+    </button>
   </div>
 </template>
 
@@ -56,6 +65,7 @@
   const access = shallowRef<AuthorizedPreviewAccess>();
   const pdfUrl = shallowRef<string>();
   const status = shallowRef<'loading' | 'ready' | 'failed'>('loading');
+  const previewAttempt = shallowRef(0);
   const message = computed(() =>
     status.value === 'failed' ? '受控预览暂不可用。' : '正在获取预览权限…'
   );
@@ -94,7 +104,12 @@
     }
   };
   watch(
-    () => [props.content, props.capabilities, props.callbacks],
+    () => [
+      props.content,
+      props.capabilities,
+      props.callbacks,
+      previewAttempt.value,
+    ],
     async () => {
       release();
       const current = new AbortController();

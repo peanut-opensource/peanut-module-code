@@ -137,7 +137,7 @@ final class PermissionApiController extends BasePlatformController
         $context = $this->platformContext?->core ?? throw new \DomainException('PLATFORM_CONTEXT_REQUIRED');
         return $this->data(Db::transaction(function () use ($key, $revision, $ids, $context): array {
             $before = $this->catalog->bundle($key);
-            $after = $this->catalog->replace($key, $revision, $ids, app(\app\common\contract\module\ModuleQualificationQuery::class));
+            $after = $this->catalog->replace($key, $revision, $ids, app(\PeanutAdmin\Kernel\Module\ModuleAvailability::class));
             $this->audit->platform($context->operatorId, $context->accountId, $context->requestId,
                 'permission.apis.replaced', 'platform.permission.api.manage',
                 targetType: 'permission', targetId: $key, before: $before, after: $after);

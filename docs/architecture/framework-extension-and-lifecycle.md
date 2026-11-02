@@ -29,6 +29,45 @@ Peanut 使用 ThinkPHP 原生机制承载配置、容器和进程运行，Core �
 
 Vue tenant disposer 的模块级 Map 当前真实调用位于浏览器 Web；当前 PC/SSR 无该调用，不能据此承诺其可用于 SSR 请求状态。SSR 的 Client/runtime 仍按请求或 app 所有权创建，可信 Host/cookie 转发合同保留，不为复用放开跨请求共享身份。
 
+### 1.1 客户端请求入口与注入
+
+各端保留自己的协议、身份和错误处理入口。模块生成的 `createModuleClient(options?: ClientOptions)` 由 `scripts/generate-api-contracts.php` 生成，接收 openapi-fetch 的 `baseUrl`、`fetch` 等原生选项；不修改生成文件来接入宿主身份。Web 租户模块可按现有 Settings 宿主的方式显式选择：
+
+```ts
+import { createModuleClient } from '@/modules/peanut-settings/generated/openapi';
+import { tenantSessionFetch } from '@/api/tenant-session-fetch';
+
+const api = createModuleClient({
+  baseUrl: new URL(
+    import.meta.env.VITE_API_BASE_URL || '/',
+    window.location.origin
+  ).toString(),
+  fetch: tenantSessionFetch,
+});
+```
+
+这个示例用于浏览器租户管理端。`tenantSessionFetch` 透传 `Request.signal`，按会话 generation/token 拒绝迟到响应，仅对 `/adminapi/api/v1/` 的 HTTP 401、业务码 40100 尝试刷新并重派发一次；无法克隆的请求体只发送一次。普通 fetch 不会自动获得这些行为。需要替换后端或采集请求信息时，由宿主通过上述选项注入，保留取消、错误和身份语义，不再安装一套全局缓存或拦截器。
+
+| 客户端 | 正式请求入口 | 身份、错误与取消责任 |
+| --- | --- | --- |
+| Web | [共享 Axios 拦截器](../../web/src/api/interceptor.ts)、[租户 fetch](../../web/src/api/tenant-session-fetch.ts) | Axios 和显式注入的 fetch 分别处理原有响应协议；两者保留会话快照与既有 401 刷新重派发；调用方传入 signal 才能取消其网络请求 |
+| Platform | [platform API client](../../platform/src/api/platform.ts) | 独立 Axios 实例、平台会话 generation/token、刷新去重和单次重派发；平台身份不使用租户 fetch |
+| PC | [useRequest](../../pc/composables/useRequest.ts) | 每次 composable 创建 Client 与 Nuxt transport；SSR 使用可信 Host 转发，当前不转发 cookie；浏览器读取自身用户态；`cancel()` 和 scope dispose 仅中止该实例自有请求 |
+| UniApp | [request/http](../../uniapp/src/utils/request.ts) | 使用 UniApp transport，适配器返回原生 `uni.request` 的 RequestTask，公开 http 方法返回 Promise；可选 signal 触发 abort，结束后移除 abort 监听；用户 store 的 generation/token 约束过期会话清理 |
+
+File 的 [visibilityRequest](../../web/src/modules/peanut-file/api.ts) 继续调用共享 `axios.request`，只通过 `transformResponse` 保留最终 4xx 拒绝体中的 `error_code`。HTTP 401 不记录为最终可见性拒绝，仍交给共享刷新与重派发；网络错误和取消原样传播。自定义文件呈现不需要另建 Axios 实例来绕过这个合同。
+
+### 1.2 开始、完成、错误、取消与退出
+
+请求状态由拥有该操作的组件或 runtime 管理，transport 不创建跨页面的 loading/error 单例。操作开始时设置 loading 并清除本次错误，成功时只在 generation/revision 仍有效时更新数据，失败时保留实际错误，finally 结束本次 loading 并释放监听。取消不得写成成功或空数据；主动 abort 按对应 transport 的取消错误处理，迟到结果仍须受当前会话与操作版本约束。
+
+- Web [useRequest](../../web/src/hooks/request.ts) 已有 loading/response/error/reload/cancel 与 scope dispose；它的 `cancel()` 通过 revision 丢弃迟到结果并结束 loading，参数 `api: () => Promise` 不接收 signal，因此不代表中止网络。需要网络取消的调用方拥有 AbortController 并传给实际 API。
+- Web 组件/runtime 在卸载时调用自身 `dispose()`、停止订阅并清除自身状态。租户资源可用 `registerTenantDisposer(key, cleanup)` 登记清理；组件退出还须调用返回的 unregister，避免保留失去所有者的监听。`disposeTenantState()` 执行已登记回调并传播失败，不会替所有模块自动发现请求。登录、退出和切换租户的宿主已调用它，并用会话 generation 阻止旧响应回填；模块仍负责自己的请求、监听和临时数据。
+- PC `useRequest` 将外部 signal 连接到每次请求的 controller，在 finally 中移除连接并从 pending 集合删除。`cancel()` 可由组件主动调用；Vue scope dispose 自动调用它。`clearSession()` 清除用户 cookie 状态，不是所有 composable 的全局取消器；SSR 状态不能注册到浏览器的全局 tenant disposer。
+- UniApp 页面按原生 `onLoad/onUnload` 或其 Vue scope 创建和释放自有请求、订阅及状态。需要网络取消时，把页面所有的 controller.signal 传给 `http.get/post`，在退出时 abort；只递增 revision 的页面仅丢弃迟到结果。`logout/clearIfToken` 清除用户态，不能代替页面释放。`uploadImage` 是独立的 `uni.uploadFile` 入口，当前不暴露 signal，不把普通请求的取消合同延伸到上传。
+
+跨端 contribution 只负责声明并装配当前端能力，不共享页面实例或请求状态。PC 的 [Nuxt 配置](../../pc/nuxt.config.ts) 通过 `moduleFrontendEntries(..., 'pc-web', ...)` 装配模块，UniApp 的 [页面生成器](../../uniapp/scripts/module-pages.mjs) 使用 `uniapp` contribution 生成页面/slot 与 `virtual:peanut-module-contributions`；二者共用的 [入口解析器](../../scripts/module-frontend-entries.mjs) 在开发时读取模块声明，发行构建时读取固定 `plugins.lock`。新增贡献沿各自生成链接入，不能复制 Web 页面、tenant disposer 或桌面 transport 来替代原生生命周期。
+
 ThinkPHP 实际 API 以 `server/composer.lock` 锁定的 framework 8.1.4、container 3.0.2、ORM 4.0.51 为准。上述 Laravel/Symfony 资料用于职责和行为比较，不是 Peanut 的依赖，也不证明 Peanut 已完成对应运行验证。
 
 ## 2. 模块启动与原生扩展

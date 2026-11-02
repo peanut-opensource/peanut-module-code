@@ -20,6 +20,7 @@ export default {
   'taskJobs.empty.title': '暂无任务作业',
   'taskJobs.empty.message': '当前状态下没有任务作业。',
   'taskJobs.table.label': '任务作业列表',
+  'taskJobs.pagination.label': '任务作业分页',
   'taskJobs.column.type': '类型',
   'taskJobs.column.status': '状态',
   'taskJobs.column.attempts': '尝试次数',
@@ -31,6 +32,7 @@ export default {
   'taskJobs.error.requestFailed': '任务作业请求失败（状态码 {status}）。',
   'taskJobs.error.serviceUnavailable': '无法连接任务作业服务。',
   'taskJobs.error.actionFailed': '无法完成任务作业操作。',
+  'taskJobs.error.permissionDenied': '无权查看任务作业。',
   'taskJobs.confirm.cancel': '确定取消这项任务作业吗？',
   'taskJobs.confirm.retry': '确定重试这项任务作业吗？',
 

@@ -25,6 +25,7 @@
   const { t } = useI18n();
   const { state } = runtime;
   const asOfInput = ref('');
+  const asOfError = ref(false);
   const canManage = computed(() => runtime.canManage());
   const hasPendingMutation = computed(() => state.pendingResources.size > 0);
   const selectedSetValue = computed(() =>
@@ -47,6 +48,7 @@
   const loadSets = async (): Promise<void> => {
     await run(runtime.loadSets);
     asOfInput.value = state.asOf;
+    asOfError.value = false;
   };
 
   const selectSet = async (value: unknown): Promise<void> => {
@@ -67,10 +69,20 @@
   };
 
   const applyAsOf = async (): Promise<void> => {
-    await run(async () => {
+    asOfError.value = false;
+    try {
       await runtime.setAsOf(asOfInput.value);
       asOfInput.value = state.asOf;
-    });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === 'REFERENCE_CODES_INSTANT_INVALID'
+      ) {
+        asOfError.value = true;
+        return;
+      }
+      throw error;
+    }
   };
 
   const setEffectiveStatus = async (value: unknown): Promise<void> => {
@@ -185,9 +197,15 @@
         <ElInput
           id="reference-as-of"
           v-model="asOfInput"
+          :aria-invalid="asOfError"
+          :aria-describedby="asOfError ? 'reference-as-of-error' : undefined"
           placeholder="2026-07-20T00:00:00.000Z"
           :disabled="state.selectedSet === null || hasPendingMutation"
+          @update:model-value="asOfError = false"
         />
+        <span v-if="asOfError" id="reference-as-of-error" role="alert">
+          {{ $t('officialReferenceCodes.invalidAsOf') }}
+        </span>
         <ElButton
           :disabled="state.selectedSet === null || hasPendingMutation"
           @click="applyAsOf"

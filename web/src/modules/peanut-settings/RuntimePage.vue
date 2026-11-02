@@ -3,8 +3,8 @@
   import { useRoute } from 'vue-router';
   import { hasPermission } from '@/hooks/permission';
   import { tenantSessionFetch } from '@/api/tenant-session-fetch';
-  import SettingsPage from './runtime/src/SettingsPage.vue';
   import {
+    SettingsPage,
     createSettingsFetchTransport,
     createSettingsRuntime,
     SETTINGS_MANAGE_PERMISSION,

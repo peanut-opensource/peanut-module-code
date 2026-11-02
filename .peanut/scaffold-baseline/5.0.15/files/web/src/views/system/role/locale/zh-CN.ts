@@ -5,6 +5,11 @@ export default {
   'systemRole.auth.menuPermissions': '菜单权限',
   'systemRole.auth.actionPermissions': '操作权限',
   'systemRole.auth.searchActions': '搜索权限包、标识或模块',
+  'systemRole.auth.ownerFixed':
+    '租户所有者的权限由发行目录固定维护，此处仅供查看。',
+  'systemRole.auth.selectionSummary':
+    '已选择 {selected} 项，当前显示 {visible} 项',
+  'systemRole.auth.noMatches': '没有匹配的权限包，请调整搜索条件',
   'systemRole.auth.unavailable': '当前不可分配，请确认后取消此权限',
   'systemRole.auth.catalogIncomplete': '权限目录未完整加载，请重新打开权限窗口',
   'menu.system.role': '角色管理',

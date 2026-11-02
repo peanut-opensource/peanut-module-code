@@ -163,6 +163,8 @@ final readonly class BootstrapService
             }
             $now = $this->now();
             $tenant = new Tenant();
+            // Discover metadata before INSERT to preserve PDO's last insert ID with explicit schema.
+            $tenant->getQuery()->getAutoInc();
             $tenant->save([
                 'code' => $tenantCode,
                 'name' => $tenantName,

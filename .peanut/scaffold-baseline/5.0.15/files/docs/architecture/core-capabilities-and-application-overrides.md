@@ -59,7 +59,13 @@ $this->app->bind(\PeanutAdmin\Kernel\Identity\PasswordHasher::class, \app\securi
 
 应用服务必须接受注入的策略/散列；不自行 `new` 默认实现、不用静态工厂绕过绑定。`AppService` 不再强制覆盖密码绑定。已有版本化权限 slot 继续校验白名单/合同版本，`registry()->bindings()` 交给原生容器，应用显式原生绑定优先。该 slot 不是所有技术能力的强制扩展入口。
 
-## 4. 完整消费与升级
+## 4. Web 界面组件、Shell 与主题
+
+通用Vue组件、Shell、导航、主题token、slot和应用覆盖的类型合同由 Web Core 的 [UI/Vue扩展文档](https://github.com/peanut-business/peanut-admin-core-web/blob/dev/packages/ui-vue/README.md)维护；Code只维护宿主接线与应用所有权，不复制一份组件API说明。应用自己的 `web/src/peanut.overrides.ts` 已由模板inventory标为 `app-owned`，上游更新按既有inventory/baseline保护和冲突审阅处理。
+
+Web Core 包有公开合同不等于每个产品宿主都已接入；确认某应用已采用时，应核对该应用的实际宿主消费者。界面配置不能改变既有路由、权限和业务数据合同，后端服务实现替换继续按[服务绑定](service-bindings.md)执行。
+
+## 5. 完整消费与升级
 
 新凭据写入（安装 CLI/guided、管理员/Platform 操作员/租户 owner、邀请接受、会员注册/重置/改密）执行同一个有效策略，再用注入散列服务生成摘要。登录和既有摘要重算只消费散列服务；提高最小长度不能把已有凭据变成无法验证。身份、权限、会话撤销、事务及完整性保护仍由原业务合同负责。
 
@@ -67,7 +73,7 @@ $this->app->bind(\PeanutAdmin\Kernel\Identity\PasswordHasher::class, \app\securi
 
 应用自有绑定、类及配置处于应用仓，Core 升级不直接改这些源码。若官方应用更新也触及自定义文件，沿既有基线摘要/冲突审阅流程处理，不能用升级覆盖定制。新依赖以 Composer manifest/lock 的固定源码提交为准；开发 `dev-dev#<commit>` 不是正式包发布。PHP 固定开发源码与 Web 已锁定 registry 制品可以独立组合，公开发行打包仍由 `scripts/package-release-files.py` 要求精确已发布 PHP 版本。历史发行快照与已安装实例不会因 dev 修改自动更新。
 
-## 5. 抽取准入
+## 6. 抽取准入
 
 新增能力先回答：原生框架是否已有；真实消费者是否跨模块且没有业务/渠道依赖；需要保留的安全/租户不变量是什么；默认实现能否直接用；配置与实现替换是否贯穿所有消费者。只有真实合同或多实现需要才新增接口，普通可替换服务可以用公开类及原生绑定。完整业务继续作为可复用 Code 模块分发，复用不要求进入 Core。
 

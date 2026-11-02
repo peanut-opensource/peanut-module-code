@@ -40,7 +40,7 @@ UI/CLI共用服务。开发可创建模块、编辑声明、生成/检查/预览
 
 结构化源→OpenAPI/服务/事件目录→可读资料/模块SDK→对照真实路由/Validator/响应→绑定源码提交与工具版本。沿用openapi-typescript/实际路由inventory/模块PHP metadata/manifest/PluginArtifactWriter，OpenAPI目标3.0.3。缺请求/响应合同标route_only，不编造；运行事实和验证证据分别接入。
 
-正式生成API/SDK后再重建模块摘要/plugins.lock，最后模板清单/编译；check-openapi检查派生差异。SDK随产品/模块，不塞回Core；真实消费者要测。跨仓同任务/提交关联，发布材料精确版本，不据生成命令成功宣称完整CI。
+先生成API/SDK，再通过原生入口重建模块摘要/plugins.lock；锁发生变化后，再运行同一API生成入口刷新最终目录对锁的来源摘要，然后处理模板清单/编译。`api-catalog.json` 的 inputs 绑定 `plugins.lock`，不能在锁更新后仍使用旧目录执行安装或 reconcile。check-openapi检查派生差异。SDK随产品/模块，不塞回Core；真实消费者按授权确认。跨仓同任务/提交关联，发布材料精确版本，不据生成命令成功宣称完整CI。
 
 生成的 `api-catalog.json` 为 API 提供独立 `api_id`、受众及源码访问模式。安装和正常模块 reconcile 通过既有 `ModuleCatalogApplier` 将选定范围同步到实例 API 目录，消失的 API 标为退役，不另建运行时扫描入口。同步不授予角色权限；尚未实例配置的关联跟随源码默认增删并更新修订，已显式保存的实例关联（包括获准保存的空集合）保留。新增关联只接受同受众、活动且受保护的 API，退役 API 可供辨认和解除既有关联。生成应用仍由原创建流程按最终 APP 输入重建 API 目录，发行及升级继续使用既有迁移、摘要和清单链路。
 

@@ -1,0 +1,18 @@
+{
+  "name": "@peanut-admin/peanut-chart",
+  "version": "1.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./contribution.ts",
+    "./charts": "./src/index.ts"
+  },
+  "dependencies": {
+    "echarts": "6.1.0",
+    "vue-echarts": "8.3.0"
+  },
+  "peerDependencies": {
+    "vue": "^3.3.0"
+  }
+}

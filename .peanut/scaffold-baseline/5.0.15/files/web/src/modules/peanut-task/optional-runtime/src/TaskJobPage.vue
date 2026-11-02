@@ -8,7 +8,7 @@
     PageToolbar,
     SessionExpiredState,
   } from '@peanut-admin/ui-vue';
-  import { ElButton, ElPopconfirm } from 'element-plus';
+  import { ElButton, ElPagination, ElPopconfirm } from 'element-plus';
   import { computed, onMounted } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useTaskJobRuntime } from './runtime';
@@ -59,6 +59,7 @@
           $t('taskJobs.aria.filterStatus', { status: statusLabel(status) })
         "
         :aria-pressed="state.status === status"
+        :disabled="state.mutating"
         @click="runtime.setStatus(status)"
       >
         {{ statusLabel(status) }}
@@ -156,6 +157,17 @@
         </tbody>
       </table>
     </div>
+    <ElPagination
+      v-if="!state.error && state.total > 0"
+      class="task-pagination"
+      :current-page="state.page"
+      :page-size="state.pageSize"
+      :total="state.total"
+      :disabled="state.loading || state.mutating"
+      :aria-label="$t('taskJobs.pagination.label')"
+      layout="total, prev, pager, next"
+      @current-change="runtime.setPage"
+    />
   </PageContent>
 </template>
 
@@ -165,6 +177,10 @@
   }
   .task-table-wrap {
     overflow-x: auto;
+  }
+  .task-pagination {
+    margin-top: 16px;
+    justify-content: flex-end;
   }
   .task-table {
     width: 100%;

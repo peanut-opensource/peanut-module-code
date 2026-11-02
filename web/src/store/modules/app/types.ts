@@ -1,4 +1,9 @@
 import type { RouteRecordRaw } from 'vue-router';
+import type {
+  ShellLayout,
+  ShellNavigationMode,
+  ShellDensity,
+} from '@peanut-admin/ui-vue';
 
 export interface ServerMenuRecord {
   id: number;
@@ -26,7 +31,10 @@ export interface AppSettings {
   colorWeak: boolean;
   navbar: boolean;
   menu: boolean;
-  topMenu: boolean;
+  shellPreset?: 'admin' | 'workspace';
+  shellLayout?: ShellLayout;
+  shellNavigationMode?: ShellNavigationMode;
+  shellDensity?: ShellDensity;
   hideMenu: boolean;
   menuCollapse: boolean;
   footer: boolean;

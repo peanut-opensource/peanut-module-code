@@ -21,6 +21,9 @@ interface AdminAuthorizationQuery
         string $accessUri,
     ): PermissionDecision;
 
+    /** @param list<string> $accessUris @return array<string,PermissionDecision> */
+    public function decisions(TenantContext $tenantContext, array $accessUris): array;
+
     /** @return list<array<string,mixed>> */
     public function assignableMenuRecords(TenantContext $tenantContext): array;
 }

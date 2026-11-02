@@ -3,8 +3,8 @@
   import { useRoute } from 'vue-router';
   import { hasPermission } from '@/hooks/permission';
   import { tenantSessionFetch } from '@/api/tenant-session-fetch';
-  import ReferenceCodesPage from './runtime/src/ReferenceCodesPage.vue';
   import {
+    ReferenceCodesPage,
     createReferenceCodesFetchTransport,
     createReferenceCodesRuntime,
     REFERENCE_CODES_MANAGE_PERMISSION,

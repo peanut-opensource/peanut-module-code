@@ -7,16 +7,16 @@
     "generated_instance_default": "0.1.0",
     "core_php": {
         "package": "peanut-admin/core",
-        "constraint": "5.0.3-alpha.1",
-        "resolved_version": "5.0.3-alpha.1",
+        "constraint": "5.0.3-alpha.7",
+        "resolved_version": "5.0.3-alpha.7",
         "source_type": "git",
         "source_url": "https://github.com/peanut-business/peanut-admin-core-php.git",
-        "source_reference": "13cf5b7776526e885cb69dbf0849e784a4cacaec"
+        "source_reference": "df96d01875fcd1c15b47d9c01f6d83e3ebcb20b2"
     },
     "core_web": {
         "source_type": "git",
         "source_url": "https://github.com/peanut-business/peanut-admin-core-web.git",
-        "source_reference": "dd5ed945f44c7e0bd4d55d0569a06afea3428db3",
+        "source_reference": "03f7ea093916224e37212a4de880dcb31017ddb1",
         "packages": {
             "@peanut-admin/client": {
                 "version": "5.0.3-alpha.1",
@@ -26,12 +26,12 @@
             "@peanut-admin/vue": {
                 "version": "5.0.3-alpha.1",
                 "archive": "packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz",
-                "sha256": "8b937872c8328caae4618d6489e28aa401a637c4cc253af29fd3b33b8686c82e"
+                "sha256": "045ce94f302b47c0acda0ae8c20cfde01938df4fa77193d8155950109bf34f13"
             },
             "@peanut-admin/ui-vue": {
                 "version": "5.0.3-alpha.1",
                 "archive": "packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz",
-                "sha256": "86f6070e83a1bbe447ebfeacb36e059fa260749033899bc830b1ac73f8745571"
+                "sha256": "172fa6837f554647432b64d4f7da44f4abb73f7ec018947f51b583db5cc04cf8"
             },
             "@peanut-admin/nuxt": {
                 "version": "5.0.3-alpha.1",

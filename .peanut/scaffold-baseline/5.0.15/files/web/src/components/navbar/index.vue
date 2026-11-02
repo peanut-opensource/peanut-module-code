@@ -3,9 +3,9 @@
     <div class="left-side">
       <div class="left-content">
         <img
-          v-if="brandStore.website.web_logo"
+          v-if="brand?.logo || brandStore.website.web_logo"
           alt="logo"
-          :src="brandStore.website.web_logo"
+          :src="brand?.logo || brandStore.website.web_logo"
           style="width: 28px; height: 28px"
         />
         <h5 class="brand-title" :title="brandTitle" :aria-label="brandTitle">
@@ -24,9 +24,11 @@
       </div>
     </div>
     <div class="center-side">
-      <MenuComponent v-if="topMenu" />
+      <MenuComponent v-if="topMenu" navigation-mode="top" />
     </div>
+    <slot name="header-context" />
     <ul class="right-side">
+      <li><slot name="header-actions" /></li>
       <li>
         <el-tooltip :content="$t('settings.search')">
           <el-button
@@ -70,7 +72,7 @@
           </el-dropdown>
         </el-tooltip>
       </li>
-      <li class="desktop-action">
+      <li v-if="shellUserOptions.modes.length > 1" class="desktop-action">
         <el-tooltip
           :content="
             theme === 'light'
@@ -155,11 +157,15 @@
                 <el-icon v-if="item.value === currentLocale"><Check /></el-icon>
                 {{ item.label }}
               </el-dropdown-item>
-              <el-dropdown-item command="theme">{{
-                theme === 'light'
-                  ? $t('settings.navbar.theme.toDark')
-                  : $t('settings.navbar.theme.toLight')
-              }}</el-dropdown-item>
+              <el-dropdown-item
+                v-if="shellUserOptions.modes.length > 1"
+                command="theme"
+                >{{
+                  theme === 'light'
+                    ? $t('settings.navbar.theme.toDark')
+                    : $t('settings.navbar.theme.toLight')
+                }}</el-dropdown-item
+              >
               <el-dropdown-item command="fullscreen">{{
                 isFullscreen
                   ? $t('settings.navbar.screen.toExit')
@@ -278,7 +284,7 @@
   import { computed, inject, ref } from 'vue';
   import type { ButtonInstance, InputInstance } from 'element-plus';
   import { useI18n } from 'vue-i18n';
-  import { useDark, useToggle, useFullscreen } from '@vueuse/core';
+  import { useFullscreen } from '@vueuse/core';
   import { useRouter } from 'vue-router';
   import type { RouteRecordRaw } from 'vue-router';
   import {
@@ -296,6 +302,7 @@
     SwitchButton,
   } from '@element-plus/icons-vue';
   import { useAppStore, useBrandStore, useUserStore } from '@/store';
+  import { shellUserOptions } from '@/peanut.overrides';
   import { LOCALE_OPTIONS } from '@/locale';
   import useLocale from '@/hooks/locale';
   import useUser from '@/hooks/user';
@@ -327,16 +334,27 @@
     const identity = userStore.name?.trim() || userStore.email?.trim() || '?';
     return Array.from(identity)[0]?.toLocaleUpperCase() || '?';
   });
-  const brandTitle = computed(() =>
-    userStore.tenantName
-      ? `${userStore.tenantName} - ${brandStore.website.name}`
-      : brandStore.website.name
+  const props = defineProps<{
+    navigationMode?: 'tree' | 'grouped' | 'top';
+    brand?: { name?: string; logo?: string };
+  }>();
+  const brandTitle = computed(
+    () =>
+      props.brand?.name ||
+      (userStore.tenantName
+        ? `${userStore.tenantName} - ${brandStore.website.name}`
+        : brandStore.website.name)
   );
   const theme = computed(() => {
-    return appStore.theme;
+    return appStore.shellAppearance.theme.mode;
   });
   const topMenu = computed(
-    () => appStore.topMenu && appStore.menu && appStore.device !== 'mobile'
+    () =>
+      (props.navigationMode === undefined
+        ? appStore.shellAppearance.navigationMode === 'top'
+        : props.navigationMode === 'top') &&
+      appStore.menu &&
+      appStore.device !== 'mobile'
   );
   const tenantSession = computed(
     () => getToken()?.startsWith('pa_tat_') === true
@@ -386,20 +404,8 @@
     const [first] = menuSearchResults.value;
     if (first) openMenuSearchResult(first);
   };
-  const isDark = useDark({
-    selector: 'html',
-    attribute: 'class',
-    valueDark: 'dark',
-    valueLight: '',
-    storageKey: 'element-theme',
-    onChanged(dark: boolean) {
-      // Keep the application store and Element Plus theme class in sync.
-      appStore.toggleTheme(dark);
-    },
-  });
-  const toggleTheme = useToggle(isDark);
   const handleToggleTheme = () => {
-    toggleTheme();
+    appStore.toggleTheme(theme.value !== 'dark');
   };
   const setVisible = () => {
     appStore.updateSettings({ globalSettings: true });

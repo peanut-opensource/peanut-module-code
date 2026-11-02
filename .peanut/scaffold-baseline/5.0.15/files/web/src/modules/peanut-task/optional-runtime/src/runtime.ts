@@ -38,6 +38,7 @@ export interface TaskJobRuntime {
   readonly canManage: () => boolean;
   load: () => Promise<void>;
   setStatus: (status: TaskStatus) => Promise<void>;
+  setPage: (page: number) => Promise<void>;
   cancel: (job: TaskJob) => Promise<void>;
   retry: (job: TaskJob) => Promise<void>;
   dispose: () => void;
@@ -99,7 +100,17 @@ export const createTaskJobRuntime = (
     state.loading = true;
     state.error = null;
     try {
-      if (!options.canRead()) throw new Error('TASK_PERMISSION_DENIED');
+      if (!options.canRead()) {
+        state.items = [];
+        state.total = 0;
+        state.error = {
+          message: 'You do not have permission to read task jobs.',
+          messageKey: 'taskJobs.error.permissionDenied',
+          requestId: null,
+          status: 403,
+        };
+        return;
+      }
       const result = await run((signal) =>
         options.transport.list(state.status, state.page, state.pageSize, signal)
       );
@@ -158,8 +169,14 @@ export const createTaskJobRuntime = (
     canManage: options.canManage,
     load,
     async setStatus(status) {
+      if (state.mutating) return;
       state.status = status;
       state.page = 1;
+      await load();
+    },
+    async setPage(page) {
+      if (state.mutating || !Number.isSafeInteger(page) || page < 1) return;
+      state.page = page;
       await load();
     },
     cancel: (job) => mutate(job, 'cancel'),

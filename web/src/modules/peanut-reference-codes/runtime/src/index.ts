@@ -2,6 +2,8 @@ export const REFERENCE_CODES_PACKAGE =
   '@peanut-admin/peanut-reference-codes/runtime' as const;
 export const REFERENCE_CODES_VERSION = '0.1.0' as const;
 
+export { default as ReferenceCodesPage } from './ReferenceCodesPage.vue';
+
 export {
   createReferenceCodesFetchTransport,
   normalizeReferenceCodeInstant,

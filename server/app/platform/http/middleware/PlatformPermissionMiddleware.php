@@ -10,7 +10,7 @@ use app\platform\context\PlatformOperatorContext;
 use app\platform\services\PlatformOperatorSessionService;
 use PeanutAdmin\Modules\Identity\Authorization\ApiPermissionCatalog;
 use app\common\services\authorization\EndpointPermissionGrant;
-use app\common\contract\module\ModuleQualificationQuery;
+use PeanutAdmin\Kernel\Module\ModuleAvailability;
 
 final class PlatformPermissionMiddleware
 {
@@ -20,7 +20,7 @@ final class PlatformPermissionMiddleware
         private readonly DemoAccountPolicy $demoAccounts,
         private readonly ApiPermissionCatalog $apis,
         private readonly EndpointPermissionGrant $grant,
-        private readonly ModuleQualificationQuery $modules,
+        private readonly ModuleAvailability $modules,
     ) {}
 
     public function handle($request, \Closure $next, string $permission)

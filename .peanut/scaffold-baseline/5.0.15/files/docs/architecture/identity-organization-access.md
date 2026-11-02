@@ -2,6 +2,8 @@
 
 已生效设计。账号、会话与执行上下文遵守[开发规范](../development/standard.md)，Scope 见[范围专题](tenant-modules-and-data-scopes.md)；实现与验收以实际源码和运行结果为准。
 
+管理端需要同时投影多个动作时，调用 `AdminAuthorizationQuery::decisions($tenantContext, $permissionKeys)`，以权限键为索引读取 `PermissionDecision`。该入口在一次调用内读取当前人员、登记及许可上限和角色授权；不要求调用方先读取 principal，也不跨调用或请求保留权限快照。单项 `decide` 合同继续保留。Identity 的许可修订投影在同一调用链内复用已读取的许可与模块清单，独立调用仍重新读取当前状态和有效期。
+
 ## 1. 四个概念
 
 身份回答谁调用（人/设备/程序，可并行）；租户回答独立客户的数据空间；业务对象回答操作什么；角色＋范围回答允许什么动作/数据。Instance 是部署，Platform 是当前实例运营范围，不自动跨实例/租户。缺租户不是全租户权限。

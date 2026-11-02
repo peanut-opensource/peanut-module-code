@@ -14,7 +14,7 @@
 | --- | --- | --- | --- | --- |
 | `dcs.product` | `server/app/modules/dcs/product` | `Dcs\Modules\Product` | `web/src/modules/dcs-product` | `server/tests/Modules/Dcs/Product` |
 | `acme.customer-record` | `server/app/modules/acme/customer_record` | `Acme\Modules\CustomerRecord` | `web/src/modules/acme-customer-record` | `server/tests/Modules/Acme/CustomerRecord` |
-| `official.sample` | `server/app/modules/official/sample` | `PeanutAdmin\Modules\Sample` | `web/src/modules/official-sample` | `server/tests/Modules/Official/Sample` |
+| `peanut.sample` | `server/app/modules/peanut/sample` | `PeanutAdmin\Modules\Sample` | `web/src/modules/peanut-sample` | `server/tests/Modules/Peanut/Sample` |
 
 ## 作者入口
 

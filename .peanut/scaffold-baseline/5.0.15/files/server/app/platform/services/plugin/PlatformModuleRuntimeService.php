@@ -168,14 +168,10 @@ final readonly class PlatformModuleRuntimeService
             $this->catalogs,
         ))
             ->install($archivePath, $expectedSha256, $signatureKeyId);
-        $moduleKeys = array_values(array_map(static fn(array $module): string => (string) $module['module_key'], $result['modules'] ?? []));
         $catalog = $this->catalog();
         $operation = ($result['operation'] ?? null) === 'unchanged'
             ? 'unchanged'
             : (($result['operation'] ?? null) === 'installed' ? 'installed' : 'reactivated');
-        if ($operation !== 'unchanged') {
-            $catalog->invalidateTenantAuthorization($moduleKeys);
-        }
         $result['operation'] = $operation;
         $result['catalog_revision'] = $catalog->catalogRevision();
         return $result;
@@ -200,12 +196,7 @@ final readonly class PlatformModuleRuntimeService
             $this->catalogs,
         ))->update($archivePath, $expectedSha256, $signatureKeyId, $dryRun);
         if (!$dryRun && ($result['operation'] ?? null) !== 'unchanged') {
-            $moduleKeys = array_values(array_map(
-                static fn(array $module): string => (string) $module['module_key'],
-                $result['modules'] ?? [],
-            ));
             $catalog = $this->catalog();
-            $catalog->invalidateTenantAuthorization($moduleKeys);
             $result['catalog_revision'] = $catalog->catalogRevision();
         }
         return $result;
@@ -275,9 +266,7 @@ final readonly class PlatformModuleRuntimeService
             }
         }
         $result = $this->governance->uninstall($key, $purge, $plan, $digest);
-        $moduleKeys = array_values(array_map(static fn(array $module): string => (string) $module['module_key'], $result['affected_modules'] ?? []));
         $catalog = $this->catalog();
-        $catalog->invalidateTenantAuthorization($moduleKeys);
         return $result + ['catalog_revision' => $catalog->catalogRevision()];
     }
 
@@ -323,8 +312,9 @@ final readonly class PlatformModuleRuntimeService
                     throw new PluginLifecycleException('PLUGIN_TENANT_MODULE_ACTIVE', 'Remove the Bundle modules from tenant license plans first.');
                 }
                 Db::transaction(function () use ($moduleKeys): void {
-                    $this->catalogs->retire($moduleKeys);
-                    $this->catalogs->disableActivePackageModules($moduleKeys);
+                    $this->catalogs->retire($moduleKeys, false);
+                    $this->catalogs->disableActivePackageModules($moduleKeys, false);
+                    $this->catalogs->invalidateTenantAuthorization($moduleKeys);
                 });
             });
         } catch (AdvisoryLockUnavailable) {
@@ -334,7 +324,6 @@ final readonly class PlatformModuleRuntimeService
             return $unchanged;
         }
         $catalog = $this->catalog();
-        $catalog->invalidateTenantAuthorization($moduleKeys);
         return [
             'operation' => 'disabled',
             'package_key' => $packageKey,
@@ -348,9 +337,6 @@ final readonly class PlatformModuleRuntimeService
     public function sync(?string $moduleKey): array
     {
         $result = $this->catalog()->sync($moduleKey);
-        if ($result['operation'] !== 'unchanged') {
-            $this->catalog()->invalidateTenantAuthorization($result['modules']);
-        }
         return $result;
     }
 

@@ -20,6 +20,7 @@ export default {
   'taskJobs.empty.title': 'No tasks',
   'taskJobs.empty.message': 'No tasks match this status.',
   'taskJobs.table.label': 'Task jobs',
+  'taskJobs.pagination.label': 'Task job pages',
   'taskJobs.column.type': 'Type',
   'taskJobs.column.status': 'Status',
   'taskJobs.column.attempts': 'Attempts',
@@ -31,6 +32,8 @@ export default {
   'taskJobs.error.requestFailed': 'Task request failed ({status}).',
   'taskJobs.error.serviceUnavailable': 'The task service could not be reached.',
   'taskJobs.error.actionFailed': 'The task action could not be completed.',
+  'taskJobs.error.permissionDenied':
+    'You do not have permission to read task jobs.',
   'taskJobs.confirm.cancel': 'Cancel this task?',
   'taskJobs.confirm.retry': 'Retry this task?',
 

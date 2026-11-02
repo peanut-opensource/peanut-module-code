@@ -292,6 +292,7 @@ final class GeneratorRenderService
             $enum = self::columnEnum($raw);
             $columns[] = [
                 'name' => $name,
+                'columnType' => strtolower((string) ($raw['column_type'] ?? $raw['data_type'] ?? $type)),
                 'type' => $type,
                 'comment' => $comment !== '' ? $comment : $name,
                 'primary' => self::truthy($raw['is_pk'] ?? $raw['primary'] ?? false),
@@ -512,6 +513,25 @@ final class GeneratorRenderService
 
     private static function renderModel(array $c): string
     {
+        $schema = '';
+        foreach ($c['columns'] as $column) {
+            $type = $column['columnType'];
+            // Match ThinkORM PDOConnection::getFieldType(), preserving bigint binding.
+            $type = match (true) {
+                str_starts_with($type, 'set') => 'set',
+                str_starts_with($type, 'enum') => 'enum',
+                str_starts_with($type, 'bigint') => 'bigint',
+                str_contains($type, 'float') || str_contains($type, 'double') || str_contains($type, 'real') => 'float',
+                str_contains($type, 'int') || str_contains($type, 'serial') || str_contains($type, 'bit') => 'int',
+                str_contains($type, 'bool') => 'bool',
+                str_contains($type, 'json') => 'json',
+                str_starts_with($type, 'timestamp') => 'timestamp',
+                str_starts_with($type, 'datetime') => 'datetime',
+                str_starts_with($type, 'date') => 'date',
+                default => 'string',
+            };
+            $schema .= "        '{$column['name']}' => '{$type}',\n";
+        }
         $relations = '';
         foreach ($c['relations'] as $relation) {
             $arguments = $relation['method'] === 'belongsTo'
@@ -535,8 +555,12 @@ class {{entity}} extends TenantOwnedModel
 {
 {{softBody}}    protected $name = '{{tableName}}';
     protected $pk = '{{primary}}';
+
+    // Keep aligned with this module's migrations.
+    protected $schema = [
+{{schema}}    ];
 {{relationMethods}}}
-PHP, $c + compact('softImport', 'softBody') + ['relationMethods' => $relations]);
+PHP, $c + compact('softImport', 'softBody', 'schema') + ['relationMethods' => $relations]);
     }
 
     private static function renderController(array $c): string

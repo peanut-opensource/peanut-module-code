@@ -65,7 +65,7 @@ final readonly class CoreTenantModuleAdminBridge
 
     /**
      * One read-only Admin Shell projection; all qualification inputs are read here.
-     * @return array{menu:list<array<string,mixed>>,permissions:list<string>,registered_permissions:list<string>,registered_system_menu_permissions:list<string>,managed_menu_keys:list<string>}
+     * @return array{menu:list<array<string,mixed>>,permissions:list<string>,registered_permissions:list<string>,registered_system_menu_permissions:list<string>,managed_menu_keys:list<string>,system_menu_rows:list<array<string,mixed>>,assignable_menu_records:list<array<string,mixed>>}
      */
     public function adminShellAccessData(TenantContext $tenantContext): array
     {
@@ -79,7 +79,8 @@ final readonly class CoreTenantModuleAdminBridge
             || $tenantContext->tenantId < 1
             || $tenantContext->memberId < 1) {
             return ['menu' => [], 'permissions' => [], 'registered_permissions' => [],
-                'registered_system_menu_permissions' => [], 'managed_menu_keys' => []];
+                'registered_system_menu_permissions' => [], 'managed_menu_keys' => [],
+                'system_menu_rows' => [], 'assignable_menu_records' => []];
         }
 
         $permissions = $this->basePermissions($tenantContext);
@@ -90,6 +91,9 @@ final readonly class CoreTenantModuleAdminBridge
             $qualification->installedModules(),
         );
         $tenantModules = $this->entitlements->moduleKeys($tenantContext->tenantId);
+        $entitlements = ($tenantOwner || $includeShell)
+            ? $this->entitlements->permissionProjection($tenantContext->tenantId)
+            : ['modules' => [], 'permissions' => []];
         $installed = array_fill_keys($deploymentModules, true);
         $activeOwners = array_values(array_unique([
             self::APPLICATION_PERMISSION_OWNER,
@@ -98,7 +102,11 @@ final readonly class CoreTenantModuleAdminBridge
         ]));
         $corePermissions = ($tenantOwner || $includeShell) ? $this->registeredCoreTenantPermissions() : [];
         $registeredPermissions = ($tenantOwner || $includeShell)
-            ? $this->registeredPermissionSubset($tenantContext->tenantId, $this->registeredPermissionsForOwners($activeOwners, $corePermissions)) : [];
+            ? $this->registeredLicensedSubset(
+                array_values(array_intersect($this->registeredPermissionsForOwners($activeOwners, $corePermissions), $entitlements['permissions'])),
+                $entitlements['modules'],
+                installed: $installed,
+            ) : [];
         $definitions = $this->menuCatalog->activeDefinitions('tenant');
         $visible = (new MenuRegistry($definitions))->visible(
             'admin-web',
@@ -107,10 +115,11 @@ final readonly class CoreTenantModuleAdminBridge
             static fn(string $permission): bool => in_array($permission, $permissions, true),
         );
         $nativeRecords = ($includeShell || $visible !== []) ? $this->menuAdministration->records() : [];
+        $systemMenus = ($includeShell || $visible !== []) ? SystemMenu::order('id')->select()->toArray() : [];
         $data = [
             'menu' => $visible === [] ? [] : $this->renderServerMenuRecords(
                 $visible,
-                SystemMenu::order('id')->select()->toArray(),
+                $systemMenus,
                 $nativeRecords,
                 $permissions,
             ),
@@ -118,11 +127,23 @@ final readonly class CoreTenantModuleAdminBridge
         ];
         if ($includeShell) {
             $data['registered_permissions'] = $registeredPermissions;
-            $data['registered_system_menu_permissions'] = $this->registeredPermissionSubset(
-                $tenantContext->tenantId,
-                $this->registeredSystemMenuPermissionsForOwners($activeOwners, $corePermissions),
+            $data['registered_system_menu_permissions'] = $this->registeredLicensedSubset(
+                array_values(array_intersect(
+                    $this->registeredSystemMenuPermissionsForOwners($activeOwners, $corePermissions),
+                    $entitlements['permissions'],
+                )),
+                $entitlements['modules'],
+                installed: $installed,
             );
             $data['managed_menu_keys'] = array_column($nativeRecords, 'key');
+            $data['system_menu_rows'] = $systemMenus;
+            $assignable = (new MenuRegistry($definitions))->visible(
+                'admin-web',
+                static fn(string $moduleKey): bool => isset($installed[$moduleKey]),
+                static fn(string $moduleKey): bool => in_array($moduleKey, $tenantModules, true),
+                static fn(string $permission): bool => in_array($permission, $entitlements['permissions'], true),
+            );
+            $data['assignable_menu_records'] = $this->renderServerMenuRecords($assignable, $systemMenus, $nativeRecords, null);
         }
         return $data;
     }
@@ -195,12 +216,25 @@ final readonly class CoreTenantModuleAdminBridge
         if (!is_string($owner) || $owner === '') {
             return false;
         }
-        $qualification = $this->moduleGovernance->qualification();
         if (!in_array($owner, $this->entitlements->moduleKeys($tenantId), true)) {
             return false;
         }
-        $qualification->installedModule($owner);
+        $this->moduleGovernance->registry()->requireInstalled($owner, false);
         return true;
+    }
+
+    /** One live projection checks only the requested member grants and their license ceiling.
+     * @param list<string> $permissions
+     * @return array{registered:list<string>,owned:list<string>}
+     */
+    public function permissionInputs(TenantContext $context, array $permissions): array
+    {
+        $states = $this->identityAuthorization->permissionGrants($context, $permissions);
+        $owned = array_keys($states);
+        return [
+            'registered' => $this->registeredLicensedSubset($owned, null, $states),
+            'owned' => $owned,
+        ];
     }
 
     /** @param list<string> $permissions @return list<string> */
@@ -209,31 +243,26 @@ final readonly class CoreTenantModuleAdminBridge
         if ($tenantId < 1 || $permissions === []) {
             return [];
         }
-        $permissions = array_values(array_intersect($permissions, $this->entitlements->permissionKeys($tenantId)));
+        $entitlements = $this->entitlements->permissionProjection($tenantId);
+        return $this->registeredLicensedSubset(
+            array_values(array_intersect($permissions, $entitlements['permissions'])),
+            $entitlements['modules'],
+        );
+    }
+
+    /** Null module selection is used only with this call's already licensed member grants.
+     * @param list<string> $permissions @param list<string>|null $licensedModules
+     * @param array<string,array{key:string,module_key:string|null,status:string}>|null $states
+     * @param array<string,true>|null $installed Qualified by installedModules in this same projection.
+     * @return list<string>
+     */
+    private function registeredLicensedSubset(array $permissions, ?array $licensedModules = null, ?array $states = null, ?array $installed = null): array
+    {
         if ($permissions === []) {
             return [];
         }
-        $states = $this->identityAuthorization->permissionStates(array_values(array_unique($permissions)));
-        $modulesNeeded = false;
-        foreach ($states as $state) {
-            if (($state['status'] ?? null) === 'active'
-                && !in_array($state['module_key'], ['core', self::APPLICATION_PERMISSION_OWNER, 'instance.tenant', null, ''], true)) {
-                $modulesNeeded = true;
-                break;
-            }
-        }
-        $activeOwners = [];
-        if ($modulesNeeded) {
-            $qualification = $this->moduleGovernance->qualification();
-            $installed = array_fill_keys(array_map(
-                static fn($module): string => $module->moduleKey,
-                $qualification->installedModules(),
-            ), true);
-            $activeOwners = array_fill_keys(array_filter(
-                $this->entitlements->moduleKeys($tenantId),
-                static fn(string $owner): bool => isset($installed[$owner]),
-            ), true);
-        }
+        $states ??= $this->identityAuthorization->permissionStates(array_values(array_unique($permissions)));
+        $owners = [];
         $registered = [];
         foreach ($permissions as $permission) {
             $state = $states[$permission] ?? null;
@@ -242,8 +271,32 @@ final readonly class CoreTenantModuleAdminBridge
             }
             $owner = $state['module_key'];
             if (($owner === 'core' && in_array($permission, CorePermissionCatalog::TENANT, true))
-                || in_array($owner, [self::APPLICATION_PERMISSION_OWNER, 'instance.tenant'], true)
-                || isset($activeOwners[$owner ?? ''])) {
+                || in_array($owner, [self::APPLICATION_PERMISSION_OWNER, 'instance.tenant'], true)) {
+                $registered[] = $permission;
+                continue;
+            }
+            if ($owner === null || $owner === ''
+                || ($licensedModules !== null && !in_array($owner, $licensedModules, true))) {
+                continue;
+            }
+            if ($installed !== null) {
+                if (isset($installed[$owner])) {
+                    $registered[] = $permission;
+                }
+                continue;
+            }
+            if (!array_key_exists($owner, $owners)) {
+                try {
+                    $this->moduleGovernance->registry()->requireInstalled($owner, false);
+                    $owners[$owner] = true;
+                } catch (\PeanutAdmin\Kernel\Module\ModuleException $exception) {
+                    if (!in_array($exception->errorCode, ['MODULE_NOT_INSTALLED', 'MODULE_INSTALLATION_FAILED'], true)) {
+                        throw $exception;
+                    }
+                    $owners[$owner] = false;
+                }
+            }
+            if ($owners[$owner]) {
                 $registered[] = $permission;
             }
         }
@@ -275,14 +328,11 @@ final readonly class CoreTenantModuleAdminBridge
     /** Read current grants without retaining them beyond this projection. @return list<string> */
     public function basePermissions(TenantContext $tenantContext): array
     {
-        $permissions = array_values(array_unique([
-            ...$this->authorization->permissions(
-                $tenantContext->tenantId,
-                $tenantContext->memberId,
-            )->keys(),
-            ...$this->applicationPermissions($tenantContext),
-        ]));
-        return array_values(array_intersect($permissions, $this->entitlements->permissionKeys($tenantContext->tenantId)));
+        // Identity's effective set already includes application grants and the license ceiling.
+        return $this->authorization->permissions(
+            $tenantContext->tenantId,
+            $tenantContext->memberId,
+        )->keys();
     }
 
     /** @param list<string> $active @param list<string> $corePermissions @return list<string> */
@@ -327,12 +377,6 @@ final readonly class CoreTenantModuleAdminBridge
         }
 
         return array_values(array_unique($permissions));
-    }
-
-    /** @return list<string> */
-    private function applicationPermissions(TenantContext $context): array
-    {
-        return $this->identityAuthorization->applicationPermissionKeys($context);
     }
 
     /** @return list<string> */

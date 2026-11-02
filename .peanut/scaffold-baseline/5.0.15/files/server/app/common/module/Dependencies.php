@@ -200,6 +200,7 @@ final readonly class Dependencies
         }
         $composerPath = $this->serverRoot . '/composer.json';
         $composer = $this->json($composerPath);
+        $localCore = (PHP_SAPI !== 'cli' || $verifyOnly) ? $this->localCoreProjection() : null;
         $composerNames = [];
         $runtimeRequirements = [];
         $clients = [];
@@ -232,7 +233,15 @@ final readonly class Dependencies
             }
             $package = $this->json($root . '/composer.json');
             $runtimeRequirements[] = [$package['name'] => $package['version']];
-            $runtimeRequirements[] = $package['require'] ?? [];
+            $requirements = $package['require'] ?? [];
+            if ($localCore !== null && isset($requirements['peanut-admin/core'])) {
+                $range = $localCore[$package['name']] ?? null;
+                if (!is_string($range)) {
+                    throw new PluginPackageException('MODULE_RELEASE_PREPARATION_REQUIRED', 'Prepare the selected local Module Core projection through the native dependency CLI.');
+                }
+                $requirements['peanut-admin/core'] = $range;
+            }
+            $runtimeRequirements[] = $requirements;
             $name = $package['name'];
             $relative = substr($root, strlen($this->serverRoot) + 1);
             $repository = ['type' => 'path', 'url' => $relative, 'options' => ['symlink' => false]];
@@ -381,7 +390,12 @@ final readonly class Dependencies
     /** Build the clients whose native entries consume the selected Module contributions. */
     private function adoptFrontend(array $clients): array
     {
-        if ($clients === []) { return []; }
+        // Every package changes plugins.lock, including backend-only packages.
+        // Catalog activation reads its source hashes before any client is required.
+        $project = dirname($this->serverRoot);
+        $results = ['api-contracts' => $this->run(['php', '-d', 'zend.exception_ignore_args=1',
+            $project . '/scripts/generate-api-contracts.php', '--application-root=' . $project], $project)];
+        if ($clients === []) { return $results; }
         if (array_diff($clients, ['web', 'platform', 'pc', 'uniapp']) !== []) {
             throw new PluginPackageException('MODULE_FRONTEND_ADOPTION_REQUIRED', 'The required client has no Module contribution reader.',
                 details: ['pending_actions' => ['frontend_module_assembly', 'frontend_build', 'frontend_adoption']]);
@@ -390,11 +404,11 @@ final readonly class Dependencies
         if (!in_array($edition, ['standalone', 'multi-tenant'], true)) {
             throw new PluginPackageException('MODULE_FRONTEND_EDITION_REQUIRED', 'The application deployment Edition is required for the native admin build.');
         }
-        $results = [];
-        if (array_intersect($clients, ['web', 'platform']) !== []) {
-            $project = dirname($this->serverRoot);
-            $results['api-contracts'] = $this->run(['php', '-d', 'zend.exception_ignore_args=1',
-                $project . '/scripts/generate-api-contracts.php', '--application-root=' . $project], $project);
+        $selection = $this->localCoreSelection();
+        if ($selection !== null) {
+            // Native dependency installs replace ignored links; restore the explicit source before building consumers.
+            $results['local-web-core'] = $this->run([$project . '/scripts/local-core-web', 'link',
+                '--core-dir', $selection['web_core_dir'], '--client', implode(',', $clients)], $project);
         }
         foreach ($clients as $client) {
             if (in_array($client, ['web', 'platform'], true)) {
@@ -492,23 +506,54 @@ final readonly class Dependencies
         return $data;
     }
 
-    private function run(array $command, string $directory): array
+    private function localCoreSelection(): ?array
     {
         $project = dirname($this->serverRoot);
-        $tool = $command[0];
         $selectionPath = $project . '/.local/core-dev.json';
-        if ($tool === 'composer' && (file_exists($selectionPath) || is_link($selectionPath))) {
+        if (file_exists($selectionPath) || is_link($selectionPath)) {
             $selection = $this->json($selectionPath);
             if (is_link($selectionPath) || ($selection['schema_version'] ?? null) !== 1
                 || ($selection['application_root'] ?? null) !== realpath($project)) {
                 throw new PluginPackageException('MODULE_DEPENDENCY_SOURCE_CONFLICT', 'The local Core selection must belong to this application.');
             }
-            foreach (['php_core_dir', 'backend_env'] as $field) {
+            foreach (['php_core_dir', 'web_core_dir', 'backend_env'] as $field) {
                 $value = $selection[$field] ?? null;
                 if (!is_string($value) || !str_starts_with($value, '/') || preg_match('/[\x00-\x1f\x7f]/', $value) === 1) {
                     throw new PluginPackageException('MODULE_DEPENDENCY_SOURCE_CONFLICT', 'The local Core selection requires absolute source and environment paths.');
                 }
             }
+            return $selection;
+        }
+        return null;
+    }
+
+    /** Read the existing native development projection; never resolve or install dependencies here. */
+    private function localCoreProjection(): ?array
+    {
+        $selection = $this->localCoreSelection();
+        if ($selection === null) { return null; }
+        $source = $selection['php_core_dir'];
+        $core = realpath(is_file($source . '/composer.json') ? $source : $source . '/packages/php');
+        if ($core === false || realpath(InstalledVersions::getInstallPath('peanut-admin/core') ?? '') !== $core) {
+            throw new PluginPackageException('MODULE_DEPENDENCY_SOURCE_CONFLICT', 'Installed Core must use the explicitly selected local source.');
+        }
+        $projection = $this->json(dirname($this->serverRoot) . '/.local/composer-core/composer.json');
+        $packages = [];
+        foreach ($projection['repositories'] ?? [] as $repository) {
+            if (($repository['type'] ?? null) === 'package') {
+                $package = $repository['package'];
+                $packages[$package['name']] = $package['require']['peanut-admin/core'] ?? null;
+            }
+        }
+        return $packages;
+    }
+
+    private function run(array $command, string $directory): array
+    {
+        $project = dirname($this->serverRoot);
+        $tool = $command[0];
+        $selection = $tool === 'composer' ? $this->localCoreSelection() : null;
+        if ($selection !== null) {
             $command = [$project . '/scripts/local-core-composer', 'install',
                 '--core-dir', $selection['php_core_dir'], '--backend-env', $selection['backend_env']];
             $tool = 'local-core-composer';

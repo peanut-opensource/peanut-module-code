@@ -28,6 +28,9 @@ importers:
       '@element-plus/icons-vue':
         specifier: 2.3.2
         version: 2.3.2(vue@3.5.40(typescript@5.9.3))
+      '@peanut-admin/peanut-chart':
+        specifier: workspace:^1.0.0
+        version: link:src/modules/peanut-chart
       '@peanut-admin/ui-vue':
         specifier: file:../packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz
         version: file:../packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz(@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
@@ -46,9 +49,6 @@ importers:
       dompurify:
         specifier: ^3.4.17
         version: 3.4.17
-      echarts:
-        specifier: 6.1.0
-        version: 6.1.0
       element-plus:
         specifier: 2.14.3
         version: 2.14.3(vue@3.5.40(typescript@5.9.3))
@@ -76,9 +76,6 @@ importers:
       vue:
         specifier: ^3.3.0
         version: 3.5.40(typescript@5.9.3)
-      vue-echarts:
-        specifier: 8.3.0
-        version: 8.3.0(echarts@6.1.0)(vue@3.5.40(typescript@5.9.3))
       vue-i18n:
         specifier: ^9.2.2
         version: 9.14.5(vue@3.5.40(typescript@5.9.3))
@@ -206,6 +203,18 @@ importers:
       vue-tsc:
         specifier: 3.2.5
         version: 3.2.5(typescript@5.9.3)
+
+  src/modules/peanut-chart:
+    dependencies:
+      echarts:
+        specifier: 6.1.0
+        version: 6.1.0
+      vue:
+        specifier: ^3.3.0
+        version: 3.5.40(typescript@5.9.3)
+      vue-echarts:
+        specifier: 8.3.0
+        version: 8.3.0(echarts@6.1.0)(vue@3.5.40(typescript@5.9.3))
 
   src/modules/peanut-content-tools: {}
 
@@ -691,7 +700,7 @@ packages:
     engines: {node: '>=12.4.0'}
 
   '@peanut-admin/ui-vue@file:../packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz':
-    resolution: {integrity: sha512-U3cMyLlUS82ZKQl9r80H5QTEXdopepTwsX00RCFXdR9YZfeyT5MuGoyXD8VijyfvVoCNYF9n4ug+tjV4KscNeg==, tarball: file:../packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz}
+    resolution: {integrity: sha512-/lxwoQh6cze5sqKnhE01B5l766s9VIgjJ0mflWsnENSrY4uN4W/RIWb2QO++XoiB4cH/Q4KKXCCCFFKsCI/RRQ==, tarball: file:../packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz}
     version: 5.0.3-alpha.1
     engines: {node: '>=22.12.0 <23'}
     peerDependencies:
@@ -700,7 +709,7 @@ packages:
       vue: ^3.4.21
 
   '@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz':
-    resolution: {integrity: sha512-cFjydfSAf/nSnknM8QYfvtBJv/zXoMbGUW2JZICQldDFQ/1Dl7zTgkUOvhGgt421egrn+rF6pnrFdLUn+cB8UA==, tarball: file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz}
+    resolution: {integrity: sha512-NOZejxoVWLbvN676dLK/7pNwXNzRhcHBv4htcyrPGYlVJ3j1LFn5FaoLB+c3jENOJJh1Za7QiSO9BCJTCXgqcw==, tarball: file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz}
     version: 5.0.3-alpha.1
     engines: {node: '>=22.12.0 <23'}
     peerDependencies:

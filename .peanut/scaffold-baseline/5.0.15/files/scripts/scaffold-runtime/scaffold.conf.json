@@ -337,6 +337,7 @@
         "SECURITY.md",
         "server/config/peanut.php",
         "web/src/peanut.overrides.ts",
+        "platform/src/peanut.overrides.ts",
         "resources/project-resources.json"
       ],
       "prefixes": [

@@ -65,6 +65,11 @@ final readonly class PlanLicenseAdminService
                 Db::name('plan')->where('id', $id)->update(['name' => $name,'status' => $status,'revision' => new Raw('revision + 1'),'updated_at' => $now]);
             }
             $this->replaceDetails($id, $modules, $permissions);
+            if (!$create) {
+                Db::name('tenant')->whereIn('id', static function ($query) use ($id): void {
+                    $query->name('tenant_license')->field('tenant_id')->where('plan_id', $id);
+                })->inc('authorization_revision')->update(['updated_at' => $now]);
+            }
             $after = $this->plan($id);
             $this->audit->platform($actor->operatorId,$actor->accountId,$actor->requestId,'plan.saved','platform.plan.manage',
                 ['change_reason' => $reason], 'plan', (string) $id, $before, $after);
@@ -192,6 +197,7 @@ final readonly class PlanLicenseAdminService
             } else { $planId = (int) $plan['id']; }
             if (Db::name('tenant_license')->where('tenant_id',$tenantId)->lock(true)->find() === null) {
                 Db::name('tenant_license')->insert(['tenant_id'=>$tenantId,'plan_id'=>$planId,'status'=>'active','effective_at'=>$now,'expires_at'=>null,'revision'=>1,'created_at'=>$now,'updated_at'=>$now]);
+                Db::name('tenant')->where('id', $tenantId)->inc('authorization_revision')->update(['updated_at' => $now]);
             }
             return $this->tenantLicense($tenantId);
         });

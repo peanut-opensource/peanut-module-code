@@ -5,6 +5,12 @@ export default {
   'systemRole.auth.menuPermissions': 'Menu permissions',
   'systemRole.auth.actionPermissions': 'Action permissions',
   'systemRole.auth.searchActions': 'Search bundles, keys or modules',
+  'systemRole.auth.ownerFixed':
+    'Tenant owner permissions are maintained by the release catalog and are read-only here.',
+  'systemRole.auth.selectionSummary':
+    '{selected} selected, {visible} currently shown',
+  'systemRole.auth.noMatches':
+    'No matching permission bundles. Adjust your search.',
   'systemRole.auth.unavailable':
     'Currently unavailable; review before removing',
   'systemRole.auth.catalogIncomplete':

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "29b0b678aea6c539c8d9ce8acf292351",
+    "content-hash": "473f008c85e55b3e387ad07cedecd421",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -1695,17 +1695,17 @@
         },
         {
             "name": "peanut-admin/core",
-            "version": "5.0.3-alpha.1",
+            "version": "5.0.3-alpha.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/peanut-business/peanut-admin-core-php.git",
-                "reference": "13cf5b7776526e885cb69dbf0849e784a4cacaec"
+                "reference": "df96d01875fcd1c15b47d9c01f6d83e3ebcb20b2"
             },
             "dist": {
                 "type": "zip",
-                "url": "../packages/core-php/peanut-admin-core-5.0.3-alpha.1.zip",
-                "reference": "13cf5b7776526e885cb69dbf0849e784a4cacaec",
-                "shasum": "e67b5434a9db52c38aaa217f6f6965776c953c2c"
+                "url": "../packages/core-php/peanut-admin-core-5.0.3-alpha.7.zip",
+                "reference": "df96d01875fcd1c15b47d9c01f6d83e3ebcb20b2",
+                "shasum": "b573d2fbb3a11c830a75234e8767c75e224a714f"
             },
             "require": {
                 "composer/semver": "^3.4.4",
@@ -1739,6 +1739,37 @@
             "description": "Peanut Admin technical kernel and ThinkPHP integration",
             "support": {
                 "source": "https://github.com/peanut-business/peanut-admin-core-php"
+            }
+        },
+        {
+            "name": "peanut-business/peanut-chart",
+            "version": "1.0.2",
+            "dist": {
+                "type": "path",
+                "url": "app/modules/peanut/chart",
+                "reference": "f36651ec865accbe42627844153d1ba53cb14e52"
+            },
+            "type": "peanut-admin-module",
+            "extra": {
+                "peanut": {
+                    "editions": [
+                        "multi-tenant",
+                        "standalone"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "PeanutAdmin\\Modules\\Chart\\": "src/"
+                }
+            },
+            "license": [
+                "Apache-2.0"
+            ],
+            "description": "Public ECharts components for application and Module consumers.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
             }
         },
         {
@@ -1811,14 +1842,14 @@
         },
         {
             "name": "peanut-business/peanut-identity",
-            "version": "4.0.0-rc.42",
+            "version": "4.0.0-rc.49",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/identity",
-                "reference": "9b8ff0387cddfc11f7fd2a4d722c4069ab5a238a"
+                "reference": "4c07df7520b4b8bd825cff723c367682fe6f5168"
             },
             "require": {
-                "peanut-admin/core": "^5.0.2",
+                "peanut-admin/core": "^5.0.3-alpha.6",
                 "php": "^8.3"
             },
             "type": "library",
@@ -1919,11 +1950,11 @@
         },
         {
             "name": "peanut-business/peanut-reference-codes",
-            "version": "1.0.24",
+            "version": "1.0.25",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/reference_codes",
-                "reference": "3f27f1f79f328689b4a75f6a260beceefca08743"
+                "reference": "5a61bfbdbea93dac5c2876fdb6779075deb95a9c"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -1991,15 +2022,15 @@
         },
         {
             "name": "peanut-business/peanut-task",
-            "version": "1.0.26",
+            "version": "1.0.27",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/task",
-                "reference": "98e6b3d8d20402dc4c67967b1bf6fa9641e008e4"
+                "reference": "6b53acb67c14be5ed2ef82886596d39fdc1ed994"
             },
             "require": {
-                "peanut-admin/core": "^5.0.2",
-                "peanut-business/peanut-identity": "^4.0.0-rc.32",
+                "peanut-admin/core": "^5.0.3-alpha.5",
+                "peanut-business/peanut-identity": "^4.0.0-rc.48",
                 "php": "^8.3"
             },
             "type": "library",

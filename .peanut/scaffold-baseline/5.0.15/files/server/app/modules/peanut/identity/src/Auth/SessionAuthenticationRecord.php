@@ -36,6 +36,7 @@ final readonly class SessionAuthenticationRecord
         public TenantMemberStatus $memberStatus,
         public int $currentMemberSecurityRevision,
         public int $authorizationRevision,
+        public int $tenantAuthorizationRevision,
     ) {}
 
     public function validated(): \PeanutAdmin\Kernel\Auth\ValidatedTenantSession
@@ -49,6 +50,7 @@ final readonly class SessionAuthenticationRecord
             $this->clientKey,
             $this->issuedAt,
             $this->authorizationRevision,
+            $this->tenantAuthorizationRevision,
         );
     }
 }
