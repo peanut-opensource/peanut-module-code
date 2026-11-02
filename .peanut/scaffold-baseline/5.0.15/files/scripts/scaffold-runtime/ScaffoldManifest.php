@@ -108,7 +108,7 @@ final class ScaffoldManifest
             if (!is_array($file)) {
                 throw new RuntimeException("SCAFFOLD_MANIFEST_FILE_INVALID: {$index}");
             }
-            self::validateFile($file, (string) $index);
+            self::validateFile($file, (string) $index, $protocol === 'peanut.scaffold-recorded-baseline.v1');
             if (isset($seen[$file['path']])) {
                 throw new RuntimeException('SCAFFOLD_MANIFEST_PATH_DUPLICATE: ' . $file['path']);
             }
@@ -270,7 +270,8 @@ final class ScaffoldManifest
                 throw new RuntimeException('SCAFFOLD_RECORDED_BASELINE_DRIFT: ' . $path);
             }
             $mode = $entry['baseline_mode'] ?? ($modeProof?->files()[$path]['mode'] ?? null);
-            if (!in_array($mode, [0644, 0755], true)) { throw new RuntimeException('SCAFFOLD_BASELINE_MODE_EVIDENCE_REQUIRED: ' . $path); }
+            // Preserve an existing owner's read/write-only file without inventing a release mode.
+            if (!in_array($mode, [0600, 0644, 0755], true)) { throw new RuntimeException('SCAFFOLD_BASELINE_MODE_EVIDENCE_REQUIRED: ' . $path); }
             $owner = str_starts_with($path, 'server/') ? 'backend'
                 : (preg_match('#^(?:web|platform|pc|uniapp|docs-site)/#D', $path) === 1 ? 'frontend' : 'host');
             $files[] = ['path' => $path, 'source' => 'files/' . $path, 'template_sha256' => $digest,
@@ -524,7 +525,7 @@ final class ScaffoldManifest
     }
 
     /** @param array<string,mixed> $file */
-    private static function validateFile(array $file, string $index): void
+    private static function validateFile(array $file, string $index, bool $recordedBaseline): void
     {
         $path = (string) ($file['path'] ?? '');
         self::path($path);
@@ -538,7 +539,7 @@ final class ScaffoldManifest
         if (!in_array($classification, ['managed', 'generated-managed'], true)
             || ($classification === 'generated-managed') !== ($policy === 'generated')
             || !($transform === 'tokens' || ($path === 'server/composer.lock' && $transform === 'composer-lock'))
-            || !in_array($file['mode'] ?? null, [0644, 0755], true)) {
+            || !in_array($file['mode'] ?? null, $recordedBaseline ? [0600, 0644, 0755] : [0644, 0755], true)) {
             throw new RuntimeException("SCAFFOLD_MANIFEST_FILE_INVALID: {$path}");
         }
         $digest = $file['template_sha256'] ?? null;
