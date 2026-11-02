@@ -2,7 +2,7 @@
   "name": "peanut-business/peanut-import-export",
   "description": "Official Tenant import and export module",
   "type": "library",
-    "version": "1.0.27",
+    "version": "1.0.29",
   "license": "Apache-2.0",
   "require": {
     "php": "^8.3",
