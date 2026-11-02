@@ -218,6 +218,15 @@ importers:
         specifier: 8.3.0
         version: 8.3.0(echarts@6.1.0)(vue@3.5.40(typescript@5.9.3))
 
+  src/modules/peanut-chart-examples:
+    dependencies:
+      '@peanut-admin/peanut-chart':
+        specifier: workspace:^1.0.0
+        version: link:../peanut-chart
+      vue:
+        specifier: ^3.3.0
+        version: 3.5.40(typescript@5.9.3)
+
   src/modules/peanut-content-tools: {}
 
   src/modules/peanut-document:

@@ -1,0 +1,8 @@
+[
+  {
+    "key": "peanut.chart-examples.view",
+    "type": "action",
+    "name": "查看图表示例",
+    "risk_level": "normal"
+  }
+]

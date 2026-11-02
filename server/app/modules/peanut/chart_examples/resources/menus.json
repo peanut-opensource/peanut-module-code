@@ -1,0 +1,18 @@
+[
+  {
+    "key": "peanut.chart-examples.gallery",
+    "scope": "tenant",
+    "parent_key": null,
+    "type": "page",
+    "name": "图表示例",
+    "route_name": "ChartExamples",
+    "route_path": "/examples/charts",
+    "component_key": "peanut.chart-examples.gallery",
+    "required_permission": "peanut.chart-examples.view",
+    "icon": "DataLine",
+    "sort_order": 950,
+    "client_keys": [
+      "admin-web"
+    ]
+  }
+]

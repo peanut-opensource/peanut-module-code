@@ -1,4 +1,5 @@
 packages:
+  - "src/modules/peanut-chart-examples"
   - "src/modules/peanut-article"
   - "src/modules/peanut-document"
   - "src/modules/peanut-import-export"

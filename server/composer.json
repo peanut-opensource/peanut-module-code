@@ -12,6 +12,13 @@
     "repositories": [
         {
             "type": "path",
+            "url": "app/modules/peanut/chart_examples",
+            "options": {
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
             "url": "app/modules/peanut/workflow",
             "options": {
                 "symlink": false
@@ -250,7 +257,8 @@
         "peanut-business/peanut-oauth": "1.0.9",
         "peanut-business/peanut-payment": "1.0.23",
         "peanut-business/peanut-rich-text": "1.0.11",
-        "peanut-business/workflow": "4.0.0-rc.42"
+        "peanut-business/workflow": "4.0.0-rc.42",
+        "peanut-business/peanut-chart-examples": "1.0.1"
     },
     "require-dev": {
         "phpunit/phpunit": "12.5.31",

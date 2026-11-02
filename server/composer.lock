@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7481a0aa075b03567609d54f1ef4e543",
+    "content-hash": "265304f13c58fa53c46be8c614542d15",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -1871,6 +1871,37 @@
                 "Apache-2.0"
             ],
             "description": "Public ECharts components for application and Module consumers.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "peanut-business/peanut-chart-examples",
+            "version": "1.0.1",
+            "dist": {
+                "type": "path",
+                "url": "app/modules/peanut/chart_examples",
+                "reference": "08c9eed02a01b6cd1956ec8e1740be47b83c00fe"
+            },
+            "type": "peanut-admin-module",
+            "extra": {
+                "peanut": {
+                    "editions": [
+                        "multi-tenant",
+                        "standalone"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "PeanutAdmin\\Modules\\ChartExamples\\": "src/"
+                }
+            },
+            "license": [
+                "Apache-2.0"
+            ],
+            "description": "Optional static chart gallery; no business data or API.",
             "transport-options": {
                 "symlink": false,
                 "relative": true

@@ -1,0 +1,16 @@
+{
+  "name": "@peanut-admin/peanut-chart-examples",
+  "version": "1.0.1",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./contribution.ts"
+  },
+  "dependencies": {
+    "@peanut-admin/peanut-chart": "workspace:^1.0.0"
+  },
+  "peerDependencies": {
+    "vue": "^3.3.0"
+  }
+}

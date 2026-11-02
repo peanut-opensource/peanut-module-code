@@ -46,7 +46,7 @@ final readonly class PluginLifecycleService implements PluginLifecycleCommands
         return $this->withPackageLock($pluginKey, fn(): array => $this->installLocked($pluginKey));
     }
 
-    private function installLocked(string $pluginKey): array
+    private function installLocked(string $pluginKey, ?array $preparedDependencies = null): array
     {
         $plugin = $this->resolver->require($pluginKey);
         $this->assertTrustEligible($plugin);
@@ -68,7 +68,7 @@ final readonly class PluginLifecycleService implements PluginLifecycleCommands
             && !($current['status'] === 'active' && $this->sameIdentity($plugin, $current))) {
             throw new PluginLifecycleException('PLUGIN_ALREADY_INSTALLED', 'Use module upgrade for an installed package.');
         }
-        $dependencies = $this->prepareDependencies($plugin);
+        $dependencies = $preparedDependencies ?? $this->prepareDependencies($plugin);
         $manifests = $this->pluginManifests($plugin);
         $this->assertPreflightOwnership($plugin, $manifests, false);
         $result = $this->activate($plugin, $manifests, false);
@@ -130,9 +130,16 @@ final readonly class PluginLifecycleService implements PluginLifecycleCommands
                         if (!is_array($current) || !in_array($current['status'], ['active', 'failed'], true)) {
                             throw new PluginLifecycleException('PLUGIN_STATE_INVALID', 'Selected installed package changed before reconciliation.');
                         }
-                        return $current['status'] === 'failed'
-                            ? $this->upgradeLocked($key, false, null, $prepared)
-                            : $this->reconcileLocked($key, $prepared);
+                        if ($current['status'] === 'failed') {
+                            // A failed first install has no prior Module ownership to upgrade.
+                            // Successful activation timestamps survive failure and uninstall.
+                            $firstInstall = $current['activated_at'] === null
+                                && $current['upgraded_at'] === null && $current['uninstalled_at'] === null;
+                            return $firstInstall
+                                ? $this->installLocked($key, $prepared)
+                                : $this->upgradeLocked($key, false, null, $prepared);
+                        }
+                        return $this->reconcileLocked($key, $prepared);
                     });
                     unset($result['dependencies']);
                     $results[] = $result;

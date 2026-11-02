@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "key": "peanut.chart-examples",
+  "name": "Chart Examples",
+  "description": "Optional static chart gallery; no business data or API.",
+  "version": "1.0.1",
+  "kernel_constraint": "^1.0",
+  "license": "Apache-2.0",
+  "php_package": "peanut-business/peanut-chart-examples",
+  "web_package": "@peanut-admin/peanut-chart-examples",
+  "dependencies": [
+    {
+      "module_key": "peanut.chart",
+      "version": "^1.0"
+    }
+  ],
+  "lifecycle": {
+    "protected": false
+  },
+  "backend": {
+    "provider": "PeanutAdmin\\Modules\\ChartExamples\\ModuleProvider",
+    "menus": "resources/menus.json",
+    "permissions": "resources/permissions.json"
+  },
+  "frontend": {
+    "entry": "web/src/modules/peanut-chart-examples/contribution.ts"
+  },
+  "database": {
+    "owned_tables": []
+  },
+  "contracts": {
+    "exports": [],
+    "events": []
+  },
+  "tenant": {
+    "enableable": true,
+    "disable_behavior": "reject_new_operations",
+    "requires": []
+  }
+}
