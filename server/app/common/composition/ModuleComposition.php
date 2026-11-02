@@ -139,9 +139,10 @@ final readonly class ModuleComposition
             if (isset($bindings[\PeanutAdmin\Modules\Notification\Contract\NotificationProducerRegistry::class])) {
                 throw new ModuleException('MODULE_BINDING_CONFLICT', 'Notification producer registry belongs to the composition root.');
             }
-            $bindings[\PeanutAdmin\Modules\Notification\Contract\NotificationProducerRegistry::class] = static function (App $app) use ($contributors) {
+            // Notification contributions are independent of optional Workflow scenarios.
+            $bindings[\PeanutAdmin\Modules\Notification\Contract\NotificationProducerRegistry::class] = static function (App $app) use ($providers) {
                 $producers = new \PeanutAdmin\Modules\Notification\Contract\NotificationProducerRegistry();
-                foreach ($contributors as $provider) {
+                foreach ($providers as $provider) {
                     if (method_exists($provider, 'notificationProducers')) {
                         foreach ($provider->notificationProducers($app) as $producer) {
                             $producers->register($producer);

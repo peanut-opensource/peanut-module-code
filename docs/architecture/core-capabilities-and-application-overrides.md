@@ -2,7 +2,7 @@
 
 Core 的价值是稳定、可复用的技术能力和可直接使用的默认实现。应用持有业务语义、数据、渠道与装配，并能通过配置或原生服务绑定改变技术实现。能力归属按真实消费者和不变量判断，不按目录大小或是否“通用业务”判断。
 
-Provider、事件/命令、租户启停钩子、HTTP/CLI/Task 上下文及安装升级的完整时序和失败责任见 [框架扩展与生命周期](framework-extension-and-lifecycle.md)。
+Provider、事件/命令、套餐与许可证、HTTP/CLI/Task 上下文及安装升级的完整时序和失败责任见 [框架扩展与生命周期](framework-extension-and-lifecycle.md)。
 
 ## 1. 成熟框架依据
 

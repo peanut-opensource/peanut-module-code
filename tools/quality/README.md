@@ -14,6 +14,25 @@ corepack pnpm --dir tools/quality install --frozen-lockfile --strict-peer-depend
 
 JavaScript 检查工具复用与 Web Core 相同的 TypeScript 5.9.3、Vitest 4.1.10 和 pnpm 10.15.0；完整依赖解析以本目录原生锁为准。它们不替换 Platform/Web/PC/uni-app 各自锁定的应用构建工具。缺依赖应明确失败，不临时改 lock、忽略 peer 冲突或使用未记录的全局版本。
 
+## 原生生命周期与模块扩展定向检查
+
+以下入口只执行本次扩展合同有关的测试，不启动全量CI、业务数据库或外部渠道。使用本工程已有的PHPUnit/ThinkPHP/Core依赖；Notification是独立可选模块，其实际源码根通过`PEANUT_NOTIFICATION_MODULE_ROOT`显式传入，测试根据该模块自己的composer.json登记命名空间，缺失即失败，不伪造替代接口或静默跳过。
+
+```sh
+PEANUT_NOTIFICATION_MODULE_ROOT=/path/to/notification \
+php server/vendor/bin/phpunit --no-configuration --do-not-cache-result \
+  --fail-on-warning --fail-on-risky \
+  --bootstrap server/tests/Support/CiBootstrap.php \
+  server/tests/Unit/HostCompositionContractsTest.php \
+  server/tests/Unit/NativeExtensionBehaviorTest.php \
+  server/tests/Unit/DeveloperCenterDocumentationCountTest.php \
+  server/tests/Productization/NativeNotificationCompositionTest.php
+```
+
+覆盖原生App初始化顺序、同一Provider注册/boot/事件、异常传播、上下文恢复、只读目录复用实例/不启动未选模块、事件输入和返回语义，以及实际Notification+Identity+Task+Integration组合接受非Workflow生产者、重复键拒绝、未安装时不执行贡献。测试用到的业务生产者是显式合成对象；执行真实框架与装配类，不创建线上业务、不发送消息，不能据此宣称MySQL事务、队列投递或外部短信已经验收。真实HTTP检查另使用正常开发账号/原生登录、目录读取及退出，禁止伪造会话或直接改权限。
+
+旧TenantModuleEnableHook与ModuleComposition::tenantHooks已不属于现行套餐/许可证合同，原HostComposition检查已替换为现行Provider身份不匹配拒绝，并保留任务owner/处理者冲突、空处理者及平台拒绝先于贡献执行的断言；不恢复旧接口取悦历史测试。
+
 ## 统一前端格式
 
 Prettier固定为本目录原生锁中的2.8.8；Code根 `.prettierrc.cjs` 是四端及维护脚本的唯一格式正文，Web旧入口仅转引它。使用空格、二空格缩进、LF、分号、单引号与既定Vue块缩进；不让编辑器自选另一份配置或升级formatter。Web Core使用自己仓内的同值配置，不依赖维护者绝对路径。四仓 `.editorconfig` 约束编码、换行和缩进，PHP为四空格，Project的Python为四空格。

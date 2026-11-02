@@ -21,6 +21,8 @@
 
 源码扫描、数据库、页面不得各编辑一份模块定义。开发界面改静态定义留源码diff；不只改不可追踪DB副本。声明/发现/注册/有效/测试通过分开，动态未解析就标未解析。
 
+Provider目录复用当前App由ModuleComposition保存的同一实例，支持原生think\Service和构造注入；不得为了展示bindings重复无参new、执行register/boot或启动未选择模块。公共服务的绑定标识与Provider详情来自同一次读取。尚未在当前App实例化的Provider仅展示声明/类型事实，空bindings不能解释为其没有扩展能力；runtime_effective保持not_checked。原生只读入口为`php think developer:center --module=<实际模块键>`，它不是运行验收或自动执行事件的入口。
+
 独立权限包定义仍由原系统/模块权限声明维护；平台编辑的是权限包与已登记 API 的关联，不改写 API 路径、受众、所属模块或公开/认证模式。API 目录的自动发现复用既有路由 inventory 和合同生成器，开发者中心继续展示同一生成目录；平台权限配置入口见[身份与授权](../architecture/identity-organization-access.md#3-部门岗位角色和数据范围)。
 
 ## 3. 可操作范围

@@ -10,6 +10,7 @@ use app\platform\value\plugin\ModuleFrontendLayout;
 use PeanutAdmin\Kernel\Module\ManifestLoader;
 use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
 use PeanutAdmin\Kernel\Module\ModuleProvider;
+use think\App;
 use Throwable;
 
 /**
@@ -21,6 +22,7 @@ final readonly class DeveloperCenterCatalogService
     public function __construct(
         private string $serverRoot,
         private CompiledModuleRegistry $registry,
+        private App $app,
     ) {}
 
     /** @return array<string,mixed> */
@@ -53,6 +55,7 @@ final readonly class DeveloperCenterCatalogService
             $root = $declaration['root'];
             $moduleRoutes = $this->moduleRoutes($routes, $key);
             $generatedApi = $this->moduleRoutes($documentedOperations, $key);
+            $provider = $this->provider($data);
             $modules[] = [
                 'key' => $key,
                 'name' => (string) ($data['name'] ?? $key),
@@ -89,8 +92,8 @@ final readonly class DeveloperCenterCatalogService
                 'routes' => $moduleRoutes,
                 'generated_api' => $generatedApi,
                 'permissions' => $this->permissions($data),
-                'public_services' => $this->publicServices($data),
-                'provider' => $this->provider($data),
+                'public_services' => $this->publicServices($data, $provider),
+                'provider' => $provider,
                 'middleware' => $this->middleware($moduleRoutes),
                 'lifecycle' => $this->lifecycle($data),
                 'events' => array_values((array) ($data['contracts']['events'] ?? [])),
@@ -300,18 +303,10 @@ final readonly class DeveloperCenterCatalogService
         return array_map(static fn(mixed $item): mixed => is_array($item) ? $item : ['key' => $item], $items);
     }
 
-    /** @param array<string,mixed> $data */
-    private function publicServices(array $data): array
+    /** @param array<string,mixed> $data @param array<string,mixed> $provider */
+    private function publicServices(array $data, array $provider): array
     {
-        $provider = $data['backend']['provider'] ?? null;
-        $bindings = [];
-        if (is_string($provider) && $this->autoloadable($provider) && is_a($provider, ModuleProvider::class, true)) {
-            try {
-                $bindings = (new $provider())->bindings();
-            } catch (Throwable) {
-                $bindings = [];
-            }
-        }
+        $bindings = array_column($provider['bindings'], 'contract');
         $services = [];
         foreach ((array) ($data['contracts']['exports'] ?? []) as $class) {
             if (!is_string($class)) {
@@ -320,7 +315,7 @@ final readonly class DeveloperCenterCatalogService
             $services[] = [
                 'class' => $class,
                 'autoloadable' => $this->autoloadable($class),
-                'provider_binding_declared' => array_key_exists($class, $bindings),
+                'provider_binding_declared' => in_array($class, $bindings, true),
                 'runtime_effective' => 'not_checked',
             ];
         }
@@ -333,9 +328,10 @@ final readonly class DeveloperCenterCatalogService
         $class = $data['backend']['provider'] ?? null;
         $autoloadable = is_string($class) && $this->autoloadable($class);
         $bindings = [];
-        if ($autoloadable && is_a($class, ModuleProvider::class, true)) {
+        // Inspect the exact Provider composed by this App; do not construct unselected Modules.
+        if ($autoloadable && is_a($class, ModuleProvider::class, true) && $this->app->exists($class)) {
             try {
-                foreach ((new $class())->bindings() as $contract => $target) {
+                foreach ($this->app->make($class)->bindings() as $contract => $target) {
                     $bindings[] = [
                         'contract' => $contract,
                         'target' => $target instanceof \Closure ? 'Closure' : $target,

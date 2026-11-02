@@ -593,6 +593,7 @@ class AppService extends Service
                 new \app\platform\services\developer\DeveloperCenterCatalogService(
                     dirname(__DIR__),
                     $this->app->make(CompiledModuleRegistry::class),
+                    $this->app,
                 ),
         );
         $this->app->bind(WorkbenchApplicationService::class, fn(): WorkbenchApplicationService => new WorkbenchApplicationService(
