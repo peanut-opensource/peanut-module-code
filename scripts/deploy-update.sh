@@ -36,13 +36,18 @@ main() {
     # Raw archives are build inputs. PHP runtime identity readers do not consume them.
     php -d zend.exception_ignore_args=1 <<'PHP'
 <?php
-require 'server/vendor/autoload.php';
-app\common\value\installation\ApplicationSourceIdentity::loadGeneratedApp(getcwd() . '/server');
-$versions = app\common\value\installation\ApplicationReleaseVersions::load('release-versions.json')->toArray();
-app\common\infrastructure\scaffold\ReleaseDependencyIdentity::verifyArchives(
-    getcwd(), $versions['core_web'], 'APPLICATION_RELEASE_CORE_WEB_ARCHIVE_INVALID',
-);
-(new app\platform\infrastructure\plugin\PluginLockResolver(getcwd() . '/server', '../plugins.lock'))->all();
+try {
+    require 'server/vendor/autoload.php';
+    app\common\value\installation\ApplicationSourceIdentity::loadGeneratedApp(getcwd() . '/server');
+    $versions = app\common\value\installation\ApplicationReleaseVersions::load('release-versions.json')->toArray();
+    app\common\infrastructure\scaffold\ReleaseDependencyIdentity::verifyArchives(
+        getcwd(), $versions['core_web'], 'APPLICATION_RELEASE_CORE_WEB_ARCHIVE_INVALID',
+    );
+    (new app\platform\infrastructure\plugin\PluginLockResolver(getcwd() . '/server', '../plugins.lock'))->all();
+} catch (\Throwable $error) {
+    fwrite(STDERR, '[deploy-update] ' . $error->getMessage() . PHP_EOL);
+    exit(1);
+}
 PHP
     python3 - "$ROOT/server" <<'PY'
 import importlib.util, pathlib, sys
@@ -58,19 +63,24 @@ PY
     fi
     NODE_ENV=production VITE_API_BASE_URL='' php -d zend.exception_ignore_args=1 <<'PHP'
 <?php
-require 'server/vendor/autoload.php';
-require_once 'server/database/install.php';
-$application = ensureThinkPhpApplication(getcwd() . '/server');
-$clients = $application->config->get('deployment.mode') === 'multi-tenant' ? ['web', 'platform'] : ['web'];
-$result = (new app\common\module\Dependencies(getcwd() . '/server'))->prepareRelease(
-    new app\platform\infrastructure\plugin\PluginLockResolver(getcwd() . '/server', '../plugins.lock'),
-    $clients,
-);
-foreach ($result['operations'] as $operation) {
-    echo $operation['output'];
-}
-foreach ($result['frontend_adoption'] as $operation) {
-    echo $operation['output'];
+try {
+    require 'server/vendor/autoload.php';
+    require_once 'server/database/install.php';
+    $application = ensureThinkPhpApplication(getcwd() . '/server');
+    $clients = $application->config->get('deployment.mode') === 'multi-tenant' ? ['web', 'platform'] : ['web'];
+    $result = (new app\common\module\Dependencies(getcwd() . '/server'))->prepareRelease(
+        new app\platform\infrastructure\plugin\PluginLockResolver(getcwd() . '/server', '../plugins.lock'),
+        $clients,
+    );
+    foreach ($result['operations'] as $operation) {
+        echo $operation['output'];
+    }
+    foreach ($result['frontend_adoption'] as $operation) {
+        echo $operation['output'];
+    }
+} catch (\Throwable $error) {
+    fwrite(STDERR, '[deploy-update] ' . $error->getMessage() . PHP_EOL);
+    exit(1);
 }
 PHP
     printf '%s\n' '{"operation":"compile","arguments":[]}' | php -d zend.exception_ignore_args=1 server/module

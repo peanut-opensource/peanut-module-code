@@ -4,7 +4,7 @@ import type { RouteRecordRaw } from 'vue-router';
 import { enabledTenantModulesFromRoutes } from '@peanut-admin/vue';
 import defaultSettings from '@/config/settings.json';
 import { getMenuList } from '@/api/user';
-import { shellPresentation, shellUserOptions } from '@/peanut.overrides';
+import { shellPresentation, shellUserOptions } from '@/core/runtime';
 import { shellPresets, type ShellPresentation } from '@/layout/shell-presets';
 import type { AppSettings, AppState, ServerMenuRecord } from './types';
 import mapServerMenu from './server-menu';

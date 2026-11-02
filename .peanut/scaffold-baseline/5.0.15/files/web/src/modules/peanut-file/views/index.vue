@@ -418,6 +418,7 @@
     renameFile,
     deleteFile,
     uploadFile,
+    fileUploadAccept,
     type FileType,
     type FileCateRecord,
     type FileRecord,
@@ -449,11 +450,7 @@
   const previewVisible = ref(false);
 
   const activeType = ref<FileType>(10);
-  const acceptMap: Record<FileType, string> = {
-    10: 'image/*',
-    20: 'video/*',
-    30: '',
-  };
+  const acceptMap = fileUploadAccept;
   const uploadPermissionMap: Record<FileType, string> = {
     10: 'peanut.file.upload.image',
     20: 'peanut.file.upload.video',

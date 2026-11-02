@@ -302,7 +302,7 @@
     SwitchButton,
   } from '@element-plus/icons-vue';
   import { useAppStore, useBrandStore, useUserStore } from '@/store';
-  import { shellUserOptions } from '@/peanut.overrides';
+  import { shellUserOptions } from '@/core/runtime';
   import { LOCALE_OPTIONS } from '@/locale';
   import useLocale from '@/hooks/locale';
   import useUser from '@/hooks/user';

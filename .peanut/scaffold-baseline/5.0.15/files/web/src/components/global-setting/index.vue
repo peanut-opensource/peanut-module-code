@@ -125,7 +125,7 @@
   import { useI18n } from 'vue-i18n';
   import { useClipboard } from '@vueuse/core';
   import { useAppStore } from '@/store';
-  import { shellUserOptions } from '@/peanut.overrides';
+  import { shellUserOptions } from '@/core/runtime';
   import Block from './block.vue';
 
   const emit = defineEmits(['cancel']);

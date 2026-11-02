@@ -43,9 +43,9 @@ export const shellUserOptions: ShellUserOptions = {
 
 Web 的锁定模块贡献入口支持既有 Core `AdminModuleShellSlotContribution` 的 `shellSlots`：`header-context`、`header-actions`、`sidebar-footer`、`page-tools`。在模块自己的 contribution 对象中声明 `name`、懒加载 `component` 及可选 `access: { moduleKey, permissionKeys }`。宿主先检查当前启用模块，再按所属模块和已有权限 evaluator 过滤，未获准的组件不加载；退出/权限变化后随组件卸载，模块仍负责自己的订阅和请求释放。不要把贡献位的可见性当作后端授权。
 
-Platform 的真实应用入口是 `platform/src/App.vue`，自有覆盖入口为 `platform/src/peanut.overrides.ts`。`platformPresets` 定义管理台/工作台展示值，`platformUserOptions` 用上述五组精确允许项约束页头“展示设置”，每组首项为初始值；`platformPresentation` 是本页面的原生 reactive 展示状态，选择只作用于当前页面，不创建用户配置数据库或新的持久记录。`presets/overrides` 继续使用同一 Core shell slot。平台账号、导航可见性及 `selectView`/刷新/退出仍由原平台宿主处理。OpsConsolePage 保留原 `refresh/upgrade` slots、runtime 和 providers，不引入租户 Web runtime。自定义平台外壳须透传宿主内容，不能据布局选择改变平台身份或操作权限。
+Platform 的真实应用入口是 `platform/src/App.vue`，受管宿主实现为 `platform/src/core/presentation.ts`，可选的应用自有覆盖入口为 `platform/src/peanut.overrides.ts`。`platformPresets` 定义管理台/工作台展示值，`platformUserOptions` 用上述五组精确允许项约束页头“展示设置”，每组首项为初始值；`platformPresentation` 是本页面的原生 reactive 展示状态，选择只作用于当前页面，不创建用户配置数据库或新的持久记录。应用导出的 `PLATFORM_PRESETS/PLATFORM_OVERRIDES` 继续使用同一 Core shell slot；已有入口的 `platformShell`、展示状态与预设选择仍被保留。平台账号、导航可见性及 `selectView`/刷新/退出仍由原平台宿主处理。OpsConsolePage 保留原 `refresh/upgrade` slots、runtime 和 providers，不引入租户 Web runtime。自定义平台外壳须透传宿主内容，不能据布局选择改变平台身份或操作权限。
 
-这些允许项、默认值及组件覆盖属于应用源码定制，升级时由应用按原 ownership/baseline 审阅合并。已有 app-owned `peanut.overrides.ts` 采用这批宿主源码时须补齐 `shellUserOptions` 导出，不能只复制宿主调用而遗漏应用允许项。修改不等于已发布 Core 包或已完成发行资格。
+应用明确导出的允许项、展示值及组件覆盖属于应用源码定制，升级继续按原 ownership/baseline 保留。宿主默认行为由受管代码维护：旧 Web 入口可以仍只导出原 overrides，缺少的 `shellPresentation`、`shellUserOptions`、`PEANUT_ADMIN_PRESETS` 使用默认值；旧应用没有 Platform 覆盖文件时也可直接采用宿主。需要限制展示选项时再显式导出对应配置，不为升级覆盖应用入口或复制宿主实现。修改不等于已发布 Core 包或已完成发行资格。
 
 Web 的静态模块和插件路由在 `router/routes/index.ts` 装配时递归校验 meta，非法源码配置在注册前报错；插件 meta 不先做布尔强转来掩盖非法输入。服务端菜单在 `server-menu.ts` 映射到已知静态路由后检查投影 meta，丢弃非法节点。导航和菜单匹配直接使用已采用的记录，继续按当前会话执行角色、权限包和租户模块门槛，不逐次重验不变的 meta 结构。
 

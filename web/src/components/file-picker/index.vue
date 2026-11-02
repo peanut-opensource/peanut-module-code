@@ -122,6 +122,7 @@
     getFileCateList,
     getFileList,
     uploadFile,
+    fileUploadAccept,
     type FileCateRecord,
     type FileRecord,
     type FileType,
@@ -177,11 +178,7 @@
   const name = ref('');
   const page = reactive({ current: 1, pageSize: 15, total: 0 });
   const effectiveLimit = computed(() => Math.max(1, props.limit));
-  const acceptMap: Record<FileType, string> = {
-    10: 'image/*',
-    20: 'video/*',
-    30: '.zip,.rar,.txt,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.7z,.gz',
-  };
+  const acceptMap = fileUploadAccept;
   const flatCategories = computed(() => {
     const result: Array<FileCateRecord & { depth: number }> = [];
     const walk = (items: FileCateRecord[], depth: number) => {

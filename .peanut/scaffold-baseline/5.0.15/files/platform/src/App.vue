@@ -1280,7 +1280,7 @@
     platformShell,
     platformUserOptions,
     selectPlatformPreset,
-  } from './peanut.overrides';
+  } from './core/presentation';
 
   const hasPresentationChoices = Object.values(platformUserOptions).some(
     (values) => values.length > 1

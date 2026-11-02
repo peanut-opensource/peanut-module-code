@@ -1,5 +1,12 @@
 # File composition
 
+## Original audio uploads
+
+The existing generic file type `30` accepts original `mp3`, `wav` and `ogg` files through `FileUploads::file` and the normal `peanut.file.upload.file` endpoint. `Contract/UploadExtensions::FILE` owns this allowlist; the host `FileEnum` delegates to it. The existing 50 MiB limit, tenant scope, upload permission, storage and verified media handling remain in force. This does not add transcoding, audio workflow rules or a new database file type.
+
+The File page and host file picker both consume `fileUploadAccept` from this module's `api.ts`; custom selectors may reuse it as a browser hint. Server validation remains authoritative. Media applications should adopt this module and its host bridge instead of retaining private extension arrays in managed `FileEnum` or `file-picker` files.
+
+
 ## Reuse entries
 
 The management page `/system/file` uses the module's `web/src/modules/peanut-file/api.ts`

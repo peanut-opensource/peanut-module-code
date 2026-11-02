@@ -18,7 +18,7 @@ class FileEnum
     public const EXT = [
         self::IMAGE => ['jpg', 'png', 'gif', 'jpeg', 'webp', 'ico', 'bmp'],
         self::VIDEO => ['wmv', 'avi', 'mpg', 'mpeg', '3gp', 'mov', 'mp4', 'flv', 'f4v', 'rmvb', 'mkv'],
-        self::FILE  => ['zip', 'rar', 'txt', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'csv', '7z', 'gz'],
+        self::FILE  => \PeanutAdmin\Modules\File\Contract\UploadExtensions::FILE,
     ];
 
     /** 各类型上传大小上限（字节） */

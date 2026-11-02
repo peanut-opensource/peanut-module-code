@@ -39,3 +39,11 @@ export interface ShellUserOptions {
   densities: readonly ('comfortable' | 'compact')[];
   modes: readonly ('light' | 'dark')[];
 }
+
+export const defaultShellUserOptions: ShellUserOptions = {
+  presets: ['admin', 'workspace'],
+  layouts: ['admin', 'workspace'],
+  navigationModes: ['tree', 'grouped', 'top'],
+  densities: ['comfortable', 'compact'],
+  modes: ['light', 'dark'],
+};

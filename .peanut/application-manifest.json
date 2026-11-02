@@ -43,28 +43,28 @@
     },
     "template": {
         "version": "5.0.15",
-        "inventory_sha256": "4c9453bc3556e9ce3b0c78c7a8e246fa2d3fd9fa8c2b7fb35e09ec4314f0dfbe",
+        "inventory_sha256": "1c4ce6324121a60ca986993dac71be089111bcc7129f5916c1c23d2cb8dafbe7",
         "source_identity": {
             "kind": "git",
-            "commit": "47754ac611c6b7763838ccc76b677838afa6116f",
-            "tree": "d80031562313b0f0a862aa3018018f8d7cf55c04"
+            "commit": "f590de4438f88aeac8b7203da826f60e0324d265",
+            "tree": "73dac22cd1d1ffa9e66a372d6d2ae130be653ffd"
         },
-        "source_commit": "47754ac611c6b7763838ccc76b677838afa6116f",
-        "source_tree": "d80031562313b0f0a862aa3018018f8d7cf55c04"
+        "source_commit": "f590de4438f88aeac8b7203da826f60e0324d265",
+        "source_tree": "73dac22cd1d1ffa9e66a372d6d2ae130be653ffd"
     },
     "generation_source": {
         "repository": "peanut-business/peanut-admin-code",
-        "requested_ref": "local:8acab8e2fb9a14d789698b0638dbf6f1ee0f68c52145e9eadfc85fcf47b521d1",
+        "requested_ref": "local:e2237f5c64bf68122df8f7ba2c055d0803b78a253d5ea04267deaf36541f861c",
         "channel": "development",
         "release_version": null,
         "source_identity": {
             "kind": "git",
-            "commit": "47754ac611c6b7763838ccc76b677838afa6116f",
-            "tree": "d80031562313b0f0a862aa3018018f8d7cf55c04"
+            "commit": "f590de4438f88aeac8b7203da826f60e0324d265",
+            "tree": "73dac22cd1d1ffa9e66a372d6d2ae130be653ffd"
         },
-        "commit": "47754ac611c6b7763838ccc76b677838afa6116f",
-        "tree": "d80031562313b0f0a862aa3018018f8d7cf55c04",
-        "inventory_sha256": "4c9453bc3556e9ce3b0c78c7a8e246fa2d3fd9fa8c2b7fb35e09ec4314f0dfbe",
+        "commit": "f590de4438f88aeac8b7203da826f60e0324d265",
+        "tree": "73dac22cd1d1ffa9e66a372d6d2ae130be653ffd",
+        "inventory_sha256": "1c4ce6324121a60ca986993dac71be089111bcc7129f5916c1c23d2cb8dafbe7",
         "edition_profile_sha256": "c6a2991cf52f79b0055b0aa1707ca9bfefd09f75f9f611b37da24c4410fed50e"
     },
     "ownership": {
@@ -77,8 +77,8 @@
         "baseline_root": ".peanut/scaffold-baseline/5.0.15/files"
     },
     "digests": {
-        "managed_tree_sha256": "8749f69aff94aa459e130f428fb2b19dfa154a78cb8c43b6b85a81ea23203770",
-        "app_owned_tree_sha256": "3dd1b757df8188b6f244f3b4282bf1abd2fae157c0fc7f98583f0c6965626c59"
+        "managed_tree_sha256": "c1fe1904d1c97303f1877c425ac7876634a50d69173bf3beb1adbf85277794ca",
+        "app_owned_tree_sha256": "cf04783e6d6b75de257b719fc81f9e3f6d06248a6e604c374a15d7866a99cf84"
     },
     "files": [
         {
@@ -498,24 +498,24 @@
         },
         {
             "path": "docs/architecture/module-development-delivery.md",
-            "sha256": "f936849bbe6c08f41cc166af53bb3fa143edb393f945cd680e8ae7183a7bbf06",
+            "sha256": "daaabfed96b71fbb8923c2038b1a68ba8a8de8e25fea900fa4afd93459b11320",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "docs/architecture/module-development-delivery.md",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/docs/architecture/module-development-delivery.md",
-            "baseline_sha256": "f936849bbe6c08f41cc166af53bb3fa143edb393f945cd680e8ae7183a7bbf06",
+            "baseline_sha256": "daaabfed96b71fbb8923c2038b1a68ba8a8de8e25fea900fa4afd93459b11320",
             "baseline_mode": 420
         },
         {
             "path": "docs/architecture/overview.md",
-            "sha256": "6f603edde8ca3f495ebf7d015a44e585df3797b919c8a82f53dd9300f0a0985d",
+            "sha256": "64ad9a47b059038b6449e28fbe631834b151384151d9e263a7967cd85184e54a",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "docs/architecture/overview.md",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/docs/architecture/overview.md",
-            "baseline_sha256": "6f603edde8ca3f495ebf7d015a44e585df3797b919c8a82f53dd9300f0a0985d",
+            "baseline_sha256": "64ad9a47b059038b6449e28fbe631834b151384151d9e263a7967cd85184e54a",
             "baseline_mode": 420
         },
         {
@@ -586,13 +586,13 @@
         },
         {
             "path": "docs/development/menu-navigation.md",
-            "sha256": "9e34ce281a45328523fb3cfafdae41015e8c4952b64f1ecb356cc8c8b0be5ca6",
+            "sha256": "7242d93bd0d756fe2543c5969c20e09cdb7ef9e0b94fe3508c62e9ddd66aba29",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "docs/development/menu-navigation.md",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/docs/development/menu-navigation.md",
-            "baseline_sha256": "9e34ce281a45328523fb3cfafdae41015e8c4952b64f1ecb356cc8c8b0be5ca6",
+            "baseline_sha256": "7242d93bd0d756fe2543c5969c20e09cdb7ef9e0b94fe3508c62e9ddd66aba29",
             "baseline_mode": 420
         },
         {
@@ -1301,13 +1301,13 @@
         },
         {
             "path": "platform/src/App.vue",
-            "sha256": "d04f8520f3e9dd8b2c24b6aeab1c0e12644d28dc3d461fcb0b67ea394de6bbc5",
+            "sha256": "8ff55597720b239d52c782da58a65c2fdf1e57e275865854c5b6de18b924b7c8",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "platform/src/App.vue",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/platform/src/App.vue",
-            "baseline_sha256": "d04f8520f3e9dd8b2c24b6aeab1c0e12644d28dc3d461fcb0b67ea394de6bbc5",
+            "baseline_sha256": "8ff55597720b239d52c782da58a65c2fdf1e57e275865854c5b6de18b924b7c8",
             "baseline_mode": 420
         },
         {
@@ -1396,6 +1396,17 @@
             "source": "platform/src/components/TenantLicensePanel.vue",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/platform/src/components/TenantLicensePanel.vue",
             "baseline_sha256": "500ea40ee1ea2ba712faec0d6f2969b4311a93b6d58b6fc35e7a8d48e3832d0a",
+            "baseline_mode": 420
+        },
+        {
+            "path": "platform/src/core/presentation.ts",
+            "sha256": "e866a732114d3e6f18d0fe96a2b6fac2c0b25340389255c58e495f89b4e38b9f",
+            "mode": 420,
+            "classification": "managed",
+            "owner": "scaffold",
+            "source": "platform/src/core/presentation.ts",
+            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/platform/src/core/presentation.ts",
+            "baseline_sha256": "e866a732114d3e6f18d0fe96a2b6fac2c0b25340389255c58e495f89b4e38b9f",
             "baseline_mode": 420
         },
         {
@@ -1752,13 +1763,13 @@
         },
         {
             "path": "plugins.lock",
-            "sha256": "a3e8a68013044ac556ef993f9a6ab18d3676dbb7d88495d3f77077194b437519",
+            "sha256": "ae188dbf23d65457f5a67696141a72b53aa17b8e96b3b5949d4458fd02621e8b",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "plugins.lock",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/plugins.lock",
-            "baseline_sha256": "a3e8a68013044ac556ef993f9a6ab18d3676dbb7d88495d3f77077194b437519",
+            "baseline_sha256": "ae188dbf23d65457f5a67696141a72b53aa17b8e96b3b5949d4458fd02621e8b",
             "baseline_mode": 420
         },
         {
@@ -1785,24 +1796,24 @@
         },
         {
             "path": "plugins/peanut.file/plugin.json",
-            "sha256": "80870e5c33dd0506e2a79b7d1c69a705e0d6f25f4b56cb042f96051b8370942c",
+            "sha256": "d163408fd15c255f5dd5b73b213183a31d3bd3e67a20b30be4fa35e46b10681c",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "plugins/peanut.file/plugin.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/plugins/peanut.file/plugin.json",
-            "baseline_sha256": "80870e5c33dd0506e2a79b7d1c69a705e0d6f25f4b56cb042f96051b8370942c",
+            "baseline_sha256": "d163408fd15c255f5dd5b73b213183a31d3bd3e67a20b30be4fa35e46b10681c",
             "baseline_mode": 420
         },
         {
             "path": "plugins/peanut.identity/plugin.json",
-            "sha256": "bad2168a7ff22bbd4c424f2e84ebee87e266a561ac3868688ac1121d21a7a497",
+            "sha256": "85350ec247a602f15a8e264ca503fbd7fa250c96a88d495e2528b30b59591f98",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "plugins/peanut.identity/plugin.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/plugins/peanut.identity/plugin.json",
-            "baseline_sha256": "bad2168a7ff22bbd4c424f2e84ebee87e266a561ac3868688ac1121d21a7a497",
+            "baseline_sha256": "85350ec247a602f15a8e264ca503fbd7fa250c96a88d495e2528b30b59591f98",
             "baseline_mode": 420
         },
         {
@@ -2101,13 +2112,13 @@
         },
         {
             "path": "scripts/deploy-update.sh",
-            "sha256": "fcf44c872834e51b4815b0812e8d0642e0590728e8c48fa88f7256dfd04bc50b",
+            "sha256": "fc4176b73b65c958390ac6134e789e7dbe7f50fb5b65f18f088415d3c9416b8b",
             "mode": 493,
             "classification": "managed",
             "owner": "scaffold",
             "source": "scripts/deploy-update.sh",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/scripts/deploy-update.sh",
-            "baseline_sha256": "fcf44c872834e51b4815b0812e8d0642e0590728e8c48fa88f7256dfd04bc50b",
+            "baseline_sha256": "fc4176b73b65c958390ac6134e789e7dbe7f50fb5b65f18f088415d3c9416b8b",
             "baseline_mode": 493
         },
         {
@@ -2622,6 +2633,17 @@
             "source": "scripts/tests/core-web-installed-consumer.types.ts",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/scripts/tests/core-web-installed-consumer.types.ts",
             "baseline_sha256": "5e40981fee3a4287e05730ef2dccb633aa774951720b42ec5fa80e47f4a7e899",
+            "baseline_mode": 420
+        },
+        {
+            "path": "scripts/tests/deploy-update-preparation-test.py",
+            "sha256": "88f41b31749b89a52602ad46b1d8f170fa8e2e1c82b800dc3b31b2e48946bf74",
+            "mode": 420,
+            "classification": "managed",
+            "owner": "scaffold",
+            "source": "scripts/tests/deploy-update-preparation-test.py",
+            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/scripts/tests/deploy-update-preparation-test.py",
+            "baseline_sha256": "88f41b31749b89a52602ad46b1d8f170fa8e2e1c82b800dc3b31b2e48946bf74",
             "baseline_mode": 420
         },
         {
@@ -5200,13 +5222,13 @@
         },
         {
             "path": "server/app/common/enum/FileEnum.php",
-            "sha256": "2e9283cfd9ee1628bc90d242ae4ba72ef61fd434dc128751a4dcb7e72bbbd58c",
+            "sha256": "b4dca6ef104db342e48388bc9f44a602cc8534874652452ea11fc0b103803717",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/common/enum/FileEnum.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/common/enum/FileEnum.php",
-            "baseline_sha256": "2e9283cfd9ee1628bc90d242ae4ba72ef61fd434dc128751a4dcb7e72bbbd58c",
+            "baseline_sha256": "b4dca6ef104db342e48388bc9f44a602cc8534874652452ea11fc0b103803717",
             "baseline_mode": 420
         },
         {
@@ -7059,13 +7081,13 @@
         },
         {
             "path": "server/app/modules/peanut/file/README.md",
-            "sha256": "71c5c014320cc06dd8a858fc60e5cb82a6642a68cf1c4847c6e8b0fe6e825b4d",
+            "sha256": "21e70aa132f3a210ba127ef5115dab0e5838f3d347a5323eed785c3b1e6ef3a1",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/file/README.md",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/file/README.md",
-            "baseline_sha256": "71c5c014320cc06dd8a858fc60e5cb82a6642a68cf1c4847c6e8b0fe6e825b4d",
+            "baseline_sha256": "21e70aa132f3a210ba127ef5115dab0e5838f3d347a5323eed785c3b1e6ef3a1",
             "baseline_mode": 420
         },
         {
@@ -7081,13 +7103,13 @@
         },
         {
             "path": "server/app/modules/peanut/file/composer.json",
-            "sha256": "caab231ca351e338b1753854bf64bf1c54048206952687fae0363e8981926a80",
+            "sha256": "c75a44d13bfba34267bb501d2632c93d38afdf9a86501781a64287a721e0c461",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/file/composer.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/file/composer.json",
-            "baseline_sha256": "caab231ca351e338b1753854bf64bf1c54048206952687fae0363e8981926a80",
+            "baseline_sha256": "c75a44d13bfba34267bb501d2632c93d38afdf9a86501781a64287a721e0c461",
             "baseline_mode": 420
         },
         {
@@ -7114,13 +7136,13 @@
         },
         {
             "path": "server/app/modules/peanut/file/module.json",
-            "sha256": "65a259c8e4f1202dfcdcc03fa00f52acdbdde59e9ef3c79ff27a9c5bc6372f8f",
+            "sha256": "6f3141922dbe05f89919e595ea56b119103ae047ec9f83e3d6f4d1fa2312a9f6",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/file/module.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/file/module.json",
-            "baseline_sha256": "65a259c8e4f1202dfcdcc03fa00f52acdbdde59e9ef3c79ff27a9c5bc6372f8f",
+            "baseline_sha256": "6f3141922dbe05f89919e595ea56b119103ae047ec9f83e3d6f4d1fa2312a9f6",
             "baseline_mode": 420
         },
         {
@@ -7385,6 +7407,17 @@
             "source": "server/app/modules/peanut/file/src/Contract/StorageQualificationQueries.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/file/src/Contract/StorageQualificationQueries.php",
             "baseline_sha256": "28ea5068d02d23326fc6638c7fcdad5f8aa7d8bc8d20432189395567fed25a5e",
+            "baseline_mode": 420
+        },
+        {
+            "path": "server/app/modules/peanut/file/src/Contract/UploadExtensions.php",
+            "sha256": "3bc9e4a3dc9b332ee311c668f91ab4c3a5089278b83c134ccd9ef50a377b1db1",
+            "mode": 420,
+            "classification": "managed",
+            "owner": "scaffold",
+            "source": "server/app/modules/peanut/file/src/Contract/UploadExtensions.php",
+            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/file/src/Contract/UploadExtensions.php",
+            "baseline_sha256": "3bc9e4a3dc9b332ee311c668f91ab4c3a5089278b83c134ccd9ef50a377b1db1",
             "baseline_mode": 420
         },
         {
@@ -7829,13 +7862,13 @@
         },
         {
             "path": "server/app/modules/peanut/identity/composer.json",
-            "sha256": "f94de3b00d09b74027ced0de3c92d991bb8ba841db65d8f83afcd54773446bbe",
+            "sha256": "dec2e514043585338211bed74823e956ef7e96e899ee0fd2cbf1f9fd0409be8f",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/identity/composer.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/identity/composer.json",
-            "baseline_sha256": "f94de3b00d09b74027ced0de3c92d991bb8ba841db65d8f83afcd54773446bbe",
+            "baseline_sha256": "dec2e514043585338211bed74823e956ef7e96e899ee0fd2cbf1f9fd0409be8f",
             "baseline_mode": 420
         },
         {
@@ -7895,13 +7928,13 @@
         },
         {
             "path": "server/app/modules/peanut/identity/module.json",
-            "sha256": "fba33bc90fb77dcb1613464f868b60c63f969099701aa7755088c190fe736449",
+            "sha256": "9c70c41b518d59fb19182f3f49bb3dcb74a3c3f9b4bd372f3edd87d744fad03b",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/identity/module.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/identity/module.json",
-            "baseline_sha256": "fba33bc90fb77dcb1613464f868b60c63f969099701aa7755088c190fe736449",
+            "baseline_sha256": "9c70c41b518d59fb19182f3f49bb3dcb74a3c3f9b4bd372f3edd87d744fad03b",
             "baseline_mode": 420
         },
         {
@@ -13604,24 +13637,24 @@
         },
         {
             "path": "server/composer.json",
-            "sha256": "254e67057c52feddfd057cce829539f51e5517fc2ee6affe6224caf8b96a5545",
+            "sha256": "ed72aa1e4d44a1279452a06e4d7f79776993677d906749c1e19a7ab4de345668",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/composer.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/composer.json",
-            "baseline_sha256": "254e67057c52feddfd057cce829539f51e5517fc2ee6affe6224caf8b96a5545",
+            "baseline_sha256": "a35689d0b00424a1b108d4aab353cb45c5f7f980edb6bf768afaad734db0dcd1",
             "baseline_mode": 420
         },
         {
             "path": "server/composer.lock",
-            "sha256": "d8319b8a722c8170b03e1dda8cff6b03a646cc4a7fd07282d2d6897c2291f1ac",
+            "sha256": "0d72948d310a87ceabc5f6c264104f527d8510d753b4fb66ea4170019f5ab4bf",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/composer.lock",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/composer.lock",
-            "baseline_sha256": "d8319b8a722c8170b03e1dda8cff6b03a646cc4a7fd07282d2d6897c2291f1ac",
+            "baseline_sha256": "e3f916ab94ef7edbfb3209cd4d8078445b781ea25de3027109a3edf3e03dc1b0",
             "baseline_mode": 420
         },
         {
@@ -14425,13 +14458,13 @@
         },
         {
             "path": "server/generated/api-catalog.json",
-            "sha256": "d4f60155da17795aa843b94073e5b0aeb49a2b612338040a6c301aa35ee8edf0",
+            "sha256": "5d8b0b406b925440206f26491e260ac004ae92ab4eb3879966269f675083c883",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/generated/api-catalog.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/generated/api-catalog.json",
-            "baseline_sha256": "d0a3952f7364d14a061367cc30ac170d9585e820610f9a0f9b2ce0f7a2a34cd9",
+            "baseline_sha256": "11940ced918ad441c09674191ccd10dc1fa42de60dabd229e7c32998e44a4992",
             "baseline_mode": 420
         },
         {
@@ -14480,7 +14513,7 @@
         },
         {
             "path": "server/public/admin/.vite/manifest.json",
-            "sha256": "2a379c18636663530118c7e6415f2198ac4ac219f4af2827535c877b5238bf8d",
+            "sha256": "d843d537e51912e2f4813f8a982839f4dd7b357b4e3de12e7aa6eb56b148c18f",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
@@ -14491,7 +14524,7 @@
         },
         {
             "path": "server/public/admin/.vite/manifest.json.gz",
-            "sha256": "3550c870fba5c77534921043fb616f2142d864002dc4d323446220108886280b",
+            "sha256": "91a1fd470ce2ae995ff509df0cb4a0b4d1206b76f6a45d1d20b3b0ed20ece0d1",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
@@ -14502,25 +14535,19 @@
         },
         {
             "path": "server/public/admin/assets/BasicFileViewer-Bb7ahR4C.js",
-            "sha256": "1d06f912b9c1a402440c20d9673a707cc9e503420a31aa037fe04c6a4cd0ddfb",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/BasicFileViewer-Bb7ahR4C.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/BasicFileViewer-Bb7ahR4C.js",
-            "baseline_sha256": "1d06f912b9c1a402440c20d9673a707cc9e503420a31aa037fe04c6a4cd0ddfb",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/BasicFileViewer-Bb7ahR4C.js"
         },
         {
             "path": "server/public/admin/assets/BasicFileViewer-Bb7ahR4C.js.gz",
-            "sha256": "a5a1a3af9bcc01e35810f87eede2dfc18f0c793440dc0b708bed731376d9f716",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/BasicFileViewer-Bb7ahR4C.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/BasicFileViewer-Bb7ahR4C.js.gz",
-            "baseline_sha256": "a5a1a3af9bcc01e35810f87eede2dfc18f0c793440dc0b708bed731376d9f716",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/BasicFileViewer-Bb7ahR4C.js.gz"
         },
         {
             "path": "server/public/admin/assets/BasicFileViewer-Bv6TGp6V.js",
@@ -14551,25 +14578,19 @@
         },
         {
             "path": "server/public/admin/assets/FileMediaPage-CaK0ibev.js",
-            "sha256": "79d2d999ab59d7422dd97fd68145d7093bf68f6921c1c203d37ef84830e36cae",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/FileMediaPage-CaK0ibev.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/FileMediaPage-CaK0ibev.js",
-            "baseline_sha256": "79d2d999ab59d7422dd97fd68145d7093bf68f6921c1c203d37ef84830e36cae",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/FileMediaPage-CaK0ibev.js"
         },
         {
             "path": "server/public/admin/assets/FileMediaPage-CaK0ibev.js.gz",
-            "sha256": "cc79a9c92f322abc4026fc5de71f299537b328214f6f1f948c171d25693d4bfd",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/FileMediaPage-CaK0ibev.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/FileMediaPage-CaK0ibev.js.gz",
-            "baseline_sha256": "cc79a9c92f322abc4026fc5de71f299537b328214f6f1f948c171d25693d4bfd",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/FileMediaPage-CaK0ibev.js.gz"
         },
         {
             "path": "server/public/admin/assets/FileMediaPage-DWX7O__z.css",
@@ -14655,25 +14676,19 @@
         },
         {
             "path": "server/public/admin/assets/RuntimePage-CE159GTa.js",
-            "sha256": "2382a69938c14b2973bb519fc2d29cb1cb94494cc649bcfb573025ab3c12d731",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/RuntimePage-CE159GTa.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/RuntimePage-CE159GTa.js",
-            "baseline_sha256": "2382a69938c14b2973bb519fc2d29cb1cb94494cc649bcfb573025ab3c12d731",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/RuntimePage-CE159GTa.js"
         },
         {
             "path": "server/public/admin/assets/RuntimePage-CE159GTa.js.gz",
-            "sha256": "c90b983e9c6e5ac6a0c0f28821e003cb10b05e4b7cafd8317ca571ae900ca0c5",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/RuntimePage-CE159GTa.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/RuntimePage-CE159GTa.js.gz",
-            "baseline_sha256": "c90b983e9c6e5ac6a0c0f28821e003cb10b05e4b7cafd8317ca571ae900ca0c5",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/RuntimePage-CE159GTa.js.gz"
         },
         {
             "path": "server/public/admin/assets/RuntimePage-CFruCc2E.js",
@@ -14693,25 +14708,19 @@
         },
         {
             "path": "server/public/admin/assets/RuntimePage-CGsmpVhG.js",
-            "sha256": "baa66d796a18063831069002f344e7bf6346887364ebef8d422ef3120220da63",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/RuntimePage-CGsmpVhG.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/RuntimePage-CGsmpVhG.js",
-            "baseline_sha256": "baa66d796a18063831069002f344e7bf6346887364ebef8d422ef3120220da63",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/RuntimePage-CGsmpVhG.js"
         },
         {
             "path": "server/public/admin/assets/RuntimePage-CGsmpVhG.js.gz",
-            "sha256": "c294a6c1fcdb27d9a537eab33062e06efc41e0070e369e26e06caf3e793a593c",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/RuntimePage-CGsmpVhG.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/RuntimePage-CGsmpVhG.js.gz",
-            "baseline_sha256": "c294a6c1fcdb27d9a537eab33062e06efc41e0070e369e26e06caf3e793a593c",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/RuntimePage-CGsmpVhG.js.gz"
         },
         {
             "path": "server/public/admin/assets/RuntimePage-CmAsFDoz.js",
@@ -14731,25 +14740,19 @@
         },
         {
             "path": "server/public/admin/assets/RuntimePage-DJrIx6ZH.js",
-            "sha256": "528e64b7375abefaf0507b8aee477f95c7c21ae163c278252651cbfd045d1502",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/RuntimePage-DJrIx6ZH.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/RuntimePage-DJrIx6ZH.js",
-            "baseline_sha256": "528e64b7375abefaf0507b8aee477f95c7c21ae163c278252651cbfd045d1502",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/RuntimePage-DJrIx6ZH.js"
         },
         {
             "path": "server/public/admin/assets/RuntimePage-DJrIx6ZH.js.gz",
-            "sha256": "fc0466194fcaf9796828de97cb8509dd41c94d257680168b576100879b2344d4",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/RuntimePage-DJrIx6ZH.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/RuntimePage-DJrIx6ZH.js.gz",
-            "baseline_sha256": "fc0466194fcaf9796828de97cb8509dd41c94d257680168b576100879b2344d4",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/RuntimePage-DJrIx6ZH.js.gz"
         },
         {
             "path": "server/public/admin/assets/RuntimePage-DyDZ0-Lv.js",
@@ -14791,25 +14794,19 @@
         },
         {
             "path": "server/public/admin/assets/TaskJobsPage-C0c3MB44.js",
-            "sha256": "3ffe6daefed0288f805e76be07ac71ebbb8b53d5cafb5c792046350b0dfad1b0",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/TaskJobsPage-C0c3MB44.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/TaskJobsPage-C0c3MB44.js",
-            "baseline_sha256": "3ffe6daefed0288f805e76be07ac71ebbb8b53d5cafb5c792046350b0dfad1b0",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/TaskJobsPage-C0c3MB44.js"
         },
         {
             "path": "server/public/admin/assets/TaskJobsPage-C0c3MB44.js.gz",
-            "sha256": "5a65f7e65bdd78046350abbcb64444cf47012e4b3bdfb9728fcdd1d8fe445e3b",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/TaskJobsPage-C0c3MB44.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/TaskJobsPage-C0c3MB44.js.gz",
-            "baseline_sha256": "5a65f7e65bdd78046350abbcb64444cf47012e4b3bdfb9728fcdd1d8fe445e3b",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/TaskJobsPage-C0c3MB44.js.gz"
         },
         {
             "path": "server/public/admin/assets/TaskJobsPage-CY9mDuMj.css",
@@ -14856,25 +14853,19 @@
         },
         {
             "path": "server/public/admin/assets/admin-zEr2HXca.js",
-            "sha256": "8121330f6e6b8e2643c7f2e940e360202057ea748ff49e75ae196b3ecc053e8e",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/admin-zEr2HXca.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/admin-zEr2HXca.js",
-            "baseline_sha256": "8121330f6e6b8e2643c7f2e940e360202057ea748ff49e75ae196b3ecc053e8e",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/admin-zEr2HXca.js"
         },
         {
             "path": "server/public/admin/assets/admin-zEr2HXca.js.gz",
-            "sha256": "ea8bf5955f6e012260ac70eb0876087d04efa0c02feb93d6b0fbf9d7d4f6cb41",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/admin-zEr2HXca.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/admin-zEr2HXca.js.gz",
-            "baseline_sha256": "ea8bf5955f6e012260ac70eb0876087d04efa0c02feb93d6b0fbf9d7d4f6cb41",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/admin-zEr2HXca.js.gz"
         },
         {
             "path": "server/public/admin/assets/api-C32bT-lr.js",
@@ -14894,36 +14885,27 @@
         },
         {
             "path": "server/public/admin/assets/api-DOElc4cY.js",
-            "sha256": "377e684e9b71bff3f0e49ca917e20da5a519e4ce64ceb7b1695f4735de2f0bd2",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/api-DOElc4cY.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/api-DOElc4cY.js",
-            "baseline_sha256": "377e684e9b71bff3f0e49ca917e20da5a519e4ce64ceb7b1695f4735de2f0bd2",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/api-DOElc4cY.js"
         },
         {
             "path": "server/public/admin/assets/api-DOElc4cY.js.gz",
-            "sha256": "7a1a444b0b461b29c7b00f986ed412e57ce6b732b24b15d0badf75c7ee94c8c7",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/api-DOElc4cY.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/api-DOElc4cY.js.gz",
-            "baseline_sha256": "7a1a444b0b461b29c7b00f986ed412e57ce6b732b24b15d0badf75c7ee94c8c7",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/api-DOElc4cY.js.gz"
         },
         {
             "path": "server/public/admin/assets/app-CvTVne1O.js",
-            "sha256": "57c725b106c3a10a5921f8a81d2b42fe210aee510ce7d14116305b5666faedcc",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/app-CvTVne1O.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/app-CvTVne1O.js",
-            "baseline_sha256": "57c725b106c3a10a5921f8a81d2b42fe210aee510ce7d14116305b5666faedcc",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/app-CvTVne1O.js"
         },
         {
             "path": "server/public/admin/assets/app-DLysj6o9.js",
@@ -14951,47 +14933,35 @@
         },
         {
             "path": "server/public/admin/assets/decoration-DknKhoTe.js",
-            "sha256": "3b238777caf0e066d5a0f8b337634664a4c520e57a0d573bd1173cb951b58d6b",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/decoration-DknKhoTe.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/decoration-DknKhoTe.js",
-            "baseline_sha256": "3b238777caf0e066d5a0f8b337634664a4c520e57a0d573bd1173cb951b58d6b",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/decoration-DknKhoTe.js"
         },
         {
             "path": "server/public/admin/assets/decoration-DknKhoTe.js.gz",
-            "sha256": "9a18dfde93ff67eb07fc417411b48c29a8ff78d3a0965593f602769dc9ec1fd0",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/decoration-DknKhoTe.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/decoration-DknKhoTe.js.gz",
-            "baseline_sha256": "9a18dfde93ff67eb07fc417411b48c29a8ff78d3a0965593f602769dc9ec1fd0",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/decoration-DknKhoTe.js.gz"
         },
         {
             "path": "server/public/admin/assets/default-layout-B08Qy4hI.css",
-            "sha256": "570a942315e3892ad37b06ebb338d3436673a0d211ffe7b7aaeb2bca28d8963b",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/default-layout-B08Qy4hI.css",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/default-layout-B08Qy4hI.css",
-            "baseline_sha256": "570a942315e3892ad37b06ebb338d3436673a0d211ffe7b7aaeb2bca28d8963b",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/default-layout-B08Qy4hI.css"
         },
         {
             "path": "server/public/admin/assets/default-layout-B08Qy4hI.css.gz",
-            "sha256": "3ccffd1a1f78098f36a069bc19dd913012e25bf3538776dc82b670d168e4b6e3",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/default-layout-B08Qy4hI.css.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/default-layout-B08Qy4hI.css.gz",
-            "baseline_sha256": "3ccffd1a1f78098f36a069bc19dd913012e25bf3538776dc82b670d168e4b6e3",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/default-layout-B08Qy4hI.css.gz"
         },
         {
             "path": "server/public/admin/assets/default-layout-Cqjjiz1G.js",
@@ -15011,69 +14981,51 @@
         },
         {
             "path": "server/public/admin/assets/default-layout-CttbVoK-.js",
-            "sha256": "60bf380a881049b877a8136f05500ab7eb8d1a496b2e725b8ac3dda90965832e",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/default-layout-CttbVoK-.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/default-layout-CttbVoK-.js",
-            "baseline_sha256": "60bf380a881049b877a8136f05500ab7eb8d1a496b2e725b8ac3dda90965832e",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/default-layout-CttbVoK-.js"
         },
         {
             "path": "server/public/admin/assets/default-layout-CttbVoK-.js.gz",
-            "sha256": "f5a6f46f73e6932e6608cdc79a9192459614d599869af5b069f09d5c9d89db57",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/default-layout-CttbVoK-.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/default-layout-CttbVoK-.js.gz",
-            "baseline_sha256": "f5a6f46f73e6932e6608cdc79a9192459614d599869af5b069f09d5c9d89db57",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/default-layout-CttbVoK-.js.gz"
         },
         {
             "path": "server/public/admin/assets/index--rf1g4gW.js",
-            "sha256": "c49cf0e7473875416671efa413e38983e52bca4f97c27b77f81b1f51e8b08186",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index--rf1g4gW.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index--rf1g4gW.js",
-            "baseline_sha256": "c49cf0e7473875416671efa413e38983e52bca4f97c27b77f81b1f51e8b08186",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index--rf1g4gW.js"
         },
         {
             "path": "server/public/admin/assets/index--rf1g4gW.js.gz",
-            "sha256": "bfa0de1681c5d1c575d1d370f5065782c065fba12d054e0b157234ce1ee456ac",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index--rf1g4gW.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index--rf1g4gW.js.gz",
-            "baseline_sha256": "bfa0de1681c5d1c575d1d370f5065782c065fba12d054e0b157234ce1ee456ac",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index--rf1g4gW.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-0sITfWqG.js",
-            "sha256": "008cee691f83f31380e689f657c076b3ad74d0372718ddf9e48d570ce46a9f74",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-0sITfWqG.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-0sITfWqG.js",
-            "baseline_sha256": "008cee691f83f31380e689f657c076b3ad74d0372718ddf9e48d570ce46a9f74",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-0sITfWqG.js"
         },
         {
             "path": "server/public/admin/assets/index-0sITfWqG.js.gz",
-            "sha256": "805e9197ce8c4cd40969061897e70cba26eddd71709323caacb006449ce864be",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-0sITfWqG.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-0sITfWqG.js.gz",
-            "baseline_sha256": "805e9197ce8c4cd40969061897e70cba26eddd71709323caacb006449ce864be",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-0sITfWqG.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-6AEw-F_8.css",
@@ -15110,58 +15062,43 @@
         },
         {
             "path": "server/public/admin/assets/index-9QDg66my.js",
-            "sha256": "073768d226b7c4bc7229d83a114d97faab00df607a980ecacbfd1e36fd127d4a",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-9QDg66my.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-9QDg66my.js",
-            "baseline_sha256": "073768d226b7c4bc7229d83a114d97faab00df607a980ecacbfd1e36fd127d4a",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-9QDg66my.js"
         },
         {
             "path": "server/public/admin/assets/index-A7xyHBdf.js",
-            "sha256": "5f9758ea10b8cee86e9ee5e5c459ff409bf7686fa465aa0564c2e1b8b225d597",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-A7xyHBdf.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-A7xyHBdf.js",
-            "baseline_sha256": "5f9758ea10b8cee86e9ee5e5c459ff409bf7686fa465aa0564c2e1b8b225d597",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-A7xyHBdf.js"
         },
         {
             "path": "server/public/admin/assets/index-A7xyHBdf.js.gz",
-            "sha256": "18834d9921296e2aacf61f21691e3dd2e331739e1f2979273fcd5108bc745b97",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-A7xyHBdf.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-A7xyHBdf.js.gz",
-            "baseline_sha256": "18834d9921296e2aacf61f21691e3dd2e331739e1f2979273fcd5108bc745b97",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-A7xyHBdf.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-B9M13Pis.js",
-            "sha256": "e27c46d10638d190e331e9a15ac1ead6af7920eabcd1eb1b9cfdb15ac5eb7dcd",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-B9M13Pis.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-B9M13Pis.js",
-            "baseline_sha256": "e27c46d10638d190e331e9a15ac1ead6af7920eabcd1eb1b9cfdb15ac5eb7dcd",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-B9M13Pis.js"
         },
         {
             "path": "server/public/admin/assets/index-B9M13Pis.js.gz",
-            "sha256": "e3859a0efd332ff7bcf09027f55f856ffb4f1b929f2612ba7e669cf1c314141e",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-B9M13Pis.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-B9M13Pis.js.gz",
-            "baseline_sha256": "e3859a0efd332ff7bcf09027f55f856ffb4f1b929f2612ba7e669cf1c314141e",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-B9M13Pis.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-B9PWUGcE.css",
@@ -15176,47 +15113,35 @@
         },
         {
             "path": "server/public/admin/assets/index-BEa0m9hI.js",
-            "sha256": "1360894ebd5bd7ecd5a5c45e9c75a3535fdbba3b1633032098c98af517924b7d",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-BEa0m9hI.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-BEa0m9hI.js",
-            "baseline_sha256": "1360894ebd5bd7ecd5a5c45e9c75a3535fdbba3b1633032098c98af517924b7d",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-BEa0m9hI.js"
         },
         {
             "path": "server/public/admin/assets/index-BEa0m9hI.js.gz",
-            "sha256": "fe0b36727cbb1a664336aecdd61962e0d6bcb3e1cbdb6930c4394f636a22a2cc",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-BEa0m9hI.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-BEa0m9hI.js.gz",
-            "baseline_sha256": "fe0b36727cbb1a664336aecdd61962e0d6bcb3e1cbdb6930c4394f636a22a2cc",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-BEa0m9hI.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-BEqEDk8C.css",
-            "sha256": "ba281d317748d0bfd9a0c3a25d76b552d21c4d063d47381b24cb66402a94c804",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-BEqEDk8C.css",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-BEqEDk8C.css",
-            "baseline_sha256": "ba281d317748d0bfd9a0c3a25d76b552d21c4d063d47381b24cb66402a94c804",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-BEqEDk8C.css"
         },
         {
             "path": "server/public/admin/assets/index-BEqEDk8C.css.gz",
-            "sha256": "119fa6ea41f10dfe5f15c3f8d6de15ee9395beb7dd51000ea24c3550d970f8af",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-BEqEDk8C.css.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-BEqEDk8C.css.gz",
-            "baseline_sha256": "119fa6ea41f10dfe5f15c3f8d6de15ee9395beb7dd51000ea24c3550d970f8af",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-BEqEDk8C.css.gz"
         },
         {
             "path": "server/public/admin/assets/index-BFzW5Ywx.js",
@@ -15252,25 +15177,19 @@
         },
         {
             "path": "server/public/admin/assets/index-BIGLHx-7.js",
-            "sha256": "b302bdf1d5d109b10ad2cb11254ae20ba819ff1c1315f925aa103d59dbf2b9e3",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-BIGLHx-7.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-BIGLHx-7.js",
-            "baseline_sha256": "b302bdf1d5d109b10ad2cb11254ae20ba819ff1c1315f925aa103d59dbf2b9e3",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-BIGLHx-7.js"
         },
         {
             "path": "server/public/admin/assets/index-BIGLHx-7.js.gz",
-            "sha256": "58cc22e5c67a67d7d8c70b56251654ccf4bb8a4d20030a2a2127860dd36c41f8",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-BIGLHx-7.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-BIGLHx-7.js.gz",
-            "baseline_sha256": "58cc22e5c67a67d7d8c70b56251654ccf4bb8a4d20030a2a2127860dd36c41f8",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-BIGLHx-7.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-BINtlwlF.css",
@@ -15285,25 +15204,19 @@
         },
         {
             "path": "server/public/admin/assets/index-BIaQ95eN.js",
-            "sha256": "f181dcd5801a6f60cd5d3e0e4dbcc8210ee462e4aa17050a0e72c9d5804d9457",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-BIaQ95eN.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-BIaQ95eN.js",
-            "baseline_sha256": "f181dcd5801a6f60cd5d3e0e4dbcc8210ee462e4aa17050a0e72c9d5804d9457",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-BIaQ95eN.js"
         },
         {
             "path": "server/public/admin/assets/index-BIaQ95eN.js.gz",
-            "sha256": "cba581016f123ad163085fb4de95707a1f6af6642c6f7fef234b530635df553c",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-BIaQ95eN.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-BIaQ95eN.js.gz",
-            "baseline_sha256": "cba581016f123ad163085fb4de95707a1f6af6642c6f7fef234b530635df553c",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-BIaQ95eN.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-BMgiL4jM.js",
@@ -15371,47 +15284,35 @@
         },
         {
             "path": "server/public/admin/assets/index-Be5PUqMn.js",
-            "sha256": "64ac1a29eff29f36a7e86b1237062c31c4650f993fc395b0981629238c157453",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-Be5PUqMn.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-Be5PUqMn.js",
-            "baseline_sha256": "64ac1a29eff29f36a7e86b1237062c31c4650f993fc395b0981629238c157453",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-Be5PUqMn.js"
         },
         {
             "path": "server/public/admin/assets/index-Be5PUqMn.js.gz",
-            "sha256": "7cd559fdafe8ad34a34273ed921bdee05d4c2d12473500ae6680197280f1fac8",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-Be5PUqMn.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-Be5PUqMn.js.gz",
-            "baseline_sha256": "7cd559fdafe8ad34a34273ed921bdee05d4c2d12473500ae6680197280f1fac8",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-Be5PUqMn.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-Bg7CNx8J.js",
-            "sha256": "334a96f6a7a2d374693ec718925433b3a1f13f70f3ed0ccc373356fcc9f2d832",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-Bg7CNx8J.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-Bg7CNx8J.js",
-            "baseline_sha256": "334a96f6a7a2d374693ec718925433b3a1f13f70f3ed0ccc373356fcc9f2d832",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-Bg7CNx8J.js"
         },
         {
             "path": "server/public/admin/assets/index-Bg7CNx8J.js.gz",
-            "sha256": "86c1b2ea3b3f1dc8db9f4277e8b197a16012d049c19d01e3741917dad4bef48c",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-Bg7CNx8J.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-Bg7CNx8J.js.gz",
-            "baseline_sha256": "86c1b2ea3b3f1dc8db9f4277e8b197a16012d049c19d01e3741917dad4bef48c",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-Bg7CNx8J.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-BgO52r3O.js",
@@ -15488,14 +15389,11 @@
         },
         {
             "path": "server/public/admin/assets/index-ByaCKiG1.js",
-            "sha256": "eace13e7b63f7178516b31ac89964e29ea92427cf97ab31c3ee046da62412893",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-ByaCKiG1.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-ByaCKiG1.js",
-            "baseline_sha256": "eace13e7b63f7178516b31ac89964e29ea92427cf97ab31c3ee046da62412893",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-ByaCKiG1.js"
         },
         {
             "path": "server/public/admin/assets/index-C-mQoHvT.js",
@@ -15580,25 +15478,19 @@
         },
         {
             "path": "server/public/admin/assets/index-C3k8bhvV.js",
-            "sha256": "3c8cc2eec9f2fba5890edfc003999c71126b8eb71461b8c815babcf90a0b3913",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-C3k8bhvV.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-C3k8bhvV.js",
-            "baseline_sha256": "3c8cc2eec9f2fba5890edfc003999c71126b8eb71461b8c815babcf90a0b3913",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-C3k8bhvV.js"
         },
         {
             "path": "server/public/admin/assets/index-C3k8bhvV.js.gz",
-            "sha256": "f0acf7e4f05cfcafa0e2e0a5ee8ac5deacd7c54bcdd5fd74a6b17681821687a0",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-C3k8bhvV.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-C3k8bhvV.js.gz",
-            "baseline_sha256": "f0acf7e4f05cfcafa0e2e0a5ee8ac5deacd7c54bcdd5fd74a6b17681821687a0",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-C3k8bhvV.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-C9lq-t7d.js",
@@ -15634,25 +15526,19 @@
         },
         {
             "path": "server/public/admin/assets/index-CLqjqWLD.js",
-            "sha256": "3d921db74df14455e44f7864dd8cae49d02e28ef226b9ae929567151d22f4a21",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-CLqjqWLD.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-CLqjqWLD.js",
-            "baseline_sha256": "3d921db74df14455e44f7864dd8cae49d02e28ef226b9ae929567151d22f4a21",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-CLqjqWLD.js"
         },
         {
             "path": "server/public/admin/assets/index-CLqjqWLD.js.gz",
-            "sha256": "171c798570dc2bbfb334823c897a78bd65e97b18b3bf8a93b3a6ff40df38ae0b",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-CLqjqWLD.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-CLqjqWLD.js.gz",
-            "baseline_sha256": "171c798570dc2bbfb334823c897a78bd65e97b18b3bf8a93b3a6ff40df38ae0b",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-CLqjqWLD.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-CQTFjYwA.js",
@@ -15672,25 +15558,19 @@
         },
         {
             "path": "server/public/admin/assets/index-CQe1nmcq.js",
-            "sha256": "17264831b836da1f3e5e24b5b7615e4c50c0a0ffc06a0187b13dee39e66271c0",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-CQe1nmcq.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-CQe1nmcq.js",
-            "baseline_sha256": "17264831b836da1f3e5e24b5b7615e4c50c0a0ffc06a0187b13dee39e66271c0",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-CQe1nmcq.js"
         },
         {
             "path": "server/public/admin/assets/index-CQe1nmcq.js.gz",
-            "sha256": "bfca5d088adb28de1e14a126204881d52b30e333e5f4065af48a9a393cd6841f",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-CQe1nmcq.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-CQe1nmcq.js.gz",
-            "baseline_sha256": "bfca5d088adb28de1e14a126204881d52b30e333e5f4065af48a9a393cd6841f",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-CQe1nmcq.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-CUUufrDF.js",
@@ -15713,47 +15593,35 @@
         },
         {
             "path": "server/public/admin/assets/index-Cix4Lv6J.js",
-            "sha256": "6fa89a89ce220c324e22737954026ed47438aee53daeaa56a0151b7c0c860d71",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-Cix4Lv6J.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-Cix4Lv6J.js",
-            "baseline_sha256": "6fa89a89ce220c324e22737954026ed47438aee53daeaa56a0151b7c0c860d71",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-Cix4Lv6J.js"
         },
         {
             "path": "server/public/admin/assets/index-Cix4Lv6J.js.gz",
-            "sha256": "41536fbc33d1a14dc033ba2b1564cf640bc7c008ed2a8808216a464ece4f162e",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-Cix4Lv6J.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-Cix4Lv6J.js.gz",
-            "baseline_sha256": "41536fbc33d1a14dc033ba2b1564cf640bc7c008ed2a8808216a464ece4f162e",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-Cix4Lv6J.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-CjIQvxLf.js",
-            "sha256": "916e6b92250fbd23354af5dbd618c67ae81b9c6bccce7dc1290381167c669b34",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-CjIQvxLf.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-CjIQvxLf.js",
-            "baseline_sha256": "916e6b92250fbd23354af5dbd618c67ae81b9c6bccce7dc1290381167c669b34",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-CjIQvxLf.js"
         },
         {
             "path": "server/public/admin/assets/index-CjIQvxLf.js.gz",
-            "sha256": "8a80e0cd83fc859e6d782777674d083298713499e40ab4fe2966ce3c25170d54",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-CjIQvxLf.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-CjIQvxLf.js.gz",
-            "baseline_sha256": "8a80e0cd83fc859e6d782777674d083298713499e40ab4fe2966ce3c25170d54",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-CjIQvxLf.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-Cr02132q.js",
@@ -15946,14 +15814,11 @@
         },
         {
             "path": "server/public/admin/assets/index-DVBwLsff.js",
-            "sha256": "1110972c9ea4058dd1ae4315041cc507e00209419be191da7e6ac596d44f6157",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-DVBwLsff.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-DVBwLsff.js",
-            "baseline_sha256": "1110972c9ea4058dd1ae4315041cc507e00209419be191da7e6ac596d44f6157",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-DVBwLsff.js"
         },
         {
             "path": "server/public/admin/assets/index-DVpmAtGH.css",
@@ -15968,25 +15833,19 @@
         },
         {
             "path": "server/public/admin/assets/index-DcParu9M.js",
-            "sha256": "2a8e330d4745bc1278c7979492c1c3565250ba423c9be98d9e379d6ac767b5ee",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-DcParu9M.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-DcParu9M.js",
-            "baseline_sha256": "2a8e330d4745bc1278c7979492c1c3565250ba423c9be98d9e379d6ac767b5ee",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-DcParu9M.js"
         },
         {
             "path": "server/public/admin/assets/index-DcParu9M.js.gz",
-            "sha256": "adfd1a242b1e8acfb4515548f58230a01deecb0232c5448a6f54616a62a9483a",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-DcParu9M.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-DcParu9M.js.gz",
-            "baseline_sha256": "adfd1a242b1e8acfb4515548f58230a01deecb0232c5448a6f54616a62a9483a",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-DcParu9M.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-DcofENXK.js",
@@ -16022,58 +15881,43 @@
         },
         {
             "path": "server/public/admin/assets/index-Dm2uJk9X.js",
-            "sha256": "fab521352f3180e013f6dadd70fa681af247c9f681a4de533db85780612a60dd",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-Dm2uJk9X.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-Dm2uJk9X.js",
-            "baseline_sha256": "fab521352f3180e013f6dadd70fa681af247c9f681a4de533db85780612a60dd",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-Dm2uJk9X.js"
         },
         {
             "path": "server/public/admin/assets/index-DzphMsM8.js",
-            "sha256": "444a179ebfb042361e6b9b19961d3602589bbcc0e5e8a23178261370d42457e6",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-DzphMsM8.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-DzphMsM8.js",
-            "baseline_sha256": "444a179ebfb042361e6b9b19961d3602589bbcc0e5e8a23178261370d42457e6",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-DzphMsM8.js"
         },
         {
             "path": "server/public/admin/assets/index-DzphMsM8.js.gz",
-            "sha256": "4a7bfaafd29ae24f4b6a1c175189ab673df02382e7b65bf35915b365fe4a16d2",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-DzphMsM8.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-DzphMsM8.js.gz",
-            "baseline_sha256": "4a7bfaafd29ae24f4b6a1c175189ab673df02382e7b65bf35915b365fe4a16d2",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-DzphMsM8.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-HL2N2u6A.js",
-            "sha256": "f35d6c55f0b117d8982ea149af4c520a830b8004aff08f69b34dc8fdf0ff7a20",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-HL2N2u6A.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-HL2N2u6A.js",
-            "baseline_sha256": "f35d6c55f0b117d8982ea149af4c520a830b8004aff08f69b34dc8fdf0ff7a20",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-HL2N2u6A.js"
         },
         {
             "path": "server/public/admin/assets/index-HL2N2u6A.js.gz",
-            "sha256": "f5e2fed93beb2ced13fc2afaaea7e1b47d2ea03504475cd15db1a52af4694e8b",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-HL2N2u6A.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-HL2N2u6A.js.gz",
-            "baseline_sha256": "f5e2fed93beb2ced13fc2afaaea7e1b47d2ea03504475cd15db1a52af4694e8b",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-HL2N2u6A.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-RbIiTVAV.css",
@@ -16099,25 +15943,19 @@
         },
         {
             "path": "server/public/admin/assets/index-WLUfUZ2w.js",
-            "sha256": "3fcf94a5e2b795e6193416abff28502075be13ecc8a9b1eb2b3d239a634a6a59",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-WLUfUZ2w.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-WLUfUZ2w.js",
-            "baseline_sha256": "3fcf94a5e2b795e6193416abff28502075be13ecc8a9b1eb2b3d239a634a6a59",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-WLUfUZ2w.js"
         },
         {
             "path": "server/public/admin/assets/index-WLUfUZ2w.js.gz",
-            "sha256": "c31e1ad86198e1cddc6981f3332128b5d7cf5d2b9b7171fb260029c6b428c83a",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-WLUfUZ2w.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-WLUfUZ2w.js.gz",
-            "baseline_sha256": "c31e1ad86198e1cddc6981f3332128b5d7cf5d2b9b7171fb260029c6b428c83a",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-WLUfUZ2w.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-WYjzCGLN.css",
@@ -16132,69 +15970,51 @@
         },
         {
             "path": "server/public/admin/assets/index-bY7N7XRx.js",
-            "sha256": "7bfb195d154aa95ad64b4a172c815821dc830f37ece512cbc890817973121a76",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-bY7N7XRx.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-bY7N7XRx.js",
-            "baseline_sha256": "7bfb195d154aa95ad64b4a172c815821dc830f37ece512cbc890817973121a76",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-bY7N7XRx.js"
         },
         {
             "path": "server/public/admin/assets/index-bY7N7XRx.js.gz",
-            "sha256": "e52448e7ed58c1d33e80584b9b3e6bb1a0d79a84435d7ce91aa84bcd71a12761",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-bY7N7XRx.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-bY7N7XRx.js.gz",
-            "baseline_sha256": "e52448e7ed58c1d33e80584b9b3e6bb1a0d79a84435d7ce91aa84bcd71a12761",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-bY7N7XRx.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-fv9b9pf9.js",
-            "sha256": "86a98ebad8983e3afb4b3d95adaf037e1629c96b2ac3b2689c079a5cdfc43e85",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-fv9b9pf9.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-fv9b9pf9.js",
-            "baseline_sha256": "86a98ebad8983e3afb4b3d95adaf037e1629c96b2ac3b2689c079a5cdfc43e85",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-fv9b9pf9.js"
         },
         {
             "path": "server/public/admin/assets/index-fv9b9pf9.js.gz",
-            "sha256": "0509ac1cade65118d12f3b1b6ded3b1acaf5c967e000b452516ed6c6e4344aec",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-fv9b9pf9.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-fv9b9pf9.js.gz",
-            "baseline_sha256": "0509ac1cade65118d12f3b1b6ded3b1acaf5c967e000b452516ed6c6e4344aec",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-fv9b9pf9.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-iQt0TPDy.js",
-            "sha256": "e1dc4104bdb07a9ddae6e6871cf9e79085d9264bcf82bc58ca8ff9da5a2b6c2b",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-iQt0TPDy.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-iQt0TPDy.js",
-            "baseline_sha256": "e1dc4104bdb07a9ddae6e6871cf9e79085d9264bcf82bc58ca8ff9da5a2b6c2b",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-iQt0TPDy.js"
         },
         {
             "path": "server/public/admin/assets/index-iQt0TPDy.js.gz",
-            "sha256": "bc3039f44270cd2147fbd9ef7c0531cb8efcf7f730038cc92a9952483c81197b",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-iQt0TPDy.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-iQt0TPDy.js.gz",
-            "baseline_sha256": "bc3039f44270cd2147fbd9ef7c0531cb8efcf7f730038cc92a9952483c81197b",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-iQt0TPDy.js.gz"
         },
         {
             "path": "server/public/admin/assets/index-imG7d7Ae.js",
@@ -16274,25 +16094,19 @@
         },
         {
             "path": "server/public/admin/assets/index-xoztuv4_.js",
-            "sha256": "3ce0ba680e8ee2bca86e2f814e13f255e9fb1888ec6e84c152c4ab6ec445a9ea",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-xoztuv4_.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-xoztuv4_.js",
-            "baseline_sha256": "3ce0ba680e8ee2bca86e2f814e13f255e9fb1888ec6e84c152c4ab6ec445a9ea",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-xoztuv4_.js"
         },
         {
             "path": "server/public/admin/assets/index-xoztuv4_.js.gz",
-            "sha256": "d45e635219375d89a5971a8c74909a7ddaaf70f50902cb3eff0d2864992ef16d",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/index-xoztuv4_.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/index-xoztuv4_.js.gz",
-            "baseline_sha256": "d45e635219375d89a5971a8c74909a7ddaaf70f50902cb3eff0d2864992ef16d",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/index-xoztuv4_.js.gz"
         },
         {
             "path": "server/public/admin/assets/jobs-3U8DJFuG.js",
@@ -16304,14 +16118,11 @@
         },
         {
             "path": "server/public/admin/assets/jobs-3XdI0crX.js",
-            "sha256": "8188d031e05e84f97e2901f03881e38da5eca3e5d9a2416bb83ec90181ae4117",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/jobs-3XdI0crX.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/jobs-3XdI0crX.js",
-            "baseline_sha256": "8188d031e05e84f97e2901f03881e38da5eca3e5d9a2416bb83ec90181ae4117",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/jobs-3XdI0crX.js"
         },
         {
             "path": "server/public/admin/assets/loading-B4I71rpU.js",
@@ -16323,14 +16134,11 @@
         },
         {
             "path": "server/public/admin/assets/loading-DwcvfaaO.js",
-            "sha256": "f4936b949f49337dc28254e6a40691c721e68749ec887db5cd99adad596c7baa",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/loading-DwcvfaaO.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/loading-DwcvfaaO.js",
-            "baseline_sha256": "f4936b949f49337dc28254e6a40691c721e68749ec887db5cd99adad596c7baa",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/loading-DwcvfaaO.js"
         },
         {
             "path": "server/public/admin/assets/parent-options-D-En59iZ.js",
@@ -16350,47 +16158,35 @@
         },
         {
             "path": "server/public/admin/assets/parent-options-DmNx30i5.js",
-            "sha256": "bc4e6936ac7e925ded7f66ccc6d093e3cd5d580544e65d66f83de58ef0abe104",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/parent-options-DmNx30i5.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/parent-options-DmNx30i5.js",
-            "baseline_sha256": "bc4e6936ac7e925ded7f66ccc6d093e3cd5d580544e65d66f83de58ef0abe104",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/parent-options-DmNx30i5.js"
         },
         {
             "path": "server/public/admin/assets/parent-options-DmNx30i5.js.gz",
-            "sha256": "ff611f338b36d93147da742757a406bf505b039ff59197edc7bf3cf350910b7d",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/parent-options-DmNx30i5.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/parent-options-DmNx30i5.js.gz",
-            "baseline_sha256": "ff611f338b36d93147da742757a406bf505b039ff59197edc7bf3cf350910b7d",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/parent-options-DmNx30i5.js.gz"
         },
         {
             "path": "server/public/admin/assets/public-image-references-BL8GLoQW.js",
-            "sha256": "9cedafe5da4a1eb2a77b8ed9ad9e09667cfad5f3cea8965d3fa2a5af6ba33dcc",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/public-image-references-BL8GLoQW.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/public-image-references-BL8GLoQW.js",
-            "baseline_sha256": "9cedafe5da4a1eb2a77b8ed9ad9e09667cfad5f3cea8965d3fa2a5af6ba33dcc",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/public-image-references-BL8GLoQW.js"
         },
         {
             "path": "server/public/admin/assets/public-image-references-BL8GLoQW.js.gz",
-            "sha256": "134b2f577bb8c7db9e400c8de40dae9ff8ce4b44bd597f6dee63bf61712722aa",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/public-image-references-BL8GLoQW.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/public-image-references-BL8GLoQW.js.gz",
-            "baseline_sha256": "134b2f577bb8c7db9e400c8de40dae9ff8ce4b44bd597f6dee63bf61712722aa",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/public-image-references-BL8GLoQW.js.gz"
         },
         {
             "path": "server/public/admin/assets/public-image-references-CqOUrIRH.js",
@@ -16442,36 +16238,27 @@
         },
         {
             "path": "server/public/admin/assets/role-Ci2gQu28.js",
-            "sha256": "b8ad573efa115cdc6859d2bffdc148b0e7e8b93975061d684ad1e55cf2625df5",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/role-Ci2gQu28.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/role-Ci2gQu28.js",
-            "baseline_sha256": "b8ad573efa115cdc6859d2bffdc148b0e7e8b93975061d684ad1e55cf2625df5",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/role-Ci2gQu28.js"
         },
         {
             "path": "server/public/admin/assets/role-Ci2gQu28.js.gz",
-            "sha256": "a6820af7b4460d2e416cc4ddedecbbfb5a069526757ee48fc472bcdea0e8442a",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/role-Ci2gQu28.js.gz",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/role-Ci2gQu28.js.gz",
-            "baseline_sha256": "a6820af7b4460d2e416cc4ddedecbbfb5a069526757ee48fc472bcdea0e8442a",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/role-Ci2gQu28.js.gz"
         },
         {
             "path": "server/public/admin/assets/tenant-session-fetch-CHa4t9-5.js",
-            "sha256": "e796b57082e194fa18613da56ae04f5fbe70e1fdd61aa452e45cce0de857e121",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/tenant-session-fetch-CHa4t9-5.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/tenant-session-fetch-CHa4t9-5.js",
-            "baseline_sha256": "e796b57082e194fa18613da56ae04f5fbe70e1fdd61aa452e45cce0de857e121",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/tenant-session-fetch-CHa4t9-5.js"
         },
         {
             "path": "server/public/admin/assets/tenant-session-fetch-KUfpD7nn.js",
@@ -16491,14 +16278,11 @@
         },
         {
             "path": "server/public/admin/assets/user-jGc47Txl.js",
-            "sha256": "e13bd573e339edf3fba4daea2197e9f376983350d8eec810939b93f9addea5e5",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/admin/assets/user-jGc47Txl.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/admin/assets/user-jGc47Txl.js",
-            "baseline_sha256": "e13bd573e339edf3fba4daea2197e9f376983350d8eec810939b93f9addea5e5",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/admin/assets/user-jGc47Txl.js"
         },
         {
             "path": "server/public/admin/brand/avatar-admin.svg",
@@ -16590,7 +16374,7 @@
         },
         {
             "path": "server/public/admin/index.html",
-            "sha256": "2278b3ebca4dc28a6e75cfbe1289aec0574fbbc1a8fc471e92325f674fd402c2",
+            "sha256": "b915874a5b4f84fabc48bcebac6ce7b43d3dfd9bfd3fa4c727aa7223c6f6dbab",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
@@ -16722,14 +16506,11 @@
         },
         {
             "path": "server/public/platform/assets/index-B_dgxo3j.js",
-            "sha256": "ff68e7243d374e7c5ade9dc777bbc1a427ba3ff1ff3ec10a9ab1cd3fa4970a47",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/public/platform/assets/index-B_dgxo3j.js",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/public/platform/assets/index-B_dgxo3j.js",
-            "baseline_sha256": "ff68e7243d374e7c5ade9dc777bbc1a427ba3ff1ff3ec10a9ab1cd3fa4970a47",
-            "baseline_mode": 420
+            "sha256": null,
+            "mode": null,
+            "classification": "app-owned",
+            "owner": "application",
+            "source": "server/public/platform/assets/index-B_dgxo3j.js"
         },
         {
             "path": "server/public/platform/assets/index-C-_9xYSQ.css",
@@ -16744,7 +16525,7 @@
         },
         {
             "path": "server/public/platform/index.html",
-            "sha256": "2f47533b57cc5a208099be69593857149817f11948cac3698f7785c22b8cb73a",
+            "sha256": "174b87f5c005006a34262cf6ffcc93587b92857eabbf14308e950f4a3070aac2",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
@@ -17943,7 +17724,7 @@
         },
         {
             "path": "web/package.json",
-            "sha256": "1999898f92a22d8c83b10863af335affa1c0eb64f093d554147646e8c2bf72ea",
+            "sha256": "39cef05fdd5d6cb7a30dca9b2b25fc4220341d6b9b89b83fd5355831aa01c74a",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
@@ -17954,7 +17735,7 @@
         },
         {
             "path": "web/pnpm-lock.yaml",
-            "sha256": "8777ceec40e5c444c35254ec7da3d1a229efcae896bf7a1ec95a8b2e8a1ad283",
+            "sha256": "a1d494d46281f10229b20ff288d4ed5e78c1e559f3773178270d0a66ca369c37",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
@@ -17965,7 +17746,7 @@
         },
         {
             "path": "web/pnpm-workspace.yaml",
-            "sha256": "2d7a233af7b33d1fc1573c5f95d1811c5f470fdab081ed8528f2c43e56af0d50",
+            "sha256": "188d03bbb2647fb55da828371594e20e453e6d46056140b16338f8e23f3c1bf6",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
@@ -18416,13 +18197,13 @@
         },
         {
             "path": "web/src/components/file-picker/index.vue",
-            "sha256": "a472efec8056bb5964ec3c8106b0cf9a8c9c328913591dbaae365f836f7eb9e6",
+            "sha256": "18c9a7760c64bba56d47a899208eb4557c120e2b11b78f331124dc3362134e2e",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "web/src/components/file-picker/index.vue",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/web/src/components/file-picker/index.vue",
-            "baseline_sha256": "a472efec8056bb5964ec3c8106b0cf9a8c9c328913591dbaae365f836f7eb9e6",
+            "baseline_sha256": "18c9a7760c64bba56d47a899208eb4557c120e2b11b78f331124dc3362134e2e",
             "baseline_mode": 420
         },
         {
@@ -18460,13 +18241,13 @@
         },
         {
             "path": "web/src/components/global-setting/index.vue",
-            "sha256": "d8a8c0e9a01d9f1d511c84c43924bdb6eb27d853385463490a77a41c7870c67f",
+            "sha256": "90299172579c58997b16924e2ae2200d0f2c81e1609cf105473efe74f03d5a95",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "web/src/components/global-setting/index.vue",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/web/src/components/global-setting/index.vue",
-            "baseline_sha256": "d8a8c0e9a01d9f1d511c84c43924bdb6eb27d853385463490a77a41c7870c67f",
+            "baseline_sha256": "90299172579c58997b16924e2ae2200d0f2c81e1609cf105473efe74f03d5a95",
             "baseline_mode": 420
         },
         {
@@ -18504,13 +18285,13 @@
         },
         {
             "path": "web/src/components/navbar/index.vue",
-            "sha256": "dcda1bb36844f05adab17582c8df796834e229cc5f6f289511931509e1f99a11",
+            "sha256": "5573808c302f5ea4651d788d58ae6f459c053c33eca14d67394d453d2070744e",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "web/src/components/navbar/index.vue",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/web/src/components/navbar/index.vue",
-            "baseline_sha256": "dcda1bb36844f05adab17582c8df796834e229cc5f6f289511931509e1f99a11",
+            "baseline_sha256": "5573808c302f5ea4651d788d58ae6f459c053c33eca14d67394d453d2070744e",
             "baseline_mode": 420
         },
         {
@@ -18581,13 +18362,13 @@
         },
         {
             "path": "web/src/core/runtime.ts",
-            "sha256": "b0a52bc3c10b0a1689b2cc678cee8dcfabda709f126b4cb49c4ecc722b458460",
+            "sha256": "316a113051674e183b3b48667306a8cad0f391fab1a69381ad7dcf15222169da",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "web/src/core/runtime.ts",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/web/src/core/runtime.ts",
-            "baseline_sha256": "b0a52bc3c10b0a1689b2cc678cee8dcfabda709f126b4cb49c4ecc722b458460",
+            "baseline_sha256": "316a113051674e183b3b48667306a8cad0f391fab1a69381ad7dcf15222169da",
             "baseline_mode": 420
         },
         {
@@ -18801,13 +18582,13 @@
         },
         {
             "path": "web/src/layout/shell-presets.ts",
-            "sha256": "fae0dd89fedf4431a487eeda280c53a14abaccdfc02ff4883e4001f4b0344644",
+            "sha256": "061151e208c61e747981d8504a9a5f361e9dd0247ca45ad8dcbef09d031576d5",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "web/src/layout/shell-presets.ts",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/web/src/layout/shell-presets.ts",
-            "baseline_sha256": "fae0dd89fedf4431a487eeda280c53a14abaccdfc02ff4883e4001f4b0344644",
+            "baseline_sha256": "061151e208c61e747981d8504a9a5f361e9dd0247ca45ad8dcbef09d031576d5",
             "baseline_mode": 420
         },
         {
@@ -19098,13 +18879,13 @@
         },
         {
             "path": "web/src/modules/peanut-file/api.ts",
-            "sha256": "08209b6dfd5ede9bc296163326ef57448f1566c71e88e57a0473ad97c3fcf566",
+            "sha256": "cdb4a920c4b3ce4f1f8212e5644da0ff24fb816765bc6f2c5ef245ee619980e3",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "web/src/modules/peanut-file/api.ts",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/web/src/modules/peanut-file/api.ts",
-            "baseline_sha256": "08209b6dfd5ede9bc296163326ef57448f1566c71e88e57a0473ad97c3fcf566",
+            "baseline_sha256": "cdb4a920c4b3ce4f1f8212e5644da0ff24fb816765bc6f2c5ef245ee619980e3",
             "baseline_mode": 420
         },
         {
@@ -19263,13 +19044,13 @@
         },
         {
             "path": "web/src/modules/peanut-file/package.json",
-            "sha256": "2aa8abea8de684f39e6fbac12aeb3c3b015452e3a995fa0e058c61eb7d11c80a",
+            "sha256": "a12ca67cd6594f55ec63777f91736a5d3b9a9ec8a75d9f921070114944956b3f",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "web/src/modules/peanut-file/package.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/web/src/modules/peanut-file/package.json",
-            "baseline_sha256": "2aa8abea8de684f39e6fbac12aeb3c3b015452e3a995fa0e058c61eb7d11c80a",
+            "baseline_sha256": "a12ca67cd6594f55ec63777f91736a5d3b9a9ec8a75d9f921070114944956b3f",
             "baseline_mode": 420
         },
         {
@@ -19296,13 +19077,13 @@
         },
         {
             "path": "web/src/modules/peanut-file/views/index.vue",
-            "sha256": "9dbb6acc33cd440f218885ded32caca2ffa43a4583957223d0473a9ed4114c5b",
+            "sha256": "c3e3ce95533ef485a0399579b7a3936fce78938af049c0944bf1fb8d5d003c14",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "web/src/modules/peanut-file/views/index.vue",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/web/src/modules/peanut-file/views/index.vue",
-            "baseline_sha256": "9dbb6acc33cd440f218885ded32caca2ffa43a4583957223d0473a9ed4114c5b",
+            "baseline_sha256": "c3e3ce95533ef485a0399579b7a3936fce78938af049c0944bf1fb8d5d003c14",
             "baseline_mode": 420
         },
         {
@@ -20250,13 +20031,13 @@
         },
         {
             "path": "web/src/store/modules/app/index.ts",
-            "sha256": "272f953e5494235bbef4a2045accc24ebd8226745ab6a8fbbda90e60cd906303",
+            "sha256": "27de06f8805e6a33d54712d24ce1c96884d23dcb05acbf906f4f1b43eeabdab5",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "web/src/store/modules/app/index.ts",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/web/src/store/modules/app/index.ts",
-            "baseline_sha256": "272f953e5494235bbef4a2045accc24ebd8226745ab6a8fbbda90e60cd906303",
+            "baseline_sha256": "27de06f8805e6a33d54712d24ce1c96884d23dcb05acbf906f4f1b43eeabdab5",
             "baseline_mode": 420
         },
         {
@@ -21328,18 +21109,18 @@
         }
     ],
     "scaffold_candidate": {
-        "manifest_sha256": "e23fc1b0157839da95deada1badbbb59f3b5a5a739d08f9b90dd33577272b995",
+        "manifest_sha256": "56d4dc32840779a6bc6df7af8b611e052a8291f16044e34b85dc55dedaacad73",
         "core_inputs_sha256": "b1b6c096392a488b4d1f93ce71768ff50172817b7200dc011e11cfd9c75ea7eb",
         "formal_release_eligible": false
     },
     "template_package": {
         "protocol": "peanut.template-package.v1",
         "version": "5.0.15",
-        "archive_sha256": "8acab8e2fb9a14d789698b0638dbf6f1ee0f68c52145e9eadfc85fcf47b521d1",
+        "archive_sha256": "e2237f5c64bf68122df8f7ba2c055d0803b78a253d5ea04267deaf36541f861c",
         "source": "local"
     },
     "last_scaffold_upgrade": {
-        "candidate": "scaffold-bc8c19c6ed2f230dcfdc7d28",
+        "candidate": "scaffold-72167f61db241e3d0cee0a20",
         "from": "5.0.15",
         "to": "5.0.15",
         "edition_profile_sha256": "c6a2991cf52f79b0055b0aa1707ca9bfefd09f75f9f611b37da24c4410fed50e",

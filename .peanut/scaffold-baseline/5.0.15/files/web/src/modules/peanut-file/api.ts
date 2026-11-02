@@ -15,6 +15,13 @@ export interface ListRes<T> {
 // 文件类型：10 图片 / 20 视频 / 30 文件
 export type FileType = 10 | 20 | 30;
 
+/** Shared chooser hint; the File upload service enforces extension and size limits. */
+export const fileUploadAccept: Record<FileType, string> = {
+  10: 'image/*',
+  20: 'video/*',
+  30: '.zip,.rar,.txt,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.7z,.gz,.mp3,.wav,.ogg',
+};
+
 // ---- 分类 ----
 export interface FileCateRecord {
   id: number;
