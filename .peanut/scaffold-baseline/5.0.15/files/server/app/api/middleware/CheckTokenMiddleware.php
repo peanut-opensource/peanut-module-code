@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\api\middleware;
 
-use app\api\services\UserTokenService;
+use PeanutAdmin\Modules\Member\Contract\MemberAccessTokens;
 use PeanutAdmin\Modules\Member\Contract\MemberQueries;
 use app\common\execution\ExecutionContextStore;
 use app\common\execution\CurrentExecutionContext;
@@ -24,7 +24,7 @@ class CheckTokenMiddleware
         private readonly MemberQueries $members,
         private readonly ExecutionContextStore $executionContexts,
         private readonly MemberApiTenantContextResolver $tenantContexts,
-        private readonly UserTokenService $tokens,
+        private readonly MemberAccessTokens $tokens,
     ) {}
 
     public function handle($request, \Closure $next)

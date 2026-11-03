@@ -29,7 +29,7 @@ module.exports = {
     'module:prettier/recommended',
   ],
   settings: {
-    'import/core-modules': ['virtual:peanut-plugin-contributions'],
+    'import/core-modules': ['virtual:peanut-module-contributions'],
     'import/resolver': {
       typescript: {
         project: path.resolve(__dirname, './tsconfig.json'),

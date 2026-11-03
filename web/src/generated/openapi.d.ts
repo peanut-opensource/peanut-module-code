@@ -1883,38 +1883,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/adminapi/setting/transaction/config": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getTransactionConfig"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/adminapi/setting/transaction/save": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["saveTransactionConfig"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/adminapi/system/info": {
         parameters: {
             query?: never;
@@ -7368,14 +7336,6 @@ export interface components {
                 name: string;
                 sort: number;
             }[];
-        };
-        TransactionConfig: {
-            /** @enum {integer} */
-            cancel_unpaid_orders: 0 | 1;
-            cancel_unpaid_orders_times: number;
-            /** @enum {integer} */
-            verification_orders: 0 | 1;
-            verification_orders_times: number;
         };
         SystemInfo: {
             server: {
@@ -15653,65 +15613,6 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["HotSearchConfig"];
-            };
-        };
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {integer} */
-                        code: 20000;
-                        msg: string;
-                        data: components["schemas"]["ApplicationDynamicValue"][];
-                    };
-                };
-            };
-            401: components["responses"]["ErrorResponse"];
-            403: components["responses"]["ErrorResponse"];
-            422: components["responses"]["ErrorResponse"];
-        };
-    };
-    getTransactionConfig: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {integer} */
-                        code: 20000;
-                        msg: string;
-                        data: components["schemas"]["TransactionConfig"];
-                    };
-                };
-            };
-            401: components["responses"]["ErrorResponse"];
-            403: components["responses"]["ErrorResponse"];
-        };
-    };
-    saveTransactionConfig: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TransactionConfig"];
             };
         };
         responses: {

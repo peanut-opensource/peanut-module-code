@@ -1,4 +1,4 @@
-import lockedContributions from 'virtual:peanut-plugin-contributions';
+import lockedContributions from 'virtual:peanut-module-contributions';
 import ContentToolRegistry from './registry';
 
 /** Same reviewed/locked frontend entries as the application's route composition. */

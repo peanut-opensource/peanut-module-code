@@ -29,7 +29,7 @@ const webRoot = realpathSync(
   resolve(fileURLToPath(new URL('../..', import.meta.url)))
 );
 const projectRoot = resolve(webRoot, '..');
-const virtualId = 'virtual:peanut-plugin-contributions';
+const virtualId = 'virtual:peanut-module-contributions';
 
 async function virtualSource() {
   const loaded = await loadConfigFromFile(
@@ -39,7 +39,7 @@ async function virtualSource() {
   );
   expect(loaded !== null, 'development Vite config could not be loaded');
   const plugin = loaded.config.plugins?.find(
-    (candidate) => candidate.name === 'peanut-plugin-contribution-manifest'
+    (candidate) => candidate.name === 'peanut-module-contribution-manifest'
   );
   expect(plugin, 'plugin contribution virtual module is missing');
   const resolvedId = await plugin.resolveId(virtualId);
@@ -67,7 +67,7 @@ async function productionVirtualSource(entries) {
     );
     expect(loaded !== null, 'production Vite config could not be loaded');
     const plugin = loaded.config.plugins?.find(
-      (candidate) => candidate.name === 'peanut-plugin-contribution-manifest'
+      (candidate) => candidate.name === 'peanut-module-contribution-manifest'
     );
     expect(plugin, 'production contribution virtual module is missing');
     const resolvedId = await plugin.resolveId(virtualId);

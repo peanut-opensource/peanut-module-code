@@ -14,7 +14,7 @@ interface ImportMetaEnv {
 // eslint-disable-next-line no-underscore-dangle
 declare const __PEANUT_INSTANCE_TOOLS_COMPILED__: boolean;
 
-declare module 'virtual:peanut-plugin-contributions' {
+declare module 'virtual:peanut-module-contributions' {
   import type { ContentToolsContribution } from '@/modules/peanut-content-tools/src/contracts';
 
   const contributions: ContentToolsContribution[];

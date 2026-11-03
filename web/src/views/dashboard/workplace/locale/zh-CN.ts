@@ -1,4 +1,7 @@
 export default {
+  'workplace.demoData.date': 'Demo 日期',
+  'workplace.demoData.visitor': 'Demo 访问量',
+  'workplace.demoData.sale': 'Demo 销售量',
   'menu.dashboard.workplace': '工作台',
   'workplace.refresh': '刷新工作台',
   'workplace.statistics.unavailable': '尚未接入业务统计',
@@ -26,8 +29,8 @@ export default {
   'workplace.shortcut.admin': '管理员',
   'workplace.shortcut.file': '素材中心',
   'workplace.shortcut.website': '网站信息',
-  'workplace.visitor.title': '访问量趋势图',
-  'workplace.sale.title': '销售额趋势图',
+  'workplace.visitor.title': '访问量趋势',
+  'workplace.sale.title': '销售额趋势',
   'workplace.support.title': '服务支持',
   'workplace.support.docs.title': '项目文档',
   'workplace.support.docs.desc': '查看 Peanut Module Code 使用与开发文档',

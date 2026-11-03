@@ -69,7 +69,7 @@ Peanut 产品入口使用 vendor.module 两段小写标识。Core 通用解析�
 
 模块 PHP 前缀由自己的 composer.json → src/ 声明，宿主正式注册。dcs.product 对应 server/app/modules/dcs/product、Dcs\\Modules\\Product、web/src/modules/dcs-product、tests/Modules/Dcs/Product；这不是对下游产品创建业务的授权。
 
-骨架只创建选定能力真正需要的文件。纯后端不生成空前端，纯查询不强迫带空 Commands。模块安装、租户开通、人员授权和代码发现分开。Module 与 Plugin 现有协议继续使用，不新增另一 manifest。
+骨架只创建选定能力真正需要的文件。纯后端不生成空前端，纯查询不强迫带空 Commands。模块安装、租户开通、人员授权和代码发现分开。Module 是自有产品的唯一模块实体；声明、运行贡献、锁和原生生命周期沿现有 Module 协议，不新增另一 manifest。第三方生态 Plugin 名称及历史迁移身份保持原义。
 
 contracts.exports 是模块公开面，不是所有可 autoload 类的目录。生产公开 Model / Query / Repository / 持久化实现仍不作为任意可写公开能力导出；一般业务协作使用公开查询、命令、稳定结果或技术协议。当前敏捷阶段允许同库模块通过ThinkPHP模型关系、预加载和JOIN进行有tenant隔离、最小字段的只读关联；条件见[模块调用规则](../architecture/module-development-delivery.md#3-模块之间怎样调用)。这不授权保存、修改或删除来源模块数据，不暴露其敏感字段或可写ORM对象，也不要求新增View/ReadModel/独立查询服务。内部模型仍由所属模块维护，收回导出不等于删除数据库实现；跨模块写入仍由所属模块业务入口承担。
 

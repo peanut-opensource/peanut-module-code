@@ -136,17 +136,12 @@
                         "PeanutAdmin\\Settings\\": "settings/src/"
                     }
                 },
-                "version": "5.0.3-alpha.7",
-                "source": {
-                    "type": "git",
-                    "url": "https://github.com/peanut-business/peanut-admin-core-php.git",
-                    "reference": "df96d01875fcd1c15b47d9c01f6d83e3ebcb20b2"
-                },
+                "version": "5.0.3-alpha.6",
                 "dist": {
                     "type": "zip",
-                    "url": "../packages/core-php/peanut-admin-core-5.0.3-alpha.7.zip",
-                    "reference": "df96d01875fcd1c15b47d9c01f6d83e3ebcb20b2",
-                    "shasum": "b573d2fbb3a11c830a75234e8767c75e224a714f"
+                    "url": "../packages/core-php/peanut-admin-core-5.0.3-alpha.6.zip",
+                    "reference": "f9d61786dbe582cdc00a4d6f97baa3c30fa3b6a0cf60633822ccd46f689a6db4",
+                    "shasum": "714cbec73ecc4cb05fd3e6dbcab882ad672d3a1c"
                 }
             }
         },
@@ -232,7 +227,7 @@
         "aws/aws-sdk-php": "^3.0",
         "aliyuncs/oss-sdk-php": "^2.4",
         "qcloud/cos-sdk-v5": "^2.5",
-        "peanut-admin/core": "5.0.3-alpha.7",
+        "peanut-admin/core": "5.0.3-alpha.6",
         "symfony/html-sanitizer": "^7.3",
         "composer/semver": "^3.4",
         "opis/json-schema": "^2.6",

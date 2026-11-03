@@ -469,14 +469,6 @@ $schemas = [
             ]],
         ],
     ],
-    'TransactionConfig' => [
-        'type' => 'object', 'additionalProperties' => false,
-        'required' => ['cancel_unpaid_orders', 'cancel_unpaid_orders_times', 'verification_orders', 'verification_orders_times'],
-        'properties' => [
-            'cancel_unpaid_orders' => ['type' => 'integer', 'enum' => [0, 1]], 'cancel_unpaid_orders_times' => ['type' => 'integer', 'minimum' => 1],
-            'verification_orders' => ['type' => 'integer', 'enum' => [0, 1]], 'verification_orders_times' => ['type' => 'integer', 'minimum' => 1],
-        ],
-    ],
     'SystemInfo' => [
         'type' => 'object', 'additionalProperties' => false, 'required' => ['server', 'env', 'auth'],
         'properties' => [
@@ -864,8 +856,6 @@ $add($paths, 'GET', '/adminapi/log/lists', $operation('listOperationLogs', 'Oper
 $add($paths, 'POST', '/adminapi/log/clear', $operation('clearOperationLogs', 'OperationLogs', $mutation));
 $add($paths, 'GET', '/adminapi/setting/hot-search/config', $operation('getHotSearchConfig', 'TenantSettings', $ok('HotSearchConfig')));
 $add($paths, 'POST', '/adminapi/setting/hot-search/save', $operation('saveHotSearchConfig', 'TenantSettings', $mutation, requestBody: $jsonBody($ref('HotSearchConfig'))));
-$add($paths, 'GET', '/adminapi/setting/transaction/config', $operation('getTransactionConfig', 'TenantSettings', $ok('TransactionConfig')));
-$add($paths, 'POST', '/adminapi/setting/transaction/save', $operation('saveTransactionConfig', 'TenantSettings', $mutation, requestBody: $jsonBody($ref('TransactionConfig')), errors: ['TRANSACTION_CANCEL_MODE_INVALID', 'TRANSACTION_VERIFY_MODE_INVALID', 'TRANSACTION_CANCEL_DELAY_INVALID', 'TRANSACTION_VERIFY_DELAY_INVALID']));
 $add($paths, 'GET', '/adminapi/system/info', $operation('getSystemInformation', 'System', $ok('SystemInfo')));
 $add($paths, 'POST', '/adminapi/system/clearCache', $operation('clearSystemCache', 'System', $mutation));
 $add($paths, 'GET', '/adminapi/workbench/index', $operation('getAdminWorkbench', 'Workbench', $ok('Workbench')));

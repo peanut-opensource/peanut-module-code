@@ -8,6 +8,7 @@ use app\common\services\authorization\AdminAuthorizationService;
 use PeanutAdmin\Modules\File\Contract\FileReferences;
 use PeanutAdmin\Modules\Settings\Service\WebsiteConfigService;
 use PeanutAdmin\Kernel\Auth\TenantContext;
+use PeanutAdmin\Modules\Settings\Contract\TenantSettingsQuery;
 
 class WorkbenchApplicationService
 {
@@ -18,20 +19,22 @@ class WorkbenchApplicationService
         private readonly string $projectVersion,
         private readonly string $projectBased,
         private readonly array $defaultImages,
-        private readonly bool $demoMode,
+        private readonly TenantSettingsQuery $settings,
     ) {}
 
     public function index(TenantContext $context): array
     {
         $website = $this->website->get($context);
+        $demo = $this->settings->get($context, 'application.workbench-demo')->document;
+        $available = ($demo['preset'] ?? null) === 'workbench';
         return [
             'version' => $this->versionInfo($context, $website),
-            'statistics_state' => $this->demoMode ? 'demo' : 'unavailable',
-            'today'   => self::today(),
+            'statistics_state' => $available ? 'demo' : 'unavailable',
+            'today'   => $available ? $demo['today'] : self::today(),
             'menu'    => self::menu($context),
-            'visitor' => self::visitor(),
+            'visitor' => $available ? $demo['visitor'] : ['date' => [], 'list' => []],
             'support' => $this->support($context, $website),
-            'sale'    => self::sale(),
+            'sale'    => $available ? $demo['sale'] : ['date' => [], 'list' => []],
         ];
     }
 
@@ -53,15 +56,15 @@ class WorkbenchApplicationService
     public function today(): array
     {
         return [
-            'time'           => date('Y-m-d H:i:s'),
-            'today_sales'    => $this->demoMode ? 100 : 0,
-            'total_sales'    => $this->demoMode ? 1000 : 0,
-            'today_visitor'  => $this->demoMode ? 10 : 0,
-            'total_visitor'  => $this->demoMode ? 100 : 0,
-            'today_new_user' => $this->demoMode ? 30 : 0,
-            'total_new_user' => $this->demoMode ? 3000 : 0,
-            'order_num'      => $this->demoMode ? 12 : 0,
-            'order_sum'      => $this->demoMode ? 255 : 0,
+            'time'           => '',
+            'today_sales'    => 0,
+            'total_sales'    => 0,
+            'today_visitor'  => 0,
+            'total_visitor'  => 0,
+            'today_new_user' => 0,
+            'total_new_user' => 0,
+            'order_num'      => 0,
+            'order_sum'      => 0,
         ];
     }
 
@@ -103,44 +106,6 @@ class WorkbenchApplicationService
             }
         }
         return false;
-    }
-
-    public function visitor(): array
-    {
-        if (!$this->demoMode) {
-            return ['date' => [], 'list' => []];
-        }
-        $date = [];
-        $data = [];
-        for ($i = 0; $i < 15; $i++) {
-            $timestamp = strtotime("- {$i} day");
-            $date[] = date('m/d', $timestamp);
-            $data[] = rand(0, 100);
-        }
-
-        return [
-            'date' => $date,
-            'list' => [['name' => '访客数', 'data' => $data]],
-        ];
-    }
-
-    public function sale(): array
-    {
-        if (!$this->demoMode) {
-            return ['date' => [], 'list' => []];
-        }
-        $date = [];
-        $data = [];
-        for ($i = 0; $i < 7; $i++) {
-            $timestamp = strtotime("- {$i} day");
-            $date[] = date('m/d', $timestamp);
-            $data[] = rand(30, 200);
-        }
-
-        return [
-            'date' => $date,
-            'list' => [['name' => '销售量', 'data' => $data]],
-        ];
     }
 
     public function support(TenantContext $context, ?array $website = null): array

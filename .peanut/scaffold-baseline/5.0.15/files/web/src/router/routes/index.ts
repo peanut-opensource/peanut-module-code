@@ -8,7 +8,7 @@ import {
 // contain no import edge to dev-tools.ts.
 // eslint-disable-next-line import/no-unresolved
 import instanceToolRoutes from 'virtual:peanut-instance-tool-routes';
-import { pluginRoutes } from './plugin-contributions';
+import { moduleRoutes } from './module-contributions';
 import { validateRouteTree } from '../route-meta';
 
 interface RouteModule {
@@ -52,7 +52,7 @@ const instanceToolsAllowed =
 
 export const appRoutes: RouteRecordRaw[] = validateRouteTree(
   routesForDeployment(
-    [...formatModules(modules, []), ...instanceToolRoutes, ...pluginRoutes],
+    [...formatModules(modules, []), ...instanceToolRoutes, ...moduleRoutes],
     mode,
     instanceToolsAllowed
   )

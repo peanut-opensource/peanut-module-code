@@ -620,7 +620,7 @@
                     "permission": "peanut.settings.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 165
+                        "line": 164
                     }
                 },
                 "x-peanut-permissions": [
@@ -1927,7 +1927,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/public_api.php",
-                        "line": 31
+                        "line": 22
                     }
                 },
                 "x-peanut-permissions": [
@@ -2009,7 +2009,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/public_api.php",
-                        "line": 33
+                        "line": 24
                     }
                 },
                 "x-peanut-permissions": [
@@ -2078,7 +2078,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/public_api.php",
-                        "line": 51
+                        "line": 28
                     }
                 },
                 "x-peanut-permissions": [
@@ -2168,7 +2168,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/public_api.php",
-                        "line": 55
+                        "line": 32
                     }
                 },
                 "x-peanut-permissions": [
@@ -2237,7 +2237,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/public_api.php",
-                        "line": 57
+                        "line": 34
                     }
                 },
                 "x-peanut-permissions": [
@@ -2306,7 +2306,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/public_api.php",
-                        "line": 59
+                        "line": 36
                     }
                 },
                 "x-peanut-permissions": [
@@ -2375,7 +2375,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/public_api.php",
-                        "line": 63
+                        "line": 40
                     }
                 },
                 "x-peanut-permissions": [
@@ -2448,7 +2448,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 33
+                        "line": 32
                     }
                 },
                 "x-peanut-permissions": []
@@ -2576,7 +2576,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 37
+                        "line": 36
                     }
                 },
                 "x-peanut-permissions": []
@@ -2646,7 +2646,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 38
+                        "line": 37
                     }
                 },
                 "x-peanut-permissions": []
@@ -2713,7 +2713,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 45
+                        "line": 44
                     }
                 },
                 "x-peanut-permissions": [
@@ -3215,7 +3215,7 @@
                     "permission": "core.member.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 83
+                        "line": 82
                     }
                 },
                 "x-peanut-permissions": [
@@ -3297,7 +3297,7 @@
                     "permission": "core.member.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 84
+                        "line": 83
                     }
                 },
                 "x-peanut-permissions": [
@@ -3369,7 +3369,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 85
+                        "line": 84
                     }
                 },
                 "x-peanut-permissions": [
@@ -3458,7 +3458,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 86
+                        "line": 85
                     }
                 },
                 "x-peanut-permissions": [
@@ -3553,7 +3553,7 @@
                     "permission": "core.member.create",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 87
+                        "line": 86
                     }
                 },
                 "x-peanut-permissions": [
@@ -3652,7 +3652,7 @@
                     "permission": "core.member.update",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 88
+                        "line": 87
                     }
                 },
                 "x-peanut-permissions": [
@@ -3759,7 +3759,7 @@
                     "permission": "core.member.leave",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 89
+                        "line": 88
                     }
                 },
                 "x-peanut-permissions": [
@@ -3874,7 +3874,7 @@
                     "permission": "core.member.update",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 90
+                        "line": 89
                     }
                 },
                 "x-peanut-permissions": [
@@ -3949,7 +3949,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 51
+                        "line": 50
                     }
                 },
                 "x-peanut-permissions": [
@@ -4024,7 +4024,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 52
+                        "line": 51
                     }
                 },
                 "x-peanut-permissions": [
@@ -4099,7 +4099,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 53
+                        "line": 52
                     }
                 },
                 "x-peanut-permissions": [
@@ -4182,7 +4182,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 54
+                        "line": 53
                     }
                 },
                 "x-peanut-permissions": [
@@ -4282,7 +4282,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 55
+                        "line": 54
                     }
                 },
                 "x-peanut-permissions": [
@@ -4393,7 +4393,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 56
+                        "line": 55
                     }
                 },
                 "x-peanut-permissions": [
@@ -4504,7 +4504,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 57
+                        "line": 56
                     }
                 },
                 "x-peanut-permissions": [
@@ -4617,7 +4617,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 58
+                        "line": 57
                     }
                 },
                 "x-peanut-permissions": [
@@ -4720,7 +4720,7 @@
                     "permission": "core.role.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 61
+                        "line": 60
                     }
                 },
                 "x-peanut-permissions": [
@@ -4795,7 +4795,7 @@
                     "permission": "core.role.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 62
+                        "line": 61
                     }
                 },
                 "x-peanut-permissions": [
@@ -4877,7 +4877,7 @@
                     "permission": "core.role.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 63
+                        "line": 62
                     }
                 },
                 "x-peanut-permissions": [
@@ -4969,7 +4969,7 @@
                     "permission": "core.role.create",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 64
+                        "line": 63
                     }
                 },
                 "x-peanut-permissions": [
@@ -5064,7 +5064,7 @@
                     "permission": "core.role.update",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 65
+                        "line": 64
                     }
                 },
                 "x-peanut-permissions": [
@@ -5168,7 +5168,7 @@
                     "permission": "core.role.archive",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 66
+                        "line": 65
                     }
                 },
                 "x-peanut-permissions": [
@@ -5264,7 +5264,7 @@
                     "permission": "core.role.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 67
+                        "line": 66
                     }
                 },
                 "x-peanut-permissions": [
@@ -5359,7 +5359,7 @@
                     "permission": "core.role.permission.assign",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 69
+                        "line": 68
                     }
                 },
                 "x-peanut-permissions": [
@@ -5460,7 +5460,7 @@
                     "permission": "core.permission.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 71
+                        "line": 70
                     }
                 },
                 "x-peanut-permissions": [
@@ -5576,7 +5576,7 @@
                     "permission": "core.role.data-policy.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 75
+                        "line": 74
                     }
                 },
                 "x-peanut-permissions": [
@@ -5671,7 +5671,7 @@
                     "permission": "core.role.data-policy.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 77
+                        "line": 76
                     }
                 },
                 "x-peanut-permissions": [
@@ -5796,7 +5796,7 @@
                     "permission": "core.role.data-policy.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 79
+                        "line": 78
                     }
                 },
                 "x-peanut-permissions": [
@@ -6138,7 +6138,7 @@
                     "permission": "core.department.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 93
+                        "line": 92
                     }
                 },
                 "x-peanut-permissions": [
@@ -6480,7 +6480,7 @@
                     "permission": "core.department.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 94
+                        "line": 93
                     }
                 },
                 "x-peanut-permissions": [
@@ -6821,7 +6821,7 @@
                     "permission": "core.department.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 95
+                        "line": 94
                     }
                 },
                 "x-peanut-permissions": [
@@ -6991,7 +6991,7 @@
                     "permission": "core.department.update",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 96
+                        "line": 95
                     }
                 },
                 "x-peanut-permissions": [
@@ -7073,7 +7073,7 @@
                     "permission": "core.department.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 97
+                        "line": 96
                     }
                 },
                 "x-peanut-permissions": [
@@ -7168,7 +7168,7 @@
                     "permission": "core.department.create",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 98
+                        "line": 97
                     }
                 },
                 "x-peanut-permissions": [
@@ -7263,7 +7263,7 @@
                     "permission": "core.department.update",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 99
+                        "line": 98
                     }
                 },
                 "x-peanut-permissions": [
@@ -7367,7 +7367,7 @@
                     "permission": "core.department.archive",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 100
+                        "line": 99
                     }
                 },
                 "x-peanut-permissions": [
@@ -7479,7 +7479,7 @@
                     "permission": "core.department.update",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 101
+                        "line": 100
                     }
                 },
                 "x-peanut-permissions": [
@@ -7632,7 +7632,7 @@
                     "permission": "core.job.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 104
+                        "line": 103
                     }
                 },
                 "x-peanut-permissions": [
@@ -7707,7 +7707,7 @@
                     "permission": "core.job.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 105
+                        "line": 104
                     }
                 },
                 "x-peanut-permissions": [
@@ -7789,7 +7789,7 @@
                     "permission": "core.job.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 106
+                        "line": 105
                     }
                 },
                 "x-peanut-permissions": [
@@ -7888,7 +7888,7 @@
                     "permission": "core.job.create",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 107
+                        "line": 106
                     }
                 },
                 "x-peanut-permissions": [
@@ -7987,7 +7987,7 @@
                     "permission": "core.job.update",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 108
+                        "line": 107
                     }
                 },
                 "x-peanut-permissions": [
@@ -8091,7 +8091,7 @@
                     "permission": "core.job.archive",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 109
+                        "line": 108
                     }
                 },
                 "x-peanut-permissions": [
@@ -8203,7 +8203,7 @@
                     "permission": "core.job.update",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 110
+                        "line": 109
                     }
                 },
                 "x-peanut-permissions": [
@@ -8275,7 +8275,7 @@
                     "permission": "peanut.settings.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 151
+                        "line": 150
                     }
                 },
                 "x-peanut-permissions": [
@@ -8357,7 +8357,7 @@
                     "permission": "peanut.settings.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 152
+                        "line": 151
                     }
                 },
                 "x-peanut-permissions": [
@@ -8429,7 +8429,7 @@
                     "permission": "peanut.settings.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 155
+                        "line": 154
                     }
                 },
                 "x-peanut-permissions": [
@@ -8518,7 +8518,7 @@
                     "permission": "peanut.settings.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 156
+                        "line": 155
                     }
                 },
                 "x-peanut-permissions": [
@@ -8590,7 +8590,7 @@
                     "permission": "peanut.settings.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 157
+                        "line": 156
                     }
                 },
                 "x-peanut-permissions": [
@@ -8679,7 +8679,7 @@
                     "permission": "peanut.settings.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 158
+                        "line": 157
                     }
                 },
                 "x-peanut-permissions": [
@@ -8751,7 +8751,7 @@
                     "permission": "peanut.settings.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 159
+                        "line": 158
                     }
                 },
                 "x-peanut-permissions": [
@@ -8840,7 +8840,7 @@
                     "permission": "peanut.settings.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 160
+                        "line": 159
                     }
                 },
                 "x-peanut-permissions": [
@@ -8912,7 +8912,7 @@
                     "permission": "peanut.settings.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 161
+                        "line": 160
                     }
                 },
                 "x-peanut-permissions": [
@@ -9001,7 +9001,7 @@
                     "permission": "peanut.settings.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 162
+                        "line": 161
                     }
                 },
                 "x-peanut-permissions": [
@@ -9073,7 +9073,7 @@
                     "permission": "peanut.settings.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 153
+                        "line": 152
                     }
                 },
                 "x-peanut-permissions": [
@@ -9162,7 +9162,7 @@
                     "permission": "peanut.settings.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 154
+                        "line": 153
                     }
                 },
                 "x-peanut-permissions": [
@@ -9237,7 +9237,7 @@
                     "permission": "peanut.settings.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 176
+                        "line": 171
                     }
                 },
                 "x-peanut-permissions": [
@@ -9325,7 +9325,7 @@
                     "permission": "peanut.settings.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 177
+                        "line": 172
                     }
                 },
                 "x-peanut-permissions": [
@@ -9426,7 +9426,7 @@
                     "permission": "peanut.settings.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 178
+                        "line": 173
                     }
                 },
                 "x-peanut-permissions": [
@@ -9501,7 +9501,7 @@
                     "permission": "peanut.settings.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 181
+                        "line": 176
                     }
                 },
                 "x-peanut-permissions": [
@@ -9589,7 +9589,7 @@
                     "permission": "peanut.settings.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 182
+                        "line": 177
                     }
                 },
                 "x-peanut-permissions": [
@@ -9690,7 +9690,7 @@
                     "permission": "peanut.settings.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 183
+                        "line": 178
                     }
                 },
                 "x-peanut-permissions": [
@@ -9762,7 +9762,7 @@
                     "permission": "peanut.settings.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 179
+                        "line": 174
                     }
                 },
                 "x-peanut-permissions": [
@@ -9854,7 +9854,7 @@
                     "permission": "peanut.settings.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 180
+                        "line": 175
                     }
                 },
                 "x-peanut-permissions": [
@@ -9966,7 +9966,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 131
+                        "line": 130
                     }
                 },
                 "x-peanut-permissions": [
@@ -10078,7 +10078,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 132
+                        "line": 131
                     }
                 },
                 "x-peanut-permissions": [
@@ -10160,7 +10160,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 133
+                        "line": 132
                     }
                 },
                 "x-peanut-permissions": [
@@ -10263,7 +10263,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 134
+                        "line": 133
                     }
                 },
                 "x-peanut-permissions": [
@@ -10361,7 +10361,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 135
+                        "line": 134
                     }
                 },
                 "x-peanut-permissions": [
@@ -10450,7 +10450,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 136
+                        "line": 135
                     }
                 },
                 "x-peanut-permissions": [
@@ -10556,7 +10556,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 137
+                        "line": 136
                     }
                 },
                 "x-peanut-permissions": [
@@ -10653,7 +10653,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 138
+                        "line": 137
                     }
                 },
                 "x-peanut-permissions": [
@@ -10755,7 +10755,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 139
+                        "line": 138
                     }
                 },
                 "x-peanut-permissions": [
@@ -10828,7 +10828,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 140
+                        "line": 139
                     }
                 },
                 "x-peanut-permissions": [
@@ -10903,7 +10903,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 141
+                        "line": 140
                     }
                 },
                 "x-peanut-permissions": [
@@ -11076,7 +11076,7 @@
                     "permission": "core.audit.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 148
+                        "line": 147
                     }
                 },
                 "x-peanut-permissions": [
@@ -11155,7 +11155,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 149
+                        "line": 148
                     }
                 },
                 "x-peanut-permissions": [
@@ -11227,7 +11227,7 @@
                     "permission": "peanut.settings.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 168
+                        "line": 167
                     }
                 },
                 "x-peanut-permissions": [
@@ -11316,174 +11316,7 @@
                     "permission": "peanut.settings.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 169
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "tenant_action",
-                        "key": "peanut.settings.manage"
-                    }
-                ]
-            }
-        },
-        "/adminapi/setting/transaction/config": {
-            "get": {
-                "tags": [
-                    "TenantSettings"
-                ],
-                "operationId": "getTransactionConfig",
-                "parameters": [],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                        "code",
-                                        "msg",
-                                        "data"
-                                    ],
-                                    "properties": {
-                                        "code": {
-                                            "type": "integer",
-                                            "enum": [
-                                                20000
-                                            ]
-                                        },
-                                        "msg": {
-                                            "type": "string"
-                                        },
-                                        "data": {
-                                            "$ref": "#/components/schemas/TransactionConfig"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": {}
-                    }
-                ],
-                "x-peanut-route": {
-                    "application": "adminapi",
-                    "owner": {
-                        "type": "application",
-                        "key": "adminapi"
-                    },
-                    "controller": "app\\adminapi\\controller\\setting\\TransactionSettingsController",
-                    "action": "getConfig",
-                    "permission": "peanut.settings.read",
-                    "source": {
-                        "file": "server/route/admin.php",
-                        "line": 172
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "tenant_action",
-                        "key": "peanut.settings.read"
-                    }
-                ]
-            }
-        },
-        "/adminapi/setting/transaction/save": {
-            "post": {
-                "tags": [
-                    "TenantSettings"
-                ],
-                "operationId": "saveTransactionConfig",
-                "parameters": [],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                        "code",
-                                        "msg",
-                                        "data"
-                                    ],
-                                    "properties": {
-                                        "code": {
-                                            "type": "integer",
-                                            "enum": [
-                                                20000
-                                            ]
-                                        },
-                                        "msg": {
-                                            "type": "string"
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "maxItems": 0,
-                                            "items": {
-                                                "$ref": "#/components/schemas/ApplicationDynamicValue"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/TransactionConfig"
-                            }
-                        }
-                    }
-                },
-                "x-peanut-errors": [
-                    "TRANSACTION_CANCEL_MODE_INVALID",
-                    "TRANSACTION_VERIFY_MODE_INVALID",
-                    "TRANSACTION_CANCEL_DELAY_INVALID",
-                    "TRANSACTION_VERIFY_DELAY_INVALID"
-                ],
-                "security": [
-                    {
-                        "bearerAuth": {}
-                    }
-                ],
-                "x-peanut-route": {
-                    "application": "adminapi",
-                    "owner": {
-                        "type": "application",
-                        "key": "adminapi"
-                    },
-                    "controller": "app\\adminapi\\controller\\setting\\TransactionSettingsController",
-                    "action": "setConfig",
-                    "permission": "peanut.settings.manage",
-                    "source": {
-                        "file": "server/route/admin.php",
-                        "line": 173
+                        "line": 168
                     }
                 },
                 "x-peanut-permissions": [
@@ -11555,7 +11388,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 144
+                        "line": 143
                     }
                 },
                 "x-peanut-permissions": [
@@ -11634,7 +11467,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 145
+                        "line": 144
                     }
                 },
                 "x-peanut-permissions": [
@@ -11706,7 +11539,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 48
+                        "line": 47
                     }
                 },
                 "x-peanut-permissions": [
@@ -11778,7 +11611,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 43
+                        "line": 42
                     }
                 },
                 "x-peanut-permissions": [
@@ -18130,7 +17963,7 @@
                     "permission": "core.permission.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 73
+                        "line": 72
                     }
                 },
                 "x-peanut-permissions": [
@@ -22101,7 +21934,7 @@
                     "permission": "peanut.reference-codes.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 113
+                        "line": 112
                     }
                 },
                 "x-peanut-permissions": [
@@ -22152,7 +21985,7 @@
                     "permission": "peanut.reference-codes.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 114
+                        "line": 113
                     }
                 },
                 "x-peanut-permissions": [
@@ -22223,7 +22056,7 @@
                     "permission": "peanut.reference-codes.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 115
+                        "line": 114
                     }
                 },
                 "x-peanut-permissions": [
@@ -22290,7 +22123,7 @@
                     "permission": "peanut.reference-codes.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 116
+                        "line": 115
                     }
                 },
                 "x-peanut-permissions": [
@@ -22357,7 +22190,7 @@
                     "permission": "peanut.reference-codes.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 117
+                        "line": 116
                     }
                 },
                 "x-peanut-permissions": [
@@ -22424,7 +22257,7 @@
                     "permission": "peanut.reference-codes.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 118
+                        "line": 117
                     }
                 },
                 "x-peanut-permissions": [
@@ -22491,7 +22324,7 @@
                     "permission": "peanut.reference-codes.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 119
+                        "line": 118
                     }
                 },
                 "x-peanut-permissions": [
@@ -22605,7 +22438,7 @@
                     "permission": "peanut.reference-codes.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 122
+                        "line": 121
                     }
                 },
                 "x-peanut-permissions": [
@@ -22667,7 +22500,7 @@
                     "permission": "peanut.reference-codes.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 123
+                        "line": 122
                     }
                 },
                 "x-peanut-permissions": [
@@ -22738,7 +22571,7 @@
                     "permission": "peanut.reference-codes.read",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 124
+                        "line": 123
                     }
                 },
                 "x-peanut-permissions": [
@@ -22805,7 +22638,7 @@
                     "permission": "peanut.reference-codes.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 125
+                        "line": 124
                     }
                 },
                 "x-peanut-permissions": [
@@ -22872,7 +22705,7 @@
                     "permission": "peanut.reference-codes.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 126
+                        "line": 125
                     }
                 },
                 "x-peanut-permissions": [
@@ -22939,7 +22772,7 @@
                     "permission": "peanut.reference-codes.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 127
+                        "line": 126
                     }
                 },
                 "x-peanut-permissions": [
@@ -23006,7 +22839,7 @@
                     "permission": "peanut.reference-codes.manage",
                     "source": {
                         "file": "server/route/admin.php",
-                        "line": 128
+                        "line": 127
                     }
                 },
                 "x-peanut-permissions": [
@@ -26045,589 +25878,6 @@
                     "$ref": "#/components/schemas/ApplicationDynamicValue"
                 }
             },
-            "ApplicationArticleCategory": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id",
-                    "name"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "name": {
-                        "type": "string"
-                    }
-                }
-            },
-            "ApplicationArticleListItem": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id",
-                    "cid",
-                    "title",
-                    "desc",
-                    "image",
-                    "create_time",
-                    "click",
-                    "collect"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "cid": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "desc": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "image": {
-                        "type": "string"
-                    },
-                    "create_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "click": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "collect": {
-                        "type": "boolean"
-                    }
-                }
-            },
-            "ApplicationArticleListPage": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "lists",
-                    "count",
-                    "pageNo",
-                    "pageSize"
-                ],
-                "properties": {
-                    "lists": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ApplicationArticleListItem"
-                        }
-                    },
-                    "count": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "pageNo": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "pageSize": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                    }
-                }
-            },
-            "ApplicationArticleDetail": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id",
-                    "desc",
-                    "abstract",
-                    "is_show",
-                    "create_time",
-                    "update_time",
-                    "delete_time",
-                    "title",
-                    "author",
-                    "content",
-                    "sort",
-                    "image",
-                    "tenant_id",
-                    "cid",
-                    "click",
-                    "collect"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "desc": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "abstract": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "is_show": {
-                        "type": "integer",
-                        "enum": [
-                            1
-                        ]
-                    },
-                    "create_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "update_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "delete_time": {
-                        "nullable": true,
-                        "oneOf": [
-                            {
-                                "oneOf": [
-                                    {
-                                        "type": "integer",
-                                        "minimum": 0
-                                    },
-                                    {
-                                        "type": "string"
-                                    }
-                                ]
-                            },
-                            {
-                                "type": "integer",
-                                "enum": [
-                                    0
-                                ]
-                            }
-                        ]
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "author": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "content": {
-                        "type": "string"
-                    },
-                    "sort": {
-                        "type": "integer"
-                    },
-                    "image": {
-                        "type": "string"
-                    },
-                    "tenant_id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "cid": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "click": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "collect": {
-                        "type": "boolean"
-                    }
-                }
-            },
-            "ApplicationArticleNavigationItem": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id",
-                    "cid",
-                    "title",
-                    "desc",
-                    "abstract",
-                    "image",
-                    "author",
-                    "create_time",
-                    "click"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "cid": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "desc": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "abstract": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "image": {
-                        "type": "string"
-                    },
-                    "author": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "create_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "click": {
-                        "type": "integer",
-                        "minimum": 0
-                    }
-                }
-            },
-            "ApplicationPcArticleDetail": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id",
-                    "desc",
-                    "abstract",
-                    "is_show",
-                    "create_time",
-                    "update_time",
-                    "delete_time",
-                    "title",
-                    "author",
-                    "content",
-                    "sort",
-                    "image",
-                    "tenant_id",
-                    "cid",
-                    "click",
-                    "collect",
-                    "last",
-                    "next",
-                    "new",
-                    "cate_name"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "desc": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "abstract": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "is_show": {
-                        "type": "integer",
-                        "enum": [
-                            1
-                        ]
-                    },
-                    "create_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "update_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "delete_time": {
-                        "nullable": true,
-                        "oneOf": [
-                            {
-                                "oneOf": [
-                                    {
-                                        "type": "integer",
-                                        "minimum": 0
-                                    },
-                                    {
-                                        "type": "string"
-                                    }
-                                ]
-                            },
-                            {
-                                "type": "integer",
-                                "enum": [
-                                    0
-                                ]
-                            }
-                        ]
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "author": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "content": {
-                        "type": "string"
-                    },
-                    "sort": {
-                        "type": "integer"
-                    },
-                    "image": {
-                        "type": "string"
-                    },
-                    "tenant_id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "cid": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "click": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "collect": {
-                        "type": "boolean"
-                    },
-                    "last": {
-                        "oneOf": [
-                            {
-                                "$ref": "#/components/schemas/ApplicationArticleNavigationItem"
-                            },
-                            {
-                                "type": "array",
-                                "maxItems": 0
-                            }
-                        ]
-                    },
-                    "next": {
-                        "oneOf": [
-                            {
-                                "$ref": "#/components/schemas/ApplicationArticleNavigationItem"
-                            },
-                            {
-                                "type": "array",
-                                "maxItems": 0
-                            }
-                        ]
-                    },
-                    "new": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ApplicationArticleNavigationItem"
-                        }
-                    },
-                    "cate_name": {
-                        "type": "string"
-                    }
-                }
-            },
-            "ApplicationHomeArticle": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id",
-                    "title",
-                    "desc",
-                    "abstract",
-                    "image",
-                    "author",
-                    "create_time",
-                    "click"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "desc": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "abstract": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "image": {
-                        "type": "string"
-                    },
-                    "author": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "create_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "click": {
-                        "type": "integer",
-                        "minimum": 0
-                    }
-                }
-            },
-            "ApplicationArticleCollectionRequest": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    }
-                }
-            },
-            "ApplicationArticleCollectionItem": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id",
-                    "article_id",
-                    "title",
-                    "image",
-                    "desc",
-                    "is_show",
-                    "create_time",
-                    "collect_time",
-                    "click"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "article_id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "image": {
-                        "type": "string"
-                    },
-                    "desc": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "is_show": {
-                        "type": "integer",
-                        "enum": [
-                            1
-                        ]
-                    },
-                    "create_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "collect_time": {
-                        "type": "string"
-                    },
-                    "click": {
-                        "type": "integer",
-                        "minimum": 0
-                    }
-                }
-            },
-            "ApplicationArticleCollectionPage": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "lists",
-                    "count",
-                    "pageNo",
-                    "pageSize"
-                ],
-                "properties": {
-                    "lists": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ApplicationArticleCollectionItem"
-                        }
-                    },
-                    "count": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "pageNo": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "pageSize": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                    }
-                }
-            },
             "ApplicationDecorationComponent": {
                 "type": "object",
                 "additionalProperties": false,
@@ -27118,186 +26368,6 @@
                     }
                 }
             },
-            "ApplicationHomeData": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "article",
-                    "decorate"
-                ],
-                "properties": {
-                    "article": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ApplicationHomeArticle"
-                        }
-                    },
-                    "decorate": {
-                        "$ref": "#/components/schemas/ApplicationDecorationPage"
-                    }
-                }
-            },
-            "ApplicationPcHomeData": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "all",
-                    "new",
-                    "hot",
-                    "decorate"
-                ],
-                "properties": {
-                    "all": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ApplicationArticleNavigationItem"
-                        }
-                    },
-                    "new": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ApplicationArticleNavigationItem"
-                        }
-                    },
-                    "hot": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ApplicationArticleNavigationItem"
-                        }
-                    },
-                    "decorate": {
-                        "$ref": "#/components/schemas/ApplicationDecorationPage"
-                    }
-                }
-            },
-            "ApplicationInformationArticle": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id",
-                    "cid",
-                    "title",
-                    "desc",
-                    "abstract",
-                    "image",
-                    "author",
-                    "is_show",
-                    "sort",
-                    "create_time",
-                    "update_time",
-                    "delete_time",
-                    "click"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "cid": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "desc": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "abstract": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "image": {
-                        "type": "string"
-                    },
-                    "author": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "is_show": {
-                        "type": "integer",
-                        "enum": [
-                            1
-                        ]
-                    },
-                    "sort": {
-                        "type": "integer"
-                    },
-                    "create_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "update_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "delete_time": {
-                        "nullable": true,
-                        "oneOf": [
-                            {
-                                "oneOf": [
-                                    {
-                                        "type": "integer",
-                                        "minimum": 0
-                                    },
-                                    {
-                                        "type": "string"
-                                    }
-                                ]
-                            },
-                            {
-                                "type": "integer",
-                                "enum": [
-                                    0
-                                ]
-                            }
-                        ]
-                    },
-                    "click": {
-                        "type": "integer",
-                        "minimum": 0
-                    }
-                }
-            },
-            "ApplicationInformationCategory": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id",
-                    "name",
-                    "article"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "article": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ApplicationInformationArticle"
-                        }
-                    }
-                }
-            },
             "ApplicationHotSearchData": {
                 "type": "object",
                 "additionalProperties": false,
@@ -27332,52 +26402,6 @@
                                 }
                             }
                         }
-                    }
-                }
-            },
-            "ApplicationArticleListResponse": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "code",
-                    "msg",
-                    "data"
-                ],
-                "properties": {
-                    "code": {
-                        "type": "integer",
-                        "enum": [
-                            20000
-                        ]
-                    },
-                    "msg": {
-                        "type": "string"
-                    },
-                    "data": {
-                        "$ref": "#/components/schemas/ApplicationArticleListPage"
-                    }
-                }
-            },
-            "ApplicationArticleDetailResponse": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "code",
-                    "msg",
-                    "data"
-                ],
-                "properties": {
-                    "code": {
-                        "type": "integer",
-                        "enum": [
-                            20000
-                        ]
-                    },
-                    "msg": {
-                        "type": "string"
-                    },
-                    "data": {
-                        "$ref": "#/components/schemas/ApplicationArticleDetail"
                     }
                 }
             },
@@ -29477,40 +28501,6 @@
                                 }
                             }
                         }
-                    }
-                }
-            },
-            "TransactionConfig": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "cancel_unpaid_orders",
-                    "cancel_unpaid_orders_times",
-                    "verification_orders",
-                    "verification_orders_times"
-                ],
-                "properties": {
-                    "cancel_unpaid_orders": {
-                        "type": "integer",
-                        "enum": [
-                            0,
-                            1
-                        ]
-                    },
-                    "cancel_unpaid_orders_times": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "verification_orders": {
-                        "type": "integer",
-                        "enum": [
-                            0,
-                            1
-                        ]
-                    },
-                    "verification_orders_times": {
-                        "type": "integer",
-                        "minimum": 1
                     }
                 }
             },

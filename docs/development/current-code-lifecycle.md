@@ -150,6 +150,8 @@ python3 "$code_root/scripts/project-env" --root "$web_core" --state-root "$code_
 
 首次安装继续使用网页安装向导，控制台入口是 `php server/database/install.php`。首次空库检查、动态管理员/租户、模块选择、租户模块开通、健康检查和完成锁均由安装业务负责。结构通过官方 `migrate:run` 执行唯一 `server/database/migrations` 目录；动态身份创建后，官方 `seed:run --seed=InitialSeeder` 写默认数据并同步权限目录。种子从实际唯一默认租户读取身份，不依赖另一个 PDO 的会话变量；重复或部分初始化拒绝重放。安装完成身份位于 `server/private/installation/installed.json`，包含原生迁移版本与当前源码摘要，不能据此声称官方账本提供历史 checksum 验证。
 
+生成应用默认 `peanut create --demo=none`；显式 `--demo=workbench` 记录到应用manifest与 `peanut.demo.preset`，只在正常首次安装的原生锁内将稳定工作台示例写入实际默认租户的 `application.workbench-demo` 设置。工作台读取该持久记录并显示Demo标识；升级不播种，`scripts/seed-demo-data` 只提供 `--plan`，不提供安装后 `--apply`。该preset不启用下述演示账号模式或弱密码策略。
+
 既有 `server/database/seed-multi-tenant-demo.php` 仍保留专项演示数据能力；它与首次安装、脚手架开发库初始化是不同操作。需要该能力时，先按其既有 target/resource 准入及恢复合同核对明确目标，在对应后端环境配置 `PEANUT_DEMO_MODE`、演示租户邮件/密码/域名等所需值，再显式选择 `PHP_ENV_NAME` 并执行 `php server/database/seed-multi-tenant-demo.php --apply --default-host=<明确的default租户域名>`。它不负责选择工具、安装依赖、生成秘密或启动服务；不得向共享开发库重放旧演示配方，也不能把退出的聚合脚本当作当前初始化入口。
 
 数据库只采用 ThinkPHP 原生迁移和 `pa_migrations`（可由 database.migration_table 配置）。本次最终结构为唯一 `20261101000000_initial_baseline.php`，后续用 `php server/think migrate:create <Name>` 增加标准 PHP 迁移；初始基线明确不支持回滚。旧 baseline 覆盖、自研版本账本、schema:application 及历史 partial continuation 已退役。不存在自动清库、重建身份或旧数据库兼容路径。维护者迁移合同仅见Code源码仓`docs/maintenance/migration-protocols.md`，不随生成APP交付。

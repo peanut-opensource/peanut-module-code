@@ -13,7 +13,6 @@ use app\adminapi\services\AdminLoginAttemptService;
 use app\adminapi\services\OperationLogService;
 use app\adminapi\infrastructure\generator\GeneratorImportPersistence;
 use app\api\services\IndexApplicationService;
-use PeanutAdmin\Modules\Article\Contract\PublicArticleQueries;
 use app\common\composition\ModuleComposition;
 use app\common\contract\AdminPermissionPolicy;
 use app\common\contract\authorization\AdminAuthorizationQuery;
@@ -603,7 +602,7 @@ class AppService extends Service
             (string) Config::get('project.version', ''),
             (string) Config::get('project.based', ''),
             (array) Config::get('project.default_image', []),
-            (bool) Config::get('peanut.demo.enabled', false),
+            $this->app->make(\PeanutAdmin\Modules\Settings\Contract\TenantSettingsQuery::class),
         ));
         $this->app->bind(ConfigApplicationService::class, fn(): ConfigApplicationService => new ConfigApplicationService(
             $this->app->make(\PeanutAdmin\Modules\Settings\Contract\TenantApplicationSettings::class),
@@ -632,7 +631,6 @@ class AppService extends Service
                 'tenant_b_email' => (string) Config::get('peanut.demo.tenant_b_email', ''),
                 'password' => (string) Config::get('peanut.demo.shared_password', ''),
             ],
-            $this->app->bound(PublicArticleQueries::class) ? $this->app->make(PublicArticleQueries::class) : null,
         ));
     }
 

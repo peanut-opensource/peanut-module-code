@@ -1816,38 +1816,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/adminapi/setting/transaction/config": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getTransactionConfig"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/adminapi/setting/transaction/save": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["saveTransactionConfig"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/adminapi/system/info": {
         parameters: {
             query?: never;
@@ -4188,110 +4156,6 @@ export interface components {
         ApplicationDynamicObject: {
             [key: string]: components["schemas"]["ApplicationDynamicValue"];
         };
-        ApplicationArticleCategory: {
-            id: number;
-            name: string;
-        };
-        ApplicationArticleListItem: {
-            id: number;
-            cid: number;
-            title: string;
-            desc: string | null;
-            image: string;
-            create_time: number | string;
-            click: number;
-            collect: boolean;
-        };
-        ApplicationArticleListPage: {
-            lists: components["schemas"]["ApplicationArticleListItem"][];
-            count: number;
-            pageNo: number;
-            pageSize: number;
-        };
-        ApplicationArticleDetail: {
-            id: number;
-            desc: string | null;
-            abstract: string | null;
-            /** @enum {integer} */
-            is_show: 1;
-            create_time: number | string;
-            update_time: number | string;
-            delete_time: ((number | string) | 0) | null;
-            title: string;
-            author: string | null;
-            content: string;
-            sort: number;
-            image: string;
-            tenant_id: number;
-            cid: number;
-            click: number;
-            collect: boolean;
-        };
-        ApplicationArticleNavigationItem: {
-            id: number;
-            cid: number;
-            title: string;
-            desc: string | null;
-            abstract: string | null;
-            image: string;
-            author: string | null;
-            create_time: number | string;
-            click: number;
-        };
-        ApplicationPcArticleDetail: {
-            id: number;
-            desc: string | null;
-            abstract: string | null;
-            /** @enum {integer} */
-            is_show: 1;
-            create_time: number | string;
-            update_time: number | string;
-            delete_time: ((number | string) | 0) | null;
-            title: string;
-            author: string | null;
-            content: string;
-            sort: number;
-            image: string;
-            tenant_id: number;
-            cid: number;
-            click: number;
-            collect: boolean;
-            last: components["schemas"]["ApplicationArticleNavigationItem"] | unknown[];
-            next: components["schemas"]["ApplicationArticleNavigationItem"] | unknown[];
-            new: components["schemas"]["ApplicationArticleNavigationItem"][];
-            cate_name: string;
-        };
-        ApplicationHomeArticle: {
-            id: number;
-            title: string;
-            desc: string | null;
-            abstract: string | null;
-            image: string;
-            author: string | null;
-            create_time: number | string;
-            click: number;
-        };
-        ApplicationArticleCollectionRequest: {
-            id: number;
-        };
-        ApplicationArticleCollectionItem: {
-            id: number;
-            article_id: number;
-            title: string;
-            image: string;
-            desc: string | null;
-            /** @enum {integer} */
-            is_show: 1;
-            create_time: number | string;
-            collect_time: string;
-            click: number;
-        };
-        ApplicationArticleCollectionPage: {
-            lists: components["schemas"]["ApplicationArticleCollectionItem"][];
-            count: number;
-            pageNo: number;
-            pageSize: number;
-        };
         ApplicationDecorationComponent: {
             title: string;
             name: string;
@@ -4399,37 +4263,6 @@ export interface components {
             title: string;
             content: string;
         };
-        ApplicationHomeData: {
-            article: components["schemas"]["ApplicationHomeArticle"][];
-            decorate: components["schemas"]["ApplicationDecorationPage"];
-        };
-        ApplicationPcHomeData: {
-            all: components["schemas"]["ApplicationArticleNavigationItem"][];
-            new: components["schemas"]["ApplicationArticleNavigationItem"][];
-            hot: components["schemas"]["ApplicationArticleNavigationItem"][];
-            decorate: components["schemas"]["ApplicationDecorationPage"];
-        };
-        ApplicationInformationArticle: {
-            id: number;
-            cid: number;
-            title: string;
-            desc: string | null;
-            abstract: string | null;
-            image: string;
-            author: string | null;
-            /** @enum {integer} */
-            is_show: 1;
-            sort: number;
-            create_time: number | string;
-            update_time: number | string;
-            delete_time: ((number | string) | 0) | null;
-            click: number;
-        };
-        ApplicationInformationCategory: {
-            id: number;
-            name: string;
-            article: components["schemas"]["ApplicationInformationArticle"][];
-        };
         ApplicationHotSearchData: {
             /** @enum {integer} */
             status: 0 | 1;
@@ -4437,18 +4270,6 @@ export interface components {
                 name: string;
                 sort: number;
             }[];
-        };
-        ApplicationArticleListResponse: {
-            /** @enum {integer} */
-            code: 20000;
-            msg: string;
-            data: components["schemas"]["ApplicationArticleListPage"];
-        };
-        ApplicationArticleDetailResponse: {
-            /** @enum {integer} */
-            code: 20000;
-            msg: string;
-            data: components["schemas"]["ApplicationArticleDetail"];
         };
         AdminLoginRequest: {
             /** Format: email */
@@ -4968,14 +4789,6 @@ export interface components {
                 name: string;
                 sort: number;
             }[];
-        };
-        TransactionConfig: {
-            /** @enum {integer} */
-            cancel_unpaid_orders: 0 | 1;
-            cancel_unpaid_orders_times: number;
-            /** @enum {integer} */
-            verification_orders: 0 | 1;
-            verification_orders_times: number;
         };
         SystemInfo: {
             server: {
@@ -10630,65 +10443,6 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["HotSearchConfig"];
-            };
-        };
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {integer} */
-                        code: 20000;
-                        msg: string;
-                        data: components["schemas"]["ApplicationDynamicValue"][];
-                    };
-                };
-            };
-            401: components["responses"]["ErrorResponse"];
-            403: components["responses"]["ErrorResponse"];
-            422: components["responses"]["ErrorResponse"];
-        };
-    };
-    getTransactionConfig: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {integer} */
-                        code: 20000;
-                        msg: string;
-                        data: components["schemas"]["TransactionConfig"];
-                    };
-                };
-            };
-            401: components["responses"]["ErrorResponse"];
-            403: components["responses"]["ErrorResponse"];
-        };
-    };
-    saveTransactionConfig: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TransactionConfig"];
             };
         };
         responses: {

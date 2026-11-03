@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "description": "Peanut Module Code PC client",
     "private": true,
-    "author": "花生科技",
+    "author": "application owner",
     "homepage": "https://github.com/peanut-business/peanut-admin-code",
     "repository": {
         "type": "git",
@@ -21,8 +21,8 @@
     },
     "dependencies": {
         "@element-plus/nuxt": "^1.0.10",
-        "@peanut-admin/client": "file:../packages/core-web/peanut-admin-client-5.0.3-alpha.1.tgz",
-        "@peanut-admin/nuxt": "file:../packages/core-web/peanut-admin-nuxt-5.0.3-alpha.1.tgz",
+        "@peanut-admin/client": "file:../packages/core-web/peanut-admin-client-5.0.2.tgz",
+        "@peanut-admin/nuxt": "file:../packages/core-web/peanut-admin-nuxt-5.0.2.tgz",
         "@pinia/nuxt": "^0.5.5",
         "dompurify": "^3.4.17",
         "element-plus": "^2.9.1",

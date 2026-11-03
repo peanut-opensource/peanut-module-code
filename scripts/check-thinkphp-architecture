@@ -118,7 +118,6 @@ TRUSTED_TENANT_KEY_FILES = {
     "server/app/command/TenantTaskWorker.php",
     "server/app/common/model/decoration/DecoratePage.php",
     "server/app/common/model/log/OperationLog.php",
-    "server/app/common/model/setting/TransactionSetting.php",
     "server/app/common/model/setting/HotSearch.php",
     "server/app/common/services/org/AdminDirectoryQuery.php",
     "server/app/common/services/authorization/AdminAuthorizationService.php",

@@ -741,6 +741,8 @@ function installFreshDatabase(string $serverDir, array $input, ?array $moduleKey
         }
         $application->console->call('seed:run', ['--seed=InitialSeeder']);
         seedBrandDefaults($pdo, brandWebsiteDefaults($serverDir));
+        require_once $databaseDir . '/WorkbenchDemoData.php';
+        WorkbenchDemoData::seed($application, (int) $coreIdentity['tenant_id']);
         if (\think\facade\Db::connect() !== $connection || $connection->getPdo() !== $pdo || $pdo->inTransaction()) {
             throw new RuntimeException('INSTALL_NATIVE_MASTER_CHANGED');
         }

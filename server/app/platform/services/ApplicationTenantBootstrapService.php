@@ -13,7 +13,6 @@ use PeanutAdmin\Modules\Settings\Service\WebsiteConfigService;
 use app\common\model\decoration\DecoratePage;
 use app\common\model\decoration\DecorateTabbar;
 use app\common\model\decoration\DecorationTabbarSetting;
-use app\common\model\setting\TransactionSetting;
 use app\common\model\setting\CustomerServiceSetting;
 use PeanutAdmin\Modules\Settings\Contract\TenantSettingsQuery;
 use PeanutAdmin\Modules\Settings\Contract\TenantSettingsCommands;
@@ -245,16 +244,6 @@ final readonly class ApplicationTenantBootstrapService
         if (DecorationTabbarSetting::where([])->find() === null) {
             DecorationTabbarSetting::create([
                 'style' => '{"default_color":"#666666","selected_color":"#2F80ED"}',
-                'create_time' => 0,
-                'update_time' => 0,
-            ]);
-        }
-        if (TransactionSetting::where([])->find() === null) {
-            TransactionSetting::create([
-                'cancel_unpaid_orders' => 1,
-                'cancel_unpaid_orders_times' => 30,
-                'verification_orders' => 1,
-                'verification_orders_times' => 24,
                 'create_time' => 0,
                 'update_time' => 0,
             ]);

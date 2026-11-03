@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5bc8125deb232a44f93b7c4cc635f1b2",
+    "content-hash": "d0a65ff19e722945b52cc534681746fe",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -1695,17 +1695,12 @@
         },
         {
             "name": "peanut-admin/core",
-            "version": "5.0.3-alpha.7",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/peanut-business/peanut-admin-core-php.git",
-                "reference": "df96d01875fcd1c15b47d9c01f6d83e3ebcb20b2"
-            },
+            "version": "5.0.3-alpha.6",
             "dist": {
                 "type": "zip",
-                "url": "../packages/core-php/peanut-admin-core-5.0.3-alpha.7.zip",
-                "reference": "df96d01875fcd1c15b47d9c01f6d83e3ebcb20b2",
-                "shasum": "b573d2fbb3a11c830a75234e8767c75e224a714f"
+                "url": "../packages/core-php/peanut-admin-core-5.0.3-alpha.6.zip",
+                "reference": "f9d61786dbe582cdc00a4d6f97baa3c30fa3b6a0cf60633822ccd46f689a6db4",
+                "shasum": "714cbec73ecc4cb05fd3e6dbcab882ad672d3a1c"
             },
             "require": {
                 "composer/semver": "^3.4.4",

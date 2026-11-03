@@ -76,17 +76,6 @@ const APP_SETTING: AppRouteRecordRaw = {
         hideInMenu: true,
       },
     },
-    {
-      path: 'transaction',
-      name: 'AppSettingTransaction',
-      component: () => import('@/views/app-setting/transaction/index.vue'),
-      meta: {
-        locale: 'menu.appSetting.transaction',
-        requiresAuth: true,
-        requiredPermissions: ['peanut.settings.read'],
-        tenantModuleKey: 'peanut.settings',
-      },
-    },
   ],
 };
 

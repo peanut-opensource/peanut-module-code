@@ -16,7 +16,6 @@ use PeanutAdmin\Modules\ReferenceCodes\Controller\DictDataController;
 use app\adminapi\controller\generator\GeneratorController;
 use app\adminapi\controller\system\SystemController;
 use app\adminapi\controller\setting\HotSearchController;
-use app\adminapi\controller\setting\TransactionSettingsController;
 use app\adminapi\controller\decoration\DecorationPageController;
 use app\adminapi\controller\decoration\DecorationTabbarController;
 use app\adminapi\controller\log\OperationLogController;
@@ -167,10 +166,6 @@ Route::group(function () use ($peanutRouteModules) {
     // 应用设置 - 热门搜索
     Route::get('setting/hot-search/config', [HotSearchController::class, 'getConfig'])->option(['peanut_permission' => 'peanut.settings.read']);
     Route::post('setting/hot-search/save', [HotSearchController::class, 'setConfig'])->option(['peanut_permission' => 'peanut.settings.manage']);
-
-    // 应用设置 - 交易设置
-    Route::get('setting/transaction/config', [TransactionSettingsController::class, 'getConfig'])->option(['peanut_permission' => 'peanut.settings.read']);
-    Route::post('setting/transaction/save', [TransactionSettingsController::class, 'setConfig'])->option(['peanut_permission' => 'peanut.settings.manage']);
 
     // 装修管理：移动端、Tabbar 与 PC 权限域严格分离
     Route::get('decoration/mobile/page/lists', [DecorationPageController::class, 'mobileLists'])->option(['peanut_permission' => 'peanut.settings.read']);

@@ -16,7 +16,6 @@ import localeSystemMaintenance from '@/views/system/maintenance/locale/zh-CN';
 import localeSystemLog from '@/views/system/log/locale/zh-CN';
 import localeSystemConfig from '@/views/system/config/locale/zh-CN';
 import localeAppHotSearch from '@/views/app-setting/hot-search/locale/zh-CN';
-import localeAppTransaction from '@/views/app-setting/transaction/locale/zh-CN';
 import localeAppReadiness from '@/views/app-setting/readiness/locale/zh-CN';
 import localeOfficialSettings from '@/modules/peanut-settings/locale/zh-CN';
 import localeReferenceCodes from '@/modules/peanut-reference-codes/locale/zh-CN';
@@ -62,7 +61,6 @@ export default {
   ...localeSystemLog,
   ...localeSystemConfig,
   ...localeAppHotSearch,
-  ...localeAppTransaction,
   ...localeAppReadiness,
   ...localeOfficialSettings,
   ...localeReferenceCodes,

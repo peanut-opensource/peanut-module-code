@@ -5,7 +5,7 @@
 <script setup lang="ts">
   import { computed, defineAsyncComponent } from 'vue';
   import type { AdminModuleShellSlotName } from '@peanut-admin/vue';
-  import contributions from 'virtual:peanut-plugin-contributions';
+  import contributions from 'virtual:peanut-module-contributions';
   import { useAppStore, useUserStore } from '@/store';
   import { hasPermission } from '@/hooks/permission';
 

@@ -16,7 +16,6 @@ import localeSystemMaintenance from '@/views/system/maintenance/locale/en-US';
 import localeSystemLog from '@/views/system/log/locale/en-US';
 import localeSystemConfig from '@/views/system/config/locale/en-US';
 import localeAppHotSearch from '@/views/app-setting/hot-search/locale/en-US';
-import localeAppTransaction from '@/views/app-setting/transaction/locale/en-US';
 import localeAppReadiness from '@/views/app-setting/readiness/locale/en-US';
 import localeOfficialSettings from '@/modules/peanut-settings/locale/en-US';
 import localeReferenceCodes from '@/modules/peanut-reference-codes/locale/en-US';
@@ -63,7 +62,6 @@ export default {
   ...localeSystemLog,
   ...localeSystemConfig,
   ...localeAppHotSearch,
-  ...localeAppTransaction,
   ...localeAppReadiness,
   ...localeOfficialSettings,
   ...localeReferenceCodes,

@@ -135,12 +135,10 @@
         <el-col :xs="24" :lg="16">
           <el-card class="general-card">
             <template #header>{{ $t('workplace.visitor.title') }}</template>
-            <Chart
-              v-if="hasVisitorData"
-              autoresize
-              style="height: 320px; width: 100%"
-              :option="visitorOption"
-            />
+            <el-table v-if="hasVisitorData" :data="visitorRows" height="320">
+              <el-table-column prop="date" :label="$t('workplace.demoData.date')" />
+              <el-table-column prop="value" :label="$t('workplace.demoData.visitor')" />
+            </el-table>
             <el-empty
               v-else
               class="workplace-empty workplace-empty--chart"
@@ -151,12 +149,10 @@
         <el-col :xs="24" :lg="8">
           <el-card class="general-card">
             <template #header>{{ $t('workplace.sale.title') }}</template>
-            <Chart
-              v-if="hasSaleData"
-              autoresize
-              style="height: 320px; width: 100%"
-              :option="saleOption"
-            />
+            <el-table v-if="hasSaleData" :data="saleRows" height="320">
+              <el-table-column prop="date" :label="$t('workplace.demoData.date')" />
+              <el-table-column prop="value" :label="$t('workplace.demoData.sale')" />
+            </el-table>
             <el-empty
               v-else
               class="workplace-empty workplace-empty--chart"
@@ -216,7 +212,6 @@
   import { ElMessage } from 'element-plus';
   import { Grid, QuestionFilled } from '@element-plus/icons-vue';
   import { useI18n } from 'vue-i18n';
-  import { Chart, type EChartsOption } from '@peanut-admin/peanut-chart/charts';
   import { getWorkbench, type WorkbenchData } from '@/api/workbench';
 
   const { t } = useI18n();
@@ -335,45 +330,18 @@
     },
   ]);
 
-  const visitorOption = computed<EChartsOption>(() => ({
-    tooltip: { trigger: 'axis' },
-    grid: { left: 48, right: 24, top: 32, bottom: 32 },
-    xAxis: {
-      type: 'category',
-      boundaryGap: false,
-      data: [...workbench.visitor.date].reverse(),
-    },
-    yAxis: { type: 'value' },
-    series: [
-      {
-        name: workbench.visitor.list[0]?.name || '访客数',
-        type: 'line',
-        smooth: true,
-        showSymbol: false,
-        areaStyle: { opacity: 0.12 },
-        data: workbench.visitor.list[0]?.data || [],
-      },
-    ],
-  }));
-
-  const saleOption = computed<EChartsOption>(() => ({
-    tooltip: { trigger: 'axis' },
-    grid: { left: 48, right: 24, top: 32, bottom: 32 },
-    xAxis: {
-      type: 'category',
-      data: [...workbench.sale.date].reverse(),
-    },
-    yAxis: { type: 'value' },
-    series: [
-      {
-        name: workbench.sale.list[0]?.name || '销售量',
-        type: 'bar',
-        barMaxWidth: 32,
-        itemStyle: { borderRadius: [6, 6, 0, 0] },
-        data: workbench.sale.list[0]?.data || [],
-      },
-    ],
-  }));
+  const visitorRows = computed(() =>
+    workbench.visitor.date.map((date, index) => ({
+      date,
+      value: workbench.visitor.list[0]?.data[index] ?? 0,
+    }))
+  );
+  const saleRows = computed(() =>
+    workbench.sale.date.map((date, index) => ({
+      date,
+      value: workbench.sale.list[0]?.data[index] ?? 0,
+    }))
+  );
 
   const fetchWorkbench = async () => {
     loading.value = true;

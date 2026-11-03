@@ -1,5 +1,5 @@
 import { createI18n } from 'vue-i18n';
-import contributions from 'virtual:peanut-plugin-contributions';
+import contributions from 'virtual:peanut-module-contributions';
 import en from './en-US';
 import cn from './zh-CN';
 

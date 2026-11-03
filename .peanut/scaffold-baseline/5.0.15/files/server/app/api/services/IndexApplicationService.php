@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace app\api\services;
 
-use PeanutAdmin\Modules\Article\Contract\PublicArticleQueries;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Context\TenantSystemContext;
 use app\common\services\RichTextResourceService;
@@ -25,7 +24,6 @@ class IndexApplicationService
         private readonly WebsiteConfigService $website,
         private readonly string $projectVersion,
         private readonly array $demoLoginConfig,
-        private readonly ?PublicArticleQueries $articles = null,
     ) {}
 
     /** 全局配置（uniapp / H5 用） */
@@ -112,19 +110,6 @@ class IndexApplicationService
             'title'   => (string) $setting[$prefix . '_title'],
             'content' => $this->richText->forRead(
                 (string) $setting[$prefix . '_content'],
-            ),
-        ];
-    }
-
-    /** 首页数据 */
-    public function getIndexData(TenantContext|TenantSystemContext $context): array
-    {
-        return [
-            'article' => ($this->articles ?? throw new \DomainException('ARTICLE_MODULE_UNAVAILABLE'))->homeArticles(20),
-            'decorate' => $this->decoration->pageByType(
-                $context,
-                DecorationEnum::MOBILE_HOME,
-                'article.index',
             ),
         ];
     }

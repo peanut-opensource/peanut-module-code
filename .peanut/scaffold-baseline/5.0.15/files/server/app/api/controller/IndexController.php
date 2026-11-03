@@ -17,13 +17,6 @@ class IndexController extends BaseApiController
     }
 
 
-    /** 首页数据 */
-    public function index()
-    {
-        $result = $this->index->getIndexData($this->publicTenantContext('article.index'));
-        return $this->data($result);
-    }
-
     /** 全局配置 */
     public function config()
     {

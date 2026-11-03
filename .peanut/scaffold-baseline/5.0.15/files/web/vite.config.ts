@@ -33,7 +33,7 @@ function lockedAdminContributions(): string[] {
     throw new Error('modules.lock is invalid');
   }
   return lock.modules
-    .flatMap((plugin) => plugin.frontend || [])
+    .flatMap((module) => module.frontend || [])
     .filter((identity) => identity.client_key === 'admin-web')
     .map((identity) => identity.entry)
     .sort();
@@ -42,7 +42,7 @@ function lockedAdminContributions(): string[] {
 // Normalize locked entries only after keeping them inside the real web source tree.
 function resolveContributionImport(entry: unknown): string {
   if (typeof entry !== 'string' || isAbsolute(entry)) {
-    throw new Error('Plugin contribution entry is invalid');
+    throw new Error('Module contribution entry is invalid');
   }
   const projectRoot = resolve(configDir, '..');
   const webRoot = resolve(projectRoot, 'web');
@@ -55,21 +55,21 @@ function resolveContributionImport(entry: unknown): string {
     sourceRelativePath.startsWith(`..${sep}`) ||
     isAbsolute(sourceRelativePath)
   ) {
-    throw new Error(`Plugin contribution is outside web/src: ${entry}`);
+    throw new Error(`Module contribution is outside web/src: ${entry}`);
   }
   if (!existsSync(entryPath) || realpathSync(entryPath) !== entryPath) {
     throw new Error(
-      `Plugin contribution is unavailable or a symlink: ${entry}`
+      `Module contribution is unavailable or a symlink: ${entry}`
     );
   }
   return `/${relative(webRoot, entryPath).split(sep).join('/')}`;
 }
 
-function pluginContributionManifest(entriesForBuild: () => string[]): Plugin {
-  const virtualId = 'virtual:peanut-plugin-contributions';
+function moduleContributionManifest(entriesForBuild: () => string[]): Plugin {
+  const virtualId = 'virtual:peanut-module-contributions';
   const resolvedId = `\0${virtualId}`;
   return {
-    name: 'peanut-plugin-contribution-manifest',
+    name: 'peanut-module-contribution-manifest',
     resolveId(id) {
       return id === virtualId ? resolvedId : null;
     },
@@ -140,7 +140,7 @@ export function createBaseConfig(
     // The admin SPA is published below server/public/admin in every environment.
     base: '/admin/',
     plugins: [
-      pluginContributionManifest(contributionEntries),
+      moduleContributionManifest(contributionEntries),
       instanceToolRouteManifest(instanceToolsCompiled),
       vue(),
       vueJsx(),

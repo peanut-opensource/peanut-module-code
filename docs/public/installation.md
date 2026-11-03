@@ -85,19 +85,21 @@ HTTP worker 的执行时限须覆盖首次迁移和所选模块安装；本地�
 | 表结构 | 所选模块自带原生迁移先建立自有表，Host `server/database/installation/20261101020000_initial_scaffold_baseline.php` 采用 `server/database/schema/baseline-schema.sql` 的宿主表。首次安装将它与所选 SQL 投影到原安装暂存目录，再交同一原生执行器；成功执行后由官方适配器记入 `pa_migrations`。 |
 | 必需系统数据 | `InitialSeeder` 在真实默认租户创建后写中性租户设置；定时计划初始为空。模块安装同步自有权限、API、菜单、设置等声明目录，并执行 `backend.seeds` 的必需中性初始种子；File 自带本地存储账号、空间和路由。目录不等于租户开通或成员授权，不创建样例成员、部门、文件、订单、执行历史或外部渠道占位。 |
 | 实例身份与配置 | 当次输入建立管理员、默认租户及适用平台账号，实际插入结果决定关联 ID；域名绑定来自该实例的明确输入，秘密及回调 key 当次生成。开发库中的账号、密码散列、域名、凭据、会话、安装身份和迁移记录均不复制。 |
-| 可选示例数据 | 默认 `PEANUT_DEMO_MODE=disabled`，首次安装不执行示例脚本，不创建 A/B 演示租户或合成业务记录。普通工作台显示“尚未接入业务统计”，不会将固定数值或随机趋势显示为实际业务数据。 |
+| 可选示例数据 | 创建应用默认 `--demo=none`，不播种演示业务数据。显式 `--demo=workbench` 由正常首次安装在原生安装锁内写入持久工作台示例；页面显示 Demo 标识。普通工作台显示“尚未接入业务统计”，不会将固定值或随机趋势作为实际业务数据。 |
 
 完整实例 SQL dump 属于独立恢复材料，可能包含身份、秘密和业务数据；它不是上述种子，不进入模板包，也不用于填充另一个新 APP。
 
 `server/database/installation/` 仅提供首次安装输入；普通 `migrate:run` 仍扫描 `server/database/migrations/`，不会把新 initial 当作已有实例的增量升级。已有实例的迁移执行情况以原生迁移表为准。APP manifest 的 `installation_migrations` 只记录安装来源路径和摘要：有安装完成或执行状态时，源码升级保留这些文件的原字节与身份，并转为应用持有的安装来源；不会删除旧 initial、改写历史来源或补造已执行版本。尚未安装的 APP 采用目标模板的安装来源快照。
 
-需要明确的演示实例时，复用现有 `scripts/seed-demo-data`：完成安装后，在该实例后端环境显式配置 `PEANUT_DEMO_MODE=enabled`、目标实际 `PEANUT_DEMO_TENANT_ID` 和 HTTP(S) `PEANUT_DEMO_DOCS_URL`。先预览计划，再按该命令既有资源/租约准入执行：
+需要工作台示例时，在创建应用时显式选择：
 
 ```sh
-PHP_ENV_NAME=<明确的环境名> php scripts/seed-demo-data --plan
-PHP_ENV_NAME=<明确的环境名> php scripts/seed-demo-data --apply
+peanut create /absolute/new-app --name="Example App" --slug=example-app --package=example/app --edition=standalone --demo=workbench
 ```
 
-该入口创建合成文章分类、文章、会员标签和会员，只更新所选租户的官网地址。它不创建管理员或新租户；ID 从实际数据库解析，不复用开发库 ID。重复执行会更新同名示例内容，不能作为恢复或清理命令。演示模式同时启用既有演示账号策略和工作台样例展示，不能作为生产配置。MT A/B 租户专项演示入口是维护者工具，不随 APP 模板交付。
+选择记录在 `.peanut/application-manifest.json` 的 `application.demo` 与应用自有 `server/config/peanut.php` 的 `demo.preset`。按前述正常安装入口完成首次初始化后，安装器在既有安装锁内使用真实默认租户写入租户设置 `application.workbench-demo`；工作台读取该持久记录并显示 Demo，示例数值和日期保持稳定。该preset不启用 `PEANUT_DEMO_MODE` 或弱密码演示账号策略，也不创建文章、会员、A/B租户或修改官网地址。
+
+`scripts/seed-demo-data --plan` 仅查看所选preset计划，命令不提供安装后补播种的 `--apply`。已有实例升级不重放种子，不覆盖真实数据；需要不同的示例选择时应在新应用首次安装前明确确定。MT A/B账号专项入口仍是单独维护者工具，不随APP模板交付。
+
 
 官方 Seeder 不向迁移版本表写种子成功记录；首次初始化是否完成还须核安装完成身份，不能只看基线版本已 applied。后续结构或系统数据变化通过新增原生 Migration 交付；已有实例只执行 pending 版本，不重放 `InitialSeeder`、复制开发库账本或改写已应用迁移。可选业务示例不进入版本迁移。

@@ -28,15 +28,12 @@ importers:
       '@element-plus/icons-vue':
         specifier: 2.3.2
         version: 2.3.2(vue@3.5.40(typescript@5.9.3))
-      '@peanut-admin/peanut-chart':
-        specifier: workspace:^1.0.0
-        version: link:src/modules/peanut-chart
       '@peanut-admin/ui-vue':
-        specifier: file:../packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz
-        version: file:../packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz(@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
+        specifier: file:../packages/core-web/peanut-admin-ui-vue-5.0.2.tgz
+        version: file:../packages/core-web/peanut-admin-ui-vue-5.0.2.tgz(@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.0.2.tgz(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
       '@peanut-admin/vue':
-        specifier: file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz
-        version: file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
+        specifier: file:../packages/core-web/peanut-admin-vue-5.0.2.tgz
+        version: file:../packages/core-web/peanut-admin-vue-5.0.2.tgz(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
       '@vueuse/core':
         specifier: ^9.3.0
         version: 9.13.0(vue@3.5.40(typescript@5.9.3))
@@ -203,18 +200,6 @@ importers:
       vue-tsc:
         specifier: 3.2.5
         version: 3.2.5(typescript@5.9.3)
-
-  src/modules/peanut-chart:
-    dependencies:
-      echarts:
-        specifier: 6.1.0
-        version: 6.1.0
-      vue:
-        specifier: ^3.3.0
-        version: 3.5.40(typescript@5.9.3)
-      vue-echarts:
-        specifier: 8.3.0
-        version: 8.3.0(echarts@6.1.0)(vue@3.5.40(typescript@5.9.3))
 
   src/modules/peanut-content-tools: {}
 
@@ -699,18 +684,18 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@peanut-admin/ui-vue@file:../packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz':
-    resolution: {integrity: sha512-/lxwoQh6cze5sqKnhE01B5l766s9VIgjJ0mflWsnENSrY4uN4W/RIWb2QO++XoiB4cH/Q4KKXCCCFFKsCI/RRQ==, tarball: file:../packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz}
-    version: 5.0.3-alpha.1
+  '@peanut-admin/ui-vue@file:../packages/core-web/peanut-admin-ui-vue-5.0.2.tgz':
+    resolution: {integrity: sha512-Sj0Gm4dsIfyVPPURZv8eKqeJanr28RYd/GrTwB0po5ATFt1sNj03efjkuCgwQdb6y+Bb5aZiHDX8QkPyJPJrtg==, tarball: file:../packages/core-web/peanut-admin-ui-vue-5.0.2.tgz}
+    version: 5.0.2
     engines: {node: '>=22.12.0 <23'}
     peerDependencies:
-      '@peanut-admin/vue': 5.0.3-alpha.1
+      '@peanut-admin/vue': 5.0.2
       element-plus: ^2.14.3
       vue: ^3.4.21
 
-  '@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz':
-    resolution: {integrity: sha512-X+7fovZT7xQ6XJiAf5s2SbQBqtDlnCPG+fus4NyJu6jdefG8gx4g7wPEOfVHJpWVHa4BVCJsT7vqUg7OeRgiEw==, tarball: file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz}
-    version: 5.0.3-alpha.1
+  '@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.0.2.tgz':
+    resolution: {integrity: sha512-d6kDlcbT8iR1WJza8gXzLzlzFUUhcruy0eqyvai5nNngldJL2Oz3U/44aiXqzqHaQckka1YGy7hhUHyWCQB4RA==, tarball: file:../packages/core-web/peanut-admin-vue-5.0.2.tgz}
+    version: 5.0.2
     engines: {node: '>=22.12.0 <23'}
     peerDependencies:
       pinia: '>=2.0.23 <5'
@@ -1645,9 +1630,6 @@ packages:
 
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
-
-  echarts@6.1.0:
-    resolution: {integrity: sha512-q0yaFPggC9FUdsWH4blavRWFmxdrIodbkoKNAjJudAI6CA9gNPxHtV2RcZNEepZVlk4yvBYkOkbk6HIVpIyHZA==}
 
   electron-to-chromium@1.5.396:
     resolution: {integrity: sha512-yHiw2Y3C3H9U6TMbOfoWK/BPreiOPXRfTWPBwQBoZG6/8TB6eOPnsy5oaRYuatR7Fw2SJ4kKforgufeo7fq0EQ==}
@@ -3290,9 +3272,6 @@ packages:
   tslib@1.14.1:
     resolution: {integrity: sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==}
 
-  tslib@2.3.0:
-    resolution: {integrity: sha512-N82ooyxVNm6h1riLCoyS9e3fuJ3AMG2zIZs2Gd1ATcSFjSA23Q0fzjjZeh0jbJvWVDZ0cJT8yaNNaaXHzueNjg==}
-
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
@@ -3457,12 +3436,6 @@ packages:
       '@vue/composition-api':
         optional: true
 
-  vue-echarts@8.3.0:
-    resolution: {integrity: sha512-gqOZ5uuBF4x4KTXQpTmgH5BuAwUSO+y9U7L1pHCIESQvgnTitXtnyjrfePH+9YXMRhmTLjchEx3EnsPhoiIX/A==}
-    peerDependencies:
-      echarts: ^6.0.0
-      vue: ^3.3.0
-
   vue-eslint-parser@9.4.3:
     resolution: {integrity: sha512-2rYRLWlIpaiN8xbPiDyXZXRgLGOtWxERV7ND5fFAv5qo1D2N9Fu9MNajBNc6o13lZ+24DAWCkQCvj4klgmcITg==}
     engines: {node: ^14.17.0 || >=16.0.0}
@@ -3584,9 +3557,6 @@ packages:
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
-
-  zrender@6.1.0:
-    resolution: {integrity: sha512-oEGMDB6pOP2S6OwRR4PdVv610zrjnA3Bh+JnSG12fYJlBKjtNAoEb5fSUoCOOINlH96I2fU38/A2UpRKs67xYQ==}
 
 snapshots:
 
@@ -4087,13 +4057,13 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@peanut-admin/ui-vue@file:../packages/core-web/peanut-admin-ui-vue-5.0.3-alpha.1.tgz(@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
+  '@peanut-admin/ui-vue@file:../packages/core-web/peanut-admin-ui-vue-5.0.2.tgz(@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.0.2.tgz(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
     dependencies:
-      '@peanut-admin/vue': file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
+      '@peanut-admin/vue': file:../packages/core-web/peanut-admin-vue-5.0.2.tgz(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
       element-plus: 2.14.3(vue@3.5.40(typescript@5.9.3))
       vue: 3.5.40(typescript@5.9.3)
 
-  '@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
+  '@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.0.2.tgz(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
     dependencies:
       pinia: 2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3))
       vue: 3.5.40(typescript@5.9.3)
@@ -5024,11 +4994,6 @@ snapshots:
       gopd: 1.2.0
 
   eastasianwidth@0.2.0: {}
-
-  echarts@6.1.0:
-    dependencies:
-      tslib: 2.3.0
-      zrender: 6.1.0
 
   electron-to-chromium@1.5.396: {}
 
@@ -6901,8 +6866,6 @@ snapshots:
 
   tslib@1.14.1: {}
 
-  tslib@2.3.0: {}
-
   tslib@2.8.1:
     optional: true
 
@@ -7066,11 +7029,6 @@ snapshots:
     dependencies:
       vue: 3.5.40(typescript@5.9.3)
 
-  vue-echarts@8.3.0(echarts@6.1.0)(vue@3.5.40(typescript@5.9.3)):
-    dependencies:
-      echarts: 6.1.0
-      vue: 3.5.40(typescript@5.9.3)
-
   vue-eslint-parser@9.4.3(eslint@8.57.1):
     dependencies:
       debug: 4.4.3(supports-color@10.2.2)
@@ -7213,7 +7171,3 @@ snapshots:
   yn@3.1.1: {}
 
   yocto-queue@0.1.0: {}
-
-  zrender@6.1.0:
-    dependencies:
-      tslib: 2.3.0

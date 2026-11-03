@@ -1808,6 +1808,13 @@ final class ScaffoldUpgradeRunner
                 continue;
             }
             if ($after === null) {
+                // These Module sources moved to the independent Module application.
+                // A template removal cannot consent to deleting an application's development source.
+                if (preg_match('#^server/app/modules/peanut/(?:chart|chart_examples|article|member|payment|oauth|document|rich_text|collaboration|workflow|import_export|notification|entitlement_quota|artifact_revision)/#D', $path) === 1
+                    || preg_match('#^(?:(?:web|platform|uniapp)/src/modules|pc/modules)/peanut-(?:chart|chart-examples|article|member|payment|oauth|document|rich-text|collaboration|workflow|import-export|notification|entitlement-quota|artifact-revision)/#D', $path) === 1) {
+                    $actions[] = $this->action($path, $before ?? [], 'conflict', 'module_source_ownership_transition_required', true, $current, null);
+                    continue;
+                }
                 // Platform files from older baselines need an explicit ownership
                 // transition; removing them from the neutral template is not deletion consent.
                 if (str_starts_with($path, '.github/')) {
@@ -2992,6 +2999,10 @@ final class ScaffoldUpgradeRunner
 
         foreach ($actions as &$action) {
             $path = (string) $action['path'];
+            if ($action['reason'] === 'module_source_ownership_transition_required') {
+                // Keep the explicit source handoff decision; the installed graph cannot reclaim it.
+                continue;
+            }
             if (isset($current['legacy_artifacts'][$path])) {
                 $action['action'] = 'delete';
                 $action['reason'] = 'versioned_module_declaration_conversion';
@@ -3141,7 +3152,7 @@ final class ScaffoldUpgradeRunner
                 && ($action['current']['present'] ?? null) === false
                 && ($action['target_sha256'] ?? null) === null;
             $upstreamRemoved = $missingUpstreamRemoved
-                || (($action['reason'] ?? null) === 'project_modified_upstream_removed'
+                || (in_array($action['reason'] ?? null, ['project_modified_upstream_removed', 'module_source_ownership_transition_required'], true)
                     && ($action['target_sha256'] ?? null) === null);
             if (isset($action['resolution_options'])
                 && (!is_array($action['resolution_options'])

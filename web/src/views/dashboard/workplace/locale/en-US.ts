@@ -1,4 +1,7 @@
 export default {
+  'workplace.demoData.date': 'Demo date',
+  'workplace.demoData.visitor': 'Demo visits',
+  'workplace.demoData.sale': 'Demo sales',
   'menu.dashboard.workplace': 'Workplace',
   'workplace.refresh': 'Refresh workplace',
   'workplace.statistics.unavailable':
