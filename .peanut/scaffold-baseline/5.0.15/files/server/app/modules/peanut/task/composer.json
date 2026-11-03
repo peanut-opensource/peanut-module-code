@@ -2,7 +2,7 @@
   "name": "peanut-business/peanut-task",
   "description": "Official Tenant task module",
   "type": "library",
-  "version": "1.0.27",
+  "version": "1.0.28",
   "license": "Apache-2.0",
   "require": {
     "php": "^8.3",

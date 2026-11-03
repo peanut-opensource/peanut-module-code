@@ -25,28 +25,28 @@ if (($peanutRouteApplication ?? null) !== 'platform') {
 // Instance-local platform control plane. It never shares admin sessions, RBAC or routes.
 Route::get('permission/menus', [\app\platform\controller\PermissionApiController::class, 'menus'])
     ->completeMatch()->middleware(PlatformLoginMiddleware::class)
-    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.read');
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.menu.read');
 Route::put('permission/menus/binding', [\app\platform\controller\PermissionApiController::class, 'replaceMenuBinding'])
     ->completeMatch()->middleware(PlatformLoginMiddleware::class)
-    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.api.manage');
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.menu.manage');
 Route::get('permission/bundles', [\app\platform\controller\PermissionApiController::class, 'bundles'])
     ->completeMatch()->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.read');
 Route::post('permission/bundles', [\app\platform\controller\PermissionApiController::class, 'create'])
     ->completeMatch()->middleware(PlatformLoginMiddleware::class)
-    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.api.manage');
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.bundle.manage');
 Route::put('permission/bundles', [\app\platform\controller\PermissionApiController::class, 'update'])
     ->completeMatch()->middleware(PlatformLoginMiddleware::class)
-    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.api.manage');
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.bundle.manage');
 Route::get('permission/apis/bindings', [\app\platform\controller\PermissionApiController::class, 'detail'])
     ->completeMatch()->middleware(PlatformLoginMiddleware::class)
-    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.read');
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.api.read');
 Route::put('permission/apis/bindings', [\app\platform\controller\PermissionApiController::class, 'replace'])
     ->completeMatch()->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.api.manage');
 Route::get('permission/apis', [\app\platform\controller\PermissionApiController::class, 'apis'])
     ->completeMatch()->middleware(PlatformLoginMiddleware::class)
-    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.read');
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.permission.api.read');
 
 Route::post('session/login', [PlatformSessionController::class, 'login'])
     ->middleware(PlatformHostMiddleware::class);

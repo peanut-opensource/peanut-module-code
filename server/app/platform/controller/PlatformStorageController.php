@@ -17,6 +17,21 @@ final class PlatformStorageController extends BasePlatformController
         return $this->data($this->storage->snapshot());
     }
 
+    public function accounts()
+    {
+        return $this->data(['accounts' => $this->storage->accounts()]);
+    }
+
+    public function spaces()
+    {
+        return $this->data(['spaces' => $this->storage->spaces()]);
+    }
+
+    public function routes()
+    {
+        return $this->data(['routes' => $this->storage->routes()]);
+    }
+
     public function createAccount()
     {
         return $this->data([

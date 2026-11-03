@@ -63,6 +63,12 @@ selection.json 显式提供 `expected_plan_revision`、`expected_license_revisio
 
 PC 的 `pc/modules/<slug>/contribution.ts` 使用 Nuxt 原生页面、组件和 layout 注册；UniApp 的 `uniapp/src/modules/<slug>/contribution.ts` 由 Vite 构建入口生成正式 pages.json 与必要页面入口，业务源码只保留在模块中。Web 沿用既有 contribution 入口。各端依赖写在模块自己的 package.json，由原生 workspace 求解；宿主只保留自身依赖。默认生产锁不自动加入开发用 fixture。
 
+## 作者与资格样本
+
+`fixture.delivery-record` 与 `fixture.workflow-business` 是源码仓库的作者、生命周期、HTTP 边界、Generator 与 Workflow transport 资格样本。后端位于 `server/fixtures/modules/`，Web 位于 `web/tests/fixtures/modules/`；它们不属于默认生产模块，生产 Composer autoload、Web workspace 与模板发行不挂载这些目录。PHP 资格通过 `autoload-dev` 加载样本命名空间。
+
+需要原生模块目录的作者或生命周期资格，应在其自有临时 APP 中把样本复制到对应 key 的 `server/app/modules/fixture/<name>` 和 `web/src/modules/fixture-<name>`，再调用既有原生入口；不要把样本放回 Code 源码的生产目录。样本清单中的前端入口保留这个原生目标布局。Generator 的资格输入同样位于独立临时 APP，显式传给 `GeneratorRenderService::render` 的 `sourceRoot`；正常 HTTP 与业务调用继续使用默认应用根，不能从表配置或请求参数提供根目录。预览仍仅返回 create/merge 结果，由资格调用者清理自己的临时 APP。
+
 ## 普通管理动作的写法
 
 简单列表、详情和增删改可参考 `ArticleCateController`：声明 `$crudClass` 指向当前 App 已绑定的业务用例，`CRUD_VALIDATE` 指向校验器，再按动作声明 `CRUD_INPUT_FIELDS`。新增、修改和状态变更还必须分别声明 `CRUD_WRITABLE_FIELDS`；`id` 等定位字段是控制参数，不应作为可持久化字段。已接入字段声明的 Controller 漏写场景或可写声明会报配置错误，额外请求字段会被拒绝；未接入声明的旧 Controller 仍按受控迁移保留旧路径，不能把本约束视作全站写入保护。服务仍负责 Tenant Scope、对象归属、业务不变量和事务，不能只靠 Controller 字段投影保护内部调用。

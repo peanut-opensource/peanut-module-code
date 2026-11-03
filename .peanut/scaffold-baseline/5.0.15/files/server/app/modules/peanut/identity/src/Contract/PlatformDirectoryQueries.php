@@ -23,17 +23,27 @@ final readonly class PlatformDirectoryQueries
         $query = Db::name('platform_operator')->alias('operator')
             ->join('account account', 'account.id=operator.account_id')
             ->leftJoin('credential credential', "credential.account_id=account.id AND credential.identifier_type='email' AND credential.status='active'")
-            ->leftJoin('platform_operator_role membership', 'membership.platform_operator_id=operator.id')
-            ->leftJoin('platform_role role', 'role.id=membership.platform_role_id')
             ->field('operator.id,operator.account_id,operator.display_name,operator.status,operator.security_revision,operator.created_at,operator.updated_at')
             ->field('account.display_name AS account_display_name,account.status AS account_status,credential.identifier_normalized AS email')
-            ->fieldRaw("COALESCE(GROUP_CONCAT(DISTINCT role.`key` ORDER BY role.`key` SEPARATOR ','),'') AS role_keys")
             ->group('operator.id,operator.account_id,operator.display_name,operator.status,operator.security_revision,account.display_name,account.status,credential.identifier_normalized,operator.created_at,operator.updated_at')
             ->order('operator.id', 'desc');
-        return $this->paginate($query, $page, (int) Db::name('platform_operator')->count(), static function (array $row): array {
-            $row['role_keys'] = $row['role_keys'] === '' ? [] : explode(',', (string) $row['role_keys']);
-            return $row;
-        });
+        $result = $this->paginate($query, $page, (int) Db::name('platform_operator')->count());
+        $roleKeys = [];
+        if ($result['items'] !== []) {
+            $memberships = Db::name('platform_operator_role')->alias('membership')
+                ->join('platform_role role', 'role.id=membership.platform_role_id')
+                ->whereIn('membership.platform_operator_id', array_column($result['items'], 'id'))
+                ->field('membership.platform_operator_id,role.key AS role_key')
+                ->order('membership.platform_operator_id,role.key')->select()->toArray();
+            foreach ($memberships as $membership) {
+                $roleKeys[$membership['platform_operator_id']][] = $membership['role_key'];
+            }
+        }
+        foreach ($result['items'] as &$item) {
+            $item['role_keys'] = $roleKeys[$item['id']] ?? [];
+        }
+        unset($item);
+        return $result;
     }
 
     /** @return array{items:list<array<string,mixed>>,total:int} */
@@ -41,17 +51,31 @@ final readonly class PlatformDirectoryQueries
     {
         $this->authorization->assertAllowed($context, 'platform.role.read');
         $query = Db::name('platform_role')->alias('role')
-            ->leftJoin('platform_role_permission binding', 'binding.platform_role_id=role.id')
-            ->leftJoin('permission permission', "permission.id=binding.permission_id AND permission.status='active'")
             ->field('role.id,role.key,role.name,role.description,role.is_builtin,role.status,role.revision,role.created_at,role.updated_at')
-            ->fieldRaw('COUNT(DISTINCT binding.permission_id) AS permission_count')
-            ->fieldRaw("COALESCE(GROUP_CONCAT(DISTINCT permission.`key` ORDER BY permission.`key` SEPARATOR ','),'') AS permission_keys")
-            ->group('role.id,role.key,role.name,role.description,role.is_builtin,role.status,role.revision,role.created_at,role.updated_at')
             ->order('role.id', 'desc');
-        return $this->paginate($query, $page, (int) Db::name('platform_role')->count(), static function (array $row): array {
-            $row['permission_keys'] = $row['permission_keys'] === '' ? [] : explode(',', (string) $row['permission_keys']);
-            return $row;
-        });
+        $result = $this->paginate($query, $page, (int) Db::name('platform_role')->count());
+        $permissionKeys = [];
+        $permissionCounts = [];
+        if ($result['items'] !== []) {
+            $bindings = Db::name('platform_role_permission')->alias('binding')
+                ->leftJoin('permission permission', "permission.id=binding.permission_id AND permission.status='active'")
+                ->whereIn('binding.platform_role_id', array_column($result['items'], 'id'))
+                ->field('binding.platform_role_id,permission.key AS permission_key')
+                ->order('binding.platform_role_id,permission.key')->select()->toArray();
+            foreach ($bindings as $binding) {
+                $roleId = $binding['platform_role_id'];
+                $permissionCounts[$roleId] = ($permissionCounts[$roleId] ?? 0) + 1;
+                if (is_string($binding['permission_key'])) {
+                    $permissionKeys[$roleId][] = $binding['permission_key'];
+                }
+            }
+        }
+        foreach ($result['items'] as &$item) {
+            $item['permission_keys'] = $permissionKeys[$item['id']] ?? [];
+            $item['permission_count'] = $permissionCounts[$item['id']] ?? 0;
+        }
+        unset($item);
+        return $result;
     }
 
     /** @return array{items:list<array<string,mixed>>,total:int} */

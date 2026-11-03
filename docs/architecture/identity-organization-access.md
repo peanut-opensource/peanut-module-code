@@ -26,11 +26,19 @@
 
 角色管理的“分配权限”窗口按独立权限包配置授权。`GET /adminapi/role/permissions` 返回角色稳定 key、当前修订和完整 `permission_keys`；`GET /adminapi/role/permissions/catalog` 分页返回当前租户可分配的权限包名称、键及所属模块；`PUT /adminapi/role/permissions` 使用 `role_id`、`expected_revision`、`permission_keys` 原子替换。读取角色、读取目录和分配分别使用 `core.role.read`、`core.permission.read`、`core.role.permission.assign`。保存携带读取到的角色修订；缺失修订返回 428、冲突返回 412，不能自动读取新修订后重试。内置 owner 权限仍禁止修改，平台、退役或模块不可用权限包仍由 Identity 拒绝分配。
 
-权限包定义和 API 关联的管理入口是平台“平台角色与权限”中的“独立权限包与 API 关联”，读取要求 `platform.permission.read`，维护要求 `platform.permission.api.manage`。定义编辑仅限实例自建包；系统及模块定义只读，但其 API 关联可作实例配置。租户只授权已有可用包并只读查看关联，不能创建定义或覆盖实例配置。保存关联使用权限包自己的 `expected_revision`，与角色授权修订独立；显式空 `api_ids` 表示清空该权限包的 API 关联，后续同步不会重新填入源码默认项，但关联修改或自建包退役不能移除管理界面六个必要 API 的最后一个有效平台权限包关联。尚未进行实例配置的权限包跟随源码默认关联的增删，有效关联改变时更新修订。接口字段及该例外的精确范围见 [API 合同](../public/api-and-sdk.md#独立权限包与-api-关联)。
+平台角色资料、角色授权、权限包、API目录与关联、菜单与按钮引用各有独立页面。角色读取、分配继续使用 `platform.role.read`、`platform.role.permission.assign`；权限包目录读取使用 `platform.permission.read`，自建定义维护使用 `platform.permission.bundle.manage`；API目录与关联读取使用 `platform.permission.api.read`，关联保存使用 `platform.permission.api.manage`；菜单与按钮引用读取/保存分别使用 `platform.permission.menu.read`、`platform.permission.menu.manage`。页面、读取动作和写入动作分别授权，不因进入角色页面获得其他管理能力。
+
+运维按运行状态、维护窗口、备份与恢复、版本与升级、日志与诊断、供应商资格分为独立页面，继续复用各自已有 API。每个页面只读取自己获准的接口；只有升级历史读取权限的账号不额外请求运行状态或升级就绪检查。日志与诊断仍要求源码规定的全部前置权限。源菜单使用 hash 入口，原 `platform.upgrade.status` 稳定 key 保留，默认引用改为其实际读取 API 使用的 `platform.ops.read`；这不是角色补权，实例已定制菜单引用仍保留。
+
+存储账号、存储空间、上传路由分别使用 `platform.storage.account.read`、`platform.storage.space.read`、`platform.storage.route.read` 读取独立列表。既有聚合读取 API 保留身份与显式实例关联，源码默认改为独立 `platform.storage.legacy.read`，该包只登记、不自动授予旧角色。未定制 `platform.ops.read` 默认包的已有角色通过同一迁移继承三个细读子能力；分别撤销后，不再因持有原运维读取包而从聚合入口取回数据。已明确配置的包不自动补权，界面只有在确实获准旧聚合 API 时使用兼容读取。空间创建另外需要账号目录，调整路由另外需要空间目录；没有相应目录读取能力时不加载、不提供依赖它的编辑入口。
+
+原生迁移 `20261107000000_platform_permission_sections.php` 按稳定 key 登记拆分权限，并在同一 DML 事务中为已有未定制默认包的原角色继承等价子权限。继承以原稳定 key 的真实归属、启用状态及已有角色授权为依据；`configured=0` 或缺少配置行按现行合同表示源码默认，明确实例配置才是 `configured=1`。拆分映射固定为原能力的子集，不依赖同批其他模块同步前后的可变 API 关联顺序。原角色关系不清空，新增关系才推进角色修订。拆分来源或目标包已配置 `configured=1` 时保留原权限 key、API ID、关联及既有角色授权，不自动补授，也不给自建包补权限；只读权限不会继承写能力。迁移账本保证正常升级不反复授予。
+
+`GET /platformapi/session/info` 的 `permissions` 仍是实际角色权限；新增独立 `api_access: [{method,path}]` 精确投影当前已获准的平台 API。它复用已有 API 关联、全部源码前置权限、模块状态和演示账号写锁，前端按具体方法/路径控制导航、读取和按钮，支持已用自建权限包替换默认绑定的实例。投影只用于展示，后端每次请求仍按当前身份和目录重新鉴权。定义编辑仅限实例自建包；系统及模块定义只读，但其 API 关联可作实例配置。租户只授权已有可用包并只读查看关联，不能创建定义或覆盖实例配置。保存关联使用权限包自己的 `expected_revision`，与角色授权修订独立；显式空 `api_ids` 表示清空该权限包的 API 关联，后续同步不会重新填入源码默认项，但关联修改或自建包退役不能移除管理界面六个必要 API 的最后一个有效平台权限包关联。尚未进行实例配置的权限包跟随源码默认关联的增删，有效关联改变时更新修订。接口字段及该例外的精确范围见 [API 合同](../public/api-and-sdk.md#独立权限包与-api-关联)。
 
 菜单与按钮管理只引用已有权限包。自建页面菜单可指向已登记的静态业务页面，受管菜单也可在保留源码身份与默认定义的同时显式引用同域有效的已有权限包（system/module/custom）；该实例引用替代默认菜单门槛，清空恢复源码默认，模块同步保留实例引用。按钮沿用 `A` 类型，以 `paths` 保存该页动作标识，由父级 `C` 类型菜单的 `paths` 限定所属页面。用户信息的 `action_bindings` 显式返回页面、动作与权限包的配置关系，前端仅在当前页面按该配置判断按钮权限。API 关联不会把源码默认动作 key 自动加入用户权限；持有 API 关联包也不等于取得另一页同名动作或额外前置权限。
 
-MT 实例的菜单、按钮引用由平台通过 `GET /platformapi/permission/menus` 和 `PUT /platformapi/permission/menus/binding` 配置，复用 `platform.permission.read`、`platform.permission.api.manage`，保存记录平台审计。该入口只维护已有页面与按钮的权限引用，以及尚为空的按钮动作标识；不提供完整菜单增删改，也不改变页面路径、源码身份或模块归属。租户角色授权不能用来修改实例全局菜单配置；原管理端菜单编辑仍限 ST。字段及修订合同见 [API 合同](../public/api-and-sdk.md#实例菜单与按钮引用)。
+MT 实例的菜单、按钮引用由平台通过 `GET /platformapi/permission/menus` 和 `PUT /platformapi/permission/menus/binding` 配置，分别使用 `platform.permission.menu.read`、`platform.permission.menu.manage`，保存记录平台审计。该入口只维护已有页面与按钮的权限引用，以及尚为空的按钮动作标识；不提供完整菜单增删改，也不改变页面路径、源码身份或模块归属。租户角色授权不能用来修改实例全局菜单配置；原管理端菜单编辑仍限 ST。字段及修订合同见 [API 合同](../public/api-and-sdk.md#实例菜单与按钮引用)。
 
 受保护 API 按实际匹配路由确定登记身份，调用者具有任一关联权限包可满足该 API 的主要动作授权，同时必须满足源码声明的全部前置权限；没有有效关联的受保护 API 拒绝访问。关联管理只替换主要动作权限，不改写 `prerequisite_permission_keys`。现有平台运维的日志、诊断、升级和模块操作仍分别要求 `platform.ops.read` 与其专属动作权限同时成立；将 API 关联到其他权限包后，`platform.ops.read` 仍须独立取得，主要动作的本次请求授权记录不能满足它。只允许关联同一 tenant/platform 受众的受保护 API，公开、仅认证及其他上下文入口的模式仍由源码控制。API 所属模块必须独立满足已安装及租户开通要求，不能因另一个模块的权限包引用它而绕过。身份、租户、对象授权和数据 Scope 继续由原业务入口核验；`resource_operation_permission` 仍属于资源操作的数据授权合同，不作为 API 关联表。
 

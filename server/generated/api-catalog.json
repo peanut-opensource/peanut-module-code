@@ -4,7 +4,7 @@
     "inputs": [
         {
             "path": "modules.lock",
-            "sha256": "9090a8b5894dd00129e3558bb558388f97b59281229a9fda3baec82938dfacfa"
+            "sha256": "ffb79066305dd9d00828aa0f9125807baf9f197026b8d346c1b1f1f1ed4bf1dd"
         },
         {
             "path": "release-versions.json",
@@ -28,7 +28,7 @@
         },
         {
             "path": "server/app/api/metadata/application/platform.php",
-            "sha256": "213c7d98f0d0ab2fcb7175d969666ad7b7ee26808c03a6933fb2b9421c642b6c"
+            "sha256": "0d76507c2a1deb5724afa7c173dd5faa2065f1fa09c827e2db6acbb18b0508f9"
         },
         {
             "path": "server/app/api/metadata/application/shared.php",
@@ -64,11 +64,11 @@
         },
         {
             "path": "server/app/modules/peanut/file/api/metadata/openapi.php",
-            "sha256": "b1eb773f382154c8cfacbc160ba2bebe0a9fd50ca50bb13bee2d98ca916a0276"
+            "sha256": "03085df6e13bc8791c8da7b8ecaa5b5396474225abdf34cb59619e8729312ab6"
         },
         {
             "path": "server/app/modules/peanut/file/route/app.php",
-            "sha256": "4d6e34503eef95d131b7b5ac0bb8e5151041187aa158bc2ced30a959fe17c3ed"
+            "sha256": "d7c7eac22bff275513725aef9c3a2c2ea9523ea2bf872455d2f3a6a5ec9051ca"
         },
         {
             "path": "server/app/modules/peanut/import_export/api/metadata/openapi.php",
@@ -168,7 +168,7 @@
         },
         {
             "path": "server/route/platform.php",
-            "sha256": "a43637dbecc74cda5889f6c518325371e726fec1609b617727fb9583f7123c23"
+            "sha256": "e31a44e5fbd0423fa7895dffe30b92ca70c440e9f5a31543282b7e0d5cde890e"
         },
         {
             "path": "server/route/public_api.php",
@@ -192,22 +192,22 @@
         ]
     },
     "summary": {
-        "route_count": 438,
-        "generated_api_operations": 412,
+        "route_count": 441,
+        "generated_api_operations": 415,
         "route_only_operations": 26,
-        "complete_operations": 412,
+        "complete_operations": 415,
         "partial_operations": 0,
-        "runtime_routes": 438,
-        "documented_operations": 412,
+        "runtime_routes": 441,
+        "documented_operations": 415,
         "undocumented_routes": 26,
-        "automatic_route_metadata": 438,
+        "automatic_route_metadata": 441,
         "requires_owner_contract": 26,
         "owners": 18,
         "runtime_inventory": {
-            "total": 438,
+            "total": 441,
             "methods": {
                 "DELETE": 4,
-                "GET": 194,
+                "GET": 197,
                 "POST": 229,
                 "PUT": 11
             },
@@ -215,7 +215,7 @@
                 "adminapi": 304,
                 "api": 47,
                 "installation": 9,
-                "platform": 78
+                "platform": 81
             },
             "owners": {
                 "application:adminapi": 99,
@@ -225,7 +225,7 @@
                 "module:peanut.article": 37,
                 "module:peanut.collaboration": 11,
                 "module:peanut.document": 12,
-                "module:peanut.file": 28,
+                "module:peanut.file": 31,
                 "module:peanut.import-export": 11,
                 "module:peanut.integration": 12,
                 "module:peanut.member": 24,
@@ -248,7 +248,7 @@
         "module:peanut.article": 37,
         "module:peanut.collaboration": 11,
         "module:peanut.document": 12,
-        "module:peanut.file": 28,
+        "module:peanut.file": 31,
         "module:peanut.import-export": 11,
         "module:peanut.integration": 12,
         "module:peanut.member": 24,
@@ -12981,13 +12981,13 @@
                 "exception_registration": null
             },
             "default_permission_keys": [
-                "platform.ops.read"
+                "platform.storage.legacy.read"
             ],
             "prerequisite_permission_keys": [],
             "permissions": [
                 {
                     "kind": "platform_action",
-                    "key": "platform.ops.read"
+                    "key": "platform.storage.legacy.read"
                 }
             ],
             "errors": [
@@ -13005,7 +13005,77 @@
                 {
                     "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
                     "arguments": [
-                        "platform.ops.read"
+                        "platform.storage.legacy.read"
+                    ]
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/file/route/app.php",
+                "line": 77
+            },
+            "documented": true,
+            "openapi_operation_id": "getStorageConfiguration",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-file/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "028bd9edd3b3bc42a79de6dc4ff22ffd53c325aa8c8d22258eb2db2c85bd470d",
+            "method": "GET",
+            "path": "/platformapi/infrastructure/storage/accounts",
+            "runtime_path": "/platformapi/infrastructure/storage/accounts",
+            "application": "platform",
+            "audience": "platform",
+            "owner": {
+                "type": "module",
+                "key": "peanut.file"
+            },
+            "controller": "app\\platform\\controller\\PlatformStorageController",
+            "action": "accounts",
+            "auth": {
+                "mode": "platform_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "platform.storage.account.read"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "platform_action",
+                    "key": "platform.storage.account.read"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                500
+            ],
+            "middleware": [
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformLoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
+                    "arguments": [
+                        "platform.storage.account.read"
                     ]
                 }
             ],
@@ -13014,7 +13084,147 @@
                 "line": 68
             },
             "documented": true,
-            "openapi_operation_id": "getStorageConfiguration",
+            "openapi_operation_id": "getStorageAccounts",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-file/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "1057631f13a9219da91d255a69ea41dd68af286941f58d3f01242c770a9e8cad",
+            "method": "GET",
+            "path": "/platformapi/infrastructure/storage/routes",
+            "runtime_path": "/platformapi/infrastructure/storage/routes",
+            "application": "platform",
+            "audience": "platform",
+            "owner": {
+                "type": "module",
+                "key": "peanut.file"
+            },
+            "controller": "app\\platform\\controller\\PlatformStorageController",
+            "action": "routes",
+            "auth": {
+                "mode": "platform_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "platform.storage.route.read"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "platform_action",
+                    "key": "platform.storage.route.read"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                500
+            ],
+            "middleware": [
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformLoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
+                    "arguments": [
+                        "platform.storage.route.read"
+                    ]
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/file/route/app.php",
+                "line": 74
+            },
+            "documented": true,
+            "openapi_operation_id": "getStorageRoutes",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-file/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "eb70575c4e6ac54374fced0a711597a0b32d535f871482bb25d68ae263ea402e",
+            "method": "GET",
+            "path": "/platformapi/infrastructure/storage/spaces",
+            "runtime_path": "/platformapi/infrastructure/storage/spaces",
+            "application": "platform",
+            "audience": "platform",
+            "owner": {
+                "type": "module",
+                "key": "peanut.file"
+            },
+            "controller": "app\\platform\\controller\\PlatformStorageController",
+            "action": "spaces",
+            "auth": {
+                "mode": "platform_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "platform.storage.space.read"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "platform_action",
+                    "key": "platform.storage.space.read"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                500
+            ],
+            "middleware": [
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformLoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
+                    "arguments": [
+                        "platform.storage.space.read"
+                    ]
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/file/route/app.php",
+                "line": 71
+            },
+            "documented": true,
+            "openapi_operation_id": "getStorageSpaces",
             "contract_quality": "complete",
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts",
@@ -13260,13 +13470,13 @@
                 "exception_registration": null
             },
             "default_permission_keys": [
-                "platform.permission.read"
+                "platform.permission.api.read"
             ],
             "prerequisite_permission_keys": [],
             "permissions": [
                 {
                     "kind": "platform_action",
-                    "key": "platform.permission.read"
+                    "key": "platform.permission.api.read"
                 }
             ],
             "errors": [
@@ -13283,7 +13493,7 @@
                 {
                     "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
                     "arguments": [
-                        "platform.permission.read"
+                        "platform.permission.api.read"
                     ]
                 }
             ],
@@ -13329,13 +13539,13 @@
                 "exception_registration": null
             },
             "default_permission_keys": [
-                "platform.permission.read"
+                "platform.permission.api.read"
             ],
             "prerequisite_permission_keys": [],
             "permissions": [
                 {
                     "kind": "platform_action",
-                    "key": "platform.permission.read"
+                    "key": "platform.permission.api.read"
                 }
             ],
             "errors": [
@@ -13352,7 +13562,7 @@
                 {
                     "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
                     "arguments": [
-                        "platform.permission.read"
+                        "platform.permission.api.read"
                     ]
                 }
             ],
@@ -13467,13 +13677,13 @@
                 "exception_registration": null
             },
             "default_permission_keys": [
-                "platform.permission.read"
+                "platform.permission.menu.read"
             ],
             "prerequisite_permission_keys": [],
             "permissions": [
                 {
                     "kind": "platform_action",
-                    "key": "platform.permission.read"
+                    "key": "platform.permission.menu.read"
                 }
             ],
             "errors": [
@@ -13490,7 +13700,7 @@
                 {
                     "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
                     "arguments": [
-                        "platform.permission.read"
+                        "platform.permission.menu.read"
                     ]
                 }
             ],
@@ -29195,7 +29405,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/file/route/app.php",
-                "line": 71
+                "line": 80
             },
             "documented": true,
             "openapi_operation_id": "createStorageAccount",
@@ -29266,7 +29476,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/file/route/app.php",
-                "line": 74
+                "line": 83
             },
             "documented": true,
             "openapi_operation_id": "updateStorageAccount",
@@ -29337,7 +29547,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/file/route/app.php",
-                "line": 83
+                "line": 92
             },
             "documented": true,
             "openapi_operation_id": "setStorageRoute",
@@ -29408,7 +29618,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/file/route/app.php",
-                "line": 77
+                "line": 86
             },
             "documented": true,
             "openapi_operation_id": "createStorageSpace",
@@ -29479,7 +29689,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/file/route/app.php",
-                "line": 80
+                "line": 89
             },
             "documented": true,
             "openapi_operation_id": "updateStorageSpace",
@@ -30360,13 +30570,13 @@
                 "exception_registration": null
             },
             "default_permission_keys": [
-                "platform.permission.api.manage"
+                "platform.permission.bundle.manage"
             ],
             "prerequisite_permission_keys": [],
             "permissions": [
                 {
                     "kind": "platform_action",
-                    "key": "platform.permission.api.manage"
+                    "key": "platform.permission.bundle.manage"
                 }
             ],
             "errors": [
@@ -30384,7 +30594,7 @@
                 {
                     "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
                     "arguments": [
-                        "platform.permission.api.manage"
+                        "platform.permission.bundle.manage"
                     ]
                 }
             ],
@@ -32393,13 +32603,13 @@
                 "exception_registration": null
             },
             "default_permission_keys": [
-                "platform.permission.api.manage"
+                "platform.permission.bundle.manage"
             ],
             "prerequisite_permission_keys": [],
             "permissions": [
                 {
                     "kind": "platform_action",
-                    "key": "platform.permission.api.manage"
+                    "key": "platform.permission.bundle.manage"
                 }
             ],
             "errors": [
@@ -32419,7 +32629,7 @@
                 {
                     "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
                     "arguments": [
-                        "platform.permission.api.manage"
+                        "platform.permission.bundle.manage"
                     ]
                 }
             ],
@@ -32465,13 +32675,13 @@
                 "exception_registration": null
             },
             "default_permission_keys": [
-                "platform.permission.api.manage"
+                "platform.permission.menu.manage"
             ],
             "prerequisite_permission_keys": [],
             "permissions": [
                 {
                     "kind": "platform_action",
-                    "key": "platform.permission.api.manage"
+                    "key": "platform.permission.menu.manage"
                 }
             ],
             "errors": [
@@ -32491,7 +32701,7 @@
                 {
                     "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
                     "arguments": [
-                        "platform.permission.api.manage"
+                        "platform.permission.menu.manage"
                     ]
                 }
             ],

@@ -13,7 +13,6 @@ return [
         'integration:purge-expired' => \PeanutAdmin\Modules\Integration\Console\PurgeExpiredDeliveriesCommand::class,
         'integration:webhook:dispatch' => \PeanutAdmin\Modules\Integration\Console\DispatchWebhooksCommand::class,
         'crontab'         => \app\command\Crontab::class,
-        'crontab:demo'    => \app\command\CrontabDemo::class,
         'generator:cleanup' => \app\command\GeneratorCleanup::class,
         'tenant-task:work' => \app\command\TenantTaskWorker::class,
         'ops-backup:task' => \app\command\OpsBackupTask::class,
@@ -26,6 +25,5 @@ return [
     // Every command that may run from the Tenant scheduler must declare its owning Module.
     // Core commands use the built-in `core` capability; application Modules register their key.
     'module_commands' => [
-        'crontab:demo' => 'peanut.task',
     ],
 ];

@@ -32,7 +32,6 @@ final readonly class ApplicationTenantBootstrapService
         'pa_decorate_tabbar_setting',
         'pa_external_channel_binding',
         'pa_tenant_setting',
-        'pa_transaction_setting',
     ];
 
     public function __construct(
@@ -57,6 +56,7 @@ final readonly class ApplicationTenantBootstrapService
 
         $operationId = $this->executionContexts->current()?->requestId()
             ?? 'tenant-bootstrap:' . $tenantCode;
+        $selectedModules = app(\PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::class)->activeModuleKeys($tenantId);
         $execution = new SystemExecutionContext(new TenantSystemContext(
             $tenantId,
             'platform.tenant-bootstrap',
@@ -67,12 +67,13 @@ final readonly class ApplicationTenantBootstrapService
             $execution,
             $tenantId,
             $tenantCode,
+            $selectedModules,
         ): void {
-            $this->seedCrontab($execution->system);
+            $this->seedCrontab($execution->system, $selectedModules);
             $this->seedNoticeScenes($execution);
             $this->seedDecoration();
             $this->seedSettings($execution->system);
-            $this->seedExternalBindings($tenantId, $tenantCode);
+            $this->seedExternalBindings($tenantId, $tenantCode, $selectedModules);
         });
     }
 
@@ -103,7 +104,8 @@ final readonly class ApplicationTenantBootstrapService
         return true;
     }
 
-    private function seedCrontab(TenantSystemContext $context): void
+    /** @param list<string> $selectedModules */
+    private function seedCrontab(TenantSystemContext $context, array $selectedModules): void
     {
         $defaults = [
             [
@@ -123,7 +125,7 @@ final readonly class ApplicationTenantBootstrapService
                 'update_time' => 0,
             ],
         ];
-        if (!in_array('peanut.payment', $this->modules->moduleKeys(), true)) {
+        if (!in_array('peanut.payment', $selectedModules, true)) {
             $defaults = array_values(array_filter(
                 $defaults,
                 static fn(array $row): bool => $row['command'] !== 'refund:reconcile',
@@ -153,17 +155,17 @@ final readonly class ApplicationTenantBootstrapService
 
     private function seedDecoration(): void
     {
+        // Empty page shells are application structure, not sample business content.
+        // Module pages and links are supplied by their selected Module contributions.
         $pages = [
-            [1, '移动端首页', '[{"title":"搜索","name":"search","disabled":1,"content":{},"styles":{}},{"title":"首页轮播图","name":"banner","content":{"enabled":1,"style":1,"bg_style":1,"data":[{"is_show":1,"image":"","bg":"","name":"","link":{"target_type":"shop","target":"home"}}]},"styles":{}},{"title":"导航菜单","name":"nav","content":{"enabled":1,"style":2,"per_line":5,"show_line":2,"data":[{"is_show":1,"image":"","name":"资讯中心","link":{"target_type":"shop","target":"news"}}]},"styles":{}},{"title":"首页中部轮播图","name":"middle-banner","content":{"enabled":1,"data":[{"is_show":1,"image":"","name":"","link":{"target_type":"shop","target":"home"}}]},"styles":{}},{"title":"资讯","name":"news","disabled":1,"content":{},"styles":{}}]', '[{"title":"页面设置","name":"page-meta","content":{"title":"首页","title_type":1,"title_img":"","bg_type":1,"bg_color":"#2F80ED","bg_image":"","text_color":1},"styles":{}}]'],
-            [2, '个人中心', '[{"title":"用户信息","name":"user-info","disabled":1,"content":{},"styles":{}},{"title":"我的服务","name":"my-service","content":{"enabled":1,"style":1,"title":"我的服务","data":[{"is_show":1,"image":"","name":"我的收藏","link":{"target_type":"shop","target":"favorites"}}]},"styles":{}},{"title":"个人中心广告图","name":"user-banner","content":{"enabled":1,"data":[{"is_show":1,"image":"","name":"","link":{"target_type":"shop","target":"profile"}}]},"styles":{}}]', '[{"title":"页面设置","name":"page-meta","content":{"title":"个人中心","title_type":1,"title_img":"","bg_type":1,"bg_color":"#2F80ED","bg_image":"","text_color":1},"styles":{}}]'],
-            [3, '客服设置', '[{"title":"客服设置","name":"customer-service","content":{"title":"添加客服二维码","time":"9:30 - 19:00","mobile":"","qrcode":"","remark":"长按添加客服或拨打客服热线"},"styles":{}}]', '[]'],
-            [4, 'PC 首页', '[{"title":"首页轮播图","name":"pc-banner","content":{"enabled":1,"data":[{"image":"","name":"","link":{"target_type":"shop","target":"home"}}]},"styles":{"position":"absolute","left":"40px","top":"75px","width":"750px","height":"340px"}}]', '[]'],
+            [1, '移动端首页', '[]', '[{"title":"页面设置","name":"page-meta","content":{"title":"首页","title_type":1,"title_img":"","bg_type":1,"bg_color":"#2F80ED","bg_image":"","text_color":1},"styles":{}}]'],
+            [2, '个人中心', '[]', '[{"title":"页面设置","name":"page-meta","content":{"title":"个人中心","title_type":1,"title_img":"","bg_type":1,"bg_color":"#2F80ED","bg_image":"","text_color":1},"styles":{}}]'],
+            [3, '客服设置', '[]', '[]'],
+            [4, 'PC 首页', '[]', '[]'],
             [5, '系统风格', '{"themeColorId":3,"topTextColor":"white","navigationBarColor":"#A74BFD","themeColor1":"#A74BFD","themeColor2":"#CB60FF","buttonColor":"white"}', '[]'],
         ];
         $tabbars = [
             [0, '首页', '{"target_type":"shop","target":"home"}'],
-            [1, '资讯', '{"target_type":"shop","target":"news"}'],
-            [2, '我的', '{"target_type":"shop","target":"profile"}'],
         ];
         $existingPageTypes = array_fill_keys(array_map(
             'intval',
@@ -250,7 +252,8 @@ final readonly class ApplicationTenantBootstrapService
         }
     }
 
-    private function seedExternalBindings(int $tenantId, string $tenantCode): void
+    /** @param list<string> $selectedModules */
+    private function seedExternalBindings(int $tenantId, string $tenantCode, array $selectedModules): void
     {
         $execution = new SystemExecutionContext(new TenantSystemContext(
             $tenantId,
@@ -258,11 +261,10 @@ final readonly class ApplicationTenantBootstrapService
             'integration.bootstrap-bindings',
             $this->executionContexts->require()->requestId(),
         ));
-        $this->executionContexts->run($execution, function () use ($tenantId, $tenantCode): void {
-            $selected = $this->modules->moduleKeys();
+        $this->executionContexts->run($execution, function () use ($tenantId, $tenantCode, $selectedModules): void {
             foreach (ExternalIntegrationBootstrapCommands::DEFAULT_PROVIDERS as $provider) {
                 $moduleKey = str_starts_with($provider, 'payment.') ? 'peanut.payment' : 'peanut.oauth';
-                if (!in_array($moduleKey, $selected, true)) {
+                if (!in_array($moduleKey, $selectedModules, true)) {
                     continue;
                 }
                 $this->externalBindings->ensureUnconfiguredBinding($tenantId, $tenantCode, $provider);

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { PlatformApiAccess } from '../core/platform-access';
 import {
   readPlan,
   readPlanPage,
@@ -64,6 +65,43 @@ export interface SessionInfo {
   platform_operator_id: string;
   permissions: string[];
   navigation: string[];
+  api_access: PlatformApiAccess[];
+}
+
+function readSessionInfo(value: unknown): SessionInfo {
+  if (typeof value !== 'object' || value === null || Array.isArray(value))
+    throw new Error('平台会话信息格式异常');
+  const row = value as Record<string, unknown>;
+  const strings = (items: unknown): items is string[] =>
+    Array.isArray(items) && items.every((item) => typeof item === 'string');
+  if (
+    row.audience !== 'platform' ||
+    typeof row.account_id !== 'string' ||
+    typeof row.platform_operator_id !== 'string' ||
+    !strings(row.permissions) ||
+    !strings(row.navigation) ||
+    !Array.isArray(row.api_access)
+  )
+    throw new Error('平台会话授权信息不完整，请刷新后重试');
+  const access = row.api_access.map((item: unknown): PlatformApiAccess => {
+    if (typeof item !== 'object' || item === null || Array.isArray(item))
+      throw new Error('平台 API 授权信息格式异常');
+    const endpoint = item as Record<string, unknown>;
+    if (
+      typeof endpoint.method !== 'string' ||
+      typeof endpoint.path !== 'string'
+    )
+      throw new Error('平台 API 授权信息格式异常');
+    return { method: endpoint.method.toUpperCase(), path: endpoint.path };
+  });
+  return {
+    audience: 'platform',
+    account_id: row.account_id,
+    platform_operator_id: row.platform_operator_id,
+    permissions: row.permissions,
+    navigation: row.navigation,
+    api_access: access,
+  };
 }
 
 export interface Tenant {
@@ -920,8 +958,10 @@ export const api = {
     }
     return cleared;
   },
-  sessionInfo: () =>
-    unwrap<SessionInfo>(client.get('/platformapi/session/info')),
+  sessionInfo: async () =>
+    readSessionInfo(
+      await unwrap<unknown>(client.get('/platformapi/session/info'))
+    ),
   tenants: (page = 1, pageSize = 100) =>
     unwrap<Page<Tenant>>(
       client.get('/platformapi/tenants', {
@@ -1011,10 +1051,10 @@ export const api = {
         params: { tenant_id: tenantId, page: 1, page_size: 100 },
       })
     ),
-  operators: () =>
+  operators: (page = 1, pageSize = 100) =>
     unwrap<Page<Operator>>(
       client.get('/platformapi/operators', {
-        params: { page: 1, page_size: 100 },
+        params: { page, page_size: pageSize },
       })
     ),
   createOperator: (payload: Record<string, string>) =>
@@ -1057,16 +1097,16 @@ export const api = {
         change_reason: changeReason,
       })
     ),
-  roles: () =>
+  roles: (page = 1, pageSize = 100) =>
     unwrap<Page<PlatformRole>>(
       client.get('/platformapi/roles', {
-        params: { page: 1, page_size: 100 },
+        params: { page, page_size: pageSize },
       })
     ),
-  permissions: () =>
+  permissions: (page = 1, pageSize = 100) =>
     unwrap<Page<Permission>>(
       client.get('/platformapi/permissions', {
-        params: { page: 1, page_size: 100 },
+        params: { page, page_size: pageSize },
       })
     ),
   createRole: (payload: Record<string, string>) =>
@@ -1109,6 +1149,18 @@ export const api = {
     ),
   storageSnapshot: () =>
     unwrap<StorageSnapshot>(client.get('/platformapi/infrastructure/storage')),
+  storageAccounts: () =>
+    unwrap<{ accounts: StorageAccount[] }>(
+      client.get('/platformapi/infrastructure/storage/accounts')
+    ),
+  storageSpaces: () =>
+    unwrap<{ spaces: StorageSpace[] }>(
+      client.get('/platformapi/infrastructure/storage/spaces')
+    ),
+  storageRoutes: () =>
+    unwrap<{ routes: StorageRoute[] }>(
+      client.get('/platformapi/infrastructure/storage/routes')
+    ),
   createStorageAccount: (payload: Record<string, unknown>) =>
     unwrap(client.post('/platformapi/infrastructure/storage/account', payload)),
   updateStorageAccount: (payload: Record<string, unknown>) =>

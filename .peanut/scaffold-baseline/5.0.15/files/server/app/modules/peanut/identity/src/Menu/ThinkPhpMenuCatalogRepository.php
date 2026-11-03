@@ -62,33 +62,45 @@ final class ThinkPhpMenuCatalogRepository implements \PeanutAdmin\Kernel\Menu\Me
             }
             $current = $this->metadata($existing->toArray());
             $baseline = $this->decodedJson($existing->getAttr('upstream_defaults_json'));
-            // Unknown ownership is adopted only when no presentation or permission
-            // field would change. Historical defaults are registered by the migration.
-            $expected = $baseline ?? $defaults;
-            $conflicts = array_keys(array_filter($current, static fn($value, $field): bool =>
-                !array_key_exists($field, $expected) || $value !== $expected[$field], ARRAY_FILTER_USE_BOTH));
-            if ($conflicts !== []) {
-                $encoded = json_encode(['reason' => $baseline === null ? 'unknown_defaults' : 'customized', 'fields' => $conflicts], JSON_THROW_ON_ERROR);
-                $changes = ['menu_conflict_json' => $encoded];
-                // Lifecycle state remains managed even when presentation is
-                // customized. An independently edited status stays protected.
-                if ($baseline !== null && !in_array('status', $conflicts, true)
-                    && $current['status'] !== $data['status']) {
-                    $baseline['status'] = $data['status'];
-                    $changes += ['status' => $data['status'], 'updated_at' => $now,
-                        'upstream_defaults_json' => json_encode($baseline, JSON_THROW_ON_ERROR)];
-                }
-                if ($existing->getAttr('menu_conflict_json') !== $encoded || count($changes) > 1) {
-                    $existing->save($changes);
-                    Log::warning('MENU_DEFAULT_CONFLICT', ['key' => $definition->key, 'fields' => $conflicts]);
-                }
-                return;
+            if ($current['module_key'] !== $defaults['module_key'] || $current['scope'] !== $defaults['scope']) {
+                throw new DomainException('Menu key is already owned by another module or scope.');
             }
+            $conflicts = [];
+            $changes = ['manifest_digest' => $data['manifest_digest'], 'updated_at' => $now];
+            if ($baseline === null) {
+                // Without a recorded source baseline, only an exact unchanged definition can be adopted.
+                $conflicts = array_keys(array_filter($current, static fn($value, $field): bool =>
+                    !array_key_exists($field, $defaults) || $value !== $defaults[$field], ARRAY_FILTER_USE_BOTH));
+                if ($conflicts !== []) {
+                    $encoded = json_encode(['reason' => 'unknown_defaults', 'fields' => $conflicts], JSON_THROW_ON_ERROR);
+                    if ($existing->getAttr('menu_conflict_json') !== $encoded) {
+                        $existing->save(['menu_conflict_json' => $encoded]);
+                        Log::warning('MENU_DEFAULT_CONFLICT', ['key' => $definition->key, 'fields' => $conflicts]);
+                    }
+                    return;
+                }
+                $changes += $data;
+            } else {
+                // A local name/order/visibility override must not freeze unrelated upstream fixes.
+                foreach ($defaults as $field => $upstream) {
+                    if (array_key_exists($field, $baseline)
+                        && ($current[$field] === $baseline[$field] || $current[$field] === $upstream)) {
+                        $changes[$field] = $data[$field];
+                    } else {
+                        $conflicts[] = $field;
+                    }
+                }
+            }
+            $encoded = $conflicts === [] ? null : json_encode(['reason' => 'customized', 'fields' => $conflicts], JSON_THROW_ON_ERROR);
+            $logConflict = $encoded !== null && $existing->getAttr('menu_conflict_json') !== $encoded;
             $existing->save([
-                ...$data,
+                ...$changes,
                 'upstream_defaults_json' => json_encode($defaults, JSON_THROW_ON_ERROR),
-                'menu_conflict_json' => null,
+                'menu_conflict_json' => $encoded,
             ]);
+            if ($logConflict) {
+                Log::warning('MENU_DEFAULT_CONFLICT', ['key' => $definition->key, 'fields' => $conflicts]);
+            }
         });
     }
 

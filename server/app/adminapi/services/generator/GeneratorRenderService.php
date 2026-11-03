@@ -14,19 +14,20 @@ final class GeneratorRenderService
      * @param array<string,mixed> $table 已由调用方校验归属的生成器表快照
      * @return list<array{path:string,language:string,content:string,operation:string,base_sha256?:string}>
      */
-    public static function render(array $table): array
+    public static function render(array $table, ?string $sourceRoot = null): array
     {
-        $context = self::context($table);
+        $root = self::repositoryRoot($sourceRoot);
+        $context = self::context($table, $root);
         $files = [
-            self::createFile($context['modelPath'], 'php', self::renderModel($context)),
-            self::createFile($context['servicePath'], 'php', self::renderService($context)),
-            self::createFile($context['controllerPath'], 'php', self::renderController($context)),
-            self::createFile($context['validatePath'], 'php', self::renderValidate($context)),
-            self::createFile($context['apiPath'], 'typescript', self::renderApi($context)),
-            self::createFile($context['viewPath'], 'vue', self::renderView($context)),
-            self::createFile($context['frontendContributionFragmentPath'], 'typescript', self::renderFrontendContribution($context)),
-            self::createFile($context['routeFragmentPath'], 'php', self::renderRouteFragment($context)),
-            self::createFile($context['openApiFragmentPath'], 'php', self::renderOpenApiFragment($context)),
+            self::createFile($context['modelPath'], 'php', self::renderModel($context), $root),
+            self::createFile($context['servicePath'], 'php', self::renderService($context), $root),
+            self::createFile($context['controllerPath'], 'php', self::renderController($context), $root),
+            self::createFile($context['validatePath'], 'php', self::renderValidate($context), $root),
+            self::createFile($context['apiPath'], 'typescript', self::renderApi($context), $root),
+            self::createFile($context['viewPath'], 'vue', self::renderView($context), $root),
+            self::createFile($context['frontendContributionFragmentPath'], 'typescript', self::renderFrontendContribution($context), $root),
+            self::createFile($context['routeFragmentPath'], 'php', self::renderRouteFragment($context), $root),
+            self::createFile($context['openApiFragmentPath'], 'php', self::renderOpenApiFragment($context), $root),
         ];
 
         foreach ([
@@ -40,7 +41,7 @@ final class GeneratorRenderService
         $openApiRegistry = self::mergeOpenApiRegistry($context);
         $files[] = $context['openApiExists']
             ? self::mergeFile($context['openApiPath'], 'php', $openApiRegistry, $context['openApiSource'])
-            : self::createFile($context['openApiPath'], 'php', $openApiRegistry);
+            : self::createFile($context['openApiPath'], 'php', $openApiRegistry, $root);
         if ($context['hostRouteMergeRequired']) {
             $files[] = self::mergeFile(
                 $context['hostRoutePath'],
@@ -53,15 +54,15 @@ final class GeneratorRenderService
     }
 
     /** 保存配置时也可调用；目标必须是现有唯一 Module，而不是任意目录名。 */
-    public static function assertRegisteredModule(string $module): void
+    public static function assertRegisteredModule(string $module, ?string $sourceRoot = null): void
     {
-        self::module($module);
+        self::module($module, self::repositoryRoot($sourceRoot));
     }
 
     /** @return array{path:string,language:string,content:string,operation:string} */
-    private static function createFile(string $path, string $language, string $content): array
+    private static function createFile(string $path, string $language, string $content, string $root): array
     {
-        $absolute = self::repositoryRoot() . '/' . $path;
+        $absolute = $root . '/' . $path;
         if (file_exists($absolute) || is_link($absolute)) {
             throw new RuntimeException('生成目标已存在，不能覆盖：' . $path);
         }
@@ -78,7 +79,7 @@ final class GeneratorRenderService
     }
 
     /** @return array<string,mixed> */
-    private static function context(array $table): array
+    private static function context(array $table, string $root): array
     {
         $tableName = trim((string) ($table['table_name'] ?? $table['name'] ?? ''));
         if (preg_match('/^[a-z][a-z0-9_]*$/D', $tableName) !== 1) {
@@ -94,7 +95,7 @@ final class GeneratorRenderService
         $columns = self::columns($rawColumns);
         $primary = self::primaryColumn($columns);
 
-        $module = self::module(trim((string) ($table['module_name'] ?? '')));
+        $module = self::module(trim((string) ($table['module_name'] ?? '')), $root);
         $entity = trim((string) ($table['entity_name'] ?? ''));
         if (preg_match('/^[A-Z][A-Za-z0-9]{0,63}$/D', $entity) !== 1) {
             throw new RuntimeException('实体名称不符合生成规范');
@@ -143,10 +144,10 @@ final class GeneratorRenderService
         $permissionPrefix = $module['key'] . '.' . $resource;
         $primaryType = self::primaryType($primary);
         $openApiPath = $backend . '/api/metadata/openapi.php';
-        $openApiAbsolute = self::repositoryRoot() . '/' . $openApiPath;
-        $openApiSource = is_file($openApiAbsolute) ? self::readFile($openApiPath) : '';
+        $openApiAbsolute = $root . '/' . $openApiPath;
+        $openApiSource = is_file($openApiAbsolute) ? self::readFile($openApiPath, $root) : '';
         $hostRoutePath = 'server/app/adminapi/route/app.php';
-        $hostRouteSource = self::readFile($hostRoutePath);
+        $hostRouteSource = self::readFile($hostRoutePath, $root);
         $moduleRouteRegistration = "'{$backend}/route/app.php',";
 
         return $module + [
@@ -191,16 +192,15 @@ final class GeneratorRenderService
     }
 
     /** @return array<string,mixed> */
-    private static function module(string $input): array
+    private static function module(string $input, string $root): array
     {
         if ($input === '' || preg_match('/^[a-z][a-z0-9_-]{0,31}(?:\.[a-z][a-z0-9-]{0,31})?$/D', $input) !== 1) {
             throw new RuntimeException('目标模块标识格式错误');
         }
-        $root = self::repositoryRoot();
         $matches = [];
         foreach (glob($root . '/server/app/modules/*/*/module.json') ?: [] as $manifestAbsolute) {
             $manifestPath = substr($manifestAbsolute, strlen($root) + 1);
-            $source = self::readFile($manifestPath);
+            $source = self::readFile($manifestPath, $root);
             try {
                 $manifest = json_decode($source, true, 64, JSON_THROW_ON_ERROR);
             } catch (\JsonException $exception) {
@@ -232,7 +232,7 @@ final class GeneratorRenderService
         [$manifestPath, $manifestSource, $manifest] = $matches[0];
         $backendRelative = dirname($manifestPath);
         try {
-            $composer = json_decode(self::readFile($backendRelative . '/composer.json'), true, 64, JSON_THROW_ON_ERROR);
+            $composer = json_decode(self::readFile($backendRelative . '/composer.json', $root), true, 64, JSON_THROW_ON_ERROR);
         } catch (\JsonException $exception) {
             throw new RuntimeException('目标模块 Composer 声明无效', 0, $exception);
         }
@@ -267,11 +267,11 @@ final class GeneratorRenderService
             'manifestSource' => $manifestSource,
             'manifest' => $manifest,
             'permissionsPath' => $permissionsPath,
-            'permissionsSource' => self::readFile($permissionsPath),
+            'permissionsSource' => self::readFile($permissionsPath, $root),
             'routePath' => $routePath,
-            'routeSource' => self::readFile($routePath),
+            'routeSource' => self::readFile($routePath, $root),
             'frontendContributionPath' => $frontendEntry,
-            'frontendContributionSource' => self::readFile($frontendEntry),
+            'frontendContributionSource' => self::readFile($frontendEntry, $root),
         ];
     }
 
@@ -1822,21 +1822,20 @@ PHP, $c + compact('softRoutes'));
         return strtr($template, $replace) . "\n";
     }
 
-    private static function repositoryRoot(): string
+    private static function repositoryRoot(?string $sourceRoot = null): string
     {
-        $root = realpath(dirname(__DIR__, 5));
+        $root = realpath($sourceRoot ?? dirname(__DIR__, 5));
         if ($root === false || !is_dir($root . '/server/app/modules')) {
             throw new RuntimeException('应用源码根目录不可用');
         }
         return $root;
     }
 
-    private static function readFile(string $relative): string
+    private static function readFile(string $relative, string $root): string
     {
         if ($relative === '' || str_starts_with($relative, '/') || str_contains($relative, '..')) {
             throw new RuntimeException('模块登记路径无效');
         }
-        $root = self::repositoryRoot();
         $path = $root . '/' . $relative;
         $real = realpath($path);
         if ($real === false || !is_file($real) || is_link($path) || !str_starts_with($real, $root . '/')) {

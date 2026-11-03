@@ -49,7 +49,7 @@ Identity 统一管理系统、模块及实例自建权限包，`source` 分别�
 | `PUT /platformapi/permission/apis/bindings` | 使用 `permission_key`、`expected_revision`、`api_ids` 原子替换关联；空数组明确清空，受下述管理入口约束 |
 | `GET /adminapi/permission/bundles/apis` | 租户按 `permission_key` 只读查看其可用权限包的关联 |
 
-平台读取要求 `platform.permission.read`，创建、定义编辑和关联修改要求 `platform.permission.api.manage`；租户读取要求 `core.permission.read`。列表返回 `items/total/page_no/page_size`，权限包详情同样返回 `source`。`tenant` 受众的自建包 key 使用 `custom.` 前缀，`platform` 受众使用 `platform.custom.` 前缀，前缀后须有标识；完整 key 以小写字母开头，仅含小写字母、数字、点、下划线及连字符，最多100字符，不能与已有 key 重复。系统及模块包定义只读，自建定义不由模块同步覆盖；租户授权已有包，不开放租户自建入口。
+平台权限包目录读取要求 `platform.permission.read`，创建及定义编辑要求 `platform.permission.bundle.manage`；API目录及关联详情读取要求 `platform.permission.api.read`，关联保存要求 `platform.permission.api.manage`。这些是源码默认权限包，实例显式配置的同域 API 关联仍生效；租户读取要求 `core.permission.read`。列表返回 `items/total/page_no/page_size`，权限包详情同样返回 `source`。`tenant` 受众的自建包 key 使用 `custom.` 前缀，`platform` 受众使用 `platform.custom.` 前缀，前缀后须有标识；完整 key 以小写字母开头，仅含小写字母、数字、点、下划线及连字符，最多100字符，不能与已有 key 重复。系统及模块包定义只读，自建定义不由模块同步覆盖；租户授权已有包，不开放租户自建入口。
 
 定义编辑与关联保存都携带权限包修订，缺少修订返回 428、修订冲突返回 412，不自动重试；角色授权使用其独立修订。只能新增同受众、活动且受保护 API 的关联，公开或仅认证入口不能通过此接口改为权限入口。已关联的退役 API 可保留展示或显式移除，不能作为新增候选。保存后的 `configured=true` 表示实例已接管该权限包的 API 关联，后续同步保留其选择；包定义和角色授权仍分别维护。
 
@@ -59,9 +59,23 @@ API 所属模块仍独立校验安装及当前租户开通，跨模块引用不�
 
 为保留当前界面的管理修复入口，`GET /platformapi/permission/bundles`、`POST /platformapi/permission/bundles`、`PUT /platformapi/permission/bundles`、`GET /platformapi/permission/apis`、`GET /platformapi/permission/apis/bindings`、`PUT /platformapi/permission/apis/bindings` 各自必须保留至少一个有效平台权限包关联。若关联替换或自建包退役将移除其中任一 API 的最后一个有效关联，整笔修改回滚并返回 409 `API_MANAGEMENT_RECOVERY_REQUIRED`。该限制只针对上述六个精确方法与路径；普通权限包仍可保存空集合。
 
+## 平台会话能力投影
+
+`GET /platformapi/session/info` 在原身份、`permissions` 和 `navigation` 之外返回 `api_access` 数组，每项为 `{method: string, path: string}`。方法大写，路径为目录中的规范模板，例如 `GET /platformapi/roles`；动态参数保留目录的花括号模板，例如 `/platformapi/v1/ops/tasks/{task_key}`，不使用路由注册时的冒号写法。只返回当前操作员通过有效 API 绑定、全部源码前置权限及模块状态检查的活动平台权限入口，演示账号写锁时不返回对应写入口。读取不增加角色授权；前端不得把投影写入 `permission_keys` 或把它当作服务端授权凭据。导航和按钮逐个使用精确方法/路径，页面进入不隐含其他 API 能力。权限变更后重新读取会话，所有真实请求仍以服务端当次裁决为准。
+
+## 平台存储独立读取
+
+| 入口 | 默认权限包 | 返回 data |
+| --- | --- | --- |
+| `GET /platformapi/infrastructure/storage/accounts` | `platform.storage.account.read` | `{accounts: StorageAccountSnapshot[]}` |
+| `GET /platformapi/infrastructure/storage/spaces` | `platform.storage.space.read` | `{spaces: StorageSpaceSnapshot[]}` |
+| `GET /platformapi/infrastructure/storage/routes` | `platform.storage.route.read` | `{routes: StorageRouteSnapshot[]}` |
+
+三个入口分别返回对应列表，字段复用既有存储快照，不附带其他配置列表，也不返回供应商凭证。旧 `GET /platformapi/infrastructure/storage` 保留原聚合响应及 API ID，源码默认包改为独立 `platform.storage.legacy.read`，该包只登记，不从旧 `platform.ops.read` 自动补授。原未定制默认包的角色通过迁移获得三个细读权限，可分别撤销；原 `configured=1` 实例对旧聚合 API 的明确关联保留。仍使用旧默认包调用聚合接口的外部客户端需要切换到细读接口或经管理员显式配置兼容授权。前端优先使用获准的细读入口，仅在当前 `api_access` 明确允许旧入口时兼容读取；细读请求失败不会隐式回退到更宽入口。创建空间所需账号目录、调整路由所需空间目录分别检查读取能力。现有写入口和其默认权限保持不变。
+
 ## 实例菜单与按钮引用
 
-MT 平台在既有权限面板维护已有租户菜单与按钮的权限引用，读取要求 `platform.permission.read`，保存要求 `platform.permission.api.manage` 并记录平台审计。租户不能修改实例全局配置；原管理端完整菜单编辑仍限 ST。该入口不提供菜单 CRUD，不修改页面路径、父级、组件、源码默认定义或模块身份。
+MT 平台在独立“菜单与按钮权限”页面维护已有租户菜单与按钮的权限引用，默认读取要求 `platform.permission.menu.read`，保存要求 `platform.permission.menu.manage` 并记录平台审计。租户不能修改实例全局配置；原管理端完整菜单编辑仍限 ST。该入口不提供菜单 CRUD，不修改页面路径、父级、组件、源码默认定义或模块身份。
 
 | 入口 | 合同 |
 | --- | --- |

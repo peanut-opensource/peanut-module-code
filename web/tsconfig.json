@@ -20,7 +20,7 @@
   "exclude": [
     "node_modules",
     "src/directive/permission/index.spec.ts",
-    "src/modules/fixture-workflow-business/**",
+    "tests/fixtures/**",
     "src/modules/**/optional-runtime/tests/**",
     "src/modules/peanut-reference-codes/runtime/tests/**",
     "src/modules/peanut-settings/runtime/tests/**",

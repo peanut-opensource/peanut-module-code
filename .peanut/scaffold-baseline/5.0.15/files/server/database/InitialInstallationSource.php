@@ -79,9 +79,8 @@ final class InitialInstallationSource
     private const HOST_TABLES = [
         'pa_config', 'pa_customer_service_setting', 'pa_decorate_page', 'pa_decorate_tabbar',
         'pa_decorate_tabbar_setting', 'pa_generator_column', 'pa_generator_download',
-        'pa_generator_table', 'pa_hot_search', 'pa_operation_log', 'pa_plugin_installation',
-        'pa_plugin_module', 'pa_provider_qualification_evidence', 'pa_tenant_idempotency_record',
-        'pa_transaction_setting',
+        'pa_generator_table', 'pa_hot_search', 'pa_operation_log',
+        'pa_provider_qualification_evidence', 'pa_tenant_idempotency_record',
     ];
 
     /** @param list<string> $modules @return array<string,string> */

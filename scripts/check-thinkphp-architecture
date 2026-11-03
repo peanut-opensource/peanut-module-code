@@ -91,7 +91,6 @@ TRUSTED_TENANT_KEY_PATHS = (
     "server/app/common/service/capability/",
     "server/app/common/service/module/",
     "server/app/platform/",
-    "server/app/modules/fixture/delivery_record/src/Infrastructure/",
     "server/app/modules/peanut/import_export/src/Infrastructure/",
     "server/app/modules/peanut/article/src/Infrastructure/Persistence/",
     "server/app/modules/peanut/file/src/Infrastructure/Persistence/",

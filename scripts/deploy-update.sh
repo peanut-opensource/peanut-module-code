@@ -165,6 +165,9 @@ PY
       sh server/docker/scripts/prepare-vendor.sh maintenance "$ROOT/server" "$php_image"
     fi
   fi
+  # The new lifecycle may require host-ledger columns introduced by pending migrations.
+  # Native discovery includes only database/migrations, never fresh-install seeds.
+  backend migrate:run
   if [[ "$compose_project" == - ]]; then
     printf '%s\n' '{"operation":"compile","arguments":[]}' | php server/module
   else
@@ -175,8 +178,6 @@ PY
   else
     printf '%s\n' '{"operation":"reconcile","arguments":["--release-locked","--prepared-release"]}' | compose_run run -T --rm --no-deps --entrypoint php php module
   fi
-  # Native discovery includes only database/migrations; fresh-only inputs live in database/installation.
-  backend migrate:run
   backend clear --cache
   if [[ "$compose_project" != - ]]; then
     sh server/docker/scripts/start.sh -p "$compose_project"

@@ -1,5 +1,4 @@
 packages:
-  - "src/modules/peanut-chart"
   - "src/modules/peanut-integration"
   - "src/modules/peanut-reference-codes"
   - "src/modules/peanut-settings"
@@ -7,4 +6,3 @@ packages:
   - "src/modules/peanut-file"
   - "src/modules/peanut-content-tools"
   - src/modules/*
-  - '!src/modules/fixture-workflow-business'

@@ -322,12 +322,10 @@
         "scripts/scaffold-runtime/",
         "web/.claude/",
         "plugins/fixture.delivery-record/",
-        "server/app/modules/fixture/delivery_record/",
-        "server/app/modules/fixture/workflow_business/",
+        "server/fixtures/modules/",
         "plugins/fixture.workflow-business/",
-        "web/src/modules/fixture-workflow-business/",
-        "server/fixtures/plugin-module-lifecycle/",
-        "web/src/modules/fixture-delivery-record/",
+        "web/tests/fixtures/",
+        "server/fixtures/module-lifecycle/",
         "scaffold/"
       ]
     },

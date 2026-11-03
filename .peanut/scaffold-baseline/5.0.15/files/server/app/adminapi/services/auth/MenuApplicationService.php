@@ -34,6 +34,7 @@ class MenuApplicationService
         $rows = SystemMenu::whereNotIn('perms', InstanceControlPlanePolicy::tenantAdminPermissions())
             ->whereNotIn('paths', InstanceControlPlanePolicy::tenantAdminPaths())->select()->toArray();
         $byKey = array_column($rows, null, 'menu_key');
+        $legacyById = array_column($rows, null, 'id');
         foreach ($byKey as &$row) {
             $row['managed'] = !str_starts_with($row['menu_key'], 'custom.');
             $row['source'] = $row['module_key'] === 'application' ? 'custom' : 'system';
@@ -42,35 +43,23 @@ class MenuApplicationService
         unset($row);
         foreach ($this->catalog->records() as $menu) {
             $legacy = $byKey[$menu['key']] ?? null;
-            $customized = false;
-            if ($legacy !== null) {
-                $defaults = $legacy['upstream_defaults_json'] ?? null;
-                if (is_string($defaults)) {
-                    $defaults = json_decode($defaults, true, 512, JSON_THROW_ON_ERROR);
-                }
-                $customized = !is_array($defaults) || $legacy['menu_conflict_json'] !== null;
-                foreach ($defaults ?? [] as $field => $expected) {
-                    if ((is_int($expected) ? (int) $legacy[$field] : $legacy[$field]) !== $expected) {
-                        $customized = true;
-                    }
-                }
-            }
+            $overrides = $legacy === null ? [] : $this->catalog->legacyPresentationOverrides($legacy, $legacyById);
             $byKey[$menu['key']] = [
                 'id' => (int) $menu['id'], 'menu_key' => $menu['key'],
-                'parent_key' => $customized ? $legacy['parent_key'] : $menu['parent_key'],
+                'parent_key' => array_key_exists('parent_key', $overrides) ? $overrides['parent_key'] : $menu['parent_key'],
                 'module_key' => $menu['module_key'], 'source' => 'module', 'managed' => true,
                 'type' => $menu['type'] === 'group' ? 'M' : 'C',
-                'name' => $customized ? $legacy['name'] : $menu['name'],
-                'icon' => $customized ? $legacy['icon'] : ($menu['icon'] ?? ''),
-                'sort' => $customized ? (int) $legacy['sort'] : -(int) $menu['sort_order'],
-                'perms' => $menu['instance_permission'] ?? ($customized ? $legacy['perms'] : ($menu['required_permission'] ?? '')),
-                'paths' => $customized ? $legacy['paths'] : ($menu['route_path'] ?? ''),
+                'name' => $overrides['name'] ?? $menu['name'],
+                'icon' => $overrides['icon'] ?? $menu['icon'] ?? '',
+                'sort' => $overrides['sort'] ?? -(int) $menu['sort_order'],
+                'perms' => $menu['instance_permission'] ?? $overrides['perms'] ?? $menu['required_permission'] ?? '',
+                'paths' => $overrides['paths'] ?? $menu['route_path'] ?? '',
                 'component' => $menu['component_key'] ?? '',
-                'is_show' => $customized ? (int) $legacy['is_show'] : (int) $menu['is_show'],
-                'is_cache' => $customized ? (int) $legacy['is_cache'] : (int) $menu['is_cache'],
-                'is_disable' => $customized ? (int) $legacy['is_disable'] : (int) $menu['is_disable'],
+                'is_show' => $overrides['is_show'] ?? (int) $menu['is_show'],
+                'is_cache' => $overrides['is_cache'] ?? (int) $menu['is_cache'],
+                'is_disable' => $overrides['is_disable'] ?? (int) $menu['is_disable'],
                 'status' => $menu['status'],
-                'conflict' => $legacy['menu_conflict_json'] ?? $menu['menu_conflict_json'],
+                'conflict' => $overrides['conflict'] ?? $legacy['menu_conflict_json'] ?? $menu['menu_conflict_json'],
             ];
         }
         $rows = array_values($byKey);
@@ -135,7 +124,8 @@ class MenuApplicationService
             $permissionId = $this->validateBinding($params, $key);
             $this->validateActionIdentities($record['managed'] ? [...$params, 'type' => $record['type'], 'paths' => $record['paths']] : $params, $key);
             $legacy = SystemMenu::where('menu_key', $key)->lock(true)->find();
-            $native = $record['managed'] ? (array_column($this->catalog->records(), null, 'key')[$key] ?? null) : null;
+            $nativeRecords = $record['managed'] ? array_column($this->catalog->records('tenant', true), null, 'key') : [];
+            $native = $nativeRecords[$key] ?? null;
             if ($native !== null && ($params['perms'] ?? '') === ($native['required_permission'] ?? null)) {
                 $permissionId = null;
             }
@@ -152,13 +142,30 @@ class MenuApplicationService
                         if (is_string($defaults)) {
                             $defaults = json_decode($defaults, true, 512, JSON_THROW_ON_ERROR);
                         }
-                        $permission = $native['required_permission'] ?? ($defaults['perms'] ?? null);
+                        $permission = $native !== null
+                            ? ($native['required_permission'] ?? ($native['required_permission_id'] === null ? '' : null))
+                            : ($defaults['perms'] ?? null);
                         if (!is_string($permission)) {
                             throw BusinessException::conflict('MENU_DEFAULT_PERMISSION_UNKNOWN', '无法确定此菜单的默认权限');
                         }
                     }
                     $changes['perms'] = $permission;
-                    $this->catalog->updateInstancePermission($key, $permissionId);
+                    if ($native !== null) {
+                        $nativePresentation = [...$params, 'instance_permission_id' => $permissionId];
+                        // A custom legacy directory is represented by the legacy parent override.
+                        if (($params['parent_key'] ?? null) !== null
+                            && ($nativeRecords[$params['parent_key']]['type'] ?? null) !== 'group') {
+                            $nativePresentation['parent_key'] = $native['parent_key'];
+                        }
+                        $this->catalog->updatePresentation($key, $nativePresentation);
+                        $baseline = $this->catalog->rebaseLegacyDefaults($legacy->toArray(), $native,
+                            ['name', 'icon', 'sort', 'parent_key', 'is_show', 'is_cache', 'is_disable', 'perms']);
+                        if ($baseline !== null) {
+                            $changes['upstream_defaults_json'] = json_encode($baseline, JSON_THROW_ON_ERROR);
+                        }
+                    } else {
+                        $this->catalog->updateInstancePermission($key, $permissionId);
+                    }
                 }
                 $legacy->save($changes);
             } else {
@@ -253,17 +260,20 @@ class MenuApplicationService
 
     public function updateStatus(string $key, int $disabled): bool
     {
-        $row = $this->detail($key);
-        if ($row === []) {
-            throw BusinessException::notFound('ADMIN_MENU_NOT_FOUND', '菜单不存在');
-        }
-        $legacy = SystemMenu::where('menu_key', $key)->find();
-        if ($legacy !== null) {
-            $legacy->save(['is_disable' => $disabled]);
-        } else {
-            $this->catalog->updateStatus($key, $disabled);
-        }
-        return true;
+        return (bool) Db::transaction(function () use ($key, $disabled): bool {
+            $row = $this->detail($key);
+            if ($row === []) {
+                throw BusinessException::notFound('ADMIN_MENU_NOT_FOUND', '菜单不存在');
+            }
+            $legacy = SystemMenu::where('menu_key', $key)->lock(true)->find();
+            if ($legacy !== null) {
+                $legacy->save(['is_disable' => $disabled]);
+            }
+            if ($legacy === null || $row['managed']) {
+                $this->catalog->updateStatus($key, $disabled);
+            }
+            return true;
+        });
     }
 
     private function presentation(array $params): array

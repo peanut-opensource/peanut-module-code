@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "private": true,
     "description": "Peanut Module Code instance platform control plane",
-    "author": "application owner",
+    "author": "花生科技",
     "license": "Apache-2.0",
     "homepage": "https://github.com/peanut-business/peanut-admin-code",
     "repository": {

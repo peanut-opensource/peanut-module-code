@@ -65,9 +65,18 @@ if (($peanutRouteApplication ?? null) === 'api') {
 }
 
 if (($peanutRouteApplication ?? null) === 'platform') {
+    Route::get('infrastructure/storage/accounts', [PlatformStorageController::class, 'accounts'])
+        ->completeMatch()->middleware(PlatformLoginMiddleware::class)
+        ->middleware(PlatformPermissionMiddleware::class, 'platform.storage.account.read');
+    Route::get('infrastructure/storage/spaces', [PlatformStorageController::class, 'spaces'])
+        ->completeMatch()->middleware(PlatformLoginMiddleware::class)
+        ->middleware(PlatformPermissionMiddleware::class, 'platform.storage.space.read');
+    Route::get('infrastructure/storage/routes', [PlatformStorageController::class, 'routes'])
+        ->completeMatch()->middleware(PlatformLoginMiddleware::class)
+        ->middleware(PlatformPermissionMiddleware::class, 'platform.storage.route.read');
     Route::get('infrastructure/storage', [PlatformStorageController::class, 'snapshot'])
-        ->middleware(PlatformLoginMiddleware::class)
-        ->middleware(PlatformPermissionMiddleware::class, 'platform.ops.read');
+        ->completeMatch()->middleware(PlatformLoginMiddleware::class)
+        ->middleware(PlatformPermissionMiddleware::class, 'platform.storage.legacy.read');
     Route::post('infrastructure/storage/account', [PlatformStorageController::class, 'createAccount'])
         ->middleware(PlatformLoginMiddleware::class)
         ->middleware(PlatformPermissionMiddleware::class, 'platform.ops.maintenance.manage');

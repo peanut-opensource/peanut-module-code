@@ -2889,7 +2889,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Requires platform.ops.read. Instance-owned snapshot; credential ciphertext and keys are never returned. */
+        /** @description Requires platform.storage.legacy.read by default. Legacy aggregate snapshot retained for explicitly configured API bindings; source-default platform.ops.read roles receive the three separate read capabilities instead. Credential ciphertext and keys are never returned. */
         get: operations["getStorageConfiguration"];
         put?: never;
         post?: never;
@@ -2978,6 +2978,57 @@ export interface paths {
         put?: never;
         /** @description Requires platform.ops.maintenance.manage. Validated configuration mutation and platform audit run in the existing transaction. Unknown body keys reject; no provider connection or data migration is requested. */
         post: operations["setStorageRoute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platformapi/infrastructure/storage/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Requires platform.storage.account.read. Returns only this configuration list; provider credentials are never returned. */
+        get: operations["getStorageAccounts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platformapi/infrastructure/storage/spaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Requires platform.storage.space.read. Returns only this configuration list; provider credentials are never returned. */
+        get: operations["getStorageSpaces"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platformapi/infrastructure/storage/routes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Requires platform.storage.route.read. Returns only this configuration list; provider credentials are never returned. */
+        get: operations["getStorageRoutes"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5009,6 +5060,12 @@ export interface components {
             account_id: string;
             platform_operator_id: string;
             permissions: string[];
+            /** @description Current instance API access for UI presentation; every request is authorized again on the server. */
+            api_access: {
+                /** @enum {string} */
+                method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
+                path: string;
+            }[];
             navigation: string[];
         };
         PlatformTenant: {
@@ -13152,6 +13209,99 @@ export interface operations {
             401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
             422: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+        };
+    };
+    getStorageAccounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: {
+                            accounts: components["schemas"]["StorageAccountSnapshot"][];
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+        };
+    };
+    getStorageSpaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: {
+                            spaces: components["schemas"]["StorageSpaceSnapshot"][];
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+        };
+    };
+    getStorageRoutes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: {
+                            routes: components["schemas"]["StorageRouteSnapshot"][];
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
             500: components["responses"]["ErrorResponse"];
         };
     };

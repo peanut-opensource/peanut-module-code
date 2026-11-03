@@ -420,54 +420,34 @@ final readonly class CoreTenantModuleAdminBridge
             return [];
         }
         $nativeRows = array_column($nativeRecords, null, 'key');
+        $legacyById = array_column($legacy, null, 'id');
+        $legacyCounts = array_count_values(array_column($legacy, 'menu_key'));
         $presentations = [];
         $ids = [];
         foreach ($definitions as $definition) {
+            if (!isset($nativeRows[$definition->key]) || $nativeRows[$definition->key]['status'] !== 'active') {
+                continue;
+            }
             $ids[$definition->key] = (int) $nativeRows[$definition->key]['id'];
             $matches = array_values(array_filter($legacy, static fn(array $row): bool => $row['menu_key'] === $definition->key));
             // Ambiguous legacy identities are preserved, never guessed or merged.
             if (count($matches) === 1) {
-                $presentations[$definition->key] = $matches[0];
+                $presentations[$definition->key] = $this->menuAdministration->legacyPresentationOverrides($matches[0], $legacyById);
             }
         }
 
         $records = [];
-        $byKey = [];
         foreach ($definitions as $definition) {
-            $byKey[$definition->key] = $definition;
-        }
-        foreach ($definitions as $definition) {
-            // A denied legacy directory must also suppress newly contributed
-            // pages which have no legacy row of their own.
-            $ancestor = $definition;
-            $seen = [];
-            while ($ancestor !== null) {
-                if (isset($seen[$ancestor->key])) {
-                    continue 2;
-                }
-                $seen[$ancestor->key] = true;
-                if ((int) $nativeRows[$ancestor->key]['is_disable'] !== 0) {
-                    continue 2;
-                }
-                $directory = $presentations[$ancestor->key] ?? null;
-                if ($directory !== null && !$this->legacyPresentationVisible($directory, $legacy, $permissions)) {
-                    continue 2;
-                }
-                $ancestor = $byKey[$ancestor->parentKey] ?? null;
-            }
-            $presentation = $presentations[$definition->key] ?? null;
-            if ($presentation !== null && !$this->legacyPresentationVisible($presentation, $legacy, $permissions)) {
+            if (!isset($ids[$definition->key])) {
                 continue;
             }
-            if ($presentation !== null && !$this->legacyCustomized($presentation, $legacy)) {
-                $presentation = null;
-            }
+            $presentation = $presentations[$definition->key] ?? [];
             $instancePermission = $nativeRows[$definition->key]['instance_permission'] ?? null;
-            $records[] = [
+            $records[$definition->key] = [
                 'id' => $ids[$definition->key],
-                'pid' => $presentation === null
-                    ? ($ids[$definition->parentKey] ?? 0) : (int) $presentation['pid'],
-                'parent_key' => $presentation === null ? $definition->parentKey : $presentation['parent_key'],
+                'pid' => array_key_exists('parent_key', $presentation)
+                    ? (int) $presentation['pid'] : ($ids[$definition->parentKey] ?? 0),
+                'parent_key' => array_key_exists('parent_key', $presentation) ? $presentation['parent_key'] : $definition->parentKey,
                 'type' => $definition->type === 'group' ? 'M' : 'C',
                 'name' => $presentation['name'] ?? $definition->name,
                 'icon' => $presentation['icon'] ?? $definition->icon ?? '',
@@ -477,7 +457,7 @@ final readonly class CoreTenantModuleAdminBridge
                 'component' => $definition->componentKey ?? '',
                 'is_cache' => $presentation['is_cache'] ?? (int) $nativeRows[$definition->key]['is_cache'],
                 'is_show' => $presentation['is_show'] ?? (int) $nativeRows[$definition->key]['is_show'],
-                'is_disable' => 0,
+                'is_disable' => $presentation['is_disable'] ?? (int) $nativeRows[$definition->key]['is_disable'],
                 'module_key' => $definition->moduleKey,
                 'required_permission' => $instancePermission ?? $presentation['perms'] ?? $definition->requiredPermission,
                 'menu_key' => $definition->key,
@@ -485,73 +465,44 @@ final readonly class CoreTenantModuleAdminBridge
             ];
         }
 
-        return $records;
-    }
-
-    private function legacyCustomized(array $row, array $rows): bool
-    {
-        $byId = array_column($rows, null, 'id');
-        $seen = [];
-        while (true) {
-            $id = (int) $row['id'];
-            if (isset($seen[$id]) || ($row['menu_conflict_json'] ?? null) !== null) {
-                return true;
+        $effective = $records;
+        foreach ($legacy as $row) {
+            $key = $row['menu_key'];
+            // A denied or retired native node must never re-enter through its legacy row.
+            if (isset($nativeRows[$key]) || ($legacyCounts[$key] ?? 0) !== 1 || !in_array($row['type'], ['M', 'C'], true)) {
+                continue;
             }
-            $seen[$id] = true;
-            $baseline = $row['upstream_defaults_json'] ?? null;
-            if (is_string($baseline)) {
-                $baseline = json_decode($baseline, true, 512, JSON_THROW_ON_ERROR);
-            }
-            if (!is_array($baseline)) {
-                return true;
-            }
-            foreach ($baseline as $field => $expected) {
-                $current = $row[$field] ?? null;
-                if (is_int($expected)) {
-                    $current = (int) $current;
-                }
-                if ($current !== $expected) {
-                    return true;
-                }
-            }
-            $expectedParent = $byId[(int) ($baseline['pid'] ?? 0)]['menu_key'] ?? null;
-            if ($row['parent_key'] !== $expectedParent) {
-                return true;
-            }
-            $parent = (int) $row['pid'];
-            if ($parent === 0 || !isset($byId[$parent])) {
-                return false;
-            }
-            $row = $byId[$parent];
+            $effective[$key] = [
+                'parent_key' => $row['parent_key'] ?? ($legacyById[(int) $row['pid']]['menu_key'] ?? null),
+                'perms' => (string) $row['perms'],
+                'is_disable' => (int) $row['is_disable'],
+            ];
         }
+        return array_values(array_filter($records, fn(array $row): bool =>
+            $this->effectivePresentationVisible($row['menu_key'], $effective, $permissions)));
     }
 
-    /** Legacy presentation never grants a permission; changed restrictions remain effective. */
-    private function legacyPresentationVisible(array $row, array $rows, ?array $permissions): bool
+    /** The rendered parent chain, disable flags and instance references are also the visibility input. */
+    private function effectivePresentationVisible(string $key, array $records, ?array $permissions): bool
     {
-        $byKey = array_column($rows, null, 'menu_key');
         $seen = [];
         while (true) {
-            $id = (int) $row['id'];
-            if (isset($seen[$id]) || (int) $row['is_disable'] !== 0) {
+            if (isset($seen[$key]) || !isset($records[$key])) {
                 return false;
             }
-            $seen[$id] = true;
-            $baseline = $row['upstream_defaults_json'] ?? null;
-            if (is_string($baseline)) {
-                $baseline = json_decode($baseline, true, 512, JSON_THROW_ON_ERROR);
-            }
-            $customPermission = (string) $row['perms'];
-            if ($permissions !== null && $customPermission !== ''
-                && ($baseline['perms'] ?? null) !== $customPermission
-                && !in_array($customPermission, $permissions, true)) {
+            $seen[$key] = true;
+            $row = $records[$key];
+            if ((int) $row['is_disable'] !== 0) {
                 return false;
             }
-            $parent = $row['parent_key'];
-            if ($parent === null || !isset($byKey[$parent])) {
+            $permission = (string) $row['perms'];
+            if ($permissions !== null && $permission !== '' && !in_array($permission, $permissions, true)) {
+                return false;
+            }
+            if ($row['parent_key'] === null) {
                 return true;
             }
-            $row = $byKey[$parent];
+            $key = $row['parent_key'];
         }
     }
 

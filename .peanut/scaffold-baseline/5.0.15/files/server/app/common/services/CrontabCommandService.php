@@ -8,7 +8,6 @@ namespace app\common\services;
 class CrontabCommandService
 {
     private const TENANT_AWARE_COMMANDS = [
-        'crontab:demo',
         'refund:reconcile',
     ];
 

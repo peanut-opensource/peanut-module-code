@@ -5,7 +5,7 @@
       type="info"
       :closable="false"
     />
-    <div class="toolbar">
+    <div class="toolbar developer-toolbar">
       <el-select
         v-model="selected"
         clearable
@@ -21,7 +21,11 @@
         />
       </el-select>
       <el-button :loading="loading" @click="load">刷新目录</el-button>
-      <el-button :loading="runtimeLoading" @click="loadRuntime(1)">
+      <el-button
+        v-if="canReadRuntime"
+        :loading="runtimeLoading"
+        @click="loadRuntime(1)"
+      >
         读取安装与依赖状态
       </el-button>
     </div>
@@ -32,16 +36,16 @@
       type="error"
       show-icon
     />
-    <el-card class="backup-center-card">
-      <template #header>安装或升级模块包</template>
+    <el-card v-if="canInstall || canUpdate" class="backup-center-card">
+      <template #header>安装或升级模块</template>
       <el-form label-position="top" @submit.prevent="submitPackage">
         <el-form-item label="操作">
           <el-select
             v-model="packageOperation"
             @change="packageIdempotency = ''"
           >
-            <el-option label="安装" value="install" />
-            <el-option label="升级" value="update" />
+            <el-option v-if="canInstall" label="安装" value="install" />
+            <el-option v-if="canUpdate" label="升级" value="update" />
           </el-select>
         </el-form-item>
         <el-form-item label=".tar 文件">
@@ -94,10 +98,14 @@
           :title="packageTask.last_error_code"
           type="error"
         />
-        <pre v-if="packageTask.result">{{ pretty(packageTask.result) }}</pre>
-        <pre v-if="packageTask.recovery_pointer">{{
-          pretty(packageTask.recovery_pointer)
-        }}</pre>
+        <StructuredDetails
+          v-if="packageTask.result"
+          :value="packageTask.result"
+        />
+        <StructuredDetails
+          v-if="packageTask.recovery_pointer"
+          :value="packageTask.recovery_pointer"
+        />
       </template>
     </el-card>
     <el-card v-if="runtimeLoaded" class="backup-center-card">
@@ -109,12 +117,12 @@
         <el-table-column prop="tenant_enabled_count" label="开通租户数" />
         <el-table-column label="必需 / 可选能力及不可用原因" min-width="340">
           <template #default="{ row }">
-            <pre>{{
-              pretty({
+            <StructuredDetails
+              :value="{
                 required: row.dependencies,
                 optional: row.optional_dependencies,
-              })
-            }}</pre>
+              }"
+            />
           </template>
         </el-table-column>
         <el-table-column label="失败待办" min-width="220">
@@ -218,50 +226,50 @@
           </el-table>
           <el-tabs>
             <el-tab-pane label="依赖">
-              <pre>{{
-                pretty({
+              <StructuredDetails
+                :value="{
                   dependencies: module.dependencies,
                   dependants: module.dependants,
-                })
-              }}</pre>
+                }"
+              />
             </el-tab-pane>
             <el-tab-pane label="路由与权限">
-              <pre>{{
-                pretty({
+              <StructuredDetails
+                :value="{
                   routes: module.generated_api.length
                     ? module.generated_api
                     : module.routes,
                   permissions: module.permissions,
                   middleware: module.middleware,
-                })
-              }}</pre>
+                }"
+              />
             </el-tab-pane>
             <el-tab-pane label="服务与 Provider">
-              <pre>{{
-                pretty({
+              <StructuredDetails
+                :value="{
                   provider: module.provider,
                   public_services: module.public_services,
-                })
-              }}</pre>
+                }"
+              />
             </el-tab-pane>
             <el-tab-pane label="生命周期">
-              <pre>{{ pretty(module.lifecycle) }}</pre>
+              <StructuredDetails :value="module.lifecycle" />
             </el-tab-pane>
             <el-tab-pane label="事件任务">
-              <pre>{{
-                pretty({ events: module.events, tasks: module.tasks })
-              }}</pre>
+              <StructuredDetails
+                :value="{ events: module.events, tasks: module.tasks }"
+              />
             </el-tab-pane>
             <el-tab-pane label="迁移文档">
-              <pre>{{
-                pretty({
+              <StructuredDetails
+                :value="{
                   migrations: module.migrations,
                   documentation: module.documentation,
-                })
-              }}</pre>
+                }"
+              />
             </el-tab-pane>
             <el-tab-pane label="打包预览">
-              <pre>{{ pretty(module.package_preview) }}</pre>
+              <StructuredDetails :value="module.package_preview" />
             </el-tab-pane>
           </el-tabs>
         </el-collapse-item>
@@ -273,6 +281,7 @@
 <script setup lang="ts">
   import { computed, onMounted, ref } from 'vue';
   import { api } from '../api/platform';
+  import StructuredDetails from './StructuredDetails.vue';
   import type {
     DeveloperCenterCatalogSnapshot,
     DeveloperModuleCatalog,
@@ -280,6 +289,12 @@
     ModuleOperationTask,
   } from '../api/platform';
 
+  const props = defineProps<{
+    canReadRuntime: boolean;
+    canInstall: boolean;
+    canUpdate: boolean;
+    canReadTasks: boolean;
+  }>();
   const loading = ref(false);
   const error = ref('');
   const runtimeLoading = ref(false);
@@ -288,7 +303,9 @@
   const runtimeRows = ref<RuntimeModuleStatus[]>([]);
   const runtimePage = ref(1);
   const runtimeTotal = ref(0);
-  const packageOperation = ref<'install' | 'update'>('install');
+  const packageOperation = ref<'install' | 'update'>(
+    props.canInstall ? 'install' : 'update'
+  );
   const packageFile = ref<File | null>(null);
   const packageSha = ref('');
   const packageSignature = ref('');
@@ -335,6 +352,7 @@
   }
 
   async function loadRuntime(page = 1): Promise<void> {
+    if (!props.canReadRuntime) return;
     runtimeLoading.value = true;
     runtimeError.value = '';
     try {
@@ -359,6 +377,13 @@
   }
 
   async function submitPackage(): Promise<void> {
+    if (
+      packageLoading.value ||
+      (packageOperation.value === 'install'
+        ? !props.canInstall
+        : !props.canUpdate)
+    )
+      return;
     if (!packageFile.value || !/^[a-f0-9]{64}$/.test(packageSha.value)) {
       packageError.value = '请选择 .tar 文件并填写 64 位小写 SHA-256';
       return;
@@ -389,7 +414,7 @@
   }
 
   async function refreshPackageTask(): Promise<void> {
-    if (!packageTask.value) return;
+    if (!props.canReadTasks || !packageTask.value) return;
     packageLoading.value = true;
     packageError.value = '';
     try {
@@ -428,9 +453,6 @@
     if (status === 'blocked') return 'danger';
     return 'warning';
   }
-  function pretty(value: unknown): string {
-    return JSON.stringify(value, null, 2);
-  }
 
   onMounted(load);
 </script>
@@ -439,17 +461,21 @@
   .backup-center-card {
     margin-bottom: 16px;
   }
-  .el-select {
+  .developer-toolbar .el-select {
     min-width: 320px;
   }
-  pre {
-    margin: 0;
-    max-height: 420px;
-    overflow: auto;
-    padding: 14px;
-    color: #d9e2f2;
-    background: #13213a;
-    border-radius: 6px;
-    font-size: 12px;
+  @media (max-width: 760px) {
+    .developer-toolbar {
+      justify-content: flex-start;
+      flex-wrap: wrap;
+    }
+    .developer-toolbar .el-select {
+      width: 100%;
+      min-width: 0;
+    }
+    .developer-toolbar .el-button {
+      flex: 1 1 0;
+      min-width: 0;
+    }
   }
 </style>

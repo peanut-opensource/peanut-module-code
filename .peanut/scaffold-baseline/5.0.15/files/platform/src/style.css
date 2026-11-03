@@ -118,7 +118,9 @@ h1 {
   border-bottom: 1px solid #e6e9ef;
 }
 .platform-header-title {
+  flex: 1 1 auto;
   min-width: 0;
+  overflow: hidden;
 }
 .platform-header-title b {
   display: inline-block;
@@ -133,6 +135,7 @@ h1 {
 }
 .platform-header-actions {
   display: flex;
+  gap: 0;
   flex-shrink: 0;
 }
 .navigation-toggle {
@@ -179,6 +182,15 @@ h1 {
 .card-header {
   margin-bottom: 0;
 }
+.two-col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.el-dialog {
+  max-width: calc(100vw - 32px);
+}
 @media (max-width: 760px) {
   .app-shell {
     flex-direction: column;
@@ -218,13 +230,49 @@ h1 {
   .platform-header-actions .el-button + .el-button {
     margin-left: 0;
   }
+  .platform-header-actions .el-button {
+    padding-inline: 4px;
+  }
   .app-shell > .el-container {
     width: 100%;
   }
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .two-col {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .instance-status .el-descriptions__body .el-descriptions__table,
+  .instance-status .el-descriptions__body tr {
+    display: block;
+  }
+  .instance-status .el-descriptions__body .el-descriptions__cell {
+    display: block;
+    width: 100%;
+  }
   .el-main {
     padding: 14px;
   }
+}
+.platform-permission-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  gap: 8px 16px;
+  margin-bottom: 20px;
+}
+.platform-permission-options .el-checkbox {
+  height: auto;
+  align-items: flex-start;
+  margin-right: 0;
+}
+.platform-permission-options .el-checkbox__label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.platform-permission-options small {
+  color: var(--el-text-color-secondary);
+}
+.platform-preset .el-pagination {
+  margin-top: 16px;
+  flex-wrap: wrap;
 }

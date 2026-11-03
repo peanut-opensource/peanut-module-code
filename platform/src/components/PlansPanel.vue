@@ -6,9 +6,18 @@
       :closable="false"
     />
     <el-alert v-if="error" :title="error" type="error" :closable="false" />
+    <el-alert
+      v-if="(canCreate || canUpdate) && !canReadCatalog"
+      title="编辑套餐需要读取模块和权限包目录，请联系管理员配置相应读取权限。"
+      type="info"
+      :closable="false"
+    />
     <div class="toolbar">
       <el-button @click="load">刷新</el-button>
-      <el-button v-if="canManage" type="primary" @click="open()"
+      <el-button
+        v-if="canCreate && canReadCatalog"
+        type="primary"
+        @click="open()"
         >新建套餐</el-button
       >
     </div>
@@ -30,7 +39,7 @@
           row.permission_keys.join('、') || '无'
         }}</template></el-table-column
       >
-      <el-table-column v-if="canManage" label="操作"
+      <el-table-column v-if="canUpdate && canReadCatalog" label="操作"
         ><template #default="{ row }"
           ><el-button link type="primary" @click="open(row)"
             >编辑</el-button
@@ -57,7 +66,11 @@
         type="error"
         :closable="false"
       />
-      <el-form label-position="top" @submit.prevent="save">
+      <el-form
+        v-loading="catalogLoading"
+        label-position="top"
+        @submit.prevent="save"
+      >
         <el-form-item label="编码"
           ><el-input v-model="form.code" :disabled="!!editing" maxlength="64"
         /></el-form-item>
@@ -132,7 +145,12 @@
         ><el-button
           type="primary"
           :loading="saving"
-          :disabled="loading || !!catalogError || !!missingDependencies.length"
+          :disabled="
+            loading ||
+            catalogLoading ||
+            !!catalogError ||
+            !!missingDependencies.length
+          "
           @click="save"
           >保存</el-button
         ></template
@@ -142,13 +160,22 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, reactive, ref } from 'vue';
+  import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
   import { ElMessage } from 'element-plus';
   import { api } from '../api/platform';
   import type { Plan, PlanModule } from '../api/tenant-license';
   import type { PermissionBundle } from '../api/permission-bundles';
 
-  defineProps<{ canManage: boolean }>();
+  const props = defineProps<{
+    canApi: (method: string, path: string) => boolean;
+  }>();
+  const canCreate = computed(() => props.canApi('POST', '/platformapi/plans'));
+  const canUpdate = computed(() => props.canApi('PUT', '/platformapi/plans'));
+  const canReadCatalog = computed(
+    () =>
+      props.canApi('GET', '/platformapi/instance-tools/modules') &&
+      props.canApi('GET', '/platformapi/permission/bundles')
+  );
   const plans = ref<Plan[]>([]);
   const modules = ref<PlanModule[]>([]);
   const bundles = ref<PermissionBundle[]>([]);
@@ -158,6 +185,8 @@
   const saving = ref(false);
   const error = ref('');
   const catalogError = ref('');
+  const catalogLoading = ref(false);
+  let catalogRequest = 0;
   const formError = ref('');
   const visible = ref(false);
   const editing = ref<Plan | null>(null);
@@ -210,29 +239,67 @@
     }
   }
   async function loadCatalog() {
+    const request = ++catalogRequest;
+    const isCurrent = () => request === catalogRequest && canReadCatalog.value;
+    catalogLoading.value = true;
     catalogError.value = '';
+    modules.value = [];
+    bundles.value = [];
     try {
-      const moduleRows: PlanModule[] = [];
-      for (let current = 1; ; current += 1) {
+      const moduleFirst = await api.planModules(1);
+      if (!isCurrent()) return;
+      const moduleRows = [...moduleFirst.lists];
+      for (
+        let current = 2;
+        current <= Math.ceil(moduleFirst.count / 100);
+        current += 1
+      ) {
+        if (!isCurrent()) return;
         const result = await api.planModules(current);
+        if (!isCurrent()) return;
+        if (result.count !== moduleFirst.count || !result.lists.length)
+          throw new Error('模块目录在读取期间变化，请重试');
         moduleRows.push(...result.lists);
-        if (moduleRows.length >= result.count) break;
-        if (!result.lists.length) throw new Error('模块目录分页不完整');
       }
-      const bundleRows: PermissionBundle[] = [];
-      for (let current = 1; ; current += 1) {
+      if (
+        moduleRows.length !== moduleFirst.count ||
+        new Set(moduleRows.map((item) => item.module_key)).size !==
+          moduleRows.length
+      )
+        throw new Error('模块目录分页不完整');
+      const bundleFirst = await api.permissionBundles('tenant', 1);
+      if (!isCurrent()) return;
+      const bundleRows = [...bundleFirst.items];
+      for (
+        let current = 2;
+        current <= Math.ceil(bundleFirst.total / 100);
+        current += 1
+      ) {
+        if (!isCurrent()) return;
         const result = await api.permissionBundles('tenant', current);
+        if (!isCurrent()) return;
+        if (result.total !== bundleFirst.total || !result.items.length)
+          throw new Error('权限组合目录在读取期间变化，请重试');
         bundleRows.push(...result.items);
-        if (bundleRows.length >= result.total) break;
-        if (!result.items.length) throw new Error('权限组合目录分页不完整');
       }
+      if (
+        bundleRows.length !== bundleFirst.total ||
+        new Set(bundleRows.map((item) => item.key)).size !==
+          bundleRows.length ||
+        bundleRows.some((item) => item.audience !== 'tenant')
+      )
+        throw new Error('权限组合目录分页不完整');
       modules.value = moduleRows;
-      bundles.value = bundleRows.filter((item) => item.audience === 'tenant');
+      bundles.value = bundleRows;
     } catch (cause) {
-      catalogError.value = message(cause);
+      if (isCurrent()) catalogError.value = message(cause);
+    } finally {
+      if (request === catalogRequest) catalogLoading.value = false;
     }
   }
   async function open(plan?: Plan) {
+    if (!canReadCatalog.value || (plan ? !canUpdate.value : !canCreate.value))
+      return;
     editing.value = plan || null;
     Object.assign(form, {
       code: plan?.code || '',
@@ -248,7 +315,17 @@
     formError.value = catalogError.value;
   }
   async function save() {
-    if (saving.value || catalogError.value || missingDependencies.value.length)
+    if (
+      !canReadCatalog.value ||
+      (editing.value ? !canUpdate.value : !canCreate.value)
+    )
+      return;
+    if (
+      saving.value ||
+      catalogLoading.value ||
+      catalogError.value ||
+      missingDependencies.value.length
+    )
       return;
     if (!form.code.trim() || !form.name.trim() || !form.change_reason.trim()) {
       formError.value = '请填写编码、名称及变更原因';
@@ -285,4 +362,7 @@
     void load();
   }
   onMounted(load);
+  onBeforeUnmount(() => {
+    catalogRequest += 1;
+  });
 </script>

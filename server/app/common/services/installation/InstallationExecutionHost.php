@@ -410,11 +410,46 @@ final class InstallationExecutionHost
     {
         $this->currentInstallationModule = null;
         $stage = 'install_modules';
-        $modules = $this->installModules($moduleKeys, \installationTenantBootstrapContract($this->serverRoot));
+        $bootstrap = \installationTenantBootstrapContract($this->serverRoot);
+        $modules = $this->installModules($moduleKeys, $bootstrap);
+        $stage = 'tenant_application_bootstrap';
+        $this->provisionDefaultApplicationTenant($bootstrap['code']);
         $stage = 'health'; $health = $this->health($moduleKeys);
         $stage = 'completion_marker'; $receipt = $this->writeCompletionMarker($moduleKeys);
         @unlink($this->progressMarker());
         return ['modules' => $modules, 'health' => $health, 'installation_receipt' => $receipt];
+    }
+
+    /** Reuse normal owner provisioning only after the selected Modules and their license are installed. */
+    private function provisionDefaultApplicationTenant(string $tenantCode): void
+    {
+        $statement = $this->pdo()->prepare(<<<'SQL'
+SELECT tenant.id AS tenant_id, tenant.code AS tenant_code, tenant.name AS display_name,
+       member.id AS member_id, member.account_id, role.id AS role_id
+FROM pa_tenant tenant
+JOIN pa_tenant_member member ON member.tenant_id = tenant.id AND member.status = 'active'
+JOIN pa_account account ON account.id = member.account_id AND account.status = 'active'
+JOIN pa_member_role membership ON membership.tenant_id = tenant.id AND membership.tenant_member_id = member.id
+JOIN pa_role role ON role.tenant_id = tenant.id AND role.id = membership.role_id
+    AND role.`key` = 'core.tenant-owner' AND role.is_builtin = 1 AND role.status = 'active'
+WHERE tenant.code = ? AND tenant.status = 'active'
+LIMIT 2
+SQL);
+        $statement->execute([$tenantCode]);
+        $owners = $statement->fetchAll(PDO::FETCH_ASSOC);
+        $statement->closeCursor();
+        if (count($owners) !== 1 || (string) $owners[0]['tenant_code'] !== $tenantCode) {
+            throw new RuntimeException('INSTALL_DEFAULT_OWNER_UNAVAILABLE');
+        }
+        $owner = $owners[0];
+        \think\Container::getInstance()->make(\app\platform\services\CoreTenantOwnerAdminProvisioner::class)->provision(
+            (int) $owner['tenant_id'],
+            (int) $owner['account_id'],
+            (int) $owner['member_id'],
+            (int) $owner['role_id'],
+            $tenantCode,
+            (string) $owner['display_name'],
+        );
     }
 
     /** Identity comes from the actual native master PDO, never from a supplied window/endpoint declaration. */

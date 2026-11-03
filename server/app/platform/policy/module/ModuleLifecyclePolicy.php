@@ -58,13 +58,16 @@ final class ModuleLifecyclePolicy
         return self::businessDependents($resolver, $moduleKeys, $installationStates, true);
     }
 
-    /** Includes disabled and failed installations until their package has actually been removed. @param list<string> $moduleKeys @return list<string> */
+    /** Includes disabled and failed installations until their package has actually been removed.
+     * @param list<string> $moduleKeys @param array<string,ManifestDocument> $verifiedTargets @return list<string>
+     */
     public static function installedBusinessDependents(
         ModuleLockResolver $resolver,
         array $moduleKeys,
         TenantModuleStateQueries $installationStates,
+        array $verifiedTargets = [],
     ): array {
-        return self::businessDependents($resolver, $moduleKeys, $installationStates, false);
+        return self::businessDependents($resolver, $moduleKeys, $installationStates, false, $verifiedTargets);
     }
 
     /** @param list<string> $moduleKeys @return list<string> */
@@ -73,12 +76,19 @@ final class ModuleLifecyclePolicy
         array $moduleKeys,
         TenantModuleStateQueries $installationStates,
         bool $activeOnly,
+        array $verifiedTargets = [],
     ): array {
         $targets = array_fill_keys($moduleKeys, true);
         $dependents = [];
         $roots = [];
         foreach ($resolver->all() as $descriptor) {
             $roots += $descriptor->moduleRoots;
+        }
+        foreach ($verifiedTargets as $key => $manifest) {
+            if (!isset($targets[$key]) || !$manifest instanceof ManifestDocument || ($manifest->data['key'] ?? null) !== $key) {
+                throw new ModuleLifecycleException('MODULE_INSTALLED_MANIFEST_UNAVAILABLE', 'Verified removal source does not match the target Module.');
+            }
+            $roots[$key] = $manifest->root;
         }
         $installedKeys = Db::name('module_installation')
             ->where('status', '<>', 'uninstalled')->column('module_key');

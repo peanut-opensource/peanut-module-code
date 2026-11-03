@@ -1,12 +1,10 @@
 <template>
   <el-card>
-    <template #header>独立权限包与 API 关联</template>
-    <p
-      >可创建权限包，或复用系统与模块声明的权限包；菜单和按钮引用权限包，API
-      关联及角色授权分别保存。</p
-    >
+    <template #header>{{ panelTitles[section] }}</template>
+    <p>{{ panelDescriptions[section] }}</p>
     <el-space wrap>
       <el-select
+        v-if="section !== 'menus'"
         v-model="audience"
         aria-label="权限安全域"
         style="width: 160px"
@@ -15,12 +13,17 @@
         <el-option label="租户业务权限" value="tenant" />
         <el-option label="平台权限" value="platform" />
       </el-select>
-      <el-input v-model="search" placeholder="搜索权限包" clearable />
+      <el-input
+        v-if="section === 'bundles'"
+        v-model="search"
+        placeholder="搜索权限包"
+        clearable
+      />
       <el-button :loading="loading" :disabled="saving" @click="load"
         >刷新</el-button
       >
       <el-button
-        v-if="canManage"
+        v-if="section === 'bundles' && canCreate"
         type="primary"
         :disabled="saving || loading || !!error"
         @click="create"
@@ -29,8 +32,10 @@
     </el-space>
     <el-alert v-if="error" :title="error" type="error" :closable="false" />
     <el-table
+      v-if="section === 'bundles'"
       v-loading="loading"
       :data="visibleBundles"
+      max-height="440"
       row-key="key"
       empty-text="暂无权限包"
     >
@@ -50,10 +55,8 @@
       >
       <el-table-column label="操作" width="180"
         ><template #default="{ row }"
-          ><el-button link :disabled="saving" @click="open(row)"
-            >查看关联</el-button
           ><el-button
-            v-if="canManage && row.source === 'custom'"
+            v-if="canUpdate && row.source === 'custom'"
             link
             :disabled="saving"
             @click="edit(row)"
@@ -62,10 +65,63 @@
         ></el-table-column
       >
     </el-table>
+    <section v-if="section === 'apis'">
+      <el-input
+        v-model="apiSearch"
+        placeholder="搜索 API 方法、路径或模块"
+        clearable
+      />
+      <el-table
+        v-loading="loading"
+        :data="visibleApis"
+        row-key="id"
+        empty-text="暂无 API"
+      >
+        <el-table-column prop="method" label="方法" width="90" />
+        <el-table-column prop="path" label="接口路径" min-width="260" />
+        <el-table-column prop="module_key" label="所属模块" min-width="150" />
+        <el-table-column label="访问类型"
+          ><template #default="{ row }">{{
+            accessModeLabel(row.access_mode)
+          }}</template></el-table-column
+        >
+        <el-table-column label="源默认权限"
+          ><template #default="{ row }">{{
+            row.default_permission_keys.join('、') || '无'
+          }}</template></el-table-column
+        >
+        <el-table-column label="同时需要"
+          ><template #default="{ row }">{{
+            row.prerequisite_permission_keys.join('、') || '无'
+          }}</template></el-table-column
+        >
+      </el-table>
+      <el-card v-if="canReadBundles && canReadBindings" class="binding-card">
+        <template #header>按权限包查看 API 关联</template>
+        <p
+          >选择权限包，查看或调整它允许访问的
+          API；源默认权限与本实例保存的关联分别展示。</p
+        >
+        <el-select
+          :model-value="selected?.key"
+          filterable
+          placeholder="选择权限包"
+          :disabled="loading || saving"
+          @change="chooseBundle"
+        >
+          <el-option
+            v-for="bundle in visibleBundles"
+            :key="bundle.key"
+            :value="bundle.key"
+            :label="bundle.name + '（' + bundle.key + '）'"
+          />
+        </el-select>
+      </el-card>
+    </section>
     <el-dialog
       v-model="editing"
       :title="editingBundle ? '编辑自建权限包' : '创建权限包'"
-      width="520px"
+      width="min(520px, 94vw)"
       :close-on-click-modal="false"
       :close-on-press-escape="!saving"
       :show-close="!saving"
@@ -120,7 +176,7 @@
     <el-dialog
       v-model="visible"
       title="权限包关联 API"
-      width="850px"
+      width="min(850px, 94vw)"
       :close-on-click-modal="false"
       :close-on-press-escape="!saving"
       :show-close="!saving"
@@ -182,7 +238,7 @@
         >
       </template>
     </el-dialog>
-    <section v-if="audience === 'tenant'">
+    <section v-if="section === 'menus'">
       <el-divider />
       <h3>租户菜单与按钮引用</h3>
       <p
@@ -211,6 +267,7 @@
       <el-table
         v-loading="menuLoading"
         :data="visibleMenuBindings"
+        max-height="440"
         row-key="menu_key"
         empty-text="暂无菜单或按钮"
       >
@@ -223,7 +280,10 @@
         <el-table-column prop="page_path" label="所属页面" />
         <el-table-column prop="action_key" label="动作标识" />
         <el-table-column prop="permission_key" label="当前权限包" />
-        <el-table-column v-if="canManage" label="操作" width="100"
+        <el-table-column
+          v-if="canManage && canReadBundles"
+          label="操作"
+          width="100"
           ><template #default="{ row }"
             ><el-button
               link
@@ -240,7 +300,7 @@
     <el-dialog
       v-model="menuVisible"
       title="菜单与按钮权限包引用"
-      width="620px"
+      width="min(620px, 94vw)"
       :close-on-click-modal="false"
       :close-on-press-escape="!saving"
       :show-close="!saving"
@@ -335,7 +395,53 @@
     PermissionMenuBinding,
   } from '../api/permission-bundles';
 
-  const props = defineProps<{ canManage: boolean }>();
+  const props = defineProps<{
+    section: 'bundles' | 'apis' | 'menus';
+    canApi: (method: string, path: string) => boolean;
+  }>();
+  const panelTitles = {
+    bundles: '权限包管理',
+    apis: 'API 目录与关联',
+    menus: '菜单与按钮权限',
+  };
+  const panelDescriptions = {
+    bundles:
+      '维护权限包的名称、状态和来源。角色授权、API 关联与菜单引用分别在各自页面管理。',
+    apis: '查看接口目录、源默认权限和前置条件；按权限包维护本实例的 API 关联。',
+    menus:
+      '维护租户菜单和按钮引用的权限包；更改导航显示不会自动授予角色业务权限。',
+  };
+  const canCreate = computed(() =>
+    props.canApi('POST', '/platformapi/permission/bundles')
+  );
+  const canUpdate = computed(() =>
+    props.canApi('PUT', '/platformapi/permission/bundles')
+  );
+  const canReadBundles = computed(() =>
+    props.canApi('GET', '/platformapi/permission/bundles')
+  );
+  const canReadBindings = computed(() =>
+    props.canApi('GET', '/platformapi/permission/apis/bindings')
+  );
+  const canManage = computed(() =>
+    props.section === 'menus'
+      ? props.canApi('PUT', '/platformapi/permission/menus/binding')
+      : props.canApi('PUT', '/platformapi/permission/apis/bindings')
+  );
+  const accessModeLabel = (mode: string) =>
+    ((
+      {
+        public: '公开',
+        authenticated: '登录后可用',
+        context: '上下文接口',
+        platform_permission: '平台权限',
+        tenant_permission: '租户权限',
+      } as Record<string, string>
+    )[mode] || mode);
+  function chooseBundle(key: string) {
+    const bundle = bundles.value.find((item) => item.key === key);
+    if (bundle) void open(bundle);
+  }
   const audience = ref<PermissionAudience>('tenant');
   const bundles = ref<PermissionBundle[]>([]);
   const apis = ref<PermissionApi[]>([]);
@@ -404,7 +510,7 @@
     const row = selectedMenu.value;
     return (
       !!row &&
-      props.canManage &&
+      canManage.value &&
       !saving.value &&
       !menuSaveError.value &&
       !menuLoading.value &&
@@ -425,16 +531,17 @@
   async function readAll<T>(
     read: (page: number) => Promise<{ items: T[]; total: number }>
   ): Promise<T[]> {
-    const items: T[] = [];
-    let page = 1;
-    while (true) {
-      const result = await read(page);
-      if (!result.items.length && items.length < result.total)
-        throw new Error('权限目录未完整加载');
-      items.push(...result.items);
-      if (items.length >= result.total) return items;
-      page += 1;
+    const first = await read(1);
+    const items = [...first.items];
+    const pages = Math.ceil(first.total / 100);
+    for (let page = 2; page <= pages; page += 1) {
+      const next = await read(page);
+      if (next.total !== first.total || !next.items.length)
+        throw new Error('权限目录在读取期间变化，请刷新后重试');
+      items.push(...next.items);
     }
+    if (items.length !== first.total) throw new Error('权限目录未完整加载');
+    return items;
   }
 
   async function load() {
@@ -451,25 +558,39 @@
     error.value = '';
     loading.value = true;
     const scope = audience.value;
-    const menuRequest =
-      scope === 'tenant' ? loadMenuBindings(request) : Promise.resolve();
     try {
-      const [bundleRows, apiRows] = await Promise.all([
-        readAll((page) => api.permissionBundles(scope, page)),
-        readAll((page) => api.permissionApis(scope, page)),
-      ]);
+      if (props.section === 'menus') {
+        await loadMenuBindings(request);
+        if (canReadBundles.value) {
+          const rows = await readAll((page) =>
+            api.permissionBundles('tenant', page)
+          );
+          if (request === generation) bundles.value = rows;
+        }
+      } else if (props.section === 'bundles') {
+        const rows = await readAll((page) =>
+          api.permissionBundles(scope, page)
+        );
+        if (request === generation) bundles.value = rows;
+      } else {
+        const rows = await readAll((page) => api.permissionApis(scope, page));
+        if (request === generation) apis.value = rows;
+        if (canReadBundles.value && canReadBindings.value) {
+          const bundleRows = await readAll((page) =>
+            api.permissionBundles(scope, page)
+          );
+          if (request === generation) bundles.value = bundleRows;
+        }
+      }
       if (request !== generation) return;
       if (
-        bundleRows.some((row) => row.audience !== scope) ||
-        apiRows.some((row) => row.audience !== scope)
+        bundles.value.some((row) => row.audience !== scope) ||
+        apis.value.some((row) => row.audience !== scope)
       )
         throw new Error('权限目录安全域不一致');
-      bundles.value = bundleRows;
-      apis.value = apiRows;
     } catch (cause) {
       if (request === generation) error.value = message(cause);
     } finally {
-      await menuRequest;
       if (request === generation) loading.value = false;
     }
   }
@@ -496,6 +617,7 @@
   }
 
   function openMenuBinding(row: PermissionMenuBinding) {
+    if (!canManage.value || !canReadBundles.value) return;
     selectedMenu.value = row;
     menuPermissionKey.value = row.permission_key;
     menuActionKey.value = row.action_key;
@@ -535,6 +657,7 @@
   }
 
   function create() {
+    if (!canCreate.value) return;
     editingBundle.value = null;
     definition.value = { key: '', name: '', status: 'active' };
     definitionError.value = '';
@@ -542,6 +665,7 @@
   }
 
   function edit(bundle: PermissionBundle) {
+    if (!canUpdate.value || bundle.source !== 'custom') return;
     editingBundle.value = bundle;
     definition.value = {
       key: bundle.key,
@@ -554,7 +678,7 @@
 
   async function saveDefinition() {
     if (
-      !props.canManage ||
+      (editingBundle.value ? !canUpdate.value : !canCreate.value) ||
       saving.value ||
       !definition.value.key.trim() ||
       !definition.value.name.trim()
@@ -592,6 +716,7 @@
   }
 
   async function open(bundle: PermissionBundle) {
+    if (!canReadBindings.value || props.section !== 'apis') return;
     const request = ++detailGeneration;
     visible.value = true;
     detailLoading.value = true;
@@ -617,7 +742,7 @@
 
   async function save() {
     if (
-      !props.canManage ||
+      !canManage.value ||
       selected.value?.status !== 'active' ||
       !selected.value ||
       saving.value ||
@@ -659,6 +784,12 @@
 </script>
 
 <style scoped>
+  .binding-card {
+    margin-top: 18px;
+  }
+  .el-select {
+    min-width: min(320px, 80vw);
+  }
   .permission-api-row {
     margin: 8px 0;
   }

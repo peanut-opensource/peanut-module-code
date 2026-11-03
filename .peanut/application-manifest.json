@@ -44,22 +44,22 @@
     },
     "template": {
         "version": "5.0.15",
-        "inventory_sha256": "9d4ff3907f9b389ffd48b42cfca84d7a879577a8cd29889851b0c1d96e74d3e6",
+        "inventory_sha256": "d89cfd3cc3e738f04d13fcfd2808e6a388ca41dbea41a2b243648482d8ba0016",
         "source_identity": {
             "kind": "local",
-            "snapshot_sha256": "b9dc04b5a3b478040149692cf6f8505e90c0f69df9f202a9c1e9033ab139aaf0"
+            "snapshot_sha256": "8cb81b93ec4172e134df305e664bed5b3cc133e9297c6774d0d28ce38d0cbd9e"
         }
     },
     "generation_source": {
         "repository": "peanut-business/peanut-admin-code",
-        "requested_ref": "local:b9dc04b5a3b478040149692cf6f8505e90c0f69df9f202a9c1e9033ab139aaf0",
+        "requested_ref": "local:8cb81b93ec4172e134df305e664bed5b3cc133e9297c6774d0d28ce38d0cbd9e",
         "channel": "development",
         "release_version": null,
         "source_identity": {
             "kind": "local",
-            "snapshot_sha256": "b9dc04b5a3b478040149692cf6f8505e90c0f69df9f202a9c1e9033ab139aaf0"
+            "snapshot_sha256": "8cb81b93ec4172e134df305e664bed5b3cc133e9297c6774d0d28ce38d0cbd9e"
         },
-        "inventory_sha256": "9d4ff3907f9b389ffd48b42cfca84d7a879577a8cd29889851b0c1d96e74d3e6",
+        "inventory_sha256": "d89cfd3cc3e738f04d13fcfd2808e6a388ca41dbea41a2b243648482d8ba0016",
         "edition_profile_sha256": "c6a2991cf52f79b0055b0aa1707ca9bfefd09f75f9f611b37da24c4410fed50e"
     },
     "ownership": {
@@ -72,7 +72,7 @@
         "baseline_root": ".peanut/scaffold-baseline/5.0.15/files"
     },
     "digests": {
-        "managed_tree_sha256": "eaf8b81399e414438533b84573f74d912170ed81ce3d505fd94fb59b5adbe807",
+        "managed_tree_sha256": "de9c03797f45b5ec79a19dbeb1f81fef3cd718604aa6b7460235e165187ae99c",
         "app_owned_tree_sha256": "bf0a1c494bb8fc03a0f2b83b8bbc301e0c4fe2a251467e5e7f541cfd2947dc14"
     },
     "files": [
@@ -199,13 +199,13 @@
         },
         {
             "path": "RELEASE_METADATA.json",
-            "sha256": "b4b655cb9136f2b7fe02f803ca1d0083c27a1dd391bbd82255624b319b674411",
+            "sha256": "c8242a5f92e91513e418a4bedf6aa3aedb00a9a6fb7aaee228e5c77a623d731a",
             "mode": 420,
             "classification": "generated-managed",
             "owner": "scaffold",
             "source": "RELEASE_METADATA.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/RELEASE_METADATA.json",
-            "baseline_sha256": "b4b655cb9136f2b7fe02f803ca1d0083c27a1dd391bbd82255624b319b674411",
+            "baseline_sha256": "c8242a5f92e91513e418a4bedf6aa3aedb00a9a6fb7aaee228e5c77a623d731a",
             "baseline_mode": 420
         },
         {
@@ -482,24 +482,24 @@
         },
         {
             "path": "docs/architecture/identity-organization-access.md",
-            "sha256": "834d832f790727e18653158729f57fe19faf7c4ec3f5bd28aad2c59387f72e72",
+            "sha256": "e94b097de7846aa259fd14b041b73cc5c4589bcebbe45006d7b525c3540e3818",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "docs/architecture/identity-organization-access.md",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/docs/architecture/identity-organization-access.md",
-            "baseline_sha256": "834d832f790727e18653158729f57fe19faf7c4ec3f5bd28aad2c59387f72e72",
+            "baseline_sha256": "e94b097de7846aa259fd14b041b73cc5c4589bcebbe45006d7b525c3540e3818",
             "baseline_mode": 420
         },
         {
             "path": "docs/architecture/module-development-delivery.md",
-            "sha256": "0a863116c8b6ebe1a4b8f3f9543f6df2cd596067a2bf6774fbd8e53131a4d71f",
+            "sha256": "bf0aba5205d799fa1e8c8ea72875fd35748736fdce5a1367287c46674f724e35",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "docs/architecture/module-development-delivery.md",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/docs/architecture/module-development-delivery.md",
-            "baseline_sha256": "0a863116c8b6ebe1a4b8f3f9543f6df2cd596067a2bf6774fbd8e53131a4d71f",
+            "baseline_sha256": "bf0aba5205d799fa1e8c8ea72875fd35748736fdce5a1367287c46674f724e35",
             "baseline_mode": 420
         },
         {
@@ -581,13 +581,13 @@
         },
         {
             "path": "docs/development/menu-navigation.md",
-            "sha256": "4a22dc790c01dc89da7b1ac7b9b659b876c7e2035edc5e7f6b5dc395263ab332",
+            "sha256": "a09a159fcc55531357a8395d084d0eb91e81cf3bc1eccc00ff2095d2ed9846d6",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "docs/development/menu-navigation.md",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/docs/development/menu-navigation.md",
-            "baseline_sha256": "4a22dc790c01dc89da7b1ac7b9b659b876c7e2035edc5e7f6b5dc395263ab332",
+            "baseline_sha256": "a09a159fcc55531357a8395d084d0eb91e81cf3bc1eccc00ff2095d2ed9846d6",
             "baseline_mode": 420
         },
         {
@@ -647,13 +647,13 @@
         },
         {
             "path": "docs/public/api-and-sdk.md",
-            "sha256": "bd0e8ad3ea6bf4852433d31831d746a1339f6a53a2b180f9aec80c6605939a86",
+            "sha256": "1a33439f38b5c2e951a6c3ad33eebd716dd6fb58ce8e5ff8bf2e0eaf31fd45c2",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "docs/public/api-and-sdk.md",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/docs/public/api-and-sdk.md",
-            "baseline_sha256": "bd0e8ad3ea6bf4852433d31831d746a1339f6a53a2b180f9aec80c6605939a86",
+            "baseline_sha256": "1a33439f38b5c2e951a6c3ad33eebd716dd6fb58ce8e5ff8bf2e0eaf31fd45c2",
             "baseline_mode": 420
         },
         {
@@ -680,13 +680,13 @@
         },
         {
             "path": "docs/public/module-development.md",
-            "sha256": "49cb1f4539b8bbf5d59d1f1e63a2c53088df96fae905e327fa0e480f770d5f6a",
+            "sha256": "24c393a0af11319313f98cae64e0432c16c382e5150bb92d8d4035d36c280010",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "docs/public/module-development.md",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/docs/public/module-development.md",
-            "baseline_sha256": "49cb1f4539b8bbf5d59d1f1e63a2c53088df96fae905e327fa0e480f770d5f6a",
+            "baseline_sha256": "24c393a0af11319313f98cae64e0432c16c382e5150bb92d8d4035d36c280010",
             "baseline_mode": 420
         },
         {
@@ -713,13 +713,13 @@
         },
         {
             "path": "modules.lock",
-            "sha256": "9090a8b5894dd00129e3558bb558388f97b59281229a9fda3baec82938dfacfa",
+            "sha256": "ffb79066305dd9d00828aa0f9125807baf9f197026b8d346c1b1f1f1ed4bf1dd",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "modules.lock",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/modules.lock",
-            "baseline_sha256": "9090a8b5894dd00129e3558bb558388f97b59281229a9fda3baec82938dfacfa",
+            "baseline_sha256": "ffb79066305dd9d00828aa0f9125807baf9f197026b8d346c1b1f1f1ed4bf1dd",
             "baseline_mode": 420
         },
         {
@@ -911,7 +911,7 @@
         },
         {
             "path": "pc/package-lock.json",
-            "sha256": "9645db1812ff1c9aa685e2a6529c595201879633f156ae7763b7b5a91b629096",
+            "sha256": "d2d98b5d3d0e8d70aa38dacd717300dbdc3f4c58e9ded0717b8d8a3713302c62",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
@@ -922,13 +922,13 @@
         },
         {
             "path": "pc/package.json",
-            "sha256": "d9323f414c08462bc706474e8b9ac4a9891713198b963cf506bead9d2fdbf2cb",
+            "sha256": "146d1be7f369acf2acfd55367c603eda7690ebf1ccfbc88e9492b4ebefc802ee",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "pc/package.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/pc/package.json",
-            "baseline_sha256": "d9c235a8936a6e74e30146d5dab34813c88aa0f012441f5914cd1bddaee95d27",
+            "baseline_sha256": "98d727ac6886050a4aa6d3a0655411ab3a5bdb5ba6b68d3ef061aa534251fd9b",
             "baseline_mode": 420
         },
         {
@@ -1263,24 +1263,24 @@
         },
         {
             "path": "platform/package-lock.json",
-            "sha256": "e4bc1ade89da3a3c2c06e1783b95d843b2d20303d7bc011760a1f61721cd2d9a",
+            "sha256": "0b34b9a846c6c00ceb993d89fdfaa3ed3da06fd588389279ea0b5746b1d5370a",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "platform/package-lock.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/platform/package-lock.json",
-            "baseline_sha256": "e4bc1ade89da3a3c2c06e1783b95d843b2d20303d7bc011760a1f61721cd2d9a",
+            "baseline_sha256": "0b34b9a846c6c00ceb993d89fdfaa3ed3da06fd588389279ea0b5746b1d5370a",
             "baseline_mode": 420
         },
         {
             "path": "platform/package.json",
-            "sha256": "07f002f00c618ef0763eb760a6aac0ee9b3f07f05d323a2e7c6c0922c7d8ae69",
+            "sha256": "fb1cad6de9d80678e8ec3e014534b62c9bdf7c0cf096e3b6146b87eea086dc63",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "platform/package.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/platform/package.json",
-            "baseline_sha256": "552d7b82efb44632a98bd45c888916feddb3609e33812357e8f49189485a9ea9",
+            "baseline_sha256": "7660d496f25b649770a178281606d12fda9511e5f570821e09330c2f1d3dc598",
             "baseline_mode": 420
         },
         {
@@ -1296,13 +1296,13 @@
         },
         {
             "path": "platform/src/App.vue",
-            "sha256": "8ff55597720b239d52c782da58a65c2fdf1e57e275865854c5b6de18b924b7c8",
+            "sha256": "7dd3a5194797aed6cbcd5aa0022fa6ff6315ab5ef49f23e470cb93fc40d6be9f",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "platform/src/App.vue",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/platform/src/App.vue",
-            "baseline_sha256": "8ff55597720b239d52c782da58a65c2fdf1e57e275865854c5b6de18b924b7c8",
+            "baseline_sha256": "7dd3a5194797aed6cbcd5aa0022fa6ff6315ab5ef49f23e470cb93fc40d6be9f",
             "baseline_mode": 420
         },
         {
@@ -1318,13 +1318,13 @@
         },
         {
             "path": "platform/src/api/platform.ts",
-            "sha256": "981d228abe7d90638172468f1e3824e93729c0456e9a9c8714e7550f57f2b092",
+            "sha256": "15e37e8a893598e6cb2f6da622ab58f1c8b83fbaa1721a6e215a3adb427b5936",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "platform/src/api/platform.ts",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/platform/src/api/platform.ts",
-            "baseline_sha256": "981d228abe7d90638172468f1e3824e93729c0456e9a9c8714e7550f57f2b092",
+            "baseline_sha256": "15e37e8a893598e6cb2f6da622ab58f1c8b83fbaa1721a6e215a3adb427b5936",
             "baseline_mode": 420
         },
         {
@@ -1340,35 +1340,35 @@
         },
         {
             "path": "platform/src/components/DeveloperCenterPage.vue",
-            "sha256": "5c97f958e3e9cc12c6b562ec4d5fe5636703051627d38d9055b0334246acf445",
+            "sha256": "711da35cb9842df12d3cdcc489f8944c86a9d178d17d5c4156f1895e95ae4c37",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "platform/src/components/DeveloperCenterPage.vue",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/platform/src/components/DeveloperCenterPage.vue",
-            "baseline_sha256": "5c97f958e3e9cc12c6b562ec4d5fe5636703051627d38d9055b0334246acf445",
+            "baseline_sha256": "711da35cb9842df12d3cdcc489f8944c86a9d178d17d5c4156f1895e95ae4c37",
             "baseline_mode": 420
         },
         {
             "path": "platform/src/components/PermissionBundlesPanel.vue",
-            "sha256": "0a7d2fc9d7a9b77742bfc1188d829b54505e3f9a76840fe23856489d014fe329",
+            "sha256": "b55318b31cdf3ace35949625f10a2844cfb792357520aeb6a96e9f315acb12c3",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "platform/src/components/PermissionBundlesPanel.vue",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/platform/src/components/PermissionBundlesPanel.vue",
-            "baseline_sha256": "0a7d2fc9d7a9b77742bfc1188d829b54505e3f9a76840fe23856489d014fe329",
+            "baseline_sha256": "b55318b31cdf3ace35949625f10a2844cfb792357520aeb6a96e9f315acb12c3",
             "baseline_mode": 420
         },
         {
             "path": "platform/src/components/PlansPanel.vue",
-            "sha256": "3dbd67e7c94f03185fb2a9a9f7efa010e65905e738f640381d4fbe7b720de90c",
+            "sha256": "f7e92d559d0eee8713f4f5bb6eed099557fa3ac76cd63e03944a0767f2a9fdda",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "platform/src/components/PlansPanel.vue",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/platform/src/components/PlansPanel.vue",
-            "baseline_sha256": "3dbd67e7c94f03185fb2a9a9f7efa010e65905e738f640381d4fbe7b720de90c",
+            "baseline_sha256": "f7e92d559d0eee8713f4f5bb6eed099557fa3ac76cd63e03944a0767f2a9fdda",
             "baseline_mode": 420
         },
         {
@@ -1383,14 +1383,47 @@
             "baseline_mode": 420
         },
         {
+            "path": "platform/src/components/StructuredDetails.vue",
+            "sha256": "fc727fd367e4f8d4fd7318206d8441d8a2132c3fd1183495b4019d2d162b8b82",
+            "mode": 420,
+            "classification": "managed",
+            "owner": "scaffold",
+            "source": "platform/src/components/StructuredDetails.vue",
+            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/platform/src/components/StructuredDetails.vue",
+            "baseline_sha256": "fc727fd367e4f8d4fd7318206d8441d8a2132c3fd1183495b4019d2d162b8b82",
+            "baseline_mode": 420
+        },
+        {
+            "path": "platform/src/components/TenantDetailsDialog.vue",
+            "sha256": "e76e669fa03eede9e1624460fc83a91469a186edd39d25697ea0b0a8bce8c108",
+            "mode": 420,
+            "classification": "managed",
+            "owner": "scaffold",
+            "source": "platform/src/components/TenantDetailsDialog.vue",
+            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/platform/src/components/TenantDetailsDialog.vue",
+            "baseline_sha256": "e76e669fa03eede9e1624460fc83a91469a186edd39d25697ea0b0a8bce8c108",
+            "baseline_mode": 420
+        },
+        {
             "path": "platform/src/components/TenantLicensePanel.vue",
-            "sha256": "500ea40ee1ea2ba712faec0d6f2969b4311a93b6d58b6fc35e7a8d48e3832d0a",
+            "sha256": "789aca6cb89f3774cfc794bd842a611dea61f2cf35c14e9c63699db4129cc2dc",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "platform/src/components/TenantLicensePanel.vue",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/platform/src/components/TenantLicensePanel.vue",
-            "baseline_sha256": "500ea40ee1ea2ba712faec0d6f2969b4311a93b6d58b6fc35e7a8d48e3832d0a",
+            "baseline_sha256": "789aca6cb89f3774cfc794bd842a611dea61f2cf35c14e9c63699db4129cc2dc",
+            "baseline_mode": 420
+        },
+        {
+            "path": "platform/src/core/platform-access.ts",
+            "sha256": "6772ed9d9f3296cc447037a230e518415bf1c72227b851f415fa40df1a9d320e",
+            "mode": 420,
+            "classification": "managed",
+            "owner": "scaffold",
+            "source": "platform/src/core/platform-access.ts",
+            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/platform/src/core/platform-access.ts",
+            "baseline_sha256": "6772ed9d9f3296cc447037a230e518415bf1c72227b851f415fa40df1a9d320e",
             "baseline_mode": 420
         },
         {
@@ -1549,13 +1582,13 @@
         },
         {
             "path": "platform/src/modules/peanut-ops/package.json",
-            "sha256": "46622ec600c055001b5c266ee61754035976d5877ce3a7a121ddb238c7713b39",
+            "sha256": "cb0f74a35f9395629842fc664e380999bafb958b03b3be9e1c7241e23965989a",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "platform/src/modules/peanut-ops/package.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/platform/src/modules/peanut-ops/package.json",
-            "baseline_sha256": "46622ec600c055001b5c266ee61754035976d5877ce3a7a121ddb238c7713b39",
+            "baseline_sha256": "cb0f74a35f9395629842fc664e380999bafb958b03b3be9e1c7241e23965989a",
             "baseline_mode": 420
         },
         {
@@ -1582,13 +1615,13 @@
         },
         {
             "path": "platform/src/modules/peanut-ops/runtime/src/OpsConsolePage.vue",
-            "sha256": "520adad735f28c6bd9fd30c48cbae2212ba104f96dfa6b4e7aa4261b7953beb4",
+            "sha256": "5940cf69bfa1a4a89078f0908fa5cd4060ece2cf825793ecd4c34fcd9769d64b",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "platform/src/modules/peanut-ops/runtime/src/OpsConsolePage.vue",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/platform/src/modules/peanut-ops/runtime/src/OpsConsolePage.vue",
-            "baseline_sha256": "520adad735f28c6bd9fd30c48cbae2212ba104f96dfa6b4e7aa4261b7953beb4",
+            "baseline_sha256": "5940cf69bfa1a4a89078f0908fa5cd4060ece2cf825793ecd4c34fcd9769d64b",
             "baseline_mode": 420
         },
         {
@@ -1615,13 +1648,13 @@
         },
         {
             "path": "platform/src/modules/peanut-ops/runtime/src/runtime.ts",
-            "sha256": "70d2e12bbf2d4a0b3dfe5dfc09185139300641a0a934c6e515d9ec0c00dc129e",
+            "sha256": "f73a3ca0ba07f10510dcafe72eeec8699275d9de9bee5d042aca8f1194a4135b",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "platform/src/modules/peanut-ops/runtime/src/runtime.ts",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/platform/src/modules/peanut-ops/runtime/src/runtime.ts",
-            "baseline_sha256": "70d2e12bbf2d4a0b3dfe5dfc09185139300641a0a934c6e515d9ec0c00dc129e",
+            "baseline_sha256": "f73a3ca0ba07f10510dcafe72eeec8699275d9de9bee5d042aca8f1194a4135b",
             "baseline_mode": 420
         },
         {
@@ -1692,13 +1725,13 @@
         },
         {
             "path": "platform/src/style.css",
-            "sha256": "1c5234c9108ec9d686f798feace9b0843ff3ed01754641fdac518edd91c32b95",
+            "sha256": "d95e592fce4bd1bf964eeceb6f476715054f099ed99a360c26c82343515e056c",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "platform/src/style.css",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/platform/src/style.css",
-            "baseline_sha256": "1c5234c9108ec9d686f798feace9b0843ff3ed01754641fdac518edd91c32b95",
+            "baseline_sha256": "d95e592fce4bd1bf964eeceb6f476715054f099ed99a360c26c82343515e056c",
             "baseline_mode": 420
         },
         {
@@ -1876,13 +1909,13 @@
         },
         {
             "path": "scripts/check-thinkphp-architecture",
-            "sha256": "50fa777159a712efabb72d25d23f05804afd7a593131a88bf505d36b9d71de01",
+            "sha256": "63e5c597a5f46e103f470bd07e4d915ed12b1e23e8a10c823e76e2483da211ab",
             "mode": 493,
             "classification": "managed",
             "owner": "scaffold",
             "source": "scripts/check-thinkphp-architecture",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/scripts/check-thinkphp-architecture",
-            "baseline_sha256": "50fa777159a712efabb72d25d23f05804afd7a593131a88bf505d36b9d71de01",
+            "baseline_sha256": "63e5c597a5f46e103f470bd07e4d915ed12b1e23e8a10c823e76e2483da211ab",
             "baseline_mode": 493
         },
         {
@@ -1898,13 +1931,13 @@
         },
         {
             "path": "scripts/deploy-update.sh",
-            "sha256": "21d67c1e66b655e8773315630b1dae05ac19ecc8bb3c7eeee6c71351182d5029",
+            "sha256": "e2e6be61b0ce9a6bd67354179941ccf67fa9d37c7290b03b8a1710b2af47fff3",
             "mode": 493,
             "classification": "managed",
             "owner": "scaffold",
             "source": "scripts/deploy-update.sh",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/scripts/deploy-update.sh",
-            "baseline_sha256": "21d67c1e66b655e8773315630b1dae05ac19ecc8bb3c7eeee6c71351182d5029",
+            "baseline_sha256": "e2e6be61b0ce9a6bd67354179941ccf67fa9d37c7290b03b8a1710b2af47fff3",
             "baseline_mode": 493
         },
         {
@@ -2140,13 +2173,13 @@
         },
         {
             "path": "scripts/scaffold-runtime/ScaffoldUpgradeRunner.php",
-            "sha256": "abdf69fae7b25e3592723bcc75864a791d3491bc99ba5bd11cf3a58c1cd4a6a7",
+            "sha256": "d400c6f12ebc2a614b78a4e0f389d21d1ed6b65fa0f2a8a69791f0cacbf4b8ea",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "scripts/scaffold-runtime/ScaffoldUpgradeRunner.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/scripts/scaffold-runtime/ScaffoldUpgradeRunner.php",
-            "baseline_sha256": "abdf69fae7b25e3592723bcc75864a791d3491bc99ba5bd11cf3a58c1cd4a6a7",
+            "baseline_sha256": "d400c6f12ebc2a614b78a4e0f389d21d1ed6b65fa0f2a8a69791f0cacbf4b8ea",
             "baseline_mode": 420
         },
         {
@@ -2162,13 +2195,13 @@
         },
         {
             "path": "scripts/scaffold-runtime/scaffold.conf.json",
-            "sha256": "9fd62728b9a3959e86068dc85bebd2373736e891684cb1f2457213e2136f6dba",
+            "sha256": "228770545ba01f5bbff1a25fa2b1440db8cd49580feaefc668fbeb2a4ff58a26",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "scripts/scaffold-runtime/scaffold.conf.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/scripts/scaffold-runtime/scaffold.conf.json",
-            "baseline_sha256": "9fd62728b9a3959e86068dc85bebd2373736e891684cb1f2457213e2136f6dba",
+            "baseline_sha256": "228770545ba01f5bbff1a25fa2b1440db8cd49580feaefc668fbeb2a4ff58a26",
             "baseline_mode": 420
         },
         {
@@ -2698,13 +2731,13 @@
         },
         {
             "path": "server/app/adminapi/services/auth/MenuApplicationService.php",
-            "sha256": "275dad071b1fe9c2cd213e80a070bd86548c079a01c60439c2bae9d0daec584a",
+            "sha256": "6a6cbb26480ebbdbb682fa3e86f6c3589694d430459ca1aefd1c26503934265f",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/adminapi/services/auth/MenuApplicationService.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/adminapi/services/auth/MenuApplicationService.php",
-            "baseline_sha256": "275dad071b1fe9c2cd213e80a070bd86548c079a01c60439c2bae9d0daec584a",
+            "baseline_sha256": "6a6cbb26480ebbdbb682fa3e86f6c3589694d430459ca1aefd1c26503934265f",
             "baseline_mode": 420
         },
         {
@@ -2797,13 +2830,13 @@
         },
         {
             "path": "server/app/adminapi/services/generator/GeneratorRenderService.php",
-            "sha256": "35203361bebc266be4d8a28f8035aec5532a897afd9dcc1b1a6dae18ebc46169",
+            "sha256": "368c7511a1149ad3acf3170eb66c3782ff12ecf922d8938fafcf8b0851ce4888",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/adminapi/services/generator/GeneratorRenderService.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/adminapi/services/generator/GeneratorRenderService.php",
-            "baseline_sha256": "35203361bebc266be4d8a28f8035aec5532a897afd9dcc1b1a6dae18ebc46169",
+            "baseline_sha256": "368c7511a1149ad3acf3170eb66c3782ff12ecf922d8938fafcf8b0851ce4888",
             "baseline_mode": 420
         },
         {
@@ -3144,13 +3177,13 @@
         },
         {
             "path": "server/app/api/metadata/application/platform.php",
-            "sha256": "213c7d98f0d0ab2fcb7175d969666ad7b7ee26808c03a6933fb2b9421c642b6c",
+            "sha256": "0d76507c2a1deb5724afa7c173dd5faa2065f1fa09c827e2db6acbb18b0508f9",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/api/metadata/application/platform.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/api/metadata/application/platform.php",
-            "baseline_sha256": "213c7d98f0d0ab2fcb7175d969666ad7b7ee26808c03a6933fb2b9421c642b6c",
+            "baseline_sha256": "0d76507c2a1deb5724afa7c173dd5faa2065f1fa09c827e2db6acbb18b0508f9",
             "baseline_mode": 420
         },
         {
@@ -3368,17 +3401,6 @@
             "source": "server/app/command/Crontab.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/command/Crontab.php",
             "baseline_sha256": "d1d8f2a975f2bb107bd61f187c8695aa05e49c69869a39f58ba5c1fa2bd6a8b9",
-            "baseline_mode": 420
-        },
-        {
-            "path": "server/app/command/CrontabDemo.php",
-            "sha256": "dfe42ed9d80e6a497985542517ed26732ba80d970da9aefbec51facfd27d8121",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/app/command/CrontabDemo.php",
-            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/command/CrontabDemo.php",
-            "baseline_sha256": "dfe42ed9d80e6a497985542517ed26732ba80d970da9aefbec51facfd27d8121",
             "baseline_mode": 420
         },
         {
@@ -4556,13 +4578,13 @@
         },
         {
             "path": "server/app/common/infrastructure/authorization/CoreTenantModuleAdminBridge.php",
-            "sha256": "ab26c7c46b098b3b8ad3534c4cb2bbe46d95467504366260234baff12daf6f05",
+            "sha256": "3356de50383ddd8c551d4b4f67ec2347f8674daf8eb0d5aa8b2bb676eb6d082c",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/common/infrastructure/authorization/CoreTenantModuleAdminBridge.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/common/infrastructure/authorization/CoreTenantModuleAdminBridge.php",
-            "baseline_sha256": "ab26c7c46b098b3b8ad3534c4cb2bbe46d95467504366260234baff12daf6f05",
+            "baseline_sha256": "3356de50383ddd8c551d4b4f67ec2347f8674daf8eb0d5aa8b2bb676eb6d082c",
             "baseline_mode": 420
         },
         {
@@ -5194,13 +5216,13 @@
         },
         {
             "path": "server/app/common/services/CrontabCommandService.php",
-            "sha256": "4147117b9bdbeef433b988630a8fd663b0579f1d279279892fba048aa5c16009",
+            "sha256": "cdd8ab65171b3dbc508bdf2b38d3d963f22ba9efa7134a919b40e7ebf4b5517b",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/common/services/CrontabCommandService.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/common/services/CrontabCommandService.php",
-            "baseline_sha256": "4147117b9bdbeef433b988630a8fd663b0579f1d279279892fba048aa5c16009",
+            "baseline_sha256": "cdd8ab65171b3dbc508bdf2b38d3d963f22ba9efa7134a919b40e7ebf4b5517b",
             "baseline_mode": 420
         },
         {
@@ -5337,13 +5359,13 @@
         },
         {
             "path": "server/app/common/services/installation/InstallationExecutionHost.php",
-            "sha256": "13da688ff1bf197b39af76d3cda8bd255c906b55b490d5e586ece2e6091fad1f",
+            "sha256": "467c63f696a25b2e2b85eaeded7e641d95ba242646e2d117cb158bd04d4dabcd",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/common/services/installation/InstallationExecutionHost.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/common/services/installation/InstallationExecutionHost.php",
-            "baseline_sha256": "13da688ff1bf197b39af76d3cda8bd255c906b55b490d5e586ece2e6091fad1f",
+            "baseline_sha256": "467c63f696a25b2e2b85eaeded7e641d95ba242646e2d117cb158bd04d4dabcd",
             "baseline_mode": 420
         },
         {
@@ -6001,24 +6023,24 @@
         },
         {
             "path": "server/app/modules/peanut/file/api/metadata/openapi.php",
-            "sha256": "b1eb773f382154c8cfacbc160ba2bebe0a9fd50ca50bb13bee2d98ca916a0276",
+            "sha256": "03085df6e13bc8791c8da7b8ecaa5b5396474225abdf34cb59619e8729312ab6",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/file/api/metadata/openapi.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/file/api/metadata/openapi.php",
-            "baseline_sha256": "b1eb773f382154c8cfacbc160ba2bebe0a9fd50ca50bb13bee2d98ca916a0276",
+            "baseline_sha256": "03085df6e13bc8791c8da7b8ecaa5b5396474225abdf34cb59619e8729312ab6",
             "baseline_mode": 420
         },
         {
             "path": "server/app/modules/peanut/file/composer.json",
-            "sha256": "c75a44d13bfba34267bb501d2632c93d38afdf9a86501781a64287a721e0c461",
+            "sha256": "cf1534944a7e0f31164e7e158c82fca99e9f2a6280491b04fdec195752579c50",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/file/composer.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/file/composer.json",
-            "baseline_sha256": "c75a44d13bfba34267bb501d2632c93d38afdf9a86501781a64287a721e0c461",
+            "baseline_sha256": "cf1534944a7e0f31164e7e158c82fca99e9f2a6280491b04fdec195752579c50",
             "baseline_mode": 420
         },
         {
@@ -6045,13 +6067,13 @@
         },
         {
             "path": "server/app/modules/peanut/file/module.json",
-            "sha256": "6f3141922dbe05f89919e595ea56b119103ae047ec9f83e3d6f4d1fa2312a9f6",
+            "sha256": "4d639d4a2fbf49390d06e70a947174e9e7f755fdc0ac48e138098982dbfdbeed",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/file/module.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/file/module.json",
-            "baseline_sha256": "6f3141922dbe05f89919e595ea56b119103ae047ec9f83e3d6f4d1fa2312a9f6",
+            "baseline_sha256": "4d639d4a2fbf49390d06e70a947174e9e7f755fdc0ac48e138098982dbfdbeed",
             "baseline_mode": 420
         },
         {
@@ -6089,13 +6111,13 @@
         },
         {
             "path": "server/app/modules/peanut/file/route/app.php",
-            "sha256": "4d6e34503eef95d131b7b5ac0bb8e5151041187aa158bc2ced30a959fe17c3ed",
+            "sha256": "d7c7eac22bff275513725aef9c3a2c2ea9523ea2bf872455d2f3a6a5ec9051ca",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/file/route/app.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/file/route/app.php",
-            "baseline_sha256": "4d6e34503eef95d131b7b5ac0bb8e5151041187aa158bc2ced30a959fe17c3ed",
+            "baseline_sha256": "d7c7eac22bff275513725aef9c3a2c2ea9523ea2bf872455d2f3a6a5ec9051ca",
             "baseline_mode": 420
         },
         {
@@ -6298,13 +6320,13 @@
         },
         {
             "path": "server/app/modules/peanut/file/src/Contract/StorageConfiguration.php",
-            "sha256": "7b1242888d0cf9acf9b8ee0eea0421c8f8c624500bbcd75dbdac2d03965dd582",
+            "sha256": "4e34a9a72abd3ec48e5e9562bea13fac479e49aef228380bbf210379b48b2def",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/file/src/Contract/StorageConfiguration.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/file/src/Contract/StorageConfiguration.php",
-            "baseline_sha256": "7b1242888d0cf9acf9b8ee0eea0421c8f8c624500bbcd75dbdac2d03965dd582",
+            "baseline_sha256": "4e34a9a72abd3ec48e5e9562bea13fac479e49aef228380bbf210379b48b2def",
             "baseline_mode": 420
         },
         {
@@ -6694,13 +6716,13 @@
         },
         {
             "path": "server/app/modules/peanut/file/src/Service/Storage/StorageConfigurationService.php",
-            "sha256": "10ca605d666cb72297e594d214cb4953d79e41e404311ef989ce17fd00ba069e",
+            "sha256": "1f97221be1e629862040775940cc0dc7579711dc054c9eb74d1e7497007ccba7",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/file/src/Service/Storage/StorageConfigurationService.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/file/src/Service/Storage/StorageConfigurationService.php",
-            "baseline_sha256": "10ca605d666cb72297e594d214cb4953d79e41e404311ef989ce17fd00ba069e",
+            "baseline_sha256": "1f97221be1e629862040775940cc0dc7579711dc054c9eb74d1e7497007ccba7",
             "baseline_mode": 420
         },
         {
@@ -6749,13 +6771,13 @@
         },
         {
             "path": "server/app/modules/peanut/identity/README.md",
-            "sha256": "88713f24abdd40dfbb1b962d0911ed7d319e11e8aec4e8e82b7a2b0144c27ba0",
+            "sha256": "3d7f0e3d7802a5b15d8df3209f6ae9dc301109a343259ecb8d0db6fc9adbe552",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/identity/README.md",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/identity/README.md",
-            "baseline_sha256": "88713f24abdd40dfbb1b962d0911ed7d319e11e8aec4e8e82b7a2b0144c27ba0",
+            "baseline_sha256": "3d7f0e3d7802a5b15d8df3209f6ae9dc301109a343259ecb8d0db6fc9adbe552",
             "baseline_mode": 420
         },
         {
@@ -6771,13 +6793,13 @@
         },
         {
             "path": "server/app/modules/peanut/identity/composer.json",
-            "sha256": "3e85048c37034db29d94ce167bd3f2b272b6ce588ffc1f8823cc65eb51e00e90",
+            "sha256": "c4a98a360ef1a11bb8e909ee95424412824c81ba26cb38d93f9ec706b298a12c",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/identity/composer.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/identity/composer.json",
-            "baseline_sha256": "3e85048c37034db29d94ce167bd3f2b272b6ce588ffc1f8823cc65eb51e00e90",
+            "baseline_sha256": "c4a98a360ef1a11bb8e909ee95424412824c81ba26cb38d93f9ec706b298a12c",
             "baseline_mode": 420
         },
         {
@@ -6836,14 +6858,47 @@
             "baseline_mode": 420
         },
         {
+            "path": "server/app/modules/peanut/identity/database/migrations/20261107000000_platform_permission_sections.php",
+            "sha256": "ba05ab596635fce86cd246acd7001ee7d521d9861528029e0e27da490a2318e9",
+            "mode": 420,
+            "classification": "managed",
+            "owner": "scaffold",
+            "source": "server/app/modules/peanut/identity/database/migrations/20261107000000_platform_permission_sections.php",
+            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/identity/database/migrations/20261107000000_platform_permission_sections.php",
+            "baseline_sha256": "ba05ab596635fce86cd246acd7001ee7d521d9861528029e0e27da490a2318e9",
+            "baseline_mode": 420
+        },
+        {
+            "path": "server/app/modules/peanut/identity/database/migrations/20261107005900_initialize_menu_allocation_metadata.php",
+            "sha256": "1345ee56be57cb22e73c8b957557706443ffb4c19a29ff8f88e9ae600be5dd7a",
+            "mode": 420,
+            "classification": "managed",
+            "owner": "scaffold",
+            "source": "server/app/modules/peanut/identity/database/migrations/20261107005900_initialize_menu_allocation_metadata.php",
+            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/identity/database/migrations/20261107005900_initialize_menu_allocation_metadata.php",
+            "baseline_sha256": "1345ee56be57cb22e73c8b957557706443ffb4c19a29ff8f88e9ae600be5dd7a",
+            "baseline_mode": 420
+        },
+        {
+            "path": "server/app/modules/peanut/identity/database/migrations/20261107010000_reserve_custom_menu_ids.php",
+            "sha256": "0a50e843a4cd953576dc7bb38a102d824dab41c02aa12bf26f51ed1e27768fb4",
+            "mode": 420,
+            "classification": "managed",
+            "owner": "scaffold",
+            "source": "server/app/modules/peanut/identity/database/migrations/20261107010000_reserve_custom_menu_ids.php",
+            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/identity/database/migrations/20261107010000_reserve_custom_menu_ids.php",
+            "baseline_sha256": "0a50e843a4cd953576dc7bb38a102d824dab41c02aa12bf26f51ed1e27768fb4",
+            "baseline_mode": 420
+        },
+        {
             "path": "server/app/modules/peanut/identity/module.json",
-            "sha256": "64a884ea110ef7c02b3a4582ec318fc2f00d4d34d4bb9540f1ee535d9a6e82f9",
+            "sha256": "36e089d8ba291679581eb6dfdf01578165d82032541d04adc9b6d126e1744dde",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/identity/module.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/identity/module.json",
-            "baseline_sha256": "64a884ea110ef7c02b3a4582ec318fc2f00d4d34d4bb9540f1ee535d9a6e82f9",
+            "baseline_sha256": "36e089d8ba291679581eb6dfdf01578165d82032541d04adc9b6d126e1744dde",
             "baseline_mode": 420
         },
         {
@@ -7123,13 +7178,13 @@
         },
         {
             "path": "server/app/modules/peanut/identity/src/Authorization/ApiPermissionCatalog.php",
-            "sha256": "8faa0282754acf1f30f455f537524e1b05c484d1add4a63995737aceaaab4041",
+            "sha256": "5304dc5c045b7107d82de25827b5afb30ba6af04205b00d177b6213ec06f59a7",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/identity/src/Authorization/ApiPermissionCatalog.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/identity/src/Authorization/ApiPermissionCatalog.php",
-            "baseline_sha256": "8faa0282754acf1f30f455f537524e1b05c484d1add4a63995737aceaaab4041",
+            "baseline_sha256": "5304dc5c045b7107d82de25827b5afb30ba6af04205b00d177b6213ec06f59a7",
             "baseline_mode": 420
         },
         {
@@ -7156,13 +7211,13 @@
         },
         {
             "path": "server/app/modules/peanut/identity/src/Authorization/CorePermissionCatalog.php",
-            "sha256": "3b312d5d7d85f52edc20083359a001ea39f0f4978c1299be963d36b7cfd0ef83",
+            "sha256": "211b5206a54050a103bcd5f2cfa771777ce8fa0f0d71699e9705d769cc24cdc5",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/identity/src/Authorization/CorePermissionCatalog.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/identity/src/Authorization/CorePermissionCatalog.php",
-            "baseline_sha256": "3b312d5d7d85f52edc20083359a001ea39f0f4978c1299be963d36b7cfd0ef83",
+            "baseline_sha256": "211b5206a54050a103bcd5f2cfa771777ce8fa0f0d71699e9705d769cc24cdc5",
             "baseline_mode": 420
         },
         {
@@ -7387,13 +7442,13 @@
         },
         {
             "path": "server/app/modules/peanut/identity/src/Contract/PlatformDirectoryQueries.php",
-            "sha256": "38323e5092a58bb2aa3a378c898c8ab0896b75ecdfa6e69ee39c28b4c9d591ed",
+            "sha256": "447d94b8c761907c5e53abe79c24ae74f6da5286cb2e5207633197137335d826",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/identity/src/Contract/PlatformDirectoryQueries.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/identity/src/Contract/PlatformDirectoryQueries.php",
-            "baseline_sha256": "38323e5092a58bb2aa3a378c898c8ab0896b75ecdfa6e69ee39c28b4c9d591ed",
+            "baseline_sha256": "447d94b8c761907c5e53abe79c24ae74f6da5286cb2e5207633197137335d826",
             "baseline_mode": 420
         },
         {
@@ -7893,24 +7948,24 @@
         },
         {
             "path": "server/app/modules/peanut/identity/src/Menu/CoreMenuCatalog.php",
-            "sha256": "b810d680c246d80324941a73f8eb2ff358520cff63b228873d2697c1e5753619",
+            "sha256": "3cfeda44e993eeb5699fd937ecbd62a5c371f0f490c9e4c56339a4417046fe11",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/identity/src/Menu/CoreMenuCatalog.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/identity/src/Menu/CoreMenuCatalog.php",
-            "baseline_sha256": "b810d680c246d80324941a73f8eb2ff358520cff63b228873d2697c1e5753619",
+            "baseline_sha256": "3cfeda44e993eeb5699fd937ecbd62a5c371f0f490c9e4c56339a4417046fe11",
             "baseline_mode": 420
         },
         {
             "path": "server/app/modules/peanut/identity/src/Menu/MenuAdministrationService.php",
-            "sha256": "f28621261448b6001db9a8b9d8d029d2fdec8acc6c9dc2da371496008646a81b",
+            "sha256": "15db75f8a03d3a90a20a062d2e27df79c80e7fa956d8fc01548e52fe5191f971",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/identity/src/Menu/MenuAdministrationService.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/identity/src/Menu/MenuAdministrationService.php",
-            "baseline_sha256": "f28621261448b6001db9a8b9d8d029d2fdec8acc6c9dc2da371496008646a81b",
+            "baseline_sha256": "15db75f8a03d3a90a20a062d2e27df79c80e7fa956d8fc01548e52fe5191f971",
             "baseline_mode": 420
         },
         {
@@ -7926,13 +7981,13 @@
         },
         {
             "path": "server/app/modules/peanut/identity/src/Menu/ThinkPhpMenuCatalogRepository.php",
-            "sha256": "54040d007fde97e62db2a10a82819a60af359c2f3c16d14355ba4586f0bf51bf",
+            "sha256": "8bf83cfd92b749552ff8f5b1cbdb90ae09459e1dd2ab4326a04715ae66166be3",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/identity/src/Menu/ThinkPhpMenuCatalogRepository.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/identity/src/Menu/ThinkPhpMenuCatalogRepository.php",
-            "baseline_sha256": "54040d007fde97e62db2a10a82819a60af359c2f3c16d14355ba4586f0bf51bf",
+            "baseline_sha256": "8bf83cfd92b749552ff8f5b1cbdb90ae09459e1dd2ab4326a04715ae66166be3",
             "baseline_mode": 420
         },
         {
@@ -9268,13 +9323,13 @@
         },
         {
             "path": "server/app/modules/peanut/ops/composer.json",
-            "sha256": "c93070889ff20b55ade9aa8705ba53299cdddd7504266aee5887f5cb8612cf01",
+            "sha256": "6984a9a866ddb5d0561c73eb7365d44c9553e6e719703ac2dbf64713bf3980a0",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/ops/composer.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/ops/composer.json",
-            "baseline_sha256": "c93070889ff20b55ade9aa8705ba53299cdddd7504266aee5887f5cb8612cf01",
+            "baseline_sha256": "6984a9a866ddb5d0561c73eb7365d44c9553e6e719703ac2dbf64713bf3980a0",
             "baseline_mode": 420
         },
         {
@@ -9312,13 +9367,13 @@
         },
         {
             "path": "server/app/modules/peanut/ops/module.json",
-            "sha256": "911f09bc67c89071d3377bb4300afb1f364a5ace28ef4c8d0bd2339b9f47949b",
+            "sha256": "a8c1537a08670f4509f97f3bdfb724234e06e61fda582035bc8154a85e39a485",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/ops/module.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/ops/module.json",
-            "baseline_sha256": "911f09bc67c89071d3377bb4300afb1f364a5ace28ef4c8d0bd2339b9f47949b",
+            "baseline_sha256": "a8c1537a08670f4509f97f3bdfb724234e06e61fda582035bc8154a85e39a485",
             "baseline_mode": 420
         },
         {
@@ -11027,6 +11082,17 @@
             "baseline_mode": 420
         },
         {
+            "path": "server/app/modules/peanut/task/README.md",
+            "sha256": "07a68e6b5a29cd69763bc004e3d6ebe2212e0fcf4d3590aa95a09e30ca88b460",
+            "mode": 420,
+            "classification": "managed",
+            "owner": "scaffold",
+            "source": "server/app/modules/peanut/task/README.md",
+            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/task/README.md",
+            "baseline_sha256": "07a68e6b5a29cd69763bc004e3d6ebe2212e0fcf4d3590aa95a09e30ca88b460",
+            "baseline_mode": 420
+        },
+        {
             "path": "server/app/modules/peanut/task/api/metadata/openapi.php",
             "sha256": "5735b09db10563c92ac7084334522665cb4a67fad479b9c5c686b36166b70ea5",
             "mode": 420,
@@ -11039,13 +11105,13 @@
         },
         {
             "path": "server/app/modules/peanut/task/composer.json",
-            "sha256": "3accd8dc8df6b3c94f49ebf851514d29ea633e3a423f84f9fe0760fb5b9c4fdb",
+            "sha256": "318996469f5c924337913e844ef3c49da3c89758410754f8c7ad0157d51e8cdc",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/task/composer.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/task/composer.json",
-            "baseline_sha256": "3accd8dc8df6b3c94f49ebf851514d29ea633e3a423f84f9fe0760fb5b9c4fdb",
+            "baseline_sha256": "318996469f5c924337913e844ef3c49da3c89758410754f8c7ad0157d51e8cdc",
             "baseline_mode": 420
         },
         {
@@ -11057,6 +11123,17 @@
             "source": "server/app/modules/peanut/task/database/migrations/20261101010006_initial_task_schema.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/task/database/migrations/20261101010006_initial_task_schema.php",
             "baseline_sha256": "86faa4b485513fd86c97f6964c4a68d9aff7c1260fe22fb7b938513298e468f2",
+            "baseline_mode": 420
+        },
+        {
+            "path": "server/app/modules/peanut/task/database/migrations/20261107000004_remove_retired_demo_schedule.php",
+            "sha256": "2785a9de6dd6a532df1199716d7509fb386a754a8db42785eb43f1830bf6a0ea",
+            "mode": 420,
+            "classification": "managed",
+            "owner": "scaffold",
+            "source": "server/app/modules/peanut/task/database/migrations/20261107000004_remove_retired_demo_schedule.php",
+            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/task/database/migrations/20261107000004_remove_retired_demo_schedule.php",
+            "baseline_sha256": "2785a9de6dd6a532df1199716d7509fb386a754a8db42785eb43f1830bf6a0ea",
             "baseline_mode": 420
         },
         {
@@ -11072,13 +11149,13 @@
         },
         {
             "path": "server/app/modules/peanut/task/module.json",
-            "sha256": "d241b5c2e2fc264087add2fe021691217149e479f1722f8f23bf197bf877e4c2",
+            "sha256": "24fdf1f58877f66ead910a87b73b1a295c6a201469c0408963572155177008e7",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/modules/peanut/task/module.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/modules/peanut/task/module.json",
-            "baseline_sha256": "d241b5c2e2fc264087add2fe021691217149e479f1722f8f23bf197bf877e4c2",
+            "baseline_sha256": "24fdf1f58877f66ead910a87b73b1a295c6a201469c0408963572155177008e7",
             "baseline_mode": 420
         },
         {
@@ -11677,13 +11754,13 @@
         },
         {
             "path": "server/app/platform/controller/PermissionApiController.php",
-            "sha256": "332aae314b8648483ab1a194be0594b70bc9cd71a12a49b0faa8788e76114cca",
+            "sha256": "438627d2269d3ca4c6bf68fb81cb61f9a4b44a739a600ad9a5dbf05acefb244c",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/platform/controller/PermissionApiController.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/platform/controller/PermissionApiController.php",
-            "baseline_sha256": "332aae314b8648483ab1a194be0594b70bc9cd71a12a49b0faa8788e76114cca",
+            "baseline_sha256": "438627d2269d3ca4c6bf68fb81cb61f9a4b44a739a600ad9a5dbf05acefb244c",
             "baseline_mode": 420
         },
         {
@@ -11754,24 +11831,24 @@
         },
         {
             "path": "server/app/platform/controller/PlatformSessionController.php",
-            "sha256": "43ef26e7186cac3c128966371cb5b9223a3ba33c6520e815c642a92e8959ca35",
+            "sha256": "566fccf08a517469fd8efe993c1b3c9b4b8b201c808fb2586868b66488689cd5",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/platform/controller/PlatformSessionController.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/platform/controller/PlatformSessionController.php",
-            "baseline_sha256": "43ef26e7186cac3c128966371cb5b9223a3ba33c6520e815c642a92e8959ca35",
+            "baseline_sha256": "566fccf08a517469fd8efe993c1b3c9b4b8b201c808fb2586868b66488689cd5",
             "baseline_mode": 420
         },
         {
             "path": "server/app/platform/controller/PlatformStorageController.php",
-            "sha256": "1a84369d4f24656637672baaa3647b4b571891de83a05254f03362cc7335a95f",
+            "sha256": "551a8eaeef2de447f8ad9010e69184d42a48a92cc563220fd7adcef045e61a0d",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/platform/controller/PlatformStorageController.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/platform/controller/PlatformStorageController.php",
-            "baseline_sha256": "1a84369d4f24656637672baaa3647b4b571891de83a05254f03362cc7335a95f",
+            "baseline_sha256": "551a8eaeef2de447f8ad9010e69184d42a48a92cc563220fd7adcef045e61a0d",
             "baseline_mode": 420
         },
         {
@@ -12161,13 +12238,13 @@
         },
         {
             "path": "server/app/platform/policy/module/ModuleLifecyclePolicy.php",
-            "sha256": "2a325b6c77f2e137f314daee4d75a9067130779e15dcdaa6929440aae3da4a7c",
+            "sha256": "dd5349ee13d3e3c592abc89990e763ec9600078f68a40facc1e0b63a5dd77e73",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/platform/policy/module/ModuleLifecyclePolicy.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/platform/policy/module/ModuleLifecyclePolicy.php",
-            "baseline_sha256": "2a325b6c77f2e137f314daee4d75a9067130779e15dcdaa6929440aae3da4a7c",
+            "baseline_sha256": "dd5349ee13d3e3c592abc89990e763ec9600078f68a40facc1e0b63a5dd77e73",
             "baseline_mode": 420
         },
         {
@@ -12194,13 +12271,13 @@
         },
         {
             "path": "server/app/platform/services/ApplicationTenantBootstrapService.php",
-            "sha256": "30d01c00c677fb9e6d158f8ca33a54f50cb3ee586948e8e34071d07d3a0873a4",
+            "sha256": "42a6cbf18aa69fe28d1f8ec07b8cae29c2b3fe74a55ce67ddcb97eb709e071b9",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/platform/services/ApplicationTenantBootstrapService.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/platform/services/ApplicationTenantBootstrapService.php",
-            "baseline_sha256": "30d01c00c677fb9e6d158f8ca33a54f50cb3ee586948e8e34071d07d3a0873a4",
+            "baseline_sha256": "42a6cbf18aa69fe28d1f8ec07b8cae29c2b3fe74a55ce67ddcb97eb709e071b9",
             "baseline_mode": 420
         },
         {
@@ -12337,13 +12414,13 @@
         },
         {
             "path": "server/app/platform/services/module/ModuleRuntimeGovernanceService.php",
-            "sha256": "4c3cf442c7616c50b3c1baaa6fa516c67e9ec593d21dd9d8666097abde7c04dd",
+            "sha256": "ba23c9559353b9b1ed77df1e9d034197660b75728cb477ee3f832c6d559f2735",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/app/platform/services/module/ModuleRuntimeGovernanceService.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/app/platform/services/module/ModuleRuntimeGovernanceService.php",
-            "baseline_sha256": "4c3cf442c7616c50b3c1baaa6fa516c67e9ec593d21dd9d8666097abde7c04dd",
+            "baseline_sha256": "ba23c9559353b9b1ed77df1e9d034197660b75728cb477ee3f832c6d559f2735",
             "baseline_mode": 420
         },
         {
@@ -12546,24 +12623,24 @@
         },
         {
             "path": "server/composer.json",
-            "sha256": "395d8d079fe28dd7b38e546745cca22fffe2748a3171dce5e154f6eb01103292",
+            "sha256": "eeca89dc10a2df2a3b03c6d2ddfffc62727d43e304975f47dcfe527e1083fe31",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/composer.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/composer.json",
-            "baseline_sha256": "7a54cd67353abb6f280881ee1572dd7d8167b31cf95fe387ba3af24227b6df52",
+            "baseline_sha256": "e781fbc64d20e1b2077aaed42a34129892208d38fa1dcff7da9b566fda9f8262",
             "baseline_mode": 420
         },
         {
             "path": "server/composer.lock",
-            "sha256": "45bfc785b1f6387fbdf4b4fb0a58532357c522675b81f3c6af91afcc3f7b0db8",
+            "sha256": "2a3c56813f6f396b2aa966946aba7bde5ed9f43483d963e2cc68d8efdd7622e9",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/composer.lock",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/composer.lock",
-            "baseline_sha256": "7c6bfd560d710d3696e29c6427f91b3de7c48a78273d3e4056817b5ac7d392c0",
+            "baseline_sha256": "5abd984bb68c04bf6e0e1b016af7c37d1b704993ab12c4f4c0a794f3107a42d4",
             "baseline_mode": 420
         },
         {
@@ -12634,13 +12711,13 @@
         },
         {
             "path": "server/config/console.php",
-            "sha256": "09f4fa327f86c01d3c91eea7ac624cd601e093156e396ddadcb1efda568cd2a5",
+            "sha256": "d9ea7da9fdf0c7756b193b28ab924bc7b843cd285e3b03ef2e5449bcd5ab1d53",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/config/console.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/config/console.php",
-            "baseline_sha256": "09f4fa327f86c01d3c91eea7ac624cd601e093156e396ddadcb1efda568cd2a5",
+            "baseline_sha256": "d9ea7da9fdf0c7756b193b28ab924bc7b843cd285e3b03ef2e5449bcd5ab1d53",
             "baseline_mode": 420
         },
         {
@@ -12873,13 +12950,13 @@
         },
         {
             "path": "server/database/InitialInstallationSource.php",
-            "sha256": "13c0f16a22b2d0362c0bf9c9650df0e2ab6cb36cac9426205aa450dbcd5f6a76",
+            "sha256": "456e1c3cc4281155c0ae276fee9a5aea5834060725d1f6b1b6b8a4fedc70f1a5",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/database/InitialInstallationSource.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/database/InitialInstallationSource.php",
-            "baseline_sha256": "13c0f16a22b2d0362c0bf9c9650df0e2ab6cb36cac9426205aa450dbcd5f6a76",
+            "baseline_sha256": "456e1c3cc4281155c0ae276fee9a5aea5834060725d1f6b1b6b8a4fedc70f1a5",
             "baseline_mode": 420
         },
         {
@@ -12941,6 +13018,28 @@
             "classification": "app-owned",
             "owner": "application",
             "source": "server/database/migrations/20261103230000_unify_module_installation.php"
+        },
+        {
+            "path": "server/database/migrations/20261103235000_remove_retired_transaction_setting.php",
+            "sha256": "6ae6e84f2c3d5d29919a21377f01ae942765141bd9d46a0c6280d55a84622f4d",
+            "mode": 420,
+            "classification": "managed",
+            "owner": "scaffold",
+            "source": "server/database/migrations/20261103235000_remove_retired_transaction_setting.php",
+            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/database/migrations/20261103235000_remove_retired_transaction_setting.php",
+            "baseline_sha256": "6ae6e84f2c3d5d29919a21377f01ae942765141bd9d46a0c6280d55a84622f4d",
+            "baseline_mode": 420
+        },
+        {
+            "path": "server/database/migrations/20261103235500_remove_unchanged_host_examples.php",
+            "sha256": "e5aa0df3c21c64d95641a3894954336b9e081c37592f9ca136a2c6ba564d18c1",
+            "mode": 420,
+            "classification": "managed",
+            "owner": "scaffold",
+            "source": "server/database/migrations/20261103235500_remove_unchanged_host_examples.php",
+            "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/database/migrations/20261103235500_remove_unchanged_host_examples.php",
+            "baseline_sha256": "e5aa0df3c21c64d95641a3894954336b9e081c37592f9ca136a2c6ba564d18c1",
+            "baseline_mode": 420
         },
         {
             "path": "server/database/resource-registry.php",
@@ -13386,24 +13485,24 @@
         },
         {
             "path": "server/generated/api-catalog.json",
-            "sha256": "95a621aab3d50ba1f3ce6cc2f09abc4f177d5e7f140764ff3cd3f1d242aa8be8",
+            "sha256": "dbf63928e8e8864b0f7c6cfeb50dfcccda0cd9200bb98cd6377e01a3645a5f40",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/generated/api-catalog.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/generated/api-catalog.json",
-            "baseline_sha256": "5223345dca20cb0e32bd67e3f3cb69a8eb6fcead39b3c1564c1e19d13f44669f",
+            "baseline_sha256": "8076429ff709d56eb5e2bda069b1b4594870f5e2911d1fb5d5e4dba0d19ac3b8",
             "baseline_mode": 420
         },
         {
             "path": "server/generated/openapi.json",
-            "sha256": "a7955e8c76417b64ec091a957533145138ed9cea28c3c6ed111ce4ad5abcea01",
+            "sha256": "b2cb4f73d2be09d87da7082d9d9f581378189a870d6970168c2d1cf7c1e07ba3",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/generated/openapi.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/generated/openapi.json",
-            "baseline_sha256": "737693d516367100f60fea53a99ddeb42b186c81d2a1413a1c57de468ce49de4",
+            "baseline_sha256": "87e5bcd9ebde7c1d570fdc9e7947d34904f3b6fed426dea2e7a6136d7758059f",
             "baseline_mode": 420
         },
         {
@@ -15804,13 +15903,13 @@
         },
         {
             "path": "server/route/platform.php",
-            "sha256": "a43637dbecc74cda5889f6c518325371e726fec1609b617727fb9583f7123c23",
+            "sha256": "e31a44e5fbd0423fa7895dffe30b92ca70c440e9f5a31543282b7e0d5cde890e",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "server/route/platform.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/route/platform.php",
-            "baseline_sha256": "a43637dbecc74cda5889f6c518325371e726fec1609b617727fb9583f7123c23",
+            "baseline_sha256": "e31a44e5fbd0423fa7895dffe30b92ca70c440e9f5a31543282b7e0d5cde890e",
             "baseline_mode": 420
         },
         {
@@ -15865,7 +15964,7 @@
             "owner": "scaffold",
             "source": "server/tests/Multitenancy/OfficialCapabilityTenantQualificationTest.php",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/server/tests/Multitenancy/OfficialCapabilityTenantQualificationTest.php",
-            "baseline_sha256": "a031fd5471aa0fc66dc15b24db290c5655507173946d46216704b58f16c3886b",
+            "baseline_sha256": "c270aa3aea3e9cbf8011209c08de4c78d19a2ec7307503addd39e8622f766dcf",
             "baseline_mode": 420
         },
         {
@@ -16046,7 +16145,7 @@
         },
         {
             "path": "uniapp/package-lock.json",
-            "sha256": "c0b64dec7ad0b74c5dda99cf97d9c8e020d61f07be38b1ce7310a3ea2d98c318",
+            "sha256": "2c62400deec6926399c13bd8a993edf3d8894d5715c64e5c8523c21c7cd75793",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
@@ -16057,13 +16156,13 @@
         },
         {
             "path": "uniapp/package.json",
-            "sha256": "bbcc2930e2b210ae3606ba2352d6c4931f49d749c2076c2fbe1ddfb7be02dd3d",
+            "sha256": "214d13f02b7e3decbd0262c39ffd2c5aac73b8e50cb79bbe248b2d3bb59835c6",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "uniapp/package.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/uniapp/package.json",
-            "baseline_sha256": "06cbc5c5d7575aaed88419fe755653be72b3b99a5c218a66b05e2c2330793085",
+            "baseline_sha256": "77853572cf3e910838450f49467e8cbf0cf9a24dd6db264d4612276c65f97746",
             "baseline_mode": 420
         },
         {
@@ -16783,18 +16882,18 @@
         },
         {
             "path": "web/package.json",
-            "sha256": "39cef05fdd5d6cb7a30dca9b2b25fc4220341d6b9b89b83fd5355831aa01c74a",
+            "sha256": "4a08a99b89b27d2bd4496fe8cada78d2a62697ca97e54818b00b9b3a465d5095",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "web/package.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/web/package.json",
-            "baseline_sha256": "37ee953434b3f3a43b88f2293534498a24e901968f9eed1b7c229bb1055bf11f",
+            "baseline_sha256": "77901437b57381a5b1ec8d00a1da5366d930ab715179062502c3f8e76eab2f70",
             "baseline_mode": 420
         },
         {
             "path": "web/pnpm-lock.yaml",
-            "sha256": "e8d073de35d295c22df0d288edcf9d680ae8c0b38c2f0a85c3bbfa52087a8291",
+            "sha256": "51deb668a6c672ee6eec4718bae2ebb9235f4b008df8c2d6922b77dc23d04556",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
@@ -16811,7 +16910,7 @@
             "owner": "scaffold",
             "source": "web/pnpm-workspace.yaml",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/web/pnpm-workspace.yaml",
-            "baseline_sha256": "2d7a233af7b33d1fc1573c5f95d1811c5f470fdab081ed8528f2c43e56af0d50",
+            "baseline_sha256": "714023860daf1078ce980f1e7beda577f5eb5d3896988bb2d9478b637ccc856b",
             "baseline_mode": 420
         },
         {
@@ -17498,13 +17597,13 @@
         },
         {
             "path": "web/src/generated/openapi.d.ts",
-            "sha256": "c08962f02935f3609ea7f29c557624971aeaab01518b607f20bccdcbb1d5b51f",
+            "sha256": "b2e24d70cb12570c48ebe44b68aebaa83cb2a69f961c56138aa44a2e6d5fcb32",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "web/src/generated/openapi.d.ts",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/web/src/generated/openapi.d.ts",
-            "baseline_sha256": "62e601a39d9bea3f3a4867898a3f70af442302d106ad50f426e746c17e94c144",
+            "baseline_sha256": "dab60af56b963f0db7f564588d9dfc1dd3ce372a07b103e758a2bc7b6747ba3c",
             "baseline_mode": 420
         },
         {
@@ -17951,13 +18050,13 @@
         },
         {
             "path": "web/src/modules/peanut-file/generated/openapi.ts",
-            "sha256": "90750e9cf2ffe4990ed650fd0080dc60347f7c4a23464f5c91542af594ef7000",
+            "sha256": "9a77cc69faa964b2c35d2fbbdc4595f844694e2cc9d50c84543797576592f41e",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "web/src/modules/peanut-file/generated/openapi.ts",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/web/src/modules/peanut-file/generated/openapi.ts",
-            "baseline_sha256": "90750e9cf2ffe4990ed650fd0080dc60347f7c4a23464f5c91542af594ef7000",
+            "baseline_sha256": "9a77cc69faa964b2c35d2fbbdc4595f844694e2cc9d50c84543797576592f41e",
             "baseline_mode": 420
         },
         {
@@ -18094,13 +18193,13 @@
         },
         {
             "path": "web/src/modules/peanut-file/package.json",
-            "sha256": "a12ca67cd6594f55ec63777f91736a5d3b9a9ec8a75d9f921070114944956b3f",
+            "sha256": "de3a00f23954c76346607431b82f882c5c4bd2b7fdf6b76ae2830f25d866bccc",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "web/src/modules/peanut-file/package.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/web/src/modules/peanut-file/package.json",
-            "baseline_sha256": "a12ca67cd6594f55ec63777f91736a5d3b9a9ec8a75d9f921070114944956b3f",
+            "baseline_sha256": "de3a00f23954c76346607431b82f882c5c4bd2b7fdf6b76ae2830f25d866bccc",
             "baseline_mode": 420
         },
         {
@@ -20049,13 +20148,13 @@
         },
         {
             "path": "web/tsconfig.json",
-            "sha256": "de34857a4f543ecd4cce67593733e929db3de5defb4f1725ee189fcad2fa0f5b",
+            "sha256": "ce54052413d8c6c34ea35c5d442dcbb83dad7ecda9c0b1536aeb1ad1fc54e1dc",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
             "source": "web/tsconfig.json",
             "baseline_path": ".peanut/scaffold-baseline/5.0.15/files/web/tsconfig.json",
-            "baseline_sha256": "de34857a4f543ecd4cce67593733e929db3de5defb4f1725ee189fcad2fa0f5b",
+            "baseline_sha256": "ce54052413d8c6c34ea35c5d442dcbb83dad7ecda9c0b1536aeb1ad1fc54e1dc",
             "baseline_mode": 420
         },
         {
@@ -20093,18 +20192,18 @@
         }
     ],
     "scaffold_candidate": {
-        "manifest_sha256": "6f2421a88d51df691d34d7ebedb50aea28e7d43d74ca36924e3c1f374f19fa22",
+        "manifest_sha256": "0ebaf75ce462ed47c0ad3d87e79c95ae967dd14c4cd8aa815364e8a622511810",
         "core_inputs_sha256": "cd08c1c060982281f54f10a0c762d77d2a769ebe542828c5df8c765eb01c356b",
         "formal_release_eligible": false
     },
     "template_package": {
         "protocol": "peanut.template-package.v1",
         "version": "5.0.15",
-        "archive_sha256": "a5a001e737b97ed9780656effb21314452132a8212afb54f2e274529238a5dcf",
+        "archive_sha256": "863831b2b5d6219d1ab9acd6a818ff5a39f34b70046a8f8d1ec5cb05be4f8978",
         "source": "local"
     },
     "last_scaffold_upgrade": {
-        "candidate": "scaffold-4b44c73efb1397551211a69d",
+        "candidate": "scaffold-24b6360559b67e247e11ed56",
         "from": "5.0.15",
         "to": "5.0.15",
         "edition_profile_sha256": "c6a2991cf52f79b0055b0aa1707ca9bfefd09f75f9f611b37da24c4410fed50e",

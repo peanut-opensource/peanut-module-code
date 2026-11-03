@@ -43,7 +43,7 @@ final class PermissionApiController extends BasePlatformController
             $result = $this->menus->replacePermissionBinding($input['menu_key'], $input['permission_key'], $input['action_key'],
                 $input['expected_revision'], app(\app\common\contract\module\ModuleQualificationQuery::class));
             $this->audit->platform($context->operatorId, $context->accountId, $context->requestId,
-                'permission.menu.replaced', 'platform.permission.api.manage', targetType: 'menu', targetId: $input['menu_key'], before: $result['before'], after: $result['after']);
+                'permission.menu.replaced', 'platform.permission.menu.manage', targetType: 'menu', targetId: $input['menu_key'], before: $result['before'], after: $result['after']);
             return $result['after'];
         }));
     }
@@ -85,7 +85,7 @@ final class PermissionApiController extends BasePlatformController
         return $this->data(Db::transaction(function () use ($key, $name, $audience, $context): array {
             $after = $this->catalog->createCustom($key, $name, $audience);
             $this->audit->platform($context->operatorId, $context->accountId, $context->requestId,
-                'permission.created', 'platform.permission.api.manage', targetType: 'permission', targetId: $key, after: $after);
+                'permission.created', 'platform.permission.bundle.manage', targetType: 'permission', targetId: $key, after: $after);
             return $after;
         }));
     }
@@ -108,7 +108,7 @@ final class PermissionApiController extends BasePlatformController
             $before = $this->catalog->bundle($key);
             $after = $this->catalog->updateCustom($key, $name, $status, $revision);
             $this->audit->platform($context->operatorId, $context->accountId, $context->requestId,
-                'permission.updated', 'platform.permission.api.manage', targetType: 'permission', targetId: $key, before: $before, after: $after);
+                'permission.updated', 'platform.permission.bundle.manage', targetType: 'permission', targetId: $key, before: $before, after: $after);
             return $after;
         }));
     }

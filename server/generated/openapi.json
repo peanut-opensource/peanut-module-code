@@ -17374,7 +17374,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "platform_action",
-                        "key": "platform.permission.api.manage"
+                        "key": "platform.permission.bundle.manage"
                     }
                 ]
             },
@@ -17507,7 +17507,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "platform_action",
-                        "key": "platform.permission.api.manage"
+                        "key": "platform.permission.bundle.manage"
                     }
                 ]
             }
@@ -17649,7 +17649,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "platform_action",
-                        "key": "platform.permission.read"
+                        "key": "platform.permission.menu.read"
                     }
                 ]
             }
@@ -17822,7 +17822,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "platform_action",
-                        "key": "platform.permission.api.manage"
+                        "key": "platform.permission.menu.manage"
                     }
                 ]
             }
@@ -17977,7 +17977,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "platform_action",
-                        "key": "platform.permission.read"
+                        "key": "platform.permission.api.read"
                     }
                 ]
             }
@@ -18066,7 +18066,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "platform_action",
-                        "key": "platform.permission.read"
+                        "key": "platform.permission.api.read"
                     }
                 ]
             },
@@ -25141,7 +25141,7 @@
                     "Storage"
                 ],
                 "operationId": "getStorageConfiguration",
-                "description": "Requires platform.ops.read. Instance-owned snapshot; credential ciphertext and keys are never returned.",
+                "description": "Requires platform.storage.legacy.read by default. Legacy aggregate snapshot retained for explicitly configured API bindings; source-default platform.ops.read roles receive the three separate read capabilities instead. Credential ciphertext and keys are never returned.",
                 "responses": {
                     "200": {
                         "description": "成功",
@@ -25205,13 +25205,13 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/file/route/app.php",
-                        "line": 68
+                        "line": 77
                     }
                 },
                 "x-peanut-permissions": [
                     {
                         "kind": "platform_action",
-                        "key": "platform.ops.read"
+                        "key": "platform.storage.legacy.read"
                     }
                 ]
             }
@@ -25309,7 +25309,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/file/route/app.php",
-                        "line": 71
+                        "line": 80
                     }
                 },
                 "x-peanut-permissions": [
@@ -25407,7 +25407,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/file/route/app.php",
-                        "line": 74
+                        "line": 83
                     }
                 },
                 "x-peanut-permissions": [
@@ -25511,7 +25511,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/file/route/app.php",
-                        "line": 77
+                        "line": 86
                     }
                 },
                 "x-peanut-permissions": [
@@ -25609,7 +25609,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/file/route/app.php",
-                        "line": 80
+                        "line": 89
                     }
                 },
                 "x-peanut-permissions": [
@@ -25707,13 +25707,283 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/file/route/app.php",
-                        "line": 83
+                        "line": 92
                     }
                 },
                 "x-peanut-permissions": [
                     {
                         "kind": "platform_action",
                         "key": "platform.ops.maintenance.manage"
+                    }
+                ]
+            }
+        },
+        "/platformapi/infrastructure/storage/accounts": {
+            "get": {
+                "tags": [
+                    "Storage"
+                ],
+                "operationId": "getStorageAccounts",
+                "description": "Requires platform.storage.account.read. Returns only this configuration list; provider credentials are never returned.",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "enum": [
+                                                20000
+                                            ]
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "accounts": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/StorageAccountSnapshot"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "accounts"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "platform",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.file"
+                    },
+                    "controller": "app\\platform\\controller\\PlatformStorageController",
+                    "action": "accounts",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/file/route/app.php",
+                        "line": 68
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "platform_action",
+                        "key": "platform.storage.account.read"
+                    }
+                ]
+            }
+        },
+        "/platformapi/infrastructure/storage/spaces": {
+            "get": {
+                "tags": [
+                    "Storage"
+                ],
+                "operationId": "getStorageSpaces",
+                "description": "Requires platform.storage.space.read. Returns only this configuration list; provider credentials are never returned.",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "enum": [
+                                                20000
+                                            ]
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "spaces": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/StorageSpaceSnapshot"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "spaces"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "platform",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.file"
+                    },
+                    "controller": "app\\platform\\controller\\PlatformStorageController",
+                    "action": "spaces",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/file/route/app.php",
+                        "line": 71
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "platform_action",
+                        "key": "platform.storage.space.read"
+                    }
+                ]
+            }
+        },
+        "/platformapi/infrastructure/storage/routes": {
+            "get": {
+                "tags": [
+                    "Storage"
+                ],
+                "operationId": "getStorageRoutes",
+                "description": "Requires platform.storage.route.read. Returns only this configuration list; provider credentials are never returned.",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "enum": [
+                                                20000
+                                            ]
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "routes": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/StorageRouteSnapshot"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "routes"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "platform",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.file"
+                    },
+                    "controller": "app\\platform\\controller\\PlatformStorageController",
+                    "action": "routes",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/file/route/app.php",
+                        "line": 74
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "platform_action",
+                        "key": "platform.storage.route.read"
                     }
                 ]
             }
@@ -43826,6 +44096,7 @@
                     "account_id",
                     "platform_operator_id",
                     "permissions",
+                    "api_access",
                     "navigation"
                 ],
                 "properties": {
@@ -43847,6 +44118,36 @@
                         "type": "array",
                         "items": {
                             "type": "string"
+                        }
+                    },
+                    "api_access": {
+                        "type": "array",
+                        "description": "Current instance API access for UI presentation; every request is authorized again on the server.",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                                "method",
+                                "path"
+                            ],
+                            "properties": {
+                                "method": {
+                                    "type": "string",
+                                    "enum": [
+                                        "GET",
+                                        "POST",
+                                        "PUT",
+                                        "PATCH",
+                                        "DELETE",
+                                        "HEAD",
+                                        "OPTIONS"
+                                    ]
+                                },
+                                "path": {
+                                    "type": "string",
+                                    "pattern": "^/platformapi/"
+                                }
+                            }
                         }
                     },
                     "navigation": {

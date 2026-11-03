@@ -101,7 +101,7 @@ foreach ([
     'module_compiled_registry' => 'vendor/peanut-admin/core/kernel/src/Module/CompiledModuleRegistry.php',
     'module_availability' => 'vendor/peanut-admin/core/kernel/src/Host/ModuleAvailabilityAdapter.php',
     'deployed_module_registry' => 'app/platform/infrastructure/module/DeployedTenantModuleRegistry.php',
-    'fixture_module_access' => 'app/modules/fixture/delivery_record/src/Infrastructure/Authorization/ThinkPhpDeliveryRecordAccess.php',
+    'fixture_module_access' => 'fixtures/modules/delivery_record/src/Infrastructure/Authorization/ThinkPhpDeliveryRecordAccess.php',
     'official_article_manifest' => 'app/modules/official/article/module.json',
     'official_article_public' => 'app/api/middleware/PublicTenantModuleMiddleware.php',
     'member_token' => 'app/api/services/UserTokenService.php',

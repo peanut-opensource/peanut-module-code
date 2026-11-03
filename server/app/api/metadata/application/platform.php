@@ -46,12 +46,23 @@ $schemas = [
     ],
     'PlatformSessionInfo' => [
         'type' => 'object', 'additionalProperties' => false,
-        'required' => ['audience', 'account_id', 'platform_operator_id', 'permissions', 'navigation'],
+        'required' => ['audience', 'account_id', 'platform_operator_id', 'permissions', 'api_access', 'navigation'],
         'properties' => [
             'audience' => ['type' => 'string', 'enum' => ['platform']],
             'account_id' => ['type' => 'string', 'pattern' => '^[1-9][0-9]*$'],
             'platform_operator_id' => ['type' => 'string', 'pattern' => '^[1-9][0-9]*$'],
             'permissions' => $stringList,
+            'api_access' => [
+                'type' => 'array',
+                'description' => 'Current instance API access for UI presentation; every request is authorized again on the server.',
+                'items' => [
+                    'type' => 'object', 'additionalProperties' => false, 'required' => ['method', 'path'],
+                    'properties' => [
+                        'method' => ['type' => 'string', 'enum' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']],
+                        'path' => ['type' => 'string', 'pattern' => '^/platformapi/'],
+                    ],
+                ],
+            ],
             'navigation' => ['type' => 'array', 'items' => ['type' => 'string', 'pattern' => '^/platform/']],
         ],
     ],

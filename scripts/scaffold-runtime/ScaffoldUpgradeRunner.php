@@ -233,6 +233,7 @@ final class ScaffoldUpgradeRunner
                 $from->files(),
                 $targetPlugins,
                 $to->files(),
+                $actions,
             );
             $pluginTarget = $this->upstreamModuleProjection(
                 $root,
@@ -2177,6 +2178,7 @@ final class ScaffoldUpgradeRunner
             $moduleRoots = [];
             $moduleKeys = [];
             $frontendRoots = [];
+            $protectedPaths = [];
             foreach ($entry['modules'] as $module) {
                 if (!is_array($module)
                     || preg_match('/^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$/D', (string) ($module['key'] ?? '')) !== 1
@@ -2189,13 +2191,31 @@ final class ScaffoldUpgradeRunner
                 }
                 $moduleRoots[$moduleRoot] = true;
                 $moduleKeys[] = $module['key'];
+                $declarationFile = $files[$moduleRoot . '/module.json'] ?? null;
+                if (!is_array($declarationFile)) {
+                    // Legacy declarations cannot establish the narrow ordinary-source exception.
+                    $protectedPaths[$moduleRoot] = true;
+                    continue;
+                }
+                $declaration = json_decode($this->renderCurrentVersionArtifact(
+                    $manifest, $declarationFile, $parameters, $versionContract,
+                ), true, 128, JSON_THROW_ON_ERROR);
+                foreach (['migrations', 'seeds', 'menus', 'permissions', 'protected_resources', 'target_types',
+                    'data_conditions', 'config_schema', 'setting_definitions', 'reference_code_sets', 'system_actors'] as $field) {
+                    $relative = $declaration['backend'][$field] ?? null;
+                    if (is_string($relative) && $relative !== '') {
+                        $protectedPaths[ScaffoldManifest::path($moduleRoot . '/' . $relative)] = true;
+                    }
+                }
             }
             foreach ($entry['frontend'] ?? [] as $frontend) {
                 if (!is_array($frontend) || !is_string($frontend['entry'] ?? null)) {
                     throw new RuntimeException('SCAFFOLD_TARGET_PLUGIN_LOCK_INVALID');
                 }
                 $frontendRoots[dirname(ScaffoldManifest::path($frontend['entry']))] = true;
+                $protectedPaths[ScaffoldManifest::path($frontend['entry'])] = true;
             }
+            ksort($protectedPaths, SORT_STRING);
             $plugins[$key] = [
                 'manifest' => $manifestPath,
                 'version' => $entry['version'] ?? null,
@@ -2205,6 +2225,7 @@ final class ScaffoldUpgradeRunner
                 'module_keys' => $moduleKeys,
                 'module_roots' => array_keys($moduleRoots),
                 'frontend_roots' => array_keys($frontendRoots),
+                'protected_paths' => array_keys($protectedPaths),
             ];
             sort($plugins[$key]['module_roots'], SORT_STRING);
             sort($plugins[$key]['frontend_roots'], SORT_STRING);
@@ -2222,12 +2243,14 @@ final class ScaffoldUpgradeRunner
         array $fromFiles,
         array $target,
         array $targetFiles,
+        array $actions,
     ): array {
         $baselineRoot = '.peanut/scaffold-baseline/' . $application['template']['version'] . '/files';
         if (($application['ownership']['baseline_root'] ?? null) !== $baselineRoot) {
             return [];
         }
         $applicationFiles = array_column($application['files'], null, 'path');
+        $classified = array_column($actions, null, 'path');
         $contract = ['type' => 'canonical-contents', 'channel' => 'bundled',
             'origin' => ['type' => 'repository-contents', 'reference' => 'canonical-plugin-contents-v1']];
         $proofs = [];
@@ -2276,10 +2299,22 @@ final class ScaffoldUpgradeRunner
             if (!$sameOwner) {
                 continue;
             }
-            $paths = $this->pluginSourceFiles($root, [...$installed['module_roots'], ...$installed['frontend_roots']]);
+            $roots = [...$installed['module_roots'], ...$installed['frontend_roots']];
+            $paths = $this->pluginSourceFiles($root, $roots);
             $paths[$installed['manifest']] = $installed['manifest_sha256'];
             ksort($paths, SORT_STRING);
+            // Enumerating live files alone cannot prove that an old managed source was not deleted.
+            foreach ($roots as $ownedRoot) {
+                foreach ($fromFiles as $oldPath => $oldFile) {
+                    if (!$this->withinAnyRoot($oldPath, [$ownedRoot])) { continue; }
+                    $directories = array_map('strtolower', explode('/', dirname(substr($oldPath, strlen($ownedRoot) + 1))));
+                    if (array_intersect($directories, ModuleArtifactWriter::EXCLUDED_SOURCE_DIRECTORIES) !== []) { continue; }
+                    if (!isset($paths[$oldPath])) { $sameOwner = false; break 2; }
+                }
+            }
+            if (!$sameOwner) { continue; }
             $evidence = [];
+            $preservedOverrides = [];
             foreach ($paths as $path => $digest) {
                 $file = $applicationFiles[$path] ?? null;
                 $old = $fromFiles[$path] ?? null;
@@ -2290,31 +2325,69 @@ final class ScaffoldUpgradeRunner
                     || ($file['source'] ?? null) !== $path
                     || !in_array($old['classification'] ?? null, ['managed', 'generated-managed'], true)
                     || ($next !== null && !in_array($next['classification'] ?? null, ['managed', 'generated-managed'], true))
-                    || ($file['sha256'] ?? null) !== $digest
-                    || ($file['baseline_path'] ?? null) !== $baselineRoot . '/' . $path
-                    || ($file['baseline_sha256'] ?? null) !== $digest) {
+                    || ($file['baseline_path'] ?? null) !== $baselineRoot . '/' . $path) {
                     $sameOwner = false;
                     break;
                 }
                 $actual = $this->regularFileState(ScaffoldPathGuard::projectPath($root, $path), $path);
                 $saved = $this->regularFileState(ScaffoldPathGuard::projectPath($root, $file['baseline_path']), $file['baseline_path']);
-                if (!$saved['present'] || $saved['sha256'] !== $digest || $actual['sha256'] !== $digest
-                    || $actual['mode'] !== ($file['mode'] ?? null)) {
+                $baselineMode = $file['baseline_mode'] ?? $old['mode'];
+                if (!$saved['present'] || $saved['sha256'] !== ($file['baseline_sha256'] ?? null) || $saved['mode'] !== 0644
+                    || !$actual['present'] || $actual['sha256'] !== $digest || $actual['mode'] !== ($file['mode'] ?? null)) {
                     $sameOwner = false;
                     break;
                 }
-                $evidence[$path] = ['sha256' => $digest, 'mode' => $actual['mode'], 'baseline_path' => $file['baseline_path']];
+                $unchanged = ($file['sha256'] ?? null) === $digest && $saved['sha256'] === $digest;
+                $action = $classified[$path] ?? [];
+                $preserveOverride = $file['classification'] === 'managed' && $old['classification'] === 'managed'
+                    && ($next['classification'] ?? null) === 'managed'
+                    && ($old['policy'] ?? null) === 'managed' && ($next['policy'] ?? null) === 'managed'
+                    && ($old['owner'] ?? null) === ($next['owner'] ?? null)
+                    && ($action['action'] ?? null) === 'preserve' && ($action['reason'] ?? null) === 'project_modified_only'
+                    && ($action['conflict'] ?? true) === false && ($action['current'] ?? null) === $actual
+                    && !isset($action['rename_from']) && $digest !== $saved['sha256']
+                    && ($action['target_sha256'] ?? null) === $saved['sha256']
+                    && $baselineMode === $old['mode'] && $actual['mode'] === $baselineMode
+                    && ($next['mode'] ?? null) === $baselineMode && ($action['mode'] ?? null) === $baselineMode
+                    && $this->ordinaryModuleOverrideSource($path)
+                    && !$this->withinAnyRoot($path, [...$baseline['protected_paths'], ...$plugin['protected_paths']]);
+                if (!$unchanged && !$preserveOverride) {
+                    $sameOwner = false;
+                    break;
+                }
+                $evidence[$path] = ['sha256' => $digest, 'mode' => $actual['mode'], 'baseline_path' => $file['baseline_path'],
+                    'baseline_sha256' => $saved['sha256'], 'baseline_mode' => $baselineMode, 'baseline_file_mode' => $saved['mode']];
+                if ($preserveOverride) {
+                    $preservedOverrides[$path] = ['current' => $actual, 'baseline_path' => $file['baseline_path'],
+                        'baseline_sha256' => $saved['sha256'], 'baseline_mode' => $baselineMode, 'baseline_file_mode' => $saved['mode'],
+                        'target_sha256' => $action['target_sha256'], 'target_mode' => $action['mode']];
+                }
             }
             if ($sameOwner) {
                 ksort($additions, SORT_STRING);
+                ksort($preservedOverrides, SORT_STRING);
                 $proofs[$key] = ['baseline_root' => $baselineRoot, 'files' => count($evidence),
-                    'frontend_roots' => $plugin['frontend_roots'],
+                    'frontend_roots' => $plugin['frontend_roots'], 'preserved_overrides' => $preservedOverrides,
                     'ownership_sha256' => 'sha256:' . hash('sha256', self::canonicalJson([
-                        'existing' => $evidence, 'frontend_additions' => $additions,
+                        'existing' => $evidence, 'frontend_additions' => $additions, 'preserved_overrides' => $preservedOverrides,
                     ]))];
             }
         }
         return $proofs;
+    }
+
+    /** The narrow local-source exception never preserves declarations, assembly inputs or derived identities. */
+    private function ordinaryModuleOverrideSource(string $path): bool
+    {
+        if (in_array(strtolower(basename($path)), [
+            'module.json', 'plugin.json', 'modules.lock', 'plugins.lock',
+            'composer.json', 'composer.lock', 'package.json', 'package-lock.json', 'npm-shrinkwrap.json',
+            'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'yarn.lock', 'bun.lock', 'bun.lockb', 'contribution.ts',
+        ], true)) {
+            return false;
+        }
+        return array_intersect(array_map('strtolower', explode('/', dirname($path))),
+            ['generated', 'metadata', 'meta-inf']) === [];
     }
 
     /** Materialize the selected upstream graph and validated customer graph through the native canonical writer. */
@@ -2404,6 +2477,28 @@ final class ScaffoldUpgradeRunner
                         $this->renderCurrentVersionArtifact($release, $file, $parameters, $versionContract),
                         (int) $file['mode'],
                     );
+                }
+                // Render the complete upstream module first; only then overlay proven, unchanged-upstream local source.
+                foreach ($managedUpstreamProofs[$key]['preserved_overrides'] ?? [] as $path => $override) {
+                    $source = ScaffoldPathGuard::projectPath($root, $path);
+                    $destination = ScaffoldPathGuard::projectPath($stage, $path);
+                    $baselinePath = ScaffoldPathGuard::projectPath($root, $override['baseline_path']);
+                    $baselineState = ['present' => true, 'sha256' => $override['baseline_sha256'], 'mode' => $override['baseline_file_mode']];
+                    $targetState = ['present' => true, 'sha256' => $override['target_sha256'], 'mode' => $override['target_mode']];
+                    clearstatcache();
+                    if (!$this->withinAnyRoot($path, $roots)
+                        || $this->regularFileState($source, $path) !== $override['current']
+                        || $this->regularFileState($baselinePath, $override['baseline_path']) !== $baselineState
+                        || $this->regularFileState($destination, $path) !== $targetState) {
+                        throw new RuntimeException('SCAFFOLD_MANAGED_MODULE_OVERRIDE_CHANGED: ' . $path);
+                    }
+                    $this->copyModuleProjectionPath($root, $stage, $path);
+                    clearstatcache();
+                    if ($this->regularFileState($source, $path) !== $override['current']
+                        || $this->regularFileState($destination, $path) !== $override['current']
+                        || $this->regularFileState($baselinePath, $override['baseline_path']) !== $baselineState) {
+                        throw new RuntimeException('SCAFFOLD_MANAGED_MODULE_OVERRIDE_CHANGED: ' . $path);
+                    }
                 }
             }
             $schema = 'server/resources/schemas/module-artifact.schema.json';
@@ -2978,12 +3073,16 @@ final class ScaffoldUpgradeRunner
         $officialRoots = [];
         $managedArtifacts = [];
         $managedRoots = [];
+        $preservedOverrides = [];
         foreach ($official['keys'] as $key) {
             $officialArtifacts[$target[$key]['manifest']] = true;
             array_push($officialRoots, ...$target[$key]['module_roots'], ...$target[$key]['frontend_roots']);
             if (isset($official['managed_upstream_proofs'][$key])) {
                 $managedArtifacts[$target[$key]['manifest']] = true;
                 array_push($managedRoots, ...$target[$key]['module_roots'], ...$target[$key]['frontend_roots']);
+                foreach ($official['managed_upstream_proofs'][$key]['preserved_overrides'] ?? [] as $path => $override) {
+                    $preservedOverrides[$path] = $override;
+                }
             }
         }
         foreach ($target as $key => $plugin) {
@@ -3011,6 +3110,16 @@ final class ScaffoldUpgradeRunner
                 continue;
             }
             if (isset($officialArtifacts[$path]) || $this->withinAnyRoot($path, $officialRoots)) {
+                if (isset($preservedOverrides[$path])) {
+                    $override = $preservedOverrides[$path];
+                    if ($action['action'] !== 'preserve' || $action['reason'] !== 'project_modified_only' || $action['conflict']
+                        || $action['current'] !== $override['current'] || $action['target_sha256'] !== $override['target_sha256']
+                        || $action['mode'] !== $override['target_mode'] || isset($action['baseline_source'])) {
+                        throw new RuntimeException('SCAFFOLD_MANAGED_MODULE_OVERRIDE_ACTION_CHANGED: ' . $path);
+                    }
+                    // Keep the initial three-way decision: actual bytes remain local, the baseline remains upstream.
+                    continue;
+                }
                 if (isset($official['manifest_contents'][$path])) {
                     $action['target_sha256'] = hash('sha256', $official['manifest_contents'][$path]);
                 }

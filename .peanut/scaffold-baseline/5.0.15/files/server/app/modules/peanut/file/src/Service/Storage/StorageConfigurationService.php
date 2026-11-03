@@ -29,19 +29,34 @@ final readonly class StorageConfigurationService implements StorageConfiguration
     public function snapshot(): array
     {
         return [
-            'accounts' => StorageAccount::field('id,account_key,driver,name,credential_key_version,credential_rotated_at,status,created_at,updated_at')
-                ->fieldRaw("CASE WHEN credential_ciphertext IS NULL THEN NULL ELSE '********' END AS credential_masked")
-                ->order('id')->select()->toArray(),
-            'spaces' => StorageSpace::alias('s')
-                ->join('storage_account a', 'a.id=s.account_id')
-                ->field('s.*,a.account_key,a.driver')->order('s.id')->select()->toArray(),
-            'routes' => StorageRoute::alias('r')
-                ->join('storage_space s', 's.id=r.space_id')
-                ->join('storage_account a', 'a.id=s.account_id')
-                ->field('r.*,s.space_key,s.name AS space_name,a.driver')
-                ->order('r.route_key')->select()->toArray(),
+            'accounts' => $this->accounts(),
+            'spaces' => $this->spaces(),
+            'routes' => $this->routes(),
             'purposes' => ['material.image', 'material.video', 'material.file', 'export.xlsx', 'export.csv'],
         ];
+    }
+
+    public function accounts(): array
+    {
+        return StorageAccount::field('id,account_key,driver,name,credential_key_version,credential_rotated_at,status,created_at,updated_at')
+            ->fieldRaw("CASE WHEN credential_ciphertext IS NULL THEN NULL ELSE '********' END AS credential_masked")
+            ->order('id')->select()->toArray();
+    }
+
+    public function spaces(): array
+    {
+        return StorageSpace::alias('s')
+            ->join('storage_account a', 'a.id=s.account_id')
+            ->field('s.*,a.account_key,a.driver')->order('s.id')->select()->toArray();
+    }
+
+    public function routes(): array
+    {
+        return StorageRoute::alias('r')
+            ->join('storage_space s', 's.id=r.space_id')
+            ->join('storage_account a', 'a.id=s.account_id')
+            ->field('r.*,s.space_key,s.name AS space_name,a.driver')
+            ->order('r.route_key')->select()->toArray();
     }
 
     public function createAccount(PlatformOperatorContext $context, array $value): int

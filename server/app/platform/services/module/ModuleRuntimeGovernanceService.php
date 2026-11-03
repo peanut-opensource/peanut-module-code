@@ -124,7 +124,7 @@ final class ModuleRuntimeGovernanceService
                 $this->saveRemovalPlan($packageKey, $confirmPlan);
                 // The recovery marker commits with the preconditions and Module maintenance states.
                 if (!$resuming) {
-                    $this->markMaintenance($packageKey, $moduleKeys, $marker);
+                    $this->markMaintenance($packageKey, $moduleKeys, $marker, $scope['manifests'] ?? []);
                 }
                 $this->inject('after-marker');
 
@@ -379,6 +379,7 @@ final class ModuleRuntimeGovernanceService
             ->order('module_key')->column('manifest_digest', 'module_key');
         $affected = [];
         $seenTables = [];
+        $manifests = [];
         $layout = ModuleHostLayoutFactory::pathLayout();
         foreach ($plugin['modules'] as $module) {
             if (!is_array($module) || !is_string($module['key'] ?? null) || !is_string($module['root'] ?? null)) {
@@ -398,6 +399,7 @@ final class ModuleRuntimeGovernanceService
                 || !hash_equals((string) $ownedManifests[$key->value()], $manifest->digest)) {
                 throw new ModuleLifecycleException('MODULE_QUARANTINE_INVALID', 'Retired Module manifest digest changed.');
             }
+            $manifests[$key->value()] = $manifest;
             $owned = array_values((array) ($manifest->data['database']['owned_tables'] ?? []));
             sort($owned, SORT_STRING);
             foreach ($owned as $table) {
@@ -424,7 +426,8 @@ final class ModuleRuntimeGovernanceService
         if (!is_string($manifestDigest)) {
             throw new ModuleLifecycleException('MODULE_QUARANTINE_INVALID', 'Retired package manifest cannot be digested.');
         }
-        return ['package_key' => $packageKey, 'package_manifest_digest' => $manifestDigest, 'affected_modules' => $affected];
+        return ['package_key' => $packageKey, 'package_manifest_digest' => $manifestDigest, 'affected_modules' => $affected,
+            'manifests' => $manifests, 'quarantine_verified' => true];
     }
 
     /** @param array<string,mixed> $scope @return list<array<string,mixed>> */
@@ -452,7 +455,11 @@ final class ModuleRuntimeGovernanceService
         }
 
         $states = $this->tenantStates->installationStates($moduleKeys);
-        $notDisabled = array_values(array_filter($moduleKeys, static fn(string $key): bool => ($states[$key]['status'] ?? null) !== 'maintenance'));
+        $notDisabled = array_values(array_filter($moduleKeys, static fn(string $key): bool =>
+            ($states[$key]['status'] ?? null) !== 'maintenance'
+            && !($purge && ($scope['quarantine_verified'] ?? false) === true
+                && ($states[$key]['status'] ?? null) === 'uninstalled'
+                && ($states[$key]['last_error_code'] ?? null) === null)));
         if ($notDisabled !== []) {
             $blockers[] = ['code' => 'MODULE_DISABLE_REQUIRED', 'kind' => 'lifecycle', 'identifiers' => $notDisabled];
         }
@@ -469,6 +476,7 @@ final class ModuleRuntimeGovernanceService
             ),
             $moduleKeys,
             $this->tenantStates,
+            $scope['manifests'] ?? [],
         );
         if ($dependents !== []) {
             $blockers[] = ['code' => 'MODULE_DEPENDENT_INSTALLED', 'kind' => 'business_dependency', 'identifiers' => array_values(array_unique($dependents))];
@@ -602,15 +610,16 @@ final class ModuleRuntimeGovernanceService
     }
 
     /** @param list<string> $moduleKeys */
-    private function markMaintenance(string $packageKey, array $moduleKeys, string $marker): void
+    private function markMaintenance(string $packageKey, array $moduleKeys, string $marker, array $verifiedTargets): void
     {
         $now = gmdate('Y-m-d H:i:s.v');
-        Db::transaction(function () use ($packageKey, $moduleKeys, $marker, $now): void {
+        Db::transaction(function () use ($packageKey, $moduleKeys, $marker, $now, $verifiedTargets): void {
             $this->tenantStates->lockLifecycleRows($moduleKeys, [$packageKey]);
             $dependents = ModuleLifecyclePolicy::installedBusinessDependents(
                 ModuleLockResolver::forRuntime($this->serverRoot, (string) ($this->moduleConfig['module_lock'] ?? '../modules.lock')),
                 $moduleKeys,
                 $this->tenantStates,
+                $verifiedTargets,
             );
             if ($dependents !== []) {
                 throw new ModuleLifecycleException('MODULE_DEPENDENT_INSTALLED', 'Installed Module dependencies must be removed before uninstall.');
@@ -841,6 +850,19 @@ final class ModuleRuntimeGovernanceService
                 || !str_starts_with($resolved, $resolvedRoot . DIRECTORY_SEPARATOR)) {
                 throw new ModuleLifecycleException('MODULE_QUARANTINE_INVALID', 'Module quarantine path is invalid.');
             }
+            $relative = rtrim(ModuleHostLayoutFactory::pathLayout()->backendRelativePath(ModuleKey::fromString($packageKey)), '/');
+            $moduleRoot = $resolved . '/' . $relative;
+            if (!file_exists($moduleRoot) && !is_link($moduleRoot)) { continue; }
+            if (is_link($moduleRoot) || realpath($moduleRoot) !== $moduleRoot
+                || !str_starts_with($moduleRoot, $resolved . DIRECTORY_SEPARATOR)) {
+                throw new ModuleLifecycleException('MODULE_QUARANTINE_INVALID', 'Quarantined Module root is invalid.');
+            }
+            $manifestPath = $moduleRoot . '/module.json';
+            if (!is_file($manifestPath)) { continue; }
+            if (is_link($manifestPath)) {
+                throw new ModuleLifecycleException('MODULE_QUARANTINE_INVALID', 'Quarantined Module declaration must not be linked.');
+            }
+            if ((new ManifestLoader())->load($moduleRoot)->data['key'] !== $packageKey) { continue; }
             $directories[] = $resolved;
         }
         sort($directories, SORT_STRING);

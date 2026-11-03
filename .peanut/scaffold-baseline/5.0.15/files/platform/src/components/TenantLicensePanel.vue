@@ -153,6 +153,7 @@
     }
   }
   async function open() {
+    if (!props.canManage) return;
     const current = request;
     const row = license.value;
     Object.assign(form, {
@@ -185,6 +186,7 @@
     }
   }
   async function save() {
+    if (!props.canManage) return;
     if (saving.value || catalogLoading.value || catalogError.value) return;
     if (!form.plan_id || !form.effective_at || !form.change_reason.trim()) {
       formError.value = '请选择套餐、生效时间并填写变更原因';
