@@ -51,7 +51,7 @@ final readonly class PluginPackageAdoptionService
                     \app\common\module\PackageCheck::assertEdition($module['manifest']->root, (string) \think\facade\Config::get('deployment.mode', ''));
                 }
                 foreach ([$package->packageKey, ...array_keys($package->modules)] as $key) {
-                    if (str_starts_with($key, 'official.')) {
+                    if (str_starts_with($key, 'peanut.') || str_starts_with($key, 'official.')) {
                         throw new PluginPackageException('MODULE_PACKAGE_PRIVATE_REQUIRED', 'Adoption accepts private packages and Modules only.');
                     }
                 }
@@ -67,7 +67,7 @@ final readonly class PluginPackageAdoptionService
                     sort($before);
                     sort($after);
                     if ($before !== $after) {
-                        throw new PluginPackageException('PLUGIN_UPDATE_SCOPE_CHANGED', 'Adoption cannot change Bundle membership.');
+                        throw new PluginPackageException('PLUGIN_UPDATE_SCOPE_CHANGED', 'Adoption cannot change the installed Module identity.');
                     }
                     $comparison = version_compare($package->packageVersion, $previous->version);
                     if ($comparison < 0) {

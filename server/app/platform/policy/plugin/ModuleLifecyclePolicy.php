@@ -139,7 +139,7 @@ final class ModuleLifecyclePolicy
         if (self::activeBusinessDependents($resolver, $moduleKeys) !== []) {
             throw new PluginLifecycleException(
                 'MODULE_DEPENDENT_INSTALLED',
-                'An active Module has an explicit business dependency on this Bundle.',
+                'An active Module has an explicit business dependency on this Module.',
             );
         }
     }

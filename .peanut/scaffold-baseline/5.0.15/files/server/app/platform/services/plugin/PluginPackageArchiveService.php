@@ -17,7 +17,7 @@ use Opis\JsonSchema\Errors\ErrorFormatter;
 use Opis\JsonSchema\Validator;
 use PeanutAdmin\Kernel\Module\ModuleKey;
 
-/** Builds and verifies self-contained single-Module and multi-Module tar packages. */
+/** Builds and verifies self-contained single-Module delivery artifacts. */
 final class PluginPackageArchiveService
 {
     private DeterministicTarArchive $tar;
@@ -79,24 +79,6 @@ final class PluginPackageArchiveService
             'inventory_sha256' => hash('sha256', $built['inventory']),
             'files' => $files,
         ];
-    }
-
-    /**
-     * @param list<string> $moduleKeys
-     * @param array{key_id:string,secret_key:string}|null $signer
-     * @return array{path:string,package_key:string,version:string,sha256:string,modules:list<string>}
-     */
-    public function packBundle(
-        string $packageKey,
-        string $version,
-        array $moduleKeys,
-        string $outputPath,
-        ?array $signer = null,
-    ): array {
-        if (count($moduleKeys) < 2) {
-            throw new PluginPackageException('MODULE_PACKAGE_BUNDLE_INVALID', 'A bundle must contain at least two Modules.');
-        }
-        return $this->pack($packageKey, $version, $moduleKeys, $outputPath, $signer);
     }
 
     /**
@@ -181,14 +163,8 @@ final class PluginPackageArchiveService
                 }
                 $modules[$key] = $inspection;
             }
-            if ($modules === []) {
-                throw new PluginPackageException('MODULE_PACKAGE_MANIFEST_INVALID', 'Package contains no Modules.');
-            }
-            if (count($modules) === 1 && array_key_first($modules) !== $packageKey) {
-                throw new PluginPackageException('MODULE_PACKAGE_SINGLE_IDENTITY_INVALID', 'Single-Module package key must equal its Module key.');
-            }
-            if (count($modules) > 1 && isset($modules[$packageKey])) {
-                throw new PluginPackageException('MODULE_PACKAGE_BUNDLE_IDENTITY_INVALID', 'Bundle key must not impersonate a member Module.');
+            if (array_keys($modules) !== [$packageKey] || $modules[$packageKey]['version'] !== $packageVersion) {
+                throw new PluginPackageException('MODULE_PACKAGE_SINGLE_IDENTITY_INVALID', 'An artifact contains exactly its named Module and version.');
             }
             $dependencyModules = [];
             foreach ($modules as $key => $inspection) {
@@ -301,14 +277,8 @@ final class PluginPackageArchiveService
     {
         $moduleKeys = array_values(array_unique(array_map('trim', $moduleKeys)));
         sort($moduleKeys, SORT_STRING);
-        if ($moduleKeys === []) {
-            throw new PluginPackageException('MODULE_PACKAGE_MANIFEST_INVALID', 'Package contains no Modules.');
-        }
-        if (count($moduleKeys) === 1 && $moduleKeys[0] !== $packageKey) {
-            throw new PluginPackageException('MODULE_PACKAGE_SINGLE_IDENTITY_INVALID', 'Single-Module package key must equal its Module key.');
-        }
-        if (count($moduleKeys) > 1 && in_array($packageKey, $moduleKeys, true)) {
-            throw new PluginPackageException('MODULE_PACKAGE_BUNDLE_IDENTITY_INVALID', 'Bundle key must not impersonate a member Module.');
+        if ($moduleKeys !== [$packageKey]) {
+            throw new PluginPackageException('MODULE_PACKAGE_SINGLE_IDENTITY_INVALID', 'An artifact contains exactly its named Module.');
         }
 
         $preflight = new PackageCheck($this->projectRoot());

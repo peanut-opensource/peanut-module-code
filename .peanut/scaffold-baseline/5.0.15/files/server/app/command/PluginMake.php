@@ -17,7 +17,7 @@ final class PluginMake extends ContextualCommand
 {
     protected function configure()
     {
-        $this->setName('plugin:make')->setDescription('Write a schema-validated Plugin manifest from Module roots')
+        $this->setName('plugin:make')->setDescription('Generate delivery metadata for one named Module')
             ->addArgument('plugin_key', Argument::REQUIRED, 'Plugin key')
             ->addArgument('version', Argument::REQUIRED, 'Plugin version')
             ->addOption('module', null, Option::VALUE_REQUIRED | Option::VALUE_IS_ARRAY, 'Module key=project-relative-root');
@@ -27,15 +27,10 @@ final class PluginMake extends ContextualCommand
     {
         try {
             $this->assertSourceAuthoringAccess();
-            $key = trim((string) $input->getArgument('plugin_key'));
-            $modules = array_values((array) $input->getOption('module'));
-            if (count($modules) !== 1 || !str_starts_with($modules[0], $key . '=')) {
-                throw new PluginArtifactToolException('MODULE_PACKAGE_SINGLE_MODULE_REQUIRED');
-            }
             $result = (new PluginArtifactWriter(dirname(__DIR__, 2)))->make(
-                $key,
+                (string) $input->getArgument('plugin_key'),
                 (string) $input->getArgument('version'),
-                $modules,
+                array_values((array) $input->getOption('module')),
             );
             $output->writeln((string) json_encode(['path' => $result['path'], 'key' => $result['manifest']['key']], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
             return 0;

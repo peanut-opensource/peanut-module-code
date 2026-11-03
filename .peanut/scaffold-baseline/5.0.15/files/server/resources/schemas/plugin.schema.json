@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://peanut-admin.org/schemas/plugin.schema.json",
-  "title": "Peanut Module Code Plugin Manifest",
+  "title": "Peanut Module Code single Module artifact metadata",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "key", "version", "source", "trust", "composer", "npm", "frontend", "modules"],
@@ -78,6 +78,7 @@
     "modules": {
       "type": "array",
       "minItems": 1,
+      "maxItems": 1,
       "items": {
         "type": "object",
         "additionalProperties": false,

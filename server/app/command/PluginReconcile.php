@@ -29,7 +29,7 @@ final class PluginReconcile extends ModuleContextualCommand
         $this->setName('plugin:reconcile')
             ->setDescription('Reconcile immutable locked Plugin installations')
             ->addOption('official-locked', null, Option::VALUE_NONE, 'Reconcile the default initial Module packages in plugins.lock')
-            ->addOption('release-locked', null, Option::VALUE_NONE, 'Reconcile official and already installed Plugins in plugins.lock')
+            ->addOption('release-locked', null, Option::VALUE_NONE, 'Reconcile all selected Modules in plugins.lock, retaining disabled installations')
             ->addOption('prepared-release', null, Option::VALUE_NONE, 'Verify already prepared release dependencies without builds')
             ->addOption('selected-installed', null, Option::VALUE_REQUIRED | Option::VALUE_IS_ARRAY, 'Prepare and reconcile only these already installed locked package keys')
             ->addOption('plan-only', null, Option::VALUE_NONE, 'Read the locked Plugin plans without lifecycle changes');
@@ -87,8 +87,8 @@ final class PluginReconcile extends ModuleContextualCommand
                     ) !== [],
                 ));
                 $selection = $releaseLocked
-                    ? $this->releasePluginSelection($resolver->all(), $officialKeys)
-                    : ['reconcile' => $officialKeys, 'preserved_disabled' => []];
+                    ? $this->releasePluginSelection($resolver->all())
+                    : ['reconcile' => $officialKeys, 'preserved_disabled' => [], 'preserved_uninstalled' => []];
                 $keys = $this->dependencyOrderedPlugins($resolver, $selection['reconcile'], $config);
                 if ($keys === [] && !$releaseLocked) {
                     throw new PluginLifecycleException(
@@ -104,6 +104,10 @@ final class PluginReconcile extends ModuleContextualCommand
                     'preserved_disabled' => array_map(
                         static fn(string $key): array => ['key' => $key, 'operation' => 'preserve-disabled'],
                         $selection['preserved_disabled'],
+                    ),
+                    'preserved_uninstalled' => array_map(
+                        static fn(string $key): array => ['key' => $key, 'operation' => 'preserve-uninstalled'],
+                        $selection['preserved_uninstalled'],
                     ),
                 ];
                 foreach ($keys as $key) {
@@ -136,17 +140,14 @@ final class PluginReconcile extends ModuleContextualCommand
                 throw new PluginLifecycleException('PLUGIN_LOCK_INVALID', 'Plugin lock path is not configured.');
             }
             $resolver = PluginLockResolver::forRuntime(dirname(__DIR__, 2), $lock);
-            $official = array_keys(array_filter($resolver->all(),
-                static fn(PluginDescriptor $plugin): bool => array_intersect(
-                    array_keys($plugin->moduleRoots), \InitialInstallationSource::MODULES,
-                ) !== []));
-            $selection = $this->releasePluginSelection($resolver->all(), $official);
+            $selection = $this->releasePluginSelection($resolver->all());
             $this->dependencyOrderedPlugins($resolver, $selection['reconcile'], $config);
             $packages = [];
             foreach ([...$selection['reconcile'], ...$selection['preserved_disabled']] as $key) {
                 $packages[] = $service->reconcilePlan($key, in_array($key, $selection['preserved_disabled'], true));
             }
             return ['readonly' => true, 'packages' => $packages,
+                'preserved_uninstalled' => $selection['preserved_uninstalled'],
                 'may_apply' => !in_array(false, array_column($packages, 'may_apply'), true)];
         });
     }
@@ -209,66 +210,56 @@ final class PluginReconcile extends ModuleContextualCommand
     }
 
     /**
-     * Release replacement reconciles active packages, preserves fully disabled packages, and rejects transitions.
+     * Selected new Modules install; disabled and retired Modules retain the operator's choice.
+     * A source/lock deletion is not permission to discard a live installation or its data.
      *
-     * @param array<string,\app\platform\value\plugin\PluginDescriptor> $locked
-     * @param list<string> $officialKeys
-     * @return array{reconcile:list<string>,preserved_disabled:list<string>}
+     * @param array<string,PluginDescriptor> $locked
+     * @return array{reconcile:list<string>,preserved_disabled:list<string>,preserved_uninstalled:list<string>}
      */
-    private function releasePluginSelection(array $locked, array $officialKeys): array
+    private function releasePluginSelection(array $locked): array
     {
-        $keys = array_fill_keys($officialKeys, true);
+        $keys = array_fill_keys(array_keys($locked), true);
         $preserved = [];
-        $rows = Db::name('plugin_installation')->where('status', '<>', 'uninstalled')
-            ->field('plugin_key,status')->order('plugin_key')->select()->toArray();
-        $pluginKeys = array_values(array_map(static fn(array $row): string => (string) $row['plugin_key'], $rows));
+        $retired = [];
+        $rows = Db::name('plugin_installation')->field('plugin_key,status')
+            ->order('plugin_key')->select()->toArray();
+        $installed = array_values(array_filter($rows, static fn(array $row): bool => $row['status'] !== 'uninstalled'));
+        $pluginKeys = array_column($installed, 'plugin_key');
         $membersByPlugin = [];
         $moduleKeys = [];
         if ($pluginKeys !== []) {
             foreach (Db::name('plugin_module')->whereIn('plugin_key', $pluginKeys)
                 ->field('plugin_key,module_key')->order('plugin_key')->order('module_key')->select()->toArray() as $member) {
-                $pluginKey = (string) ($member['plugin_key'] ?? '');
-                $moduleKey = (string) ($member['module_key'] ?? '');
-                $membersByPlugin[$pluginKey][] = $moduleKey;
-                $moduleKeys[$moduleKey] = true;
+                $membersByPlugin[(string) $member['plugin_key']][] = (string) $member['module_key'];
+                $moduleKeys[(string) $member['module_key']] = true;
             }
         }
         $states = (new TenantModuleStateQueries())->installationStates(array_keys($moduleKeys));
         foreach ($rows as $row) {
-            $key = (string) ($row['plugin_key'] ?? '');
-            $memberKeys = $membersByPlugin[$key] ?? [];
-            $members = count($memberKeys);
-            if ((string) ($row['status'] ?? '') !== 'active' || $members < 1 || !isset($locked[$key])) {
-                throw new PluginLifecycleException(
-                    'PLUGIN_STATE_INVALID',
-                    "Release reconciliation found an invalid or unlocked Plugin installation: {$key}",
-                );
-            }
-            $active = 0;
-            $disabled = 0;
-            foreach ($memberKeys as $moduleKey) {
-                $state = $states[$moduleKey] ?? null;
-                if (($state['status'] ?? null) === 'active' && ($state['last_error_code'] ?? null) === null) {
-                    ++$active;
-                } elseif (($state['status'] ?? null) === 'maintenance' && ($state['last_error_code'] ?? null) === null) {
-                    ++$disabled;
-                }
-            }
-            if ($active === $members) {
-                $keys[$key] = true;
+            $key = (string) $row['plugin_key'];
+            if ($row['status'] === 'uninstalled') {
+                unset($keys[$key]);
+                $retired[] = $key;
                 continue;
             }
-            if ($disabled === $members) {
+            if ($row['status'] !== 'active' || !isset($locked[$key]) || ($membersByPlugin[$key] ?? []) !== [$key]) {
+                throw new PluginLifecycleException('PLUGIN_STATE_INVALID',
+                    "Release reconciliation requires a locked, active, single-Module installation: {$key}");
+            }
+            $state = $states[$key] ?? [];
+            if (($state['status'] ?? null) === 'active' && ($state['last_error_code'] ?? null) === null) {
+                continue;
+            }
+            if (($state['status'] ?? null) === 'maintenance' && ($state['last_error_code'] ?? null) === null) {
                 unset($keys[$key]);
                 $preserved[] = $key;
                 continue;
             }
-            throw new PluginLifecycleException(
-                'PLUGIN_STATE_INVALID',
-                "Release reconciliation found mixed or transitional Module states: {$key}",
-            );
+            throw new PluginLifecycleException('PLUGIN_STATE_INVALID',
+                "Release reconciliation found a transitional Module state: {$key}");
         }
         sort($preserved, SORT_STRING);
-        return ['reconcile' => array_keys($keys), 'preserved_disabled' => $preserved];
+        sort($retired, SORT_STRING);
+        return ['reconcile' => array_keys($keys), 'preserved_disabled' => $preserved, 'preserved_uninstalled' => $retired];
     }
 }

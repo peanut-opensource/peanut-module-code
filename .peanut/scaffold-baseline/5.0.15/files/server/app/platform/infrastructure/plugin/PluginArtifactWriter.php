@@ -29,8 +29,8 @@ final readonly class PluginArtifactWriter
     {
         $key = $this->key($key);
         $version = $this->version($version);
-        if ($moduleSpecs === []) {
-            throw new PluginArtifactToolException('At least one --module key=relative/root is required.');
+        if (count($moduleSpecs) !== 1) {
+            throw new PluginArtifactToolException('MODULE_PACKAGE_SINGLE_MODULE_REQUIRED');
         }
 
         $modules = [];
@@ -204,6 +204,9 @@ final readonly class PluginArtifactWriter
     /** @param array<string,string> $moduleRoots @return array<string,mixed> */
     private function manifestContents(string $key, string $version, array $moduleRoots): array
     {
+        if (count($moduleRoots) !== 1 || !array_key_exists($key, $moduleRoots)) {
+            throw new PluginArtifactToolException('MODULE_PACKAGE_IDENTITY_MISMATCH');
+        }
         $modules = [];
         $composer = [];
         $npm = [];
@@ -224,6 +227,9 @@ final readonly class PluginArtifactWriter
             $contentRoots[] = $absoluteRoot;
 
             $moduleManifest = $this->readJson($absoluteRoot . '/module.json');
+            if (($moduleManifest['key'] ?? null) !== $key || ($moduleManifest['version'] ?? null) !== $version) {
+                throw new PluginArtifactToolException('MODULE_PACKAGE_IDENTITY_MISMATCH');
+            }
             try {
                 $contributions = ModuleFrontendLayout::contributions(
                     is_array($moduleManifest['frontend'] ?? null) ? $moduleManifest['frontend'] : [],
