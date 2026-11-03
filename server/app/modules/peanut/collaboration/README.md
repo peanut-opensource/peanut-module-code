@@ -281,7 +281,7 @@ There is no global operator endpoint or PHP lifecycle CLI.
 ## Installation data and retired schema
 
 Installation creates the seven declared collaboration protocol tables and no
-sample rooms, tickets, grants, admissions or document content. Version 1.0.17
+sample rooms, tickets, grants, admissions or document content. Version 1.0.18
 retires `pa_collaboration_runtime`, the unused global process-coordination ledger.
 The forward migration removes that table on both a complete fresh installation
 and an existing module upgrade; the original initial migration remains unchanged.

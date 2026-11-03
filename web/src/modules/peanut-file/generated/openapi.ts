@@ -13,6 +13,9 @@ export interface ModuleApiOperations {
   createStorageSpace: paths['/platformapi/infrastructure/storage/space']['post'];
   updateStorageSpace: paths['/platformapi/infrastructure/storage/space/update']['post'];
   setStorageRoute: paths['/platformapi/infrastructure/storage/route']['post'];
+  getStorageAccounts: paths['/platformapi/infrastructure/storage/accounts']['get'];
+  getStorageSpaces: paths['/platformapi/infrastructure/storage/spaces']['get'];
+  getStorageRoutes: paths['/platformapi/infrastructure/storage/routes']['get'];
   previewFileVisibility: paths['/adminapi/api/v1/files/visibility/preview']['post'];
   submitFileVisibility: paths['/adminapi/api/v1/files/visibility/batches']['post'];
   recentFileVisibilityBatches: paths['/adminapi/api/v1/files/visibility/batches']['get'];
@@ -46,6 +49,9 @@ export function createModuleApi(client: Client<paths>) {
     createStorageSpace: pathClient['/platformapi/infrastructure/storage/space'].POST,
     updateStorageSpace: pathClient['/platformapi/infrastructure/storage/space/update'].POST,
     setStorageRoute: pathClient['/platformapi/infrastructure/storage/route'].POST,
+    getStorageAccounts: pathClient['/platformapi/infrastructure/storage/accounts'].GET,
+    getStorageSpaces: pathClient['/platformapi/infrastructure/storage/spaces'].GET,
+    getStorageRoutes: pathClient['/platformapi/infrastructure/storage/routes'].GET,
     previewFileVisibility: pathClient['/adminapi/api/v1/files/visibility/preview'].POST,
     submitFileVisibility: pathClient['/adminapi/api/v1/files/visibility/batches'].POST,
     recentFileVisibilityBatches: pathClient['/adminapi/api/v1/files/visibility/batches'].GET,

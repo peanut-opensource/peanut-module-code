@@ -93,12 +93,13 @@ final class MenuAdministrationService
                 'default_permission_key' => $defaults['perms'] ?? (str_starts_with($row['menu_key'], 'custom.') ? '' : null)];
         }
         foreach ($native as $row) {
-            $legacyRow = $rows[$row['key']] ?? null;
-            $customized = isset($legacyByKey[$row['key']]) && $this->legacyCustomized($legacyByKey[$row['key']], $byId);
-            $rows[$row['key']] = ['menu_key' => $row['key'], 'parent_key' => $customized ? $legacyRow['parent_key'] : $row['parent_key'],
-                'type' => $row['type'] === 'group' ? 'M' : 'C', 'name' => $customized ? $legacyRow['name'] : $row['name'],
-                'path' => $customized ? $legacyRow['path'] : ($row['route_path'] ?? ''),
-                'permission_key' => $row['instance_permission'] ?? ($customized ? $legacyRow['permission_key'] : ($row['required_permission'] ?? '')),
+            $overrides = isset($legacyByKey[$row['key']])
+                ? $this->legacyPresentationOverrides($legacyByKey[$row['key']], $byId) : [];
+            $rows[$row['key']] = ['menu_key' => $row['key'],
+                'parent_key' => array_key_exists('parent_key', $overrides) ? $overrides['parent_key'] : $row['parent_key'],
+                'type' => $row['type'] === 'group' ? 'M' : 'C', 'name' => $overrides['name'] ?? $row['name'],
+                'path' => $overrides['paths'] ?? $row['route_path'] ?? '',
+                'permission_key' => $row['instance_permission'] ?? $overrides['perms'] ?? $row['required_permission'] ?? '',
                 'default_permission_key' => $row['required_permission'] ?? ''];
         }
         $items = [];
@@ -119,37 +120,94 @@ final class MenuAdministrationService
         return $items;
     }
 
-    private function legacyCustomized(array $row, array $byId): bool
+    /** Only local fields that differ from a recorded legacy source baseline override native defaults.
+     * @param array<int,array<string,mixed>> $byId
+     * @return array<string,mixed>
+     */
+    public function legacyPresentationOverrides(array $row, array $byId): array
     {
-        $seen = [];
-        while (true) {
-            $id = (int) $row['id'];
-            if (isset($seen[$id]) || $row['menu_conflict_json'] !== null) {
-                return true;
-            }
-            $seen[$id] = true;
-            $defaults = $row['upstream_defaults_json'];
-            if (is_string($defaults)) {
-                $defaults = json_decode($defaults, true, 512, JSON_THROW_ON_ERROR);
-            }
-            if (!is_array($defaults)) {
-                return true;
-            }
-            foreach ($defaults as $field => $expected) {
-                $current = $row[$field] ?? null;
-                if ((is_int($expected) ? (int) $current : $current) !== $expected) {
-                    return true;
-                }
-            }
-            if ($row['parent_key'] !== ($byId[(int) ($defaults['pid'] ?? 0)]['menu_key'] ?? null)) {
-                return true;
-            }
-            $parent = (int) $row['pid'];
-            if ($parent === 0 || !isset($byId[$parent])) {
-                return false;
-            }
-            $row = $byId[$parent];
+        $fields = ['name', 'icon', 'sort', 'perms', 'paths', 'is_show', 'is_cache', 'is_disable'];
+        $numeric = ['sort', 'is_show', 'is_cache', 'is_disable'];
+        $baseline = $row['upstream_defaults_json'] ?? null;
+        if (is_string($baseline)) {
+            $baseline = json_decode($baseline, true, 512, JSON_THROW_ON_ERROR);
         }
+        $overrides = [];
+        $unknown = [];
+        foreach ($fields as $field) {
+            $current = $row[$field] ?? null;
+            if (in_array($field, $numeric, true)) {
+                $current = (int) $current;
+            }
+            if (!is_array($baseline) || !array_key_exists($field, $baseline)) {
+                $overrides[$field] = $current;
+                $unknown[] = $field;
+                continue;
+            }
+            $expected = in_array($field, $numeric, true) ? (int) $baseline[$field] : $baseline[$field];
+            if ($current !== $expected) {
+                $overrides[$field] = $current;
+            }
+        }
+        $parent = $row['parent_key'] ?? ($byId[(int) ($row['pid'] ?? 0)]['menu_key'] ?? null);
+        $knownParent = is_array($baseline) && (array_key_exists('parent_key', $baseline)
+            || (array_key_exists('pid', $baseline) && ((int) $baseline['pid'] === 0 || isset($byId[(int) $baseline['pid']]))));
+        $expectedParent = is_array($baseline) && array_key_exists('parent_key', $baseline)
+            ? $baseline['parent_key'] : ($byId[(int) ($baseline['pid'] ?? 0)]['menu_key'] ?? null);
+        if (!$knownParent || $parent !== $expectedParent) {
+            $overrides['parent_key'] = $parent;
+            $overrides['pid'] = (int) ($row['pid'] ?? 0);
+        }
+        if (!$knownParent) {
+            $unknown[] = 'parent_key';
+        }
+        if ($unknown !== []) {
+            $overrides['conflict'] = json_encode(['reason' => 'unknown_defaults', 'fields' => $unknown], JSON_THROW_ON_ERROR);
+        }
+        return $overrides;
+    }
+
+    /** Rebase only fields being saved, and only when both source baselines are recorded.
+     * @param list<string> $fields
+     * @return array<string,mixed>|null
+     */
+    public function rebaseLegacyDefaults(array $legacy, array $native, array $fields): ?array
+    {
+        $baseline = $legacy['upstream_defaults_json'] ?? null;
+        $source = $native['upstream_defaults_json'] ?? null;
+        if (is_string($baseline)) {
+            $baseline = json_decode($baseline, true, 512, JSON_THROW_ON_ERROR);
+        }
+        if (is_string($source)) {
+            $source = json_decode($source, true, 512, JSON_THROW_ON_ERROR);
+        }
+        if (!is_array($baseline) || !is_array($source)) {
+            return null;
+        }
+        $mapping = ['name' => 'name', 'icon' => 'icon', 'sort' => 'sort_order',
+            'is_show' => 'is_show', 'is_cache' => 'is_cache', 'is_disable' => 'is_disable'];
+        foreach ($mapping as $field => $sourceField) {
+            if (!in_array($field, $fields, true) || !array_key_exists($field, $baseline) || !array_key_exists($sourceField, $source)) {
+                continue;
+            }
+            $baseline[$field] = match ($field) {
+                'sort' => -(int) $source[$sourceField],
+                'is_show', 'is_cache', 'is_disable' => (int) $source[$sourceField],
+                'icon' => $source[$sourceField] ?? '',
+                default => $source[$sourceField],
+            };
+        }
+        if (in_array('parent_key', $fields, true) && array_key_exists('parent_key', $source)
+            && (array_key_exists('parent_key', $baseline) || array_key_exists('pid', $baseline))) {
+            $baseline['parent_key'] = $source['parent_key'];
+        }
+        if (in_array('perms', $fields, true) && array_key_exists('perms', $baseline)
+            && array_key_exists('required_permission_id', $source)
+            && (string) ($source['required_permission_id'] ?? '') === (string) ($native['required_permission_id'] ?? '')
+            && ($source['required_permission_id'] === null || is_string($native['required_permission'] ?? null))) {
+            $baseline['perms'] = $source['required_permission_id'] === null ? '' : $native['required_permission'];
+        }
+        return $baseline;
     }
 
     public function replacePermissionBinding(string $key, ?string $permission, ?string $action, string $revision, \app\common\contract\module\ModuleQualificationQuery $modules): array
@@ -210,6 +268,13 @@ final class MenuAdministrationService
                 $changes = ['perms' => $effective];
                 if ($before['type'] === 'A') {
                     $changes['paths'] = $action;
+                }
+                if ($native !== null) {
+                    $baseline = $this->rebaseLegacyDefaults($legacy,
+                        [...$native->toArray(), 'required_permission' => $before['default_permission_key']], ['perms']);
+                    if ($baseline !== null) {
+                        $changes['upstream_defaults_json'] = json_encode($baseline, JSON_THROW_ON_ERROR);
+                    }
                 }
                 Db::name('system_menu')->where('id', $legacy['id'])->update($changes);
             }

@@ -26,6 +26,16 @@ export const OPS_MAINTENANCE_PERMISSION =
   'platform.ops.maintenance.manage' as const;
 export const OPS_LOGS_PERMISSION = 'platform.ops.logs.read' as const;
 
+export type OpsConsoleSection =
+  | 'all'
+  | 'overview'
+  | 'maintenance'
+  | 'backups'
+  | 'upgrades'
+  | 'diagnostics'
+  | 'providers';
+type OpsLoadSection = 'all' | 'overview' | 'maintenance';
+
 export interface OpsProviderOption {
   readonly key: string;
   readonly backup: boolean;
@@ -59,6 +69,9 @@ export interface OpsConsoleRuntimeOptions {
   readonly maintenanceReasons: readonly string[];
   readonly logSources: readonly string[];
   readonly canRead: () => boolean;
+  readonly canReadMaintenance?: () => boolean;
+  readonly canCloseMaintenance?: () => boolean;
+  readonly canReadTask?: () => boolean;
   readonly canBackup: () => boolean;
   readonly canRestore: () => boolean;
   readonly canMaintain: () => boolean;
@@ -66,6 +79,9 @@ export interface OpsConsoleRuntimeOptions {
   readonly idempotencyKey?: () => string;
 }
 export interface OpsConsoleRuntime {
+  readonly canReadMaintenance: () => boolean;
+  readonly canCloseMaintenance: () => boolean;
+  readonly canReadTask: () => boolean;
   readonly state: OpsConsoleState;
   readonly providers: readonly OpsProviderOption[];
   readonly maintenanceReasons: readonly string[];
@@ -74,7 +90,7 @@ export interface OpsConsoleRuntime {
   readonly canRestore: () => boolean;
   readonly canMaintain: () => boolean;
   readonly canReadLogs: () => boolean;
-  load: () => Promise<void>;
+  load: (section?: OpsLoadSection) => Promise<void>;
   loadLogs: (reset?: boolean) => Promise<void>;
   setLogFilter: (source: string, severity: LogSeverity) => Promise<void>;
   submitBackup: (providerKey: string) => Promise<void>;
@@ -185,6 +201,10 @@ export const createOpsConsoleRuntime = (
     logsError: null,
     maintenanceError: null,
   });
+  const canReadMaintenance = options.canReadMaintenance ?? options.canRead;
+  const canCloseMaintenance =
+    options.canCloseMaintenance ?? options.canMaintain;
+  const canReadTask = options.canReadTask ?? options.canRead;
   const controllers = new Set<AbortController>();
   let generation = 0;
   let logGeneration = 0;
@@ -211,32 +231,54 @@ export const createOpsConsoleRuntime = (
     state.logCursor = null;
     state.logNextCursor = null;
   };
-  const load = async (): Promise<void> => {
+  const load = async (section: OpsLoadSection = 'all'): Promise<void> => {
     const current = ++generation;
+    const readsOverview = section !== 'maintenance';
+    const readsMaintenance = section !== 'overview' && canReadMaintenance();
     state.loading = true;
     state.error = null;
-    if (!options.canRead()) {
-      state.error = localError('OPS_PERMISSION_DENIED', 403);
+    state.maintenanceError = null;
+    if (readsOverview && !options.canRead()) state.overview = null;
+    if (section !== 'overview' && !canReadMaintenance())
+      state.maintenance = null;
+    if (
+      (readsOverview && !options.canRead()) ||
+      (section === 'maintenance' && !readsMaintenance)
+    ) {
+      if (section === 'maintenance')
+        state.maintenanceError = localError('OPS_PERMISSION_DENIED', 403);
+      else state.error = localError('OPS_PERMISSION_DENIED', 403);
       state.loading = false;
       return;
     }
     try {
       const [statusResult, maintenanceResult] = await Promise.all([
-        run((signal) => options.transport.overview(signal)),
-        run((signal) => options.transport.maintenance(signal)),
+        readsOverview
+          ? run((signal) => options.transport.overview(signal))
+          : Promise.resolve(null),
+        readsMaintenance
+          ? run((signal) => options.transport.maintenance(signal))
+          : Promise.resolve(null),
       ]);
       if (current !== generation) return;
-      const statusFailure = responseStatus(statusResult, [200]);
-      const maintenanceFailure = responseStatus(maintenanceResult, [200]);
-      state.error = statusFailure;
-      state.maintenanceError = maintenanceFailure;
-      if (statusFailure === null)
-        state.overview = parseOpsStatus(statusResult.body);
-      if (maintenanceFailure === null)
-        state.maintenance = parseMaintenance(maintenanceResult.body);
+      if (statusResult !== null) {
+        state.error = responseStatus(statusResult, [200]);
+        state.overview =
+          state.error === null ? parseOpsStatus(statusResult.body) : null;
+      }
+      if (maintenanceResult !== null) {
+        state.maintenanceError = responseStatus(maintenanceResult, [200]);
+        state.maintenance =
+          state.maintenanceError === null
+            ? parseMaintenance(maintenanceResult.body)
+            : null;
+      }
     } catch {
-      if (current === generation)
-        state.error = localError('OPS_STATUS_UNAVAILABLE');
+      if (current === generation) {
+        if (section === 'maintenance')
+          state.maintenanceError = localError('OPS_STATUS_UNAVAILABLE');
+        else state.error = localError('OPS_STATUS_UNAVAILABLE');
+      }
     } finally {
       if (current === generation) state.loading = false;
     }
@@ -335,10 +377,11 @@ export const createOpsConsoleRuntime = (
     }
   };
   const mutateMaintenance = async (
+    permission: () => boolean,
     operation: (signal: AbortSignal) => Promise<OpsTransportResult>
   ): Promise<void> => {
-    if (state.mutating || !options.canMaintain()) {
-      if (!options.canMaintain())
+    if (state.mutating || !permission()) {
+      if (!permission())
         state.maintenanceError = localError('OPS_PERMISSION_DENIED', 403);
       return;
     }
@@ -363,6 +406,9 @@ export const createOpsConsoleRuntime = (
   };
   return {
     state,
+    canReadMaintenance,
+    canCloseMaintenance,
+    canReadTask,
     providers,
     maintenanceReasons,
     logSources,
@@ -414,7 +460,7 @@ export const createOpsConsoleRuntime = (
       );
     },
     async refreshTask(task) {
-      if (!options.canRead()) {
+      if (!canReadTask()) {
         state.error = localError('OPS_PERMISSION_DENIED', 403);
         return;
       }
@@ -444,7 +490,7 @@ export const createOpsConsoleRuntime = (
         return Promise.resolve();
       }
       const expected = state.maintenance?.revision ?? 0;
-      return mutateMaintenance((signal) =>
+      return mutateMaintenance(options.canMaintain, (signal) =>
         options.transport.scheduleMaintenance(input, expected, key(), signal)
       );
     },
@@ -454,7 +500,7 @@ export const createOpsConsoleRuntime = (
         state.maintenanceError = localError('OPS_MAINTENANCE_INVALID', 422);
         return Promise.resolve();
       }
-      return mutateMaintenance((signal) =>
+      return mutateMaintenance(canCloseMaintenance, (signal) =>
         options.transport.closeMaintenance(
           window.maintenanceKey,
           window.revision,

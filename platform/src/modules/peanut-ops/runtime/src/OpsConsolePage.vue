@@ -7,14 +7,9 @@
     PageHeader,
     SessionExpiredState,
   } from '@peanut-admin/ui-vue';
-  import {
-    ElButton,
-    ElDatePicker,
-    ElInput,
-    ElTabPane,
-    ElTabs,
-  } from 'element-plus';
+  import { ElButton, ElDatePicker, ElInput } from 'element-plus';
   import { computed, onMounted, ref } from 'vue';
+  import type { OpsConsoleSection } from './runtime';
   import { LOG_SEVERITIES } from './contracts';
   import type {
     HealthStatus,
@@ -25,7 +20,36 @@
   } from './contracts';
   import { useOpsConsoleRuntime } from './runtime';
 
+  const props = withDefaults(
+    defineProps<{
+      section?: OpsConsoleSection;
+      sourceIdentityKnown?: boolean;
+    }>(),
+    { section: 'all', sourceIdentityKnown: undefined }
+  );
   const runtime = useOpsConsoleRuntime();
+  const includesSection = (section: OpsConsoleSection) =>
+    props.section === 'all' || props.section === section;
+  const sectionTitles: Record<OpsConsoleSection, string> = {
+    all: '运维控制台',
+    overview: '运维概览',
+    maintenance: '维护窗口',
+    backups: '备份与恢复',
+    upgrades: '应用升级',
+    diagnostics: '运行诊断',
+    providers: '服务提供者',
+  };
+  const sourceIdentityKnown = computed(
+    () => props.sourceIdentityKnown ?? !!runtime.state.overview?.version.commit
+  );
+  const reload = () =>
+    props.section === 'maintenance'
+      ? runtime.load('maintenance')
+      : props.section === 'diagnostics'
+      ? runtime.loadLogs()
+      : props.section === 'all' || props.section === 'overview'
+      ? runtime.load(props.section)
+      : Promise.resolve();
   const state = runtime.state;
   const providerKey = ref(runtime.providers[0]?.key ?? '');
   const backupReferenceKey = ref('');
@@ -102,7 +126,11 @@
 
   onMounted(async () => {
     chooseProvider();
-    if (runtime.canReadLogs() && runtime.logSources.length > 0)
+    if (
+      props.section === 'all' &&
+      runtime.canReadLogs() &&
+      runtime.logSources.length > 0
+    )
       await runtime.loadLogs();
   });
 </script>
@@ -110,13 +138,18 @@
 <template>
   <PageContent class="ops-console-page">
     <PageHeader>
-      运维控制台
+      {{ sectionTitles[section] }}
       <template #actions>
         <slot name="refresh">
           <ElButton
+            v-if="
+              ['all', 'overview', 'maintenance', 'diagnostics'].includes(
+                section
+              )
+            "
             :loading="state.loading"
             :disabled="state.mutating"
-            @click="runtime.load"
+            @click="reload"
           >
             重新加载
           </ElButton>
@@ -135,7 +168,7 @@
     <ModuleUnavailableState
       v-else-if="state.error?.status === 503 && state.overview === null"
       :message="state.error.message"
-      @action="runtime.load"
+      @action="reload"
     />
     <section
       v-else-if="state.error && state.overview === null"
@@ -155,8 +188,8 @@
       正在加载运维信息…
     </div>
 
-    <ElTabs class="ops-tabs">
-      <ElTabPane label="健康状态">
+    <div class="ops-sections">
+      <template v-if="includesSection('overview')">
         <section
           v-if="state.overview"
           class="ops-section"
@@ -228,13 +261,13 @@
             </table>
           </div>
         </section>
-      </ElTabPane>
+      </template>
 
-      <ElTabPane label="备份与恢复">
+      <template v-if="includesSection('backups')">
         <section class="ops-section" aria-labelledby="ops-backup-heading">
           <h2 id="ops-backup-heading"> 备份与恢复验证 </h2>
           <slot name="backup" />
-          <p v-if="!state.overview?.version.commit" class="ops-notice"
+          <p v-if="!sourceIdentityKnown" class="ops-notice"
             >当前源码发行身份未知。历史记录可查看，创建备份及恢复验证需先满足来源资格。</p
           >
           <div class="ops-controls">
@@ -254,7 +287,7 @@
             <ElButton
               type="primary"
               :disabled="
-                !state.overview?.version.commit ||
+                !sourceIdentityKnown ||
                 !runtime.canBackup() ||
                 state.mutating ||
                 !runtime.providers.find(
@@ -286,7 +319,7 @@
             >
             <ElButton
               :disabled="
-                !state.overview?.version.commit ||
+                !sourceIdentityKnown ||
                 !runtime.canRestore() ||
                 state.mutating ||
                 restoreTargetKey === ''
@@ -338,7 +371,11 @@
                   ><td>{{ task.attemptCount }} / {{ task.maxAttempts }}</td
                   ><td>{{ task.updatedAt }}</td
                   ><td>
-                    <ElButton text @click="runtime.refreshTask(task)">
+                    <ElButton
+                      v-if="runtime.canReadTask()"
+                      text
+                      @click="runtime.refreshTask(task)"
+                    >
                       刷新
                     </ElButton>
                   </td>
@@ -347,10 +384,19 @@
             </table>
           </div>
         </section>
-      </ElTabPane>
+      </template>
 
-      <ElTabPane label="应用升级"><slot name="upgrade" /></ElTabPane>
-      <ElTabPane label="维护窗口">
+      <template v-if="includesSection('upgrades')"
+        ><slot name="upgrade"
+      /></template>
+      <template
+        v-if="
+          includesSection('maintenance') &&
+          (runtime.canReadMaintenance() ||
+            runtime.canMaintain() ||
+            runtime.canCloseMaintenance())
+        "
+      >
         <section class="ops-section" aria-labelledby="ops-maintenance-heading">
           <h2 id="ops-maintenance-heading"> 维护窗口 </h2>
           <p class="ops-notice"
@@ -416,7 +462,9 @@
             </ElButton>
             <ElButton
               :disabled="
-                !runtime.canMaintain() || state.mutating || !activeMaintenance
+                !runtime.canCloseMaintenance() ||
+                state.mutating ||
+                !activeMaintenance
               "
               @click="runtime.closeMaintenance"
             >
@@ -427,9 +475,9 @@
             {{ maintenanceTimeError }}
           </p>
         </section>
-      </ElTabPane>
+      </template>
 
-      <ElTabPane label="运行事件">
+      <template v-if="includesSection('diagnostics')">
         <section class="ops-section" aria-labelledby="ops-logs-heading">
           <h2 id="ops-logs-heading"> 结构化运行事件 </h2>
           <p class="ops-notice"
@@ -518,21 +566,17 @@
             </ElButton>
           </template>
         </section>
-      </ElTabPane>
-      <ElTabPane label="服务提供者"><slot name="providers" /></ElTabPane>
-    </ElTabs>
+      </template>
+      <template v-if="includesSection('providers')"
+        ><slot name="providers"
+      /></template>
+    </div>
   </PageContent>
 </template>
 
 <style scoped>
-  .ops-tabs {
+  .ops-sections {
     margin-top: 12px;
-  }
-  .ops-tabs :deep(.el-tabs__header) {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    background: var(--el-bg-color);
   }
   .ops-notice {
     color: var(--el-text-color-secondary);

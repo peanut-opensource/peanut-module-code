@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e3bd1452441b67f984c9b8235a4b5d7d",
+    "content-hash": "cd3c9fed2945ac6b2516d3ee774b5f0e",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -1904,11 +1904,11 @@
         },
         {
             "name": "peanut-business/peanut-collaboration",
-            "version": "1.0.17",
+            "version": "1.0.18",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/collaboration",
-                "reference": "b6fbf56225a070f65f6dc649c0c60853d75ed3b4"
+                "reference": "fc71679b0d5060b6c4d1a35f0097cf51d8758886"
             },
             "require": {
                 "peanut-business/peanut-document": "^1.0.2"
@@ -2002,11 +2002,11 @@
         },
         {
             "name": "peanut-business/peanut-file",
-            "version": "1.0.34",
+            "version": "1.0.35",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/file",
-                "reference": "d78db049119ca663ee9a89d3b41dc605461028e3"
+                "reference": "779456e5a1e15954a8edc357d0eac99b6e12f5e5"
             },
             "require": {
                 "aws/aws-sdk-php": "^3.0",
@@ -2039,11 +2039,11 @@
         },
         {
             "name": "peanut-business/peanut-identity",
-            "version": "4.0.0-rc.51",
+            "version": "4.0.0-rc.53",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/identity",
-                "reference": "fd3d09b5e6d4f099f7aecd703460a70a132062e1"
+                "reference": "d0774dc9efe846b8e1c0d02cfae58f23610c6f62"
             },
             "require": {
                 "peanut-admin/core": "^5.0.3-alpha.6",
@@ -2260,11 +2260,11 @@
         },
         {
             "name": "peanut-business/peanut-ops",
-            "version": "1.0.30",
+            "version": "1.0.31",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/ops",
-                "reference": "96818d48f793145aaecb547156cf3d8a0e4a37f9"
+                "reference": "a0ba5e76348b83b4d13feef6788cb924c19acfd3"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2440,11 +2440,11 @@
         },
         {
             "name": "peanut-business/peanut-task",
-            "version": "1.0.27",
+            "version": "1.0.28",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/task",
-                "reference": "6b53acb67c14be5ed2ef82886596d39fdc1ed994"
+                "reference": "b97f076a2b2a342fddc418b0848856222f0e6be1"
             },
             "require": {
                 "peanut-admin/core": "^5.0.3-alpha.5",

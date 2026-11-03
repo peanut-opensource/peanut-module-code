@@ -10,6 +10,12 @@ interface StorageConfiguration
 {
     public function snapshot(): array;
 
+    public function accounts(): array;
+
+    public function spaces(): array;
+
+    public function routes(): array;
+
     public function createAccount(PlatformOperatorContext $context, array $value): int;
 
     public function updateAccount(PlatformOperatorContext $context, array $value): void;

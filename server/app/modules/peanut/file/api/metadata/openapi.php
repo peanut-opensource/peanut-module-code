@@ -116,7 +116,7 @@ foreach ([
         : (in_array($suffix, ['/account', '/space'], true) ? $storageObject(['id' => $storageId], ['id'])
             : ['type' => 'array', 'maxItems' => 0, 'items' => ['type' => 'string']]);
     $operation = ['tags' => ['Storage'], 'operationId' => $operationId,
-        'description' => $suffix === '' ? 'Requires platform.ops.read. Instance-owned snapshot; credential ciphertext and keys are never returned.'
+        'description' => $suffix === '' ? 'Requires platform.storage.legacy.read by default. Legacy aggregate snapshot retained for explicitly configured API bindings; source-default platform.ops.read roles receive the three separate read capabilities instead. Credential ciphertext and keys are never returned.'
             : 'Requires platform.ops.maintenance.manage. Validated configuration mutation and platform audit run in the existing transaction. Unknown body keys reject; no provider connection or data migration is requested.',
         'responses' => ['200' => ['description' => '成功', 'content' => ['application/json' => ['schema' => $visibilityEnvelope($data)]]],
             '400' => $error, '401' => $error, '403' => $error, '422' => $error, '500' => $error]];
@@ -125,6 +125,22 @@ foreach ([
         $operation['x-peanut-errors'] = [$reason . '_INPUT_INVALID'];
     }
     $storagePaths['/platformapi/infrastructure/storage' . $suffix][$method] = $operation;
+}
+
+foreach ([
+    'accounts' => ['StorageAccountSnapshot', 'platform.storage.account.read', 'getStorageAccounts'],
+    'spaces' => ['StorageSpaceSnapshot', 'platform.storage.space.read', 'getStorageSpaces'],
+    'routes' => ['StorageRouteSnapshot', 'platform.storage.route.read', 'getStorageRoutes'],
+] as $section => [$schema, $permission, $operationId]) {
+    $data = $storageObject([
+        $section => ['type' => 'array', 'items' => ['$ref' => '#/components/schemas/' . $schema]],
+    ], [$section]);
+    $storagePaths['/platformapi/infrastructure/storage/' . $section]['get'] = [
+        'tags' => ['Storage'], 'operationId' => $operationId,
+        'description' => 'Requires ' . $permission . '. Returns only this configuration list; provider credentials are never returned.',
+        'responses' => ['200' => ['description' => '成功', 'content' => ['application/json' => ['schema' => $visibilityEnvelope($data)]]],
+            '400' => $error, '401' => $error, '403' => $error, '500' => $error],
+    ];
 }
 
 return [

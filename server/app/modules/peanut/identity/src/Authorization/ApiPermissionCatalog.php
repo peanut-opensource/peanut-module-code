@@ -31,6 +31,43 @@ final class ApiPermissionCatalog
         return true;
     }
 
+    /**
+     * Exact UI capabilities derived from the same instance bindings as the middleware.
+     * These paths are presentation hints, never additional role grants or server admission.
+     * @param list<string> $permissionKeys
+     * @return list<array{method: string, path: string}>
+     */
+    public function platformAccess(array $permissionKeys, ModuleAvailability $modules, bool $mutationLocked = false): array
+    {
+        if ($permissionKeys === []) {
+            return [];
+        }
+        $rows = Db::name('api_endpoint')->alias('endpoint')
+            ->join('permission_api binding', 'binding.api_id = endpoint.id')
+            ->join('permission permission', 'permission.id = binding.permission_id')
+            ->where('endpoint.audience', 'platform')->where('endpoint.status', 'active')
+            ->where('endpoint.access_mode', 'platform_permission')
+            ->where('permission.status', 'active')->whereLike('permission.key', 'platform.%')
+            ->whereIn('permission.key', $permissionKeys)
+            ->field('endpoint.method,endpoint.path,endpoint.module_key,endpoint.prerequisite_permission_keys')
+            ->distinct(true)->order('endpoint.path,endpoint.method')->select()->toArray();
+        $available = [];
+        $access = [];
+        foreach ($rows as $row) {
+            $prerequisites = json_decode($row['prerequisite_permission_keys'], true, 32, JSON_THROW_ON_ERROR);
+            if (array_diff($prerequisites, $permissionKeys) !== []
+                || ($mutationLocked && in_array($row['method'], ['POST', 'PUT', 'PATCH', 'DELETE'], true))) {
+                continue;
+            }
+            $owner = (string) $row['module_key'];
+            $available[$owner] ??= $this->moduleAvailable($row, $modules);
+            if ($available[$owner]) {
+                $access[] = ['method' => (string) $row['method'], 'path' => (string) $row['path']];
+            }
+        }
+        return $access;
+    }
+
     /** The route generator is the only discovery producer. No runtime scanner or role grants. */
     public function synchronize(array $catalog, array $moduleKeys, bool $fullRegistry): void
     {

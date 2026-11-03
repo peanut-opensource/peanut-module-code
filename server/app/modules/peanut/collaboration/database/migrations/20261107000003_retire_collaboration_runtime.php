@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Phinx\Db\Adapter\PdoAdapter;
+use Phinx\Db\Adapter\WrapperInterface;
 use Phinx\Migration\IrreversibleMigrationException;
 use think\migration\Migrator;
 
@@ -10,7 +12,14 @@ final class RetireCollaborationRuntime extends Migrator
 {
     public function up(): void
     {
-        if ($this->getAdapter()->hasTable('pa_collaboration_runtime')) {
+        $adapter = $this->getAdapter();
+        while ($adapter instanceof WrapperInterface) {
+            $adapter = $adapter->getAdapter();
+        }
+        if (!$adapter instanceof PdoAdapter) {
+            throw new RuntimeException('RetireCollaborationRuntime requires the native PDO adapter.');
+        }
+        if ($adapter->hasTable('pa_collaboration_runtime')) {
             $this->execute('DROP TABLE pa_collaboration_runtime');
         }
     }
