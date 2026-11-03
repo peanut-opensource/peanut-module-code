@@ -278,5 +278,16 @@ Backend downtime leaves Node listening and protects its unconfirmed captures.
 The independent service owner remains responsible for Node's actual safe drain.
 There is no global operator endpoint or PHP lifecycle CLI.
 
+## Installation data and retired schema
+
+Installation creates the seven declared collaboration protocol tables and no
+sample rooms, tickets, grants, admissions or document content. Version 1.0.17
+retires `pa_collaboration_runtime`, the unused global process-coordination ledger.
+The forward migration removes that table on both a complete fresh installation
+and an existing module upgrade; the original initial migration remains unchanged.
+The independent Hocuspocus process uses the signed PHP API and its own signal
+drain, and does not read this retired SQL ledger. Active Room, connection, grant,
+barrier and Document save/recovery records remain owned by their existing paths.
+
 Source, syntax and metadata alone do not prove SQL migrations, real WSS, storage,
 multi-user operation, installation/recovery qualification or production readiness.
