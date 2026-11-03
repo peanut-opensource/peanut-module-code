@@ -268,14 +268,16 @@ final class InstallationPreflightHost
                 || !is_array($installed['packages'] ?? null) || !array_is_list($installed['packages'])) {
                 return $blocked();
             }
-            $localCore = null;
+            $coreIdentity = null;
             foreach ($lock['packages'] as $package) {
-                if (($package['name'] ?? null) !== 'peanut-admin/core' || isset($package['source'])) { continue; }
-                require_once dirname(__DIR__, 2) . '/value/installation/ApplicationReleaseVersions.php';
-                $root = dirname($this->serverRoot);
-                $localCore = ApplicationReleaseVersions::load($root . '/release-versions.json')->toArray()['core_php'];
-                if ($localCore['source_type'] !== 'local') { return $blocked(); }
-                ReleaseDependencyIdentity::phpComposerReference($package, $localCore, 'Composer Core identity invalid');
+                if (($package['name'] ?? null) !== 'peanut-admin/core') { continue; }
+                $coreIdentity = ApplicationReleaseVersions::load(
+                    dirname($this->serverRoot) . '/release-versions.json',
+                )->toArray()['core_php'];
+                if ($coreIdentity['source_type'] !== (isset($package['source']) ? 'git' : 'local')) {
+                    return $blocked();
+                }
+                ReleaseDependencyIdentity::phpComposerReference($package, $coreIdentity, 'Composer Core identity invalid');
             }
             $modulePackages = [];
             $moduleConfig = require $this->serverRoot . '/config/modules.php';
@@ -289,7 +291,7 @@ final class InstallationPreflightHost
                         'require' => $package['require-dev'] ?? []];
                 }
             }
-            $identity = static function (array $package) use ($localCore, $modulePackages): array {
+            $identity = static function (array $package) use ($coreIdentity, $modulePackages): array {
                 $name = $package['name'] ?? null;
                 $version = $package['version'] ?? null;
                 if (isset($modulePackages[$name])) {
@@ -310,9 +312,12 @@ final class InstallationPreflightHost
                     }
                     return [$name, $version, $module['require']];
                 }
-                if ($name === 'peanut-admin/core' && $localCore !== null) {
-                    $reference = ReleaseDependencyIdentity::phpComposerReference($package, $localCore, 'Composer Core identity invalid');
-                    // Compare the installed distribution with the lock; its ZIP was verified when prepared.
+                if ($name === 'peanut-admin/core' && $coreIdentity !== null) {
+                    $reference = ReleaseDependencyIdentity::phpComposerReference($package, $coreIdentity, 'Composer Core identity invalid');
+                    if ($coreIdentity['source_type'] === 'git') {
+                        return [$name, $version, $reference];
+                    }
+                    // Compare the installed local archive with the lock; its ZIP was verified when prepared.
                     return [$name, $version, [$reference, $package['dist']['type'], $package['dist']['url'], $package['dist']['shasum']]];
                 }
                 $source = $package['source']['reference'] ?? null;

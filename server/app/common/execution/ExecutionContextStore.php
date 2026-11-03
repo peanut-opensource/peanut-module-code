@@ -32,7 +32,13 @@ final class ExecutionContextStore
     public function run(ExecutionContext $context, callable $operation): mixed
     {
         $current = $this->current();
-        if ($current !== null && $current::class !== $context::class) {
+        // The installer provisions the verified default tenant before writing its completion lock.
+        $installationBootstrap = $current instanceof InstallationExecutionContext
+            && $context instanceof SystemExecutionContext
+            && $context->system->actorKey === 'platform.tenant-bootstrap'
+            && $context->operation() === 'tenant.provision-application-defaults'
+            && $context->requestId() === $current->requestId();
+        if ($current !== null && $current::class !== $context::class && !$installationBootstrap) {
             throw new \DomainException('EXECUTION_AUDIENCE_CONTEXT_MISMATCH');
         }
         $currentTenantId = $current?->tenantId();

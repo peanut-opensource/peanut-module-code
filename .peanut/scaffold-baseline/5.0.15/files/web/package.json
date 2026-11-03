@@ -3,7 +3,7 @@
     "description": "Peanut Module Code management client",
     "version": "1.0.0",
     "private": true,
-    "author": "花生科技",
+    "author": "application owner",
     "license": "Apache-2.0",
     "homepage": "https://github.com/peanut-business/peanut-admin-code",
     "repository": {

@@ -116,7 +116,8 @@ final class ReleaseDependencyIdentity
         if (($package['source']['type'] ?? null) !== 'git'
             || ($package['source']['url'] ?? null) !== $php['source_url']
             || ($package['source']['reference'] ?? null) !== $php['source_reference']
-            || ($package['dist']['reference'] ?? null) !== $php['source_reference']) {
+            || (isset($package['dist'])
+                && ($package['dist']['reference'] ?? null) !== $php['source_reference'])) {
             throw new RuntimeException($error);
         }
         return $php['source_reference'];
