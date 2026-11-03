@@ -2,7 +2,7 @@
   "name": "peanut-business/peanut-member",
   "description": "Official Tenant member CRM module",
   "type": "library",
-    "version": "1.0.22",
+    "version": "1.0.23",
   "license": "Apache-2.0",
   "require": {
     "php": "^8.3",

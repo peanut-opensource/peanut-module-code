@@ -31,6 +31,7 @@ final class ModuleProvider implements ModuleProviderContract, \PeanutAdmin\Modul
         return [
             ArticleQueries::class => ArticleQueryService::class,
             PublicArticleQueries::class => PublicArticleService::class,
+            \PeanutAdmin\Modules\Member\Contract\MemberCollectionCounts::class => PublicArticleService::class,
             ArticleAdministration::class => ArticleAdministrationService::class,
             ArticleCategoryAdministration::class => ArticleCategoryAdministrationService::class,
         ];

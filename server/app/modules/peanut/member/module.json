@@ -3,7 +3,7 @@
   "key": "peanut.member",
   "name": "Member CRM",
   "description": "Tenant-owned customer profiles, tags, balances and member sessions.",
-    "version": "1.0.22",
+    "version": "1.0.23",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-member",
@@ -53,6 +53,7 @@
     "exports": [
       "PeanutAdmin\\Modules\\Member\\Value\\AccountLogEnum",
       "PeanutAdmin\\Modules\\Member\\Contract\\MemberAccessTokens",
+      "PeanutAdmin\\Modules\\Member\\Contract\\MemberCollectionCounts",
       "PeanutAdmin\\Modules\\Member\\Contract\\MemberAdministration",
       "PeanutAdmin\\Modules\\Member\\Contract\\MemberQueries",
       "PeanutAdmin\\Modules\\Member\\Contract\\MemberBalanceCommands",
@@ -79,10 +80,6 @@
     ]
   },
   "optional_dependencies": [
-    {
-      "module_key": "peanut.article",
-      "version": "^1.0"
-    },
     {
       "module_key": "peanut.notification",
       "version": "^1.0"

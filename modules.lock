@@ -3,11 +3,11 @@
     "modules": [
         {
             "key": "peanut.article",
-            "version": "1.0.14",
+            "version": "1.0.15",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "44cfa5f55ff32785a5243e95520d8e8fb816aa31f72c3f451b76a6b942ac52af"
+                "sha256": "4c8ef4cae47a913e2d1997f525c340ad9992eda385187307b296f41f61509647"
             },
             "trust": {
                 "channel": "bundled",
@@ -41,7 +41,7 @@
                     "modules": [
                         {
                             "key": "peanut.article",
-                            "version": "1.0.14",
+                            "version": "1.0.15",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -76,8 +76,8 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-article",
-                    "version": "1.0.14",
-                    "sha256": "338ea8057ef5195d7d48a5a34729e1970cd64bea9d84d62ab2c1ddc785a5a2f1"
+                    "version": "1.0.15",
+                    "sha256": "4b53de3555caaaa842b73ee8691f635e4502b274d0bb917ff1c0a3867e5c233f"
                 }
             ],
             "npm": [
@@ -127,7 +127,7 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/article/module.json",
-            "manifest_sha256": "649eaf7f60f0f2733be1b13455f825bfbee0194f1cc0a10432c182206e4e9883"
+            "manifest_sha256": "495ff3ae6ccb7bbadaa9ea7659f487dc47a81ab1203622e4e31a4e7d5f125c25"
         },
         {
             "key": "peanut.artifact-revision",
@@ -1072,11 +1072,11 @@
         },
         {
             "key": "peanut.member",
-            "version": "1.0.22",
+            "version": "1.0.23",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "f5153f5dde19a42e9c1d35954f8710b0ded00a05b037097c1dc9ed12575a4c14"
+                "sha256": "f4ff0d90e0a1f92ae0b59bde51cc022ee8736ba6504c70e0d00035ac4370724c"
             },
             "trust": {
                 "channel": "bundled",
@@ -1110,7 +1110,7 @@
                     "modules": [
                         {
                             "key": "peanut.member",
-                            "version": "1.0.22",
+                            "version": "1.0.23",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -1137,8 +1137,8 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-member",
-                    "version": "1.0.22",
-                    "sha256": "2540f16b75734571213f7595f508fa33d9e2d55a641e788b59a62139aa7f0ece"
+                    "version": "1.0.23",
+                    "sha256": "ef8bc67a8562d7b4722094610e2b5282c9f35efe4185fc8a6663471848a33e78"
                 }
             ],
             "npm": [
@@ -1188,7 +1188,7 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/member/module.json",
-            "manifest_sha256": "ea2ec51a4ddd83ec1a96452fe7f11351be0457830b05616ec26d70c91c446ae1"
+            "manifest_sha256": "60ee62ca85e14754a387f8fd793453f854e773873b0c9f8e76b711ad343ae411"
         },
         {
             "key": "peanut.notification",

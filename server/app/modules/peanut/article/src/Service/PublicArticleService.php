@@ -13,10 +13,11 @@ use app\common\services\ProductAssetReferenceService;
 use app\common\services\RichTextResourceService;
 use app\common\support\PaginationInput;
 use PeanutAdmin\Modules\Article\Contract\PublicArticleQueries;
+use PeanutAdmin\Modules\Member\Contract\MemberCollectionCounts;
 use PeanutAdmin\Kernel\Context\AuthenticatedMemberContext;
 
 /** Serves public article reads and authenticated member collection commands. */
-final class PublicArticleService implements PublicArticleQueries
+final class PublicArticleService implements PublicArticleQueries, MemberCollectionCounts
 {
     public function __construct(
         private readonly ProductAssetReferenceService $assets,

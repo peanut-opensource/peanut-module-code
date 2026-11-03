@@ -1,6 +1,6 @@
 {
   "name": "peanut-business/peanut-article",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "type": "peanut-admin-module",
   "license": "Apache-2.0",
   "autoload": {

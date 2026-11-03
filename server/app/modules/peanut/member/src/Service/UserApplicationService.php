@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Member\Service;
 
 use PeanutAdmin\Modules\Notification\Contract\VerificationCodeCommands;
-use PeanutAdmin\Modules\Article\Contract\PublicArticleQueries;
+use PeanutAdmin\Modules\Member\Contract\MemberCollectionCounts;
 use PeanutAdmin\Modules\Member\Contract\MemberIdentityCommands;
 use PeanutAdmin\Modules\Member\Contract\MemberProfileCommands;
 use PeanutAdmin\Modules\Member\Contract\MemberQueries;
@@ -24,7 +24,7 @@ class UserApplicationService
         private readonly MemberProfileCommands $memberProfiles,
         private readonly FileReferences $files,
         private readonly ?VerificationCodeCommands $verificationCodes = null,
-        private readonly ?PublicArticleQueries $articleCollections = null,
+        private readonly ?MemberCollectionCounts $articleCollections = null,
     ) {}
 
     /** 用户中心（首屏数据） */

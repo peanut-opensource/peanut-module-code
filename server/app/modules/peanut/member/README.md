@@ -42,6 +42,17 @@ propagate the existing business exception; callers must not convert them into
 successful writes. Missing identities are `null`, and `memberFields` returns `[]`
 when absent.
 
+## Optional member-center collection count
+
+Member 1.0.23 exports `MemberCollectionCounts` as a nullable provider contract.
+Article 1.0.15 contributes its existing `PublicArticleService` implementation
+through its normal provider bindings and its existing dependency on Member.
+Member does not depend on Article. When no provider is selected, ThinkPHP's
+native optional constructor injection keeps this dependency `null`, and the
+member center returns `collect_num = 0`. When Article is selected, its unchanged
+count query retains the current tenant scope and published/non-deleted filters.
+No URL or authorization rule changes with this binding direction.
+
 ## Admin Web list
 
 The actual consumer is `web/src/modules/peanut-member/views/list/index.vue`.
