@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\command;
 
-use app\platform\services\plugin\ModuleAuthorCheckHost;
+use app\platform\services\module\ModuleAuthorCheckHost;
 use app\common\execution\ModuleContextualCommand;
 use think\console\Input;
 use think\console\input\Argument;
@@ -205,7 +205,7 @@ final class ModuleCheck extends ModuleContextualCommand
                 $files = [];
                 foreach (['app/command/ModuleCheck.php', 'app/modules/peanut/workflow/src/Application/WorkflowUpgradePreflight.php',
                     'app/modules/peanut/workflow/src/Definition/WorkflowGraph.php', 'app/modules/peanut/identity/src/Contract/WorkflowLegacyOrganizationQuery.php',
-                    'composer.lock', '../plugins.lock'] as $relative) {
+                    'composer.lock', '../modules.lock'] as $relative) {
                     $path = $root . '/' . $relative;
                     if (!is_file($path) || is_link($path)) { throw new \RuntimeException('PRESERVATION_DETAIL_SOURCE_UNKNOWN'); }
                     $files[$relative] = hash_file('sha256', $path);

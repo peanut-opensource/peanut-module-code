@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace app\common\execution;
 
 use app\common\validation\instance\InstanceToolAccessGuard;
-use app\platform\exception\plugin\PluginLifecycleException;
-use app\platform\infrastructure\plugin\ModuleCatalogApplier;
-use app\platform\services\plugin\PlatformModuleRuntimeService;
+use app\platform\exception\module\ModuleLifecycleException;
+use app\platform\infrastructure\module\ModuleCatalogApplier;
+use app\platform\services\module\PlatformModuleRuntimeService;
 
 /** Supplies Module catalog coordination without leaking a database connection into commands. */
 abstract class ModuleContextualCommand extends ContextualCommand
@@ -44,7 +44,7 @@ abstract class ModuleContextualCommand extends ContextualCommand
             $this->getName(),
             $this->establishedInstanceContext(),
         )) {
-            throw new PluginLifecycleException(
+            throw new ModuleLifecycleException(
                 'MODULE_RUNTIME_MUTATION_DISABLED',
                 'Runtime Module mutation is disabled.',
             );

@@ -965,7 +965,7 @@ def admit_recovery(lease_id, owner):
                         for name in ("original-state.json", "metadata.tsv", "resources.tsv", "original-journal.json", "review.json")]
         record = {"protocol": "peanut.source-application-recovery-rebind.v1", "lease": lease_id, "owner": owner,
                   "admitted_at": int(time.time()),
-                  "native_command": (["plugin:" + original["operation"], original["plugin_key"]]
+                  "native_command": (["module:" + original["operation"], original["plugin_key"]]
                      if original["protocol"] == "peanut.source-development-plugin-plan.v1" else ["schema:application", "source-recovery"]),
                   "actor": {key: binding["authority"][key] for key in ("owner", "thread", "session", "gate")},
                   "workspace": str(workspace), "plan_path": str(plan_path), "attachments": attachments,
@@ -1401,12 +1401,12 @@ def maintain(operation, directory, value, lease_id, step):
     if step == "open":
         argv = base + ["schema:application", "source-recovery", *actor, "--application-recovery=open"]
     elif step in ("rehearse", "restore"):
-        name = "plugin:" + contract["operation"] if contract["kind"] == "plugin" else "schema:application"
+        name = "module:" + contract["operation"] if contract["kind"] == "plugin" else "schema:application"
         target = [contract["plugin_key"]] if contract["kind"] == "plugin" else ["source-recovery"]
         argv = base + [name, *target, *actor, "--application-recovery=" + step,
                        "--source-plan=" + str(plan_path), "--recovery=" + str(workspace)]
     elif contract["kind"] == "plugin":
-        argv = base + ["plugin:" + contract["operation"], contract["plugin_key"], *actor, *metadata]
+        argv = base + ["module:" + contract["operation"], contract["plugin_key"], *actor, *metadata]
         if step == "plan":
             argv += ["--dry-run", "--backup-tool=" + contract["backup_tool"], "--backup-output=" + str(backup)]
         elif step == "apply":

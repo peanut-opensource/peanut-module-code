@@ -67,7 +67,7 @@ final readonly class SourceDevelopmentMaintenanceAdmission
         if ($ddl && !$access) { throw new RuntimeException('APPLICATION_SCHEMA_DDL_LEASE_REQUIRED'); }
         if ($writeTables !== []) { self::assertWriteTables($resources, $schema, $writeTables, $legacyExclusive); }
         $sourceFiles = [];
-        foreach (['release-versions.json', 'plugins.lock', 'server/composer.lock', 'server/vendor/composer/installed.json'] as $file) { $sourceFiles[$file] = $this->fileDigest($root . '/' . $file); }
+        foreach (['release-versions.json', 'modules.lock', 'server/composer.lock', 'server/vendor/composer/installed.json'] as $file) { $sourceFiles[$file] = $this->fileDigest($root . '/' . $file); }
         $core = dirname((string) (new \ReflectionClass(\PeanutAdmin\Kernel\Module\ModuleProvider::class))->getFileName(), 4);
         $iterator = new \RecursiveIteratorIterator(new \RecursiveCallbackFilterIterator(new \RecursiveDirectoryIterator($core, \FilesystemIterator::SKIP_DOTS),
             static fn($item): bool => !in_array($item->getFilename(), ['.git', '.local', 'vendor', 'tests', 'node_modules'], true)));

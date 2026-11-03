@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\command;
 
-use app\platform\services\plugin\PluginPackageArchiveService;
+use app\platform\services\module\ModulePackageArchiveService;
 use app\common\execution\ContextualCommand;
 use think\console\Input;
 use think\console\input\Argument;
@@ -28,7 +28,7 @@ final class ModulePack extends ContextualCommand
     {
         return $this->runPackageCommand($output, function () use ($input): array {
             $key = trim((string) $input->getArgument('module_key'));
-            $service = new PluginPackageArchiveService(dirname(__DIR__, 2));
+            $service = new ModulePackageArchiveService(dirname(__DIR__, 2));
             $inspection = (new \app\common\module\PackageCheck(dirname(__DIR__, 3)))->inspect($key);
             return $service->packModule(
                 $key,

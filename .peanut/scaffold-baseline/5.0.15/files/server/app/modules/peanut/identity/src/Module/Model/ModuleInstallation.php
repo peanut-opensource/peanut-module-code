@@ -34,5 +34,12 @@ final class ModuleInstallation extends Model
         'last_error_code' => 'string',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'source' => 'string',
+        'artifact_sha256' => 'string',
+        'lock_digest' => 'string',
+        'composer_identity_json' => 'string',
+        'npm_identity_json' => 'string',
+        'frontend_identity_json' => 'string',
+        'uninstalled_at' => 'datetime',
     ];
 }

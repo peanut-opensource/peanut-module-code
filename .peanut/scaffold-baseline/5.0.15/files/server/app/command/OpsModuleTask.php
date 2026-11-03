@@ -14,8 +14,8 @@ use think\console\input\Option;
 use think\console\Output;
 use Throwable;
 use app\common\validation\instance\InstanceToolAccessGuard;
-use app\platform\exception\plugin\PluginPackageException;
-use app\platform\exception\plugin\PluginLifecycleException;
+use app\platform\exception\module\ModulePackageException;
+use app\platform\exception\module\ModuleLifecycleException;
 
 /** Deployment-control bridge for one fixed Module operation task. */
 final class OpsModuleTask extends ContextualCommand
@@ -75,21 +75,21 @@ final class OpsModuleTask extends ContextualCommand
             $output->writeln(json_encode(['ok' => true, 'result' => $result], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
             return 0;
         } catch (Throwable $exception) {
-            $code = $exception instanceof PluginPackageException || $exception instanceof PluginLifecycleException
+            $code = $exception instanceof ModulePackageException || $exception instanceof ModuleLifecycleException
                 ? $exception->errorCode
                 : (preg_match('/^(OPS|PLUGIN|MODULE|PACKAGE)_[A-Z0-9_]+$/D', $exception->getMessage()) === 1
                     ? $exception->getMessage() : 'OPS_MODULE_WORKER_FAILED');
             $exit = $exception->getCode() > 0 && $exception->getCode() < 256 ? $exception->getCode() : 1;
             $cause = $exception;
-            while ($cause->getPrevious() instanceof PluginPackageException
-                || $cause->getPrevious() instanceof PluginLifecycleException) {
+            while ($cause->getPrevious() instanceof ModulePackageException
+                || $cause->getPrevious() instanceof ModuleLifecycleException) {
                 $cause = $cause->getPrevious();
             }
             if ($cause->getCode() > 0 && $cause->getCode() < 256) {
                 $exit = $cause->getCode();
             }
             $output->writeln(json_encode(['ok' => false, 'error_code' => $code, 'exit_code' => $exit]
-                + ($exception instanceof PluginPackageException ? ['reason' => $exception->getMessage(), 'details' => $exception->details] : []),
+                + ($exception instanceof ModulePackageException ? ['reason' => $exception->getMessage(), 'details' => $exception->details] : []),
                 JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
             return $exit;
         }

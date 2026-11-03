@@ -210,7 +210,7 @@ classify() {
     server/tests/*|server/app/*|server/config/*|server/database/*|server/bootstrap/*|server/public/*|server/think|scripts/run-php-test|scripts/check-admin-api-permissions.php|scripts/check-test-integrity|scripts/check-thinkphp-architecture)
       mark server
       ;;
-    plugins/*|plugins.lock)
+    plugins/*|modules.lock)
       mark server web create_app integration
       ;;
     web/src/modules/*|web/src/*|web/tests/*|web/vite.config.*|web/tsconfig.json)

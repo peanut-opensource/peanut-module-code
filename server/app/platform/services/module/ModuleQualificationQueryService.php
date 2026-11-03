@@ -23,7 +23,7 @@ final readonly class ModuleQualificationQueryService implements ModuleQualificat
     public function installedModule(string $moduleKey): ModuleQualification
     {
         $manifest = $this->registry->requireInstalled($moduleKey, false);
-        $pluginKey = Db::name('plugin_module')->where('module_key', $moduleKey)->value('plugin_key');
+        $pluginKey = Db::name('module_installation')->where('module_key', $moduleKey)->value('module_key');
         return $this->qualification($moduleKey, $manifest, $pluginKey);
     }
 
@@ -34,10 +34,10 @@ final readonly class ModuleQualificationQueryService implements ModuleQualificat
             return [];
         }
         $manifests = $this->registry->requireInstalledMany($keys, false);
-        $pluginRows = Db::name('plugin_module')->whereIn('module_key', $keys)
-            ->field('module_key,plugin_key')->select()->toArray();
-        // plugin_module.module_key is unique; a missing ownership row is an explicit deployment root.
-        $pluginKeys = array_column($pluginRows, 'plugin_key', 'module_key');
+        $pluginRows = Db::name('module_installation')->whereIn('module_key', $keys)
+            ->field('module_key,module_key')->select()->toArray();
+        // module_installation.module_key is unique; a missing ownership row is an explicit deployment root.
+        $pluginKeys = array_column($pluginRows, 'module_key', 'module_key');
         $modules = [];
         foreach ($keys as $moduleKey) {
             $modules[] = $this->qualification($moduleKey, $manifests[$moduleKey], $pluginKeys[$moduleKey] ?? null);

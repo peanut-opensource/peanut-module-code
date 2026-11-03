@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace app\common\module;
 
-use app\platform\exception\plugin\PluginPackageException;
+use app\platform\exception\module\ModulePackageException;
 use app\common\infrastructure\module\ModuleHostLayoutFactory;
-use app\platform\infrastructure\plugin\PluginLockResolver;
-use app\platform\value\plugin\ModuleFrontendLayout;
-use app\platform\value\plugin\PluginDescriptor;
+use app\platform\infrastructure\module\ModuleLockResolver;
+use app\platform\value\module\ModuleFrontendLayout;
+use app\platform\value\module\ModuleDescriptor;
 use Composer\Semver\Semver;
 use Composer\Autoload\ClassLoader;
 use Composer\InstalledVersions;
@@ -22,7 +22,7 @@ final readonly class Dependencies
     public function __construct(private string $serverRoot) {}
 
     /** @param array<string,array{version:string,status:string}> $installed @return array<string,mixed> */
-    public function install(PluginDescriptor $plugin, PluginLockResolver $resolver, array $installed): array
+    public function install(ModuleDescriptor $plugin, ModuleLockResolver $resolver, array $installed): array
     {
         if (PHP_SAPI !== 'cli') {
             return $this->prepare($plugin->moduleRoots, $resolver, $installed);
@@ -31,7 +31,7 @@ final readonly class Dependencies
     }
 
     /** Verify release-machine output without changing native manifests or invoking build tools. */
-    public function verifyInstalled(PluginDescriptor $plugin, PluginLockResolver $resolver, array $installed): array
+    public function verifyInstalled(ModuleDescriptor $plugin, ModuleLockResolver $resolver, array $installed): array
     {
         return $this->prepare($plugin->moduleRoots, $resolver, $installed, verifyOnly: true);
     }
@@ -40,11 +40,11 @@ final readonly class Dependencies
      * @param null|list<string> $selectedModuleKeys
      * @param null|callable(array<string,mixed>):array<string,mixed> $consume
      */
-    public function prepareRelease(PluginLockResolver $resolver, array $clients, ?array $selectedModuleKeys = null,
+    public function prepareRelease(ModuleLockResolver $resolver, array $clients, ?array $selectedModuleKeys = null,
         array $installed = [], ?callable $consume = null): array
     {
         if (PHP_SAPI !== 'cli') {
-            throw new PluginPackageException('MODULE_RELEASE_PREPARATION_REQUIRED', 'Release preparation requires the deployment CLI.');
+            throw new ModulePackageException('MODULE_RELEASE_PREPARATION_REQUIRED', 'Release preparation requires the deployment CLI.');
         }
         $roots = [];
         foreach ($resolver->all() as $plugin) {
@@ -53,7 +53,7 @@ final readonly class Dependencies
         if ($selectedModuleKeys !== null) {
             $selected = [];
             foreach ($selectedModuleKeys as $key) {
-                $selected[$key] = $roots[$key] ?? throw new PluginPackageException('MODULE_APPROVED_SOURCE_REQUIRED', 'Selected Module has no admitted source.');
+                $selected[$key] = $roots[$key] ?? throw new ModulePackageException('MODULE_APPROVED_SOURCE_REQUIRED', 'Selected Module has no admitted source.');
             }
             $roots = $selected;
         }
@@ -69,7 +69,7 @@ final readonly class Dependencies
     public function remove(array $moduleRoots): array
     {
         if (PHP_SAPI !== 'cli') {
-            throw new PluginPackageException('MODULE_RELEASE_PREPARATION_REQUIRED', 'Module dependency removal requires the existing CLI worker.');
+            throw new ModulePackageException('MODULE_RELEASE_PREPARATION_REQUIRED', 'Module dependency removal requires the existing CLI worker.');
         }
         return $this->withLock(function () use ($moduleRoots): array {
             $project = dirname($this->serverRoot);
@@ -147,7 +147,7 @@ final readonly class Dependencies
                         $source = preg_replace('/^[ \t]*-[ \t]*[\'\"]?' . preg_quote($module, '/') . '[\'\"]?[ \t]*(?:#[^\n]*)?\r?\n/m', '', $source);
                     }
                     if (file_put_contents($path, $source) === false) {
-                        throw new PluginPackageException('MODULE_DEPENDENCY_MANIFEST_WRITE_FAILED', 'Cannot update native pnpm workspace configuration.');
+                        throw new ModulePackageException('MODULE_DEPENDENCY_MANIFEST_WRITE_FAILED', 'Cannot update native pnpm workspace configuration.');
                     }
                     $operations[] = $this->run(['pnpm', 'install', '--prod=false', '--no-frozen-lockfile', '--strict-peer-dependencies', '--ignore-scripts'], $directory);
                 } else {
@@ -174,12 +174,12 @@ final readonly class Dependencies
         $project = dirname($this->serverRoot);
         $directory = $project . '/.local';
         if (!is_dir($directory) && !mkdir($directory, 0700, true) && !is_dir($directory)) {
-            throw new PluginPackageException('MODULE_DEPENDENCIES_UNAVAILABLE', 'Application local directory is unavailable.');
+            throw new ModulePackageException('MODULE_DEPENDENCIES_UNAVAILABLE', 'Application local directory is unavailable.');
         }
         $lock = fopen($directory . '/module-dependencies.lock', 'c');
         if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
             if (is_resource($lock)) { fclose($lock); }
-            throw new PluginPackageException('MODULE_DEPENDENCIES_BUSY', 'Another operation is updating application dependency manifests or locks.');
+            throw new ModulePackageException('MODULE_DEPENDENCIES_BUSY', 'Another operation is updating application dependency manifests or locks.');
         }
         try {
             return $operation();
@@ -189,7 +189,7 @@ final readonly class Dependencies
         }
     }
 
-    private function prepare(array $moduleRoots, PluginLockResolver $resolver, array $installed, ?array $releaseClients = null, bool $verifyOnly = false): array
+    private function prepare(array $moduleRoots, ModuleLockResolver $resolver, array $installed, ?array $releaseClients = null, bool $verifyOnly = false): array
     {
         $project = dirname($this->serverRoot);
         $known = [];
@@ -224,7 +224,7 @@ final readonly class Dependencies
                         default => null,
                     };
                     if ($field === 'dependencies' && $reason !== null) {
-                        throw new PluginPackageException('MODULE_REQUIRED_DEPENDENCY_UNAVAILABLE', "{$key} requires {$required} {$dependency['version']}: {$reason}. Install a compatible package from an explicitly approved source first.");
+                        throw new ModulePackageException('MODULE_REQUIRED_DEPENDENCY_UNAVAILABLE', "{$key} requires {$required} {$dependency['version']}: {$reason}. Install a compatible package from an explicitly approved source first.");
                     }
                     if ($field === 'optional_dependencies') {
                         $optional[] = ['module_key' => $key, 'dependency' => $required, 'available' => $reason === null, 'unavailable_reason' => $reason];
@@ -237,7 +237,7 @@ final readonly class Dependencies
             if ($localCore !== null && isset($requirements['peanut-admin/core'])) {
                 $range = $localCore[$package['name']] ?? null;
                 if (!is_string($range)) {
-                    throw new PluginPackageException('MODULE_RELEASE_PREPARATION_REQUIRED', 'Prepare the selected local Module Core projection through the native dependency CLI.');
+                    throw new ModulePackageException('MODULE_RELEASE_PREPARATION_REQUIRED', 'Prepare the selected local Module Core projection through the native dependency CLI.');
                 }
                 $requirements['peanut-admin/core'] = $range;
             }
@@ -277,7 +277,7 @@ final readonly class Dependencies
                     if (is_array($existing) && ($existing['type'] ?? null) === 'package'
                         && ($existing['package']['name'] ?? null) === $devName) {
                         if (($existing['package']['type'] ?? null) !== 'metapackage') {
-                            throw new PluginPackageException('MODULE_DEPENDENCY_SOURCE_CONFLICT', "Reserved local development node {$devName} conflicts with an application package.");
+                            throw new ModulePackageException('MODULE_DEPENDENCY_SOURCE_CONFLICT', "Reserved local development node {$devName} conflicts with an application package.");
                         }
                         $composer['repositories'][$index] = $metadata;
                         $found = true;
@@ -286,7 +286,7 @@ final readonly class Dependencies
                 }
                 if (!$found) {
                     if (isset($composer['require'][$devName]) || isset($composer['require-dev'][$devName])) {
-                        throw new PluginPackageException('MODULE_DEPENDENCY_SOURCE_CONFLICT', "Reserved local development node {$devName} already has an application source.");
+                        throw new ModulePackageException('MODULE_DEPENDENCY_SOURCE_CONFLICT', "Reserved local development node {$devName} already has an application source.");
                     }
                     $repositories = $composer['repositories'] ?? [];
                     $composer['repositories'] = array_is_list($repositories)
@@ -326,7 +326,7 @@ final readonly class Dependencies
                         default => InstalledVersions::isInstalled($name) && InstalledVersions::satisfies($parser, $name, $range),
                     };
                     if (!$satisfied) {
-                        throw new PluginPackageException('MODULE_RELEASE_PREPARATION_REQUIRED', "{$name} {$range} requires native dependency preparation through the deployment CLI.");
+                        throw new ModulePackageException('MODULE_RELEASE_PREPARATION_REQUIRED', "{$name} {$range} requires native dependency preparation through the deployment CLI.");
                     }
                 }
             }
@@ -334,7 +334,7 @@ final readonly class Dependencies
             foreach (array_keys($clients) as $client) {
                 $entry = $this->frontendEntry($client);
                 if (!is_file($project . '/' . $entry)) {
-                    throw new PluginPackageException('MODULE_RELEASE_PREPARATION_REQUIRED', 'Prepare the selected Module frontend through scripts/deploy-update.sh --prepare-release before HTTP installation.');
+                    throw new ModulePackageException('MODULE_RELEASE_PREPARATION_REQUIRED', 'Prepare the selected Module frontend through scripts/deploy-update.sh --prepare-release before HTTP installation.');
                 }
                 $frontend[$client] = ['entry' => $entry];
             }
@@ -383,26 +383,26 @@ final readonly class Dependencies
             'platform' => 'server/public/platform/index.html',
             'pc' => 'pc/.output/server/index.mjs',
             'uniapp' => 'uniapp/dist/build/h5/index.html',
-            default => throw new PluginPackageException('MODULE_FRONTEND_ADOPTION_REQUIRED', 'The required client has no Module contribution reader.'),
+            default => throw new ModulePackageException('MODULE_FRONTEND_ADOPTION_REQUIRED', 'The required client has no Module contribution reader.'),
         };
     }
 
     /** Build the clients whose native entries consume the selected Module contributions. */
     private function adoptFrontend(array $clients): array
     {
-        // Every package changes plugins.lock, including backend-only packages.
+        // Every package changes modules.lock, including backend-only packages.
         // Catalog activation reads its source hashes before any client is required.
         $project = dirname($this->serverRoot);
         $results = ['api-contracts' => $this->run(['php', '-d', 'zend.exception_ignore_args=1',
             $project . '/scripts/generate-api-contracts.php', '--application-root=' . $project], $project)];
         if ($clients === []) { return $results; }
         if (array_diff($clients, ['web', 'platform', 'pc', 'uniapp']) !== []) {
-            throw new PluginPackageException('MODULE_FRONTEND_ADOPTION_REQUIRED', 'The required client has no Module contribution reader.',
+            throw new ModulePackageException('MODULE_FRONTEND_ADOPTION_REQUIRED', 'The required client has no Module contribution reader.',
                 details: ['pending_actions' => ['frontend_module_assembly', 'frontend_build', 'frontend_adoption']]);
         }
         $edition = (string) app()->config->get('deployment.mode', '');
         if (!in_array($edition, ['standalone', 'multi-tenant'], true)) {
-            throw new PluginPackageException('MODULE_FRONTEND_EDITION_REQUIRED', 'The application deployment Edition is required for the native admin build.');
+            throw new ModulePackageException('MODULE_FRONTEND_EDITION_REQUIRED', 'The application deployment Edition is required for the native admin build.');
         }
         $selection = $this->localCoreSelection();
         if ($selection !== null) {
@@ -414,7 +414,7 @@ final readonly class Dependencies
             if (in_array($client, ['web', 'platform'], true)) {
                 $target = dirname($this->serverRoot) . '/' . dirname($this->frontendEntry($client));
                 if (is_link($this->serverRoot . '/public') || is_link($target) || (file_exists($target) && !is_dir($target))) {
-                    throw new PluginPackageException('MODULE_FRONTEND_TARGET_INVALID', 'The application admin static destination must be an ordinary directory.');
+                    throw new ModulePackageException('MODULE_FRONTEND_TARGET_INVALID', 'The application admin static destination must be an ordinary directory.');
                 }
             }
             [$key, $command, $entry] = match ($client) {
@@ -425,7 +425,7 @@ final readonly class Dependencies
             };
             $result = $this->run($command, dirname($this->serverRoot) . '/' . $client);
             if (!is_file(dirname($this->serverRoot) . '/' . $entry)) {
-                throw new PluginPackageException('MODULE_FRONTEND_ADOPTION_REQUIRED', "The native {$key} build did not produce its application entry.");
+                throw new ModulePackageException('MODULE_FRONTEND_ADOPTION_REQUIRED', "The native {$key} build did not produce its application entry.");
             }
             $results[$key] = $result + [($client === 'web' ? 'static_entry' : 'runtime_entry') => $entry];
         }
@@ -457,7 +457,7 @@ final readonly class Dependencies
             InstalledVersions::reload(require $vendor . '/composer/installed.php');
             return;
         }
-        throw new PluginPackageException('MODULE_DEPENDENCY_AUTOLOAD_UNAVAILABLE', 'The current application Composer loader is unavailable after dependency installation.');
+        throw new ModulePackageException('MODULE_DEPENDENCY_AUTOLOAD_UNAVAILABLE', 'The current application Composer loader is unavailable after dependency installation.');
     }
 
     /** Preserve existing pnpm settings and workspace entries; only append admitted module directories. */
@@ -477,12 +477,12 @@ final readonly class Dependencies
         if (preg_match('/^packages:[ \t]*(?:#[^\n]*)?$/m', $source) === 1) {
             $next = preg_replace('/^(packages:[ \t]*(?:#[^\n]*)?\n)/m', '$1' . $entries, $source, 1);
         } elseif (preg_match('/^packages:/m', $source) === 1) {
-            throw new PluginPackageException('MODULE_WORKSPACE_CONFIGURATION_REQUIRED', 'Existing pnpm packages configuration must use the native block-list form before adding Module workspaces.');
+            throw new ModulePackageException('MODULE_WORKSPACE_CONFIGURATION_REQUIRED', 'Existing pnpm packages configuration must use the native block-list form before adding Module workspaces.');
         } else {
             $next = "packages:\n" . $entries . $source;
         }
         if (file_put_contents($path, $next) === false) {
-            throw new PluginPackageException('MODULE_DEPENDENCY_MANIFEST_WRITE_FAILED', 'Cannot update native pnpm workspace configuration.');
+            throw new ModulePackageException('MODULE_DEPENDENCY_MANIFEST_WRITE_FAILED', 'Cannot update native pnpm workspace configuration.');
         }
     }
 
@@ -490,18 +490,18 @@ final readonly class Dependencies
     {
         $text = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n";
         if (file_put_contents($path, $text) === false) {
-            throw new PluginPackageException('MODULE_DEPENDENCY_MANIFEST_WRITE_FAILED', "Cannot update {$path}.");
+            throw new ModulePackageException('MODULE_DEPENDENCY_MANIFEST_WRITE_FAILED', "Cannot update {$path}.");
         }
     }
 
     private function json(string $path): array
     {
         if (!is_file($path)) {
-            throw new PluginPackageException('MODULE_DEPENDENCY_MANIFEST_MISSING', "Dependency manifest is unavailable: {$path}");
+            throw new ModulePackageException('MODULE_DEPENDENCY_MANIFEST_MISSING', "Dependency manifest is unavailable: {$path}");
         }
         $data = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
         if (!is_array($data) || array_is_list($data)) {
-            throw new PluginPackageException('MODULE_DEPENDENCY_INVALID', "Dependency manifest must be an object: {$path}");
+            throw new ModulePackageException('MODULE_DEPENDENCY_INVALID', "Dependency manifest must be an object: {$path}");
         }
         return $data;
     }
@@ -514,12 +514,12 @@ final readonly class Dependencies
             $selection = $this->json($selectionPath);
             if (is_link($selectionPath) || ($selection['schema_version'] ?? null) !== 1
                 || ($selection['application_root'] ?? null) !== realpath($project)) {
-                throw new PluginPackageException('MODULE_DEPENDENCY_SOURCE_CONFLICT', 'The local Core selection must belong to this application.');
+                throw new ModulePackageException('MODULE_DEPENDENCY_SOURCE_CONFLICT', 'The local Core selection must belong to this application.');
             }
             foreach (['php_core_dir', 'web_core_dir', 'backend_env'] as $field) {
                 $value = $selection[$field] ?? null;
                 if (!is_string($value) || !str_starts_with($value, '/') || preg_match('/[\x00-\x1f\x7f]/', $value) === 1) {
-                    throw new PluginPackageException('MODULE_DEPENDENCY_SOURCE_CONFLICT', 'The local Core selection requires absolute source and environment paths.');
+                    throw new ModulePackageException('MODULE_DEPENDENCY_SOURCE_CONFLICT', 'The local Core selection requires absolute source and environment paths.');
                 }
             }
             return $selection;
@@ -535,7 +535,7 @@ final readonly class Dependencies
         $source = $selection['php_core_dir'];
         $core = realpath(is_file($source . '/composer.json') ? $source : $source . '/packages/php');
         if ($core === false || realpath(InstalledVersions::getInstallPath('peanut-admin/core') ?? '') !== $core) {
-            throw new PluginPackageException('MODULE_DEPENDENCY_SOURCE_CONFLICT', 'Installed Core must use the explicitly selected local source.');
+            throw new ModulePackageException('MODULE_DEPENDENCY_SOURCE_CONFLICT', 'Installed Core must use the explicitly selected local source.');
         }
         $projection = $this->json(dirname($this->serverRoot) . '/.local/composer-core/composer.json');
         $packages = [];
@@ -561,7 +561,7 @@ final readonly class Dependencies
         $host = $this->json($project . '/.local/toolchain/host.json');
         $python = $host['commands']['python3'] ?? null;
         if (!is_array($python) || !is_string($python[0] ?? null) || !str_starts_with($python[0], '/')) {
-            throw new PluginPackageException('MODULE_DEPENDENCY_TOOLCHAIN_REQUIRED', 'Register the application Python command with project-env before installing module dependencies.');
+            throw new ModulePackageException('MODULE_DEPENDENCY_TOOLCHAIN_REQUIRED', 'Register the application Python command with project-env before installing module dependencies.');
         }
         $runner = [...$python, $project . '/scripts/project-env', '--root', $project];
         // Prepare the registered tool environment; business dependency changes alone
@@ -573,18 +573,18 @@ final readonly class Dependencies
     private function execute(array $command, string $directory, string $tool): array
     {
         $output = tmpfile();
-        if ($output === false) { throw new PluginPackageException('MODULE_DEPENDENCIES_UNAVAILABLE', 'Cannot capture native dependency output.'); }
+        if ($output === false) { throw new ModulePackageException('MODULE_DEPENDENCIES_UNAVAILABLE', 'Cannot capture native dependency output.'); }
         try {
             $process = proc_open($command,
                 [0 => ['file', '/dev/null', 'r'], 1 => $output, 2 => $output], $pipes, $directory);
             if (!is_resource($process)) {
-                throw new PluginPackageException('MODULE_DEPENDENCY_PROCESS_FAILED', 'Cannot start the registered dependency tool.');
+                throw new ModulePackageException('MODULE_DEPENDENCY_PROCESS_FAILED', 'Cannot start the registered dependency tool.');
             }
             $exit = proc_close($process);
             rewind($output);
             $text = stream_get_contents($output);
             if ($exit !== 0) {
-                throw new PluginPackageException('MODULE_DEPENDENCY_INSTALL_FAILED', "Native {$tool} dependency operation failed with exit {$exit}:\n{$text}", $exit,
+                throw new ModulePackageException('MODULE_DEPENDENCY_INSTALL_FAILED', "Native {$tool} dependency operation failed with exit {$exit}:\n{$text}", $exit,
                     details: ['tool' => $tool, 'exit_code' => $exit, 'directory' => $directory, 'output' => $text]);
             }
             return ['tool' => $tool, 'exit_code' => $exit, 'directory' => $directory, 'output' => $text];

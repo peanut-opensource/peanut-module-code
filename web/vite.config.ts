@@ -18,21 +18,21 @@ import configVisualizerPlugin from './config/plugin/visualizer';
 
 const configDir = dirname(fileURLToPath(import.meta.url));
 
-interface PluginLockDocument {
+interface ModuleLockDocument {
   schema_version: number;
-  plugins: Array<{
+  modules: Array<{
     frontend: Array<{ client_key: string; entry: string }>;
   }>;
 }
 
 function lockedAdminContributions(): string[] {
   const lock = JSON.parse(
-    readFileSync(resolve(configDir, '../plugins.lock'), 'utf8')
-  ) as PluginLockDocument;
-  if (lock.schema_version !== 1 || !Array.isArray(lock.plugins)) {
-    throw new Error('plugins.lock is invalid');
+    readFileSync(resolve(configDir, '../modules.lock'), 'utf8')
+  ) as ModuleLockDocument;
+  if (lock.schema_version !== 1 || !Array.isArray(lock.modules)) {
+    throw new Error('modules.lock is invalid');
   }
-  return lock.plugins
+  return lock.modules
     .flatMap((plugin) => plugin.frontend || [])
     .filter((identity) => identity.client_key === 'admin-web')
     .map((identity) => identity.entry)

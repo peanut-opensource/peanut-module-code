@@ -43,7 +43,7 @@ try {
     app\common\infrastructure\scaffold\ReleaseDependencyIdentity::verifyArchives(
         getcwd(), $versions['core_web'], 'APPLICATION_RELEASE_CORE_WEB_ARCHIVE_INVALID',
     );
-    (new app\platform\infrastructure\plugin\PluginLockResolver(getcwd() . '/server', '../plugins.lock'))->all();
+    (new app\platform\infrastructure\module\ModuleLockResolver(getcwd() . '/server', '../modules.lock'))->all();
 } catch (\Throwable $error) {
     fwrite(STDERR, '[deploy-update] ' . $error->getMessage() . PHP_EOL);
     exit(1);
@@ -69,7 +69,7 @@ try {
     $application = ensureThinkPhpApplication(getcwd() . '/server');
     $clients = $application->config->get('deployment.mode') === 'multi-tenant' ? ['web', 'platform'] : ['web'];
     $result = (new app\common\module\Dependencies(getcwd() . '/server'))->prepareRelease(
-        new app\platform\infrastructure\plugin\PluginLockResolver(getcwd() . '/server', '../plugins.lock'),
+        new app\platform\infrastructure\module\ModuleLockResolver(getcwd() . '/server', '../modules.lock'),
         $clients,
     );
     foreach ($result['operations'] as $operation) {

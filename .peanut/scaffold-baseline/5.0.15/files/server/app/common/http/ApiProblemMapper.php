@@ -11,8 +11,8 @@ use app\common\exception\http\OutboundHttpException;
 use app\common\exception\storage\StorageProviderException;
 use PeanutAdmin\Modules\Identity\Invitation\TenantOwnerInvitationException;
 use app\platform\exception\PlatformRefreshCredentialException;
-use app\platform\exception\plugin\PluginLifecycleException;
-use app\platform\exception\plugin\PluginPackageException;
+use app\platform\exception\module\ModuleLifecycleException;
+use app\platform\exception\module\ModulePackageException;
 use PeanutAdmin\Kernel\Auth\AuthException;
 use PeanutAdmin\Kernel\Authorization\Application\AdminAccessException;
 use PeanutAdmin\Kernel\Module\ModuleException;
@@ -94,7 +94,7 @@ final class ApiProblemMapper
                 $exception->status,
                 'Operations request was rejected.',
             ))->withHeaders(['Cache-Control' => 'no-store']),
-            $exception instanceof PluginPackageException
+            $exception instanceof ModulePackageException
                 && (str_starts_with($exception->errorCode, 'MODULE_DEPENDENC')
                     || in_array($exception->errorCode, ['MODULE_REQUIRED_DEPENDENCY_UNAVAILABLE',
                         'MODULE_DEVELOPMENT_DEPENDENCY_UNSATISFIED', 'MODULE_WORKSPACE_CONFIGURATION_REQUIRED'], true)) => new ApiProblem(
@@ -103,8 +103,8 @@ final class ApiProblemMapper
                     $exception->getMessage(),
                     $exception->details,
                 ),
-            $exception instanceof PluginLifecycleException
-                || $exception instanceof PluginPackageException
+            $exception instanceof ModuleLifecycleException
+                || $exception instanceof ModulePackageException
                 || $exception instanceof ModuleScaffoldException => new ApiProblem(
                     $exception->errorCode,
                     $this->moduleLifecycleStatus($exception->errorCode),

@@ -79,17 +79,17 @@ def inventory(vendor, exclude_receipt=True):
 
 def module_packages(server):
     """Native local packages come from the application's selected Module roots."""
-    path = server / 'plugins.lock'
+    path = server / 'modules.lock'
     if not path.is_file():
-        path = server.parent / 'plugins.lock'
+        path = server.parent / 'modules.lock'
     if not path.is_file():
         return {}
     ordinary(path)
     lock = json.loads(path.read_text())
-    projected = lock.get('protocol') == 'peanut.server-plugin-lock.v1'
+    projected = lock.get('protocol') == 'peanut.server-module-lock.v1'
     root = server if projected else server.parent
     packages = {}
-    for plugin in lock.get('plugins', []):
+    for plugin in lock.get('modules', []):
         for module in plugin.get('modules', []):
             relative = module['root']
             prefix = 'app/modules/' if projected else 'server/app/modules/'

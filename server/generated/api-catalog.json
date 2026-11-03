@@ -3,12 +3,12 @@
     "openapi_version": "3.0.3",
     "inputs": [
         {
-            "path": "plugins.lock",
-            "sha256": "467fdb56d366a2032aad5cad6f72007782dbdce8acf401c2312c0ebef5d97e46"
+            "path": "modules.lock",
+            "sha256": "789f76516073397c98ba1b610cd6daa4319abcee7697c00bc1881daa925e1478"
         },
         {
             "path": "release-versions.json",
-            "sha256": "39d5522f08a67ef0ee3775dfe4cac65f63d109fd5202ec2f68f944ace0ed2823"
+            "sha256": "952083421e6f7e4863ec1b090bdf3a6f3bde7d9276424aa591a9044acad273be"
         },
         {
             "path": "server/app/api/metadata/application/adminapi.php",
@@ -176,7 +176,7 @@
         },
         {
             "path": "server/route/registry_source.php",
-            "sha256": "51364ea70ed4cf57e3673030118bf159328c72297182d43853f75cfb2457e77d"
+            "sha256": "a5dc51a4436b16e4760996819f32cd2554caf028544f85401f465256507a6c89"
         },
         {
             "path": "server/route/tenant.php",

@@ -9,7 +9,7 @@ use app\common\exception\installation\InstallationExecutionException;
 use app\common\value\installation\ApplicationSourceIdentity;
 use app\common\value\installation\ServerReleaseIdentity;
 use app\platform\infrastructure\module\ThinkPhpModuleGovernanceProvider;
-use app\platform\infrastructure\plugin\ModuleCatalogApplier;
+use app\platform\infrastructure\module\ModuleCatalogApplier;
 use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
 use PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries;
 use PeanutAdmin\Modules\Identity\Platform\Application\PlanLicenseAdminService;
@@ -578,9 +578,9 @@ final class InstallationExecutionHost
             $config,
             $this->catalogs,
             $registry,
-            \app\platform\infrastructure\plugin\PluginLockResolver::forRuntime($this->serverRoot, (string) $config['plugin_lock']),
+            \app\platform\infrastructure\module\ModuleLockResolver::forRuntime($this->serverRoot, (string) $config['module_lock']),
         );
-        $lifecycle = $governance->pluginLifecycle();
+        $lifecycle = $governance->moduleLifecycle();
         $operations = [];
         foreach ($moduleKeys as $moduleKey) {
             $this->currentInstallationModule = $moduleKey;

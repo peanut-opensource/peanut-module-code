@@ -1,7 +1,7 @@
-import type { PluginFrontendContribution } from '@peanut-admin/vue';
+import type { ModuleFrontendContribution } from '@peanut-admin/vue';
 import { DEFAULT_LAYOUT } from '@/router/routes/base';
 
-const contribution: PluginFrontendContribution = {
+const contribution: ModuleFrontendContribution = {
   moduleKey: 'peanut.task',
   routes: [
     {

@@ -179,13 +179,13 @@ if (isset($options['tooling-autoload'])) {
     $loader->setPsr4('app\\', $root . '/server/app');
 }
 foreach ([
-    '/server/app/platform/exception/plugin/PluginLifecycleException.php',
-    '/server/app/platform/value/plugin/PluginDescriptor.php',
-    '/server/app/platform/infrastructure/plugin/PluginLockResolver.php',
-    '/server/app/platform/exception/plugin/PluginArtifactToolException.php',
-    '/server/app/platform/exception/plugin/PluginPackageException.php',
-    '/server/app/platform/value/plugin/ModuleFrontendLayout.php',
-    '/server/app/platform/infrastructure/plugin/PluginArtifactWriter.php',
+    '/server/app/platform/exception/module/ModuleLifecycleException.php',
+    '/server/app/platform/value/module/ModuleDescriptor.php',
+    '/server/app/platform/infrastructure/module/ModuleLockResolver.php',
+    '/server/app/platform/exception/module/ModuleArtifactToolException.php',
+    '/server/app/platform/exception/module/ModulePackageException.php',
+    '/server/app/platform/value/module/ModuleFrontendLayout.php',
+    '/server/app/platform/infrastructure/module/ModuleArtifactWriter.php',
     '/server/app/platform/validation/module/ModulePublicSurfacePolicy.php',
     '/server/app/platform/validation/module/OpisManifestSchemaValidator.php',
     '/server/app/common/module/PackageCheck.php',

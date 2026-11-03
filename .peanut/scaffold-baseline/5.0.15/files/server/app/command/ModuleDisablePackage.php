@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\command;
 
-use app\platform\exception\plugin\PluginLifecycleException;
+use app\platform\exception\module\ModuleLifecycleException;
 use app\common\execution\ModuleContextualCommand;
 use think\console\Input;
 use think\console\input\Argument;
@@ -27,7 +27,7 @@ final class ModuleDisablePackage extends ModuleContextualCommand
             $result = $this->moduleRuntime()->disable($moduleKey);
             $output->writeln((string) json_encode($result, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
             return 0;
-        } catch (PluginLifecycleException $exception) {
+        } catch (ModuleLifecycleException $exception) {
             $output->writeln((string) json_encode([
                 'code' => $exception->errorCode,
                 'reason' => $exception->getMessage(),

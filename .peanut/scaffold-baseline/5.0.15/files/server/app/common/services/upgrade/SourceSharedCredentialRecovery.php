@@ -141,7 +141,7 @@ final readonly class SourceSharedCredentialRecovery
 
     private function adoptedIdentity(): array
     {
-        $plan = $this->app->make(ThinkPhpModuleGovernanceProvider::class)->pluginLifecycle()->reconcilePlan('peanut.identity');
+        $plan = $this->app->make(ThinkPhpModuleGovernanceProvider::class)->moduleLifecycle()->reconcilePlan('peanut.identity');
         return $this->adoptedIdentityPlan($plan);
     }
 

@@ -39,7 +39,7 @@ final class GeneratedApiCatalog
             $relative = $input['path'] ?? null;
             $expected = $input['sha256'] ?? null;
             if (!is_string($relative)
-                || (!in_array($relative, ['release-versions.json', 'plugins.lock'], true) && !str_starts_with($relative, 'server/'))
+                || (!in_array($relative, ['release-versions.json', 'modules.lock'], true) && !str_starts_with($relative, 'server/'))
                 || str_starts_with($relative, '/') || str_contains($relative, '\\')
                 || array_intersect(explode('/', $relative), ['', '.', '..']) !== []
                 || preg_match('/[\x00-\x1f]/', $relative) === 1
@@ -50,15 +50,15 @@ final class GeneratedApiCatalog
             $sourceRelative = $relative;
             if ($release && $relative === 'release-versions.json') {
                 $sourceRelative = 'server/.peanut/release-versions.json';
-            } elseif ($release && $relative === 'plugins.lock') {
+            } elseif ($release && $relative === 'modules.lock') {
                 // Server releases project Module roots; the verified identity binds
                 // that projection to the original APP lock used by this catalogue.
-                $projection = \app\common\value\installation\ServerReleaseIdentity::resolve($serverRoot)->document()['plugin_projection'];
+                $projection = \app\common\value\installation\ServerReleaseIdentity::resolve($serverRoot)->document()['module_projection'];
                 if (!hash_equals($expected, $projection['source_lock_sha256'])) {
                     return 'The API catalogue Plugin source lock differs from the verified server release.';
                 }
                 $expected = $projection['projected_lock_sha256'];
-                $sourceRelative = 'server/plugins.lock';
+                $sourceRelative = 'server/modules.lock';
             }
             $cursor = $projectRoot;
             foreach (explode('/', $sourceRelative) as $part) {

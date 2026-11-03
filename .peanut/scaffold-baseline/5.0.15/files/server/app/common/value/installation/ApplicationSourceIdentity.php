@@ -171,7 +171,7 @@ final readonly class ApplicationSourceIdentity
             $listed[$relative] = $file['sha256'];
         }
         foreach (['server/.peanut/application-manifest.json', 'server/.peanut/release-versions.json',
-            'server/plugins.lock', 'server/composer.json', 'server/composer.lock', 'server/resources/project-resources.json'] as $required) {
+            'server/modules.lock', 'server/composer.json', 'server/composer.lock', 'server/resources/project-resources.json'] as $required) {
             if (!isset($listed[$required])) {
                 throw new RuntimeException('APPLICATION_DEVELOPMENT_RUNTIME_INVALID');
             }
@@ -188,7 +188,7 @@ final readonly class ApplicationSourceIdentity
         if ($value['application'] !== $source->applicationIdentity() || $value['versions'] !== $source->versions()
             || $value['tenant_bootstrap'] !== $source->tenantBootstrap || ($value['core_php'] ?? null) !== $versions->toArray()['core_php']
             || ($value['application_manifest_sha256'] ?? null) !== $listed['server/.peanut/application-manifest.json']
-            || ($value['plugin_projection']['projected_lock_sha256'] ?? null) !== $listed['server/plugins.lock']) {
+            || ($value['module_projection']['projected_lock_sha256'] ?? null) !== $listed['server/modules.lock']) {
             throw new RuntimeException('APPLICATION_DEVELOPMENT_RUNTIME_INVALID');
         }
         $registry = self::jsonFile($serverRoot . '/resources/project-resources.json', 'APPLICATION_DEVELOPMENT_RUNTIME_INVALID');
@@ -301,9 +301,9 @@ final readonly class ApplicationSourceIdentity
         return $this->document()['application_manifest_sha256'];
     }
 
-    public function projectedPluginLockSha256(): string
+    public function projectedModuleLockSha256(): string
     {
-        return $this->document()['plugin_projection']['projected_lock_sha256'];
+        return $this->document()['module_projection']['projected_lock_sha256'];
     }
 
     /** @return array<string,mixed> */

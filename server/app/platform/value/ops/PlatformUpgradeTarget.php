@@ -109,7 +109,7 @@ final readonly class PlatformUpgradeTarget
             throw new RuntimeException('UPGRADE_TARGET_RELEASE_IDENTITY_INVALID');
         }
         $releaseServerRoot = self::fixedDirectory($releaseRoot, 'server');
-        $targetLockPath = self::fixedFile($releaseRoot, 'plugins.lock');
+        $targetLockPath = self::fixedFile($releaseRoot, 'modules.lock');
         self::assertDigest($targetLockPath, $modules['lock_sha256']);
 
         $descriptorDigest = hash_file('sha256', $descriptorPath);

@@ -249,7 +249,7 @@ def run_application(a: dict, output: Path) -> dict:
     with socket.socket() as s:
         s.bind(('127.0.0.1', port))
     events = []
-    result = {'edition': a['edition'], 'base_source_commit': a['source'], 'runtime_patch': {'path': str(patch_path), 'sha256': patch_sha}, 'plugin_lock_sha256': hashlib.sha256((app / 'plugins.lock').read_bytes()).hexdigest(), 'database': state, 'events': events, 'browser_tested': False, 'two_tenants_tested': False}
+    result = {'edition': a['edition'], 'base_source_commit': a['source'], 'runtime_patch': {'path': str(patch_path), 'sha256': patch_sha}, 'module_lock_sha256': hashlib.sha256((app / 'modules.lock').read_bytes()).hexdigest(), 'database': state, 'events': events, 'browser_tested': False, 'two_tenants_tested': False}
     log_path = tmp / 'php-http-private.log'
     with log_path.open('w') as log:
         log_path.chmod(0o600)

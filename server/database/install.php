@@ -22,6 +22,8 @@ if ($installerIsDirect && in_array('--preflight', $installerArguments, true)) {
     $autoload = dirname(__DIR__) . '/vendor/autoload.php';
     if (is_file($autoload)) {
         require_once $autoload;
+        // The preflight intentionally stops before App::initialize(), which normally loads native helpers.
+        require_once dirname(__DIR__) . '/vendor/topthink/framework/src/helper.php';
         $application = new App(dirname(__DIR__));
         $application->loadEnv((string) $application->env->get('env_name', ''));
     }

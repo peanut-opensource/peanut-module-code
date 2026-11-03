@@ -7,8 +7,8 @@ namespace PeanutAdmin\Modules\Ops\Infrastructure;
 use PeanutAdmin\Modules\Ops\Contract\ModuleTaskExecution;
 use PeanutAdmin\Modules\Ops\Domain\Application\OpsConsoleException;
 use PeanutAdmin\Modules\Ops\Domain\Application\PlatformPermissionChecker;
-use app\platform\exception\plugin\PluginPackageException;
-use app\platform\exception\plugin\PluginLifecycleException;
+use app\platform\exception\module\ModulePackageException;
+use app\platform\exception\module\ModuleLifecycleException;
 use PeanutAdmin\Modules\Identity\Contract\PlatformOperatorIdentityQuery;
 use PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries;
 use PeanutAdmin\Modules\Ops\Service\DeploymentModuleRequestService;
@@ -74,27 +74,27 @@ final readonly class ThinkPhpModuleOperationTaskExecutionService implements Modu
             return $this->succeed($key, $revision);
         } catch (\Throwable $exception) {
             $code = match (true) {
-                $exception instanceof PluginPackageException, $exception instanceof PluginLifecycleException => $exception->errorCode,
+                $exception instanceof ModulePackageException, $exception instanceof ModuleLifecycleException => $exception->errorCode,
                 $exception instanceof OpsConsoleException => $exception->problemCode,
                 preg_match('/^OPS_MODULE_[A-Z0-9_]+$/D', $exception->getMessage()) === 1 => $exception->getMessage(),
                 default => $failure,
             };
-            $reason = $exception instanceof PluginPackageException || $exception instanceof PluginLifecycleException
+            $reason = $exception instanceof ModulePackageException || $exception instanceof ModuleLifecycleException
                 || $exception instanceof OpsConsoleException || $code !== $failure
                 ? $exception->getMessage() : 'Module operation failed; preserve recovery state and inspect the restricted operator log.';
             $result = ['error_code' => $code, 'reason' => $reason,
                 'exit_code' => $exception->getCode() > 0 && $exception->getCode() < 256 ? $exception->getCode() : 1];
-            if ($exception instanceof PluginPackageException) {
+            if ($exception instanceof ModulePackageException) {
                 $result['details'] = $exception->details;
             }
             $cause = $exception;
-            while ($cause->getPrevious() instanceof PluginPackageException
-                || $cause->getPrevious() instanceof PluginLifecycleException) {
+            while ($cause->getPrevious() instanceof ModulePackageException
+                || $cause->getPrevious() instanceof ModuleLifecycleException) {
                 $cause = $cause->getPrevious();
             }
             if ($cause !== $exception) {
                 $result['cause'] = ['error_code' => $cause->errorCode, 'reason' => $cause->getMessage(),
-                    'details' => $cause instanceof PluginPackageException ? $cause->details : []];
+                    'details' => $cause instanceof ModulePackageException ? $cause->details : []];
                 if ($cause->getCode() > 0 && $cause->getCode() < 256) {
                     $result['exit_code'] = $cause->getCode();
                 }
@@ -577,7 +577,7 @@ final readonly class ThinkPhpModuleOperationTaskExecutionService implements Modu
         if (!hash_equals($payload['package_key'], (string) ($result['package_key'] ?? ''))) {
             return false;
         }
-        $row = Db::name('plugin_installation')->where('plugin_key', $payload['package_key'])
+        $row = Db::name('module_installation')->where('module_key', $payload['package_key'])
             ->field('status,installed_version,artifact_sha256,lock_digest')->find();
         if (in_array($payload['operation'], ['install', 'update'], true)) {
             return is_array($row)

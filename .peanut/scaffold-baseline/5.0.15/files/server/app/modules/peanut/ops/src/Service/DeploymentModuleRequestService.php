@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Ops\Service;
 
 use PeanutAdmin\Modules\Ops\Contract\DeploymentModuleRequests;
-use app\platform\infrastructure\plugin\PluginPackageInstaller;
-use app\platform\services\plugin\PluginRuntimeGovernanceService;
-use app\platform\infrastructure\plugin\ModuleCatalogApplier;
-use app\platform\infrastructure\plugin\PluginLockResolver;
-use app\platform\services\plugin\PluginPackageArchiveService;
+use app\platform\infrastructure\module\ModulePackageInstaller;
+use app\platform\services\module\ModuleRuntimeGovernanceService;
+use app\platform\infrastructure\module\ModuleCatalogApplier;
+use app\platform\infrastructure\module\ModuleLockResolver;
+use app\platform\services\module\ModulePackageArchiveService;
 use think\facade\Config;
 use think\facade\Db;
 
@@ -21,7 +21,7 @@ final readonly class DeploymentModuleRequestService implements DeploymentModuleR
         private string $projectRoot,
         private array $moduleConfig,
         private array $trustedKeys,
-        private PluginRuntimeGovernanceService $governance,
+        private ModuleRuntimeGovernanceService $governance,
         private ModuleCatalogApplier $catalogs,
         private ?string $registryPath = null,
     ) {}
@@ -42,7 +42,7 @@ final readonly class DeploymentModuleRequestService implements DeploymentModuleR
         $signatureKeyId = $this->signatureKeyId($signatureKeyId);
 
         if ($operation === 'install') {
-            $archive = new PluginPackageArchiveService($this->projectRoot . '/server');
+            $archive = new ModulePackageArchiveService($this->projectRoot . '/server');
             $package = $archive->verify($this->archivePath($resource, (string) $archiveSha256), $archiveSha256,
                 $this->trustedKeys, $signatureKeyId, $this->availableVersions());
             try {
@@ -59,7 +59,7 @@ final readonly class DeploymentModuleRequestService implements DeploymentModuleR
         }
         if ($operation === 'update') {
             $archive = $this->archivePath($resource, (string) $archiveSha256);
-            $plan = (new PluginPackageInstaller(
+            $plan = (new ModulePackageInstaller(
                 $this->projectRoot . '/server',
                 $this->moduleConfig,
                 $this->trustedKeys,
@@ -199,7 +199,7 @@ final readonly class DeploymentModuleRequestService implements DeploymentModuleR
                 throw new \RuntimeException('OPS_MODULE_REQUEST_WRITE_FAILED');
             }
         }
-        $archive = new PluginPackageArchiveService($this->projectRoot . '/server');
+        $archive = new ModulePackageArchiveService($this->projectRoot . '/server');
         $package = $archive->verify($destination, $sha256, $this->trustedKeys, $keyId, $this->availableVersions());
         try {
             $packageKey = $package->packageKey;
@@ -232,7 +232,7 @@ final readonly class DeploymentModuleRequestService implements DeploymentModuleR
     private function availableVersions(): array
     {
         $versions = [];
-        foreach (PluginLockResolver::forRuntime($this->projectRoot . '/server', (string) ($this->moduleConfig['plugin_lock'] ?? '../plugins.lock'))->all() as $descriptor) {
+        foreach (ModuleLockResolver::forRuntime($this->projectRoot . '/server', (string) ($this->moduleConfig['module_lock'] ?? '../modules.lock'))->all() as $descriptor) {
             foreach ($descriptor->trust['compatibility']['modules'] as $module) {
                 $versions[$module['key']] = $module['version'];
             }
@@ -291,7 +291,7 @@ final readonly class DeploymentModuleRequestService implements DeploymentModuleR
             (string) $request['target_resource_id'],
         );
         if (in_array((string) $request['operation'], ['install', 'update'], true)) {
-            $installer = new PluginPackageInstaller(
+            $installer = new ModulePackageInstaller(
                 $this->projectRoot . '/server',
                 $this->moduleConfig,
                 $this->trustedKeys,

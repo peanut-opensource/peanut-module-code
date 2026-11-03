@@ -16,7 +16,7 @@
     "core_web": {
         "source_type": "git",
         "source_url": "https://github.com/peanut-business/peanut-admin-core-web.git",
-        "source_reference": "03f7ea093916224e37212a4de880dcb31017ddb1",
+        "source_reference": "d3690f7c3d6a22d22e9276ad0ec6194d36ab644b",
         "packages": {
             "@peanut-admin/client": {
                 "version": "5.0.3-alpha.1",
@@ -26,7 +26,7 @@
             "@peanut-admin/vue": {
                 "version": "5.0.3-alpha.1",
                 "archive": "packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz",
-                "sha256": "045ce94f302b47c0acda0ae8c20cfde01938df4fa77193d8155950109bf34f13"
+                "sha256": "a6a8a5ed3b803951084e91fcafb6dd19dbea41a7725fc5e00aeb8f71b20cb4a7"
             },
             "@peanut-admin/ui-vue": {
                 "version": "5.0.3-alpha.1",

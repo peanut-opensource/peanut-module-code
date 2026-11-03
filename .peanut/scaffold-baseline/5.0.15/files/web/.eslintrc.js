@@ -22,11 +22,11 @@ module.exports = {
   extends: [
     // Airbnb JavaScript Style Guide https://github.com/airbnb/javascript
     'airbnb-base',
-    'plugin:@typescript-eslint/recommended',
-    'plugin:import/recommended',
-    'plugin:import/typescript',
-    'plugin:vue/vue3-recommended',
-    'plugin:prettier/recommended',
+    'module:@typescript-eslint/recommended',
+    'module:import/recommended',
+    'module:import/typescript',
+    'module:vue/vue3-recommended',
+    'module:prettier/recommended',
   ],
   settings: {
     'import/core-modules': ['virtual:peanut-plugin-contributions'],

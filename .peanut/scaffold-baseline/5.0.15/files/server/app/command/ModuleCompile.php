@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\command;
 
-use app\platform\composition\plugin\ModuleDefinitionRegistryFactory;
+use app\platform\composition\module\ModuleDefinitionRegistryFactory;
 use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
 use think\console\Command;
 use think\console\Input;

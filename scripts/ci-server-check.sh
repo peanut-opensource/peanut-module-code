@@ -240,14 +240,14 @@ while IFS= read -r path; do
       select_test server/tests/Multitenancy/NativeAdminIdentityRuntimeContractTest.php
       behavior_selected=1
       ;;
-    server/app/modules/*|plugins/*|plugins.lock)
+    server/app/modules/*|plugins/*|modules.lock)
       select_test server/tests/Productization/ModuleCoreDependencyTest.php
-      select_test server/tests/Productization/PluginArtifactContractTest.php
-      select_test server/tests/Productization/PluginModuleContractTest.php
+      select_test server/tests/Productization/ModuleArtifactContractTest.php
+      select_test server/tests/Productization/ModuleModuleContractTest.php
       select_test server/tests/Multitenancy/OfficialCapabilityTenantQualificationTest.php
       behavior_selected=1
       ;;
-    server/app/platform/infrastructure/plugin/PluginPackageSourcePromoter.php)
+    server/app/platform/infrastructure/module/ModulePackageSourcePromoter.php)
       select_test server/tests/Productization/ModuleSourcePathIsolationTest.php
       select_test server/tests/Productization/ThinkPhpArchitectureBehaviorMatrixTest.php
       behavior_selected=1
@@ -284,10 +284,10 @@ if [[ "$mode" == '--broad' || "$behavior_selected" -eq 0 ]]; then
     server/tests/Multitenancy/NativeAdminIdentityRuntimeContractTest.php \
     server/tests/Multitenancy/OfficialCapabilityTenantQualificationTest.php \
     server/tests/Productization/MemberFinanceHostTest.php \
-    server/tests/Productization/PluginArtifactContractTest.php \
-    server/tests/Productization/PluginModuleContractTest.php \
+    server/tests/Productization/ModuleArtifactContractTest.php \
+    server/tests/Productization/ModuleModuleContractTest.php \
     server/tests/Productization/OfficialArticleModuleContractTest.php \
-    server/tests/Productization/PluginLifecycleMigrationContractTest.php; do
+    server/tests/Productization/ModuleLifecycleMigrationContractTest.php; do
     select_test "$test_file"
   done
 fi

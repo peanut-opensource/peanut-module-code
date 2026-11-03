@@ -136,7 +136,7 @@ function readInstallationState(value: unknown): InstallationState {
 
 ### 产品使用者与维护者的职责分开
 
-模板源码快照由 `scripts/scaffold-runtime/scaffold.conf.json` 的 `source_snapshot` 过滤，最终清单由正式 inventory 入口生成并按 `inventory_omissions` 省略指定条目。后端 `server/.peanut`、`server/plugins`、`server/plugins.lock`、`server/resources/project-resources.json` 及配置中列明的旧脚本投影属于运行产物，不作为模板源码。`packages/core-web/*.tgz` 与 `packages/core-php/*.zip` 仅交付本次 Core 身份及原生依赖声明明确引用的归档，保留 `--with-local-core` 的真实输入，不继承陈旧归档。
+模板源码快照由 `scripts/scaffold-runtime/scaffold.conf.json` 的 `source_snapshot` 过滤，最终清单由正式 inventory 入口生成并按 `inventory_omissions` 省略指定条目。后端 `server/.peanut`、`server/plugins`、`server/modules.lock`、`server/resources/project-resources.json` 及配置中列明的旧脚本投影属于运行产物，不作为模板源码。`packages/core-web/*.tgz` 与 `packages/core-php/*.zip` 仅交付本次 Core 身份及原生依赖声明明确引用的归档，保留 `--with-local-core` 的真实输入，不继承陈旧归档。
 
 使用者由CLI从固定模板包首次创建APP，再按APP原生锁准备真实Core与第三方依赖、必要构建和配置，通过网页向导首次安装并确认访问后同步产品自己的Git；不要求维护者源码仓、私有Project或人工prepare。模板创建载荷保留开发源码、模块、构建配置、锁、迁移、安装/升级入口、部署模板、公开资料及许可证，不复制APP的vendor、node_modules或缓存。模板中独立的tooling域仅封存源码升级工具及其锁定生产依赖，不进入APP创建载荷、受管树或APP运行依赖；CLI验证后调用同一原生升级器，不隐式安装依赖。既有APP保留原目录、专库、Git和定制，不默认重建。
 

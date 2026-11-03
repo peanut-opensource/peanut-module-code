@@ -26,10 +26,10 @@ try {
         'disable' => ['module:disable-package', \app\command\ModuleDisablePackage::class],
         'uninstall' => ['module:uninstall-package', \app\command\ModuleUninstallPackage::class],
         'sync' => ['module:sync', \app\command\ModuleSync::class],
-        'reconcile' => ['plugin:reconcile', \app\command\PluginReconcile::class],
-        'make' => ['plugin:make', \app\command\PluginMake::class],
-        'lock' => ['plugin:lock', \app\command\PluginLock::class],
-        'release-composition' => ['plugin:release-composition', \app\command\PluginReleaseComposition::class],
+        'reconcile' => ['module:reconcile', \app\command\ModuleReconcile::class],
+        'make' => ['module:make', \app\command\ModuleMake::class],
+        'lock' => ['module:lock', \app\command\ModuleLock::class],
+        'release-composition' => ['module:release-composition', \app\command\ModuleReleaseComposition::class],
         'work' => ['ops-module:task', \app\command\OpsModuleTask::class],
     ];
     if (!is_array($request) || !is_string($request['operation'] ?? null)

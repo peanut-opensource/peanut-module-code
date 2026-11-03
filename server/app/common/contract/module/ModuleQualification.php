@@ -22,7 +22,7 @@ final readonly class ModuleQualification
     {
         return [
             'module_key' => $this->moduleKey,
-            'plugin_key' => $this->pluginKey,
+            'module_key' => $this->pluginKey,
             'version' => $this->version,
             'schema_version' => $this->schemaVersion,
             'manifest_digest' => $this->manifestDigest,

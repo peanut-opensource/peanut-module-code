@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace app\command;
 
-use app\platform\exception\plugin\PluginLifecycleException;
-use app\platform\exception\plugin\PluginPackageException;
+use app\platform\exception\module\ModuleLifecycleException;
+use app\platform\exception\module\ModulePackageException;
 use app\common\execution\ModuleContextualCommand;
 use think\console\Input;
 use think\console\input\Argument;
@@ -35,13 +35,13 @@ final class ModuleUpdatePackage extends ModuleContextualCommand
             );
             $output->writeln((string) json_encode($result, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
             return 0;
-        } catch (PluginPackageException|PluginLifecycleException $exception) {
+        } catch (ModulePackageException|ModuleLifecycleException $exception) {
             $output->writeln((string) json_encode(
                 [
                     'code' => $exception->errorCode,
                     'reason' => $exception->getMessage(),
                     'remediation' => $this->remediation($exception->errorCode),
-                ] + ($exception instanceof PluginPackageException ? $exception->details : []),
+                ] + ($exception instanceof ModulePackageException ? $exception->details : []),
                 JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES,
             ));
             return $exception->getCode() > 0 && $exception->getCode() < 256 ? $exception->getCode() : 1;

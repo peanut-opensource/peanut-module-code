@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace app\platform\services\developer;
 
-use app\platform\infrastructure\plugin\DevelopmentModuleDiscovery;
-use app\platform\services\plugin\PluginPackageArchiveService;
-use app\platform\value\plugin\ModuleFrontendLayout;
+use app\platform\infrastructure\module\DevelopmentModuleDiscovery;
+use app\platform\services\module\ModulePackageArchiveService;
+use app\platform\value\module\ModuleFrontendLayout;
 use PeanutAdmin\Kernel\Module\ManifestLoader;
 use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
 use PeanutAdmin\Kernel\Module\ModuleProvider;
@@ -113,7 +113,7 @@ final readonly class DeveloperCenterCatalogService
                 'registration' => 'Current ThinkPHP App CompiledModuleRegistry',
                 'routes' => 'server/generated/api-catalog.json (generated from peanut_route_endpoint_inventory)',
                 'generated_api' => 'server/generated/api-catalog.json',
-                'package_preview' => 'PluginPackageArchiveService::previewModule',
+                'package_preview' => 'ModulePackageArchiveService::previewModule',
             ],
             'status' => [
                 'declaration' => $this->state('declared', 'MODULE_DECLARATIONS_READ', count($declarations) . ' declarations read.'),
@@ -431,7 +431,7 @@ final readonly class DeveloperCenterCatalogService
     private function packagePreview(string $moduleKey): array
     {
         try {
-            return ['status' => 'ready'] + (new PluginPackageArchiveService($this->serverRoot))->previewModule($moduleKey);
+            return ['status' => 'ready'] + (new ModulePackageArchiveService($this->serverRoot))->previewModule($moduleKey);
         } catch (Throwable $exception) {
             return ['status' => 'blocked'] + $this->exception($exception, 'MODULE_PACKAGE_PREVIEW_BLOCKED');
         }

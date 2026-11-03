@@ -76,21 +76,21 @@ final class ThinkPhpTenantAuthorizationRepository implements \PeanutAdmin\Kernel
         sort($permissionKeys, SORT_STRING);
         sort($moduleKeys, SORT_STRING);
         $read = static fn($query): array => $query->lock($lock)->select()->toArray();
-        $mappingQuery = static fn() => Db::name('plugin_module')->whereIn('module_key', $moduleKeys)
-            ->field('module_key,plugin_key,manifest_digest')->order('module_key');
+        $mappingQuery = static fn() => Db::name('module_installation')->whereIn('module_key', $moduleKeys)
+            ->field('module_key,module_key,manifest_digest')->order('module_key');
         $mapping = $mappingQuery()->select()->toArray();
-        $packages = array_values(array_unique(array_column($mapping, 'plugin_key')));
+        $packages = array_values(array_unique(array_column($mapping, 'module_key')));
         sort($packages, SORT_STRING);
         // lockAndAssert first holds the existing lifecycle package -> installation locks.
         $facts = [
-            'packages' => $read(Db::name('plugin_installation')->whereIn('plugin_key', $packages)
-                ->field('plugin_key,status,revision')->order('plugin_key')),
+            'packages' => $read(Db::name('module_installation')->whereIn('module_key', $packages)
+                ->field('module_key,status,revision')->order('module_key')),
             'installations' => $read(Db::name('module_installation')->whereIn('module_key', $moduleKeys)
                 ->field('module_key,status,revision,installed_version,manifest_digest')->order('module_key')),
         ];
         if ($lock) {
             $mapping = $read($mappingQuery());
-            $currentPackages = array_values(array_unique(array_column($mapping, 'plugin_key')));
+            $currentPackages = array_values(array_unique(array_column($mapping, 'module_key')));
             sort($currentPackages, SORT_STRING);
             if ($packages !== $currentPackages) {
                 throw new \DomainException('IDENTITY_AUTHORIZATION_PROOF_STALE');

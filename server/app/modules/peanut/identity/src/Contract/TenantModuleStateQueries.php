@@ -44,15 +44,7 @@ final readonly class TenantModuleStateQueries
      */
     public function lockLifecycleRows(array $moduleKeys, array $packageKeys = []): void
     {
-        if ($moduleKeys !== []) {
-            $packageKeys = [...$packageKeys, ...Db::name('plugin_module')->whereIn('module_key', $moduleKeys)->column('plugin_key')];
-        }
-        $packageKeys = array_values(array_unique($packageKeys));
-        sort($packageKeys, SORT_STRING);
-        foreach ($packageKeys as $key) {
-            Db::name('plugin_installation')->where('plugin_key', $key)->lock(true)->find();
-        }
-        $moduleKeys = array_values(array_unique($moduleKeys));
+        $moduleKeys = array_values(array_unique([...$moduleKeys, ...$packageKeys]));
         sort($moduleKeys, SORT_STRING);
         foreach ($moduleKeys as $key) {
             Db::name('module_installation')->where('module_key', $key)->lock(true)->find();
@@ -93,9 +85,8 @@ final readonly class TenantModuleStateQueries
         if ($moduleKeys === []) {
             return 0;
         }
-        return (int) Db::name('plugin_module')->alias('member')
-            ->join('plugin_installation plugin', 'plugin.plugin_key=member.plugin_key')
-            ->whereIn('member.module_key', $moduleKeys)->where('plugin.status', '<>', 'uninstalled')->count();
+        return (int) Db::name('module_installation')->whereIn('module_key', $moduleKeys)
+            ->where('status', '<>', 'uninstalled')->count();
     }
 
     /**

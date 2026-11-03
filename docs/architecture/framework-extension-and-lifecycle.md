@@ -20,7 +20,7 @@ Peanut 使用 ThinkPHP 原生机制承载配置、容器和进程运行，Core �
 | 缓存与失效 | Think Cache 原生驱动 | 普通缓存直用框架；授权 revision、命名空间、撤销语义归现有安全合同；不再建通用 Cache façade |
 | 日志、审计与追踪 | Think Log 原生通道 | 应用业务审计与技术日志分开；请求/任务可信上下文与秘密脱敏保留，框架日志不替代审计台账 |
 | 文件与第三方渠道 | Think filesystem、供应商 SDK | 文件账本/引用/权限/回收归 Code；Core 仅技术 planner 与必要协议；应用配置选择可信供应商实现 |
-| 模块声明与制品 | Provider/Bundle 的显式装配思想 | canonical manifest、plugins.lock、内容摘要、前端/worker/迁移 contribution 一起登记；不采用未经审阅的扫描自动发现 |
+| 模块声明与制品 | Provider/Bundle 的显式装配思想 | canonical manifest、modules.lock、内容摘要、前端/worker/迁移 contribution 一起登记；不采用未经审阅的扫描自动发现 |
 | 租户权益 | 应用业务用例与原生事务 | 套餐/许可证定义可用上限，ModuleGuard 消费资格投影；不自动授予成员权限或触发定时补偿 |
 | 安装、迁移与升级 | 成熟迁移框架的台账思想 | 应用现有锁、checksum、applying/applied/failed 及恢复计划；Core 提供技术协议，不搬运完整实例升级业务 |
 | 客户端插件与作用域 | Vue/Nuxt/UniApp 官方扩展机制 | Web Core 负责 transport、UI 和环境适配，Code 持有业务 SDK/状态/页面；监听与资源清理跟随实际组件/请求/任务边界 |
@@ -66,7 +66,7 @@ File 的 [visibilityRequest](../../web/src/modules/peanut-file/api.ts) 继续调
 - PC `useRequest` 将外部 signal 连接到每次请求的 controller，在 finally 中移除连接并从 pending 集合删除。`cancel()` 可由组件主动调用；Vue scope dispose 自动调用它。`clearSession()` 清除用户 cookie 状态，不是所有 composable 的全局取消器；SSR 状态不能注册到浏览器的全局 tenant disposer。
 - UniApp 页面按原生 `onLoad/onUnload` 或其 Vue scope 创建和释放自有请求、订阅及状态。需要网络取消时，把页面所有的 controller.signal 传给 `http.get/post`，在退出时 abort；只递增 revision 的页面仅丢弃迟到结果。`logout/clearIfToken` 清除用户态，不能代替页面释放。`uploadImage` 是独立的 `uni.uploadFile` 入口，当前不暴露 signal，不把普通请求的取消合同延伸到上传。
 
-跨端 contribution 只负责声明并装配当前端能力，不共享页面实例或请求状态。PC 的 [Nuxt 配置](../../pc/nuxt.config.ts) 通过 `moduleFrontendEntries(..., 'pc-web', ...)` 装配模块，UniApp 的 [页面生成器](../../uniapp/scripts/module-pages.mjs) 使用 `uniapp` contribution 生成页面/slot 与 `virtual:peanut-module-contributions`；二者共用的 [入口解析器](../../scripts/module-frontend-entries.mjs) 在开发时读取模块声明，发行构建时读取固定 `plugins.lock`。新增贡献沿各自生成链接入，不能复制 Web 页面、tenant disposer 或桌面 transport 来替代原生生命周期。
+跨端 contribution 只负责声明并装配当前端能力，不共享页面实例或请求状态。PC 的 [Nuxt 配置](../../pc/nuxt.config.ts) 通过 `moduleFrontendEntries(..., 'pc-web', ...)` 装配模块，UniApp 的 [页面生成器](../../uniapp/scripts/module-pages.mjs) 使用 `uniapp` contribution 生成页面/slot 与 `virtual:peanut-module-contributions`；二者共用的 [入口解析器](../../scripts/module-frontend-entries.mjs) 在开发时读取模块声明，发行构建时读取固定 `modules.lock`。新增贡献沿各自生成链接入，不能复制 Web 页面、tenant disposer 或桌面 transport 来替代原生生命周期。
 
 ThinkPHP 实际 API 以 `server/composer.lock` 锁定的 framework 8.1.4、container 3.0.2、ORM 4.0.51 为准。上述 Laravel/Symfony 资料用于职责和行为比较，不是 Peanut 的依赖，也不证明 Peanut 已完成对应运行验证。
 
@@ -150,8 +150,8 @@ HTTP运行顺序还包含原生多应用选择、全局/应用/路由Middleware�
 | HTTP 身份/租户 | 各 audience 登录/PublicTenantModule middleware、ModuleExecutionBoundary | ExecutionContextStore.run 在 finally 恢复栈；受保护路径校验模块与权限，不由全局事件隐式建立身份 |
 | CLI | ContextualCommand / ModuleContextualCommand | 顶层 Instance 上下文包裹 handle；嵌套调用保留既有合法上下文，不增加全局 reset 破坏父层 |
 | 每个 Task job | ModuleAwareTaskHandler、ThinkPhpTaskJobRuntime、LocalWorker | 每次 job 授权、执行、上下文 finally 与已有租约/重试/dead 状态；队列驱动异常不等于业务成功 |
-| Package 安装/升级 | PluginLifecycleService | 锁与固定身份 → installing/upgrading → migration → catalog → active；异常标 failed 并传播，已提交 DDL 的恢复依台账，不承诺整体自动回滚 |
-| Package 卸载 | PluginLifecycleService / PluginRuntimeGovernanceService | 检查受保护模块、依赖、租户使用和引用；计划确认及既有 purge/隔离合同保持 |
+| Package 安装/升级 | ModuleLifecycleService | 锁与固定身份 → installing/upgrading → migration → catalog → active；异常标 failed 并传播，已提交 DDL 的恢复依台账，不承诺整体自动回滚 |
+| Package 卸载 | ModuleLifecycleService / ModuleRuntimeGovernanceService | 检查受保护模块、依赖、租户使用和引用；计划确认及既有 purge/隔离合同保持 |
 | 实例升级 | 应用独立 plan/backup/apply/migration/health/verify 入口 | 来源、保留与恢复材料固定；激活前后恢复边界保持，不用模块 boot/hook 替代升级引擎 |
 
 当前上下文栈证明的是现有串行/FPM 和显式嵌套调用合同；未验证的协程/并行 worker 不能沿用进程单例隔离结论。新增并发运行方式须先明确 task-local 生命周期与真实验证，不把全局可变对象共享给多个租户。

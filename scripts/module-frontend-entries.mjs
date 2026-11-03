@@ -28,12 +28,12 @@ export function moduleFrontendEntries(projectRoot, clientKey, development) {
     visit(resolve(projectRoot, 'server/app/modules'));
   } else {
     const lock = JSON.parse(
-      readFileSync(resolve(projectRoot, 'plugins.lock'), 'utf8')
+      readFileSync(resolve(projectRoot, 'modules.lock'), 'utf8')
     );
-    if (lock.schema_version !== 1 || !Array.isArray(lock.plugins)) {
-      throw new Error('plugins.lock is invalid');
+    if (lock.schema_version !== 1 || !Array.isArray(lock.modules)) {
+      throw new Error('modules.lock is invalid');
     }
-    for (const plugin of lock.plugins) {
+    for (const plugin of lock.modules) {
       for (const frontend of plugin.frontend ?? []) {
         if (frontend.client_key === clientKey)
           entries.push({ key: plugin.key, entry: frontend.entry });

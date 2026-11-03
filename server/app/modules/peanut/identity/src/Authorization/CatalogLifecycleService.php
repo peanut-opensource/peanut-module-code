@@ -113,6 +113,7 @@ final readonly class CatalogLifecycleService
                     'revision' => Db::raw('revision+1'),
                     'activated_at' => $activatedAt ?? $now,
                     'upgraded_at' => $upgrade ? $now : null,
+                    'uninstalled_at' => null,
                     'last_error_code' => null,
                     'updated_at' => $now,
                 ]);
@@ -136,23 +137,6 @@ final readonly class CatalogLifecycleService
                 ]);
             }
             app(ModuleAuthorizationCatalogSynchronizer::class)->invalidateTenantAuthorization($moduleKeys);
-        });
-    }
-
-    /** Preserve the historical error field while retiring installed members during normal uninstall. @param list<string> $moduleKeys */
-    public function retirePackageModules(array $moduleKeys, string $now, bool $invalidate = true): void
-    {
-        Db::transaction(function () use ($moduleKeys, $now, $invalidate): void {
-            if ($moduleKeys !== []) {
-                Db::name('module_installation')->whereIn('module_key', $moduleKeys)->update([
-                    'status' => 'maintenance',
-                    'revision' => Db::raw('revision+1'),
-                    'updated_at' => $now,
-                ]);
-            }
-            if ($invalidate) {
-                app(ModuleAuthorizationCatalogSynchronizer::class)->invalidateTenantAuthorization($moduleKeys);
-            }
         });
     }
 
@@ -197,16 +181,13 @@ final readonly class CatalogLifecycleService
             if ($moduleKeys === []) {
                 return;
             }
-            if ($purge) {
-                Db::name('module_installation')->whereIn('module_key', $moduleKeys)->delete();
-            } else {
-                Db::name('module_installation')->whereIn('module_key', $moduleKeys)->update([
-                    'status' => 'maintenance',
-                    'last_error_code' => null,
-                    'revision' => Db::raw('revision+1'),
-                    'updated_at' => $now,
-                ]);
-            }
+            // Purge removes owned business resources, never the sole lifecycle/recovery identity.
+            Db::name('module_installation')->whereIn('module_key', $moduleKeys)->update([
+                'status' => 'uninstalled', 'uninstalled_at' => $now,
+                'last_error_code' => null,
+                'revision' => Db::raw('revision+1'),
+                'updated_at' => $now,
+            ]);
             app(ModuleAuthorizationCatalogSynchronizer::class)->invalidateTenantAuthorization($moduleKeys);
         });
     }

@@ -37,7 +37,7 @@ for tool in php node; do command -v "$tool" >/dev/null || die "$tool is unavaila
 if command -v pnpm >/dev/null; then PM=pnPM; elif command -v npm >/dev/null; then PM=npm; else die 'pnpm or npm is unavailable'; fi
 printf 'tooling=php:%s composer:%s node:%s package-manager:%s\n' "$(php -r 'echo PHP_VERSION;')" "$("$COMPOSER_BIN" --version --no-ansi | head -1)" "$(node --version)" "$PM"
 
-for file in server/composer.json server/composer.lock web/package.json web/pnpm-lock.yaml plugins.lock RELEASE_METADATA.json release-versions.json; do
+for file in server/composer.json server/composer.lock web/package.json web/pnpm-lock.yaml modules.lock RELEASE_METADATA.json release-versions.json; do
   [[ -f "$APP_DIR/$file" ]] || die "missing required dependency/manifest file: $file"
 done
 if [[ "$APP_DIR" != "$ROOT_DIR" ]]; then
@@ -47,7 +47,7 @@ fi
 php -r 'json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR);' "$APP_DIR/server/composer.lock"
 node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]));' "$APP_DIR/web/package.json"
 node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]));' "$APP_DIR/RELEASE_METADATA.json"
-node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]));' "$APP_DIR/plugins.lock"
+node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]));' "$APP_DIR/modules.lock"
 node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]));' "$APP_DIR/release-versions.json"
 
 if jq -e '.schema_version == 3 and .protocol == "peanut.release-versions.v3"' "$APP_DIR/release-versions.json" >/dev/null; then

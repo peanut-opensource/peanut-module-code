@@ -39,7 +39,7 @@ final class ModuleHostLayoutFactory
     }
 
     /**
-     * Registers only roots already selected by deployment configuration or plugins.lock.
+     * Registers only roots already selected by deployment configuration or modules.lock.
      * @param array<string,string> $moduleRoots Module key => verified absolute module root.
      */
     public static function registerRuntimeAutoload(array $moduleRoots, string $serverRoot): ModuleHostLayout

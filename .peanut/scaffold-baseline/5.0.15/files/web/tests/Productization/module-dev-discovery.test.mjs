@@ -108,11 +108,11 @@ const devConfigSource = readFileSync(
   'utf8'
 );
 expect(
-  !devConfigSource.includes('plugins.lock') &&
+  !devConfigSource.includes('modules.lock') &&
     devConfigSource.includes(
       'createBaseConfig(configEnv, discoverAdminContributions)'
     ),
-  'development Vite config still depends on plugins.lock'
+  'development Vite config still depends on modules.lock'
 );
 
 const normalizedProductionSource = await productionVirtualSource([

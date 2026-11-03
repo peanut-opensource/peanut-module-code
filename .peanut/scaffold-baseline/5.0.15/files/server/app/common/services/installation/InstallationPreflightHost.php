@@ -182,9 +182,9 @@ final class InstallationPreflightHost
                 ? $this->serverRoot . '/.peanut/RELEASE_METADATA.json'
                 : $sourceRoot . '/RELEASE_METADATA.json',
             'Plugin lock' => $serverLayout
-                ? $this->serverRoot . '/plugins.lock'
-                : $sourceRoot . '/plugins.lock',
-            'Plugin schema' => $this->serverRoot . '/resources/schemas/plugin.schema.json',
+                ? $this->serverRoot . '/modules.lock'
+                : $sourceRoot . '/modules.lock',
+            'Plugin schema' => $this->serverRoot . '/resources/schemas/module-artifact.schema.json',
         ];
         if (!$serverLayout && !$generatedApplication && !$sourceDevelopment) {
             $required['源码开发身份'] = $sourceRoot . '/.git';
@@ -211,8 +211,8 @@ final class InstallationPreflightHost
                     $identity = $developmentRuntime
                         ? ApplicationSourceIdentity::load($this->serverRoot)
                         : ServerReleaseIdentity::resolve($this->serverRoot);
-                    $expected = $identity->projectedPluginLockSha256();
-                    if (!hash_equals($expected, (string) hash_file('sha256', $this->serverRoot . '/plugins.lock'))) {
+                    $expected = $identity->projectedModuleLockSha256();
+                    if (!hash_equals($expected, (string) hash_file('sha256', $this->serverRoot . '/modules.lock'))) {
                         throw new RuntimeException('Server Plugin lock differs from release identity.');
                     }
                 } catch (Throwable) {
@@ -279,7 +279,7 @@ final class InstallationPreflightHost
             }
             $modulePackages = [];
             $moduleConfig = require $this->serverRoot . '/config/modules.php';
-            $resolver = \app\platform\infrastructure\plugin\PluginLockResolver::forRuntime($this->serverRoot, $moduleConfig['plugin_lock']);
+            $resolver = \app\platform\infrastructure\module\ModuleLockResolver::forRuntime($this->serverRoot, $moduleConfig['module_lock']);
             foreach ($resolver->all() as $plugin) {
                 foreach ($plugin->moduleRoots as $key => $root) {
                     $package = $read($root . '/composer.json');

@@ -20,7 +20,7 @@ WORKDIR /build/web
 COPY web/package.json web/pnpm-lock.yaml ./
 RUN corepack enable && corepack prepare "$(node -p "require('./package.json').packageManager")" --activate
 RUN HUSKY=0 pnpm install --frozen-lockfile
-COPY plugins.lock /build/plugins.lock
+COPY modules.lock /build/modules.lock
 COPY web/ ./
 RUN printf '%s\n' 'VITE_DEPLOYMENT_MODE=standalone' 'VITE_API_BASE_URL=' > .env.standalone \
     && printf '%s\n' 'VITE_DEPLOYMENT_MODE=multi-tenant' 'VITE_API_BASE_URL=' > .env.multi-tenant \

@@ -294,16 +294,16 @@ function peanut_route_endpoint_inventory(string $serverRoot): array
     }
 
     // Static collection uses the source application's locked selection without booting ThinkPHP.
-    $lockPath = dirname($resolvedRoot) . '/plugins.lock';
+    $lockPath = dirname($resolvedRoot) . '/modules.lock';
     if (!is_file($lockPath) || is_link($lockPath)) {
         throw new RuntimeException('Route inventory Plugin lock is unavailable: ' . $lockPath);
     }
     $lock = json_decode((string) file_get_contents($lockPath), true, 64, JSON_THROW_ON_ERROR);
-    if (($lock['schema_version'] ?? null) !== 1 || !is_array($lock['plugins'] ?? null)) {
+    if (($lock['schema_version'] ?? null) !== 1 || !is_array($lock['modules'] ?? null)) {
         throw new RuntimeException('Route inventory Plugin lock is invalid: ' . $lockPath);
     }
     $peanutRouteModules = [];
-    foreach ($lock['plugins'] as $plugin) {
+    foreach ($lock['modules'] as $plugin) {
         if (!is_array($plugin['modules'] ?? null)) {
             throw new RuntimeException('Route inventory Plugin Module selection is invalid.');
         }

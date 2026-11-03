@@ -31,7 +31,7 @@ namespace app\common\infrastructure\scaffold {
     class ReleaseDependencyIdentity { public static function verifyArchives(...$args) {} }
 }
 namespace app\platform\infrastructure\plugin {
-    class PluginLockResolver { public function __construct(...$args) {} public function all() { return []; } }
+    class ModuleLockResolver { public function __construct(...$args) {} public function all() { return []; } }
 }
 namespace app\common\module {
     class Dependencies {

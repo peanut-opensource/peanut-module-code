@@ -1,4 +1,4 @@
-import type { PluginFrontendContribution } from '@peanut-admin/vue';
+import type { ModuleFrontendContribution } from '@peanut-admin/vue';
 import { defineComponent, h } from 'vue';
 import runtimeContribution from './runtime/contribution';
 
@@ -18,7 +18,7 @@ const WorkflowDesignerLoadError = defineComponent({
 });
 
 /** Full-mode entry. Runtime products select runtime/contribution.ts at assembly. */
-const fullContribution: PluginFrontendContribution = {
+const fullContribution: ModuleFrontendContribution = {
   moduleKey: 'peanut.workflow',
   routes: runtimeContribution.routes.map((route) => ({
     ...route,

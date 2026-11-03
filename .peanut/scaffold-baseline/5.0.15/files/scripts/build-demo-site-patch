@@ -28,9 +28,9 @@ cd "$ROOT_DIR"
 files=(
   deploy/docker-compose.prod.yml
   deploy/docker/production.Dockerfile
-  plugins.lock
-  plugins/peanut.notification/plugin.json
-  plugins/peanut.task/plugin.json
+  modules.lock
+  server/app/modules/peanut/notification/module.json
+  server/app/modules/peanut/task/module.json
   server/app/modules/peanut/notification/src/Service/NotificationBootstrapDefaults.php
   server/app/modules/peanut/notification/src/Service/NotificationBootstrapService.php
   server/app/modules/peanut/task/src/Service/TaskBootstrapService.php

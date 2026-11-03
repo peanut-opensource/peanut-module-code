@@ -179,9 +179,9 @@ export function lockedYamlParser(toolRoot) {
 
 // Same selected-root/name/version/path contract as docker/scripts/vendor-state.py.
 function nativeModulePackages(read) {
-  const lock = JSON.parse(String(read('plugins.lock')));
+  const lock = JSON.parse(String(read('modules.lock')));
   const modules = {};
-  for (const plugin of lock.plugins ?? []) {
+  for (const plugin of lock.modules ?? []) {
     for (const module of plugin.modules ?? []) {
       const root = module.root;
       if (typeof root !== 'string' || !root.startsWith('server/app/modules/') ||
@@ -198,7 +198,7 @@ function nativeClientModulePackages(read, client) {
     pc: ['pc-web', 'pc/modules'], uniapp: ['uniapp', 'uniapp/src/modules']};
   const [clientKey, prefix] = roots[client];
   const packages = {};
-  for (const plugin of JSON.parse(String(read('plugins.lock'))).plugins ?? []) {
+  for (const plugin of JSON.parse(String(read('modules.lock'))).modules ?? []) {
     for (const module of plugin.modules ?? []) {
       const definition = JSON.parse(String(read(`${module.root}/module.json`)));
       const entry = definition.frontend?.clients?.[clientKey]?.entry ??

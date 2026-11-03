@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\common\module;
 
-use app\platform\exception\plugin\PluginLifecycleException;
+use app\platform\exception\module\ModuleLifecycleException;
 use PeanutAdmin\Kernel\Module\ManifestDocument;
 use think\migration\command\seed\Run;
 
@@ -22,7 +22,7 @@ final class ModuleSeedRun extends Run
         $root = realpath($this->manifest->root);
         $directory = $path === 'database/seeds' ? realpath($this->manifest->root . '/' . $path) : false;
         if ($root === false || $directory === false || !str_starts_with($directory, $root . DIRECTORY_SEPARATOR)) {
-            throw new PluginLifecycleException('MODULE_SEED_PATH_INVALID', 'Module seeds must use its own database/seeds directory.');
+            throw new ModuleLifecycleException('MODULE_SEED_PATH_INVALID', 'Module seeds must use its own database/seeds directory.');
         }
         return $directory;
     }

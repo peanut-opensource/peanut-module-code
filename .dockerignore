@@ -36,4 +36,4 @@ platform/tests
 pc/tests
 uniapp/tests
 # Module-owned fixtures remain part of the canonical Plugin source digest.
-# Do not strip files under */src/modules independently of PluginArtifactWriter.
+# Do not strip files under */src/modules independently of ModuleArtifactWriter.

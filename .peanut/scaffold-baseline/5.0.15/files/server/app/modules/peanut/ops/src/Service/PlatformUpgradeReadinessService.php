@@ -10,8 +10,8 @@ use app\common\value\installation\ApplicationReleaseVersions;
 use app\common\value\installation\ServerReleaseIdentity;
 use app\platform\infrastructure\module\ThinkPhpModuleGovernanceProvider;
 use PeanutAdmin\Kernel\Module\StrictVersionConstraintMatcher;
-use app\platform\exception\plugin\PluginLifecycleException;
-use app\platform\infrastructure\plugin\PluginLockResolver;
+use app\platform\exception\module\ModuleLifecycleException;
+use app\platform\infrastructure\module\ModuleLockResolver;
 use PeanutAdmin\Kernel\Context\PlatformContext;
 use PeanutAdmin\Modules\Ops\Domain\Application\OpsConsoleException;
 use PeanutAdmin\Modules\Ops\Domain\Application\PlatformPermissionChecker;
@@ -457,14 +457,14 @@ final readonly class PlatformUpgradeReadinessService
     private function moduleProjection(PlatformUpgradeTarget $target): array
     {
         try {
-            $resolver = new PluginLockResolver(
+            $resolver = new ModuleLockResolver(
                 $target->releaseServerRoot,
                 $target->targetLockPath,
             );
             $targetModules = [];
             foreach ($resolver->all() as $plugin) {
                 if (($plugin->trustResult()['status'] ?? null) !== 'eligible') {
-                    throw new PluginLifecycleException(
+                    throw new ModuleLifecycleException(
                         'PLUGIN_TRUST_QUALIFICATION_INVALID',
                         'Target Plugin trust is not eligible.',
                     );
@@ -534,7 +534,7 @@ final readonly class PlatformUpgradeReadinessService
                 'target_kernel_version' => $kernel,
                 'blockers' => $blockers,
             ];
-        } catch (PluginLifecycleException $exception) {
+        } catch (ModuleLifecycleException $exception) {
             $code = $exception->errorCode === 'PLUGIN_ARTIFACT_MISMATCH'
                 ? 'UPGRADE_MODULE_APP_OWNED_CONFLICT'
                 : 'UPGRADE_TARGET_MODULE_LOCK_INVALID';

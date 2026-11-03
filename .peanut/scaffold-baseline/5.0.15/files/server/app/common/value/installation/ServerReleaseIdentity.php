@@ -142,7 +142,7 @@ final readonly class ServerReleaseIdentity
         }
         $listed = array_column($files, 'sha256', 'path');
         $listedModes = array_column($files, 'mode', 'path');
-        foreach (['server/database/install.php', 'server/plugins.lock',
+        foreach (['server/database/install.php', 'server/modules.lock',
             'server/.peanut/RELEASE_METADATA.json',
             'server/resources/project-resources.json'] as $required) {
             if (!isset($listed[$required])) {
@@ -250,22 +250,22 @@ final readonly class ServerReleaseIdentity
             || ($releaseMetadata['application_identity'] ?? null) !== $app['package_identity']) {
             throw new RuntimeException('SERVER_RELEASE_IDENTITY_INVALID');
         }
-        $projection = $value['plugin_projection'] ?? null;
+        $projection = $value['module_projection'] ?? null;
         if (!is_array($projection)
             || preg_match($hex64, (string) ($projection['source_lock_sha256'] ?? '')) !== 1
-            || !hash_equals((string) ($projection['projected_lock_sha256'] ?? ''), $listed['server/plugins.lock'])
-            || !is_array($projection['plugins'] ?? null)) {
+            || !hash_equals((string) ($projection['projected_lock_sha256'] ?? ''), $listed['server/modules.lock'])
+            || !is_array($projection['modules'] ?? null)) {
             throw new RuntimeException('SERVER_RELEASE_IDENTITY_INVALID');
         }
-        $lock = json_decode((string) file_get_contents($serverRoot . '/plugins.lock'), true);
+        $lock = json_decode((string) file_get_contents($serverRoot . '/modules.lock'), true);
         if (!is_array($lock) || ($lock['schema_version'] ?? null) !== 1
-            || ($lock['protocol'] ?? null) !== 'peanut.server-plugin-lock.v1'
-            || !is_array($lock['plugins'] ?? null)
-            || count($lock['plugins']) !== count($projection['plugins'])) {
+            || ($lock['protocol'] ?? null) !== 'peanut.server-module-lock.v1'
+            || !is_array($lock['modules'] ?? null)
+            || count($lock['modules']) !== count($projection['modules'])) {
             throw new RuntimeException('SERVER_RELEASE_IDENTITY_INVALID');
         }
-        foreach ($projection['plugins'] as $index => $item) {
-            $plugin = $lock['plugins'][$index] ?? null;
+        foreach ($projection['modules'] as $index => $item) {
+            $plugin = $lock['modules'][$index] ?? null;
             if (!is_array($item) || !is_array($plugin)
                 || ($item['key'] ?? null) !== ($plugin['key'] ?? null)
                 || !hash_equals(
@@ -341,9 +341,9 @@ final readonly class ServerReleaseIdentity
         return $this->document['edition_contract']['tenant_bootstrap'];
     }
 
-    public function projectedPluginLockSha256(): string
+    public function projectedModuleLockSha256(): string
     {
-        return $this->document['plugin_projection']['projected_lock_sha256'];
+        return $this->document['module_projection']['projected_lock_sha256'];
     }
 
     public function applicationSlug(): string

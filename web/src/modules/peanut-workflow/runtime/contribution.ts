@@ -1,8 +1,8 @@
-import type { PluginFrontendContribution } from '@peanut-admin/vue';
+import type { ModuleFrontendContribution } from '@peanut-admin/vue';
 import { DEFAULT_LAYOUT } from '@/router/routes/base';
 
 /** This entry has no dependency on the designer, Vue Flow or its styles. */
-const runtimeContribution: PluginFrontendContribution = {
+const runtimeContribution: ModuleFrontendContribution = {
   moduleKey: 'peanut.workflow',
   routes: [
     {

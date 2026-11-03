@@ -21,12 +21,12 @@ services:
       - ../../.peanut/application-manifest.json:/run/peanut-owner/.peanut/application-manifest.json:ro
       - ../../release-versions.json:/run/peanut-owner/release-versions.json:ro
       - ../../RELEASE_METADATA.json:/run/peanut-owner/RELEASE_METADATA.json:ro
-      - ../../plugins.lock:/run/peanut-owner/plugins.lock:ro
+      - ../../modules.lock:/run/peanut-owner/modules.lock:ro
       - ../../plugins:/run/peanut-owner/plugins:ro
       - ../../.peanut/application-manifest.json:/var/www/peanut-http/.peanut/application-manifest.json:ro
       - ../../release-versions.json:/var/www/peanut-http/release-versions.json:ro
       - ../../RELEASE_METADATA.json:/var/www/peanut-http/RELEASE_METADATA.json:ro
-      - ../../plugins.lock:/var/www/peanut-http/plugins.lock:ro
+      - ../../modules.lock:/var/www/peanut-http/modules.lock:ro
       - type: tmpfs
         target: /var/www/peanut-http/server/docker
         read_only: true

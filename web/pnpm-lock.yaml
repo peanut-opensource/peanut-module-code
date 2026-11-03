@@ -790,7 +790,7 @@ packages:
       vue: ^3.4.21
 
   '@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz':
-    resolution: {integrity: sha512-NOZejxoVWLbvN676dLK/7pNwXNzRhcHBv4htcyrPGYlVJ3j1LFn5FaoLB+c3jENOJJh1Za7QiSO9BCJTCXgqcw==, tarball: file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz}
+    resolution: {integrity: sha512-X+7fovZT7xQ6XJiAf5s2SbQBqtDlnCPG+fus4NyJu6jdefG8gx4g7wPEOfVHJpWVHa4BVCJsT7vqUg7OeRgiEw==, tarball: file:../packages/core-web/peanut-admin-vue-5.0.3-alpha.1.tgz}
     version: 5.0.3-alpha.1
     engines: {node: '>=22.12.0 <23'}
     peerDependencies:

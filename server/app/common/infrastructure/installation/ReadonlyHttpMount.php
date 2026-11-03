@@ -13,7 +13,7 @@ final readonly class ReadonlyHttpMount
     private const CONTEXT = '/run/peanut-http/context.json';
     public const MUTABLE = ['private/installation', 'private/storage', 'private/resources/pending',
         'public/storage', 'runtime/cache', 'runtime/log', 'runtime/session', 'runtime/temp', 'runtime/storage', 'runtime/generator', 'runtime/file'];
-    private const SOURCE_INPUTS = ['.peanut/application-manifest.json', 'release-versions.json', 'plugins.lock', 'RELEASE_METADATA.json'];
+    private const SOURCE_INPUTS = ['.peanut/application-manifest.json', 'release-versions.json', 'modules.lock', 'RELEASE_METADATA.json'];
 
     private function __construct(private string $root, private ?array $inputs = null) {}
 

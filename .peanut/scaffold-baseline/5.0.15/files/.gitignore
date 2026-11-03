@@ -29,7 +29,7 @@ deploy/production.env
 /server/.peanut/THIRD_PARTY_NOTICES.md
 /server/.peanut/RELEASE_SBOM.spdx.json
 /server/plugins/*/plugin.json
-/server/plugins.lock
+/server/modules.lock
 /server/resources/project-resources.json
 /server/docker/scripts/upgrade
 /server/docker/scripts/product-upgrade-host

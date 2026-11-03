@@ -1,6 +1,6 @@
-import type { PluginFrontendContribution } from '@peanut-admin/vue';
+import type { ModuleFrontendContribution } from '@peanut-admin/vue';
 
-const contribution: PluginFrontendContribution = {
+const contribution: ModuleFrontendContribution = {
   moduleKey: '${MODULE_KEY}',
   routes: [],
 };

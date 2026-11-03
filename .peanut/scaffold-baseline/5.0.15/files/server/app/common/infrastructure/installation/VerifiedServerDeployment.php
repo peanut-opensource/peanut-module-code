@@ -87,14 +87,14 @@ final readonly class VerifiedServerDeployment
             throw new RuntimeException('SERVER_DEPLOYMENT_ADMISSION_MISMATCH');
         }
         $plugins = [];
-        foreach (\app\platform\infrastructure\plugin\PluginLockResolver::forRuntime(
-            $root, (string) $app->config->get('modules.plugin_lock'),
+        foreach (\app\platform\infrastructure\module\ModuleLockResolver::forRuntime(
+            $root, (string) $app->config->get('modules.module_lock'),
         )->all() as $key => $plugin) {
             $plugins[$key] = (array) $plugin;
             $plugins[$key]['moduleRoots'] = array_map(static fn(string $path): string => self::relative($root, $path), $plugin->moduleRoots);
         }
         $record = ['format' => self::FORMAT, 'binding' => $binding, 'identity' => $identity->document(),
-            'plugins' => $plugins,
+            'modules' => $plugins,
             'registry' => ['modules' => $modules, 'targetTypeOwners' => $registry->targetTypeOwners,
                 'ownedTableOwners' => $registry->ownedTableOwners, 'menus' => $registry->menus,
                 'revision' => $registry->revision]];
@@ -159,13 +159,13 @@ final readonly class VerifiedServerDeployment
 
     public function plugins(): array
     {
-        $plugins = $this->record['plugins'] ?? null;
+        $plugins = $this->record['modules'] ?? null;
         if (!is_array($plugins)) {
             throw new RuntimeException('SERVER_DEPLOYMENT_ADMISSION_INVALID');
         }
-        return array_map(function (array $plugin): \app\platform\value\plugin\PluginDescriptor {
+        return array_map(function (array $plugin): \app\platform\value\module\ModuleDescriptor {
             $plugin['moduleRoots'] = array_map(fn(string $relative): string => $this->serverRoot . '/' . $relative, $plugin['moduleRoots']);
-            return new \app\platform\value\plugin\PluginDescriptor(...$plugin);
+            return new \app\platform\value\module\ModuleDescriptor(...$plugin);
         }, $plugins);
     }
 
@@ -248,8 +248,8 @@ final readonly class VerifiedServerDeployment
                 self::assertProtectedPath($root, self::relative($root, $file->getPathname()), $httpMount);
             }
         }
-        foreach ([$source ? '../plugins.lock' : 'plugins.lock', 'composer.json', 'composer.lock', 'think', 'public/index.php'] as $file) {
-            if ($file === '../plugins.lock') {
+        foreach ([$source ? '../modules.lock' : 'modules.lock', 'composer.json', 'composer.lock', 'think', 'public/index.php'] as $file) {
+            if ($file === '../modules.lock') {
                 continue; // The source lock is part of the verified readonly APP inputs above.
             }
             self::assertProtectedPath($root, $file, $httpMount);
@@ -267,13 +267,13 @@ final readonly class VerifiedServerDeployment
             $absolute = str_starts_with($path, '/') ? $path : $root . '/' . $path;
             $config['roots'][$index] = self::relative($root, $absolute);
         }
-        $lock = $config['plugin_lock'] ?? null;
+        $lock = $config['module_lock'] ?? null;
         $source = self::sourceApplication($root);
-        $expectedLock = $source ? '../plugins.lock' : 'plugins.lock';
+        $expectedLock = $source ? '../modules.lock' : 'modules.lock';
         if ($lock !== $expectedLock && $lock !== $root . '/' . $expectedLock) {
             throw new RuntimeException('SERVER_DEPLOYMENT_ADMISSION_INVALID');
         }
-        $config['plugin_lock'] = $expectedLock;
+        $config['module_lock'] = $expectedLock;
         $binding = ['modules' => hash('sha256', json_encode($config, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES)),
             'program_authority' => $httpMount !== null ? ['boundary' => 'native-readonly-http']
                 : ['boundary' => 'unix-dac', 'deployment_owner' => fileowner($root), 'root_mode' => fileperms($root) & 07777]];
@@ -281,9 +281,9 @@ final readonly class VerifiedServerDeployment
         if ($source) {
             ReadonlyHttpMount::assertSourceInputs($root, $httpMount);
             $binding['identity'] = $inputs !== null ? $inputs['identity'] : ApplicationSourceIdentity::sourceDigest($root);
-            $binding['lock'] = hash('sha256', self::bytes(dirname($root) . '/plugins.lock'));
+            $binding['lock'] = hash('sha256', self::bytes(dirname($root) . '/modules.lock'));
         }
-        foreach (['identity' => $source ? null : self::identityPath($root), 'lock' => $source ? null : 'plugins.lock',
+        foreach (['identity' => $source ? null : self::identityPath($root), 'lock' => $source ? null : 'modules.lock',
             'dependencies' => 'composer.lock', 'installed_dependencies' => 'vendor/composer/installed.json'] as $key => $path) {
             if ($path === null) { continue; }
             self::assertProtectedPath($root, $path, $httpMount);

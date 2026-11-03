@@ -10,7 +10,7 @@ interface ModuleGovernanceProvider
 {
     public function registry(): DeployedTenantModuleRegistry;
 
-    public function pluginLifecycle(): PluginLifecycleCommands;
+    public function moduleLifecycle(): ModuleLifecycleCommands;
 
     public function qualification(): ModuleQualificationQuery;
 

@@ -1,6 +1,6 @@
 # 模块开发与交付
 
-生效。复用 `module:create/check/pack`、`plugin:make/lock`、`plugins.lock` 和现有脚手架，不造竞争格式；示意路径不替代正式清单。
+生效。复用 `module:create/check/pack`、`module:make/lock`、`modules.lock` 和现有脚手架，不造竞争格式；示意路径不替代正式清单。
 
 ## 1. 模块逻辑统一，源码前后端分开
 
@@ -28,7 +28,11 @@
 
 “有哪些能力”“采用哪种入口”“如何打包部署”分别描述。一个能力可有多种入口；目前实际所有模块均按一个 Module 对应一个独立安装单元，应用通过依赖与锁选择多个模块，不需要再把它们复制成多模块物理 Bundle。按真实业务需要组合功能时，使用现有模块依赖或应用选择，不为每个入口建立重复模块、数据模型或另一套 manifest。验收只覆盖声明支持的形态：纯能力模块用真实消费者证明可用；兼有页面与嵌入入口时核对两者规则和状态一致。前端隐藏不代替后端授权，包导出不授予数据访问权。
 
-安装制品与其 Module 使用同一个 key 和版本；作者入口、清单 Schema、锁解析和归档校验均只接受一个对应 Module，不再提供 `bundle-pack` 或内部 `packBundle`。组合交给现有依赖图和 APP 选择，不能用重新压缩源码制造第二套版本。现有 `plugin.json`、`plugins.lock`、`pa_plugin_*` 等技术名称仍承载交付摘要和安装历史；它们不是与 Module 并列的另一种业务对象，也不增加新的 Package 目录、竞争 manifest 或同义 API。保留原生恢复身份，不为英文单词而破坏已安装应用数据。
+安装制品与其 Module 使用同一个 key 和业务版本；`module.json` 是唯一作者源声明，`modules.lock` 由该声明、实际源码与 Composer/npm 原生声明派生，不再另写 `plugin.json`。单 Module 归档直接携带该 Module 的源声明及其拥有的源码；不提供多 Module 物理 Bundle。应用组合沿现有依赖图与锁选择。Composer 包、npm 包和各客户端包保留各自原生版本，不强制等于 Module 业务版本。
+
+`module_installation` 是唯一安装实体，保留 Module ID、已安装版本、运行状态、制品/依赖身份和恢复字段。停用的 maintenance 状态不因发布选择或新版源码出现而变为 active；正常卸载保留该行历史、原生迁移记录和业务数据，明确 purge 才进入受控清除。第三方 Composer、Vite、编辑器等生态的 Plugin 概念不受此约束。
+
+已有应用通过原生脚手架升级计划完成一次性声明转换：验证原应用完整 `plugins.lock` 及包装摘要，将其全部选择（包括应用自有 Module）派生为 `modules.lock`，将旧锁及全部已验证包装的删除列入同一备份/应用/恢复写集，再允许新运行入口加载。不能直接覆盖成脚手架默认模块集，也不能要求应用手删锁或重装。旧安装账本沿原生前向 Migration 归并；具体数据与恢复边界见[迁移协议](../maintenance/migration-protocols.md)。
 
 
 ### 1.3 业务驱动完善，应用按固定基线采用 {#capability-evolution}

@@ -86,12 +86,12 @@ use PeanutAdmin\Modules\Ops\Infrastructure\Authorization\PlatformOpsPermissionCh
 use PeanutAdmin\Modules\Ops\Service\PlatformUpgradeExecutionService;
 use PeanutAdmin\Modules\Ops\Service\PlatformUpgradeReadinessService;
 use app\platform\infrastructure\module\ThinkPhpModuleGovernanceProvider;
-use app\platform\services\plugin\PlatformModuleRuntimeService;
-use app\platform\composition\plugin\ModuleDefinitionRegistryFactory;
-use app\platform\infrastructure\plugin\PluginLockResolver;
-use app\platform\infrastructure\plugin\ModuleCatalogApplier;
-use app\platform\services\plugin\PluginCatalogSyncService;
-use app\platform\services\plugin\PluginRuntimeGovernanceService;
+use app\platform\services\module\PlatformModuleRuntimeService;
+use app\platform\composition\module\ModuleDefinitionRegistryFactory;
+use app\platform\infrastructure\module\ModuleLockResolver;
+use app\platform\infrastructure\module\ModuleCatalogApplier;
+use app\platform\services\module\ModuleCatalogSyncService;
+use app\platform\services\module\ModuleRuntimeGovernanceService;
 use app\platform\infrastructure\provider\NotificationQualificationContributor;
 use app\platform\infrastructure\provider\OauthQualificationContributor;
 use app\platform\infrastructure\provider\PaymentQualificationContributor;
@@ -424,8 +424,8 @@ class AppService extends Service
         $this->app->bind(DeployedTenantModuleRegistry::class, fn(): DeployedTenantModuleRegistry =>
             $this->app->make(ThinkPhpModuleGovernanceProvider::class)->registry());
         $this->app->bind(ModuleRuntimeRepository::class, ThinkPhpModuleRuntimeRepository::class);
-        $this->app->bind(PluginCatalogSyncService::class, fn(): PluginCatalogSyncService =>
-            new PluginCatalogSyncService(
+        $this->app->bind(ModuleCatalogSyncService::class, fn(): ModuleCatalogSyncService =>
+            new ModuleCatalogSyncService(
                 dirname(__DIR__),
                 $this->moduleConfiguration(),
                 $this->app->make(ModuleCatalogApplier::class),
@@ -435,8 +435,8 @@ class AppService extends Service
                 dirname(__DIR__),
                 $this->moduleConfiguration(),
                 $this->trustedModuleKeys(),
-                $this->app->make(PluginRuntimeGovernanceService::class),
-                $this->app->make(PluginCatalogSyncService::class),
+                $this->app->make(ModuleRuntimeGovernanceService::class),
+                $this->app->make(ModuleCatalogSyncService::class),
                 $this->app->make(ModuleCatalogApplier::class),
                 $this->app->make(\PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::class),
                 $this->app->make(DeploymentModuleRequestService::class),
@@ -461,13 +461,13 @@ class AppService extends Service
                 $this->moduleConfiguration(),
                 $this->app->make(ModuleCatalogApplier::class),
                 $this->app->make(CompiledModuleRegistry::class),
-                PluginLockResolver::forRuntime(dirname(__DIR__), (string) $this->moduleConfiguration()['plugin_lock']),
+                ModuleLockResolver::forRuntime(dirname(__DIR__), (string) $this->moduleConfiguration()['module_lock']),
             ));
         $this->app->bind(ModuleQualificationQuery::class, fn(): ModuleQualificationQuery => $this->app
             ->make(ThinkPhpModuleGovernanceProvider::class)
             ->qualification());
-        $this->app->bind(PluginRuntimeGovernanceService::class, fn(): PluginRuntimeGovernanceService =>
-            new PluginRuntimeGovernanceService(
+        $this->app->bind(ModuleRuntimeGovernanceService::class, fn(): ModuleRuntimeGovernanceService =>
+            new ModuleRuntimeGovernanceService(
                 dirname(__DIR__),
                 $this->moduleConfiguration(),
                 $this->app->make(ModuleCatalogApplier::class),
@@ -478,7 +478,7 @@ class AppService extends Service
                 dirname(__DIR__, 2),
                 $this->moduleConfiguration(),
                 $this->trustedModuleKeys(),
-                $this->app->make(PluginRuntimeGovernanceService::class),
+                $this->app->make(ModuleRuntimeGovernanceService::class),
                 $this->app->make(ModuleCatalogApplier::class),
             ));
         $this->app->bind(PlatformUpgradeReadinessService::class, fn(): PlatformUpgradeReadinessService =>
@@ -668,7 +668,7 @@ class AppService extends Service
             && PHP_SAPI === 'cli'
             && Config::get('peanut.environment', '') === 'development'
             && $this->app->isDebug()
-            && in_array((new \think\console\Input())->getFirstArgument(), ['plugin:make', 'plugin:lock'], true)) {
+            && in_array((new \think\console\Input())->getFirstArgument(), ['module:make', 'module:lock'], true)) {
             return;
         }
         $config = Config::get('modules', []);
@@ -676,7 +676,7 @@ class AppService extends Service
             throw new \RuntimeException('MODULE_REGISTRY_UNAVAILABLE');
         }
         $serverRoot = dirname(__DIR__);
-        $lockPath = trim((string) ($config['plugin_lock'] ?? ''));
+        $lockPath = trim((string) ($config['module_lock'] ?? ''));
         if ($lockPath === '') {
             throw new \RuntimeException('PLUGIN_LOCK_INVALID');
         }
@@ -694,8 +694,8 @@ class AppService extends Service
                 ? $this->app->make(\app\common\infrastructure\installation\VerifiedServerDeployment::class)->registry()
                 : $factory->fromCompiled($config);
         } else {
-            $resolver = PluginLockResolver::forRuntime($serverRoot, $lockPath);
-            $registry = $factory->fromPluginLock($resolver, $config, false);
+            $resolver = ModuleLockResolver::forRuntime($serverRoot, $lockPath);
+            $registry = $factory->fromModuleLock($resolver, $config, false);
             if (PHP_SAPI === 'cli' && in_array((new \think\console\Input())->getFirstArgument(), ['run', 'module:compile'], true)
                 && !file_exists($releasePath) && !is_link($releasePath) && !$developmentReadonly) {
                 $factory->publishCompiled($registry, $config, $resolver->all());

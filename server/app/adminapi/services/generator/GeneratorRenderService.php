@@ -1334,10 +1334,10 @@ VUE, $c + compact(
     private static function renderFrontendContribution(array $c): string
     {
         return self::replace(<<<'TS'
-import type { PluginFrontendContribution } from '@peanut-admin/vue';
+import type { ModuleFrontendContribution } from '@peanut-admin/vue';
 import { DEFAULT_LAYOUT } from '@/router/routes/base';
 
-const contribution: PluginFrontendContribution = {
+const contribution: ModuleFrontendContribution = {
   moduleKey: '{{moduleKey}}',
   routes: [{
     path: '/generated/{{resource}}',

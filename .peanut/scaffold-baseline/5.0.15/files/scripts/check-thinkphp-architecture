@@ -227,8 +227,8 @@ def hits_for(path: Path, text: str, public_types: set[str] | None = None) -> lis
     if rel == "server/app/common/execution/ContextualCommand.php" and re.search(r"\bPDO\b|function\s+database\s*\(", text):
         hits.append(("eager_cli_database_dependency", 1, "ContextualCommand requires a database"))
     if (rel.startswith("server/app/command/")
-        and rel != "server/app/command/PluginCommandSupport.php"
-        and ("$this->database()" in text or "use PluginCommandSupport;" in text)
+        and rel != "server/app/command/ModuleCommandSupport.php"
+        and ("$this->database()" in text or "use ModuleCommandSupport;" in text)
         and "extends DatabaseContextualCommand" not in text):
         hits.append(("eager_cli_database_dependency", 1, "database command bypasses DatabaseContextualCommand"))
     for join in TENANT_JOIN_PATTERN.finditer(text):

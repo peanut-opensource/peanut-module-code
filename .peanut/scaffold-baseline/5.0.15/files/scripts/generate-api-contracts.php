@@ -780,7 +780,7 @@ function catalogInputs(string $repositoryRoot, array $inventory): array
 {
     $paths = [
         'release-versions.json' => true,
-        'plugins.lock' => true,
+        'modules.lock' => true,
         'server/app/api/metadata/contracts/openapi.json' => true,
         'server/app/api/metadata/application/common.php' => true,
         'server/config/admin_api_access.php' => true,

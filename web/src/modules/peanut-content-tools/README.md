@@ -2,7 +2,7 @@
 
 `peanut.content-tools` owns trusted format registrations and `ContentViewer` / `ContentEditor`. File and Document remain responsible for current object permissions, access URLs, immutable versions and persistence.
 
-The application calls `createLockedContentToolRegistry()` from the `./surface` export. This collects the same `virtual:peanut-plugin-contributions` objects already generated from `plugins.lock`; no remote scripts or second manifest are accepted. A frontend provider adds a typed `contentAdapters` array to its normal contribution and declares its dependency on this module. IDs are selected explicitly by application configuration and returned by the backend capability query. Missing/incompatible providers never silently select another implementation.
+The application calls `createLockedContentToolRegistry()` from the `./surface` export. This collects the same `virtual:peanut-plugin-contributions` objects already generated from `modules.lock`; no remote scripts or second manifest are accepted. A frontend provider adds a typed `contentAdapters` array to its normal contribution and declares its dependency on this module. IDs are selected explicitly by application configuration and returned by the backend capability query. Missing/incompatible providers never silently select another implementation.
 
 The application ModuleComposition collects typed ContentToolContributor registrations from compiled, selected Module providers, validates owner/duplicate identities before binding, and installs one complete registry. RichText contributes rich-text.tiptap; Content Tools never imports the concrete RichText provider. No provider instantiation side effect or registration-order selection is used.
 
