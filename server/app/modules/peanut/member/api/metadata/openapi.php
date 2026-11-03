@@ -57,7 +57,7 @@ $pageParameters = [
     ['$ref' => '#/components/parameters/PageSize'],
 ];
 
-return [
+$memberContract = [
     'paths' => [
         '/adminapi/peanut.member.list' => ['get' => $operation(
             'listAdminMembers',
@@ -670,3 +670,4 @@ return [
         ],
     ],
 ];
+return array_replace_recursive($memberContract, require __DIR__ . '/consumer.php');

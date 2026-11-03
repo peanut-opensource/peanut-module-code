@@ -33,31 +33,4 @@ class PcController extends BaseApiController
         return $this->data($result);
     }
 
-    /** PC 首页 */
-    public function index()
-    {
-        $result = $this->pcApplication->getIndexData($this->publicTenantContext('article.pc-index'));
-        return $this->data($result);
-    }
-
-    /** PC 资讯中心（同 article/lists） */
-    public function infoCenter()
-    {
-        return $this->data($this->pcApplication->infoCenter(
-            $this->publicTenantContext('article.info-center'),
-        ));
-    }
-
-    /** PC 文章详情 */
-    public function articleDetail()
-    {
-        $id     = $this->request->get('id/d', 0);
-        $source = $this->request->get('source/s', 'default');
-        return $this->data($this->pcApplication->articleDetail(
-            $this->publicTenantContext('article.pc-detail'),
-            $this->memberId,
-            $id,
-            $source,
-        ));
-    }
 }

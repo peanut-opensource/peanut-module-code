@@ -30,6 +30,16 @@ export interface ModuleApiOperations {
   getRecycledArticle: paths['/adminapi/peanut.article.recycle.detail']['get'];
   restoreArticles: paths['/adminapi/peanut.article.restore']['post'];
   forceDeleteArticles: paths['/adminapi/peanut.article.force-delete']['post'];
+  listArticles: paths['/api/article/lists']['get'];
+  articleDetail: paths['/api/article/detail']['get'];
+  getApplicationHome: paths['/api/index/index']['get'];
+  listPublicArticleCategories: paths['/api/article/cate']['get'];
+  getPcHome: paths['/api/pc/index']['get'];
+  getPcInformationCenter: paths['/api/pc/infoCenter']['get'];
+  getPcArticleDetail: paths['/api/pc/articleDetail']['get'];
+  addArticleCollection: paths['/api/article/addCollect']['post'];
+  cancelArticleCollection: paths['/api/article/cancelCollect']['post'];
+  listArticleCollections: paths['/api/article/collect']['get'];
 }
 
 export function createModuleApi(client: Client<paths>) {
@@ -61,6 +71,16 @@ export function createModuleApi(client: Client<paths>) {
     getRecycledArticle: pathClient['/adminapi/peanut.article.recycle.detail'].GET,
     restoreArticles: pathClient['/adminapi/peanut.article.restore'].POST,
     forceDeleteArticles: pathClient['/adminapi/peanut.article.force-delete'].POST,
+    listArticles: pathClient['/api/article/lists'].GET,
+    articleDetail: pathClient['/api/article/detail'].GET,
+    getApplicationHome: pathClient['/api/index/index'].GET,
+    listPublicArticleCategories: pathClient['/api/article/cate'].GET,
+    getPcHome: pathClient['/api/pc/index'].GET,
+    getPcInformationCenter: pathClient['/api/pc/infoCenter'].GET,
+    getPcArticleDetail: pathClient['/api/pc/articleDetail'].GET,
+    addArticleCollection: pathClient['/api/article/addCollect'].POST,
+    cancelArticleCollection: pathClient['/api/article/cancelCollect'].POST,
+    listArticleCollections: pathClient['/api/article/collect'].GET,
   };
 }
 

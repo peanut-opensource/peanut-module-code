@@ -6,8 +6,6 @@ use PeanutAdmin\Modules\Notification\Controller\NoticeChannelController;
 use PeanutAdmin\Modules\Notification\Controller\NoticeLogController;
 use PeanutAdmin\Modules\Notification\Controller\NoticeSceneController;
 use PeanutAdmin\Modules\Notification\Controller\NotificationInboxController;
-use app\api\controller\SmsController as ApiSmsController;
-use app\api\middleware\PublicTenantModuleMiddleware;
 use app\adminapi\http\middleware\AuthMiddleware;
 use app\adminapi\http\middleware\LoginMiddleware;
 use app\adminapi\http\middleware\OperationLogMiddleware;
@@ -33,9 +31,4 @@ if (($peanutRouteApplication ?? null) === 'adminapi') {
         ->middleware(OfficialModuleMiddleware::class, 'peanut.notification', 'http.admin')
         ->middleware(AuthMiddleware::class)
         ->middleware(OperationLogMiddleware::class);
-}
-
-if (($peanutRouteApplication ?? null) === 'api') {
-    Route::post('sms/sendCode', [ApiSmsController::class, 'sendCode'])
-        ->middleware(PublicTenantModuleMiddleware::class, 'peanut.notice.verification', 'peanut.notification', 'notice.verification.send');
 }

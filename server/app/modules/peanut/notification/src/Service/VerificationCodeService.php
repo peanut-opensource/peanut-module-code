@@ -8,7 +8,7 @@ use PeanutAdmin\Modules\Notification\Model\NoticeLog;
 use PeanutAdmin\Modules\Notification\Model\NoticeScene;
 use PeanutAdmin\Modules\Notification\Contract\DeliveryResult;
 use PeanutAdmin\Modules\Notification\Contract\VerificationResult;
-use app\common\enum\notice\NoticeSceneEnum;
+use PeanutAdmin\Modules\Notification\Value\NoticeSceneEnum;
 use PeanutAdmin\Kernel\Context\AuthenticatedMemberContext;
 use app\common\context\notice\NoticeTenantContext;
 use app\common\value\notice\sms\SmsDriverResult;

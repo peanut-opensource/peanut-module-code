@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Member\Validation;
 
 use PeanutAdmin\Modules\Member\Model\Member;
-use app\common\enum\AccountLogEnum;
+use PeanutAdmin\Modules\Member\Value\AccountLogEnum;
 use app\common\validate\TenantContextValidate;
 
 class MemberValidate extends TenantContextValidate

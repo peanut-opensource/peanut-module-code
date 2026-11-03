@@ -10,7 +10,7 @@ use PeanutAdmin\Modules\Member\Model\MemberTagRelation;
 use app\common\exception\BusinessException;
 use PeanutAdmin\Modules\Member\Contract\MemberProfileCommands;
 use PeanutAdmin\Modules\Member\Contract\MemberSessions;
-use app\common\validate\MemberProfileSelfFieldValidate;
+use PeanutAdmin\Modules\Member\Validation\MemberProfileSelfFieldValidate;
 use PeanutAdmin\Kernel\Context\AuthenticatedMemberContext;
 use app\common\support\PositiveIds;
 use PeanutAdmin\Kernel\Auth\TenantContext;

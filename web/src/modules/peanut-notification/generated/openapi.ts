@@ -4,7 +4,6 @@ import type { Client, ClientOptions } from 'openapi-fetch';
 import type { paths } from '@/generated/openapi';
 
 export interface ModuleApiOperations {
-  sendVerificationCode: paths['/api/sms/sendCode']['post'];
   getNotificationChannelConfiguration: paths['/adminapi/peanut.notification.channel.detail']['get'];
   saveNotificationChannelConfiguration: paths['/adminapi/peanut.notification.channel.save']['post'];
   listNotificationScenes: paths['/adminapi/peanut.notification.scene.list']['get'];
@@ -20,7 +19,6 @@ export interface ModuleApiOperations {
 export function createModuleApi(client: Client<paths>) {
   const pathClient = wrapAsPathBasedClient(client);
   return {
-    sendVerificationCode: pathClient['/api/sms/sendCode'].POST,
     getNotificationChannelConfiguration: pathClient['/adminapi/peanut.notification.channel.detail'].GET,
     saveNotificationChannelConfiguration: pathClient['/adminapi/peanut.notification.channel.save'].POST,
     listNotificationScenes: pathClient['/adminapi/peanut.notification.scene.list'].GET,

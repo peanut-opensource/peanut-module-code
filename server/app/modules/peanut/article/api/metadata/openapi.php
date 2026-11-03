@@ -747,4 +747,4 @@ $articleContract = [
 $articleContract['components']['schemas']['ArticleDetailRecord'] = $articleContract['components']['schemas']['ArticleRecord'];
 $articleContract['components']['schemas']['ArticleDetailRecord']['properties']['body_document_id'] = ['type' => 'integer', 'minimum' => 1, 'nullable' => true];
 $articleContract['components']['schemas']['ArticleDetailRecord']['required'][] = 'body_document_id';
-return $articleContract;
+return array_replace_recursive($articleContract, require __DIR__ . '/consumer.php');

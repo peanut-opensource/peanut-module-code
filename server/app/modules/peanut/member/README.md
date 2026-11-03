@@ -63,3 +63,8 @@ The list displays existing tag assignments without a separate tag-catalog
 request. Tag catalog management and member creation remain their existing
 operations. This page does not add profile/tag editing or alter balance, session,
 permission or tenant contracts.
+## Member HTTP and access tokens
+
+The module owns MemberLoginController, MemberSelfController, MemberAccountLogController and MemberVerificationController. Its normal route contribution retains the existing login/user/account_log/sms URLs and admission middleware. Verification-code routes are contributed only when peanut.notification is selected. Identity administration login and generic HTTP context adapters remain host-owned.
+
+MemberAccessTokens is bound to the module's UserTokenService. The host CheckTokenMiddleware consumes parseSessionToken; OAuthEntryService consumes createToken after completed OAuth login. JWT issuer/audience, tenant/member/session/revision claims, persistent-session verification and current-session revocation retain the existing implementation. A parsed signature alone never admits a member. This module does not provide order auto-cancellation or automatic order verification.

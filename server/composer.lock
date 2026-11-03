@@ -2158,9 +2158,10 @@
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/member",
-                "reference": "563e3f5540ae3002f4fae72dcbc7c9f2cf3f2da0"
+                "reference": "dcb29c5729e370b4600749f1e206c42cf5ec3bd7"
             },
             "require": {
+                "firebase/php-jwt": "^7.1",
                 "peanut-admin/core": "^5.0.2",
                 "peanut-business/peanut-identity": "^4.0.0-rc.32",
                 "peanut-business/peanut-settings": "^1.0",

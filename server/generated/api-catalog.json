@@ -4,7 +4,7 @@
     "inputs": [
         {
             "path": "modules.lock",
-            "sha256": "789f76516073397c98ba1b610cd6daa4319abcee7697c00bc1881daa925e1478"
+            "sha256": "fd8126ace27778cdb2bdf0b53412d9b0cbf9cf77f3c0c2b5e90b89b1ba07ac2d"
         },
         {
             "path": "release-versions.json",
@@ -32,19 +32,19 @@
         },
         {
             "path": "server/app/api/metadata/application/shared.php",
-            "sha256": "4b26d794ab4355b1fdcf64c7370f2ef34b7eea83b3000dc544abf74873a53919"
+            "sha256": "4c0a0d74e65918dfef76d02463a3ba12a253f870a7e972e5b865e71056772fb2"
         },
         {
             "path": "server/app/api/metadata/contracts/openapi.json",
-            "sha256": "96a987335ee16240e204b8ae54ff1892a5c7f05e41043da63d805e1eb4fb192e"
+            "sha256": "09ce51a7fa7b7f7cb2c64eba119ffae1ee16f1db4e32188847b85a6c2e44f529"
         },
         {
             "path": "server/app/modules/peanut/article/api/metadata/openapi.php",
-            "sha256": "3bcb2bd117732d9d2201b2b79f6291c0aaae022833bbf911008d38e36df4e4f5"
+            "sha256": "595c6d8cf742f700fd087feb4c3c51499ad3f460fa616da3cbed56349130db2f"
         },
         {
             "path": "server/app/modules/peanut/article/route/app.php",
-            "sha256": "097c339977ce971bfa34a1ae0478bc2b7016d109f7621fc4c16385dd6cdeec0a"
+            "sha256": "a02b6a9483e67d9abcfa5ff587a94e16f12c293eed026c86db102c4afcbf101c"
         },
         {
             "path": "server/app/modules/peanut/collaboration/api/metadata/openapi.php",
@@ -88,11 +88,11 @@
         },
         {
             "path": "server/app/modules/peanut/member/api/metadata/openapi.php",
-            "sha256": "b2010e17e9d2d265ebcb249d08111cbf03b0b9b40eed9efee7e3c29bb67bb507"
+            "sha256": "907e8ef4e0760c073593e98569d6ca395d5a0b1520a516ceea4b334933b98b64"
         },
         {
             "path": "server/app/modules/peanut/member/route/app.php",
-            "sha256": "d49b1097a1e1fa46325325501360b81eb98e7dbb8bbc903dea8d55e2e6478650"
+            "sha256": "cbcbab6a12f5a576c607699f91d48f5b4e1089c1c64922f8bba2a89838d5aab9"
         },
         {
             "path": "server/app/modules/peanut/notification/api/metadata/openapi.php",
@@ -100,7 +100,7 @@
         },
         {
             "path": "server/app/modules/peanut/notification/route/app.php",
-            "sha256": "f71da5f2bdb32c4ae547926067d8025d1b90337d59a476c9ff1be43fdc659c3b"
+            "sha256": "0938f9c32d0484b6988c567269f38d1403558d4f73ed6326aeb15388af98061a"
         },
         {
             "path": "server/app/modules/peanut/oauth/api/metadata/openapi.php",
@@ -108,7 +108,7 @@
         },
         {
             "path": "server/app/modules/peanut/oauth/route/app.php",
-            "sha256": "ef56a6bc168f982fa8946d999a4fd57efe7af64d0ab47231dca3016d0c22da6d"
+            "sha256": "3baf75488d41b9256429026b68df93751d5e417df9a53220d8062c69cb7b9a5a"
         },
         {
             "path": "server/app/modules/peanut/payment/api/metadata/openapi.php",
@@ -116,7 +116,7 @@
         },
         {
             "path": "server/app/modules/peanut/payment/route/app.php",
-            "sha256": "9c7e3ef67ca30a2c4c399ac56b6fc3bd618471e95711515747e1cc602535a147"
+            "sha256": "ff0e177589538a6a986801a801a0218d8df89d56cc9c747a19f8ac7a98bddeb4"
         },
         {
             "path": "server/app/modules/peanut/reference_codes/api/metadata/openapi.php",
@@ -172,7 +172,7 @@
         },
         {
             "path": "server/route/public_api.php",
-            "sha256": "32809e787f14f61d6ca6ae05539ba2624f731c7b13fbcb750a57a4aefefb8fa8"
+            "sha256": "e7e586523c4a78d0f8776f774bf3ae15de7d5cdd80e651c9a2538b178c9ca444"
         },
         {
             "path": "server/route/registry_source.php",
@@ -219,17 +219,17 @@
             },
             "owners": {
                 "application:adminapi": 101,
-                "application:api": 18,
+                "application:api": 7,
                 "application:installation": 9,
                 "application:platform": 72,
-                "module:peanut.article": 27,
+                "module:peanut.article": 37,
                 "module:peanut.collaboration": 11,
                 "module:peanut.document": 12,
                 "module:peanut.file": 28,
                 "module:peanut.import-export": 11,
                 "module:peanut.integration": 12,
-                "module:peanut.member": 22,
-                "module:peanut.notification": 11,
+                "module:peanut.member": 24,
+                "module:peanut.notification": 10,
                 "module:peanut.oauth": 26,
                 "module:peanut.payment": 17,
                 "module:peanut.reference-codes": 20,
@@ -242,17 +242,17 @@
     },
     "owners": {
         "application:adminapi": 101,
-        "application:api": 18,
+        "application:api": 7,
         "application:installation": 9,
         "application:platform": 72,
-        "module:peanut.article": 27,
+        "module:peanut.article": 37,
         "module:peanut.collaboration": 11,
         "module:peanut.document": 12,
         "module:peanut.file": 28,
         "module:peanut.import-export": 11,
         "module:peanut.integration": 12,
-        "module:peanut.member": 22,
-        "module:peanut.notification": 11,
+        "module:peanut.member": 24,
+        "module:peanut.notification": 10,
         "module:peanut.oauth": 26,
         "module:peanut.payment": 17,
         "module:peanut.reference-codes": 20,
@@ -354,7 +354,7 @@
             },
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 19
+                "line": 48
             },
             "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
             "module_fragment": "server/app/modules/peanut/article/api/metadata/openapi.php"
@@ -2053,7 +2053,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/notification/route/app.php",
-                "line": 26
+                "line": 24
             },
             "documented": true,
             "openapi_operation_id": "listInboxNotifications",
@@ -6058,7 +6058,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 21
+                "line": 50
             },
             "documented": true,
             "openapi_operation_id": "listEnabledArticleCategories",
@@ -6139,7 +6139,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 22
+                "line": 51
             },
             "documented": true,
             "openapi_operation_id": "getArticleCategory",
@@ -6221,7 +6221,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 20
+                "line": 49
             },
             "documented": true,
             "openapi_operation_id": "listArticleCategories",
@@ -6302,7 +6302,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 28
+                "line": 57
             },
             "documented": true,
             "openapi_operation_id": "getRecycledArticleCategory",
@@ -6384,7 +6384,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 27
+                "line": 56
             },
             "documented": true,
             "openapi_operation_id": "listRecycledArticleCategories",
@@ -6465,7 +6465,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 32
+                "line": 61
             },
             "documented": true,
             "openapi_operation_id": "getAdminArticle",
@@ -6549,7 +6549,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 36
+                "line": 65
             },
             "documented": true,
             "openapi_operation_id": "articleBodyEditor",
@@ -6633,7 +6633,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 39
+                "line": 68
             },
             "documented": true,
             "openapi_operation_id": "articleBodySaveOperation",
@@ -6714,7 +6714,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 19
+                "line": 48
             },
             "documented": false,
             "openapi_operation_id": null,
@@ -6798,7 +6798,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 31
+                "line": 60
             },
             "documented": true,
             "openapi_operation_id": "listAdminArticles",
@@ -6879,7 +6879,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 43
+                "line": 72
             },
             "documented": true,
             "openapi_operation_id": "getRecycledArticle",
@@ -6961,7 +6961,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 42
+                "line": 71
             },
             "documented": true,
             "openapi_operation_id": "listRecycledArticles",
@@ -8332,7 +8332,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/notification/route/app.php",
-                "line": 19
+                "line": 17
             },
             "documented": true,
             "openapi_operation_id": "getNotificationChannelConfiguration",
@@ -8413,7 +8413,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/notification/route/app.php",
-                "line": 22
+                "line": 20
             },
             "documented": true,
             "openapi_operation_id": "getNotificationLog",
@@ -8495,7 +8495,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/notification/route/app.php",
-                "line": 21
+                "line": 19
             },
             "documented": true,
             "openapi_operation_id": "listNotificationLogs",
@@ -8578,7 +8578,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/notification/route/app.php",
-                "line": 24
+                "line": 22
             },
             "documented": true,
             "openapi_operation_id": "getNotificationScene",
@@ -8659,7 +8659,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/notification/route/app.php",
-                "line": 23
+                "line": 21
             },
             "documented": true,
             "openapi_operation_id": "listNotificationScenes",
@@ -10971,7 +10971,7 @@
                 "type": "module",
                 "key": "peanut.member"
             },
-            "controller": "app\\api\\controller\\AccountLogController",
+            "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberAccountLogController",
             "action": "lists",
             "auth": {
                 "mode": "member_session",
@@ -11004,7 +11004,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/member/route/app.php",
-                "line": 66
+                "line": 71
             },
             "documented": true,
             "openapi_operation_id": "listCurrentMemberBalanceLogs",
@@ -11035,10 +11035,10 @@
             "application": "api",
             "audience": "member",
             "owner": {
-                "type": "application",
-                "key": "api"
+                "type": "module",
+                "key": "peanut.article"
             },
-            "controller": "app\\api\\controller\\ArticleController",
+            "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
             "action": "cate",
             "auth": {
                 "mode": "public_tenant_module",
@@ -11070,14 +11070,15 @@
                 }
             ],
             "source": {
-                "file": "server/route/public_api.php",
-                "line": 43
+                "file": "server/app/modules/peanut/article/route/app.php",
+                "line": 20
             },
             "documented": true,
             "openapi_operation_id": "listPublicArticleCategories",
             "contract_quality": "complete",
             "sdk_consumers": [
-                "web/src/generated/openapi.d.ts"
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-article/generated/openapi.ts"
             ],
             "documentation": {
                 "status": "documented",
@@ -11101,10 +11102,10 @@
             "application": "api",
             "audience": "member",
             "owner": {
-                "type": "application",
-                "key": "api"
+                "type": "module",
+                "key": "peanut.article"
             },
-            "controller": "app\\api\\controller\\ArticleController",
+            "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
             "action": "collect",
             "auth": {
                 "mode": "member_session",
@@ -11137,14 +11138,15 @@
                 }
             ],
             "source": {
-                "file": "server/route/public_api.php",
-                "line": 80
+                "file": "server/app/modules/peanut/article/route/app.php",
+                "line": 36
             },
             "documented": true,
             "openapi_operation_id": "listArticleCollections",
             "contract_quality": "complete",
             "sdk_consumers": [
-                "web/src/generated/openapi.d.ts"
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-article/generated/openapi.ts"
             ],
             "documentation": {
                 "status": "documented",
@@ -11168,10 +11170,10 @@
             "application": "api",
             "audience": "member",
             "owner": {
-                "type": "application",
-                "key": "api"
+                "type": "module",
+                "key": "peanut.article"
             },
-            "controller": "app\\api\\controller\\ArticleController",
+            "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
             "action": "detail",
             "auth": {
                 "mode": "public_tenant_module",
@@ -11204,14 +11206,15 @@
                 }
             ],
             "source": {
-                "file": "server/route/public_api.php",
-                "line": 47
+                "file": "server/app/modules/peanut/article/route/app.php",
+                "line": 24
             },
             "documented": true,
             "openapi_operation_id": "articleDetail",
             "contract_quality": "complete",
             "sdk_consumers": [
-                "web/src/generated/openapi.d.ts"
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-article/generated/openapi.ts"
             ],
             "documentation": {
                 "status": "documented",
@@ -11235,10 +11238,10 @@
             "application": "api",
             "audience": "member",
             "owner": {
-                "type": "application",
-                "key": "api"
+                "type": "module",
+                "key": "peanut.article"
             },
-            "controller": "app\\api\\controller\\ArticleController",
+            "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
             "action": "lists",
             "auth": {
                 "mode": "public_tenant_module",
@@ -11271,14 +11274,15 @@
                 }
             ],
             "source": {
-                "file": "server/route/public_api.php",
-                "line": 45
+                "file": "server/app/modules/peanut/article/route/app.php",
+                "line": 22
             },
             "documented": true,
             "openapi_operation_id": "listArticles",
             "contract_quality": "complete",
             "sdk_consumers": [
-                "web/src/generated/openapi.d.ts"
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-article/generated/openapi.ts"
             ],
             "documentation": {
                 "status": "documented",
@@ -11339,7 +11343,7 @@
             ],
             "source": {
                 "file": "server/route/public_api.php",
-                "line": 55
+                "line": 32
             },
             "documented": true,
             "openapi_operation_id": "getPublicMobileDecorationPage",
@@ -11405,7 +11409,7 @@
             ],
             "source": {
                 "file": "server/route/public_api.php",
-                "line": 59
+                "line": 36
             },
             "documented": true,
             "openapi_operation_id": "getPublicPcDecorationPage",
@@ -11471,7 +11475,7 @@
             ],
             "source": {
                 "file": "server/route/public_api.php",
-                "line": 57
+                "line": 34
             },
             "documented": true,
             "openapi_operation_id": "getVisibleDecorationTabbar",
@@ -11537,7 +11541,7 @@
             ],
             "source": {
                 "file": "server/route/public_api.php",
-                "line": 31
+                "line": 22
             },
             "documented": true,
             "openapi_operation_id": "getApplicationPublicConfig",
@@ -11567,11 +11571,11 @@
             "application": "api",
             "audience": "member",
             "owner": {
-                "type": "application",
-                "key": "api"
+                "type": "module",
+                "key": "peanut.article"
             },
-            "controller": "app\\api\\controller\\IndexController",
-            "action": "index",
+            "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
+            "action": "mobileIndex",
             "auth": {
                 "mode": "public_tenant_module",
                 "exception_registration": null
@@ -11602,14 +11606,15 @@
                 }
             ],
             "source": {
-                "file": "server/route/public_api.php",
-                "line": 28
+                "file": "server/app/modules/peanut/article/route/app.php",
+                "line": 18
             },
             "documented": true,
             "openapi_operation_id": "getApplicationHome",
             "contract_quality": "complete",
             "sdk_consumers": [
-                "web/src/generated/openapi.d.ts"
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-article/generated/openapi.ts"
             ],
             "documentation": {
                 "status": "documented",
@@ -11669,7 +11674,7 @@
             ],
             "source": {
                 "file": "server/route/public_api.php",
-                "line": 33
+                "line": 24
             },
             "documented": true,
             "openapi_operation_id": "getApplicationPolicy",
@@ -11702,7 +11707,7 @@
                 "type": "module",
                 "key": "peanut.oauth"
             },
-            "controller": "app\\api\\controller\\OAuthController",
+            "controller": "PeanutAdmin\\Modules\\OAuth\\Controller\\MemberOAuthController",
             "action": "redirectOfficialAccount",
             "auth": {
                 "mode": "public",
@@ -11749,7 +11754,7 @@
                 "type": "module",
                 "key": "peanut.oauth"
             },
-            "controller": "app\\api\\controller\\OAuthController",
+            "controller": "PeanutAdmin\\Modules\\OAuth\\Controller\\MemberOAuthController",
             "action": "redirectPc",
             "auth": {
                 "mode": "public",
@@ -11793,11 +11798,11 @@
             "application": "api",
             "audience": "member",
             "owner": {
-                "type": "application",
-                "key": "api"
+                "type": "module",
+                "key": "peanut.article"
             },
-            "controller": "app\\api\\controller\\PcController",
-            "action": "articleDetail",
+            "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
+            "action": "pcDetail",
             "auth": {
                 "mode": "public_tenant_module",
                 "exception_registration": null
@@ -11828,14 +11833,15 @@
                 }
             ],
             "source": {
-                "file": "server/route/public_api.php",
-                "line": 70
+                "file": "server/app/modules/peanut/article/route/app.php",
+                "line": 30
             },
             "documented": true,
             "openapi_operation_id": "getPcArticleDetail",
             "contract_quality": "complete",
             "sdk_consumers": [
-                "web/src/generated/openapi.d.ts"
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-article/generated/openapi.ts"
             ],
             "documentation": {
                 "status": "documented",
@@ -11895,7 +11901,7 @@
             ],
             "source": {
                 "file": "server/route/public_api.php",
-                "line": 63
+                "line": 40
             },
             "documented": true,
             "openapi_operation_id": "getPcPublicConfig",
@@ -11925,11 +11931,11 @@
             "application": "api",
             "audience": "member",
             "owner": {
-                "type": "application",
-                "key": "api"
+                "type": "module",
+                "key": "peanut.article"
             },
-            "controller": "app\\api\\controller\\PcController",
-            "action": "index",
+            "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
+            "action": "pcIndex",
             "auth": {
                 "mode": "public_tenant_module",
                 "exception_registration": null
@@ -11960,14 +11966,15 @@
                 }
             ],
             "source": {
-                "file": "server/route/public_api.php",
-                "line": 66
+                "file": "server/app/modules/peanut/article/route/app.php",
+                "line": 26
             },
             "documented": true,
             "openapi_operation_id": "getPcHome",
             "contract_quality": "complete",
             "sdk_consumers": [
-                "web/src/generated/openapi.d.ts"
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-article/generated/openapi.ts"
             ],
             "documentation": {
                 "status": "documented",
@@ -11991,10 +11998,10 @@
             "application": "api",
             "audience": "member",
             "owner": {
-                "type": "application",
-                "key": "api"
+                "type": "module",
+                "key": "peanut.article"
             },
-            "controller": "app\\api\\controller\\PcController",
+            "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
             "action": "infoCenter",
             "auth": {
                 "mode": "public_tenant_module",
@@ -12026,14 +12033,15 @@
                 }
             ],
             "source": {
-                "file": "server/route/public_api.php",
-                "line": 68
+                "file": "server/app/modules/peanut/article/route/app.php",
+                "line": 28
             },
             "documented": true,
             "openapi_operation_id": "getPcInformationCenter",
             "contract_quality": "complete",
             "sdk_consumers": [
-                "web/src/generated/openapi.d.ts"
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-article/generated/openapi.ts"
             ],
             "documentation": {
                 "status": "documented",
@@ -12060,7 +12068,7 @@
                 "type": "module",
                 "key": "peanut.payment"
             },
-            "controller": "app\\api\\controller\\RechargeController",
+            "controller": "PeanutAdmin\\Modules\\Payment\\Controller\\MemberRechargeController",
             "action": "config",
             "auth": {
                 "mode": "member_session",
@@ -12129,7 +12137,7 @@
                 "type": "module",
                 "key": "peanut.payment"
             },
-            "controller": "app\\api\\controller\\RechargeController",
+            "controller": "PeanutAdmin\\Modules\\Payment\\Controller\\MemberRechargeController",
             "action": "detail",
             "auth": {
                 "mode": "member_session",
@@ -12198,7 +12206,7 @@
                 "type": "module",
                 "key": "peanut.payment"
             },
-            "controller": "app\\api\\controller\\RechargeController",
+            "controller": "PeanutAdmin\\Modules\\Payment\\Controller\\MemberRechargeController",
             "action": "lists",
             "auth": {
                 "mode": "member_session",
@@ -12299,7 +12307,7 @@
             ],
             "source": {
                 "file": "server/route/public_api.php",
-                "line": 51
+                "line": 28
             },
             "documented": true,
             "openapi_operation_id": "listPublicHotSearches",
@@ -12382,7 +12390,7 @@
                 "type": "module",
                 "key": "peanut.member"
             },
-            "controller": "app\\api\\controller\\UserController",
+            "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberSelfController",
             "action": "center",
             "auth": {
                 "mode": "member_session",
@@ -12416,7 +12424,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/member/route/app.php",
-                "line": 59
+                "line": 64
             },
             "documented": true,
             "openapi_operation_id": "getMemberCenter",
@@ -12450,7 +12458,7 @@
                 "type": "module",
                 "key": "peanut.member"
             },
-            "controller": "app\\api\\controller\\UserController",
+            "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberSelfController",
             "action": "info",
             "auth": {
                 "mode": "member_session",
@@ -12484,7 +12492,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/member/route/app.php",
-                "line": 60
+                "line": 65
             },
             "documented": true,
             "openapi_operation_id": "getMemberProfile",
@@ -12518,7 +12526,7 @@
                 "type": "module",
                 "key": "peanut.oauth"
             },
-            "controller": "app\\api\\controller\\OfficialAccountController",
+            "controller": "PeanutAdmin\\Modules\\OAuth\\Controller\\OfficialAccountCallbackController",
             "action": "verify",
             "auth": {
                 "mode": "public",
@@ -16512,7 +16520,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/notification/route/app.php",
-                "line": 28
+                "line": 26
             },
             "documented": true,
             "openapi_operation_id": "markInboxNotificationRead",
@@ -16596,7 +16604,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/notification/route/app.php",
-                "line": 30
+                "line": 28
             },
             "documented": true,
             "openapi_operation_id": "bulkUpdateInboxNotifications",
@@ -21675,7 +21683,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 33
+                "line": 62
             },
             "documented": true,
             "openapi_operation_id": "createArticle",
@@ -21757,7 +21765,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 23
+                "line": 52
             },
             "documented": true,
             "openapi_operation_id": "createArticleCategory",
@@ -21841,7 +21849,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 25
+                "line": 54
             },
             "documented": true,
             "openapi_operation_id": "deleteArticleCategory",
@@ -21924,7 +21932,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 24
+                "line": 53
             },
             "documented": true,
             "openapi_operation_id": "updateArticleCategory",
@@ -22006,7 +22014,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 30
+                "line": 59
             },
             "documented": true,
             "openapi_operation_id": "forceDeleteArticleCategories",
@@ -22088,7 +22096,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 29
+                "line": 58
             },
             "documented": true,
             "openapi_operation_id": "restoreArticleCategories",
@@ -22171,7 +22179,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 26
+                "line": 55
             },
             "documented": true,
             "openapi_operation_id": "updateArticleCategoryStatus",
@@ -22254,7 +22262,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 40
+                "line": 69
             },
             "documented": true,
             "openapi_operation_id": "deleteArticle",
@@ -22338,7 +22346,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 35
+                "line": 64
             },
             "documented": true,
             "openapi_operation_id": "ensureArticleBodyDocument",
@@ -22423,7 +22431,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 38
+                "line": 67
             },
             "documented": true,
             "openapi_operation_id": "saveArticleBody",
@@ -22508,7 +22516,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 37
+                "line": 66
             },
             "documented": true,
             "openapi_operation_id": "articleBodyTransport",
@@ -22592,7 +22600,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 34
+                "line": 63
             },
             "documented": true,
             "openapi_operation_id": "updateArticle",
@@ -22674,7 +22682,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 45
+                "line": 74
             },
             "documented": true,
             "openapi_operation_id": "forceDeleteArticles",
@@ -22756,7 +22764,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 44
+                "line": 73
             },
             "documented": true,
             "openapi_operation_id": "restoreArticles",
@@ -22839,7 +22847,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 41
+                "line": 70
             },
             "documented": true,
             "openapi_operation_id": "updateArticleStatus",
@@ -25202,7 +25210,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/notification/route/app.php",
-                "line": 20
+                "line": 18
             },
             "documented": true,
             "openapi_operation_id": "saveNotificationChannelConfiguration",
@@ -25285,7 +25293,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/notification/route/app.php",
-                "line": 25
+                "line": 23
             },
             "documented": true,
             "openapi_operation_id": "saveNotificationScene",
@@ -27761,10 +27769,10 @@
             "application": "api",
             "audience": "member",
             "owner": {
-                "type": "application",
-                "key": "api"
+                "type": "module",
+                "key": "peanut.article"
             },
-            "controller": "app\\api\\controller\\ArticleController",
+            "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
             "action": "addCollect",
             "auth": {
                 "mode": "member_session",
@@ -27798,14 +27806,15 @@
                 }
             ],
             "source": {
-                "file": "server/route/public_api.php",
-                "line": 78
+                "file": "server/app/modules/peanut/article/route/app.php",
+                "line": 34
             },
             "documented": true,
             "openapi_operation_id": "addArticleCollection",
             "contract_quality": "complete",
             "sdk_consumers": [
-                "web/src/generated/openapi.d.ts"
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-article/generated/openapi.ts"
             ],
             "documentation": {
                 "status": "documented",
@@ -27829,10 +27838,10 @@
             "application": "api",
             "audience": "member",
             "owner": {
-                "type": "application",
-                "key": "api"
+                "type": "module",
+                "key": "peanut.article"
             },
-            "controller": "app\\api\\controller\\ArticleController",
+            "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
             "action": "cancelCollect",
             "auth": {
                 "mode": "member_session",
@@ -27865,14 +27874,15 @@
                 }
             ],
             "source": {
-                "file": "server/route/public_api.php",
-                "line": 79
+                "file": "server/app/modules/peanut/article/route/app.php",
+                "line": 35
             },
             "documented": true,
             "openapi_operation_id": "cancelArticleCollection",
             "contract_quality": "complete",
             "sdk_consumers": [
-                "web/src/generated/openapi.d.ts"
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-article/generated/openapi.ts"
             ],
             "documentation": {
                 "status": "documented",
@@ -27899,7 +27909,7 @@
                 "type": "module",
                 "key": "peanut.member"
             },
-            "controller": "app\\api\\controller\\LoginController",
+            "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberLoginController",
             "action": "account",
             "auth": {
                 "mode": "public_tenant_module",
@@ -27934,7 +27944,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/member/route/app.php",
-                "line": 45
+                "line": 48
             },
             "documented": true,
             "openapi_operation_id": "loginMemberWithAccount",
@@ -27965,10 +27975,10 @@
             "application": "api",
             "audience": "member",
             "owner": {
-                "type": "application",
-                "key": "api"
+                "type": "module",
+                "key": "peanut.member"
             },
-            "controller": "app\\api\\controller\\LoginController",
+            "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberLoginController",
             "action": "logout",
             "auth": {
                 "mode": "member_session",
@@ -27987,14 +27997,15 @@
                 }
             ],
             "source": {
-                "file": "server/route/public_api.php",
-                "line": 38
+                "file": "server/app/modules/peanut/member/route/app.php",
+                "line": 43
             },
             "documented": true,
             "openapi_operation_id": "logoutMemberSession",
             "contract_quality": "complete",
             "sdk_consumers": [
-                "web/src/generated/openapi.d.ts"
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-member/generated/openapi.ts"
             ],
             "documentation": {
                 "status": "documented",
@@ -28021,7 +28032,7 @@
                 "type": "module",
                 "key": "peanut.member"
             },
-            "controller": "app\\api\\controller\\LoginController",
+            "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberLoginController",
             "action": "mobile",
             "auth": {
                 "mode": "public_tenant_module",
@@ -28067,7 +28078,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/member/route/app.php",
-                "line": 52
+                "line": 57
             },
             "documented": true,
             "openapi_operation_id": "loginMemberWithMobileCode",
@@ -28101,7 +28112,7 @@
                 "type": "module",
                 "key": "peanut.member"
             },
-            "controller": "app\\api\\controller\\LoginController",
+            "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberLoginController",
             "action": "register",
             "auth": {
                 "mode": "public_tenant_module",
@@ -28135,7 +28146,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/member/route/app.php",
-                "line": 43
+                "line": 46
             },
             "documented": true,
             "openapi_operation_id": "registerMember",
@@ -28169,7 +28180,7 @@
                 "type": "module",
                 "key": "peanut.member"
             },
-            "controller": "app\\api\\controller\\LoginController",
+            "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberLoginController",
             "action": "resetPassword",
             "auth": {
                 "mode": "public_tenant_module",
@@ -28216,7 +28227,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/member/route/app.php",
-                "line": 52
+                "line": 57
             },
             "documented": true,
             "openapi_operation_id": "resetMemberPassword",
@@ -28250,7 +28261,7 @@
                 "type": "module",
                 "key": "peanut.oauth"
             },
-            "controller": "app\\api\\controller\\OAuthController",
+            "controller": "PeanutAdmin\\Modules\\OAuth\\Controller\\MemberOAuthController",
             "action": "begin",
             "auth": {
                 "mode": "public",
@@ -28304,7 +28315,7 @@
                 "type": "module",
                 "key": "peanut.oauth"
             },
-            "controller": "app\\api\\controller\\OAuthController",
+            "controller": "PeanutAdmin\\Modules\\OAuth\\Controller\\MemberOAuthController",
             "action": "bind",
             "auth": {
                 "mode": "member_session",
@@ -28376,7 +28387,7 @@
                 "type": "module",
                 "key": "peanut.oauth"
             },
-            "controller": "app\\api\\controller\\OAuthController",
+            "controller": "PeanutAdmin\\Modules\\OAuth\\Controller\\MemberOAuthController",
             "action": "callback",
             "auth": {
                 "mode": "public",
@@ -28431,7 +28442,7 @@
                 "type": "module",
                 "key": "peanut.oauth"
             },
-            "controller": "app\\api\\controller\\OAuthController",
+            "controller": "PeanutAdmin\\Modules\\OAuth\\Controller\\MemberOAuthController",
             "action": "complete",
             "auth": {
                 "mode": "public",
@@ -28486,7 +28497,7 @@
                 "type": "module",
                 "key": "peanut.oauth"
             },
-            "controller": "app\\api\\controller\\OAuthController",
+            "controller": "PeanutAdmin\\Modules\\OAuth\\Controller\\MemberOAuthController",
             "action": "miniProgram",
             "auth": {
                 "mode": "public",
@@ -28541,7 +28552,7 @@
                 "type": "module",
                 "key": "peanut.payment"
             },
-            "controller": "app\\api\\controller\\PaymentNotifyController",
+            "controller": "PeanutAdmin\\Modules\\Payment\\Controller\\PaymentNotifyController",
             "action": "alipay",
             "auth": {
                 "mode": "public",
@@ -28594,7 +28605,7 @@
                 "type": "module",
                 "key": "peanut.payment"
             },
-            "controller": "app\\api\\controller\\PaymentNotifyController",
+            "controller": "PeanutAdmin\\Modules\\Payment\\Controller\\PaymentNotifyController",
             "action": "wechat",
             "auth": {
                 "mode": "public",
@@ -28647,7 +28658,7 @@
                 "type": "module",
                 "key": "peanut.payment"
             },
-            "controller": "app\\api\\controller\\RechargeController",
+            "controller": "PeanutAdmin\\Modules\\Payment\\Controller\\MemberRechargeController",
             "action": "create",
             "auth": {
                 "mode": "member_session",
@@ -28718,7 +28729,7 @@
                 "type": "module",
                 "key": "peanut.payment"
             },
-            "controller": "app\\api\\controller\\RechargeController",
+            "controller": "PeanutAdmin\\Modules\\Payment\\Controller\\MemberRechargeController",
             "action": "prepay",
             "auth": {
                 "mode": "member_session",
@@ -28788,9 +28799,9 @@
             "audience": "member",
             "owner": {
                 "type": "module",
-                "key": "peanut.notification"
+                "key": "peanut.member"
             },
-            "controller": "app\\api\\controller\\SmsController",
+            "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberVerificationController",
             "action": "sendCode",
             "auth": {
                 "mode": "public_tenant_module",
@@ -28824,15 +28835,15 @@
                 }
             ],
             "source": {
-                "file": "server/app/modules/peanut/notification/route/app.php",
-                "line": 39
+                "file": "server/app/modules/peanut/member/route/app.php",
+                "line": 51
             },
             "documented": true,
             "openapi_operation_id": "sendVerificationCode",
             "contract_quality": "complete",
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts",
-                "web/src/modules/peanut-notification/generated/openapi.ts"
+                "web/src/modules/peanut-member/generated/openapi.ts"
             ],
             "documentation": {
                 "status": "documented",
@@ -28927,7 +28938,7 @@
                 "type": "module",
                 "key": "peanut.member"
             },
-            "controller": "app\\api\\controller\\UserController",
+            "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberSelfController",
             "action": "bindMobile",
             "auth": {
                 "mode": "member_session",
@@ -28962,7 +28973,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/member/route/app.php",
-                "line": 64
+                "line": 69
             },
             "documented": true,
             "openapi_operation_id": "bindMemberMobile",
@@ -28996,7 +29007,7 @@
                 "type": "module",
                 "key": "peanut.member"
             },
-            "controller": "app\\api\\controller\\UserController",
+            "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberSelfController",
             "action": "changePassword",
             "auth": {
                 "mode": "member_session",
@@ -29030,7 +29041,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/member/route/app.php",
-                "line": 62
+                "line": 67
             },
             "documented": true,
             "openapi_operation_id": "changeMemberPassword",
@@ -29064,7 +29075,7 @@
                 "type": "module",
                 "key": "peanut.member"
             },
-            "controller": "app\\api\\controller\\UserController",
+            "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberSelfController",
             "action": "setInfo",
             "auth": {
                 "mode": "member_session",
@@ -29099,7 +29110,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/member/route/app.php",
-                "line": 61
+                "line": 66
             },
             "documented": true,
             "openapi_operation_id": "updateMemberProfileField",
@@ -29133,7 +29144,7 @@
                 "type": "module",
                 "key": "peanut.oauth"
             },
-            "controller": "app\\api\\controller\\OfficialAccountController",
+            "controller": "PeanutAdmin\\Modules\\OAuth\\Controller\\OfficialAccountCallbackController",
             "action": "callback",
             "auth": {
                 "mode": "public",

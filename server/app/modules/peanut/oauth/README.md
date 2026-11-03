@@ -6,11 +6,11 @@
 
 | 入口 | 输入和输出 | 现有消费者 |
 | --- | --- | --- |
-| `Contract\OAuthCommands` | `begin` 接收可信租户系统上下文、`oa` / `open_pc` 场景、站内返回路径、回调 URL、已解析渠道绑定，返回授权 URL / 有效期；`callback` / `miniProgramLogin` / `complete` 返回 `OAuthLoginResult`；`bind` 接收已认证会员上下文 | 宿主 `app\api\services\OAuthApplicationService` |
+| `Contract\OAuthCommands` | `begin` 接收可信租户系统上下文、`oa` / `open_pc` 场景、站内返回路径、回调 URL、已解析渠道绑定，返回授权 URL / 有效期；`callback` / `miniProgramLogin` / `complete` 返回 `OAuthLoginResult`；`bind` 接收已认证会员上下文 | 模块 `Service\OAuthEntryService` |
 | `Contract\OAuthQueries::wechatSubjectForMember` | 可信会员/租户上下文、会员 ID、终端 ID → 微信 subject；无绑定或非正 ID 返回空字符串 | Payment 的 `RechargeApplicationService`，用于渠道授权前的身份查找 |
-| `Contract\OfficialAccountCallbacks` | `verify` 校验微信回调参数与已解析配置；`handlePlain` 在已确定租户系统上下文中处理明文 XML | 宿主 OAuth 回调入口 |
-| `Contract\OAuthCallbackLocator` | 从 state / ticket 摘要定位候选渠道绑定；候选不授予上下文或权限，宿主仍须验证候选并由命令原子消费 | 宿主 `OAuthApplicationService`；不能由请求任意指定租户 |
-| `Service\OAuthBrowserCallbackService` | 场景与产品 origin → 微信回调 URL；客户端与回调 query → 产品客户端 URL | 宿主 OAuth API / 浏览器回调 |
+| `Contract\OfficialAccountCallbacks` | `verify` 校验微信回调参数与已解析配置；`handlePlain` 在已确定租户系统上下文中处理明文 XML | 模块 OfficialAccountCallbackService |
+| `Contract\OAuthCallbackLocator` | 从 state / ticket 摘要定位候选渠道绑定；候选不授予上下文或权限，宿主仍须验证候选并由命令原子消费 | 模块 `OAuthEntryService`；不能由请求任意指定租户 |
+| `Service\OAuthBrowserCallbackService` | 场景与产品 origin → 微信回调 URL；客户端与回调 query → 产品客户端 URL | 模块 MemberOAuthController / 浏览器回调 |
 
 通过现有容器注入合同即可复用，例如只读查询：
 
@@ -25,7 +25,7 @@ function wechatSubject(OAuthQueries $oauth, TenantContext $context, int $memberI
 }
 ```
 
-上下文不能从提交的 tenant_id 构造；查询由已建立的租户 Scope 限定。调用方仍负责本业务对象的权限，不将 subject 查询当作登录或支付授权。Provider 已绑定接口，不需要另造容器或实例缓存。授权 state 和资料补全 ticket 有效期均为 600 秒，服务按事务消费一次；不要持久缓存或跨租户复用。`OAuthLoginResult.completed=false` 表示需要走补全流程，不能提前建立登录会话；宿主 API 负责最终会话 token。
+上下文不能从提交的 tenant_id 构造；查询由已建立的租户 Scope 限定。调用方仍负责本业务对象的权限，不将 subject 查询当作登录或支付授权。Provider 已绑定接口，不需要另造容器或实例缓存。授权 state 和资料补全 ticket 有效期均为 600 秒，服务按事务消费一次；不要持久缓存或跨租户复用。`OAuthLoginResult.completed=false` 表示需要走补全流程，不能提前建立登录会话；OAuthEntryService 通过 MemberAccessTokens 公开合同签发最终会话 token。
 
 服务异常继续交给宿主错误映射，保留稳定错误码。例如 `OAUTH_SCENE_UNSUPPORTED`、`OAUTH_RETURN_PATH_INVALID`、`OAUTH_STATE_INVALID`、`OAUTH_IDENTITY_ALREADY_BOUND` 和 `OAUTH_LOGIN_BUSY`。调用外部微信、短信等动作必须具备真实配置及相应授权；缺配置不伪造成功或改用其他租户渠道。
 

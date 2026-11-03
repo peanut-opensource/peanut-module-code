@@ -54,6 +54,7 @@
   },
   "contracts": {
     "exports": [
+      "PeanutAdmin\\Modules\\Notification\\Value\\NoticeSceneEnum",
       "PeanutAdmin\\Modules\\Notification\\Contract\\NotificationUpgradePreflight",
       "PeanutAdmin\\Modules\\Notification\\Contract\\NotificationBootstrapCommands",
       "PeanutAdmin\\Modules\\Notification\\Contract\\NotificationCommands",

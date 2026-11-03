@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace PeanutAdmin\Modules\Payment\Validation;
 
-use app\common\enum\UserTerminalEnum;
+use PeanutAdmin\Modules\Payment\Value\UserTerminalEnum;
 use PeanutAdmin\Modules\Payment\Model\PaymentScene;
 use think\Validate;
 

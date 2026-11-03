@@ -36,38 +36,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/article/lists": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listArticles"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/article/detail": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["articleDetail"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/adminapi/peanut.file.upload.file": {
         parameters: {
             query?: never;
@@ -111,22 +79,6 @@ export interface paths {
         get: operations["listFiles"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/sms/sendCode": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["sendVerificationCode"];
         delete?: never;
         options?: never;
         head?: never;
@@ -393,22 +345,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/index/index": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getApplicationHome"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/index/config": {
         parameters: {
             query?: never;
@@ -433,38 +369,6 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getApplicationPolicy"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/login/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["logoutMemberSession"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/article/cate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listPublicArticleCategories"];
         put?: never;
         post?: never;
         delete?: never;
@@ -545,102 +449,6 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getPcPublicConfig"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/pc/index": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPcHome"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/pc/infoCenter": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPcInformationCenter"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/pc/articleDetail": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPcArticleDetail"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/article/addCollect": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["addArticleCollection"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/article/cancelCollect": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["cancelArticleCollection"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/article/collect": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listArticleCollections"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3614,6 +3422,166 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/article/lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listArticles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/article/detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["articleDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/index/index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getApplicationHome"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/article/cate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listPublicArticleCategories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pc/index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPcHome"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pc/infoCenter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPcInformationCenter"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pc/articleDetail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPcArticleDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/article/addCollect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["addArticleCollection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/article/cancelCollect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancelArticleCollection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/article/collect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listArticleCollections"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/adminapi/peanut.collaboration.transport": {
         parameters: {
             query?: never;
@@ -5041,6 +5009,38 @@ export interface paths {
         get: operations["listCurrentMemberBalanceLogs"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sms/sendCode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["sendVerificationCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/login/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["logoutMemberSession"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6735,110 +6735,6 @@ export interface components {
         ApplicationDynamicObject: {
             [key: string]: components["schemas"]["ApplicationDynamicValue"];
         };
-        ApplicationArticleCategory: {
-            id: number;
-            name: string;
-        };
-        ApplicationArticleListItem: {
-            id: number;
-            cid: number;
-            title: string;
-            desc: string | null;
-            image: string;
-            create_time: number | string;
-            click: number;
-            collect: boolean;
-        };
-        ApplicationArticleListPage: {
-            lists: components["schemas"]["ApplicationArticleListItem"][];
-            count: number;
-            pageNo: number;
-            pageSize: number;
-        };
-        ApplicationArticleDetail: {
-            id: number;
-            desc: string | null;
-            abstract: string | null;
-            /** @enum {integer} */
-            is_show: 1;
-            create_time: number | string;
-            update_time: number | string;
-            delete_time: ((number | string) | 0) | null;
-            title: string;
-            author: string | null;
-            content: string;
-            sort: number;
-            image: string;
-            tenant_id: number;
-            cid: number;
-            click: number;
-            collect: boolean;
-        };
-        ApplicationArticleNavigationItem: {
-            id: number;
-            cid: number;
-            title: string;
-            desc: string | null;
-            abstract: string | null;
-            image: string;
-            author: string | null;
-            create_time: number | string;
-            click: number;
-        };
-        ApplicationPcArticleDetail: {
-            id: number;
-            desc: string | null;
-            abstract: string | null;
-            /** @enum {integer} */
-            is_show: 1;
-            create_time: number | string;
-            update_time: number | string;
-            delete_time: ((number | string) | 0) | null;
-            title: string;
-            author: string | null;
-            content: string;
-            sort: number;
-            image: string;
-            tenant_id: number;
-            cid: number;
-            click: number;
-            collect: boolean;
-            last: components["schemas"]["ApplicationArticleNavigationItem"] | unknown[];
-            next: components["schemas"]["ApplicationArticleNavigationItem"] | unknown[];
-            new: components["schemas"]["ApplicationArticleNavigationItem"][];
-            cate_name: string;
-        };
-        ApplicationHomeArticle: {
-            id: number;
-            title: string;
-            desc: string | null;
-            abstract: string | null;
-            image: string;
-            author: string | null;
-            create_time: number | string;
-            click: number;
-        };
-        ApplicationArticleCollectionRequest: {
-            id: number;
-        };
-        ApplicationArticleCollectionItem: {
-            id: number;
-            article_id: number;
-            title: string;
-            image: string;
-            desc: string | null;
-            /** @enum {integer} */
-            is_show: 1;
-            create_time: number | string;
-            collect_time: string;
-            click: number;
-        };
-        ApplicationArticleCollectionPage: {
-            lists: components["schemas"]["ApplicationArticleCollectionItem"][];
-            count: number;
-            pageNo: number;
-            pageSize: number;
-        };
         ApplicationDecorationComponent: {
             title: string;
             name: string;
@@ -6946,37 +6842,6 @@ export interface components {
             title: string;
             content: string;
         };
-        ApplicationHomeData: {
-            article: components["schemas"]["ApplicationHomeArticle"][];
-            decorate: components["schemas"]["ApplicationDecorationPage"];
-        };
-        ApplicationPcHomeData: {
-            all: components["schemas"]["ApplicationArticleNavigationItem"][];
-            new: components["schemas"]["ApplicationArticleNavigationItem"][];
-            hot: components["schemas"]["ApplicationArticleNavigationItem"][];
-            decorate: components["schemas"]["ApplicationDecorationPage"];
-        };
-        ApplicationInformationArticle: {
-            id: number;
-            cid: number;
-            title: string;
-            desc: string | null;
-            abstract: string | null;
-            image: string;
-            author: string | null;
-            /** @enum {integer} */
-            is_show: 1;
-            sort: number;
-            create_time: number | string;
-            update_time: number | string;
-            delete_time: ((number | string) | 0) | null;
-            click: number;
-        };
-        ApplicationInformationCategory: {
-            id: number;
-            name: string;
-            article: components["schemas"]["ApplicationInformationArticle"][];
-        };
         ApplicationHotSearchData: {
             /** @enum {integer} */
             status: 0 | 1;
@@ -6984,18 +6849,6 @@ export interface components {
                 name: string;
                 sort: number;
             }[];
-        };
-        ApplicationArticleListResponse: {
-            /** @enum {integer} */
-            code: 20000;
-            msg: string;
-            data: components["schemas"]["ApplicationArticleListPage"];
-        };
-        ApplicationArticleDetailResponse: {
-            /** @enum {integer} */
-            code: 20000;
-            msg: string;
-            data: components["schemas"]["ApplicationArticleDetail"];
         };
         AdminLoginRequest: {
             /** Format: email */
@@ -8762,6 +8615,153 @@ export interface components {
             update_time: components["schemas"]["ArticleTimestamp"];
             delete_time: components["schemas"]["ArticleTimestamp"];
             body_document_id: number | null;
+        };
+        ApplicationArticleCategory: {
+            id: number;
+            name: string;
+        };
+        ApplicationArticleListItem: {
+            id: number;
+            cid: number;
+            title: string;
+            desc: string | null;
+            image: string;
+            create_time: number | string;
+            click: number;
+            collect: boolean;
+        };
+        ApplicationArticleListPage: {
+            lists: components["schemas"]["ApplicationArticleListItem"][];
+            count: number;
+            pageNo: number;
+            pageSize: number;
+        };
+        ApplicationArticleDetail: {
+            id: number;
+            desc: string | null;
+            abstract: string | null;
+            /** @enum {integer} */
+            is_show: 1;
+            create_time: number | string;
+            update_time: number | string;
+            delete_time: ((number | string) | 0) | null;
+            title: string;
+            author: string | null;
+            content: string;
+            sort: number;
+            image: string;
+            tenant_id: number;
+            cid: number;
+            click: number;
+            collect: boolean;
+        };
+        ApplicationArticleNavigationItem: {
+            id: number;
+            cid: number;
+            title: string;
+            desc: string | null;
+            abstract: string | null;
+            image: string;
+            author: string | null;
+            create_time: number | string;
+            click: number;
+        };
+        ApplicationPcArticleDetail: {
+            id: number;
+            desc: string | null;
+            abstract: string | null;
+            /** @enum {integer} */
+            is_show: 1;
+            create_time: number | string;
+            update_time: number | string;
+            delete_time: ((number | string) | 0) | null;
+            title: string;
+            author: string | null;
+            content: string;
+            sort: number;
+            image: string;
+            tenant_id: number;
+            cid: number;
+            click: number;
+            collect: boolean;
+            last: components["schemas"]["ApplicationArticleNavigationItem"] | unknown[];
+            next: components["schemas"]["ApplicationArticleNavigationItem"] | unknown[];
+            new: components["schemas"]["ApplicationArticleNavigationItem"][];
+            cate_name: string;
+        };
+        ApplicationHomeArticle: {
+            id: number;
+            title: string;
+            desc: string | null;
+            abstract: string | null;
+            image: string;
+            author: string | null;
+            create_time: number | string;
+            click: number;
+        };
+        ApplicationArticleCollectionRequest: {
+            id: number;
+        };
+        ApplicationArticleCollectionItem: {
+            id: number;
+            article_id: number;
+            title: string;
+            image: string;
+            desc: string | null;
+            /** @enum {integer} */
+            is_show: 1;
+            create_time: number | string;
+            collect_time: string;
+            click: number;
+        };
+        ApplicationArticleCollectionPage: {
+            lists: components["schemas"]["ApplicationArticleCollectionItem"][];
+            count: number;
+            pageNo: number;
+            pageSize: number;
+        };
+        ApplicationHomeData: {
+            article: components["schemas"]["ApplicationHomeArticle"][];
+            decorate: components["schemas"]["ApplicationDecorationPage"];
+        };
+        ApplicationPcHomeData: {
+            all: components["schemas"]["ApplicationArticleNavigationItem"][];
+            new: components["schemas"]["ApplicationArticleNavigationItem"][];
+            hot: components["schemas"]["ApplicationArticleNavigationItem"][];
+            decorate: components["schemas"]["ApplicationDecorationPage"];
+        };
+        ApplicationInformationArticle: {
+            id: number;
+            cid: number;
+            title: string;
+            desc: string | null;
+            abstract: string | null;
+            image: string;
+            author: string | null;
+            /** @enum {integer} */
+            is_show: 1;
+            sort: number;
+            create_time: number | string;
+            update_time: number | string;
+            delete_time: ((number | string) | 0) | null;
+            click: number;
+        };
+        ApplicationInformationCategory: {
+            id: number;
+            name: string;
+            article: components["schemas"]["ApplicationInformationArticle"][];
+        };
+        ApplicationArticleListResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["ApplicationArticleListPage"];
+        };
+        ApplicationArticleDetailResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["ApplicationArticleDetail"];
         };
         CollaborationTransportResponse: {
             /** @enum {integer} */
@@ -11834,58 +11834,6 @@ export interface operations {
             422: components["responses"]["ErrorResponse"];
         };
     };
-    listArticles: {
-        parameters: {
-            query?: {
-                page_no?: components["parameters"]["PageNo"];
-                page_size?: components["parameters"]["PageSize"];
-                cid?: number;
-                keyword?: string;
-                sort?: "default" | "new" | "hot";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 公开文章分页 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApplicationArticleListResponse"];
-                };
-            };
-            400: components["responses"]["ErrorResponse"];
-            403: components["responses"]["ErrorResponse"];
-        };
-    };
-    articleDetail: {
-        parameters: {
-            query: {
-                id: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 公开文章详情 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApplicationArticleDetailResponse"];
-                };
-            };
-            403: components["responses"]["ErrorResponse"];
-            404: components["responses"]["ErrorResponse"];
-        };
-    };
     uploadFile: {
         parameters: {
             query?: never;
@@ -11972,36 +11920,6 @@ export interface operations {
             401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
             422: components["responses"]["ErrorResponse"];
-        };
-    };
-    sendVerificationCode: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    scene: string;
-                    mobile?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description 验证码发送请求已受理 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotificationMutationResponse"];
-                };
-            };
-            400: components["responses"]["ErrorResponse"];
-            403: components["responses"]["ErrorResponse"];
-            409: components["responses"]["ErrorResponse"];
         };
     };
     getFirstRunReadinessChecklist: {
@@ -12549,32 +12467,6 @@ export interface operations {
             422: components["responses"]["ErrorResponse"];
         };
     };
-    getApplicationHome: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {integer} */
-                        code: 20000;
-                        msg: string;
-                        data: components["schemas"]["ApplicationHomeData"];
-                    };
-                };
-            };
-            403: components["responses"]["ErrorResponse"];
-        };
-    };
     getApplicationPublicConfig: {
         parameters: {
             query?: never;
@@ -12623,58 +12515,6 @@ export interface operations {
                         code: 20000;
                         msg: string;
                         data: components["schemas"]["ApplicationPolicy"];
-                    };
-                };
-            };
-            403: components["responses"]["ErrorResponse"];
-        };
-    };
-    logoutMemberSession: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {integer} */
-                        code: 20000;
-                        msg: string;
-                        data: components["schemas"]["ApplicationDynamicValue"][];
-                    };
-                };
-            };
-            401: components["responses"]["ErrorResponse"];
-        };
-    };
-    listPublicArticleCategories: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {integer} */
-                        code: 20000;
-                        msg: string;
-                        data: components["schemas"]["ApplicationArticleCategory"][];
                     };
                 };
             };
@@ -12811,183 +12651,6 @@ export interface operations {
                     };
                 };
             };
-            403: components["responses"]["ErrorResponse"];
-        };
-    };
-    getPcHome: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {integer} */
-                        code: 20000;
-                        msg: string;
-                        data: components["schemas"]["ApplicationPcHomeData"];
-                    };
-                };
-            };
-            403: components["responses"]["ErrorResponse"];
-        };
-    };
-    getPcInformationCenter: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {integer} */
-                        code: 20000;
-                        msg: string;
-                        data: components["schemas"]["ApplicationInformationCategory"][];
-                    };
-                };
-            };
-            403: components["responses"]["ErrorResponse"];
-        };
-    };
-    getPcArticleDetail: {
-        parameters: {
-            query?: {
-                id?: number;
-                source?: "default" | "all" | "new" | "hot";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {integer} */
-                        code: 20000;
-                        msg: string;
-                        data: components["schemas"]["ApplicationPcArticleDetail"] | unknown[];
-                    };
-                };
-            };
-            403: components["responses"]["ErrorResponse"];
-        };
-    };
-    addArticleCollection: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ApplicationArticleCollectionRequest"];
-            };
-        };
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {integer} */
-                        code: 20000;
-                        msg: string;
-                        data: components["schemas"]["ApplicationDynamicValue"][];
-                    };
-                };
-            };
-            400: components["responses"]["ErrorResponse"];
-            401: components["responses"]["ErrorResponse"];
-            403: components["responses"]["ErrorResponse"];
-            404: components["responses"]["ErrorResponse"];
-        };
-    };
-    cancelArticleCollection: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ApplicationArticleCollectionRequest"];
-            };
-        };
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {integer} */
-                        code: 20000;
-                        msg: string;
-                        data: components["schemas"]["ApplicationDynamicValue"][];
-                    };
-                };
-            };
-            400: components["responses"]["ErrorResponse"];
-            401: components["responses"]["ErrorResponse"];
-            403: components["responses"]["ErrorResponse"];
-        };
-    };
-    listArticleCollections: {
-        parameters: {
-            query?: {
-                page_no?: components["parameters"]["PageNo"];
-                page_size?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {integer} */
-                        code: 20000;
-                        msg: string;
-                        data: components["schemas"]["ApplicationArticleCollectionPage"];
-                    };
-                };
-            };
-            400: components["responses"]["ErrorResponse"];
-            401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
         };
     };
@@ -19345,6 +19008,287 @@ export interface operations {
             403: components["responses"]["ArticleErrorResponse"];
         };
     };
+    listArticles: {
+        parameters: {
+            query?: {
+                page_no?: components["parameters"]["PageNo"];
+                page_size?: components["parameters"]["PageSize"];
+                cid?: number;
+                keyword?: string;
+                sort?: "default" | "new" | "hot";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 公开文章分页 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationArticleListResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    articleDetail: {
+        parameters: {
+            query: {
+                id: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 公开文章详情 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationArticleDetailResponse"];
+                };
+            };
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+        };
+    };
+    getApplicationHome: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationHomeData"];
+                    };
+                };
+            };
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    listPublicArticleCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationArticleCategory"][];
+                    };
+                };
+            };
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    getPcHome: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationPcHomeData"];
+                    };
+                };
+            };
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    getPcInformationCenter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationInformationCategory"][];
+                    };
+                };
+            };
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    getPcArticleDetail: {
+        parameters: {
+            query?: {
+                id?: number;
+                source?: "default" | "all" | "new" | "hot";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationPcArticleDetail"] | unknown[];
+                    };
+                };
+            };
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    addArticleCollection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationArticleCollectionRequest"];
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationDynamicValue"][];
+                    };
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+        };
+    };
+    cancelArticleCollection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationArticleCollectionRequest"];
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationDynamicValue"][];
+                    };
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    listArticleCollections: {
+        parameters: {
+            query?: {
+                page_no?: components["parameters"]["PageNo"];
+                page_size?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationArticleCollectionPage"];
+                    };
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
     resolveCollaborationTransport: {
         parameters: {
             query?: never;
@@ -22233,6 +22177,62 @@ export interface operations {
             };
             401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
+        };
+    };
+    sendVerificationCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    scene: string;
+                    mobile?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 验证码发送请求已受理 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationMutationResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    logoutMemberSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationDynamicValue"][];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
         };
     };
     getNotificationChannelConfiguration: {

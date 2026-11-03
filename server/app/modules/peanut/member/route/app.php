@@ -5,9 +5,9 @@ declare(strict_types=1);
 use PeanutAdmin\Modules\Member\Controller\MemberController;
 use PeanutAdmin\Modules\Member\Controller\MemberTagController;
 use PeanutAdmin\Modules\Member\Controller\AccountLogController;
-use app\api\controller\LoginController as ApiLoginController;
-use app\api\controller\UserController as ApiUserController;
-use app\api\controller\AccountLogController as ApiAccountLogController;
+use PeanutAdmin\Modules\Member\Controller\MemberLoginController as ApiLoginController;
+use PeanutAdmin\Modules\Member\Controller\MemberSelfController as ApiUserController;
+use PeanutAdmin\Modules\Member\Controller\MemberAccountLogController as ApiAccountLogController;
 use app\api\middleware\CheckTokenMiddleware;
 use app\api\middleware\PublicTenantModuleMiddleware;
 use app\adminapi\http\middleware\AuthMiddleware;
@@ -40,11 +40,16 @@ if (($peanutRouteApplication ?? null) !== 'api') {
     return;
 }
 
+Route::post('login/logout', [ApiLoginController::class, 'logout'])
+    ->middleware(CheckTokenMiddleware::class);
+
 Route::post('login/register', [ApiLoginController::class, 'register'])
     ->middleware(PublicTenantModuleMiddleware::class, 'peanut.member.public-auth', 'peanut.member', 'member.register');
 Route::post('login/account', [ApiLoginController::class, 'account'])
     ->middleware(PublicTenantModuleMiddleware::class, 'peanut.member.public-auth', 'peanut.member', 'member.login');
 if (isset($peanutRouteModules['peanut.notification'])) {
+    Route::post('sms/sendCode', [\PeanutAdmin\Modules\Member\Controller\MemberVerificationController::class, 'sendCode'])
+        ->middleware(PublicTenantModuleMiddleware::class, 'peanut.notice.verification', 'peanut.notification', 'notice.verification.send');
     foreach ([
         ['login/mobile', 'mobile', 'notice.verification.verify', 'http.mobile-login'],
         ['login/resetPassword', 'resetPassword', 'notice.verification.verify', 'http.reset-password'],

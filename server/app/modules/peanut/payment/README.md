@@ -11,7 +11,7 @@ order, grant or settlement ledger.
 | --- | --- | --- |
 | `PaymentMethod` | Stable provider identifiers: `WECHAT=2`, `ALIPAY=3`; `isProvider` checks the set | Identifier only; not channel availability or a grant |
 | `PaymentChannelGrantCommands` | `ThinkPhpPaymentChannelGrantCommands`; `PayConfigApplicationService` calls `ensureSelfGrant` | Resolve pay-way/provider/channel and the tenant's active external binding; explicit grant/revoke remain privileged application operations |
-| `RechargeQueries` / `RechargeCommands` | Bound to module `RechargeApplicationService`; host `app/api/services/RechargeApplicationService.php` is the real consumer | Current member config/orders, order creation, prepay and verified callback settlement |
+| `RechargeQueries` / `RechargeCommands` | Bound to module `RechargeApplicationService`; module `Service/MemberRechargeApplicationService.php` is the member API consumer | Current member config/orders, order creation, prepay and verified callback settlement |
 | `RefundReconciliationCommands` | `ThinkPhpRefundReconciliationCommands` | Existing refund reconciliation contract; not a browser success callback |
 
 The host establishes the current tenant/member context and operation access.

@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use app\api\controller\OAuthController as ApiOAuthController;
-use app\api\controller\OfficialAccountController as ApiOfficialAccountController;
+use PeanutAdmin\Modules\OAuth\Controller\MemberOAuthController as ApiOAuthController;
+use PeanutAdmin\Modules\OAuth\Controller\OfficialAccountCallbackController as ApiOfficialAccountController;
 use app\api\middleware\CheckTokenMiddleware;
 use PeanutAdmin\Modules\OAuth\Controller\WebPageController;
 use PeanutAdmin\Modules\OAuth\Controller\MiniProgramController;

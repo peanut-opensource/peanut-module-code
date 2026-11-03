@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Payment\Service;
 
 use PeanutAdmin\Modules\Payment\Model\PaymentScene;
-use app\common\enum\UserTerminalEnum;
+use PeanutAdmin\Modules\Payment\Value\UserTerminalEnum;
 use app\common\exception\BusinessException;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 

@@ -7,7 +7,7 @@ namespace PeanutAdmin\Modules\Member\Service;
 use PeanutAdmin\Modules\Member\Model\Member;
 use PeanutAdmin\Modules\Member\Model\MemberBalanceLog;
 use app\common\exception\BusinessException;
-use app\common\enum\AccountLogEnum;
+use PeanutAdmin\Modules\Member\Value\AccountLogEnum;
 use app\common\value\Money;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Context\TenantSystemContext;

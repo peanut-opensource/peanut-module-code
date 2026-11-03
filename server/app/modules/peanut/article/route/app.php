@@ -10,6 +10,35 @@ use app\adminapi\http\middleware\LoginMiddleware;
 use app\adminapi\http\middleware\OperationLogMiddleware;
 use app\common\infrastructure\module\OfficialModuleMiddleware;
 use think\facade\Route;
+use PeanutAdmin\Modules\Article\Controller\ConsumerArticleController;
+use app\api\middleware\PublicTenantModuleMiddleware;
+use app\api\middleware\CheckTokenMiddleware;
+
+if (($peanutRouteApplication ?? null) === 'api') {
+    Route::get('index/index', [ConsumerArticleController::class, 'mobileIndex'])
+        ->middleware(PublicTenantModuleMiddleware::class, 'peanut.article.public-read', 'peanut.article', 'article.index');
+    Route::get('article/cate', [ConsumerArticleController::class, 'cate'])
+        ->middleware(PublicTenantModuleMiddleware::class, 'peanut.article.public-read', 'peanut.article', 'article.cate');
+    Route::get('article/lists', [ConsumerArticleController::class, 'lists'])
+        ->middleware(PublicTenantModuleMiddleware::class, 'peanut.article.public-read', 'peanut.article', 'article.lists');
+    Route::get('article/detail', [ConsumerArticleController::class, 'detail'])
+        ->middleware(PublicTenantModuleMiddleware::class, 'peanut.article.public-read', 'peanut.article', 'article.detail');
+    Route::get('pc/index', [ConsumerArticleController::class, 'pcIndex'])
+        ->middleware(PublicTenantModuleMiddleware::class, 'peanut.article.public-read', 'peanut.article', 'article.pc-index');
+    Route::get('pc/infoCenter', [ConsumerArticleController::class, 'infoCenter'])
+        ->middleware(PublicTenantModuleMiddleware::class, 'peanut.article.public-read', 'peanut.article', 'article.info-center');
+    Route::get('pc/articleDetail', [ConsumerArticleController::class, 'pcDetail'])
+        ->middleware(PublicTenantModuleMiddleware::class, 'peanut.article.public-read', 'peanut.article', 'article.pc-detail');
+    if (isset($peanutRouteModules['peanut.member'])) {
+        Route::group(function (): void {
+            Route::post('article/addCollect', [ConsumerArticleController::class, 'addCollect']);
+            Route::post('article/cancelCollect', [ConsumerArticleController::class, 'cancelCollect']);
+            Route::get('article/collect', [ConsumerArticleController::class, 'collect']);
+        })->middleware(CheckTokenMiddleware::class)
+            ->middleware(OfficialModuleMiddleware::class, 'peanut.article', 'http.member');
+    }
+    return;
+}
 
 if (($peanutRouteApplication ?? null) !== 'adminapi') {
     return;

@@ -303,164 +303,6 @@
                 "x-peanut-permissions": []
             }
         },
-        "/api/article/lists": {
-            "x-peanut-required-modules": [
-                "peanut.article"
-            ],
-            "get": {
-                "tags": [
-                    "Article"
-                ],
-                "operationId": "listArticles",
-                "parameters": [
-                    {
-                        "$ref": "#/components/parameters/PageNo"
-                    },
-                    {
-                        "$ref": "#/components/parameters/PageSize"
-                    },
-                    {
-                        "in": "query",
-                        "name": "cid",
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 0
-                        }
-                    },
-                    {
-                        "in": "query",
-                        "name": "keyword",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "in": "query",
-                        "name": "sort",
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "default",
-                                "new",
-                                "hot"
-                            ],
-                            "default": "default"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "公开文章分页",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ApplicationArticleListResponse"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "security": [],
-                "x-peanut-route": {
-                    "application": "api",
-                    "owner": {
-                        "type": "application",
-                        "key": "api"
-                    },
-                    "controller": "app\\api\\controller\\ArticleController",
-                    "action": "lists",
-                    "permission": null,
-                    "source": {
-                        "file": "server/route/public_api.php",
-                        "line": 45
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "public_capability",
-                        "key": "peanut.article.public-read"
-                    },
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.article"
-                    }
-                ]
-            }
-        },
-        "/api/article/detail": {
-            "x-peanut-required-modules": [
-                "peanut.article"
-            ],
-            "get": {
-                "tags": [
-                    "Article"
-                ],
-                "operationId": "articleDetail",
-                "parameters": [
-                    {
-                        "in": "query",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "公开文章详情",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ApplicationArticleDetailResponse"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "x-peanut-errors": [
-                    "ARTICLE_NOT_FOUND"
-                ],
-                "security": [],
-                "x-peanut-route": {
-                    "application": "api",
-                    "owner": {
-                        "type": "application",
-                        "key": "api"
-                    },
-                    "controller": "app\\api\\controller\\ArticleController",
-                    "action": "detail",
-                    "permission": null,
-                    "source": {
-                        "file": "server/route/public_api.php",
-                        "line": 47
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "public_capability",
-                        "key": "peanut.article.public-read"
-                    },
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.article"
-                    }
-                ]
-            }
-        },
         "/adminapi/peanut.file.upload.file": {
             "post": {
                 "tags": [
@@ -730,87 +572,6 @@
                     {
                         "kind": "tenant_action",
                         "key": "peanut.file.list"
-                    }
-                ]
-            }
-        },
-        "/api/sms/sendCode": {
-            "x-peanut-required-modules": [
-                "peanut.notification"
-            ],
-            "post": {
-                "tags": [
-                    "Notice"
-                ],
-                "operationId": "sendVerificationCode",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "required": [
-                                    "scene"
-                                ],
-                                "properties": {
-                                    "scene": {
-                                        "type": "string"
-                                    },
-                                    "mobile": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "验证码发送请求已受理",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/NotificationMutationResponse"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "409": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "x-peanut-errors": [
-                    "VERIFICATION_CODE_SEND_REJECTED"
-                ],
-                "security": [],
-                "x-peanut-route": {
-                    "application": "api",
-                    "owner": {
-                        "type": "module",
-                        "key": "peanut.notification"
-                    },
-                    "controller": "app\\api\\controller\\SmsController",
-                    "action": "sendCode",
-                    "permission": null,
-                    "source": {
-                        "file": "server/app/modules/peanut/notification/route/app.php",
-                        "line": 39
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "public_capability",
-                        "key": "peanut.notice.verification"
-                    },
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.notification"
                     }
                 ]
             }
@@ -2342,78 +2103,6 @@
                 ]
             }
         },
-        "/api/index/index": {
-            "x-peanut-required-modules": [
-                "peanut.article"
-            ],
-            "get": {
-                "tags": [
-                    "Application"
-                ],
-                "operationId": "getApplicationHome",
-                "parameters": [],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                        "code",
-                                        "msg",
-                                        "data"
-                                    ],
-                                    "properties": {
-                                        "code": {
-                                            "type": "integer",
-                                            "enum": [
-                                                20000
-                                            ]
-                                        },
-                                        "msg": {
-                                            "type": "string"
-                                        },
-                                        "data": {
-                                            "$ref": "#/components/schemas/ApplicationHomeData"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "security": [],
-                "x-peanut-route": {
-                    "application": "api",
-                    "owner": {
-                        "type": "application",
-                        "key": "api"
-                    },
-                    "controller": "app\\api\\controller\\IndexController",
-                    "action": "index",
-                    "permission": null,
-                    "source": {
-                        "file": "server/route/public_api.php",
-                        "line": 28
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "public_capability",
-                        "key": "peanut.article.public-read"
-                    },
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.article"
-                    }
-                ]
-            }
-        },
         "/api/index/config": {
             "get": {
                 "tags": [
@@ -2468,7 +2157,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/public_api.php",
-                        "line": 31
+                        "line": 22
                     }
                 },
                 "x-peanut-permissions": [
@@ -2550,7 +2239,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/public_api.php",
-                        "line": 33
+                        "line": 24
                     }
                 },
                 "x-peanut-permissions": [
@@ -2561,152 +2250,6 @@
                     {
                         "kind": "module_capability",
                         "key": ""
-                    }
-                ]
-            }
-        },
-        "/api/login/logout": {
-            "x-peanut-required-modules": [
-                "peanut.member"
-            ],
-            "post": {
-                "tags": [
-                    "Auth"
-                ],
-                "operationId": "logoutMemberSession",
-                "parameters": [],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                        "code",
-                                        "msg",
-                                        "data"
-                                    ],
-                                    "properties": {
-                                        "code": {
-                                            "type": "integer",
-                                            "enum": [
-                                                20000
-                                            ]
-                                        },
-                                        "msg": {
-                                            "type": "string"
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "maxItems": 0,
-                                            "items": {
-                                                "$ref": "#/components/schemas/ApplicationDynamicValue"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": {}
-                    }
-                ],
-                "x-peanut-route": {
-                    "application": "api",
-                    "owner": {
-                        "type": "application",
-                        "key": "api"
-                    },
-                    "controller": "app\\api\\controller\\LoginController",
-                    "action": "logout",
-                    "permission": null,
-                    "source": {
-                        "file": "server/route/public_api.php",
-                        "line": 38
-                    }
-                },
-                "x-peanut-permissions": []
-            }
-        },
-        "/api/article/cate": {
-            "x-peanut-required-modules": [
-                "peanut.article"
-            ],
-            "get": {
-                "tags": [
-                    "Article"
-                ],
-                "operationId": "listPublicArticleCategories",
-                "parameters": [],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                        "code",
-                                        "msg",
-                                        "data"
-                                    ],
-                                    "properties": {
-                                        "code": {
-                                            "type": "integer",
-                                            "enum": [
-                                                20000
-                                            ]
-                                        },
-                                        "msg": {
-                                            "type": "string"
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/ApplicationArticleCategory"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "security": [],
-                "x-peanut-route": {
-                    "application": "api",
-                    "owner": {
-                        "type": "application",
-                        "key": "api"
-                    },
-                    "controller": "app\\api\\controller\\ArticleController",
-                    "action": "cate",
-                    "permission": null,
-                    "source": {
-                        "file": "server/route/public_api.php",
-                        "line": 43
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "public_capability",
-                        "key": "peanut.article.public-read"
-                    },
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.article"
                     }
                 ]
             }
@@ -2765,7 +2308,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/public_api.php",
-                        "line": 51
+                        "line": 28
                     }
                 },
                 "x-peanut-permissions": [
@@ -2855,7 +2398,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/public_api.php",
-                        "line": 55
+                        "line": 32
                     }
                 },
                 "x-peanut-permissions": [
@@ -2924,7 +2467,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/public_api.php",
-                        "line": 57
+                        "line": 34
                     }
                 },
                 "x-peanut-permissions": [
@@ -2993,7 +2536,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/public_api.php",
-                        "line": 59
+                        "line": 36
                     }
                 },
                 "x-peanut-permissions": [
@@ -3062,7 +2605,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/public_api.php",
-                        "line": 63
+                        "line": 40
                     }
                 },
                 "x-peanut-permissions": [
@@ -3073,537 +2616,6 @@
                     {
                         "kind": "module_capability",
                         "key": ""
-                    }
-                ]
-            }
-        },
-        "/api/pc/index": {
-            "x-peanut-required-modules": [
-                "peanut.article"
-            ],
-            "get": {
-                "tags": [
-                    "Article"
-                ],
-                "operationId": "getPcHome",
-                "parameters": [],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                        "code",
-                                        "msg",
-                                        "data"
-                                    ],
-                                    "properties": {
-                                        "code": {
-                                            "type": "integer",
-                                            "enum": [
-                                                20000
-                                            ]
-                                        },
-                                        "msg": {
-                                            "type": "string"
-                                        },
-                                        "data": {
-                                            "$ref": "#/components/schemas/ApplicationPcHomeData"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "security": [],
-                "x-peanut-route": {
-                    "application": "api",
-                    "owner": {
-                        "type": "application",
-                        "key": "api"
-                    },
-                    "controller": "app\\api\\controller\\PcController",
-                    "action": "index",
-                    "permission": null,
-                    "source": {
-                        "file": "server/route/public_api.php",
-                        "line": 66
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "public_capability",
-                        "key": "peanut.article.public-read"
-                    },
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.article"
-                    }
-                ]
-            }
-        },
-        "/api/pc/infoCenter": {
-            "x-peanut-required-modules": [
-                "peanut.article"
-            ],
-            "get": {
-                "tags": [
-                    "Article"
-                ],
-                "operationId": "getPcInformationCenter",
-                "parameters": [],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                        "code",
-                                        "msg",
-                                        "data"
-                                    ],
-                                    "properties": {
-                                        "code": {
-                                            "type": "integer",
-                                            "enum": [
-                                                20000
-                                            ]
-                                        },
-                                        "msg": {
-                                            "type": "string"
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/ApplicationInformationCategory"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "security": [],
-                "x-peanut-route": {
-                    "application": "api",
-                    "owner": {
-                        "type": "application",
-                        "key": "api"
-                    },
-                    "controller": "app\\api\\controller\\PcController",
-                    "action": "infoCenter",
-                    "permission": null,
-                    "source": {
-                        "file": "server/route/public_api.php",
-                        "line": 68
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "public_capability",
-                        "key": "peanut.article.public-read"
-                    },
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.article"
-                    }
-                ]
-            }
-        },
-        "/api/pc/articleDetail": {
-            "x-peanut-required-modules": [
-                "peanut.article"
-            ],
-            "get": {
-                "tags": [
-                    "Article"
-                ],
-                "operationId": "getPcArticleDetail",
-                "parameters": [
-                    {
-                        "in": "query",
-                        "name": "id",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "default": 0
-                        }
-                    },
-                    {
-                        "in": "query",
-                        "name": "source",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "default",
-                                "all",
-                                "new",
-                                "hot"
-                            ],
-                            "default": "default"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                        "code",
-                                        "msg",
-                                        "data"
-                                    ],
-                                    "properties": {
-                                        "code": {
-                                            "type": "integer",
-                                            "enum": [
-                                                20000
-                                            ]
-                                        },
-                                        "msg": {
-                                            "type": "string"
-                                        },
-                                        "data": {
-                                            "oneOf": [
-                                                {
-                                                    "$ref": "#/components/schemas/ApplicationPcArticleDetail"
-                                                },
-                                                {
-                                                    "type": "array",
-                                                    "maxItems": 0
-                                                }
-                                            ]
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "security": [],
-                "x-peanut-route": {
-                    "application": "api",
-                    "owner": {
-                        "type": "application",
-                        "key": "api"
-                    },
-                    "controller": "app\\api\\controller\\PcController",
-                    "action": "articleDetail",
-                    "permission": null,
-                    "source": {
-                        "file": "server/route/public_api.php",
-                        "line": 70
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "public_capability",
-                        "key": "peanut.article.public-read"
-                    },
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.article"
-                    }
-                ]
-            }
-        },
-        "/api/article/addCollect": {
-            "x-peanut-required-modules": [
-                "peanut.article",
-                "peanut.member"
-            ],
-            "post": {
-                "tags": [
-                    "Article"
-                ],
-                "operationId": "addArticleCollection",
-                "parameters": [],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                        "code",
-                                        "msg",
-                                        "data"
-                                    ],
-                                    "properties": {
-                                        "code": {
-                                            "type": "integer",
-                                            "enum": [
-                                                20000
-                                            ]
-                                        },
-                                        "msg": {
-                                            "type": "string"
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "maxItems": 0,
-                                            "items": {
-                                                "$ref": "#/components/schemas/ApplicationDynamicValue"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ApplicationArticleCollectionRequest"
-                            }
-                        }
-                    }
-                },
-                "x-peanut-errors": [
-                    "ARTICLE_NOT_FOUND"
-                ],
-                "security": [
-                    {
-                        "bearerAuth": {}
-                    }
-                ],
-                "x-peanut-route": {
-                    "application": "api",
-                    "owner": {
-                        "type": "application",
-                        "key": "api"
-                    },
-                    "controller": "app\\api\\controller\\ArticleController",
-                    "action": "addCollect",
-                    "permission": null,
-                    "source": {
-                        "file": "server/route/public_api.php",
-                        "line": 78
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.article"
-                    }
-                ]
-            }
-        },
-        "/api/article/cancelCollect": {
-            "x-peanut-required-modules": [
-                "peanut.article",
-                "peanut.member"
-            ],
-            "post": {
-                "tags": [
-                    "Article"
-                ],
-                "operationId": "cancelArticleCollection",
-                "parameters": [],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                        "code",
-                                        "msg",
-                                        "data"
-                                    ],
-                                    "properties": {
-                                        "code": {
-                                            "type": "integer",
-                                            "enum": [
-                                                20000
-                                            ]
-                                        },
-                                        "msg": {
-                                            "type": "string"
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "maxItems": 0,
-                                            "items": {
-                                                "$ref": "#/components/schemas/ApplicationDynamicValue"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ApplicationArticleCollectionRequest"
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": {}
-                    }
-                ],
-                "x-peanut-route": {
-                    "application": "api",
-                    "owner": {
-                        "type": "application",
-                        "key": "api"
-                    },
-                    "controller": "app\\api\\controller\\ArticleController",
-                    "action": "cancelCollect",
-                    "permission": null,
-                    "source": {
-                        "file": "server/route/public_api.php",
-                        "line": 79
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.article"
-                    }
-                ]
-            }
-        },
-        "/api/article/collect": {
-            "x-peanut-required-modules": [
-                "peanut.article",
-                "peanut.member"
-            ],
-            "get": {
-                "tags": [
-                    "Article"
-                ],
-                "operationId": "listArticleCollections",
-                "parameters": [
-                    {
-                        "$ref": "#/components/parameters/PageNo"
-                    },
-                    {
-                        "$ref": "#/components/parameters/PageSize"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                        "code",
-                                        "msg",
-                                        "data"
-                                    ],
-                                    "properties": {
-                                        "code": {
-                                            "type": "integer",
-                                            "enum": [
-                                                20000
-                                            ]
-                                        },
-                                        "msg": {
-                                            "type": "string"
-                                        },
-                                        "data": {
-                                            "$ref": "#/components/schemas/ApplicationArticleCollectionPage"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": {}
-                    }
-                ],
-                "x-peanut-route": {
-                    "application": "api",
-                    "owner": {
-                        "type": "application",
-                        "key": "api"
-                    },
-                    "controller": "app\\api\\controller\\ArticleController",
-                    "action": "collect",
-                    "permission": null,
-                    "source": {
-                        "file": "server/route/public_api.php",
-                        "line": 80
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.article"
                     }
                 ]
             }
@@ -20146,7 +19158,7 @@
                     "permission": "peanut.article.edit",
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 36
+                        "line": 65
                     }
                 },
                 "x-peanut-permissions": [
@@ -20225,7 +19237,7 @@
                     "permission": "peanut.article.edit",
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 37
+                        "line": 66
                     }
                 },
                 "x-peanut-permissions": [
@@ -20310,7 +19322,7 @@
                     "permission": "peanut.article.edit",
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 38
+                        "line": 67
                     }
                 },
                 "x-peanut-permissions": [
@@ -20396,7 +19408,7 @@
                     "permission": "peanut.article.edit",
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 39
+                        "line": 68
                     }
                 },
                 "x-peanut-permissions": [
@@ -20485,7 +19497,7 @@
                     "permission": "peanut.article.edit",
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 35
+                        "line": 64
                     }
                 },
                 "x-peanut-permissions": [
@@ -20671,7 +19683,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 20
+                        "line": 49
                     }
                 },
                 "x-peanut-permissions": [
@@ -20731,7 +19743,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 21
+                        "line": 50
                     }
                 },
                 "x-peanut-permissions": [
@@ -20802,7 +19814,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 22
+                        "line": 51
                     }
                 },
                 "x-peanut-permissions": [
@@ -20875,7 +19887,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 23
+                        "line": 52
                     }
                 },
                 "x-peanut-permissions": [
@@ -20952,7 +19964,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 24
+                        "line": 53
                     }
                 },
                 "x-peanut-permissions": [
@@ -21033,7 +20045,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 25
+                        "line": 54
                     }
                 },
                 "x-peanut-permissions": [
@@ -21110,7 +20122,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 26
+                        "line": 55
                     }
                 },
                 "x-peanut-permissions": [
@@ -21296,7 +20308,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 27
+                        "line": 56
                     }
                 },
                 "x-peanut-permissions": [
@@ -21367,7 +20379,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 28
+                        "line": 57
                     }
                 },
                 "x-peanut-permissions": [
@@ -21441,7 +20453,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 29
+                        "line": 58
                     }
                 },
                 "x-peanut-permissions": [
@@ -21515,7 +20527,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 30
+                        "line": 59
                     }
                 },
                 "x-peanut-permissions": [
@@ -21708,7 +20720,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 31
+                        "line": 60
                     }
                 },
                 "x-peanut-permissions": [
@@ -21779,7 +20791,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 32
+                        "line": 61
                     }
                 },
                 "x-peanut-permissions": [
@@ -21856,7 +20868,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 33
+                        "line": 62
                     }
                 },
                 "x-peanut-permissions": [
@@ -21937,7 +20949,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 34
+                        "line": 63
                     }
                 },
                 "x-peanut-permissions": [
@@ -22014,7 +21026,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 40
+                        "line": 69
                     }
                 },
                 "x-peanut-permissions": [
@@ -22091,7 +21103,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 41
+                        "line": 70
                     }
                 },
                 "x-peanut-permissions": [
@@ -22284,7 +21296,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 42
+                        "line": 71
                     }
                 },
                 "x-peanut-permissions": [
@@ -22355,7 +21367,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 43
+                        "line": 72
                     }
                 },
                 "x-peanut-permissions": [
@@ -22429,7 +21441,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 44
+                        "line": 73
                     }
                 },
                 "x-peanut-permissions": [
@@ -22503,7 +21515,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 45
+                        "line": 74
                     }
                 },
                 "x-peanut-permissions": [
@@ -22514,6 +21526,842 @@
                     {
                         "kind": "tenant_action",
                         "key": "peanut.article.force-delete"
+                    }
+                ]
+            }
+        },
+        "/api/article/lists": {
+            "x-peanut-required-modules": [
+                "peanut.article"
+            ],
+            "get": {
+                "tags": [
+                    "Article"
+                ],
+                "operationId": "listArticles",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/PageNo"
+                    },
+                    {
+                        "$ref": "#/components/parameters/PageSize"
+                    },
+                    {
+                        "in": "query",
+                        "name": "cid",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 0
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "keyword",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "sort",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "default",
+                                "new",
+                                "hot"
+                            ],
+                            "default": "default"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "公开文章分页",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApplicationArticleListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "security": [],
+                "x-peanut-route": {
+                    "application": "api",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.article"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
+                    "action": "lists",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/article/route/app.php",
+                        "line": 22
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "public_capability",
+                        "key": "peanut.article.public-read"
+                    },
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.article"
+                    }
+                ]
+            }
+        },
+        "/api/article/detail": {
+            "x-peanut-required-modules": [
+                "peanut.article"
+            ],
+            "get": {
+                "tags": [
+                    "Article"
+                ],
+                "operationId": "articleDetail",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "公开文章详情",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApplicationArticleDetailResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "x-peanut-errors": [
+                    "ARTICLE_NOT_FOUND"
+                ],
+                "security": [],
+                "x-peanut-route": {
+                    "application": "api",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.article"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
+                    "action": "detail",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/article/route/app.php",
+                        "line": 24
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "public_capability",
+                        "key": "peanut.article.public-read"
+                    },
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.article"
+                    }
+                ]
+            }
+        },
+        "/api/index/index": {
+            "x-peanut-required-modules": [
+                "peanut.article"
+            ],
+            "get": {
+                "tags": [
+                    "Application"
+                ],
+                "operationId": "getApplicationHome",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "enum": [
+                                                20000
+                                            ]
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/ApplicationHomeData"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "security": [],
+                "x-peanut-route": {
+                    "application": "api",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.article"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
+                    "action": "mobileIndex",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/article/route/app.php",
+                        "line": 18
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "public_capability",
+                        "key": "peanut.article.public-read"
+                    },
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.article"
+                    }
+                ]
+            }
+        },
+        "/api/article/cate": {
+            "x-peanut-required-modules": [
+                "peanut.article"
+            ],
+            "get": {
+                "tags": [
+                    "Article"
+                ],
+                "operationId": "listPublicArticleCategories",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "enum": [
+                                                20000
+                                            ]
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ApplicationArticleCategory"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "security": [],
+                "x-peanut-route": {
+                    "application": "api",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.article"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
+                    "action": "cate",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/article/route/app.php",
+                        "line": 20
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "public_capability",
+                        "key": "peanut.article.public-read"
+                    },
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.article"
+                    }
+                ]
+            }
+        },
+        "/api/pc/index": {
+            "x-peanut-required-modules": [
+                "peanut.article"
+            ],
+            "get": {
+                "tags": [
+                    "Article"
+                ],
+                "operationId": "getPcHome",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "enum": [
+                                                20000
+                                            ]
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/ApplicationPcHomeData"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "security": [],
+                "x-peanut-route": {
+                    "application": "api",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.article"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
+                    "action": "pcIndex",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/article/route/app.php",
+                        "line": 26
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "public_capability",
+                        "key": "peanut.article.public-read"
+                    },
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.article"
+                    }
+                ]
+            }
+        },
+        "/api/pc/infoCenter": {
+            "x-peanut-required-modules": [
+                "peanut.article"
+            ],
+            "get": {
+                "tags": [
+                    "Article"
+                ],
+                "operationId": "getPcInformationCenter",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "enum": [
+                                                20000
+                                            ]
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ApplicationInformationCategory"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "security": [],
+                "x-peanut-route": {
+                    "application": "api",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.article"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
+                    "action": "infoCenter",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/article/route/app.php",
+                        "line": 28
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "public_capability",
+                        "key": "peanut.article.public-read"
+                    },
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.article"
+                    }
+                ]
+            }
+        },
+        "/api/pc/articleDetail": {
+            "x-peanut-required-modules": [
+                "peanut.article"
+            ],
+            "get": {
+                "tags": [
+                    "Article"
+                ],
+                "operationId": "getPcArticleDetail",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "id",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "default": 0
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "source",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "default",
+                                "all",
+                                "new",
+                                "hot"
+                            ],
+                            "default": "default"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "enum": [
+                                                20000
+                                            ]
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "oneOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/ApplicationPcArticleDetail"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "maxItems": 0
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "security": [],
+                "x-peanut-route": {
+                    "application": "api",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.article"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
+                    "action": "pcDetail",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/article/route/app.php",
+                        "line": 30
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "public_capability",
+                        "key": "peanut.article.public-read"
+                    },
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.article"
+                    }
+                ]
+            }
+        },
+        "/api/article/addCollect": {
+            "x-peanut-required-modules": [
+                "peanut.article",
+                "peanut.member"
+            ],
+            "post": {
+                "tags": [
+                    "Article"
+                ],
+                "operationId": "addArticleCollection",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "enum": [
+                                                20000
+                                            ]
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "maxItems": 0,
+                                            "items": {
+                                                "$ref": "#/components/schemas/ApplicationDynamicValue"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ApplicationArticleCollectionRequest"
+                            }
+                        }
+                    }
+                },
+                "x-peanut-errors": [
+                    "ARTICLE_NOT_FOUND"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "api",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.article"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
+                    "action": "addCollect",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/article/route/app.php",
+                        "line": 34
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.article"
+                    }
+                ]
+            }
+        },
+        "/api/article/cancelCollect": {
+            "x-peanut-required-modules": [
+                "peanut.article",
+                "peanut.member"
+            ],
+            "post": {
+                "tags": [
+                    "Article"
+                ],
+                "operationId": "cancelArticleCollection",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "enum": [
+                                                20000
+                                            ]
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "maxItems": 0,
+                                            "items": {
+                                                "$ref": "#/components/schemas/ApplicationDynamicValue"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ApplicationArticleCollectionRequest"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "api",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.article"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
+                    "action": "cancelCollect",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/article/route/app.php",
+                        "line": 35
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.article"
+                    }
+                ]
+            }
+        },
+        "/api/article/collect": {
+            "x-peanut-required-modules": [
+                "peanut.article",
+                "peanut.member"
+            ],
+            "get": {
+                "tags": [
+                    "Article"
+                ],
+                "operationId": "listArticleCollections",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/PageNo"
+                    },
+                    {
+                        "$ref": "#/components/parameters/PageSize"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "enum": [
+                                                20000
+                                            ]
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/ApplicationArticleCollectionPage"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "api",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.article"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ConsumerArticleController",
+                    "action": "collect",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/article/route/app.php",
+                        "line": 36
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.article"
                     }
                 ]
             }
@@ -30567,12 +30415,12 @@
                         "type": "module",
                         "key": "peanut.member"
                     },
-                    "controller": "app\\api\\controller\\LoginController",
+                    "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberLoginController",
                     "action": "register",
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/member/route/app.php",
-                        "line": 43
+                        "line": 46
                     }
                 },
                 "x-peanut-permissions": [
@@ -30638,12 +30486,12 @@
                         "type": "module",
                         "key": "peanut.member"
                     },
-                    "controller": "app\\api\\controller\\LoginController",
+                    "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberLoginController",
                     "action": "account",
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/member/route/app.php",
-                        "line": 45
+                        "line": 48
                     }
                 },
                 "x-peanut-permissions": [
@@ -30714,12 +30562,12 @@
                         "type": "module",
                         "key": "peanut.member"
                     },
-                    "controller": "app\\api\\controller\\LoginController",
+                    "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberLoginController",
                     "action": "mobile",
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/member/route/app.php",
-                        "line": 52
+                        "line": 57
                     }
                 },
                 "x-peanut-permissions": [
@@ -30796,12 +30644,12 @@
                         "type": "module",
                         "key": "peanut.member"
                     },
-                    "controller": "app\\api\\controller\\LoginController",
+                    "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberLoginController",
                     "action": "resetPassword",
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/member/route/app.php",
-                        "line": 52
+                        "line": 57
                     }
                 },
                 "x-peanut-permissions": [
@@ -30861,12 +30709,12 @@
                         "type": "module",
                         "key": "peanut.member"
                     },
-                    "controller": "app\\api\\controller\\UserController",
+                    "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberSelfController",
                     "action": "center",
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/member/route/app.php",
-                        "line": 59
+                        "line": 64
                     }
                 },
                 "x-peanut-permissions": [
@@ -30918,12 +30766,12 @@
                         "type": "module",
                         "key": "peanut.member"
                     },
-                    "controller": "app\\api\\controller\\UserController",
+                    "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberSelfController",
                     "action": "info",
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/member/route/app.php",
-                        "line": 60
+                        "line": 65
                     }
                 },
                 "x-peanut-permissions": [
@@ -30994,12 +30842,12 @@
                         "type": "module",
                         "key": "peanut.member"
                     },
-                    "controller": "app\\api\\controller\\UserController",
+                    "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberSelfController",
                     "action": "setInfo",
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/member/route/app.php",
-                        "line": 61
+                        "line": 66
                     }
                 },
                 "x-peanut-permissions": [
@@ -31064,12 +30912,12 @@
                         "type": "module",
                         "key": "peanut.member"
                     },
-                    "controller": "app\\api\\controller\\UserController",
+                    "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberSelfController",
                     "action": "changePassword",
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/member/route/app.php",
-                        "line": 62
+                        "line": 67
                     }
                 },
                 "x-peanut-permissions": [
@@ -31142,12 +30990,12 @@
                         "type": "module",
                         "key": "peanut.member"
                     },
-                    "controller": "app\\api\\controller\\UserController",
+                    "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberSelfController",
                     "action": "bindMobile",
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/member/route/app.php",
-                        "line": 64
+                        "line": 69
                     }
                 },
                 "x-peanut-permissions": [
@@ -31203,12 +31051,12 @@
                         "type": "module",
                         "key": "peanut.member"
                     },
-                    "controller": "app\\api\\controller\\AccountLogController",
+                    "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberAccountLogController",
                     "action": "lists",
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/member/route/app.php",
-                        "line": 66
+                        "line": 71
                     }
                 },
                 "x-peanut-permissions": [
@@ -31217,6 +31065,159 @@
                         "key": "peanut.member"
                     }
                 ]
+            }
+        },
+        "/api/sms/sendCode": {
+            "x-peanut-required-modules": [
+                "peanut.member",
+                "peanut.notification"
+            ],
+            "post": {
+                "tags": [
+                    "Notice"
+                ],
+                "operationId": "sendVerificationCode",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "scene"
+                                ],
+                                "properties": {
+                                    "scene": {
+                                        "type": "string"
+                                    },
+                                    "mobile": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "验证码发送请求已受理",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NotificationMutationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "x-peanut-errors": [
+                    "VERIFICATION_CODE_SEND_REJECTED"
+                ],
+                "security": [],
+                "x-peanut-route": {
+                    "application": "api",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.member"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberVerificationController",
+                    "action": "sendCode",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/member/route/app.php",
+                        "line": 51
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "public_capability",
+                        "key": "peanut.notice.verification"
+                    },
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.notification"
+                    }
+                ]
+            }
+        },
+        "/api/login/logout": {
+            "x-peanut-required-modules": [
+                "peanut.member"
+            ],
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "operationId": "logoutMemberSession",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "enum": [
+                                                20000
+                                            ]
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "maxItems": 0,
+                                            "items": {
+                                                "$ref": "#/components/schemas/ApplicationDynamicValue"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "api",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.member"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Member\\Controller\\MemberLoginController",
+                    "action": "logout",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/member/route/app.php",
+                        "line": 43
+                    }
+                },
+                "x-peanut-permissions": []
             }
         },
         "/adminapi/peanut.notification.channel.detail": {
@@ -31262,7 +31263,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/notification/route/app.php",
-                        "line": 19
+                        "line": 17
                     }
                 },
                 "x-peanut-permissions": [
@@ -31333,7 +31334,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/notification/route/app.php",
-                        "line": 20
+                        "line": 18
                     }
                 },
                 "x-peanut-permissions": [
@@ -31391,7 +31392,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/notification/route/app.php",
-                        "line": 23
+                        "line": 21
                     }
                 },
                 "x-peanut-permissions": [
@@ -31467,7 +31468,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/notification/route/app.php",
-                        "line": 24
+                        "line": 22
                     }
                 },
                 "x-peanut-permissions": [
@@ -31542,7 +31543,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/notification/route/app.php",
-                        "line": 25
+                        "line": 23
                     }
                 },
                 "x-peanut-permissions": [
@@ -31693,7 +31694,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/notification/route/app.php",
-                        "line": 21
+                        "line": 19
                     }
                 },
                 "x-peanut-permissions": [
@@ -31763,7 +31764,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/notification/route/app.php",
-                        "line": 22
+                        "line": 20
                     }
                 },
                 "x-peanut-permissions": [
@@ -31855,7 +31856,7 @@
                     "permission": "peanut.notification.inbox.read",
                     "source": {
                         "file": "server/app/modules/peanut/notification/route/app.php",
-                        "line": 26
+                        "line": 24
                     }
                 },
                 "x-peanut-permissions": [
@@ -31950,7 +31951,7 @@
                     "permission": "peanut.notification.inbox.manage",
                     "source": {
                         "file": "server/app/modules/peanut/notification/route/app.php",
-                        "line": 28
+                        "line": 26
                     }
                 },
                 "x-peanut-permissions": [
@@ -32046,7 +32047,7 @@
                     "permission": "peanut.notification.inbox.manage",
                     "source": {
                         "file": "server/app/modules/peanut/notification/route/app.php",
-                        "line": 30
+                        "line": 28
                     }
                 },
                 "x-peanut-permissions": [
@@ -33429,7 +33430,7 @@
                         "type": "module",
                         "key": "peanut.oauth"
                     },
-                    "controller": "app\\api\\controller\\OAuthController",
+                    "controller": "PeanutAdmin\\Modules\\OAuth\\Controller\\MemberOAuthController",
                     "action": "begin",
                     "permission": null,
                     "source": {
@@ -33509,7 +33510,7 @@
                         "type": "module",
                         "key": "peanut.oauth"
                     },
-                    "controller": "app\\api\\controller\\OAuthController",
+                    "controller": "PeanutAdmin\\Modules\\OAuth\\Controller\\MemberOAuthController",
                     "action": "callback",
                     "permission": null,
                     "source": {
@@ -33586,7 +33587,7 @@
                         "type": "module",
                         "key": "peanut.oauth"
                     },
-                    "controller": "app\\api\\controller\\OAuthController",
+                    "controller": "PeanutAdmin\\Modules\\OAuth\\Controller\\MemberOAuthController",
                     "action": "miniProgram",
                     "permission": null,
                     "source": {
@@ -33665,7 +33666,7 @@
                         "type": "module",
                         "key": "peanut.oauth"
                     },
-                    "controller": "app\\api\\controller\\OAuthController",
+                    "controller": "PeanutAdmin\\Modules\\OAuth\\Controller\\MemberOAuthController",
                     "action": "complete",
                     "permission": null,
                     "source": {
@@ -33734,7 +33735,7 @@
                         "type": "module",
                         "key": "peanut.oauth"
                     },
-                    "controller": "app\\api\\controller\\OAuthController",
+                    "controller": "PeanutAdmin\\Modules\\OAuth\\Controller\\MemberOAuthController",
                     "action": "redirectPc",
                     "permission": null,
                     "source": {
@@ -33803,7 +33804,7 @@
                         "type": "module",
                         "key": "peanut.oauth"
                     },
-                    "controller": "app\\api\\controller\\OAuthController",
+                    "controller": "PeanutAdmin\\Modules\\OAuth\\Controller\\MemberOAuthController",
                     "action": "redirectOfficialAccount",
                     "permission": null,
                     "source": {
@@ -33885,7 +33886,7 @@
                         "type": "module",
                         "key": "peanut.oauth"
                     },
-                    "controller": "app\\api\\controller\\OAuthController",
+                    "controller": "PeanutAdmin\\Modules\\OAuth\\Controller\\MemberOAuthController",
                     "action": "bind",
                     "permission": null,
                     "source": {
@@ -33987,7 +33988,7 @@
                         "type": "module",
                         "key": "peanut.oauth"
                     },
-                    "controller": "app\\api\\controller\\OfficialAccountController",
+                    "controller": "PeanutAdmin\\Modules\\OAuth\\Controller\\OfficialAccountCallbackController",
                     "action": "verify",
                     "permission": null,
                     "source": {
@@ -34103,7 +34104,7 @@
                         "type": "module",
                         "key": "peanut.oauth"
                     },
-                    "controller": "app\\api\\controller\\OfficialAccountController",
+                    "controller": "PeanutAdmin\\Modules\\OAuth\\Controller\\OfficialAccountCallbackController",
                     "action": "callback",
                     "permission": null,
                     "source": {
@@ -35202,7 +35203,7 @@
                         "type": "module",
                         "key": "peanut.payment"
                     },
-                    "controller": "app\\api\\controller\\PaymentNotifyController",
+                    "controller": "PeanutAdmin\\Modules\\Payment\\Controller\\PaymentNotifyController",
                     "action": "wechat",
                     "permission": null,
                     "source": {
@@ -35289,7 +35290,7 @@
                         "type": "module",
                         "key": "peanut.payment"
                     },
-                    "controller": "app\\api\\controller\\PaymentNotifyController",
+                    "controller": "PeanutAdmin\\Modules\\Payment\\Controller\\PaymentNotifyController",
                     "action": "alipay",
                     "permission": null,
                     "source": {
@@ -35363,7 +35364,7 @@
                         "type": "module",
                         "key": "peanut.payment"
                     },
-                    "controller": "app\\api\\controller\\RechargeController",
+                    "controller": "PeanutAdmin\\Modules\\Payment\\Controller\\MemberRechargeController",
                     "action": "config",
                     "permission": null,
                     "source": {
@@ -35445,7 +35446,7 @@
                         "type": "module",
                         "key": "peanut.payment"
                     },
-                    "controller": "app\\api\\controller\\RechargeController",
+                    "controller": "PeanutAdmin\\Modules\\Payment\\Controller\\MemberRechargeController",
                     "action": "create",
                     "permission": null,
                     "source": {
@@ -35531,7 +35532,7 @@
                         "type": "module",
                         "key": "peanut.payment"
                     },
-                    "controller": "app\\api\\controller\\RechargeController",
+                    "controller": "PeanutAdmin\\Modules\\Payment\\Controller\\MemberRechargeController",
                     "action": "prepay",
                     "permission": null,
                     "source": {
@@ -35611,7 +35612,7 @@
                         "type": "module",
                         "key": "peanut.payment"
                     },
-                    "controller": "app\\api\\controller\\RechargeController",
+                    "controller": "PeanutAdmin\\Modules\\Payment\\Controller\\MemberRechargeController",
                     "action": "detail",
                     "permission": null,
                     "source": {
@@ -35689,7 +35690,7 @@
                         "type": "module",
                         "key": "peanut.payment"
                     },
-                    "controller": "app\\api\\controller\\RechargeController",
+                    "controller": "PeanutAdmin\\Modules\\Payment\\Controller\\MemberRechargeController",
                     "action": "lists",
                     "permission": null,
                     "source": {
@@ -40380,589 +40381,6 @@
                     "$ref": "#/components/schemas/ApplicationDynamicValue"
                 }
             },
-            "ApplicationArticleCategory": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id",
-                    "name"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "name": {
-                        "type": "string"
-                    }
-                }
-            },
-            "ApplicationArticleListItem": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id",
-                    "cid",
-                    "title",
-                    "desc",
-                    "image",
-                    "create_time",
-                    "click",
-                    "collect"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "cid": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "desc": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "image": {
-                        "type": "string"
-                    },
-                    "create_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "click": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "collect": {
-                        "type": "boolean"
-                    }
-                }
-            },
-            "ApplicationArticleListPage": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "lists",
-                    "count",
-                    "pageNo",
-                    "pageSize"
-                ],
-                "properties": {
-                    "lists": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ApplicationArticleListItem"
-                        }
-                    },
-                    "count": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "pageNo": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "pageSize": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                    }
-                }
-            },
-            "ApplicationArticleDetail": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id",
-                    "desc",
-                    "abstract",
-                    "is_show",
-                    "create_time",
-                    "update_time",
-                    "delete_time",
-                    "title",
-                    "author",
-                    "content",
-                    "sort",
-                    "image",
-                    "tenant_id",
-                    "cid",
-                    "click",
-                    "collect"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "desc": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "abstract": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "is_show": {
-                        "type": "integer",
-                        "enum": [
-                            1
-                        ]
-                    },
-                    "create_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "update_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "delete_time": {
-                        "nullable": true,
-                        "oneOf": [
-                            {
-                                "oneOf": [
-                                    {
-                                        "type": "integer",
-                                        "minimum": 0
-                                    },
-                                    {
-                                        "type": "string"
-                                    }
-                                ]
-                            },
-                            {
-                                "type": "integer",
-                                "enum": [
-                                    0
-                                ]
-                            }
-                        ]
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "author": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "content": {
-                        "type": "string"
-                    },
-                    "sort": {
-                        "type": "integer"
-                    },
-                    "image": {
-                        "type": "string"
-                    },
-                    "tenant_id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "cid": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "click": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "collect": {
-                        "type": "boolean"
-                    }
-                }
-            },
-            "ApplicationArticleNavigationItem": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id",
-                    "cid",
-                    "title",
-                    "desc",
-                    "abstract",
-                    "image",
-                    "author",
-                    "create_time",
-                    "click"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "cid": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "desc": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "abstract": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "image": {
-                        "type": "string"
-                    },
-                    "author": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "create_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "click": {
-                        "type": "integer",
-                        "minimum": 0
-                    }
-                }
-            },
-            "ApplicationPcArticleDetail": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id",
-                    "desc",
-                    "abstract",
-                    "is_show",
-                    "create_time",
-                    "update_time",
-                    "delete_time",
-                    "title",
-                    "author",
-                    "content",
-                    "sort",
-                    "image",
-                    "tenant_id",
-                    "cid",
-                    "click",
-                    "collect",
-                    "last",
-                    "next",
-                    "new",
-                    "cate_name"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "desc": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "abstract": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "is_show": {
-                        "type": "integer",
-                        "enum": [
-                            1
-                        ]
-                    },
-                    "create_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "update_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "delete_time": {
-                        "nullable": true,
-                        "oneOf": [
-                            {
-                                "oneOf": [
-                                    {
-                                        "type": "integer",
-                                        "minimum": 0
-                                    },
-                                    {
-                                        "type": "string"
-                                    }
-                                ]
-                            },
-                            {
-                                "type": "integer",
-                                "enum": [
-                                    0
-                                ]
-                            }
-                        ]
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "author": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "content": {
-                        "type": "string"
-                    },
-                    "sort": {
-                        "type": "integer"
-                    },
-                    "image": {
-                        "type": "string"
-                    },
-                    "tenant_id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "cid": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "click": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "collect": {
-                        "type": "boolean"
-                    },
-                    "last": {
-                        "oneOf": [
-                            {
-                                "$ref": "#/components/schemas/ApplicationArticleNavigationItem"
-                            },
-                            {
-                                "type": "array",
-                                "maxItems": 0
-                            }
-                        ]
-                    },
-                    "next": {
-                        "oneOf": [
-                            {
-                                "$ref": "#/components/schemas/ApplicationArticleNavigationItem"
-                            },
-                            {
-                                "type": "array",
-                                "maxItems": 0
-                            }
-                        ]
-                    },
-                    "new": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ApplicationArticleNavigationItem"
-                        }
-                    },
-                    "cate_name": {
-                        "type": "string"
-                    }
-                }
-            },
-            "ApplicationHomeArticle": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id",
-                    "title",
-                    "desc",
-                    "abstract",
-                    "image",
-                    "author",
-                    "create_time",
-                    "click"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "desc": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "abstract": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "image": {
-                        "type": "string"
-                    },
-                    "author": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "create_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "click": {
-                        "type": "integer",
-                        "minimum": 0
-                    }
-                }
-            },
-            "ApplicationArticleCollectionRequest": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    }
-                }
-            },
-            "ApplicationArticleCollectionItem": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id",
-                    "article_id",
-                    "title",
-                    "image",
-                    "desc",
-                    "is_show",
-                    "create_time",
-                    "collect_time",
-                    "click"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "article_id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "image": {
-                        "type": "string"
-                    },
-                    "desc": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "is_show": {
-                        "type": "integer",
-                        "enum": [
-                            1
-                        ]
-                    },
-                    "create_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "collect_time": {
-                        "type": "string"
-                    },
-                    "click": {
-                        "type": "integer",
-                        "minimum": 0
-                    }
-                }
-            },
-            "ApplicationArticleCollectionPage": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "lists",
-                    "count",
-                    "pageNo",
-                    "pageSize"
-                ],
-                "properties": {
-                    "lists": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ApplicationArticleCollectionItem"
-                        }
-                    },
-                    "count": {
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "pageNo": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "pageSize": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                    }
-                }
-            },
             "ApplicationDecorationComponent": {
                 "type": "object",
                 "additionalProperties": false,
@@ -41453,186 +40871,6 @@
                     }
                 }
             },
-            "ApplicationHomeData": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "article",
-                    "decorate"
-                ],
-                "properties": {
-                    "article": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ApplicationHomeArticle"
-                        }
-                    },
-                    "decorate": {
-                        "$ref": "#/components/schemas/ApplicationDecorationPage"
-                    }
-                }
-            },
-            "ApplicationPcHomeData": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "all",
-                    "new",
-                    "hot",
-                    "decorate"
-                ],
-                "properties": {
-                    "all": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ApplicationArticleNavigationItem"
-                        }
-                    },
-                    "new": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ApplicationArticleNavigationItem"
-                        }
-                    },
-                    "hot": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ApplicationArticleNavigationItem"
-                        }
-                    },
-                    "decorate": {
-                        "$ref": "#/components/schemas/ApplicationDecorationPage"
-                    }
-                }
-            },
-            "ApplicationInformationArticle": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id",
-                    "cid",
-                    "title",
-                    "desc",
-                    "abstract",
-                    "image",
-                    "author",
-                    "is_show",
-                    "sort",
-                    "create_time",
-                    "update_time",
-                    "delete_time",
-                    "click"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "cid": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "desc": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "abstract": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "image": {
-                        "type": "string"
-                    },
-                    "author": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "is_show": {
-                        "type": "integer",
-                        "enum": [
-                            1
-                        ]
-                    },
-                    "sort": {
-                        "type": "integer"
-                    },
-                    "create_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "update_time": {
-                        "oneOf": [
-                            {
-                                "type": "integer",
-                                "minimum": 0
-                            },
-                            {
-                                "type": "string"
-                            }
-                        ]
-                    },
-                    "delete_time": {
-                        "nullable": true,
-                        "oneOf": [
-                            {
-                                "oneOf": [
-                                    {
-                                        "type": "integer",
-                                        "minimum": 0
-                                    },
-                                    {
-                                        "type": "string"
-                                    }
-                                ]
-                            },
-                            {
-                                "type": "integer",
-                                "enum": [
-                                    0
-                                ]
-                            }
-                        ]
-                    },
-                    "click": {
-                        "type": "integer",
-                        "minimum": 0
-                    }
-                }
-            },
-            "ApplicationInformationCategory": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "id",
-                    "name",
-                    "article"
-                ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "article": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ApplicationInformationArticle"
-                        }
-                    }
-                }
-            },
             "ApplicationHotSearchData": {
                 "type": "object",
                 "additionalProperties": false,
@@ -41667,52 +40905,6 @@
                                 }
                             }
                         }
-                    }
-                }
-            },
-            "ApplicationArticleListResponse": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "code",
-                    "msg",
-                    "data"
-                ],
-                "properties": {
-                    "code": {
-                        "type": "integer",
-                        "enum": [
-                            20000
-                        ]
-                    },
-                    "msg": {
-                        "type": "string"
-                    },
-                    "data": {
-                        "$ref": "#/components/schemas/ApplicationArticleListPage"
-                    }
-                }
-            },
-            "ApplicationArticleDetailResponse": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "code",
-                    "msg",
-                    "data"
-                ],
-                "properties": {
-                    "code": {
-                        "type": "integer",
-                        "enum": [
-                            20000
-                        ]
-                    },
-                    "msg": {
-                        "type": "string"
-                    },
-                    "data": {
-                        "$ref": "#/components/schemas/ApplicationArticleDetail"
                     }
                 }
             },
@@ -48993,6 +48185,815 @@
                         "type": "integer",
                         "minimum": 1,
                         "nullable": true
+                    }
+                }
+            },
+            "ApplicationArticleCategory": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "id",
+                    "name"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                }
+            },
+            "ApplicationArticleListItem": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "id",
+                    "cid",
+                    "title",
+                    "desc",
+                    "image",
+                    "create_time",
+                    "click",
+                    "collect"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "cid": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "desc": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "image": {
+                        "type": "string"
+                    },
+                    "create_time": {
+                        "oneOf": [
+                            {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "click": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "collect": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "ApplicationArticleListPage": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "lists",
+                    "count",
+                    "pageNo",
+                    "pageSize"
+                ],
+                "properties": {
+                    "lists": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ApplicationArticleListItem"
+                        }
+                    },
+                    "count": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "pageNo": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "pageSize": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                    }
+                }
+            },
+            "ApplicationArticleDetail": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "id",
+                    "desc",
+                    "abstract",
+                    "is_show",
+                    "create_time",
+                    "update_time",
+                    "delete_time",
+                    "title",
+                    "author",
+                    "content",
+                    "sort",
+                    "image",
+                    "tenant_id",
+                    "cid",
+                    "click",
+                    "collect"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "desc": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "abstract": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "is_show": {
+                        "type": "integer",
+                        "enum": [
+                            1
+                        ]
+                    },
+                    "create_time": {
+                        "oneOf": [
+                            {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "update_time": {
+                        "oneOf": [
+                            {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "delete_time": {
+                        "nullable": true,
+                        "oneOf": [
+                            {
+                                "oneOf": [
+                                    {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "integer",
+                                "enum": [
+                                    0
+                                ]
+                            }
+                        ]
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "author": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "content": {
+                        "type": "string"
+                    },
+                    "sort": {
+                        "type": "integer"
+                    },
+                    "image": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "cid": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "click": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "collect": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "ApplicationArticleNavigationItem": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "id",
+                    "cid",
+                    "title",
+                    "desc",
+                    "abstract",
+                    "image",
+                    "author",
+                    "create_time",
+                    "click"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "cid": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "desc": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "abstract": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "image": {
+                        "type": "string"
+                    },
+                    "author": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "create_time": {
+                        "oneOf": [
+                            {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "click": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                }
+            },
+            "ApplicationPcArticleDetail": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "id",
+                    "desc",
+                    "abstract",
+                    "is_show",
+                    "create_time",
+                    "update_time",
+                    "delete_time",
+                    "title",
+                    "author",
+                    "content",
+                    "sort",
+                    "image",
+                    "tenant_id",
+                    "cid",
+                    "click",
+                    "collect",
+                    "last",
+                    "next",
+                    "new",
+                    "cate_name"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "desc": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "abstract": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "is_show": {
+                        "type": "integer",
+                        "enum": [
+                            1
+                        ]
+                    },
+                    "create_time": {
+                        "oneOf": [
+                            {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "update_time": {
+                        "oneOf": [
+                            {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "delete_time": {
+                        "nullable": true,
+                        "oneOf": [
+                            {
+                                "oneOf": [
+                                    {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "integer",
+                                "enum": [
+                                    0
+                                ]
+                            }
+                        ]
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "author": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "content": {
+                        "type": "string"
+                    },
+                    "sort": {
+                        "type": "integer"
+                    },
+                    "image": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "cid": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "click": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "collect": {
+                        "type": "boolean"
+                    },
+                    "last": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ApplicationArticleNavigationItem"
+                            },
+                            {
+                                "type": "array",
+                                "maxItems": 0
+                            }
+                        ]
+                    },
+                    "next": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ApplicationArticleNavigationItem"
+                            },
+                            {
+                                "type": "array",
+                                "maxItems": 0
+                            }
+                        ]
+                    },
+                    "new": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ApplicationArticleNavigationItem"
+                        }
+                    },
+                    "cate_name": {
+                        "type": "string"
+                    }
+                }
+            },
+            "ApplicationHomeArticle": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "id",
+                    "title",
+                    "desc",
+                    "abstract",
+                    "image",
+                    "author",
+                    "create_time",
+                    "click"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "desc": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "abstract": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "image": {
+                        "type": "string"
+                    },
+                    "author": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "create_time": {
+                        "oneOf": [
+                            {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "click": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                }
+            },
+            "ApplicationArticleCollectionRequest": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "id"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
+                }
+            },
+            "ApplicationArticleCollectionItem": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "id",
+                    "article_id",
+                    "title",
+                    "image",
+                    "desc",
+                    "is_show",
+                    "create_time",
+                    "collect_time",
+                    "click"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "article_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "image": {
+                        "type": "string"
+                    },
+                    "desc": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "is_show": {
+                        "type": "integer",
+                        "enum": [
+                            1
+                        ]
+                    },
+                    "create_time": {
+                        "oneOf": [
+                            {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "collect_time": {
+                        "type": "string"
+                    },
+                    "click": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                }
+            },
+            "ApplicationArticleCollectionPage": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "lists",
+                    "count",
+                    "pageNo",
+                    "pageSize"
+                ],
+                "properties": {
+                    "lists": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ApplicationArticleCollectionItem"
+                        }
+                    },
+                    "count": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "pageNo": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "pageSize": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                    }
+                }
+            },
+            "ApplicationHomeData": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "article",
+                    "decorate"
+                ],
+                "properties": {
+                    "article": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ApplicationHomeArticle"
+                        }
+                    },
+                    "decorate": {
+                        "$ref": "#/components/schemas/ApplicationDecorationPage"
+                    }
+                }
+            },
+            "ApplicationPcHomeData": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "all",
+                    "new",
+                    "hot",
+                    "decorate"
+                ],
+                "properties": {
+                    "all": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ApplicationArticleNavigationItem"
+                        }
+                    },
+                    "new": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ApplicationArticleNavigationItem"
+                        }
+                    },
+                    "hot": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ApplicationArticleNavigationItem"
+                        }
+                    },
+                    "decorate": {
+                        "$ref": "#/components/schemas/ApplicationDecorationPage"
+                    }
+                }
+            },
+            "ApplicationInformationArticle": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "id",
+                    "cid",
+                    "title",
+                    "desc",
+                    "abstract",
+                    "image",
+                    "author",
+                    "is_show",
+                    "sort",
+                    "create_time",
+                    "update_time",
+                    "delete_time",
+                    "click"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "cid": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "desc": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "abstract": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "image": {
+                        "type": "string"
+                    },
+                    "author": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "is_show": {
+                        "type": "integer",
+                        "enum": [
+                            1
+                        ]
+                    },
+                    "sort": {
+                        "type": "integer"
+                    },
+                    "create_time": {
+                        "oneOf": [
+                            {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "update_time": {
+                        "oneOf": [
+                            {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "delete_time": {
+                        "nullable": true,
+                        "oneOf": [
+                            {
+                                "oneOf": [
+                                    {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "integer",
+                                "enum": [
+                                    0
+                                ]
+                            }
+                        ]
+                    },
+                    "click": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                }
+            },
+            "ApplicationInformationCategory": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "id",
+                    "name",
+                    "article"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "article": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ApplicationInformationArticle"
+                        }
+                    }
+                }
+            },
+            "ApplicationArticleListResponse": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "code",
+                    "msg",
+                    "data"
+                ],
+                "properties": {
+                    "code": {
+                        "type": "integer",
+                        "enum": [
+                            20000
+                        ]
+                    },
+                    "msg": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/ApplicationArticleListPage"
+                    }
+                }
+            },
+            "ApplicationArticleDetailResponse": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "code",
+                    "msg",
+                    "data"
+                ],
+                "properties": {
+                    "code": {
+                        "type": "integer",
+                        "enum": [
+                            20000
+                        ]
+                    },
+                    "msg": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/ApplicationArticleDetail"
                     }
                 }
             },

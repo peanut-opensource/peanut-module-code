@@ -7,7 +7,7 @@ namespace PeanutAdmin\Modules\OAuth\Service;
 use app\common\http\PageResult;
 use app\common\exception\BusinessException;
 use app\common\support\PaginationInput;
-use app\common\enum\channel\OfficialAccountEnum;
+use PeanutAdmin\Modules\OAuth\Value\OfficialAccountEnum;
 use PeanutAdmin\Modules\OAuth\Model\OfficialAccountReply;
 use think\facade\Db;
 use PeanutAdmin\Modules\Integration\Contract\ExternalTenantContext;

@@ -26,6 +26,8 @@ export interface ModuleApiOperations {
   changeMemberPassword: paths['/api/user/changePassword']['post'];
   bindMemberMobile: paths['/api/user/bindMobile']['post'];
   listCurrentMemberBalanceLogs: paths['/api/account_log/lists']['get'];
+  sendVerificationCode: paths['/api/sms/sendCode']['post'];
+  logoutMemberSession: paths['/api/login/logout']['post'];
 }
 
 export function createModuleApi(client: Client<paths>) {
@@ -53,6 +55,8 @@ export function createModuleApi(client: Client<paths>) {
     changeMemberPassword: pathClient['/api/user/changePassword'].POST,
     bindMemberMobile: pathClient['/api/user/bindMobile'].POST,
     listCurrentMemberBalanceLogs: pathClient['/api/account_log/lists'].GET,
+    sendVerificationCode: pathClient['/api/sms/sendCode'].POST,
+    logoutMemberSession: pathClient['/api/login/logout'].POST,
   };
 }
 

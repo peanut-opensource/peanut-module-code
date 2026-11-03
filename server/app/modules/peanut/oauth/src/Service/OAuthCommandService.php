@@ -9,7 +9,7 @@ use PeanutAdmin\Modules\Member\Contract\Dto\MemberIdentitySnapshot;
 use PeanutAdmin\Modules\Member\Contract\MemberIdentityCommands;
 use PeanutAdmin\Modules\Member\Contract\MemberProfileCommands;
 use PeanutAdmin\Modules\Member\Contract\MemberQueries;
-use app\common\enum\notice\NoticeSceneEnum;
+use PeanutAdmin\Modules\Notification\Value\NoticeSceneEnum;
 use app\common\exception\BusinessException;
 use app\common\persistence\AdvisoryLockExecution;
 use app\common\persistence\AdvisoryLockUnavailable;

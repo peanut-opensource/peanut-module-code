@@ -11,7 +11,7 @@ use PeanutAdmin\Modules\Member\Contract\Dto\MemberBalanceMutation;
 use PeanutAdmin\Modules\Member\Contract\MemberBalanceCommands;
 use PeanutAdmin\Modules\Member\Contract\MemberQueries;
 use DateTimeImmutable;
-use app\common\enum\AccountLogEnum;
+use PeanutAdmin\Modules\Member\Value\AccountLogEnum;
 use app\common\contract\idempotency\IdempotentCommandExecutor;
 use app\common\contract\idempotency\IdempotencyCommand;
 use app\common\contract\idempotency\IdempotencyReceipt;

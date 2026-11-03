@@ -34,20 +34,21 @@ final class ModuleProvider implements ModuleProviderContract
     public function bindings(): array
     {
         return [
-            \app\api\services\UserTokenService::class => static fn(\think\App $app) => new \app\api\services\UserTokenService(
+            \PeanutAdmin\Modules\Member\Service\UserTokenService::class => static fn(\think\App $app) => new \PeanutAdmin\Modules\Member\Service\UserTokenService(
                 (string) $app->config->get('jwt.secret', ''),
                 (int) $app->config->get('jwt.expire', 0),
                 $app->make(MemberSessions::class),
             ),
-            \app\api\services\LoginApplicationService::class => static fn(\think\App $app) => new \app\api\services\LoginApplicationService(
+            \PeanutAdmin\Modules\Member\Service\LoginApplicationService::class => static fn(\think\App $app) => new \PeanutAdmin\Modules\Member\Service\LoginApplicationService(
                 $app->make(MemberIdentityCommands::class),
                 $app->make(\PeanutAdmin\Modules\Settings\Contract\TenantApplicationSettings::class),
                 $app->make(\PeanutAdmin\Modules\File\Contract\FileReferences::class),
-                $app->make(\app\api\services\UserTokenService::class),
+                $app->make(\PeanutAdmin\Modules\Member\Service\UserTokenService::class),
                 (string) $app->config->get('project.default_image.user_avatar', ''),
                 $app->bound(\PeanutAdmin\Modules\Notification\Contract\VerificationCodeCommands::class)
                     ? $app->make(\PeanutAdmin\Modules\Notification\Contract\VerificationCodeCommands::class) : null,
             ),
+            \PeanutAdmin\Modules\Member\Contract\MemberAccessTokens::class => \PeanutAdmin\Modules\Member\Service\UserTokenService::class,
             MemberQueries::class => MemberQueryService::class,
             MemberSubjectLookup::class => ThinkPhpMemberSubjectLookup::class,
             MemberSessionStore::class => ThinkPhpMemberSessionStore::class,

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace PeanutAdmin\Modules\Payment\Model;
 
-use app\common\enum\UserTerminalEnum;
+use PeanutAdmin\Modules\Payment\Value\UserTerminalEnum;
 use app\common\model\SharedModel;
 
 /**
