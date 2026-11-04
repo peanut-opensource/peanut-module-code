@@ -249,7 +249,7 @@
         "peanut-business/peanut-collaboration": "1.0.18",
         "peanut-business/peanut-document": "1.0.15",
         "peanut-business/entitlement-quota": "4.0.0-rc.37",
-        "peanut-business/peanut-import-export": "1.0.30",
+        "peanut-business/peanut-import-export": "1.0.31",
         "peanut-business/peanut-member": "1.0.25",
         "peanut-business/peanut-notification": "1.0.29",
         "peanut-business/peanut-oauth": "1.0.11",

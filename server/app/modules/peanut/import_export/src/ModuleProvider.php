@@ -29,7 +29,6 @@ use PeanutAdmin\Modules\ImportExport\Engine\Application\ImportExportService;
 use PeanutAdmin\Modules\ImportExport\Engine\Contract\DataProviderRegistry;
 use PeanutAdmin\Modules\ImportExport\Engine\Execution\CsvOperationRunner;
 use PeanutAdmin\Modules\ImportExport\Engine\Execution\ImportExportTaskHandler;
-use PeanutAdmin\Modules\ImportExport\Engine\Execution\ImportExportTaskSubmissionProvider;
 use PeanutAdmin\Kernel\Module\ModuleProvider as ModuleProviderContract;
 use think\App;
 
@@ -64,7 +63,7 @@ final class ModuleProvider extends \think\Service implements ModuleProviderContr
                 return new ImportExportApplicationService(new ImportExportService(
                     $app->make(\PeanutAdmin\Modules\ImportExport\Engine\Persistence\ImportExportStore::class),
                     $app->make(DataProviderRegistry::class),
-                    $tasks->publisher(new ImportExportTaskSubmissionProvider()),
+                    $tasks->publisher($app->make(ImportExportTaskWorkerDefinition::class)),
                     $tasks->jobs(),
                     $app->make(AuditService::class),
                 ));
