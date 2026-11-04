@@ -286,6 +286,27 @@ final readonly class ModuleLifecycleService implements ModuleLifecycleCommands
         if (!is_array($current)) {
             throw new ModuleLifecycleException('PLUGIN_NOT_INSTALLED', 'Plugin must be installed before upgrade.');
         }
+        // Activation writes the catalog and active state in one transaction. After interruption,
+        // finish only that transaction for a previously active, fully migrated, identical target.
+        if ($current['status'] === 'upgrading' && $current['activated_at'] !== null && $current['last_error_code'] === null
+            && $this->sameIdentity($plugin, $current) && hash_equals((string) $current['lock_digest'], $plugin->lockDigest)) {
+            $dependencies = (new Dependencies(rtrim(app()->getRootPath(), '/')))->verifyInstalled(
+                $plugin, $this->resolver, $this->installedModules(),
+            );
+            return $this->withMigrationLock($plugin, function () use ($plugin, $dependencies, $dryRun, $consumePlan, $current): array {
+                $manifests = $this->pluginManifests($plugin);
+                $this->assertPreflightOwnership($plugin, $manifests, true);
+                $this->assertMigrationsComplete($manifests);
+                $this->assertModuleSchema($manifests);
+                if ($dryRun) {
+                    $plan = $this->plan($plugin, $manifests, $current)
+                        + ['dry_run' => true, 'operation' => 'upgrade'];
+                    return $consumePlan === null ? $plan : $consumePlan($plan);
+                }
+                $this->registerCatalog($plugin, $manifests, true);
+                return $plugin->publicIdentity() + ['operation' => 'upgraded', 'resumed' => true, 'dependencies' => $dependencies];
+            });
+        }
         if (!in_array($current['status'], ['active', 'failed'], true)
             && !($current['status'] === 'maintenance' && $current['last_error_code'] === null)) {
             throw new ModuleLifecycleException('PLUGIN_STATE_INVALID', 'Plugin cannot be upgraded from its current state.');
@@ -506,29 +527,36 @@ final readonly class ModuleLifecycleService implements ModuleLifecycleCommands
         }
     }
 
-    /** Recheck the selected closure under the existing migration lock, then run natively. */
     private function applyMigrations(ModuleDescriptor $plugin): void
+    {
+        $this->withMigrationLock($plugin, function () use ($plugin): void {
+            $plan = $this->migrationPlan($this->pluginManifests($plugin));
+            if ($plan['blockers'] !== []) {
+                throw new ModuleLifecycleException($plan['blockers'][0]['code'], $plan['blockers'][0]['message']);
+            }
+            if (array_filter($plan['migrations'], static fn(array $row): bool => $row['disposition'] === 'pending') === []) {
+                return;
+            }
+            $migration = new ModuleMigrationRun($plan['migrations']);
+            $migration->setApp(app());
+            $migration->run(new Input([]), new Output('buffer'));
+            $this->assertMigrationsComplete($this->pluginManifests($plugin));
+        });
+    }
+
+    /** Recheck the selected identity under the native migration lock before applying or verifying its schema. */
+    private function withMigrationLock(ModuleDescriptor $plugin, callable $operation): mixed
     {
         $database = Db::connect()->query('SELECT DATABASE() AS database_name', [], true)[0]['database_name'];
         try {
-            (new AdvisoryLockExecution())->run('pa:native-migration:' . substr(hash('sha256', $database), 0, 32), 0,
-                function () use ($plugin): void {
+            return (new AdvisoryLockExecution())->run('pa:native-migration:' . substr(hash('sha256', $database), 0, 32), 0,
+                function () use ($plugin, $operation): mixed {
                     $this->resolver->reload();
                     $selected = $this->resolver->require($plugin->key);
                     if ($selected->publicIdentity() !== $plugin->publicIdentity()) {
                         throw new ModuleLifecycleException('MODULE_MIGRATION_SOURCE_CHANGED', 'Locked package changed before migration.');
                     }
-                    $plan = $this->migrationPlan($this->pluginManifests($selected));
-                    if ($plan['blockers'] !== []) {
-                        throw new ModuleLifecycleException($plan['blockers'][0]['code'], $plan['blockers'][0]['message']);
-                    }
-                    if (array_filter($plan['migrations'], static fn(array $row): bool => $row['disposition'] === 'pending') === []) {
-                        return;
-                    }
-                    $migration = new ModuleMigrationRun($plan['migrations']);
-                    $migration->setApp(app());
-                    $migration->run(new Input([]), new Output('buffer'));
-                    $this->assertMigrationsComplete($this->pluginManifests($selected));
+                    return $operation();
                 });
         } catch (AdvisoryLockUnavailable) {
             throw new ModuleLifecycleException('APPLICATION_MIGRATION_BUSY', 'Another application migration is running.');

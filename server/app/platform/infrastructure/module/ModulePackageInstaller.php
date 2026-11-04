@@ -139,7 +139,7 @@ final class ModulePackageInstaller
                             $target = $this->projectRoot() . '/' . $relative;
                             if (file_exists($target)) {
                                 if (!$this->scopeMatches($relative, $target, $package->inventory)) {
-                                    if (!$recoverableReplacement) {
+                                    if (!$recoverableReplacement || ($plan['source']['status'] ?? null) === 'upgrading') {
                                         throw new ModulePackageException('MODULE_PACKAGE_TARGET_CONFLICT', 'Package target contains a different identity.');
                                     }
                                     $recoveryRoot ??= $this->recoveryRoot($package->packageKey);
@@ -295,11 +295,16 @@ final class ModulePackageInstaller
             throw new ModulePackageException('PLUGIN_NOT_INSTALLED', 'Package must be installed before update.');
         }
         $installation = Db::name('module_installation')->where('module_key', $package->packageKey)
-            ->field('installed_version,status,artifact_sha256,lock_digest,last_error_code')->find();
+            ->field('installed_version,status,artifact_sha256,lock_digest,last_error_code,activated_at')->find();
         if ($installation === null) {
             throw new ModulePackageException('PLUGIN_NOT_INSTALLED', 'Package must be installed before update.');
         }
-        if (!in_array($installation['status'] ?? null, ['active', 'failed'], true)
+        $resume = $installation['status'] === 'upgrading' && $installation['activated_at'] !== null
+            && $installation['last_error_code'] === null && $installation['installed_version'] === $package->packageVersion
+            && hash_equals((string) $installation['artifact_sha256'], $package->descriptor->source['sha256'])
+            && hash_equals((string) $installation['artifact_sha256'], $descriptor->source['sha256'])
+            && hash_equals((string) $installation['lock_digest'], $descriptor->lockDigest);
+        if (!$resume && !in_array($installation['status'] ?? null, ['active', 'failed'], true)
             && !(($installation['status'] ?? null) === 'maintenance' && $installation['last_error_code'] === null)) {
             throw new ModulePackageException('PLUGIN_STATE_INVALID', 'Package cannot be updated from its current state.');
         }
