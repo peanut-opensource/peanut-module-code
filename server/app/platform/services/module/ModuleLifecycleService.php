@@ -293,7 +293,7 @@ final readonly class ModuleLifecycleService implements ModuleLifecycleCommands
             $dependencies = (new Dependencies(rtrim(app()->getRootPath(), '/')))->verifyInstalled(
                 $plugin, $this->resolver, $this->installedModules(),
             );
-            return $this->withMigrationLock($plugin, function () use ($plugin, $dependencies, $dryRun, $consumePlan, $current): array {
+            return $this->withMigrationLock($plugin, function (ModuleDescriptor $plugin) use ($dependencies, $dryRun, $consumePlan, $current): array {
                 $manifests = $this->pluginManifests($plugin);
                 $this->assertPreflightOwnership($plugin, $manifests, true);
                 $this->assertMigrationsComplete($manifests);
@@ -529,7 +529,7 @@ final readonly class ModuleLifecycleService implements ModuleLifecycleCommands
 
     private function applyMigrations(ModuleDescriptor $plugin): void
     {
-        $this->withMigrationLock($plugin, function () use ($plugin): void {
+        $this->withMigrationLock($plugin, function (ModuleDescriptor $plugin): void {
             $plan = $this->migrationPlan($this->pluginManifests($plugin));
             if ($plan['blockers'] !== []) {
                 throw new ModuleLifecycleException($plan['blockers'][0]['code'], $plan['blockers'][0]['message']);
@@ -556,7 +556,7 @@ final readonly class ModuleLifecycleService implements ModuleLifecycleCommands
                     if ($selected->publicIdentity() !== $plugin->publicIdentity()) {
                         throw new ModuleLifecycleException('MODULE_MIGRATION_SOURCE_CHANGED', 'Locked package changed before migration.');
                     }
-                    return $operation();
+                    return $operation($selected);
                 });
         } catch (AdvisoryLockUnavailable) {
             throw new ModuleLifecycleException('APPLICATION_MIGRATION_BUSY', 'Another application migration is running.');
