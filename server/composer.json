@@ -215,6 +215,9 @@
             "name": "\u82b1\u751f\u79d1\u6280"
         }
     ],
+    "provide": {
+        "peanut-admin/module-composition-host": "1.0.0"
+    },
     "require": {
         "php": "^8.3",
         "topthink/framework": "^8.0",

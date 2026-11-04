@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "cc1805f8a3f75768591dbc35580f568f",
+    "content-hash": "39103eb6c6fff13e7e9440e9bf4833b7",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2078,10 +2078,11 @@
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/import_export",
-                "reference": "a59bce19bb9d473e5ba78726b286b380ea3da51a"
+                "reference": "e1d1cd2d2624ca4b17be5a0963d93a3093e8bec8"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
+                "peanut-admin/module-composition-host": "^1.0",
                 "peanut-business/peanut-file": "^1.0",
                 "peanut-business/peanut-identity": "^4.0.0-rc.32",
                 "peanut-business/peanut-integration": "^1.0",
@@ -2190,10 +2191,11 @@
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/notification",
-                "reference": "80a6c206c7bf6eb26a0cbe152106f2dbe1100a6e"
+                "reference": "ea39cd7d102a14a38dbbbbf5efd4a8dd253b773b"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
+                "peanut-admin/module-composition-host": "^1.0",
                 "peanut-business/peanut-identity": "^4.0.0-rc.32",
                 "peanut-business/peanut-integration": "^1.0",
                 "peanut-business/peanut-task": "^1.0",
@@ -2301,10 +2303,11 @@
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/payment",
-                "reference": "164db507a444c85a292bdf7b1d1cb4243bbbf052"
+                "reference": "dfcd848a33b2bb9b57618a709a74df3ed4c281ae"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
+                "peanut-admin/module-composition-host": "^1.0",
                 "peanut-business/peanut-identity": "^4.0.0-rc.32",
                 "peanut-business/peanut-integration": "^1.0",
                 "peanut-business/peanut-member": "^1.0",
@@ -2480,10 +2483,11 @@
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/workflow",
-                "reference": "078baac2c1306cf19de3ef1df9cffb051543ed4b"
+                "reference": "c3dcf6776de7283f82e3a1097149a7b5b30f8749"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
+                "peanut-admin/module-composition-host": "^1.0",
                 "peanut-business/peanut-identity": "^4.0.0-rc.32",
                 "php": "^8.3"
             },

@@ -6,6 +6,7 @@ namespace app\common\composition;
 
 use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
 use PeanutAdmin\Kernel\Module\ModuleException;
+use think\Console;
 use think\Service;
 
 /** Registers compiled Module services with the native ThinkPHP lifecycle. */
@@ -30,5 +31,16 @@ final class ModuleExtensionService extends Service
                 $this->app->register($provider);
             }
         }
+        $commands = $this->app->make(ModuleConsoleCommands::class);
+        // Console construction has already loaded native defaults, config and Service commands.
+        $this->app->resolving('console', static function (Console $console) use ($commands): void {
+            $contributions = $commands->contributions();
+            foreach (array_keys($contributions) as $name) {
+                if ($console->hasCommand($name)) {
+                    throw new ModuleException('MODULE_COMMAND_CONFLICT', "Module console command is duplicated: {$name}");
+                }
+            }
+            $console->addCommands($contributions);
+        });
     }
 }

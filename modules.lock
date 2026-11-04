@@ -884,7 +884,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "aa68d75c15503d0001c74cfabf1772e9ea4688c3ccf3c62ccf7a80364e161951"
+                "sha256": "b419fb2408d7d809811b8543905c9cc1f57ec3c56333d2f617e655e290d2bce5"
             },
             "trust": {
                 "channel": "bundled",
@@ -954,7 +954,7 @@
                 {
                     "name": "peanut-business/peanut-import-export",
                     "version": "1.0.29",
-                    "sha256": "188c819e1900b6b8f62b3ce495e710935cc0a63329e6e87060c7bb3d6854610f"
+                    "sha256": "d1d5f96cae9a5237c2e32642a45033eb26b8f21a5fd61634a2b26a62e61a8676"
                 }
             ],
             "npm": [
@@ -1196,7 +1196,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "145782727a9c98046de5d475a1cd2dbadd92304e8ff1b5fcc75e38783b816aab"
+                "sha256": "ba82dc24ae796eee279c98fba1453ffed1b896806f6ebbaab9667fd2c18732fc"
             },
             "trust": {
                 "channel": "bundled",
@@ -1258,7 +1258,7 @@
                 {
                     "name": "peanut-business/peanut-notification",
                     "version": "1.0.28",
-                    "sha256": "db02c39e531a75f950a6fe6bdd57129153e7ad355e6533402b129686876ca7b7"
+                    "sha256": "4d03deb7285408038e82afeb363b75b6ad404252968f45fb0628ff9dca38a6f1"
                 }
             ],
             "npm": [
@@ -1516,7 +1516,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "9d1ea24759cf9ab1d763929f3b2696309c2184b2c4efc98e37c75d9b258f3638"
+                "sha256": "c81178eee0688afa85ea4e9f97814ac2eae7c58916f2000ad6ea14979a3dd148"
             },
             "trust": {
                 "channel": "bundled",
@@ -1594,7 +1594,7 @@
                 {
                     "name": "peanut-business/peanut-payment",
                     "version": "1.0.25",
-                    "sha256": "29c5d529bc7f24ef5c47210e26f38615a9baa6d5444d22976785a65e20269b75"
+                    "sha256": "f57e81085c1bb7788b2828407e0fb0ed30605a1d6ba159e7b7728bbffc03a990"
                 }
             ],
             "npm": [
@@ -2016,7 +2016,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "a13c6a70f6e9d0319976f8d8fe7d50651e294868e51d300acd302856029253cb"
+                "sha256": "141503db574cfc2353b5291c8588af2c71b37442c1f337e17daee10308e347be"
             },
             "trust": {
                 "channel": "bundled",
@@ -2070,7 +2070,7 @@
                 {
                     "name": "peanut-business/workflow",
                     "version": "4.0.0-rc.43",
-                    "sha256": "cecc0430c88af03e6301e7231ea5751be1feccb43763f67fb7d65c669aae2917"
+                    "sha256": "67fdf420324389d7e4ed8bb99b84b02d3993d1e2ff2fb7b359031829c511c017"
                 }
             ],
             "npm": [

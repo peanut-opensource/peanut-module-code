@@ -33,8 +33,15 @@ use PeanutAdmin\Modules\ImportExport\Engine\Execution\ImportExportTaskSubmission
 use PeanutAdmin\Kernel\Module\ModuleProvider as ModuleProviderContract;
 use think\App;
 
-final class ModuleProvider implements ModuleProviderContract, TaskWorkerContributor
+final class ModuleProvider extends \think\Service implements ModuleProviderContract, TaskWorkerContributor
 {
+    public function register(): void
+    {
+        \app\common\composition\ModuleConsoleCommands::register($this->app, $this->moduleKey(), [
+            'import-export:expire' => \PeanutAdmin\Modules\ImportExport\Console\ExpireOperationsCommand::class,
+        ]);
+    }
+
     public function moduleKey(): string
     {
         return 'peanut.import-export';

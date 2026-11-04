@@ -282,6 +282,15 @@ final readonly class ModuleLifecycleService implements ModuleLifecycleCommands
     {
         $plugin = $this->resolver->require($pluginKey);
         $this->assertTrustEligible($plugin);
+        $hostVersion = \app\common\module\PackageCheck::compositionHostVersion(
+            (string) file_get_contents(rtrim(app()->getRootPath(), '/') . '/composer.json'),
+        );
+        foreach ($plugin->moduleRoots as $key => $root) {
+            $requirement = \app\common\module\PackageCheck::compositionHostRequirement($root);
+            if ($requirement !== null) {
+                \app\common\module\PackageCheck::assertCompositionHost($key, $requirement, $hostVersion);
+            }
+        }
         $current = $this->pluginInstallation($pluginKey, false);
         if (!is_array($current)) {
             throw new ModuleLifecycleException('PLUGIN_NOT_INSTALLED', 'Plugin must be installed before upgrade.');

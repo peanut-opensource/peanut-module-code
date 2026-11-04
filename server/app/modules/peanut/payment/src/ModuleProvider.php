@@ -13,8 +13,15 @@ use PeanutAdmin\Modules\Payment\Infrastructure\ThinkPhpPaymentChannelGrantComman
 use PeanutAdmin\Modules\Payment\Infrastructure\ThinkPhpRefundReconciliationCommands;
 use PeanutAdmin\Kernel\Module\ModuleProvider as ModuleProviderContract;
 
-final class ModuleProvider implements ModuleProviderContract
+final class ModuleProvider extends \think\Service implements ModuleProviderContract
 {
+    public function register(): void
+    {
+        \app\common\composition\ModuleConsoleCommands::register($this->app, $this->moduleKey(), [
+            'refund:reconcile' => \PeanutAdmin\Modules\Payment\Console\RefundReconcile::class,
+        ]);
+    }
+
     public function moduleKey(): string
     {
         return 'peanut.payment';

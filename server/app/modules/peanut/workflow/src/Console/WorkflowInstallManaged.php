@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\command;
+namespace PeanutAdmin\Modules\Workflow\Console;
 
 use app\common\execution\ContextualCommand;
 use app\common\contract\authorization\AdminAuthorizationQuery;
@@ -63,7 +63,7 @@ final class WorkflowInstallManaged extends ContextualCommand
             $code = $exception instanceof \PeanutAdmin\Modules\Workflow\Application\WorkflowException ? $exception->errorCode : 'WORKFLOW_INSTALL_FAILED';
             $failures = [];
             $failure = $exception;
-            $root = realpath(dirname(__DIR__, 2));
+            $root = realpath($this->getApp()->getRootPath());
             while ($failure !== null && count($failures) < 8) {
                 $exceptionCode = (string) $failure->getCode();
                 $file = realpath($failure->getFile());

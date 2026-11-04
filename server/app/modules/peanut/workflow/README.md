@@ -15,8 +15,8 @@ Module provider and host composition, without reading Workflow private Models.
 
 A selected business provider implements `WorkflowScenarioContributor` and calls
 `WorkflowScenarioRegistry::register(moduleKey, workflowKey, resourceKey, provider,
-access, actionKeys)` inside `registerWorkflowScenarios`. The composition root
-collects contributors and constructs the registry. Keys/classes are source-defined,
+access, actionKeys)` inside `registerWorkflowScenarios`. The Workflow Provider
+collects selected contributors and constructs the registry through its bindings. Keys/classes are source-defined,
 never request input. The optional artifact adapter is not an automatically
 registered business scenario. The scenario owns `prepareSubjectSnapshot` before
 the intent transaction, then revalidates/locks in `snapshot` on the same connection

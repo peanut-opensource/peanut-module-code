@@ -152,6 +152,12 @@ final class ModulePackageArchiveService
                     throw new ModulePackageException('MODULE_PACKAGE_DUPLICATE_MODULE', 'Package contains a duplicate Module key.');
                 }
                 $inspection = $preflight->inspect($key);
+                $requirement = PackageCheck::compositionHostRequirement($inspection['manifest']->root);
+                if ($requirement !== null) {
+                    PackageCheck::assertCompositionHost($key, $requirement, PackageCheck::compositionHostVersion(
+                        (string) file_get_contents($this->serverRoot . '/composer.json'),
+                    ));
+                }
                 if ($module['root'] !== $inspection['backend_relative']) {
                     throw new ModulePackageException('MODULE_PACKAGE_PATH_MISMATCH', 'Plugin Module root is not key-derived.');
                 }

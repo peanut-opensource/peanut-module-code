@@ -14,6 +14,7 @@ use app\adminapi\services\OperationLogService;
 use app\adminapi\infrastructure\generator\GeneratorImportPersistence;
 use app\api\services\IndexApplicationService;
 use app\common\composition\ModuleComposition;
+use app\common\composition\ModuleConsoleCommands;
 use app\common\contract\AdminPermissionPolicy;
 use app\common\contract\authorization\AdminAuthorizationQuery;
 use app\common\contract\idempotency\IdempotentCommandExecutor;
@@ -579,7 +580,7 @@ class AppService extends Service
                 $this->app->make(PlatformPermissionChecker::class),
             ));
         $this->app->bind(CrontabCommandService::class, fn(): CrontabCommandService => new CrontabCommandService(
-            (array) Config::get('console.commands', []),
+            (array) Config::get('console.commands', []) + $this->app->make(ModuleConsoleCommands::class)->contributions(),
             (array) Config::get('console.module_commands', []),
         ));
     }
@@ -704,22 +705,6 @@ class AppService extends Service
         }
         $this->app->instance(CompiledModuleRegistry::class, $registry);
         $this->app->make(ModuleComposition::class)->register($registry);
-        $moduleCommands = [
-            'peanut.workflow' => ['workflow:install-managed' => \app\command\WorkflowInstallManaged::class],
-            'peanut.import-export' => ['import-export:expire' => \PeanutAdmin\Modules\ImportExport\Console\ExpireOperationsCommand::class],
-            'peanut.payment' => ['refund:reconcile' => \app\command\RefundReconcile::class],
-        ];
-        $commands = (array) Config::get('console.commands', []);
-        $owners = (array) Config::get('console.module_commands', []);
-        foreach ($registry->modules as $manifest) {
-            foreach ($moduleCommands[$manifest->data['key']] ?? [] as $name => $command) {
-                $commands[$name] = $command;
-                if ($name === 'refund:reconcile') {
-                    $owners[$name] = $manifest->data['key'];
-                }
-            }
-        }
-        Config::set(['commands' => $commands, 'module_commands' => $owners], 'console');
     }
 
     /** @return array<string,mixed> */

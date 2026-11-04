@@ -13,6 +13,7 @@ use app\common\value\scaffold\ScaffoldManifest;
 use app\common\value\scaffold\ScaffoldSourceIdentity;
 use app\platform\value\module\ModuleDescriptor;
 use app\platform\exception\module\ModuleLifecycleException;
+use app\platform\exception\module\ModulePackageException;
 use app\platform\infrastructure\module\ModuleLockResolver;
 use app\platform\infrastructure\module\ModuleArtifactWriter;
 use PeanutAdmin\Kernel\Module\StrictVersionConstraintMatcher;
@@ -247,6 +248,7 @@ final class ScaffoldUpgradeRunner
                 $development,
             );
             $actions = $this->projectModuleBoundary($actions, $pluginProjection, $targetPlugins, $pluginTarget);
+            $this->projectModuleHostCompatibility($pluginTarget, $root, $to, $actions, $targetParameters);
         }
         $summary = $this->summary($actions);
         $impact = $this->withModuleCompatibilityImpact($this->impact($actions), $pluginTarget);
@@ -385,7 +387,7 @@ final class ScaffoldUpgradeRunner
                 throw new RuntimeException('SCAFFOLD_RESOLUTION_PLAN_NOT_BLOCKED');
             }
             $this->assertPlanFresh($root, $plan);
-            $resolved = $this->resolveConflicts($plan, $confirmedPlanSha256, $preservePaths, $replacePaths);
+            $resolved = $this->resolveConflicts($root, null, $plan, $confirmedPlanSha256, $preservePaths, $replacePaths);
             if (($resolved['status'] ?? null) !== 'ready') {
                 throw new RuntimeException('SCAFFOLD_MODULE_COMPATIBILITY_BLOCKED');
             }
@@ -2438,7 +2440,8 @@ final class ScaffoldUpgradeRunner
             $keys[] = $key;
         }
         if ($keys === [] && ($current['legacy_artifacts'] ?? []) === []) {
-            return ['keys' => [], 'lock_contents' => (string) file_get_contents($root . '/modules.lock'), 'projection' => $current];
+            return ['keys' => [], 'lock_contents' => (string) file_get_contents($root . '/modules.lock'),
+                'projection' => $current, 'host_requirements' => $this->moduleHostRequirements($root, $current)];
         }
 
         $stage = ScaffoldPathGuard::projectPath($root, '.peanut/upgrades/plugin-projection-' . bin2hex(random_bytes(16)));
@@ -2591,7 +2594,8 @@ final class ScaffoldUpgradeRunner
             return ['keys' => $keys, 'source_projection' => $sourceProjection,
                 'managed_upstream_proofs' => $managedUpstreamProofs,
                 'manifest_contents' => $manifestContents, 'lock_contents' => $built['contents'],
-                'projection' => $projection, 'compatibility' => $compatibility];
+                'projection' => $projection, 'compatibility' => $compatibility,
+                'host_requirements' => $this->moduleHostRequirements($stage, $projection)];
         } finally {
             $this->removeModuleProjectionStage($stage);
         }
@@ -2906,25 +2910,83 @@ final class ScaffoldUpgradeRunner
     }
 
     /** @param array<string,mixed>|null $pluginTarget */
+    /** Read the Composer requirements of the exact projected Modules, including preserved and upstream sources. */
+    private function moduleHostRequirements(string $root, array $projection): array
+    {
+        $requirements = [];
+        foreach ($projection['modules'] as $module) {
+            foreach ($module['module_keys'] as $index => $key) {
+                $path = $module['module_roots'][$index];
+                $requirement = PackageCheck::compositionHostRequirement(ScaffoldPathGuard::projectPath($root, $path));
+                if ($requirement !== null) {
+                    $requirements[$key] = ['constraint' => $requirement, 'path' => $path . '/composer.json'];
+                }
+            }
+        }
+        ksort($requirements, SORT_STRING);
+        return $requirements;
+    }
+
+    /** Use the host Composer document actually chosen by the plan, including an explicit preserve. */
+    private function projectModuleHostCompatibility(
+        array &$pluginTarget, string $root, ScaffoldManifest $to, array $actions, array $parameters,
+    ): void {
+        $requirements = $pluginTarget['host_requirements'] ?? [];
+        unset($pluginTarget['host_compatibility']);
+        if ($requirements === []) {
+            unset($pluginTarget['host_requirements']);
+            return;
+        }
+        $path = 'server/composer.json';
+        $action = array_column($actions, 'action', 'path')[$path] ?? null;
+        $file = $to->files()[$path] ?? null;
+        $current = ScaffoldPathGuard::projectPath($root, $path);
+        $bytes = match (true) {
+            $action === 'delete' => null,
+            is_array($file) && in_array($action, ['create', 'replace', 'regenerate', 'rename', 'conflict'], true)
+                => $this->renderArtifact($to, $file, $parameters),
+            is_file($current) => (string) file_get_contents($current),
+            default => null,
+        };
+        $version = $bytes === null ? null : PackageCheck::compositionHostVersion($bytes);
+        $blockers = [];
+        foreach ($requirements as $key => $requirement) {
+            try {
+                PackageCheck::assertCompositionHost($key, $requirement['constraint'], $version);
+            } catch (ModulePackageException $error) {
+                $blockers[] = ['code' => $error->errorCode, 'module_key' => $key,
+                    'path' => $requirement['path'], 'detail' => $error->getMessage()];
+            }
+        }
+        $pluginTarget['host_compatibility'] = ['status' => $blockers === [] ? 'ready' : 'blocked',
+            'provided_version' => $version, 'requirements' => $requirements, 'blockers' => $blockers];
+    }
+
     private function moduleCompatibilityBlocked(?array $pluginTarget): bool
     {
         return is_array($pluginTarget)
-            && (($pluginTarget['compatibility']['status'] ?? null) === 'blocked');
+            && (($pluginTarget['compatibility']['status'] ?? null) === 'blocked'
+                || ($pluginTarget['host_compatibility']['status'] ?? null) === 'blocked');
     }
 
     /** @param array<string,mixed>|null $pluginTarget */
     private function withModuleCompatibilityImpact(array $impact, ?array $pluginTarget): array
     {
         $compatibility = is_array($pluginTarget) ? ($pluginTarget['compatibility'] ?? null) : null;
-        if (!is_array($compatibility)) {
-            return $impact;
+        if (is_array($compatibility)) {
+            $impact['module_compatibility'] = $compatibility;
         }
-        $impact['module_compatibility'] = $compatibility;
-        if (($compatibility['status'] ?? null) === 'blocked') {
+        if (isset($pluginTarget['host_compatibility'])) {
+            $impact['module_host_compatibility'] = $pluginTarget['host_compatibility'];
+        }
+        if ($this->moduleCompatibilityBlocked($pluginTarget)) {
+            $hostBlockers = count($pluginTarget['host_compatibility']['blockers'] ?? []);
             $impact['message'] = sprintf(
-                'No files will be changed until %d managed-file conflicts and %d customer Module compatibility blockers are resolved.',
+                $hostBlockers === 0
+                    ? 'No files will be changed until %d managed-file conflicts and %d customer Module compatibility blockers are resolved.'
+                    : 'No files will be changed until %d managed-file conflicts and %d Module compatibility blockers are resolved.',
                 count($impact['must_resolve'] ?? []),
-                count($compatibility['blockers'] ?? []),
+                count($compatibility['blockers'] ?? []) + $hostBlockers,
             );
         }
         return $impact;
@@ -3216,7 +3278,7 @@ final class ScaffoldUpgradeRunner
     }
 
     /** @param list<string> $preservePaths @param list<string> $replacePaths */
-    private function resolveConflicts(array $plan, string $confirmedPlanSha256, array $preservePaths, array $replacePaths): array
+    private function resolveConflicts(string $root, ?ScaffoldManifest $to, array $plan, string $confirmedPlanSha256, array $preservePaths, array $replacePaths): array
     {
         $actualPlanSha256 = 'sha256:' . hash('sha256', self::canonicalJson([$plan['identity'] ?? null, $plan['actions'] ?? null]));
         if (!hash_equals($actualPlanSha256, $confirmedPlanSha256)
@@ -3307,6 +3369,10 @@ final class ScaffoldUpgradeRunner
         unset($action);
         $resolved = $plan;
         $resolved['actions'] = $actions;
+        if (isset($resolved['identity']['plugin_target']['host_requirements'])) {
+            $this->projectModuleHostCompatibility($resolved['identity']['plugin_target'], $root, $to ?? $this->planTarget($root, $plan),
+                $actions, $resolved['identity']['target_parameters']);
+        }
         $resolved['status'] = $this->moduleCompatibilityBlocked($resolved['identity']['plugin_target'] ?? null)
             ? 'blocked'
             : 'ready';
@@ -3868,6 +3934,8 @@ final class ScaffoldUpgradeRunner
                 throw new RuntimeException('SCAFFOLD_PLAN_MANIFEST_REBIND_FAILED');
             }
             $expected = $this->resolveConflicts(
+                $root,
+                $to,
                 $expected,
                 (string) $expected['plan_sha256'],
                 $resolution['preserve_paths'],

@@ -1,5 +1,9 @@
 # 模块开发与交付
 
+可选 CLI 由模块自己的 `backend.provider` 承担：Provider 在实现 `ModuleProvider` 的同时继承 `think\Service`，在原生 `register()` 中调用 `ModuleConsoleCommands::register($this->app, $this->moduleKey(), ['vendor:action' => Command::class])`。宿主仅为已选模块执行该生命周期；登记拒绝命令类型和名称不符，控制台完成原生装配后再拒绝与框架、宿主或 Service 的重名；装配不执行业务。命令实现放在模块自己的 `src/Console`，支持无参数构造以供控制台读取元数据，运行时身份和依赖仍由正常入口建立。CLI 登记不授予租户调度权限；当前仅 `peanut.payment` 的 `refund:reconcile` 获准，Workflow 安装仍要求当前人工会话，导入导出清理仍要求顶层平台维护 CLI。
+
+使用新版宿主装配（模块命令及自有绑定迁移）的模块，在自己的 Composer require 中声明 `peanut-admin/module-composition-host`。具备该装配的宿主提供 `1.0.0`；模板计划按实际采用的宿主 Composer 声明校验，运行编译在加载 Provider 前拒绝缺失或不兼容的能力。采用新版模块前先更新宿主，或在同一源码计划中更新两者；旧计划工具须先更新，不能依据相同的产品版本推断兼容。
+
 模块是交付单元。后端实现、各客户端贡献、权限、事件、迁移和公开合同可以位于不同源码目录，但由同一个稳定模块 key 和版本汇集。模块之间只能使用公开 Query、Command、Event、Job 或 DTO 合同；不要读取别的模块私表、导入其 Model，或调用内部 Controller。
 
 模块包至少应声明负责人、版本、依赖、兼容产品范围、迁移、权限、菜单与客户端贡献。安装前核验可信来源、许可、归档摘要及逐文件清单。当前实现允许可信外部SHA-256作为来源证明；签名是另一个可选的可信证明分支，不要求每个模块作者配置私钥。没有可信摘要或有效签名时拒绝。PHP模块在应用进程内运行，不是安全沙箱；普通租户不能上传任意PHP、Shell、类名或路径执行。

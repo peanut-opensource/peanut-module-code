@@ -2,9 +2,9 @@
 
 ## Workflow producer composition
 
-`Contract\NotificationProducerRegistry` belongs to the host composition root.
-With Workflow selected, the root collects selected `WorkflowScenarioContributor`
-providers; their optional `notificationProducers(App)` method returns
+`Contract\NotificationProducerRegistry` is bound by the selected Notification Provider.
+It collects selected Module providers independently of Workflow;
+their optional `notificationProducers(App)` method returns
 `NotificationProducer` instances. Registration rejects duplicate keys. Each
 producer fixes resource/operation/task/handler, authorizes publication and reads,
 and resolves its own committed fact into template, frozen recipients, variables

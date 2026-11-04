@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\platform\composition\module;
 
 use app\common\infrastructure\module\ModuleHostLayoutFactory;
+use app\common\module\PackageCheck;
 use app\platform\infrastructure\module\ModuleLockResolver;
 use app\platform\validation\module\OpisManifestSchemaValidator;
 use PeanutAdmin\Kernel\Idempotency\IdempotencySchema;
@@ -170,11 +171,16 @@ final readonly class ModuleDefinitionRegistryFactory
             $roots,
         );
         $moduleRoots = [];
+        $hostVersion = PackageCheck::compositionHostVersion((string) file_get_contents($this->serverRoot . '/composer.json'));
         foreach ($documents as $document) {
-            \app\common\module\PackageCheck::assertEdition($document->root, (string) \think\facade\Config::get('deployment.mode', ''));
+            PackageCheck::assertEdition($document->root, (string) \think\facade\Config::get('deployment.mode', ''));
             $moduleKey = $document->data['key'] ?? null;
             if (!is_string($moduleKey) || isset($moduleRoots[$moduleKey])) {
                 throw new ModuleException('MODULE_REGISTRY_CONFLICT', 'Module namespace owner is missing or duplicated.');
+            }
+            $requirement = PackageCheck::compositionHostRequirement($document->root);
+            if ($requirement !== null) {
+                PackageCheck::assertCompositionHost($moduleKey, $requirement, $hostVersion);
             }
             $moduleRoots[$moduleKey] = $document->root;
         }

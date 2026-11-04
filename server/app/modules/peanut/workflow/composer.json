@@ -5,6 +5,7 @@
   "version": "4.0.0-rc.43",
   "license": "Apache-2.0",
   "require": {
+    "peanut-admin/module-composition-host": "^1.0",
     "php": "^8.3",
     "peanut-admin/core": "^5.0.2",
     "peanut-business/peanut-identity": "^4.0.0-rc.32"

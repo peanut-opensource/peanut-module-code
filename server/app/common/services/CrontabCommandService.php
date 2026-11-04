@@ -8,7 +8,7 @@ namespace app\common\services;
 class CrontabCommandService
 {
     private const TENANT_AWARE_COMMANDS = [
-        'refund:reconcile',
+        'refund:reconcile' => 'peanut.payment',
     ];
 
     public function __construct(
@@ -35,9 +35,15 @@ class CrontabCommandService
     public function assertTenantAware(string $command): void
     {
         $this->assertAllowed($command);
-        if (!in_array($command, self::TENANT_AWARE_COMMANDS, true) || $this->moduleKey($command) === null) {
+        if (self::tenantCommandOwner($command) === null
+            || $this->moduleKey($command) !== self::tenantCommandOwner($command)) {
             throw new \RuntimeException('定时任务命令尚未采用可信租户上下文');
         }
+    }
+
+    public static function tenantCommandOwner(string $command): ?string
+    {
+        return self::TENANT_AWARE_COMMANDS[$command] ?? null;
     }
 
     public function moduleKey(string $command): ?string

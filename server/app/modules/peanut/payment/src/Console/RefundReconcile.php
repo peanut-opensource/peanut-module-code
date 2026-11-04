@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\command;
+namespace PeanutAdmin\Modules\Payment\Console;
 
 use PeanutAdmin\Modules\Payment\Contract\RefundReconciliationCommands;
 use app\common\context\payment\PaymentScheduledTenantContext;

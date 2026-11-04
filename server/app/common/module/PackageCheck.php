@@ -18,6 +18,8 @@ use PeanutAdmin\Kernel\Module\ModuleKey;
 /** Validates package Module identity and all values derived from module.json. */
 final readonly class PackageCheck
 {
+    private const COMPOSITION_HOST = 'peanut-admin/module-composition-host';
+
     private ModuleHostLayout $layout;
     private ManifestSchemaValidator $manifestValidator;
 
@@ -217,6 +219,30 @@ final readonly class PackageCheck
         return $editions;
     }
 
+    public static function compositionHostRequirement(string $moduleRoot): ?string
+    {
+        $composer = json_decode((string) file_get_contents($moduleRoot . '/composer.json'), true, 512, JSON_THROW_ON_ERROR);
+        return $composer['require'][self::COMPOSITION_HOST] ?? null;
+    }
+
+    public static function compositionHostVersion(string $composerBytes): ?string
+    {
+        $composer = json_decode($composerBytes, true, 512, JSON_THROW_ON_ERROR);
+        return $composer['provide'][self::COMPOSITION_HOST] ?? null;
+    }
+
+    public static function assertCompositionHost(string $moduleKey, string $requirement, ?string $version): void
+    {
+        if ($version === null) {
+            throw new ModulePackageException('MODULE_HOST_CAPABILITY_MISSING',
+                "{$moduleKey} requires " . self::COMPOSITION_HOST . " {$requirement}, but the host does not provide it.");
+        }
+        if (!(new StrictVersionConstraintMatcher())->matches($version, $requirement)) {
+            throw new ModulePackageException('MODULE_HOST_CAPABILITY_INCOMPATIBLE',
+                "{$moduleKey} requires " . self::COMPOSITION_HOST . " {$requirement}, but the host provides {$version}.");
+        }
+    }
+
     public static function assertEdition(string $moduleRoot, string $edition): void
     {
         if (!in_array($edition, self::editions($moduleRoot), true)) {
@@ -247,10 +273,16 @@ final readonly class PackageCheck
                 $dependencyKey = $dependency['module_key'];
                 $version = $modules[$dependencyKey]['version'] ?? $availableVersions[$dependencyKey] ?? null;
                 if (!is_string($version)) {
-                    throw new ModulePackageException('MODULE_PACKAGE_DEPENDENCY_MISSING', 'Module package dependency is missing.');
+                    throw new ModulePackageException(
+                        'MODULE_PACKAGE_DEPENDENCY_MISSING',
+                        "{$key} requires {$dependencyKey} {$dependency['version']}, but no approved version is available.",
+                    );
                 }
                 if (!$matcher->matches($version, $dependency['version'])) {
-                    throw new ModulePackageException('MODULE_PACKAGE_DEPENDENCY_INCOMPATIBLE', 'Module package dependency version is incompatible.');
+                    throw new ModulePackageException(
+                        'MODULE_PACKAGE_DEPENDENCY_INCOMPATIBLE',
+                        "{$key} requires {$dependencyKey} {$dependency['version']}, but the available version is {$version}.",
+                    );
                 }
                 if (isset($modules[$dependencyKey])) {
                     $visit($dependencyKey);

@@ -73,7 +73,8 @@ final readonly class ModulePackageAdoptionService
                     if ($comparison < 0) {
                         throw new ModulePackageException('PLUGIN_DOWNGRADE_REJECTED', 'Adoption cannot downgrade a package.');
                     }
-                    if ($comparison === 0 && !hash_equals($previous->manifestDigest, $package->descriptor->manifestDigest)) {
+                    if ($comparison === 0 && (!hash_equals($previous->manifestDigest, $package->descriptor->manifestDigest)
+                        || !hash_equals($previous->source['sha256'], $package->descriptor->source['sha256']))) {
                         throw new ModulePackageException('PACKAGE_VERSION_IDENTITY_CONFLICT', 'Same-version package identity changed.');
                     }
                 }
