@@ -3,7 +3,7 @@
   "key": "peanut.chart",
   "name": "Charts",
   "description": "Public ECharts components for application and Module consumers.",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-chart",

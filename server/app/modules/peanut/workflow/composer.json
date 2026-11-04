@@ -2,7 +2,7 @@
   "name": "peanut-business/workflow",
   "description": "可选工作流运行与查询；使用方必须提供授权、分配、附件与副作用协议实现。",
   "type": "peanut-admin-module",
-  "version": "4.0.0-rc.42",
+  "version": "4.0.0-rc.43",
   "license": "Apache-2.0",
   "require": {
     "php": "^8.3",

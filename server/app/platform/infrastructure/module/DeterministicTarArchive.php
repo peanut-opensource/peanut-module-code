@@ -50,17 +50,23 @@ final class DeterministicTarArchive
             fflush($stream);
             fclose($stream);
             $stream = null;
-            if (!rename($temporary, $target)) {
-                throw new ModulePackageException('MODULE_PACKAGE_WRITE_FAILED', 'Package output cannot be promoted.');
+            // Publish a complete archive without replacing a concurrent or previous release.
+            if (!@link($temporary, $target)) {
+                if (is_link($target) || !is_file($target)) {
+                    throw new ModulePackageException('MODULE_PACKAGE_WRITE_FAILED', 'Package output cannot be promoted.');
+                }
+                $existing = hash_file('sha256', $target);
+                if (!is_string($existing) || $existing !== hash_file('sha256', $temporary)) {
+                    throw new ModulePackageException('PACKAGE_VERSION_IDENTITY_CONFLICT', 'Package output already contains different bytes.');
+                }
             }
-        } catch (\Throwable $exception) {
+        } finally {
             if (is_resource($stream)) {
                 fclose($stream);
             }
             if (is_file($temporary)) {
                 unlink($temporary);
             }
-            throw $exception;
         }
     }
 

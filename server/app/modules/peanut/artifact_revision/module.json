@@ -3,7 +3,7 @@
   "key": "peanut.artifact-revision",
   "name": "ArtifactRevision",
   "description": "租户内业务制品的不可变修订；提供创建、封存、读取与分支关系比较，保留审计与幂等语义",
-  "version": "4.0.0-rc.36",
+  "version": "4.0.0-rc.38",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/artifact-revision",

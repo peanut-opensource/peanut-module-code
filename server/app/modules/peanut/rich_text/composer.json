@@ -2,7 +2,7 @@
   "name": "peanut-business/peanut-rich-text",
   "description": "Structured rich-text and collaboration Module for Peanut Admin.",
   "type": "peanut-admin-module",
-  "version": "1.0.11",
+  "version": "1.0.13",
   "license": "Apache-2.0",
   "autoload": {
     "psr-4": {

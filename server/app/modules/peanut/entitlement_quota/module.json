@@ -3,7 +3,7 @@
   "key": "peanut.entitlement-quota",
   "name": "EntitlementQuota",
   "description": "可选商业额度记录；使用方显式提供计量与额度策略，不作为普通业务的必需依赖。",
-  "version": "4.0.0-rc.35",
+  "version": "4.0.0-rc.37",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/entitlement-quota",

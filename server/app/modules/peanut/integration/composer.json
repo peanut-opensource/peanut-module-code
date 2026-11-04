@@ -2,7 +2,7 @@
   "name": "peanut-business/peanut-integration",
   "description": "Peanut Admin official external integration module",
   "type": "library",
-  "version": "1.0.26",
+  "version": "1.0.27",
   "license": "Apache-2.0",
   "require": {
     "php": "^8.3",

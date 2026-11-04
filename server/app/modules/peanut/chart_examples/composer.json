@@ -2,7 +2,7 @@
   "name": "peanut-business/peanut-chart-examples",
   "description": "Optional static chart gallery; no business data or API.",
   "type": "peanut-admin-module",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "license": "Apache-2.0",
   "autoload": {
     "psr-4": {
