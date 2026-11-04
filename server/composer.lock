@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "39103eb6c6fff13e7e9440e9bf4833b7",
+    "content-hash": "7836ff80cfeec92ea97796b7d5680a1a",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2074,11 +2074,11 @@
         },
         {
             "name": "peanut-business/peanut-import-export",
-            "version": "1.0.29",
+            "version": "1.0.30",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/import_export",
-                "reference": "e1d1cd2d2624ca4b17be5a0963d93a3093e8bec8"
+                "reference": "c33d7e51d2271245c2062df52b85f11e5e7076a9"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2187,11 +2187,11 @@
         },
         {
             "name": "peanut-business/peanut-notification",
-            "version": "1.0.28",
+            "version": "1.0.29",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/notification",
-                "reference": "ea39cd7d102a14a38dbbbbf5efd4a8dd253b773b"
+                "reference": "7403df372995f9e883e075f25020dd77c7f8de0b"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2299,11 +2299,11 @@
         },
         {
             "name": "peanut-business/peanut-payment",
-            "version": "1.0.25",
+            "version": "1.0.26",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/payment",
-                "reference": "dfcd848a33b2bb9b57618a709a74df3ed4c281ae"
+                "reference": "2f6644adbc1fbfadbddb09f4552f8f8c5e367f1a"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2479,11 +2479,11 @@
         },
         {
             "name": "peanut-business/workflow",
-            "version": "4.0.0-rc.43",
+            "version": "4.0.0-rc.44",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/workflow",
-                "reference": "c3dcf6776de7283f82e3a1097149a7b5b30f8749"
+                "reference": "b0b97252f6b0ba5789f4bc9a0e816b7c0214f86f"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
