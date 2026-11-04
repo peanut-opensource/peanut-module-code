@@ -31207,7 +31207,31 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/NotificationMutationResponse"
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "enum": [
+                                                20000
+                                            ]
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "maxItems": 0,
+                                            "items": {
+                                                "$ref": "#/components/schemas/ApplicationDynamicValue"
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }

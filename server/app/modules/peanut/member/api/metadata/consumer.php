@@ -40,14 +40,7 @@ $legacyPaths = json_decode(<<<'JSON'
             },
             "responses": {
                 "200": {
-                    "description": "验证码发送请求已受理",
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/NotificationMutationResponse"
-                            }
-                        }
-                    }
+                    "description": "验证码发送请求已受理"
                 },
                 "400": {
                     "$ref": "#/components/responses/ErrorResponse"
@@ -66,6 +59,7 @@ $legacyPaths = json_decode(<<<'JSON'
     }
 }
 JSON, true, 512, JSON_THROW_ON_ERROR);
+$legacyPaths['/api/sms/sendCode']['post']['responses']['200'] += $emptySuccess;
 
 return [
     'paths' => [

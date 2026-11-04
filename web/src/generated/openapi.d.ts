@@ -22252,7 +22252,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotificationMutationResponse"];
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["ApplicationDynamicValue"][];
+                    };
                 };
             };
             400: components["responses"]["ErrorResponse"];
