@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f37aa3b09b962f20736940125a70e832",
+    "content-hash": "8857ffa0fcfaa0780ee55c0a865e9882",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2198,11 +2198,11 @@
         },
         {
             "name": "peanut-business/peanut-notification",
-            "version": "1.0.29",
+            "version": "1.0.30",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/notification",
-                "reference": "7403df372995f9e883e075f25020dd77c7f8de0b"
+                "reference": "99b56ff5f96a320a5b291bf74c17ac207e96eca2"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",

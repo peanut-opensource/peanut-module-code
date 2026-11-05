@@ -133,6 +133,30 @@ workerExpect($notificationWorker instanceof NotificationTaskWorkerDefinition, 'N
 $handlerKeys = array_map(static fn(TaskHandler $handler): string => $handler->key(), [...$notificationWorker->handlers()]);
 sort($handlerKeys, SORT_STRING);
 workerExpect($handlerKeys === ['notification.inbox', 'notification.sms'], 'Notification handlers are incomplete');
+foreach (['inbox', 'sms'] as $channel) {
+    $outbox = new \PeanutAdmin\Modules\Notification\Delivery\Task\OutboxTaskSubmissionProvider(
+        $channel,
+        $notificationApp->make(\PeanutAdmin\Modules\Notification\Infrastructure\Authorization\NotificationAsyncAuthorization::class),
+        $notificationWorker,
+    );
+    workerExpect($outbox instanceof TaskWorkerDefinition, 'Outbox submission does not carry the worker definition contract');
+    workerExpect($outbox->taskType() === 'notification.' . $channel . '.dispatch', 'Outbox task channel changed');
+    workerExpect($outbox->ownerModuleKey() === $notificationWorker->ownerModuleKey(), 'Outbox submission changed the authoritative worker owner');
+    workerExpect($outbox->resourceKey() === $notificationWorker->resourceKey() && $outbox->operation() === $notificationWorker->operation(), 'Outbox submission changed worker authorization identity');
+    workerExpect($outbox->handlers() === $notificationWorker->handlers(), 'Outbox submission does not retain the exact registered handler instances');
+}
+foreach (['', 'email'] as $channel) {
+    try {
+        new \PeanutAdmin\Modules\Notification\Delivery\Task\OutboxTaskSubmissionProvider(
+            $channel,
+            $notificationApp->make(\PeanutAdmin\Modules\Notification\Infrastructure\Authorization\NotificationAsyncAuthorization::class),
+            $notificationWorker,
+        );
+        throw new RuntimeException('Invalid Outbox channel was accepted');
+    } catch (\PeanutAdmin\Modules\Notification\Delivery\Application\NotificationException $exception) {
+        workerExpect($exception->problemCode === 'NOTIFICATION_INPUT_INVALID', 'Invalid Outbox channel rejection changed');
+    }
+}
 workerExpect($notificationApp->make(SmsProvider::class) instanceof DisabledSmsProvider, 'non-development SMS provider did not fail closed');
 
 try {

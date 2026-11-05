@@ -4,16 +4,21 @@ declare(strict_types=1);
 
 namespace PeanutAdmin\Modules\Notification\Delivery\Task;
 
+use PeanutAdmin\Kernel\Async\VerifiedJobEnvelope;
 use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 use PeanutAdmin\Modules\Notification\Delivery\Application\NotificationException;
 use PeanutAdmin\Modules\Notification\Delivery\Package;
 use PeanutAdmin\Modules\Task\Contract\TaskSubmission;
 use PeanutAdmin\Modules\Task\Contract\TaskSubmissionProvider;
+use PeanutAdmin\Modules\Task\Contract\TaskWorkerDefinition;
 
-final readonly class OutboxTaskSubmissionProvider implements TaskSubmissionProvider
+final readonly class OutboxTaskSubmissionProvider implements TaskSubmissionProvider, TaskWorkerDefinition
 {
-    public function __construct(private string $channel, private \PeanutAdmin\Modules\Notification\Infrastructure\Authorization\NotificationAsyncAuthorization $authorization)
-    {
+    public function __construct(
+        private string $channel,
+        private \PeanutAdmin\Modules\Notification\Infrastructure\Authorization\NotificationAsyncAuthorization $authorization,
+        private NotificationTaskWorkerDefinition $worker,
+    ) {
         if (!in_array($channel, ['inbox', 'sms'], true)) {
             throw NotificationException::invalid();
         }
@@ -32,6 +37,21 @@ final readonly class OutboxTaskSubmissionProvider implements TaskSubmissionProvi
     public function operation(): string
     {
         return 'manage';
+    }
+
+    public function ownerModuleKey(): string
+    {
+        return $this->worker->ownerModuleKey();
+    }
+
+    public function handlers(): array
+    {
+        return $this->worker->handlers();
+    }
+
+    public function reauthorize(VerifiedJobEnvelope $envelope): AuthorizedOperationContext
+    {
+        return $this->worker->reauthorize($envelope);
     }
 
     public function build(AuthorizedOperationContext $context, array $input): TaskSubmission
