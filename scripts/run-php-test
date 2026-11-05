@@ -78,8 +78,17 @@ function peanutRunTest(array $arguments): int
     $root = dirname(__DIR__);
     $target = null;
     $environment = null;
+    $failOnSkipped = false;
+    $scriptArguments = [];
+    $forwardArguments = false;
     foreach ($arguments as $argument) {
-        if (str_starts_with($argument, '--env-file=')) {
+        if ($forwardArguments) {
+            $scriptArguments[] = $argument;
+        } elseif ($argument === '--' && $target !== null) {
+            $forwardArguments = true;
+        } elseif ($argument === '--fail-on-skipped' && !$failOnSkipped) {
+            $failOnSkipped = true;
+        } elseif (str_starts_with($argument, '--env-file=')) {
             if ($environment !== null) {
                 throw new InvalidArgumentException('Duplicate --env-file');
             }
@@ -87,7 +96,7 @@ function peanutRunTest(array $arguments): int
         } elseif ($target === null && !str_starts_with($argument, '-')) {
             $target = $argument;
         } else {
-            throw new InvalidArgumentException('Usage: php scripts/run-php-test [--env-file=/absolute/path] server/tests/SomeTest.php');
+            throw new InvalidArgumentException('Usage: php scripts/run-php-test [--env-file=/absolute/path] [--fail-on-skipped] server/tests/SomeTest.php [-- script-arguments]');
         }
     }
     $base = realpath($root . '/server/tests');
@@ -110,19 +119,21 @@ function peanutRunTest(array $arguments): int
     $relative = substr($path, strlen($root) + 1);
     fwrite(STDOUT, '[php-test] ' . $kind . ' ' . $relative . "\n");
     if ($kind === 'phpunit') {
-        // PHPUnit starts isolated methods in child processes. Preloading the explicit backend
-        // environment in the parent would pass managed values to a child that loads it again.
+        if ($scriptArguments !== []) {
+            throw new InvalidArgumentException('PHPUnit targets do not accept executable-script arguments');
+        }
+        // Isolated tests own their application bootstrap in each child process.
         $bootstrap = peanutTestRunsInSeparateProcess($source)
             ? $root . '/server/vendor/autoload.php'
             : $root . '/server/tests/Support/CiBootstrap.php';
         $command = [PHP_BINARY, $root . '/server/vendor/bin/phpunit', '--no-configuration',
             '--bootstrap', $bootstrap,
-            '--fail-on-empty-test-suite', '--fail-on-risky', $path];
+            '--fail-on-empty-test-suite', '--fail-on-risky', ...($failOnSkipped ? ['--fail-on-skipped'] : []), $path];
     } else {
         $bootstrap = getenv('PEANUT_SERVER_ENV_FILE') !== false && getenv('PEANUT_SERVER_ENV_FILE') !== ''
-            ? $root . '/server/bootstrap/environment.php' : '';
-        $command = [PHP_BINARY, '-r',
-            'if ($argv[1] !== "") { require_once $argv[1]; } require $argv[2];', $bootstrap, $path];
+            ? $root . '/server/tests/Support/CiBootstrap.php' : '';
+        $command = [PHP_BINARY, ...($bootstrap === '' ? [] : ['-d', 'auto_prepend_file=' . $bootstrap]),
+            $path, ...$scriptArguments];
     }
     $process = proc_open($command, [0 => STDIN, 1 => STDOUT, 2 => STDERR], $pipes, $root);
     if (!is_resource($process)) {
