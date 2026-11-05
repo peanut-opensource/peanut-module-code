@@ -12,6 +12,7 @@ use app\common\infrastructure\async\ModuleAwareTaskHandler;
 use app\common\execution\CurrentExecutionContext;
 use app\common\execution\ExecutionContextStore;
 use app\common\infrastructure\module\ModuleExecutionBoundary;
+use PeanutAdmin\Kernel\Module\ModuleGuard;
 use PeanutAdmin\Modules\Identity\Contract\AdminDirectoryQuery;
 use app\common\services\CrontabCommandService;
 use Closure;
@@ -43,6 +44,7 @@ final readonly class ThinkPhpTaskJobRuntime implements TaskJobRuntime
         private CurrentExecutionContext $currentExecution,
         private AdminDirectoryQuery $adminDirectory,
         private ModuleExecutionBoundary $modules,
+        private ModuleGuard $moduleGuard,
         private CrontabCommandService $commands,
         private Closure $dispatch,
         private array $workerDefinitions,
@@ -145,6 +147,7 @@ final readonly class ThinkPhpTaskJobRuntime implements TaskJobRuntime
         return new CrontabTaskDefinition(
             $this->adminDirectory,
             $this->modules,
+            $this->moduleGuard,
             $this->executionContexts,
             $this->currentExecution,
             $this->commands,
