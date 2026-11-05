@@ -687,22 +687,15 @@ final readonly class ModuleLifecycleService implements ModuleLifecycleCommands
         }
         $table = (string) config('database.migration_table', 'migrations');
         $applied = Db::name($table)->column('migration_name', 'version');
-        $appliedNames = [];
-        foreach ($applied as $version => $name) {
-            $appliedNames[strtolower((string) $name)] = (string) $version;
-        }
+        $sources = ModuleMigrationRun::sources($selected, root_path(), true);
+        ModuleMigrationRun::assertLedgerIdentity($sources, $applied);
         $migrations = [];
         $host = [];
         $blockers = [];
         $pendingByModule = [];
         // Host sources are checked for identity collisions and prerequisites, never selected for execution here.
-        foreach (ModuleMigrationRun::sources($selected, root_path(), true) as $source) {
+        foreach ($sources as $source) {
             $version = $source['migration_key'];
-            $name = $source['name'];
-            if ((isset($applied[$version]) && $applied[$version] !== $name)
-                || (isset($appliedNames[strtolower($name)]) && $appliedNames[strtolower($name)] !== $version)) {
-                throw new ModuleLifecycleException('MODULE_MIGRATION_IDENTITY_CONFLICT', "Migration conflicts with the native ledger: {$source['file']}");
-            }
             $row = $source + ['disposition' => isset($applied[$version]) ? 'already_applied' : 'pending'];
             if ($source['module_key'] === null) {
                 $host[] = $row;

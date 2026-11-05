@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\platform\infrastructure\module;
 
+use app\common\module\ModuleMigrationRun;
 use app\platform\exception\module\ModuleLifecycleException;
 use app\platform\exception\module\ModulePackageException;
 use app\platform\services\module\ModuleLifecycleService;
@@ -84,11 +85,10 @@ final class ModulePackageInstaller
             }
             // Verify the untrusted archive first, but do not mutate source/lock until the application schema exists.
             $this->assertApplicationInstalled();
-            if ($operation === 'update') {
+            if ($dryRun) {
                 $plan = $this->updatePlan($package, $current);
-                if ($dryRun) {
-                    return $plan + ['operation' => 'update', 'dry_run' => true];
-                }
+                $this->assertMigrationIdentity($package, $current);
+                return $plan + ['operation' => 'update', 'dry_run' => true];
             }
             $promoted = [];
             $replaced = [];
@@ -113,6 +113,7 @@ final class ModulePackageInstaller
                     try {
                         $current = $this->currentDescriptors();
                         $plan = $operation === 'update' ? $this->updatePlan($package, $current) : null;
+                        $this->assertMigrationIdentity($package, $current);
                         foreach ($current as $pluginKey => $descriptor) {
                             foreach (array_keys($descriptor->moduleRoots) as $moduleKey) {
                                 if (isset($package->modules[$moduleKey]) && $pluginKey !== $package->packageKey) {
@@ -285,6 +286,27 @@ final class ModulePackageInstaller
                 'Application installation must complete before module package delivery.',
             );
         }
+    }
+
+    /** @param array<string,ModuleDescriptor> $current */
+    private function assertMigrationIdentity(VerifiedModulePackage $package, array $current): void
+    {
+        $incoming = array_map(static fn(array $module) => $module['manifest'], $package->modules);
+        $sources = ModuleMigrationRun::sources($incoming, $this->serverRoot);
+        if ($sources === []) {
+            return;
+        }
+        $table = (string) config('database.migration_table', 'migrations');
+        ModuleMigrationRun::assertLedgerIdentity($sources, Db::name($table)->column('migration_name', 'version'));
+
+        $loader = new \PeanutAdmin\Kernel\Module\ManifestLoader();
+        $composition = $incoming;
+        foreach ($current as $descriptor) {
+            foreach ($descriptor->moduleRoots as $key => $root) {
+                $composition[$key] ??= $loader->load($root);
+            }
+        }
+        ModuleMigrationRun::assertCompatibleComposition($incoming, $composition, $this->serverRoot, true);
     }
 
     /** @param array<string,ModuleDescriptor> $current @return array<string,mixed> */

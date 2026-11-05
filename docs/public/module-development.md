@@ -32,6 +32,8 @@ peanut module compile
 peanut module pack <vendor.module> --output=<absolute-release-path>/<name>.tar
 ```
 
+迁移编号和迁移类名在同一应用组合内唯一。制包时检查待交付模块与作者工作区其他模块之间的冲突。安装和升级包在写入前还会对照目标应用的模块、宿主迁移和已执行账本；升级预案会提前报告冲突。已执行迁移保留原编号和类名，后续变化以新迁移交付。
+
 源码 HTTP 请求只读取已编译模块注册表，不逐请求校验插件目录、编译声明或扫描 PHP 源码边界。`peanut module compile` 在 CLI 中校验锁定声明和后端模块并写入 ThinkPHP 原生 File 缓存，不运行迁移或访问业务数据库；缓存只含模块声明，不含租户、用户或权限快照。`think run` 启动前自动生成，直接使用 `php -S` 的调用方须先执行该命令。`peanut module lock --write` 同步刷新编译结果；锁文件、依赖身份或编译配置改变后，其他采用入口须重新执行 `peanut module compile`。缺失或输入不匹配时 HTTP 返回 503，不在请求中自动重编译。编译结果位于 `runtime/module-registry`，普通业务缓存清理不删除它；清空整个 runtime 后须重新编译。正式部署继续使用既有 VerifiedServerDeployment 发布/读取流程。
 
 Identity 升级若变更核心权限目录，升级完成后须在新的 CLI 进程执行 `peanut module sync --module=peanut.identity`，再执行 `peanut module compile`。PHP 已加载的类不能在同一进程内由新源码替换；升级进程中的目录同步可能仍读取旧权限目录。新进程同步通过原有目录生产链采用新定义；目录生成不授予成员或角色权限，已有租户权益仍由套餐/许可控制。
