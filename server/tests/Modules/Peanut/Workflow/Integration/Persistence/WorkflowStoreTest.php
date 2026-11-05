@@ -9,14 +9,17 @@ use PeanutAdmin\Kernel\Tenancy\TenantScope;
 use PeanutAdmin\Modules\Workflow\Definition\WorkflowGraph;
 use PeanutAdmin\Modules\Workflow\Persistence\Model\WorkflowInstanceRecord;
 use PeanutAdmin\Modules\Workflow\Persistence\Model\WorkflowDefinitionVersionRecord;
-use PeanutAdmin\Modules\Workflow\Tests\Integration\Application\WorkflowMysqlTestCase;
+use PeanutAdmin\Modules\Workflow\Tests\Integration\Application\WorkflowMysqlFixture;
 use PeanutAdmin\Modules\Workflow\Tests\Integration\Application\WorkflowCapabilityCompositionTest;
 use PeanutAdmin\Modules\Workflow\Tests\Unit\Definition\WorkflowGraphTest;
+use PHPUnit\Framework\TestCase;
 
 require_once dirname(__DIR__) . '/Application/WorkflowRuntimeTest.php';
 
-final class WorkflowStoreTest extends WorkflowMysqlTestCase
+final class WorkflowStoreTest extends TestCase
 {
+    use WorkflowMysqlFixture;
+
     public function testNativeInitialMigrationCanReenterWithoutChangingTenantOrWorkflowData(): void
     {
         $this->publish();

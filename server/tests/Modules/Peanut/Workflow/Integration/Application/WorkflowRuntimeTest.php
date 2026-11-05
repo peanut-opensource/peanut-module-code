@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace PeanutAdmin\Modules\Workflow\Tests\Integration\Application;
 
+use app\platform\composition\module\ModuleDefinitionRegistryFactory;
+use app\platform\infrastructure\module\ModuleLockResolver;
 use DateTimeImmutable;
 use PDO;
 use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
@@ -26,6 +28,7 @@ use PeanutAdmin\Modules\Workflow\Application\WorkflowDefinitionValidator;
 use PeanutAdmin\Modules\Workflow\Application\WorkflowException;
 use PeanutAdmin\Modules\Workflow\Application\WorkflowLifecycleQueries;
 use PeanutAdmin\Modules\Workflow\Application\WorkflowQueries;
+use PeanutAdmin\Modules\Workflow\Definition\WorkflowGraph;
 use PeanutAdmin\Modules\Workflow\Tests\Unit\Definition\WorkflowGraphTest;
 use PHPUnit\Framework\TestCase;
 use think\Container;
@@ -39,9 +42,10 @@ require_once dirname(__DIR__, 5) . '/Support/ThinkPhpTestConnection.php';
 require_once dirname(__DIR__, 5) . '/Support/IdentityMysqlFixture.php';
 
 /** Native MySQL fixtures are isolated by the existing registry resource guard. */
-abstract class WorkflowMysqlTestCase extends TestCase
+trait WorkflowMysqlFixture
 {
     protected PDO $pdo;
+    protected CompiledModuleRegistry $registry;
     private string $database;
     private bool $created;
     protected WorkflowLifecycleQueries $lifecycle;
@@ -66,6 +70,9 @@ abstract class WorkflowMysqlTestCase extends TestCase
         $this->database = \RegisteredMysqlTestResource::configuredDatabaseName();
         [$this->pdo, $this->created] = \RegisteredMysqlTestResource::openEmptyDatabase($this->database);
         \ThinkPhpTestConnection::fromPdo($this->pdo);
+        \IdentityMysqlFixture::install($this->pdo);
+        require_once dirname(__DIR__, 6) . '/vendor/peanut-admin/core/kernel/database/migrations/20260716010401_create_pa_tenant_idempotency_record.php';
+        $this->runNativeMigration(new \CreatePaTenantIdempotencyRecord('testing', 20260716010401, new \think\console\Input([]), new \think\console\Output('buffer')));
         $this->install();
         foreach ([1, 2] as $tenant) {
             $this->pdo->exec("INSERT INTO pa_tenant (id,code,name,display_name,status,created_at,updated_at) VALUES ($tenant,'workflow-$tenant','Workflow','Workflow','active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
@@ -78,7 +85,16 @@ abstract class WorkflowMysqlTestCase extends TestCase
         $this->pdo->exec("INSERT INTO pa_plan (id,code,name,created_at,updated_at) VALUES (1,'workflow','Workflow',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
         $this->pdo->exec("INSERT INTO pa_plan_module VALUES (1,'peanut.workflow')");
         $this->pdo->exec("INSERT INTO pa_tenant_license (tenant_id,plan_id,effective_at,created_at,updated_at) VALUES (1,1,'2020-01-01',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)),(2,1,'2020-01-01',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
-        Container::getInstance()->instance(TenantEntitlementService::class, new TenantEntitlementService(new CompiledModuleRegistry([], [], [], [], 'workflow-fixture')));
+        $server = dirname(__DIR__, 6);
+        \think\facade\Config::set(['mode' => 'multi-tenant'], 'deployment');
+        $this->registry = (new ModuleDefinitionRegistryFactory($server))->fromModuleLock(
+            new ModuleLockResolver($server, '../modules.lock'),
+            ['roots' => [], 'kernel_version' => '1.0.0', 'registered_client_keys' => ['admin-web', 'platform-web', 'pc-web', 'uniapp']],
+        );
+        $manifest = $this->registry->requireManifest('peanut.workflow');
+        $this->pdo->prepare("INSERT INTO pa_module_installation (module_key,installed_version,manifest_schema_version,manifest_digest,status,created_at,updated_at) VALUES (?,?,?,?,'active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))")
+            ->execute(['peanut.workflow', $manifest->data['version'], $manifest->data['schema_version'], $manifest->digest]);
+        Container::getInstance()->instance(TenantEntitlementService::class, new TenantEntitlementService($this->registry));
         $this->availability = $this->createStub(ModuleAvailability::class);
         $this->lifecycle = new WorkflowLifecycleQueries(new TenantModuleStateQueries(), $this->availability);
         $this->scenarios = $this->createStub(WorkflowScenarioProvider::class);
@@ -105,7 +121,17 @@ abstract class WorkflowMysqlTestCase extends TestCase
 
     protected function install(): void
     {
-        \IdentityMysqlFixture::install($this->pdo, [dirname(__DIR__, 6) . '/app/modules/peanut/workflow/database/migrations']);
+        require_once dirname(__DIR__, 6) . '/app/modules/peanut/workflow/database/migrations/20261102000010_initial_workflow_schema.php';
+        $this->runNativeMigration(new \InitialWorkflowSchema('testing', 20261102000010, new \think\console\Input([]), new \think\console\Output('buffer')));
+    }
+
+    protected function runNativeMigration(\think\migration\Migrator $migration): void
+    {
+        $migration->setAdapter(new \Phinx\Db\Adapter\MysqlAdapter([
+            'connection' => $this->pdo,
+            'name' => $this->database,
+        ]));
+        $migration->up();
     }
 
     protected function tearDown(): void
@@ -127,11 +153,11 @@ abstract class WorkflowMysqlTestCase extends TestCase
 
     protected function publish(?array $graph = null): array
     {
-        $draft = $this->definitions->saveDraft($this->context('write'), 'module.sample', 'approval', ['expected_revision' => null, 'graph' => $graph ?? WorkflowGraphTest::validGraph(true), 'layout' => ['nodes' => [], 'viewport' => ['x' => 0, 'y' => 0, 'zoom' => 1]]], 'workflow-draft');
+        $draft = $this->definitions->saveDraft($this->context('write'), 'module.sample', 'approval', ['expected_revision' => null, 'graph' => $graph ?? WorkflowGraphTest::validGraph(true), 'layout' => ['nodes' => [], 'viewport' => ['x' => 0, 'y' => 0, 'zoom' => 1]]], 'workflow-fixture-draft');
         return $this->definitions->publish($this->context('publish'), 'module.sample', 'approval', ['expected_revision' => $draft['draft_revision']], 'workflow-publish');
     }
 
-    protected function start(string $subject = 'subject-1', string $key = 'workflow-start', array $files = []): array
+    protected function start(string $subject = 'subject-1', string $key = 'workflow-fixture-start', array $files = []): array
     {
         return $this->commands->start($this->context(), ['module_key' => 'module.sample', 'workflow_key' => 'approval', 'subject_type' => 'subject.item', 'subject_key' => $subject, 'subject_revision_key' => 'revision-1', 'expected_revision' => 2, 'business_department_key' => null, 'attachment_file_keys' => $files], $key);
     }
@@ -162,22 +188,62 @@ abstract class WorkflowMysqlTestCase extends TestCase
     protected function assertRollback(string $table, string $mutation, callable $command): void
     {
         $before = $this->state();
-        $this->pdo->exec("CREATE TRIGGER workflow_test_failure BEFORE $mutation ON pa_$table FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='workflow injected write failure'");
+        // Admit the existing fixture rows and reject the intended next write in MySQL.
+        // No trigger creation or binary log privileges are needed on this account.
+        $columns = match ([$table, $mutation]) {
+            ['workflow_definition', 'INSERT'] => ['module_key', 'workflow_key'],
+            ['workflow_definition_version', 'INSERT'] => ['version'],
+            ['workflow_instance', 'INSERT'] => ['instance_key'],
+            ['workflow_node_execution', 'INSERT'] => ['node_execution_key'],
+            ['workflow_work_item', 'INSERT'] => ['work_item_key'],
+            ['workflow_event', 'INSERT'] => ['instance_id', 'sequence_no'],
+            ['tenant_audit_event', 'INSERT'] => ['event_type'],
+            ['task_job', 'INSERT'] => ['job_key'],
+            ['workflow_definition', 'UPDATE'] => ['module_key', 'workflow_key', 'revision'],
+            ['workflow_instance', 'UPDATE'] => ['instance_key', 'revision'],
+            ['workflow_node_execution', 'UPDATE'] => ['node_execution_key', 'revision'],
+            ['workflow_work_item', 'UPDATE'] => ['work_item_key', 'revision'],
+            ['tenant_idempotency_record', 'UPDATE'] => ['idempotency_key_hash', 'status'],
+        };
+        $allowed = [];
+        foreach ($before[$table] as $row) {
+            $allowed[] = '(' . implode(' AND ', array_map(
+                fn(string $column): string => $column . ' = ' . $this->pdo->quote((string) $row[$column]),
+                $columns,
+            )) . ')';
+        }
+        if ($table === 'tenant_idempotency_record') {
+            $allowed[] = "status = 'processing'";
+        }
+        $condition = implode(' OR ', $allowed ?: ['1 = 0']);
+        $this->pdo->exec("ALTER TABLE pa_$table ADD CONSTRAINT chk_workflow_test_failure CHECK ($condition)");
         try {
             $command();
             self::fail('An injected write failure must abort the whole transaction.');
         } catch (\think\db\exception\PDOException $exception) {
-            self::assertStringContainsString('workflow injected write failure', $exception->getMessage());
+            $error = $exception->getData()['PDO Error Info'] ?? [];
+            self::assertSame(3819, (int) ($error['Driver Error Code'] ?? 0));
+            self::assertStringContainsString('chk_workflow_test_failure', $error['Driver Error Message'] ?? '');
         } finally {
-            $this->pdo->exec('DROP TRIGGER workflow_test_failure');
+            $transactionLeaked = $this->pdo->inTransaction();
+            try {
+                self::assertFalse($transactionLeaked, 'A failed command left the fixture transaction open.');
+            } finally {
+                if ($transactionLeaked) {
+                    $this->pdo->rollBack();
+                }
+                $this->pdo->exec("ALTER TABLE pa_$table DROP CHECK chk_workflow_test_failure");
+            }
         }
         self::assertSame($before, $this->state(), 'A failed command leaked persisted state.');
         self::assertFalse($this->pdo->inTransaction());
     }
 }
 
-final class WorkflowRuntimeTest extends WorkflowMysqlTestCase
+final class WorkflowRuntimeTest extends TestCase
 {
+    use WorkflowMysqlFixture;
+
     public function testDefinitionInstanceHumanCommandsAreAtomicAndReplaySafe(): void
     {
         $published = $this->publish();
@@ -186,13 +252,13 @@ final class WorkflowRuntimeTest extends WorkflowMysqlTestCase
         self::assertSame('running', $instance['status']);
         self::assertSame('review', $instance['active_nodes'][0]['node_key']);
         $state = $this->state();
-        self::assertSame($instance, $this->start());
+        self::assertSame(WorkflowGraph::json($instance), WorkflowGraph::json($this->start()));
         self::assertSame($state, $this->state());
         [$item, $request] = $this->request($instance);
         $approved = $this->commands->decide($this->context(member: 12), $item, $request, 'workflow-approve');
         self::assertSame('action', $approved['active_nodes'][0]['node_key']);
         $state = $this->state();
-        self::assertSame($approved, $this->commands->decide($this->context(member: 12), $item, $request, 'workflow-approve'));
+        self::assertSame(WorkflowGraph::json($approved), WorkflowGraph::json($this->commands->decide($this->context(member: 12), $item, $request, 'workflow-approve')));
         self::assertSame($state, $this->state());
         [$item, $request] = $this->request($approved, 'complete');
         $completed = $this->commands->completeTask($this->context(member: 12), $item, $request, 'workflow-complete');
@@ -210,10 +276,10 @@ final class WorkflowRuntimeTest extends WorkflowMysqlTestCase
         WorkflowCapabilityCompositionTest::assertWorkflowFailure('WORKFLOW_SUBJECT_NOT_FOUND', fn() => $this->queries->instance($this->context(tenant: 2), $instance['instance_key']));
         [$item, $request] = $this->request($instance);
         $request['expected_revision'] = 999;
-        WorkflowCapabilityCompositionTest::assertWorkflowFailure('WORKFLOW_INSTANCE_CONFLICT', fn() => $this->commands->decide($this->context(member: 12), $item, $request, 'workflow-stale'));
+        WorkflowCapabilityCompositionTest::assertWorkflowFailure('WORKFLOW_INSTANCE_CONFLICT', fn() => $this->commands->decide($this->context(member: 12), $item, $request, 'workflow-fixture-stale'));
         self::assertSame($before, $this->state());
         try {
-            $this->commands->start($this->context(), ['module_key' => 'module.sample', 'workflow_key' => 'approval', 'subject_type' => 'subject.item', 'subject_key' => 'subject-1', 'subject_revision_key' => 'revision-2', 'expected_revision' => 2, 'business_department_key' => null, 'attachment_file_keys' => []], 'workflow-start');
+            $this->commands->start($this->context(), ['module_key' => 'module.sample', 'workflow_key' => 'approval', 'subject_type' => 'subject.item', 'subject_key' => 'subject-1', 'subject_revision_key' => 'revision-2', 'expected_revision' => 2, 'business_department_key' => null, 'attachment_file_keys' => []], 'workflow-fixture-start');
             self::fail('A changed request cannot reuse a completed key.');
         } catch (\PeanutAdmin\Kernel\Api\ApiException $exception) {
             self::assertSame('IDEMPOTENCY_KEY_REUSED', $exception->errorCode);
@@ -282,7 +348,7 @@ final class WorkflowRuntimeTest extends WorkflowMysqlTestCase
         foreach (['workflow_definition', 'tenant_audit_event'] as $table) {
             $this->assertRollback($table, 'INSERT', fn() => $this->publish());
         }
-        $draft = $this->definitions->saveDraft($this->context('write'), 'module.sample', 'approval', ['expected_revision' => null, 'graph' => WorkflowGraphTest::validGraph(true), 'layout' => ['nodes' => [], 'viewport' => ['x' => 0, 'y' => 0, 'zoom' => 1]]], 'workflow-draft');
+        $draft = $this->definitions->saveDraft($this->context('write'), 'module.sample', 'approval', ['expected_revision' => null, 'graph' => WorkflowGraphTest::validGraph(true), 'layout' => ['nodes' => [], 'viewport' => ['x' => 0, 'y' => 0, 'zoom' => 1]]], 'workflow-fixture-draft');
         foreach ([['workflow_definition_version', 'INSERT'], ['workflow_definition', 'UPDATE'], ['tenant_audit_event', 'INSERT'], ['tenant_idempotency_record', 'UPDATE']] as [$table, $mutation]) {
             $this->assertRollback($table, $mutation, fn() => $this->definitions->publish($this->context('publish'), 'module.sample', 'approval', ['expected_revision' => $draft['draft_revision']], 'workflow-publish'));
         }
@@ -306,9 +372,9 @@ final class WorkflowRuntimeTest extends WorkflowMysqlTestCase
         }
         self::assertSame('completed', $this->commands->completeTask($this->context(member: 12), $item, $request, 'workflow-complete')['status']);
         foreach ([['workflow_definition', 'UPDATE'], ['tenant_audit_event', 'INSERT'], ['tenant_idempotency_record', 'UPDATE']] as [$table, $mutation]) {
-            $this->assertRollback($table, $mutation, fn() => $this->definitions->retire($this->context('publish'), 'module.sample', 'approval', ['expected_revision' => 2], 'workflow-retire'));
+            $this->assertRollback($table, $mutation, fn() => $this->definitions->retire($this->context('publish'), 'module.sample', 'approval', ['expected_revision' => 2], 'workflow-fixture-retire'));
         }
-        self::assertSame('retired', $this->definitions->retire($this->context('publish'), 'module.sample', 'approval', ['expected_revision' => 2], 'workflow-retire')['status']);
+        self::assertSame('retired', $this->definitions->retire($this->context('publish'), 'module.sample', 'approval', ['expected_revision' => 2], 'workflow-fixture-retire')['status']);
         WorkflowCapabilityCompositionTest::assertWorkflowFailure('WORKFLOW_SUBJECT_NOT_FOUND', fn() => $this->start('subject-after-retirement', 'workflow-retired-start'));
     }
 
@@ -352,10 +418,7 @@ final class WorkflowRuntimeTest extends WorkflowMysqlTestCase
 
     public function testNativeIdentityPermissionRemovalAndCrossTenantSubjectFailClosed(): void
     {
-        $root = dirname(__DIR__, 6) . '/app/modules/peanut/workflow';
-        $manifest = \PeanutAdmin\Kernel\Module\ManifestDocument::fromObject($root, json_decode(file_get_contents($root . '/module.json'), flags: JSON_THROW_ON_ERROR));
-        $registry = new CompiledModuleRegistry([$manifest], [], [], [], 'workflow-authority-test');
-        $this->pdo->exec("INSERT INTO pa_module_installation (module_key,installed_version,manifest_schema_version,manifest_digest,status,created_at,updated_at) VALUES ('peanut.workflow','" . $manifest->data['version'] . "',1,'" . $manifest->digest . "','active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+        $registry = $this->registry;
         $catalog = new \PeanutAdmin\Modules\Identity\Authorization\Persistence\ThinkPhpAuthorizationCatalogRepository();
         foreach (['read', 'approve'] as $operation) {
             $permission = $catalog->syncPermission(new \PeanutAdmin\Kernel\Authorization\Persistence\PermissionDefinition('subject.item.' . $operation, 'peanut.workflow', 'api', 'Workflow test ' . $operation, 'normal', '1.0.0'));
@@ -417,11 +480,21 @@ final class WorkflowRuntimeTest extends WorkflowMysqlTestCase
         $approved = $this->commands->decide($this->context(member: 12), $item, $request, 'workflow-approve');
         self::assertSame('pending', $approved['active_nodes'][0]['status']);
         self::assertSame(1, (int) Db::name('task_job')->count());
-        $job = Db::name('task_job')->find();
-        $node = Db::name('workflow_node_execution')->where('node_key', 'action')->find();
+        $jobQuery = $this->pdo->prepare('SELECT job_key, task_type, payload_json FROM pa_task_job WHERE tenant_id = ? AND task_type = ?');
+        $jobQuery->execute([1, 'workflow.finalize']);
+        $job = $jobQuery->fetch(PDO::FETCH_ASSOC);
+        self::assertIsArray($job);
+        $payload = json_decode($job['payload_json'], true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame($instance['instance_key'], $payload['instance_key']);
+        self::assertSame($approved['active_nodes'][0]['node_execution_key'], $payload['node_execution_key']);
+        $lookup = $this->pdo->prepare('SELECT node_key, task_job_key, effect_key, effect_receipt_json FROM pa_workflow_node_execution WHERE tenant_id = ? AND node_execution_key = ?');
+        $lookup->execute([1, $payload['node_execution_key']]);
+        $node = $lookup->fetch(PDO::FETCH_ASSOC);
+        self::assertIsArray($node);
+        self::assertSame('action', $node['node_key']);
         self::assertSame($job['job_key'], $node['task_job_key']);
         self::assertSame('workflow.finalize', $job['task_type']);
-        self::assertSame($approved, $this->commands->decide($this->context(member: 12), $item, $request, 'workflow-approve'));
+        self::assertSame(WorkflowGraph::json($approved), WorkflowGraph::json($this->commands->decide($this->context(member: 12), $item, $request, 'workflow-approve')));
         self::assertSame(1, (int) Db::name('task_job')->count());
         $this->pdo->exec('CREATE TABLE test_workflow_action (effect_key VARCHAR(200) PRIMARY KEY) ENGINE=InnoDB');
         $executions = 0;
@@ -436,7 +509,6 @@ final class WorkflowRuntimeTest extends WorkflowMysqlTestCase
             }
             return ['output' => []];
         });
-        $payload = json_decode($job['payload_json'], true, flags: JSON_THROW_ON_ERROR);
         $fences = 0;
         $execution = new \PeanutAdmin\Modules\Task\Contract\JobExecution($job['job_key'], 1, 1, $payload, static function (): void {}, function () use (&$fences): void {
             self::assertTrue($this->pdo->inTransaction());
@@ -452,8 +524,11 @@ final class WorkflowRuntimeTest extends WorkflowMysqlTestCase
         $blocked = $this->queries->instance($this->context(), $instance['instance_key']);
         self::assertSame('blocked', $blocked['status']);
         self::assertSame('Business action failed; inspect the original Task job.', $blocked['blocker']['message']);
-        self::assertSame($job['job_key'], Db::name('workflow_node_execution')->where('node_key', 'action')->value('task_job_key'));
-        self::assertNull(Db::name('workflow_node_execution')->where('node_key', 'action')->value('effect_receipt_json'));
+        $lookup->execute([1, $payload['node_execution_key']]);
+        $blockedNode = $lookup->fetch(PDO::FETCH_ASSOC);
+        self::assertIsArray($blockedNode);
+        self::assertSame($job['job_key'], $blockedNode['task_job_key']);
+        self::assertNull($blockedNode['effect_receipt_json']);
         self::assertFalse($this->pdo->inTransaction());
         $this->commands->executeServiceTask($this->context(member: 12), $execution);
         self::assertSame('completed', $this->queries->instance($this->context(), $instance['instance_key'])['status']);
@@ -476,8 +551,7 @@ final class WorkflowRuntimeTest extends WorkflowMysqlTestCase
         $server = dirname(__DIR__, 6);
         require_once $server . '/app/modules/peanut/notification/database/migrations/20261102000001_initial_notification_schema.php';
         $migration = new \InitialNotificationSchema('testing', 20261102000001, new \think\console\Input([]), new \think\console\Output('buffer'));
-        $migration->setAdapter(new \Phinx\Db\Adapter\MysqlAdapter(['connection' => $this->pdo]));
-        $migration->up();
+        $this->runNativeMigration($migration);
         $this->pdo->exec("INSERT INTO pa_tenant_session (session_key,tenant_id,account_id,tenant_member_id,client_key,account_security_revision,tenant_security_revision,member_security_revision,issued_at,last_seen_at,idle_expires_at,absolute_expires_at,created_at,updated_at) VALUES ('01J00000000000000000000000',1,111,11,'admin-web',1,1,1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),'2035-01-01','2035-01-01',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
         $producer = $this->createStub(\PeanutAdmin\Modules\Notification\Contract\NotificationProducer::class);
         $producer->method('key')->willReturn('workflow.approved');
@@ -512,11 +586,11 @@ final class WorkflowRuntimeTest extends WorkflowMysqlTestCase
         $approved = $this->commands->decide($this->context(member: 12), $item, $request, 'workflow-approve');
         self::assertSame(0, (int) Db::name('notification_message')->count());
         self::assertSame(1, (int) Db::name('workflow_event')->whereNotNull('notification_fact_json')->count());
-        $this->pdo->exec("CREATE TRIGGER workflow_notification_failure BEFORE INSERT ON pa_notification_message FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='provider-secret notification detail'");
+        $this->pdo->exec('ALTER TABLE pa_notification_message ADD CONSTRAINT chk_workflow_notification_failure CHECK (1 = 0)');
         try {
             $delivery->dispatchCommitted($this->context(), $instance['instance_key']);
         } finally {
-            $this->pdo->exec('DROP TRIGGER workflow_notification_failure');
+            $this->pdo->exec('ALTER TABLE pa_notification_message DROP CHECK chk_workflow_notification_failure');
         }
         self::assertSame(0, (int) Db::name('notification_message')->count());
         self::assertSame(0, (int) Db::name('notification_outbox')->count());
@@ -527,7 +601,7 @@ final class WorkflowRuntimeTest extends WorkflowMysqlTestCase
         self::assertSame(1, (int) Db::name('notification_message')->count());
         self::assertSame(1, (int) Db::name('notification_outbox')->count());
         self::assertSame(1, (int) Db::name('task_job')->count());
-        self::assertSame($approved, $this->commands->decide($this->context(member: 12), $item, $request, 'workflow-approve'));
+        self::assertSame(WorkflowGraph::json($approved), WorkflowGraph::json($this->commands->decide($this->context(member: 12), $item, $request, 'workflow-approve')));
         $delivery->dispatchCommitted($this->context(), $instance['instance_key']);
         self::assertSame(1, (int) Db::name('notification_message')->count());
         self::assertSame(1, (int) Db::name('notification_outbox')->count());
@@ -541,13 +615,9 @@ final class WorkflowRuntimeTest extends WorkflowMysqlTestCase
         $server = dirname(__DIR__, 6);
         require_once $server . '/app/modules/peanut/task/database/migrations/20261101010006_initial_task_schema.php';
         $migration = new \InitialTaskSchema('testing', 20261101010006, new \think\console\Input([]), new \think\console\Output('buffer'));
-        $migration->setAdapter(new \Phinx\Db\Adapter\MysqlAdapter(['connection' => $this->pdo]));
-        $migration->up();
+        $this->runNativeMigration($migration);
         $this->additionalStateTables = ['task_job', 'task_job_attempt', 'task_job_event'];
-        $manifest = \PeanutAdmin\Kernel\Module\ManifestDocument::fromObject($server . '/app/modules/peanut/workflow', json_decode(file_get_contents($server . '/app/modules/peanut/workflow/module.json'), flags: JSON_THROW_ON_ERROR));
-        $registry = new CompiledModuleRegistry([$manifest], [], [], [], 'workflow-native-task');
-        $this->pdo->exec("INSERT INTO pa_module_installation (module_key,installed_version,manifest_schema_version,manifest_digest,status,created_at,updated_at) VALUES ('peanut.workflow','" . $manifest->data['version'] . "',1,'" . $manifest->digest . "','active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
-        $entitlements = new TenantEntitlementService($registry);
+        $entitlements = new TenantEntitlementService($this->registry);
         $provider = $this->createStub(\PeanutAdmin\Modules\Task\Contract\TaskSubmissionProvider::class);
         $provider->method('taskType')->willReturn('workflow.finalize');
         $provider->method('resourceKey')->willReturn('subject.item');
@@ -568,54 +638,69 @@ final class WorkflowRuntimeTest extends WorkflowMysqlTestCase
         [$item, $request] = $this->request($instance);
         $children = [];
         $sockets = [];
-        for ($index = 0; $index < 2; ++$index) {
-            $pair = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
-            self::assertIsArray($pair);
-            $pid = pcntl_fork();
-            self::assertNotSame(-1, $pid);
-            if ($pid === 0) {
-                fclose($pair[0]);
-                try {
-                    // The parent already proved this exact registry-backed database is owned.
-                    $pdo = $this->reconnect();
-                    \ThinkPhpTestConnection::fromPdo($pdo);
-                    fwrite($pair[1], "ready\n");
-                    fgets($pair[1]);
-                    $this->commands->decide($this->context(member: 12), $item, $request, 'workflow-concurrent-' . $index);
-                    fwrite($pair[1], "success\n");
-                    exit(0);
-                } catch (WorkflowException $exception) {
-                    fwrite($pair[1], $exception->errorCode . "\n");
-                    exit(0);
-                } catch (Throwable $exception) {
-                    fwrite($pair[1], get_class($exception) . "\n");
-                    exit(1);
-                }
-            }
-            fclose($pair[1]);
-            stream_set_timeout($pair[0], 30);
-            $sockets[] = $pair[0];
-            $children[] = $pid;
-        }
-        foreach ($sockets as $socket) {
-            self::assertSame("ready\n", fgets($socket));
-        }
-        foreach ($sockets as $socket) {
-            fwrite($socket, "go\n");
-        }
         $outcomes = [];
-        foreach ($sockets as $socket) {
-            $outcomes[] = trim((string) fgets($socket));
-            fclose($socket);
+        $exitCodes = [];
+        try {
+            for ($index = 0; $index < 2; ++$index) {
+                $pair = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
+                self::assertIsArray($pair);
+                $pid = pcntl_fork();
+                if ($pid === -1) {
+                    fclose($pair[0]);
+                    fclose($pair[1]);
+                    self::fail('Cannot fork the Workflow concurrency fixture.');
+                }
+                if ($pid === 0) {
+                    fclose($pair[0]);
+                    foreach ($sockets as $parentSocket) {
+                        fclose($parentSocket);
+                    }
+                    try {
+                        // The parent already proved this exact registry-backed database is owned.
+                        $pdo = $this->reconnect();
+                        \ThinkPhpTestConnection::fromPdo($pdo);
+                        fwrite($pair[1], "ready\n");
+                        if (fgets($pair[1]) !== "go\n") {
+                            exit(1);
+                        }
+                        $this->commands->decide($this->context(member: 12), $item, $request, 'workflow-concurrent-' . $index);
+                        fwrite($pair[1], "success\n");
+                        exit(0);
+                    } catch (WorkflowException $exception) {
+                        fwrite($pair[1], $exception->errorCode . "\n");
+                        exit(0);
+                    } catch (Throwable $exception) {
+                        fwrite($pair[1], get_class($exception) . ':' . $exception->getCode() . "\n");
+                        exit(1);
+                    }
+                }
+                fclose($pair[1]);
+                stream_set_timeout($pair[0], 30);
+                $sockets[] = $pair[0];
+                $children[] = $pid;
+            }
+            foreach ($sockets as $socket) {
+                self::assertSame("ready\n", fgets($socket));
+            }
+            foreach ($sockets as $socket) {
+                fwrite($socket, "go\n");
+            }
+            foreach ($sockets as $socket) {
+                $outcomes[] = trim((string) fgets($socket));
+            }
+        } finally {
+            foreach ($sockets as $socket) {
+                fclose($socket);
+            }
+            foreach ($children as $pid) {
+                $waited = pcntl_waitpid($pid, $status);
+                $exitCodes[] = $waited === $pid && pcntl_wifexited($status) ? pcntl_wexitstatus($status) : null;
+            }
+            // Forked PDO destruction closes inherited server sessions even after early failure.
+            $this->pdo = $this->reconnect();
+            \ThinkPhpTestConnection::fromPdo($this->pdo);
         }
-        foreach ($children as $pid) {
-            pcntl_waitpid($pid, $status);
-            self::assertTrue(pcntl_wifexited($status));
-            self::assertSame(0, pcntl_wexitstatus($status));
-        }
-        // Forked PDO destruction closes inherited server sessions; restore only this fixture.
-        $this->pdo = $this->reconnect();
-        \ThinkPhpTestConnection::fromPdo($this->pdo);
+        self::assertSame([0, 0], $exitCodes);
         sort($outcomes);
         self::assertSame(['WORKFLOW_INSTANCE_CONFLICT', 'success'], $outcomes);
         self::assertSame(2, (int) Db::name('workflow_instance')->value('revision'));
@@ -624,7 +709,7 @@ final class WorkflowRuntimeTest extends WorkflowMysqlTestCase
 
     private function reconnect(): PDO
     {
-        $pdo = new PDO('mysql:host=' . getenv('DB_HOST') . ';port=' . getenv('DB_PORT') . ';dbname=' . \RegisteredMysqlTestResource::configuredDatabaseName() . ';charset=utf8mb4', (string) getenv('DB_USER'), (string) getenv('DB_PASS'), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_EMULATE_PREPARES => false]);
+        $pdo = new PDO('mysql:host=' . env('DB_HOST') . ';port=' . env('DB_PORT') . ';dbname=' . \RegisteredMysqlTestResource::configuredDatabaseName() . ';charset=utf8mb4', (string) env('DB_USER'), (string) env('DB_PASS'), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_EMULATE_PREPARES => false]);
         \RegisteredMysqlTestResource::assertSelectedDatabase($pdo, \RegisteredMysqlTestResource::configuredDatabaseName());
         return $pdo;
     }
@@ -694,7 +779,7 @@ final class WorkflowRuntimeTest extends WorkflowMysqlTestCase
         $this->commands = $this->makeCommands($attachments);
         foreach (['archived', 'cross-tenant'] as $reason) {
             $before = $this->state();
-            WorkflowCapabilityCompositionTest::assertWorkflowFailure('WORKFLOW_ATTACHMENT_UNAVAILABLE', fn() => $this->start('subject-1', 'workflow-' . $reason, ['file_' . str_repeat('a', 32)]));
+            WorkflowCapabilityCompositionTest::assertWorkflowFailure('WORKFLOW_ATTACHMENT_UNAVAILABLE', fn() => $this->start('subject-1', 'workflow-attachment-' . $reason, ['file_' . str_repeat('a', 32)]));
             self::assertSame($before, $this->state());
         }
     }
