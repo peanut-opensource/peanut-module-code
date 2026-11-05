@@ -34,9 +34,17 @@ final class CorePermissionCatalog
         'core.role.data-policy.read',
         'core.role.data-policy.manage',
         'core.permission.read',
+        'core.menu.read',
+        'core.menu.manage',
+        'core.generator.read',
+        'core.generator.manage',
+        'core.generator.generate',
+        'core.system.read',
+        'core.system.cache.clear',
         'core.module.read',
         'core.module.configure',
         'core.audit.read',
+        'core.audit.clear',
     ];
 
     /** @var list<string> */
