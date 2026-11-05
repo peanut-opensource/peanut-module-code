@@ -67,9 +67,11 @@ final readonly class WorkflowLifecycleQueries
             $status = $states['peanut.notification']['status'] ?? null;
             // First installation can fail before DDL. A recorded outbox still requires reconciliation.
             $mustCheckDeliveries = in_array($status, ['active', 'maintenance', 'upgrading'], true)
-                || ($status !== 'uninstalled'
-                    && (clone $facts)->whereRaw('JSON_LENGTH(notification_outbox_json)>0')->limit(1)->value('id') !== null);
+                || (clone $facts)->whereRaw('JSON_LENGTH(notification_outbox_json)>0')->limit(1)->value('id') !== null;
             if ($mustCheckDeliveries) {
+                if (!class_exists(NotificationLifecycleQueries::class)) {
+                    throw WorkflowException::blocked('Restore the Notification package to reconcile Workflow deliveries before continuing.');
+                }
                 $notification = app(NotificationLifecycleQueries::class);
                 $pending += $tenantId === null ? $notification->pendingAcrossTenants($keys) : $notification->pendingPublications($tenantId, $keys);
             }
