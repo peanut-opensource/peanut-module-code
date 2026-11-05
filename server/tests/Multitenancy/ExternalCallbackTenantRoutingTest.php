@@ -207,12 +207,28 @@ $deny(fn() => $duplicate->verifiedCallback(
     'duplicate',
     static fn(): bool => true,
 ));
-$deny(fn() => $resolver->verifiedCallback(
+// A previously bound payment channel must still identify the owner of a
+// late verified settlement/refund. This resolution does not settle or grant
+// a new payment; ordinary active-channel lookup remains denied.
+$latePayment = $resolver->verifiedCallback(
     ExternalProvider::ALIPAY_PAYMENT,
     'ali-disabled',
     'payment.settle',
-    'disabled',
+    'late-settlement',
     static fn(): bool => true,
+);
+externalExpect(
+    $latePayment->context->tenantId === 303
+        && $latePayment->binding->active === false
+        && ($orders[101]['ORDER-SAME']['transaction'] ?? '') === 'TX-ALPHA'
+        && ($orders[202]['ORDER-SAME']['status'] ?? '') === 'unpaid',
+    'verified late payment callback did not preserve the original owner and other tenants',
+);
+$deny(fn() => $resolver->clientIdentity(
+    ExternalProvider::ALIPAY_PAYMENT,
+    'ali-app:seller',
+    'payment.new-operation',
+    'inactive-provider-denied',
 ));
 $deny(fn() => $resolver->verifiedCallback(
     ExternalProvider::WECHAT_OFFICIAL_CALLBACK,
