@@ -95,13 +95,19 @@ return [
             'tags' => ['Task'], 'operationId' => 'createCrontab',
             'requestBody' => ['required' => true, 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/CrontabCreateRequest']]]],
             'responses' => ['200' => $taskMutation, '400' => $taskError, '401' => $taskError, '403' => $taskError],
-            'x-peanut-errors' => ['TASK_PERMISSION_DENIED'],
+            'x-peanut-errors' => [
+                'TASK_PERMISSION_DENIED', 'MODULE_NOT_INSTALLED', 'MODULE_INSTALLATION_FAILED',
+                'MODULE_TENANT_DISABLED', 'MODULE_TENANT_NOT_EFFECTIVE',
+            ],
         ]],
         '/adminapi/peanut.task.edit' => ['post' => [
             'tags' => ['Task'], 'operationId' => 'updateCrontab',
             'requestBody' => ['required' => true, 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/CrontabUpdateRequest']]]],
             'responses' => ['200' => $taskMutation, '400' => $taskError, '401' => $taskError, '403' => $taskError],
-            'x-peanut-errors' => ['TASK_PERMISSION_DENIED'],
+            'x-peanut-errors' => [
+                'TASK_PERMISSION_DENIED', 'MODULE_NOT_INSTALLED', 'MODULE_INSTALLATION_FAILED',
+                'MODULE_TENANT_DISABLED', 'MODULE_TENANT_NOT_EFFECTIVE',
+            ],
         ]],
         '/adminapi/peanut.task.delete' => ['post' => [
             'tags' => ['Task'], 'operationId' => 'deleteCrontab',

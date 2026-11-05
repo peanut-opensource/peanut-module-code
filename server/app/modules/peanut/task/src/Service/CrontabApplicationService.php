@@ -7,6 +7,8 @@ namespace PeanutAdmin\Modules\Task\Service;
 use app\common\enum\CrontabEnum;
 use app\common\exception\BusinessException;
 use app\common\http\PageResult;
+use app\common\infrastructure\module\ModuleExecutionBoundary;
+use PeanutAdmin\Kernel\Module\ModuleException;
 use PeanutAdmin\Modules\Task\Model\Crontab;
 use Cron\CronExpression;
 use app\common\services\CrontabCommandService;
@@ -20,6 +22,7 @@ class CrontabApplicationService
 {
     public function __construct(
         private readonly CrontabCommandService $commands,
+        private readonly ModuleExecutionBoundary $modules,
     ) {}
 
     /** 分页列表：支持 name(模糊) / status 过滤 */
@@ -54,11 +57,13 @@ class CrontabApplicationService
 
     public function add(array $params): bool
     {
-        $this->commands->assertTenantAware(trim((string) $params['command']));
+        $command = trim((string) $params['command']);
+        $this->commands->assertTenantAware($command);
+        $this->assertCanSetCommand($command);
         Crontab::create([
             'name'       => (string) $params['name'],
             'type'       => (int) $params['type'],
-            'command'    => trim((string) $params['command']),
+            'command'    => $command,
             'params'     => (string) ($params['params'] ?? ''),
             'status'     => (int) $params['status'],
             'expression' => (string) $params['expression'],
@@ -71,17 +76,21 @@ class CrontabApplicationService
 
     public function edit(array $params): bool
     {
-        $this->commands->assertTenantAware(trim((string) $params['command']));
-        Db::transaction(function () use ($params): void {
+        $command = trim((string) $params['command']);
+        $this->commands->assertTenantAware($command);
+        Db::transaction(function () use ($params, $command): void {
             $crontab = Crontab::where([])
                 ->where('id', (int) $params['id'])->lock(true)->findOrEmpty();
             if ($crontab->isEmpty()) {
                 throw BusinessException::notFound('TASK_CRONTAB_NOT_FOUND', '定时任务不存在');
             }
+            if ($command !== trim((string) $crontab->command)) {
+                $this->assertCanSetCommand($command);
+            }
             $crontab->save([
                 'name' => (string) $params['name'],
                 'type' => (int) $params['type'],
-                'command' => trim((string) $params['command']),
+                'command' => $command,
                 'params' => (string) ($params['params'] ?? ''),
                 'status' => (int) $params['status'],
                 'expression' => (string) $params['expression'],
@@ -90,6 +99,18 @@ class CrontabApplicationService
             ]);
         });
         return true;
+    }
+
+    private function assertCanSetCommand(string $command): void
+    {
+        if ($command !== 'refund:reconcile') {
+            return;
+        }
+        try {
+            $this->modules->assertHttp('peanut.payment');
+        } catch (ModuleException $exception) {
+            throw BusinessException::forbidden($exception->errorCode, '当前租户无法配置退款对账计划');
+        }
     }
 
     public function delete(int $id): bool
