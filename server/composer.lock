@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "59ef6c1dac6b6ff636615041bf288ce7",
+    "content-hash": "3a7377bbebfc263a18784032957f9987",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2435,11 +2435,11 @@
         },
         {
             "name": "peanut-business/peanut-identity",
-            "version": "4.0.0-rc.56",
+            "version": "4.0.0-rc.57",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/identity",
-                "reference": "a22b83e6476a7094bea3bca16688bd798e6fbebb"
+                "reference": "d3a39fc712649d5a83ae88dd3649cb160d09e129"
             },
             "require": {
                 "peanut-admin/core": "^5.0.3-alpha.6",
@@ -2658,11 +2658,11 @@
         },
         {
             "name": "peanut-business/peanut-ops",
-            "version": "1.0.31",
+            "version": "1.0.32",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/ops",
-                "reference": "a0ba5e76348b83b4d13feef6788cb924c19acfd3"
+                "reference": "019780cec8e92448d68691ab894f4fea13167c38"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2879,11 +2879,11 @@
         },
         {
             "name": "peanut-business/workflow",
-            "version": "4.0.0-rc.47",
+            "version": "4.0.0-rc.48",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/workflow",
-                "reference": "b67a7a2342ed4477cedeff86918ba6e8db073d43"
+                "reference": "663b2c260608f2fe2328d419d995146c5958df26"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",

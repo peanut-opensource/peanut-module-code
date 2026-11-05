@@ -577,8 +577,7 @@ final readonly class ThinkPhpModuleOperationTaskExecutionService implements Modu
         if (!hash_equals($payload['package_key'], (string) ($result['package_key'] ?? ''))) {
             return false;
         }
-        $row = Db::name('module_installation')->where('module_key', $payload['package_key'])
-            ->field('status,installed_version,artifact_sha256,lock_digest')->find();
+        $row = (new TenantModuleStateQueries())->operationInstallationReceipt($payload['package_key']);
         if (in_array($payload['operation'], ['install', 'update'], true)) {
             return is_array($row)
                 && (string) $row['status'] === 'active'

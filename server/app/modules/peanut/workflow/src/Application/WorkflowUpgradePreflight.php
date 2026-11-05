@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Workflow\Application;
 
 use PeanutAdmin\Modules\Identity\Contract\WorkflowLegacyOrganizationQuery;
+use PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries;
 use think\facade\Db;
 
 /** Native module upgrade report. Legacy opinions/versions stay untouched; there is no inferred execution conversion. */
@@ -23,8 +24,9 @@ final readonly class WorkflowUpgradePreflight
             if ((int) ($present[0]['count'] ?? 0) === 0) { $missing[] = $table; $counts[$table] = 0; }
             else { $counts[$table] = (int) Db::name($table)->count(); }
         }
-        $installed = Db::name('module_installation')->where('module_key', 'peanut.workflow')
-            ->whereIn('status', ['active', 'maintenance'])->count() > 0;
+        $status = (new TenantModuleStateQueries())
+            ->installationStates(['peanut.workflow'])['peanut.workflow']['status'] ?? null;
+        $installed = in_array($status, ['active', 'maintenance'], true);
         $applied = $missing === [] && $installed
             && Db::name((string) config('database.migration_table', 'migrations'))->where('version', self::SCHEMA_VERSION)->count() > 0;
         $report = ['schema_version' => 1, 'module_key' => 'peanut.workflow', 'migration_version' => self::SCHEMA_VERSION, 'already_applied' => $applied,

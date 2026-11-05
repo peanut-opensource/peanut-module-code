@@ -192,11 +192,11 @@
         "opis/json-schema": "^2.6",
         "topthink/think-migration": "3.1.1",
         "peanut-business/peanut-content-tools": "1.0.2",
-        "peanut-business/peanut-identity": "4.0.0-rc.56",
+        "peanut-business/peanut-identity": "4.0.0-rc.57",
         "peanut-business/peanut-file": "1.0.41",
         "peanut-business/peanut-task": "1.0.29",
         "peanut-business/peanut-integration": "1.0.28",
-        "peanut-business/peanut-ops": "1.0.31",
+        "peanut-business/peanut-ops": "1.0.32",
         "peanut-business/peanut-reference-codes": "1.0.25",
         "peanut-business/peanut-settings": "1.0.26",
         "peanut-business/peanut-chart": "1.0.3",
@@ -211,7 +211,7 @@
         "peanut-business/peanut-oauth": "1.0.11",
         "peanut-business/peanut-payment": "1.0.28",
         "peanut-business/peanut-rich-text": "1.0.13",
-        "peanut-business/workflow": "4.0.0-rc.47",
+        "peanut-business/workflow": "4.0.0-rc.48",
         "peanut-business/peanut-chart-examples": "1.0.3"
     },
     "require-dev": {

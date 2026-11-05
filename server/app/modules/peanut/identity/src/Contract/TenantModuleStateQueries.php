@@ -200,6 +200,22 @@ final readonly class TenantModuleStateQueries
         return $states;
     }
 
+    /**
+     * Fixed read-only package receipt for an Ops postflight smoke.
+     * Identity owns the installation table; this projection never grants
+     * permission or returns a tenant's module configuration.
+     * @return array{status:mixed,installed_version:mixed,artifact_sha256:mixed}|null
+     */
+    public function operationInstallationReceipt(string $moduleKey): ?array
+    {
+        if ($moduleKey === '') {
+            return null;
+        }
+        $row = Db::name('module_installation')->where('module_key', $moduleKey)
+            ->field('status,installed_version,artifact_sha256')->find();
+        return is_array($row) ? $row : null;
+    }
+
     /** 已安装活动目录，不表示当前调用者或某租户获准使用。 @return list<string> */
     public function activeInstallationKeys(): array
     {
