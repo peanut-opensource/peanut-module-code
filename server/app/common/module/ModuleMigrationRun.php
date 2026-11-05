@@ -100,6 +100,50 @@ final class ModuleMigrationRun extends Run
         return array_values($sources);
     }
 
+    /**
+     * @param array<string,ManifestDocument> $incoming
+     * @param array<string,ManifestDocument> $composition
+     */
+    public static function assertCompatibleComposition(
+        array $incoming,
+        array $composition,
+        string $serverRoot,
+        bool $includeHost = false,
+    ): void {
+        self::sources($incoming, $serverRoot, $includeHost);
+        foreach (array_diff_key($composition, $incoming) as $key => $manifest) {
+            self::sources($incoming + [$key => $manifest], $serverRoot);
+        }
+    }
+
+    /** @param list<array{migration_key:string,name:string,file:string}> $sources
+     *  @param array<int|string,string> $applied
+     */
+    public static function assertLedgerIdentity(array $sources, array $applied): void
+    {
+        $appliedNames = [];
+        foreach ($applied as $version => $name) {
+            $appliedNames[strtolower((string) $name)] = (string) $version;
+        }
+        foreach ($sources as $source) {
+            $version = $source['migration_key'];
+            $name = $source['name'];
+            if (isset($applied[$version]) && $applied[$version] !== $name) {
+                throw new ModuleLifecycleException(
+                    'MODULE_MIGRATION_IDENTITY_CONFLICT',
+                    "Migration {$version} is already recorded as {$applied[$version]}; package declares {$name}.",
+                );
+            }
+            $appliedVersion = $appliedNames[strtolower($name)] ?? null;
+            if ($appliedVersion !== null && $appliedVersion !== $version) {
+                throw new ModuleLifecycleException(
+                    'MODULE_MIGRATION_IDENTITY_CONFLICT',
+                    "Migration {$name} is already recorded at {$appliedVersion}; package declares {$version}.",
+                );
+            }
+        }
+    }
+
     protected function getPath()
     {
         return $this->directory;

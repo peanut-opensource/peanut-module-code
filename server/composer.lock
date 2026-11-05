@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "16e62456aaadff8018ee64dd05899ed6",
+    "content-hash": "59ef6c1dac6b6ff636615041bf288ce7",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2474,7 +2474,7 @@
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/import_export",
-                "reference": "ef0c49ca171761b404af288dd99659a915ed93e6"
+                "reference": "6f0448ba582d679f9babeefaa1cf5e24fd423498"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2587,7 +2587,7 @@
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/notification",
-                "reference": "74dba64e26d19352c76fbb70b2cea97f711192fc"
+                "reference": "950ad85e16a6ba6a1856a5c6811f7a9b73442eed"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2695,11 +2695,11 @@
         },
         {
             "name": "peanut-business/peanut-payment",
-            "version": "1.0.27",
+            "version": "1.0.28",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/payment",
-                "reference": "e820cfe1ee1b6655878a30bd7c7a6de4eafc1199"
+                "reference": "75beb6745dc509b633394abf9e61e374cee802e7"
             },
             "require": {
                 "hyperf/pimple": "^2.2",

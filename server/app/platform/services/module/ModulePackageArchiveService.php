@@ -12,7 +12,9 @@ use app\platform\infrastructure\module\DeterministicTarArchive;
 use app\platform\infrastructure\module\ModuleArtifactWriter;
 use app\platform\infrastructure\module\ModuleLockResolver;
 use app\platform\infrastructure\module\VerifiedModulePackage;
+use app\common\module\ModuleMigrationRun;
 use app\common\module\PackageCheck;
+use PeanutAdmin\Kernel\Module\ManifestLoader;
 use Opis\JsonSchema\Errors\ErrorFormatter;
 use Opis\JsonSchema\Validator;
 use PeanutAdmin\Kernel\Module\ModuleKey;
@@ -306,6 +308,25 @@ final class ModulePackageArchiveService
             $moduleSpecs[] = $moduleKey . '=' . $inspection['backend_relative'];
         }
         $preflight->dependencyOrder($modules, array_filter($availableVersions, 'is_string'));
+
+        $loader = new ManifestLoader();
+        $manifests = [];
+        foreach (glob($this->serverRoot . '/app/modules/*/*/module.json') ?: [] as $file) {
+            $manifest = $loader->load(dirname($file));
+            $key = (string) $manifest->data['key'];
+            if (!str_starts_with($key, 'fixture.')) {
+                $manifests[$key] = $manifest;
+            }
+        }
+        try {
+            ModuleMigrationRun::assertCompatibleComposition(
+                [$packageKey => $inspections[$packageKey]['manifest']],
+                $manifests,
+                $this->serverRoot,
+            );
+        } catch (\app\platform\exception\module\ModuleLifecycleException $exception) {
+            throw new ModulePackageException($exception->errorCode, $exception->getMessage(), 0, $exception);
+        }
 
         try {
             $manifest = (new ModuleArtifactWriter($this->serverRoot))->build($packageKey, $version, $moduleSpecs);
