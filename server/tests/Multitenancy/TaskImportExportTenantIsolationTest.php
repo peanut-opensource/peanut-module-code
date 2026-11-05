@@ -474,6 +474,8 @@ function assertInFlightExportRevocation(
     $entryCount = (int) $pdo->query('SELECT COUNT(*) FROM pa_file')->fetchColumn();
     $grantCount = (int) $pdo->query('SELECT COUNT(*) FROM pa_file_delivery_grant')->fetchColumn();
     $authorization = $app->make(AdminAuthorizationService::class);
+    $contexts = $app->make(ExecutionContextStore::class);
+    $managerExecution = new AdminExecutionContext($manager, 'qualification.export-role-revocation', $authorization->principal($manager)->toArray());
     $freshActor = $refreshActor();
     $context = $authorization->authorizedAsyncExport($freshActor, $authorization->principal($freshActor));
     $operation = submitOperationLogExport($runtime, $guard, $context, 'in-flight-revocation-' . $runId);
@@ -490,6 +492,7 @@ function assertInFlightExportRevocation(
         $pdo->exec('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
         \think\facade\Db::startTrans();
         $transaction = true;
+        expectAsyncTenant(\think\facade\Db::connect()->getPdo() === $pdo && $pdo->inTransaction(), 'gap lock and Role service must share the active native transaction');
         $pdo->query('SELECT id FROM pa_file_object FORCE INDEX (PRIMARY) WHERE id > ' . $maxObject . ' FOR UPDATE')->fetchAll();
         $guard(true);
         $worker = proc_open([PHP_BINARY, $app->getRootPath() . 'think', 'tenant-task:work', (string) $actor->tenantId,
@@ -520,7 +523,7 @@ function assertInFlightExportRevocation(
         expectAsyncTenant($blockedConnection !== null, 'worker did not reach the actual file-object INSERT barrier');
         $guard(true);
         $currentRole = $roles->get($actor->tenantId, $roleId);
-        $roles->replacePermissions($manager, $roleId, array_values(array_diff($originalKeys, [$exportKey])), (int) $currentRole['revision']);
+        $contexts->run($managerExecution, static fn(): array => $roles->replacePermissions($manager, $roleId, array_values(array_diff($originalKeys, [$exportKey])), (int) $currentRole['revision']));
         \think\facade\Db::commit();
         $transaction = false;
         $revoked = true;
@@ -542,7 +545,9 @@ function assertInFlightExportRevocation(
         $workerOutput = stream_get_contents($stdout);
         $workerError = stream_get_contents($stderr);
         expectAsyncTenant($workerExit === 0 && preg_match('/processed=1(?:\R|$)/', $workerOutput) === 1, 'exact-job CLI did not process its job');
-        expectAsyncTenant(!str_contains($workerError, 'execution context stack not empty'), 'native child CLI reported a context leak');
+        // Absence of the native leak diagnostic is not direct observation of the child's store.
+        expectAsyncTenant(!str_contains($workerError, 'execution context stack not empty'), 'native child CLI emitted a context-leak diagnostic');
+        fwrite(STDERR, "CHILD_CONTEXT_RELEASE_NOT_RUN: no direct observation of the child store\n");
         $freshActor = $refreshActor();
         expectAsyncTenant(
             $freshActor->tenantId === $actor->tenantId && $freshActor->memberId === $actor->memberId
@@ -564,7 +569,6 @@ function assertInFlightExportRevocation(
         $audit = $pdo->prepare("SELECT COUNT(*) FROM pa_tenant_audit_event WHERE tenant_id=? AND target_resource_id=? AND event_type='tenant.import_export.succeeded' AND outcome='success'");
         $audit->execute([$actor->tenantId, $operation->operationKey]);
         $successAudit = (int) $audit->fetchColumn();
-        $contexts = $app->make(ExecutionContextStore::class);
         $storage = $app->make(StorageService::class);
         $genericDownloadAllowed = false;
         $resultDownloadAllowed = false;
@@ -629,7 +633,7 @@ function assertInFlightExportRevocation(
         if ($revoked) {
             $guard();
             $currentRole = $roles->get($actor->tenantId, $roleId);
-            $restored = $roles->replacePermissions($manager, $roleId, $originalKeys, (int) $currentRole['revision']);
+            $restored = $contexts->run($managerExecution, static fn(): array => $roles->replacePermissions($manager, $roleId, $originalKeys, (int) $currentRole['revision']));
             $restoredKeys = $restored['permission_keys'];
             sort($restoredKeys, SORT_STRING);
             sort($originalKeys, SORT_STRING);
