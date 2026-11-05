@@ -22,7 +22,6 @@ require_once dirname(__DIR__, 5) . '/Support/ThinkPhpTestConnection.php';
 
 final class EntitlementQuotaStoreTest extends TestCase
 {
-
     private string $database;
     private bool $createdDatabase = false;
     private PDO $pdo;

@@ -70,10 +70,14 @@ featureSame($provider->send($request)->providerMessageKey, $provider->send($requ
 featureSame(1, $provider->acceptedCount(), 'provider deduplicates job key');
 
 /** Exercises real persistence; SQL triggers inject failures at the owned database boundary. */
-function notificationFeatureCases(PDO $pdo, NotificationStore $repository, NotificationService $service,
-    AuthorizedOperationContext $manage, \PeanutAdmin\Modules\Notification\Infrastructure\Authorization\NotificationAsyncAuthorization $authorization,
-    \PeanutAdmin\Modules\Task\Contract\TrustedJobPublisher $publisher): void
-{
+function notificationFeatureCases(
+    PDO $pdo,
+    NotificationStore $repository,
+    NotificationService $service,
+    AuthorizedOperationContext $manage,
+    \PeanutAdmin\Modules\Notification\Infrastructure\Authorization\NotificationAsyncAuthorization $authorization,
+    \PeanutAdmin\Modules\Task\Contract\TrustedJobPublisher $publisher,
+): void {
     $read = operation('read', 101, 301, 501);
     expectCode('NOTIFICATION_PERMISSION_DENIED', fn() => $service->publish($read, 'security.alert', [['member_id' => 501, 'variables' => ['code' => 'x']]]), 'permission boundary');
     expectCode('NOTIFICATION_ATTACHMENT_UNAVAILABLE', fn() => $service->publish($manage, 'security.alert', [['member_id' => 501, 'variables' => ['code' => 'x']]], ['file_' . str_repeat('e', 32)]), 'attachment tenant/ready boundary');
@@ -95,7 +99,9 @@ function notificationFeatureCases(PDO $pdo, NotificationStore $repository, Notif
         $pdo->exec('DELETE FROM pa_sms_rate_bucket');
         $published = $service->publish($manage, 'security.alert', [['member_id' => 501, 'variables' => ['code' => 'FEATURE-' . ++$sequence]]]);
         foreach ($published['outbox'] as $outbox) {
-            if ($outbox->channel !== $channel) { continue; }
+            if ($outbox->channel !== $channel) {
+                continue;
+            }
             $job = 'job_' . str_pad(dechex($sequence), 32, '0', STR_PAD_LEFT);
             \think\facade\Db::transaction(fn() => $repository->bindJob(101, $outbox->outboxKey, $job));
             $lease = static function (): void {};
@@ -109,7 +115,9 @@ function notificationFeatureCases(PDO $pdo, NotificationStore $repository, Notif
         return $statement->fetch(PDO::FETCH_ASSOC);
     };
     $retry = static function (string $code, callable $call): void {
-        try { $call(); } catch (RetryableTaskException $error) {
+        try {
+            $call();
+        } catch (RetryableTaskException $error) {
             featureSame($code, $error->safeCode, 'retry classification');
             return;
         }
@@ -117,7 +125,11 @@ function notificationFeatureCases(PDO $pdo, NotificationStore $repository, Notif
     };
     $fault = static function (string $condition, callable $call) use ($pdo): void {
         $pdo->exec("CREATE TRIGGER notification_feature_fault BEFORE UPDATE ON pa_notification_outbox FOR EACH ROW BEGIN IF {$condition} THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='synthetic persistence failure'; END IF; END");
-        try { $call(); } finally { $pdo->exec('DROP TRIGGER notification_feature_fault'); }
+        try {
+            $call();
+        } finally {
+            $pdo->exec('DROP TRIGGER notification_feature_fault');
+        }
     };
     $provider = new LocalDevSmsProvider();
     $execution = $fresh();
@@ -129,13 +141,18 @@ function notificationFeatureCases(PDO $pdo, NotificationStore $repository, Notif
 
     $execution = $fresh();
     $digest = (new SmsRecipient('+8613800138000', str_repeat('k', 32)))->digest;
-    for ($index = 0; $index < 5; ++$index) { \think\facade\Db::transaction(fn() => $repository->reserveSmsRate(101, $digest)); }
+    for ($index = 0; $index < 5; ++$index) {
+        \think\facade\Db::transaction(fn() => $repository->reserveSmsRate(101, $digest));
+    }
     $retry('SMS_RATE_LIMITED', fn() => $handler->handle($manage, $execution));
     featureSame(['retryable', 'SMS_RATE_LIMITED'], array_values(array_intersect_key($failure($execution), array_flip(['status', 'last_error_code']))), 'rate failure persisted');
 
     $execution = $fresh();
     $transient = new SmsTaskHandler($repository, new class implements SmsRecipientResolver {
-        public function resolve(TenantContext $context, int $memberId): SmsRecipient { throw new RuntimeException('private lookup detail'); }
+        public function resolve(TenantContext $context, int $memberId): SmsRecipient
+        {
+            throw new RuntimeException('private lookup detail');
+        }
     }, new LocalDevSmsProvider());
     $fault("NEW.status='retryable'", fn() => $retry('SMS_RECIPIENT_LOOKUP_FAILED', fn() => $transient->handle($manage, $execution)));
     featureSame(null, $failure($execution)['last_error_code'], 'failure-write error does not mask lookup retry class');
@@ -151,8 +168,14 @@ function notificationFeatureCases(PDO $pdo, NotificationStore $repository, Notif
 
     $execution = $fresh();
     $permanent = new SmsTaskHandler($repository, $resolver, new class implements SmsProvider {
-        public function key(): string { return 'test-provider'; }
-        public function send(\PeanutAdmin\Modules\Notification\Delivery\Sms\SmsSendRequest $request): SmsReceipt { throw SmsProviderException::permanent('SMS_DESTINATION_REJECTED'); }
+        public function key(): string
+        {
+            return 'test-provider';
+        }
+        public function send(\PeanutAdmin\Modules\Notification\Delivery\Sms\SmsSendRequest $request): SmsReceipt
+        {
+            throw SmsProviderException::permanent('SMS_DESTINATION_REJECTED');
+        }
     });
     expectCode('SMS_DESTINATION_REJECTED', fn() => $permanent->handle($manage, $execution), 'permanent provider code');
     featureSame('permanent_failed', $failure($execution)['status'], 'permanent provider classification');

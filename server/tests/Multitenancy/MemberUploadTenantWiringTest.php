@@ -28,8 +28,7 @@ function memberUploadInstalledAssertions(
     int $otherTenantId,
     array $expectedDatabaseIdentity,
     callable $guard,
-): void
-{
+): void {
     $installation = $app->make(app\common\services\installation\InstallationExecutionHost::class);
     $status = $installation->status();
     expectMemberUpload(($status['state'] ?? null) === 'installed' && ($status['deployment_mode'] ?? null) === 'multi-tenant', 'healthy installed multi-tenant Code is required');

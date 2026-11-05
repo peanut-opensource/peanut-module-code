@@ -83,8 +83,10 @@ function importExportMysql(PDO $pdo, ExecutionContextStore $contexts, CurrentExe
     $store = new ImportExportStore($current, $audit);
     $before = rowsMysql($pdo, 'pa_import_export_operation');
     rejectedMysql(fn() => $store->expireDue(), 'MAINTENANCE_CONTEXT_REQUIRED');
-    $contexts->run(new InstanceExecutionContext('console.ordinary:task', 'wrong-instance'),
-        fn() => rejectedMysql(fn() => $store->expireDue(), 'MAINTENANCE_CONTEXT_REQUIRED'));
+    $contexts->run(
+        new InstanceExecutionContext('console.ordinary:task', 'wrong-instance'),
+        fn() => rejectedMysql(fn() => $store->expireDue(), 'MAINTENANCE_CONTEXT_REQUIRED'),
+    );
     $contexts->run(tenantContext('import-export:expire'), fn() => rejectedMysql(fn() => $store->expireDue(), 'MAINTENANCE_CONTEXT_REQUIRED'));
     checkMysql(rowsMysql($pdo, 'pa_import_export_operation') === $before, 'rejected import calls mutated rows');
     $pdo->exec('RENAME TABLE pa_import_export_row_error TO pa_retention_row_error_without_schema');
@@ -120,8 +122,8 @@ function importExportMysql(PDO $pdo, ExecutionContextStore $contexts, CurrentExe
 function integrationMysql(PDO $pdo, ExecutionContextStore $contexts, CurrentExecutionContext $current, AuditContractHost $audit): void
 {
     $endpoint = $pdo->prepare("INSERT INTO pa_integration_webhook_endpoint (id,tenant_id,endpoint_key,name,url,events_json,secret_ciphertext,secret_key_id,created_by_member_id,created_at,updated_at) VALUES (?,?,?,'Retention fixture','https://retention.invalid','[]','not-a-live-secret','fixture',?,'2000-01-01','2000-01-01')");
-    $endpoint->execute([1,101,'whe_' . str_repeat('a',36),501]);
-    $endpoint->execute([2,202,'whe_' . str_repeat('b',36),502]);
+    $endpoint->execute([1,101,'whe_' . str_repeat('a', 36),501]);
+    $endpoint->execute([2,202,'whe_' . str_repeat('b', 36),502]);
     $insert = $pdo->prepare('INSERT INTO pa_integration_webhook_delivery (id,tenant_id,endpoint_id,delivery_key,event_key,event_type,payload_json,payload_sha256,status,available_at,delivered_at,payload_expires_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
     foreach ([
         [11, 101, 'delivered', 'private-body-one', '2000-01-01 00:00:00.000'],
@@ -145,12 +147,19 @@ function integrationMysql(PDO $pdo, ExecutionContextStore $contexts, CurrentExec
     $purge = fn(DateTimeImmutable $payload, DateTimeImmutable $evidence, int $limit) => $repository->purgeExpiredDeliveryData($payload, $evidence, $limit);
     $before = [rowsMysql($pdo, 'pa_integration_webhook_delivery'), rowsMysql($pdo, 'pa_integration_webhook_attempt')];
     rejectedMysql(fn() => $purge($payloadCutoff, $payloadCutoff, 2), 'MAINTENANCE_CONTEXT_REQUIRED');
-    $contexts->run(new InstanceExecutionContext('console.ordinary:task', 'wrong-instance'),
-        fn() => rejectedMysql(fn() => $purge($payloadCutoff, $payloadCutoff, 2), 'MAINTENANCE_CONTEXT_REQUIRED'));
-    $contexts->run(tenantContext('integration:purge-expired'),
-        fn() => rejectedMysql(fn() => $purge($payloadCutoff, $payloadCutoff, 2), 'MAINTENANCE_CONTEXT_REQUIRED'));
-    maintenanceContext($contexts, 'integration:purge-expired',
-        fn() => rejectedMysql(fn() => Db::transaction(fn() => $purge($payloadCutoff, $payloadCutoff, 2)), 'MAINTENANCE_OUTER_TRANSACTION_FORBIDDEN'));
+    $contexts->run(
+        new InstanceExecutionContext('console.ordinary:task', 'wrong-instance'),
+        fn() => rejectedMysql(fn() => $purge($payloadCutoff, $payloadCutoff, 2), 'MAINTENANCE_CONTEXT_REQUIRED'),
+    );
+    $contexts->run(
+        tenantContext('integration:purge-expired'),
+        fn() => rejectedMysql(fn() => $purge($payloadCutoff, $payloadCutoff, 2), 'MAINTENANCE_CONTEXT_REQUIRED'),
+    );
+    maintenanceContext(
+        $contexts,
+        'integration:purge-expired',
+        fn() => rejectedMysql(fn() => Db::transaction(fn() => $purge($payloadCutoff, $payloadCutoff, 2)), 'MAINTENANCE_OUTER_TRANSACTION_FORBIDDEN'),
+    );
     checkMysql([rowsMysql($pdo, 'pa_integration_webhook_delivery'), rowsMysql($pdo, 'pa_integration_webhook_attempt')] === $before, 'rejected purge mutated rows');
     auditFailureTrigger($pdo);
     try {

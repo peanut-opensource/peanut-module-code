@@ -105,7 +105,9 @@ try {
     $app->make(\app\platform\infrastructure\module\ModuleCatalogApplier::class)->apply($registry, $selected);
     $pdo->exec("INSERT INTO pa_plan(id,code,name,status,revision,created_at,updated_at) VALUES(1,'notification-fixture','Notification fixture','active',1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
     $statement = $pdo->prepare('INSERT INTO pa_plan_module(plan_id,module_key) VALUES(1,?)');
-    foreach ($selected as $moduleKey) { $statement->execute([$moduleKey]); }
+    foreach ($selected as $moduleKey) {
+        $statement->execute([$moduleKey]);
+    }
     $pdo->exec("INSERT INTO pa_plan_permission(plan_id,permission_key) SELECT 1,`key` FROM pa_permission WHERE status='active' AND `key` NOT LIKE 'platform.%'");
     foreach ([101 => 501, 202 => 502] as $tenantId => $memberId) {
         $pdo->exec("INSERT INTO pa_tenant_license(tenant_id,plan_id,status,effective_at,revision,created_at,updated_at) VALUES({$tenantId},1,'active',UTC_TIMESTAMP(3),1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");

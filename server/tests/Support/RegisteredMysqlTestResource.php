@@ -329,7 +329,9 @@ final class RegisteredMysqlTestResource
     private static function schemaLeaseEndpoint(array $resource, array $endpoint, bool $p0e): ?string
     {
         $policy = $resource['lease_policy'] ?? null;
-        if ($policy === null || ($policy['mode'] ?? null) === 'exclusive') { return null; }
+        if ($policy === null || ($policy['mode'] ?? null) === 'exclusive') {
+            return null;
+        }
         if ($p0e || !is_array($policy) || ($policy['mode'] ?? null) !== 'schema'
             || !is_int($policy['max_executors'] ?? null)
             || $policy['max_executors'] < 1 || $policy['max_executors'] > 8

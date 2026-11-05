@@ -61,7 +61,10 @@ final class SettingsDictionaryInputBoundaryTest extends TestCase
         $controller = (new ReflectionClass(DictDataController::class))->newInstanceWithoutConstructor();
         (new ReflectionProperty(DictDataController::class, 'app'))->setValue($controller, $app);
         self::assertSame(['name' => 'Entry', 'value' => 'one', 'id' => 1], (new ReflectionMethod(DictDataController::class, 'validatedInput'))->invoke(
-            $controller, null, 'edit', ['id' => 1, 'name' => 'Entry', 'value' => 'one'],
+            $controller,
+            null,
+            'edit',
+            ['id' => 1, 'name' => 'Entry', 'value' => 'one'],
         ));
     }
 

@@ -64,8 +64,7 @@ function taskImportExportInstalledAssertions(
     array $expectedDatabaseIdentity,
     callable $guard,
     callable $moduleSelection,
-): void
-{
+): void {
     $GLOBALS['taskImportExportChecks'] = 0;
     // Only these existing qualification DML operations use this same native transaction.
     $write = static function (PDOStatement|string $sql, array $parameters = []) use ($pdo, $guard): void {
@@ -110,13 +109,19 @@ function taskImportExportInstalledAssertions(
         }
     }
     $assertModuleSelection = static function (string $moduleKey, bool $enabled) use ($app, $moduleStates, $tenantId, $otherTenantId, $grant, $alphaRoleId, $exportPermission, $originalGrant): void {
-        expectAsyncTenant($moduleStates->acceptsNewOperations($tenantId, $moduleKey) === $enabled,
-            'alpha license module availability differs from the intended selection');
-        expectAsyncTenant($moduleStates->acceptsNewOperations($otherTenantId, $moduleKey),
-            'alpha license change affected beta availability');
+        expectAsyncTenant(
+            $moduleStates->acceptsNewOperations($tenantId, $moduleKey) === $enabled,
+            'alpha license module availability differs from the intended selection',
+        );
+        expectAsyncTenant(
+            $moduleStates->acceptsNewOperations($otherTenantId, $moduleKey),
+            'alpha license change affected beta availability',
+        );
         $grant->execute([$tenantId, $alphaRoleId, $exportPermission]);
-        expectAsyncTenant($grant->fetch(PDO::FETCH_ASSOC) === $originalGrant,
-            'license qualification changed the native RBAC grant');
+        expectAsyncTenant(
+            $grant->fetch(PDO::FETCH_ASSOC) === $originalGrant,
+            'license qualification changed the native RBAC grant',
+        );
         $moduleGuard = new \PeanutAdmin\Kernel\Module\ModuleGuard($app->make(\PeanutAdmin\Kernel\Module\ModuleRuntimeRepository::class));
         if ($enabled) {
             $moduleGuard->assertTenant($tenantId, $moduleKey, new DateTimeImmutable());
@@ -304,7 +309,9 @@ function taskImportExportInstalledAssertions(
     expectAsyncTenant(runAsyncTenant($runtime, $guard, $executionContexts, $tenantId, 'installed-revoked-' . $runId) === 1, 'revoked job was not examined');
     expectAsyncTenant($pdo->query("SELECT status FROM pa_task_job WHERE job_key = " . $pdo->quote((string) $revoked->taskJobKey))->fetchColumn() === 'dead', 'revoked native Permission still executed');
     $grantColumns = array_keys($originalGrant);
-    foreach ($grantColumns as $column) { expectAsyncTenant(preg_match('/^[a-z_]+$/D', $column) === 1, 'unexpected native grant column'); }
+    foreach ($grantColumns as $column) {
+        expectAsyncTenant(preg_match('/^[a-z_]+$/D', $column) === 1, 'unexpected native grant column');
+    }
     $guard();
     $write('INSERT INTO pa_role_permission (`' . implode('`,`', $grantColumns) . '`) VALUES (' . implode(',', array_fill(0, count($grantColumns), '?')) . ')', array_values($originalGrant));
 
@@ -332,7 +339,7 @@ function taskImportExportInstalledAssertions(
         $actor = $context->tenantContext;
         return $executionContexts->run(
             new AdminExecutionContext($actor, 'import-export.operation-log.download', $authorization->principal($actor)->toArray()),
-            static fn (): array => $runtime->download($context, $fileKey),
+            static fn(): array => $runtime->download($context, $fileKey),
         );
     };
     $guard();

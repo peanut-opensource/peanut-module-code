@@ -92,7 +92,9 @@ abstract class WorkflowMysqlTestCase extends TestCase
         $this->assignments->method('eligible')->willReturn(true);
         $this->authorization = $this->createStub(WorkflowAuthorizationResolver::class);
         $this->authorization->method('authorize')->willReturnCallback(function ($basis, $resource, $operation, $permissions, $subject) {
-            if ($this->denied) { throw WorkflowException::assignmentDenied(); }
+            if ($this->denied) {
+                throw WorkflowException::assignmentDenied();
+            }
             return AuthorizedOperationContext::fromDecision(AuthorizationDecision::allow($basis->tenantContext, $resource, $operation, [new RequestedTargetSet($resource, [$subject])], hash('sha256', implode('|', $permissions))));
         });
         $this->transactions = new WorkflowCommandTransaction(new IdempotencyService(), $this->lifecycle);
@@ -139,8 +141,12 @@ abstract class WorkflowMysqlTestCase extends TestCase
         $item = Db::name('workflow_work_item')->where('instance_id', Db::name('workflow_instance')->where('instance_key', $instance['instance_key'])->value('id'))->where('status', 'pending')->where('assignee_member_id', $member)->order('id', 'desc')->find();
         $node = Db::name('workflow_node_execution')->where('id', $item['node_execution_id'])->find();
         $request = ['node_execution_key' => $node['node_execution_key'], 'expected_revision' => $instance['revision'], 'expected_node_revision' => (int) $node['revision'], 'expected_task_revision' => (int) $item['revision'], 'comment' => null, 'attachment_file_keys' => []];
-        if (in_array($action, ['approve', 'reject'], true)) { $request['decision'] = $action; }
-        if ($action === 'complete') { $request['input'] = []; }
+        if (in_array($action, ['approve', 'reject'], true)) {
+            $request['decision'] = $action;
+        }
+        if ($action === 'complete') {
+            $request['input'] = [];
+        }
         return [$item['work_item_key'], $request];
     }
 
@@ -591,8 +597,12 @@ final class WorkflowRuntimeTest extends WorkflowMysqlTestCase
             $sockets[] = $pair[0];
             $children[] = $pid;
         }
-        foreach ($sockets as $socket) { self::assertSame("ready\n", fgets($socket)); }
-        foreach ($sockets as $socket) { fwrite($socket, "go\n"); }
+        foreach ($sockets as $socket) {
+            self::assertSame("ready\n", fgets($socket));
+        }
+        foreach ($sockets as $socket) {
+            fwrite($socket, "go\n");
+        }
         $outcomes = [];
         foreach ($sockets as $socket) {
             $outcomes[] = trim((string) fgets($socket));
