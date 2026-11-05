@@ -46,6 +46,29 @@ Web contribution supplies `/app-setting/pay`, `/finance/recharge` and
 implementation entries, not new public npm component exports. Change the host
 layout around these consumers without bypassing their route/command permissions.
 
+## Original merchant and channel SDK
+
+Payment attempts preserve the tenant, provider, merchant binding and the
+actual external trade number. Rotating a merchant in Payment settings switches
+the new-payment grant and retains old callback routing and credentials.
+Configuration import can update an existing payment identity but merchant
+changes use Payment settings to rotate the grant in the same transaction.
+Settling a late callback locks the recharge order and original attempt. A
+second successful attempt is recorded for financial review without crediting
+the member again.
+
+Existing orders retain their external recharge SN when a stored merchant
+snapshot can be recovered. Runtime compares that snapshot with both the
+selected Integration binding and its configured merchant identity. Missing
+or inconsistent provenance requires financial review before automatic
+refunds. The migration cannot recover previously overwritten attempts from
+the legacy order row alone.
+
+The gateway delegates provider I/O and signature verification to
+`yansongda/pay`. It uses one explicitly named merchant configuration inside a
+blocking SDK call, rejects overlap and clears Artful state on exit. Provider
+results still pass the module's own ownership, amount and currency checks.
+
 ## Failure and current verification boundary
 
 `RECHARGE_DISABLED`, amount limits, `RECHARGE_CHANNEL_UNAVAILABLE`,

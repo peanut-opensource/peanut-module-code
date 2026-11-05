@@ -23,7 +23,15 @@ final class ExternalTenantResolver implements ExternalTenantResolutionService
 
     public function verifiedCallback(string $provider, string $callbackKey, string $operation, string $operationId, callable $verifier): ExternalTenantResolution
     {
-        return $this->resolve($provider, $callbackKey, $operation, $operationId, fn(): array => $this->bindings->byCallbackKey($provider, $callbackKey), $verifier);
+        return $this->resolve(
+            $provider,
+            $callbackKey,
+            $operation,
+            $operationId,
+            fn(): array => $this->bindings->byCallbackKey($provider, $callbackKey),
+            $verifier,
+            requireActive: !ExternalProvider::isPayment($provider),
+        );
     }
 
     public function clientIdentity(string $provider, string $clientIdentity, string $operation, string $operationId): ExternalTenantResolution
@@ -55,6 +63,15 @@ final class ExternalTenantResolver implements ExternalTenantResolutionService
             null,
             $requireProviderMatch,
         );
+    }
+
+    public function paymentBindingForHistory(int $tenantId, string $provider, int $bindingId): ExternalTenantBinding
+    {
+        if ($tenantId < 1 || $bindingId < 1 || !ExternalProvider::isPayment($provider)) {
+            throw new ExternalTenantResolutionException();
+        }
+
+        return $this->oneAvailable($this->bindings->byReference($tenantId, $bindingId), $provider, 'payment-history', false);
     }
 
     public function bindingForTenant(int $tenantId, string $provider, bool $requireActive = true): ExternalTenantBinding
@@ -111,14 +128,14 @@ final class ExternalTenantResolver implements ExternalTenantResolutionService
         return $binding;
     }
 
-    private function resolve(string $provider, string $candidate, string $operation, string $operationId, callable $lookup, ?callable $verifier = null, bool $requireProviderMatch = true): ExternalTenantResolution
+    private function resolve(string $provider, string $candidate, string $operation, string $operationId, callable $lookup, ?callable $verifier = null, bool $requireProviderMatch = true, bool $requireActive = true): ExternalTenantResolution
     {
         $fingerprint = self::fingerprint($provider, $candidate);
         try {
             if (trim($provider) === '' || trim($candidate) === '' || trim($operationId) === '') {
                 throw new \RuntimeException('invalid candidate');
             }
-            $binding = $this->oneAvailable($lookup(), $provider, $candidate, true, $requireProviderMatch);
+            $binding = $this->oneAvailable($lookup(), $provider, $candidate, $requireActive, $requireProviderMatch);
             $verifiedValue = $verifier === null ? null : $verifier($binding->config);
             if ($verifier !== null && $verifiedValue === false) {
                 throw new \RuntimeException('provider verification failed');

@@ -9,9 +9,9 @@ COPY --from=composer_binary /usr/bin/composer /usr/local/bin/composer
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates git libcurl4-openssl-dev libonig-dev libxml2-dev libzip-dev unzip \
-    && docker-php-ext-install -j"$(nproc)" curl dom mbstring pdo_mysql simplexml zip \
+    && docker-php-ext-install -j"$(nproc)" bcmath curl dom mbstring pdo_mysql simplexml zip \
     && printf '%s  %s\n' '5ee7125f8a30a34d246cefdc0bc85b8a783b28f2aec968994118512350d28027' /usr/local/bin/composer | sha256sum -c - \
-    && php -r 'foreach (["curl","dom","mbstring","pdo_mysql","simplexml","sodium","zip"] as $extension) { if (!extension_loaded($extension)) {fwrite(STDERR, "missing PHP extension: $extension\n"); exit(1); }}' \
+    && php -r 'foreach (["bcmath","curl","dom","mbstring","pdo_mysql","simplexml","sodium","zip"] as $extension) { if (!extension_loaded($extension)) {fwrite(STDERR, "missing PHP extension: $extension\n"); exit(1); }}' \
     && rm -rf /var/lib/apt/lists/*
 
 # Native FPM chroot uses the prepared OS, PHP, CA and timezone files.

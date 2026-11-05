@@ -32,6 +32,7 @@ final class PrepayRequest
         string $currency = 'CNY',
         string $openid = '',
         string $clientIp = '',
+        public readonly ?int $expiresAt = null,
     ) {
         $orderSn = trim($orderSn);
         $notifyUrl = trim($notifyUrl);

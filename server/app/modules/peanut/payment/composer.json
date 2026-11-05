@@ -11,7 +11,10 @@
     "peanut-business/peanut-task": "^1.0",
     "peanut-business/peanut-identity": "^4.0.0-rc.32",
     "peanut-business/peanut-integration": "^1.0",
-    "peanut-business/peanut-member": "^1.0"
+    "peanut-business/peanut-member": "^1.0",
+    "yansongda/pay": "3.7.20",
+    "hyperf/pimple": "^2.2",
+    "symfony/event-dispatcher": "^7.4"
   },
   "autoload": {
     "psr-4": {

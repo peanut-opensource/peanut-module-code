@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Payment\Service;
 
 use PeanutAdmin\Modules\Payment\Model\RechargeOrder;
+use PeanutAdmin\Modules\Payment\Model\RechargePaymentAttempt;
 use PeanutAdmin\Modules\Payment\Model\RefundLog;
 use PeanutAdmin\Modules\Payment\Model\RefundRecord;
 use PeanutAdmin\Modules\Member\Contract\Dto\MemberBalanceMutation;
@@ -122,6 +123,7 @@ class RechargeAdministrationService
                 return compact('idempotency', 'lease') + ['replay' => true];
             }
 
+            $this->gatewayForOriginalPayment($order);
             $amountCents = $this->requestedRefundAmountCents($context, $order, $requestedCents);
             $amount = $amountCents / 100;
             $refundSn = RefundRecord::generateSn();
@@ -174,7 +176,7 @@ class RechargeAdministrationService
         $log = $prepared['log'];
 
         // 渠道调用必须发生在本地原子业务事务提交后，避免渠道已受理而本地整体回滚。
-        return $this->requestGatewayRefund($context, $order, $record, $log, $idempotency, $lease);
+        return $this->requestGatewayRefund($order, $record, $log, $idempotency, $lease);
     }
 
     /**
@@ -202,6 +204,7 @@ class RechargeAdministrationService
                         throw BusinessException::notFound('RECHARGE_ORDER_NOT_FOUND', '充值订单不存在');
                     }
 
+                    $this->gatewayForOriginalPayment($order);
                     $record->refund_status = RefundEnum::REFUND_ING;
                     $record->refund_msg = '';
                     $record->save();
@@ -217,7 +220,7 @@ class RechargeAdministrationService
                 });
 
                 // 重试同样先提交 ERROR -> ING 和本次日志，再在事务外请求渠道。
-                return $this->requestGatewayRefund($context, $order, $record, $log);
+                return $this->requestGatewayRefund($order, $record, $log);
             });
         } catch (AdvisoryLockUnavailable) {
             throw BusinessException::conflict('REFUND_IN_PROGRESS', '退款正在处理中，请勿重复操作');
@@ -315,7 +318,6 @@ class RechargeAdministrationService
     }
 
     private function requestGatewayRefund(
-        object $context,
         object $order,
         object $record,
         object $log,
@@ -326,13 +328,9 @@ class RechargeAdministrationService
         $gatewayError = null;
         $gatewayFailure = null;
         try {
-            $channel = match ((int) $order->pay_way) {
-                RechargeOrder::PAY_WAY_WECHAT => 'wechat',
-                RechargeOrder::PAY_WAY_ALIPAY => 'alipay',
-                default => throw BusinessException::invalid('PAYMENT_CHANNEL_UNSUPPORTED', '支付方式异常'),
-            };
-            $result = $this->payments->forTenant($context, $channel)->refund($channel)->refund(
-                $order->getData(),
+            [$gateway, $attempt] = $this->gatewayForOriginalPayment($order);
+            $result = $gateway->refund(
+                ['sn' => (string) $attempt->merchant_order_sn] + $order->getData(),
                 (string) $record->sn,
                 Money::toCents((string) $record->refund_amount),
             );
@@ -398,6 +396,20 @@ class RechargeAdministrationService
             throw $gatewayFailure;
         }
         return $businessMessage;
+    }
+
+    private function gatewayForOriginalPayment(RechargeOrder $order): array
+    {
+        $attempt = RechargePaymentAttempt::originalPayment($order);
+        $channel = match ((int) $attempt->pay_way) {
+            PaymentMethod::WECHAT => 'wechat',
+            PaymentMethod::ALIPAY => 'alipay',
+        };
+        $gateway = $this->payments->forHistory(
+            (int) $attempt->tenant_id, $channel, (int) $attempt->binding_id, (string) $attempt->merchant_identity_hash,
+        );
+
+        return [$gateway, $attempt];
     }
 
     private static function encodeGatewayResult(mixed $result): string

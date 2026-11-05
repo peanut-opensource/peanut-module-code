@@ -73,6 +73,8 @@ CMD ["node", ".output/server/index.mjs"]
 
 FROM composer:2.10.2 AS composer-deps
 
+RUN php -r 'exit(extension_loaded("bcmath") ? 0 : 1);' || docker-php-ext-install bcmath
+
 WORKDIR /build/server
 COPY server/composer.json server/composer.lock ./
 COPY server/app app
@@ -97,8 +99,9 @@ RUN apt-get update \
         libcurl4-openssl-dev \
         libonig-dev \
         libzip-dev \
+        libxml2-dev \
         unzip \
-    && docker-php-ext-install -j"$(nproc)" curl mbstring pdo_mysql zip \
+    && docker-php-ext-install -j"$(nproc)" bcmath curl mbstring pdo_mysql simplexml zip \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/peanut-admin

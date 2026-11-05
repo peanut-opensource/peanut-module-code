@@ -17,6 +17,8 @@ interface ExternalTenantResolutionService
     /** @param list<ExternalTenantBinding> $bindings */
     public function verifiedCandidates(array $bindings, string $provider, string $candidate, string $operation, string $operationId, bool $requireProviderMatch = true): ExternalTenantResolution;
 
+    public function paymentBindingForHistory(int $tenantId, string $provider, int $bindingId): ExternalTenantBinding;
+
     public function bindingForTenant(int $tenantId, string $provider, bool $requireActive = true): ExternalTenantBinding;
 
     /**

@@ -988,7 +988,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "8975ad788bb418150edb9b225cba2570f130f80919def7fe3063b8cf0f264608"
+                "sha256": "c077bea9b0558daf89175c3c7077c150535095e75eecfbb8c8601e03e0e1ba43"
             },
             "trust": {
                 "channel": "bundled",
@@ -1516,7 +1516,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "412019a80bf520d50b7db2061719c20d14e7e1aa6f399e26bd0ccc4dcaaea901"
+                "sha256": "2d39286c1a1d9b6e56c886fa373d10d8c11ee80c1376be79772d206b19bec489"
             },
             "trust": {
                 "channel": "bundled",
@@ -1594,7 +1594,7 @@
                 {
                     "name": "peanut-business/peanut-payment",
                     "version": "1.0.26",
-                    "sha256": "b0cfaae6244f778da1acf0bc98498740d15f9216b141d61cf15269e7f47ac050"
+                    "sha256": "2cc7c74c688386a68d1f0362c89d75bdf23de438c137e58f662589d58969c5a5"
                 }
             ],
             "npm": [
@@ -1644,7 +1644,7 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/payment/module.json",
-            "manifest_sha256": "358cca37fb626224f0b125188607c876abdd8ade83245b2fd0237b40729ede2a"
+            "manifest_sha256": "9616a0ce35dc1a2eee6299cd439b6b756ae0c8d6dbb75664fa98c1a9cbde4f66"
         },
         {
             "key": "peanut.reference-codes",

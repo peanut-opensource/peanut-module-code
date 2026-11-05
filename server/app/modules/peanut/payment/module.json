@@ -61,6 +61,7 @@
       "pa_payment_scene",
       "pa_payment_tenant_channel_grant",
       "pa_recharge_order",
+      "pa_recharge_payment_attempt",
       "pa_refund_log",
       "pa_refund_record"
     ]

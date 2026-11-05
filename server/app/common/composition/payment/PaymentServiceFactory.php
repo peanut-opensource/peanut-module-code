@@ -4,81 +4,49 @@ declare(strict_types=1);
 
 namespace app\common\composition\payment;
 
-use app\common\infrastructure\payment\AlipayCallbackParser;
-use app\common\infrastructure\payment\WechatCallbackParser;
-use app\common\contract\payment\CallbackParserInterface;
-use app\common\contract\payment\PaymentTransportInterface;
-use app\common\contract\payment\PrepayGatewayInterface;
-use app\common\contract\payment\RefundGatewayInterface;
-use app\common\infrastructure\payment\AlipayGateway;
-use app\common\infrastructure\payment\AlipayRefundGateway;
-use app\common\infrastructure\payment\WechatPayGateway;
-use app\common\infrastructure\payment\WechatRefundGateway;
-use app\common\infrastructure\payment\CurlPaymentTransport;
-use app\common\contract\http\OutboundHttpTransport;
-use PeanutAdmin\Modules\Integration\Contract\ExternalTenantContext;
-use PeanutAdmin\Modules\Integration\Contract\ExternalTenantResolutionService;
+use app\common\contract\payment\PaymentChannelGateway;
+use app\common\exception\BusinessException;
+use app\common\infrastructure\payment\YansongdaGateway;
 use PeanutAdmin\Modules\Integration\Contract\ExternalProvider;
+use PeanutAdmin\Modules\Integration\Contract\ExternalTenantResolutionService;
 
-/** Peanut 自有支付边界工厂，不承载参考系统的路由或参数兼容。 */
-final class PaymentServiceFactory
+/** Resolve payment credentials only from a verified binding or a recorded payment attempt. */
+final readonly class PaymentServiceFactory
 {
-    private array $config;
-    private PaymentTransportInterface $transport;
+    public function __construct(private ExternalTenantResolutionService $externalTenants) {}
 
-    public function __construct(
-        private readonly ExternalTenantResolutionService $externalTenants,
-        private readonly OutboundHttpTransport $httpTransport,
-        array $config = [],
-        ?PaymentTransportInterface $transport = null,
-    ) {
-        $this->config = $config;
-        $this->transport = $transport ?? new CurlPaymentTransport($httpTransport);
-    }
-
-    public function forTenant(
-        object $context,
-        string $channel,
-        ?PaymentTransportInterface $transport = null,
-    ): self {
-        $provider = match (strtolower(trim($channel))) {
+    public function forHistory(int $tenantId, string $channel, int $bindingId, string $identityHash): PaymentChannelGateway
+    {
+        $provider = match ($channel) {
             'wechat' => ExternalProvider::WECHAT_PAYMENT,
             'alipay' => ExternalProvider::ALIPAY_PAYMENT,
-            default => throw new \RuntimeException('支付渠道不受支持'),
         };
-        $binding = $this->externalTenants->bindingForTenant(ExternalTenantContext::tenantId($context), $provider);
-        return $this->forConfig($binding->config, $transport);
+        $binding = $this->externalTenants->paymentBindingForHistory(
+            $tenantId,
+            $provider,
+            $bindingId,
+        );
+        if (!hash_equals($binding->identityHash, $identityHash)) {
+            throw BusinessException::conflict('PAYMENT_ORIGIN_UNVERIFIED', '原收款商户待核对');
+        }
+
+        return $this->forBinding($channel, $binding->config, $identityHash);
     }
 
-    public function forConfig(array $config, ?PaymentTransportInterface $transport = null): self
+    public function forBinding(string $channel, array $config, string $identityHash): PaymentChannelGateway
     {
-        return new self($this->externalTenants, $this->httpTransport, $config, $transport);
+        $app = trim((string) ($config[$channel === 'wechat' ? 'wx_pay_appid' : 'ali_pay_app_id'] ?? ''));
+        $merchant = trim((string) ($config[$channel === 'wechat' ? 'wx_pay_mch_id' : 'ali_pay_seller_id'] ?? ''));
+        if ($app === '' || $merchant === ''
+            || !hash_equals($identityHash, hash('sha256', strtolower($app . ':' . $merchant)))) {
+            throw BusinessException::conflict('PAYMENT_ORIGIN_UNVERIFIED', '原收款商户待核对');
+        }
+
+        return $this->forConfig($channel, $config);
     }
 
-    public function prepay(string $channel): PrepayGatewayInterface
+    public function forConfig(string $channel, array $config): PaymentChannelGateway
     {
-        return match (strtolower(trim($channel))) {
-            'wechat' => new WechatPayGateway($this->config, $this->transport),
-            'alipay' => new AlipayGateway($this->config),
-            default => throw new \RuntimeException('支付渠道不受支持'),
-        };
-    }
-
-    public function callback(string $channel): CallbackParserInterface
-    {
-        return match (strtolower(trim($channel))) {
-            'wechat' => new WechatCallbackParser($this->config),
-            'alipay' => new AlipayCallbackParser($this->config),
-            default => throw new \RuntimeException('支付渠道不受支持'),
-        };
-    }
-
-    public function refund(string $channel): RefundGatewayInterface
-    {
-        return match (strtolower(trim($channel))) {
-            'wechat' => new WechatRefundGateway($this->config, $this->transport),
-            'alipay' => new AlipayRefundGateway($this->config, $this->transport),
-            default => throw new \RuntimeException('支付渠道不受支持'),
-        };
+        return new YansongdaGateway($channel, $config);
     }
 }
