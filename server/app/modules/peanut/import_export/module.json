@@ -3,7 +3,7 @@
   "key": "peanut.import-export",
   "name": "Import and Export",
   "description": "Tenant-private import and export operations, jobs and result files.",
-    "version": "1.0.31",
+    "version": "1.0.33",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-import-export",
@@ -11,7 +11,7 @@
   "dependencies": [
     {
       "module_key": "peanut.file",
-      "version": "^1.0"
+      "version": "^1.0.38"
     },
     {
       "module_key": "peanut.task",

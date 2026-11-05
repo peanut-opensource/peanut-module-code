@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1ac7eeae3b940c7a12328343f6a1eb09",
+    "content-hash": "d46090ef65b2e8d22058313e128be877",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2122,11 +2122,11 @@
         },
         {
             "name": "peanut-business/artifact-revision",
-            "version": "4.0.0-rc.38",
+            "version": "4.0.0-rc.39",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/artifact_revision",
-                "reference": "015910337467a5f53b1a96baa2263842e61dbf2f"
+                "reference": "69a4beb3978e5811d8394ff323c1a78d178d8938"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2157,11 +2157,11 @@
         },
         {
             "name": "peanut-business/entitlement-quota",
-            "version": "4.0.0-rc.37",
+            "version": "4.0.0-rc.38",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/entitlement_quota",
-                "reference": "872ebdfe41dd5948afe51e85d4e0bd6397f1da15"
+                "reference": "a5d45e0cbb548a33795e6caa74e0411422f80480"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2257,11 +2257,11 @@
         },
         {
             "name": "peanut-business/peanut-chart-examples",
-            "version": "1.0.2",
+            "version": "1.0.3",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/chart_examples",
-                "reference": "304e4a464c296b746423348e9d22ed5f0890f685"
+                "reference": "593706d86aeace63505a175742d05e1bda2e5ea2"
             },
             "type": "peanut-admin-module",
             "extra": {
@@ -2386,15 +2386,16 @@
         },
         {
             "name": "peanut-business/peanut-file",
-            "version": "1.0.36",
+            "version": "1.0.40",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/file",
-                "reference": "0daad59b26fe38eedb3b11301bc82ad44c9ab4c0"
+                "reference": "e9ae809ff63ca953e948af0a18481922910e7481"
             },
             "require": {
                 "aws/aws-sdk-php": "^3.0",
                 "peanut-admin/core": "^5.0.2",
+                "peanut-business/peanut-content-tools": "1.0.1 || 1.0.2",
                 "peanut-business/peanut-identity": "^4.0.0-rc.32",
                 "php": "^8.3"
             },
@@ -2423,11 +2424,11 @@
         },
         {
             "name": "peanut-business/peanut-identity",
-            "version": "4.0.0-rc.53",
+            "version": "4.0.0-rc.56",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/identity",
-                "reference": "d0774dc9efe846b8e1c0d02cfae58f23610c6f62"
+                "reference": "a22b83e6476a7094bea3bca16688bd798e6fbebb"
             },
             "require": {
                 "peanut-admin/core": "^5.0.3-alpha.6",
@@ -2458,16 +2459,16 @@
         },
         {
             "name": "peanut-business/peanut-import-export",
-            "version": "1.0.31",
+            "version": "1.0.33",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/import_export",
-                "reference": "b797314f5ec55f6cb2e36dfe516e2d0920581898"
+                "reference": "ed66db0b0a6f3aad540bedd054081317f1a82feb"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
                 "peanut-admin/module-composition-host": "^1.0",
-                "peanut-business/peanut-file": "^1.0",
+                "peanut-business/peanut-file": "^1.0.38",
                 "peanut-business/peanut-identity": "^4.0.0-rc.32",
                 "peanut-business/peanut-integration": "^1.0",
                 "peanut-business/peanut-settings": "^1.0",
@@ -2498,11 +2499,11 @@
         },
         {
             "name": "peanut-business/peanut-integration",
-            "version": "1.0.27",
+            "version": "1.0.28",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/integration",
-                "reference": "4a1fb5f06fb882fecf072cc4b9c2fbc246993a95"
+                "reference": "94023caa12225487c5a8a28550cacb9ec4089058"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2571,11 +2572,11 @@
         },
         {
             "name": "peanut-business/peanut-notification",
-            "version": "1.0.29",
+            "version": "1.0.31",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/notification",
-                "reference": "7403df372995f9e883e075f25020dd77c7f8de0b"
+                "reference": "da6b72e5d477d604cdc4bc3d936df534ca9968d8"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2683,20 +2684,20 @@
         },
         {
             "name": "peanut-business/peanut-payment",
-            "version": "1.0.26",
+            "version": "1.0.27",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/payment",
-                "reference": "e12a415a589fde383968e6dff9b3785a455da60b"
+                "reference": "e820cfe1ee1b6655878a30bd7c7a6de4eafc1199"
             },
             "require": {
                 "hyperf/pimple": "^2.2",
                 "peanut-admin/core": "^5.0.2",
                 "peanut-admin/module-composition-host": "^1.0",
                 "peanut-business/peanut-identity": "^4.0.0-rc.32",
-                "peanut-business/peanut-integration": "^1.0",
+                "peanut-business/peanut-integration": "^1.0.28",
                 "peanut-business/peanut-member": "^1.0",
-                "peanut-business/peanut-task": "^1.0",
+                "peanut-business/peanut-task": "^1.0.29",
                 "php": "^8.3",
                 "symfony/event-dispatcher": "^7.4",
                 "yansongda/pay": "3.7.20"
@@ -2794,14 +2795,15 @@
         },
         {
             "name": "peanut-business/peanut-settings",
-            "version": "1.0.25",
+            "version": "1.0.26",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/settings",
-                "reference": "0bcf4c4e9c48c975ed3f5ebcc6a848a067e8dbfc"
+                "reference": "84e53bb6d999750a7f101d174c7a52a5c2522086"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
+                "peanut-business/peanut-file": "^1.0",
                 "peanut-business/peanut-identity": "^4.0.0-rc.32",
                 "php": "^8.3"
             },
@@ -2830,11 +2832,11 @@
         },
         {
             "name": "peanut-business/peanut-task",
-            "version": "1.0.28",
+            "version": "1.0.29",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/task",
-                "reference": "b97f076a2b2a342fddc418b0848856222f0e6be1"
+                "reference": "8816f767f473ed5542ee1930ed4a00e8853685f0"
             },
             "require": {
                 "peanut-admin/core": "^5.0.3-alpha.5",
@@ -2866,11 +2868,11 @@
         },
         {
             "name": "peanut-business/workflow",
-            "version": "4.0.0-rc.44",
+            "version": "4.0.0-rc.46",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/workflow",
-                "reference": "b0b97252f6b0ba5789f4bc9a0e816b7c0214f86f"
+                "reference": "b7732bf2d8b242ed0504b99b43aa8174bb346ca7"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -3723,16 +3725,16 @@
         },
         {
             "name": "symfony/filesystem",
-            "version": "v7.4.21",
+            "version": "v7.4.23",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/filesystem.git",
-                "reference": "fd0e3462be6d32a0d130e8423e4940a7688162d8"
+                "reference": "53d609da66578dad5a39fe290e8f924ec8f05e93"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/filesystem/zipball/fd0e3462be6d32a0d130e8423e4940a7688162d8",
-                "reference": "fd0e3462be6d32a0d130e8423e4940a7688162d8",
+                "url": "https://api.github.com/repos/symfony/filesystem/zipball/53d609da66578dad5a39fe290e8f924ec8f05e93",
+                "reference": "53d609da66578dad5a39fe290e8f924ec8f05e93",
                 "shasum": ""
             },
             "require": {
@@ -3769,7 +3771,7 @@
             "description": "Provides basic utilities for the filesystem",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/filesystem/tree/v7.4.21"
+                "source": "https://github.com/symfony/filesystem/tree/v7.4.23"
             },
             "funding": [
                 {
@@ -3789,7 +3791,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-10-06T20:05:19+00:00"
+            "time": "2026-11-04T08:27:22+00:00"
         },
         {
             "name": "symfony/html-sanitizer",
@@ -6638,5 +6640,5 @@
         "php": "^8.3"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }

@@ -5748,7 +5748,7 @@ export interface paths {
         put?: never;
         /**
          * 发起充值退款
-         * @description 渠道明确成功时退款记录进入成功；渠道明确失败时接口返回错误。若 gateway 报告 ERROR_RESULT_UNKNOWN，现实现保留 refund_status=0（退款中）并等待 refund:reconcile 收敛，但本接口仍返回成功消息；该消息不表示退款资金已到达终态。
+         * @description 渠道明确成功时退款记录进入成功；渠道明确失败时接口返回错误。若 gateway 报告 ERROR_RESULT_UNKNOWN，现实现保留 refund_status=0（退款中）并等待 refund:reconcile 收敛，但本接口仍返回成功消息；支付宝渠道受理后同样等待对账核对单笔金额。该消息不表示退款资金已到达终态。
          */
         post: operations["refundPaymentRecharge"];
         delete?: never;
@@ -5768,7 +5768,7 @@ export interface paths {
         put?: never;
         /**
          * 重试失败退款
-         * @description 重试会先把失败记录恢复为 refund_status=0（退款中）。若 gateway 报告 ERROR_RESULT_UNKNOWN，记录继续保持退款中并等待 refund:reconcile 收敛，但本接口仍返回成功消息；该消息不表示退款资金已到达终态。
+         * @description 重试会先把失败记录恢复为 refund_status=0（退款中）。若 gateway 报告 ERROR_RESULT_UNKNOWN，记录继续保持退款中并等待 refund:reconcile 收敛，但本接口仍返回成功消息；支付宝渠道受理后同样等待对账核对单笔金额。该消息不表示退款资金已到达终态。
          */
         post: operations["retryPaymentRefund"];
         delete?: never;
