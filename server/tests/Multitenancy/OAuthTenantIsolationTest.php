@@ -299,16 +299,26 @@ SQL);
     $betaPrincipalsBeforeRollback = (int) $pdo->query('SELECT COUNT(*) FROM pa_oauth_principal WHERE tenant_id = 202')->fetchColumn();
     $pdo->exec("ALTER TABLE pa_oauth_identity ADD CONSTRAINT chk_oauth_rollback_subject CHECK (subject <> 'rollback-subject')");
     $rollbackContext = oauthSystemContext(202, 'beta-rollback');
-    $rolledBack = oauthRunSystem(
-        $rollbackContext,
-        static fn() => oauthCommands(new OAuthTenantFixtureTransport('rollback-subject', 'rollback-union', 'Rollback member'))->miniProgramLogin(
+    try {
+        oauthRunSystem(
             $rollbackContext,
-            'fixture-code',
-            oauthBinding(302, 202),
-            '127.0.0.1',
-        ),
-    );
-    expectOAuthTenant($rolledBack === false, 'forced OAuth identity failure unexpectedly succeeded');
+            static fn() => oauthCommands(new OAuthTenantFixtureTransport('rollback-subject', 'rollback-union', 'Rollback member'))->miniProgramLogin(
+                $rollbackContext,
+                'fixture-code',
+                oauthBinding(302, 202),
+                '127.0.0.1',
+            ),
+        );
+        throw new RuntimeException('forced OAuth identity failure unexpectedly succeeded');
+    } catch (think\db\exception\PDOException $exception) {
+        $errorInfo = $exception->getData()['PDO Error Info'] ?? [];
+        expectOAuthTenant(
+            ($errorInfo['SQLSTATE'] ?? null) === 'HY000'
+                && (int) ($errorInfo['Driver Error Code'] ?? 0) === 3819
+                && str_contains($errorInfo['Driver Error Message'] ?? '', 'chk_oauth_rollback_subject'),
+            'OAuth identity failure did not come from the expected check constraint',
+        );
+    }
     expectOAuthTenant(
         (int) $pdo->query('SELECT COUNT(*) FROM pa_member WHERE tenant_id = 202')->fetchColumn() === $betaMembersBeforeRollback,
         'failed OAuth identity creation did not roll back the Member write',
@@ -412,7 +422,7 @@ SQL);
         'OAuth begin does not use the trusted external binding and module boundary',
     );
     foreach ([
-        'app/api/application/LoginApplicationService.php',
+        'app/modules/peanut/member/src/Service/LoginApplicationService.php',
         'app/modules/peanut/oauth/src/Service/OAuthCommandService.php',
         'app/api/middleware/CheckTokenMiddleware.php',
         'app/modules/peanut/oauth/src/Infrastructure/Persistence/ThinkPhpOAuthPersistence.php',

@@ -51,7 +51,10 @@ INSERT INTO pa_tenant
   (id, code, name, display_name, status, activated_at, created_at, updated_at)
 VALUES (101, 'default', 'Alpha', 'Alpha', 'active', UTC_TIMESTAMP(3), UTC_TIMESTAMP(3), UTC_TIMESTAMP(3));
 SQL);
-    $pdo->exec("INSERT INTO pa_decorate_tabbar_setting (tenant_id, style, create_time, update_time) VALUES (101, '{}', 0, 0)");
+    $pdo->exec(<<<'SQL'
+INSERT INTO pa_decorate_tabbar (tenant_id, position, name, selected, unselected, link, is_show, create_time, update_time)
+VALUES (101, 0, '首页', '', '', '{"target_type":"shop","target":"home"}', 1, 0, 0);
+SQL);
 }
 
 /** @return list<array<string,mixed>> */
@@ -96,13 +99,8 @@ INSERT INTO pa_decorate_tabbar (tenant_id, position, name, selected, unselected,
 SQL);
 
     expectTabbarTenant(
-        (int) $pdo->query('SELECT COUNT(*) FROM pa_decorate_tabbar WHERE tenant_id = 101')->fetchColumn() === 3,
-        'fresh canonical Tabbar seed is missing',
-    );
-    expectTabbarTenant(
-        (string) $pdo->query('SELECT style FROM pa_decorate_tabbar_setting WHERE tenant_id = 101')->fetchColumn()
-            === '{"default_color":"#666666","selected_color":"#2F80ED"}',
-        'fresh canonical Tabbar style is missing',
+        (int) $pdo->query('SELECT COUNT(*) FROM pa_decorate_tabbar WHERE tenant_id = 101')->fetchColumn() === 1,
+        'current Home Tabbar fixture is missing',
     );
     try {
         $pdo->exec("INSERT INTO pa_decorate_tabbar (tenant_id, position, name, link) VALUES (202, 1, 'Duplicate', '{}')");
@@ -124,6 +122,13 @@ SQL);
     $decorationReads = app(DecorationReadService::class);
     $alpha = tabbarTenantContext(101, 11, 'fresh-tabbar-alpha');
     $beta = tabbarTenantContext(202, 22, 'fresh-tabbar-beta');
+    expectTabbarTenant(
+        app(ExecutionContextStore::class)->run(
+            new \app\common\execution\AdminExecutionContext($alpha, 'test.decoration.tabbar.default-style.alpha'),
+            fn() => app(DecorationTabbarApplicationService::class)->detail($alpha),
+        )['style'] === ['default_color' => '#666666', 'selected_color' => '#2F80ED'],
+        'fresh Tabbar read did not provide the current default style',
+    );
     $alphaFirstId = (int) $pdo->query(
         'SELECT id FROM pa_decorate_tabbar WHERE tenant_id = 101 ORDER BY position, id LIMIT 1',
     )->fetchColumn();

@@ -9,6 +9,7 @@ use app\common\contract\idempotency\IdempotencyCommand;
 use app\common\contract\idempotency\IdempotencyReceipt;
 use app\common\contract\idempotency\IdempotencyResult;
 use app\common\contract\payment\RefundGatewayInterface;
+use app\common\exception\BusinessException;
 use PeanutAdmin\Modules\File\Service\FileService;
 use app\common\infrastructure\payment\PaymentRetryLock;
 use app\common\composition\payment\PaymentServiceFactory;
@@ -248,8 +249,19 @@ try {
         expectFinanceTenant(RefundLog::where([])->where('id', 41)->findOrEmpty()->isEmpty(), 'Beta read Alpha refund log');
     });
 
+    try {
+        financeRun($beta, 'test.refund.reject-forged-owner', static fn() => RechargeOrder::create([
+            'tenant_id' => 101, 'sn' => 'RC-FORGED-OWNER', 'user_id' => 22, 'order_amount' => '5.00',
+        ]));
+        throw new RuntimeException('Beta created an order with a forged Alpha owner');
+    } catch (DomainException $exception) {
+        expectFinanceTenant($exception->getMessage() === 'TENANT_WRITE_OWNERSHIP_MISMATCH', 'forged order owner denial changed');
+    }
+    expectFinanceTenant(
+        (int) $pdo->query("SELECT COUNT(*) FROM pa_recharge_order WHERE sn = 'RC-FORGED-OWNER'")->fetchColumn() === 0,
+        'forged order owner denial left an order row',
+    );
     $betaOrder = financeRun($beta, 'test.refund.beta-order', static fn() => RechargeOrder::create([
-        'tenant_id' => 101,
         'sn' => 'RC-BETA-22', 'user_id' => 22, 'pay_sn' => null, 'pay_way' => 2,
         'pay_status' => RechargeOrder::PAY_STATUS_UNPAID, 'order_amount' => '5.00',
         'order_terminal' => 3, 'transaction_id' => null, 'refund_status' => 0,
@@ -270,7 +282,7 @@ try {
         1,
         'refund-unknown-001',
     ));
-    expectFinanceTenant($unknown === [true, '操作成功'], 'accepted Provider result was not kept pending');
+    expectFinanceTenant($unknown === '操作成功', 'accepted Provider result was not kept pending');
     $unknownRecord = financeRun($alpha, 'test.refund.accepted-unknown-record', static fn() => RefundRecord::where([])
         ->where('order_id', 23)->findOrEmpty());
     expectFinanceTenant(!$unknownRecord->isEmpty() && (int) $unknownRecord->refund_status === RefundEnum::REFUND_ING, 'accepted unknown result did not stay ING');
@@ -300,29 +312,40 @@ try {
     );
 
     RefundBehaviorGateway::mode('RC-RETRY', 'known_failure_then_success');
-    $failed = financeRun($alpha, 'test.refund.known-failure', static fn() => $refunds->refund(
-        $alpha,
-        ['recharge_id' => 24],
-        1,
-        'refund-retry-001',
-    ));
-    expectFinanceTenant($failed === [false, 'provider rejected refund'], 'known Provider failure result changed');
+    try {
+        financeRun($alpha, 'test.refund.known-failure', static fn() => $refunds->refund(
+            $alpha,
+            ['recharge_id' => 24],
+            1,
+            'refund-retry-001',
+        ));
+        throw new LogicException('known Provider failure unexpectedly succeeded');
+    } catch (RuntimeException $exception) {
+        expectFinanceTenant($exception->getMessage() === 'provider rejected refund', 'known Provider failure result changed');
+    }
     $retryRecord = financeRun($alpha, 'test.refund.known-failure-record', static fn() => RefundRecord::where([])
         ->where('order_id', 24)->findOrEmpty());
     expectFinanceTenant((int) $retryRecord->refund_status === RefundEnum::REFUND_ERROR, 'known Provider failure did not settle ERROR');
-    $failedReplay = financeRun($alpha, 'test.refund.known-failure-replay', static fn() => $refunds->refund(
-        $alpha,
-        ['recharge_id' => 24],
-        1,
-        'refund-retry-001',
-    ));
-    expectFinanceTenant($failedReplay === $failed, 'failed refund receipt was not replayed');
+    try {
+        financeRun($alpha, 'test.refund.known-failure-replay', static fn() => $refunds->refund(
+            $alpha,
+            ['recharge_id' => 24],
+            1,
+            'refund-retry-001',
+        ));
+        throw new LogicException('failed refund unexpectedly replayed as success');
+    } catch (BusinessException $exception) {
+        expectFinanceTenant(
+            $exception->errorCode === 'REFUND_REPLAY_REJECTED' && $exception->getMessage() === 'provider rejected refund',
+            'failed refund receipt was not replayed',
+        );
+    }
     $retried = financeRun($alpha, 'test.refund.retry', static fn() => $refunds->refundAgain(
         $alpha,
         ['record_id' => (int) $retryRecord->id],
         1,
     ));
-    expectFinanceTenant($retried === [true, '操作成功'], 'failed refund retry did not succeed');
+    expectFinanceTenant($retried === '操作成功', 'failed refund retry did not succeed');
     expectFinanceTenant(
         (RefundBehaviorGateway::$refundKeys['RC-RETRY'] ?? []) === [(string) $retryRecord->sn, (string) $retryRecord->sn]
             && (RefundBehaviorGateway::$effects[(string) $retryRecord->sn] ?? 0) === 1,
@@ -339,13 +362,17 @@ try {
         $xlsx,
         new FailingRefundIdempotency($idempotency),
     );
-    $finalizeFailure = financeRun($alpha, 'test.refund.finalize-failure', static fn() => $failingRefunds->refund(
-        $alpha,
-        ['recharge_id' => 25],
-        1,
-        'refund-finalize-001',
-    ));
-    expectFinanceTenant($finalizeFailure[0] === false, 'fixture receipt finalize failure was hidden');
+    try {
+        financeRun($alpha, 'test.refund.finalize-failure', static fn() => $failingRefunds->refund(
+            $alpha,
+            ['recharge_id' => 25],
+            1,
+            'refund-finalize-001',
+        ));
+        throw new LogicException('fixture receipt finalize unexpectedly succeeded');
+    } catch (RuntimeException $exception) {
+        expectFinanceTenant($exception->getMessage() === 'fixture receipt finalize failure', 'fixture receipt finalize failure was hidden');
+    }
     $finalizeRecord = financeRun($alpha, 'test.refund.finalize-failure-record', static fn() => RefundRecord::where([])
         ->where('order_id', 25)->findOrEmpty());
     $finalizeLog = financeRun($alpha, 'test.refund.finalize-failure-log', static fn() => RefundLog::where([])

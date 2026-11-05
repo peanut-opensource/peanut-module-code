@@ -18,7 +18,8 @@ use app\common\dto\authorization\PermissionDecision;
 use app\common\services\decoration\DecorationSchemaService;
 use PeanutAdmin\Kernel\Context\AuthenticatedMemberContext;
 use PeanutAdmin\Kernel\Auth\TenantContext;
-use PeanutAdmin\Kernel\Auth\ValidatedTenantSession;
+use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
+use PeanutAdmin\Modules\Identity\Contract\TenantSessionAccess;
 
 require_once __DIR__ . '/../Support/CiBootstrap.php';
 require __DIR__ . '/../Support/IsolatedBackendEnvironment.php';
@@ -47,17 +48,14 @@ function expectArticleTenant(bool $condition, string $message): void
 
 function tenantContext(int $tenantId, int $accountId, int $memberId, string $requestId): TenantContext
 {
-    return TenantContext::fromValidatedSession(new ValidatedTenantSession(
-        $memberId,
-        '01JMT02ARTICLE' . str_pad((string) $memberId, 13, '0', STR_PAD_LEFT),
+    return app(TenantSessionAccess::class)->revalidateSession(
         $tenantId,
         $accountId,
         $memberId,
+        str_pad((string) $memberId, 26, '0', STR_PAD_LEFT),
         'admin-web',
-        new DateTimeImmutable('2031-01-01T00:00:00Z'),
-        1,
-        1,
-    ), $requestId);
+        $requestId,
+    );
 }
 
 function articleAdminExecution(TenantContext $context, string $operation): AdminExecutionContext
@@ -246,6 +244,22 @@ try {
     ]);
     $pdo->exec(<<<'SQL'
 INSERT INTO pa_tenant (id,code,name,display_name,status,created_at,updated_at) VALUES (101,'alpha','Alpha','Alpha','active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)),(202,'beta','Beta','Beta','active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3));
+INSERT INTO pa_account (id,display_name,status,created_at,updated_at) VALUES
+ (1001,'Alpha operator','active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)),
+ (2002,'Beta operator','active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3));
+INSERT INTO pa_tenant_member (id,tenant_id,account_id,status,created_at,updated_at) VALUES
+ (501,101,1001,'active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)),
+ (502,202,2002,'active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3));
+INSERT INTO pa_tenant_session
+ (session_key,tenant_id,account_id,tenant_member_id,client_key,status,account_security_revision,tenant_security_revision,member_security_revision,issued_at,last_seen_at,idle_expires_at,absolute_expires_at,created_at,updated_at)
+SELECT LPAD(CAST(m.id AS CHAR),26,'0'),m.tenant_id,m.account_id,m.id,'admin-web','active',a.security_revision,t.security_revision,m.security_revision,
+ UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),DATE_ADD(UTC_TIMESTAMP(3),INTERVAL 1 HOUR),DATE_ADD(UTC_TIMESTAMP(3),INTERVAL 2 HOUR),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)
+FROM pa_tenant_member m JOIN pa_account a ON a.id=m.account_id JOIN pa_tenant t ON t.id=m.tenant_id;
+INSERT INTO pa_plan (id,code,name,status,created_at,updated_at) VALUES
+ (1,'article-fixture','Article fixture','active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3));
+INSERT INTO pa_tenant_license (tenant_id,plan_id,status,effective_at,created_at,updated_at) VALUES
+ (101,1,'active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)),
+ (202,1,'active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3));
 INSERT INTO pa_member (id, tenant_id) VALUES (501, 101), (502, 202);
 INSERT INTO pa_article_cate (id, tenant_id, name, sort, is_show) VALUES (11, 101, 'Alpha seed', 10, 1), (12, 202, 'Beta', 10, 1);
 INSERT INTO pa_article (id, tenant_id, cid, title, is_show, click_actual) VALUES (21, 101, 11, 'Alpha seed article', 1, 0), (22, 202, 12, 'Beta visible', 1, 0);
@@ -256,6 +270,14 @@ SQL);
     $app = new think\App();
     $app->initialize();
     ThinkPhpTestConnection::fromPdo($pdo);
+    $registry = $app->make(CompiledModuleRegistry::class);
+    foreach (['peanut.file', 'peanut.document', 'peanut.article'] as $moduleKey) {
+        $manifest = $registry->requireManifest($moduleKey);
+        $installation = $pdo->prepare('INSERT INTO pa_module_installation (module_key,installed_version,manifest_schema_version,manifest_digest,status,created_at,updated_at) VALUES (?,?,?,?,?,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))');
+        $installation->execute([$moduleKey, $manifest->data['version'], $manifest->data['schema_version'], $manifest->digest, 'active']);
+        $selection = $pdo->prepare('INSERT INTO pa_plan_module (plan_id,module_key) VALUES (1,?)');
+        $selection->execute([$moduleKey]);
+    }
     $app->instance(AdminAuthorizationQuery::class, new ArticleFixtureAuthorization());
     $articles = app(ArticleAdministration::class);
     $categories = app(ArticleCategoryAdministration::class);

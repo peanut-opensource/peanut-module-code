@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
+require_once __DIR__ . '/../Support/CiBootstrap.php';
 require_once __DIR__ . '/../Support/ThinkPhpTestConnection.php';
 require_once __DIR__ . '/../Support/RegisteredMysqlTestResource.php';
 require_once __DIR__ . '/../Support/IdentityMysqlFixture.php';
@@ -17,7 +17,6 @@ use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Auth\ValidatedTenantSession;
 use PeanutAdmin\Modules\ImportExport\Engine\Persistence\ImportExportStore;
 use PeanutAdmin\Modules\Integration\Infrastructure\Persistence\ThinkPhpIntegrationSecurityRepository;
-use think\App;
 use think\facade\Db;
 
 $checks = 0;
@@ -46,9 +45,9 @@ function rowsMysql(PDO $pdo, string $table): array
     return $pdo->query('SELECT * FROM `' . $table . '` ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
 }
 
-function auditFailureTrigger(PDO $pdo): void
+function rejectSuccessAudit(PDO $pdo): void
 {
-    $pdo->exec("CREATE TRIGGER reject_success_audit BEFORE INSERT ON pa_platform_audit_event FOR EACH ROW BEGIN IF NEW.outcome = 'success' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'synthetic audit failure'; END IF; END");
+    $pdo->exec("ALTER TABLE pa_platform_audit_event ADD CONSTRAINT chk_retention_success_audit CHECK (outcome <> 'success')");
 }
 
 function maintenanceContext(ExecutionContextStore $contexts, string $operation, callable $action): mixed
@@ -96,16 +95,16 @@ function importExportMysql(PDO $pdo, ExecutionContextStore $contexts, CurrentExe
     } finally {
         $pdo->exec('RENAME TABLE pa_retention_row_error_without_schema TO pa_import_export_row_error');
     }
-    auditFailureTrigger($pdo);
+    rejectSuccessAudit($pdo);
     try {
         maintenanceContext($contexts, 'import-export:expire', fn() => $store->expireDue(1));
         throw new RuntimeException('import audit failure did not roll back');
     } catch (Throwable $failure) {
-        checkMysql(str_contains($failure->getMessage(), 'synthetic audit failure'), 'import audit failure missing');
+        checkMysql(str_contains($failure->getMessage(), 'chk_retention_success_audit'), 'import audit failure missing');
     }
     checkMysql(rowsMysql($pdo, 'pa_import_export_operation') === $before, 'import audit failure committed rows');
     checkMysql((int) $pdo->query("SELECT COUNT(*) FROM pa_platform_audit_event WHERE outcome='error'")->fetchColumn() === 1, 'import failure audit missing');
-    $pdo->exec('DROP TRIGGER reject_success_audit');
+    $pdo->exec('ALTER TABLE pa_platform_audit_event DROP CHECK chk_retention_success_audit');
     checkMysql(maintenanceContext($contexts, 'import-export:expire', fn() => $store->expireDue(1)) === 1, 'import batch one');
     checkMysql(maintenanceContext($contexts, 'import-export:expire', fn() => $store->expireDue(2)) === 2, 'import batch two');
     checkMysql(maintenanceContext($contexts, 'import-export:expire', fn() => $store->expireDue(2)) === 0, 'import repeat');
@@ -161,16 +160,16 @@ function integrationMysql(PDO $pdo, ExecutionContextStore $contexts, CurrentExec
         fn() => rejectedMysql(fn() => Db::transaction(fn() => $purge($payloadCutoff, $payloadCutoff, 2)), 'MAINTENANCE_OUTER_TRANSACTION_FORBIDDEN'),
     );
     checkMysql([rowsMysql($pdo, 'pa_integration_webhook_delivery'), rowsMysql($pdo, 'pa_integration_webhook_attempt')] === $before, 'rejected purge mutated rows');
-    auditFailureTrigger($pdo);
+    rejectSuccessAudit($pdo);
     try {
         maintenanceContext($contexts, 'integration:purge-expired', fn() => $purge($payloadCutoff, $payloadCutoff, 2));
         throw new RuntimeException('integration audit failure did not roll back');
     } catch (Throwable $failure) {
-        checkMysql(str_contains($failure->getMessage(), 'synthetic audit failure'), 'integration audit failure missing');
+        checkMysql(str_contains($failure->getMessage(), 'chk_retention_success_audit'), 'integration audit failure missing');
     }
     checkMysql([rowsMysql($pdo, 'pa_integration_webhook_delivery'), rowsMysql($pdo, 'pa_integration_webhook_attempt')] === $before, 'integration audit failure committed rows');
     checkMysql((int) $pdo->query("SELECT COUNT(*) FROM pa_platform_audit_event WHERE outcome='error'")->fetchColumn() === 1, 'integration failure audit missing');
-    $pdo->exec('DROP TRIGGER reject_success_audit');
+    $pdo->exec('ALTER TABLE pa_platform_audit_event DROP CHECK chk_retention_success_audit');
     foreach ([1, 1] as $batch) {
         $result = maintenanceContext($contexts, 'integration:purge-expired', fn() => $purge($payloadCutoff, $earlyCutoff, $batch));
         checkMysql($result === ['payloads_cleared' => 1, 'attempts_deleted' => 0, 'deliveries_deleted' => 0], 'independent payload batch');
@@ -209,7 +208,6 @@ $area = $argv[1] ?? '';
 if (!in_array($area, ['import-export', 'integration'], true)) {
     throw new InvalidArgumentException('Choose import-export or integration retention suite');
 }
-new App(dirname(__DIR__, 2) . '/.local/tmp/retention-mysql-tests');
 [$pdo, $created] = RegisteredMysqlTestResource::openEmptyDatabase($database);
 try {
     IdentityMysqlFixture::install($pdo, [dirname(__DIR__, 2) . '/app/modules/peanut/' . ($area === 'import-export' ? 'import_export' : 'integration') . '/database/migrations']);

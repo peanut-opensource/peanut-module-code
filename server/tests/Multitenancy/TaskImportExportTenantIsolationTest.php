@@ -66,6 +66,7 @@ function taskImportExportInstalledAssertions(
     callable $moduleSelection,
     TenantContext $alphaManager,
     callable $refreshAlpha,
+    string $childEvidenceDirectory,
 ): void {
     $GLOBALS['taskImportExportChecks'] = 0;
     // Only these existing qualification DML operations use this same native transaction.
@@ -420,7 +421,7 @@ function taskImportExportInstalledAssertions(
         expectAsyncTenant($exception->getMessage() === 'IMPORT_EXPORT_FILE_UNAVAILABLE', 'cross-Tenant download enumerated ownership');
     }
 
-    assertInFlightExportRevocation($app, $pdo, $runtime, $alphaTenant, $alphaManager, $alphaRoleId, $guard, $refreshAlpha, $runId);
+    assertInFlightExportRevocation($app, $pdo, $runtime, $alphaTenant, $alphaManager, $alphaRoleId, $guard, $refreshAlpha, $runId, $childEvidenceDirectory);
 
     // Preserve all actual rows, artifacts, grant/tenant state and failed DDL.
     // Never restore a stale whole-instance backup after writers have reopened.
@@ -438,6 +439,7 @@ function assertInFlightExportRevocation(
     callable $guard,
     callable $refreshActor,
     string $runId,
+    string $childEvidenceDirectory,
 ): void {
     $guard();
     expectAsyncTenant($manager->tenantId === $actor->tenantId && $manager->memberId !== $actor->memberId, 'a distinct authenticated Alpha role manager is required');
@@ -486,6 +488,7 @@ function assertInFlightExportRevocation(
     $stderr = tmpfile();
     expectAsyncTenant(is_resource($stdout) && is_resource($stderr), 'native worker output streams are unavailable');
     $workerExit = null;
+    $workerPid = null;
     $blockedConnection = null;
     try {
         // A next-key range above MAX covers a fresh AUTO_INCREMENT insert, including an empty table.
@@ -498,6 +501,7 @@ function assertInFlightExportRevocation(
         $worker = proc_open([PHP_BINARY, $app->getRootPath() . 'think', 'tenant-task:work', (string) $actor->tenantId,
             '--job-key=' . $operation->taskJobKey], [0 => ['pipe', 'r'], 1 => $stdout, 2 => $stderr], $pipes, $app->getRootPath());
         expectAsyncTenant(is_resource($worker), 'native exact-job worker could not start');
+        $workerPid = (int) proc_get_status($worker)['pid'];
         fclose($pipes[0]);
         $database = (string) $pdo->query('SELECT DATABASE()')->fetchColumn();
         $databaseUser = (string) $pdo->query('SELECT SUBSTRING_INDEX(CURRENT_USER(),\'@\',1)')->fetchColumn();
@@ -505,7 +509,7 @@ function assertInFlightExportRevocation(
         do {
             foreach ($pdo->query('SHOW FULL PROCESSLIST')->fetchAll(PDO::FETCH_ASSOC) as $process) {
                 if (($process['db'] ?? null) === $database && ($process['User'] ?? null) === $databaseUser
-                    && preg_match('/^\s*INSERT\s+INTO\s+`?pa_file_object`?\s*\(/i', (string) ($process['Info'] ?? '')) === 1) {
+                    && preg_match('/^\s*INSERT\s+INTO\s+`?pa_file_object`?\s+SET\s+/i', (string) ($process['Info'] ?? '')) === 1) {
                     $blockedConnection = (int) $process['Id'];
                     break;
                 }
@@ -626,20 +630,52 @@ function assertInFlightExportRevocation(
             if ($state['running']) {
                 proc_terminate($worker, 9);
             }
-            proc_close($worker);
+            $closeExit = proc_close($worker);
+            if ($workerExit === null || $workerExit < 0) {
+                $workerExit = $closeExit >= 0 ? $closeExit : null;
+            }
         }
-        fclose($stdout);
-        fclose($stderr);
-        if ($revoked) {
-            $guard();
-            $currentRole = $roles->get($actor->tenantId, $roleId);
-            $restored = $contexts->run($managerExecution, static fn(): array => $roles->replacePermissions($manager, $roleId, $originalKeys, (int) $currentRole['revision']));
-            $restoredKeys = $restored['permission_keys'];
-            sort($restoredKeys, SORT_STRING);
-            sort($originalKeys, SORT_STRING);
-            expectAsyncTenant($restoredKeys === $originalKeys && (int) $restored['revision'] > (int) $roleBefore['revision'], 'normal role restoration did not retain permissions and advance revision');
-            $bindings->execute([$actor->tenantId]);
-            expectAsyncTenant($bindings->fetchAll(PDO::FETCH_ASSOC) === $bindingsBefore, 'normal role revocation/restoration changed member bindings');
+        try {
+            if ($revoked) {
+                $guard();
+                $currentRole = $roles->get($actor->tenantId, $roleId);
+                $restored = $contexts->run($managerExecution, static fn(): array => $roles->replacePermissions($manager, $roleId, $originalKeys, (int) $currentRole['revision']));
+                $restoredKeys = $restored['permission_keys'];
+                sort($restoredKeys, SORT_STRING);
+                sort($originalKeys, SORT_STRING);
+                expectAsyncTenant($restoredKeys === $originalKeys && (int) $restored['revision'] > (int) $roleBefore['revision'], 'normal role restoration did not retain permissions and advance revision');
+                $bindings->execute([$actor->tenantId]);
+                expectAsyncTenant($bindings->fetchAll(PDO::FETCH_ASSOC) === $bindingsBefore, 'normal role revocation/restoration changed member bindings');
+            }
+        } finally {
+            // Preserve the owned child's original streams even when the barrier or restoration fails.
+            try {
+                rewind($stdout);
+                rewind($stderr);
+                $prefix = rtrim($childEvidenceDirectory, DIRECTORY_SEPARATOR) . '/worker-' . $runId;
+                $records = [
+                    '.stdout.log' => (string) stream_get_contents($stdout),
+                    '.stderr.log' => (string) stream_get_contents($stderr),
+                    '.status.json' => json_encode(['pid' => $workerPid, 'exit_code' => $workerExit,
+                        'insert_barrier_observed' => $blockedConnection !== null, 'revocation_committed' => $revoked], JSON_THROW_ON_ERROR) . "\n",
+                ];
+                foreach ($records as $suffix => $body) {
+                    $file = fopen($prefix . $suffix, 'x');
+                    if ($file === false) {
+                        throw new RuntimeException('native child evidence file could not be created');
+                    }
+                    try {
+                        if (!chmod($prefix . $suffix, 0600) || fwrite($file, $body) !== strlen($body)) {
+                            throw new RuntimeException('native child evidence could not be preserved');
+                        }
+                    } finally {
+                        fclose($file);
+                    }
+                }
+            } finally {
+                fclose($stdout);
+                fclose($stderr);
+            }
         }
     }
 }
