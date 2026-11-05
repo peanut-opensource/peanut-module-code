@@ -18,7 +18,7 @@ use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Context\AuthorizationDecision;
 use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 
-/** 租户后台导入导出管理用例；HTTP、CLI 或其他调用者都必须提供可信租户与人员。 */
+/** 租户后台导入导出管理用例；显式租户与人员须对应当前后台执行身份。 */
 final readonly class ImportExportAdminApplicationService
 {
     public function __construct(
@@ -108,19 +108,13 @@ final readonly class ImportExportAdminApplicationService
         string $operation,
     ): AuthorizedOperationContext {
         $execution = $this->executionContext->current();
-        $currentTenantId = $execution?->tenantId();
-        if ($currentTenantId !== null && $currentTenantId !== $tenant->tenantId) {
-            throw ImportExportException::denied();
-        }
-        // 可信直接调用仍由授权服务校验显式身份，已有后台执行身份时还须与它一致。
-        if ($execution instanceof AdminExecutionContext
-            && ($execution->tenant->accountId !== $tenant->accountId
-                || $execution->tenant->memberId !== $tenant->memberId
-                || $execution->tenant->authorizationRevision !== $tenant->authorizationRevision)
+        if (!$execution instanceof AdminExecutionContext
+            || $execution->tenant->tenantId !== $tenant->tenantId
+            || $execution->tenant->accountId !== $tenant->accountId
+            || $execution->tenant->memberId !== $tenant->memberId
+            || $execution->tenant->authorizationRevision !== $tenant->authorizationRevision
+            || !$this->authorization->decide($tenant, $actor, $permission)->allowed
         ) {
-            throw ImportExportException::denied();
-        }
-        if (!$this->authorization->decide($tenant, $actor, $permission)->allowed) {
             throw ImportExportException::denied();
         }
         return AuthorizedOperationContext::fromDecision(AuthorizationDecision::allow(
