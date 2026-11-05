@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, onBeforeUnmount, ref, shallowRef } from 'vue';
+  import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
   import { onBeforeRouteLeave, useRoute } from 'vue-router';
   import { ElMessageBox } from 'element-plus';
   import { hasPermission } from '@/hooks/permission';
@@ -20,10 +20,23 @@
   import NodePanel from './NodePanel.vue';
   import WorkflowCanvas from './WorkflowCanvas.vue';
 
+  // A mounted editor owns one binding; hosts remount after confirming departure.
+  const props = defineProps<{
+    moduleKey?: string;
+    workflowKey?: string;
+    embedded?: boolean;
+  }>();
+  const emit = defineEmits<{
+    (event: 'close'): void;
+    (event: 'dirty-change', dirty: boolean): void;
+    (event: 'definition', definition: WorkflowDefinition): void;
+  }>();
+  const fixedModuleKey = props.moduleKey;
+  const fixedWorkflowKey = props.workflowKey;
   const route = useRoute();
   const api = createHostWorkflowApi();
-  const moduleKey = ref('');
-  const workflowKey = ref('');
+  const moduleKey = ref(fixedModuleKey ?? '');
+  const workflowKey = ref(fixedWorkflowKey ?? '');
   const definition = shallowRef<WorkflowDefinition | null>(null);
   const definitionScope = ref('');
   const initial: EditorDocument = {
@@ -56,6 +69,7 @@
   const pageActive = ref(true);
   const conflict = ref(false);
   const serverRevision = ref<number | null>(null);
+  const activationVersion = ref<number | null>(null);
   const previewSummary = ref('');
   const previewPeople = ref<string[]>([]);
   const user = useUserStore();
@@ -83,15 +97,22 @@
   const selected = computed(() =>
     state.value.graph.nodes.find((node) => node.key === selectedKey.value)
   );
+  const allowedRead = computed(() =>
+    hasPermission('peanut.workflow.definition.read', route.path)
+  );
   const allowedWrite = computed(
     () =>
+      allowedRead.value &&
       hasPermission('peanut.workflow.definition.write', route.path) &&
       !!moduleKey.value &&
       !!workflowKey.value
   );
-  const allowedPublish = computed(() =>
-    hasPermission('peanut.workflow.definition.publish', route.path)
+  const allowedPublish = computed(
+    () =>
+      allowedRead.value &&
+      hasPermission('peanut.workflow.definition.publish', route.path)
   );
+  watch(changed, (dirty) => emit('dirty-change', dirty));
   let epoch = 0;
   let controller: AbortController | null = null;
   let removeBeforeUnloadListener: (() => void) | undefined;
@@ -126,6 +147,7 @@
     busy.value = false;
     conflict.value = false;
     serverRevision.value = null;
+    activationVersion.value = null;
     removeBeforeUnloadListener?.();
     controller?.abort();
     controller = null;
@@ -198,6 +220,7 @@
   async function load() {
     if (
       busy.value ||
+      !allowedRead.value ||
       !lifecycle.valid() ||
       !moduleKey.value ||
       !workflowKey.value
@@ -241,11 +264,13 @@
       sync();
       conflict.value = false;
       serverRevision.value = null;
+      activationVersion.value = null;
       selectedKey.value = result.graph.nodes[0]?.key || '';
       instanceId.value = `workflow-${crypto.randomUUID()}`;
       previewSummary.value = '';
       previewPeople.value = [];
       issues.value = graphIssues(result.graph);
+      emit('definition', result);
     } catch (cause) {
       if (current === epoch && lifecycle.valid()) fail(cause);
     } finally {
@@ -275,14 +300,15 @@
     sync();
     conflict.value = false;
     serverRevision.value = null;
+    activationVersion.value = null;
     issues.value = [];
     previewPeople.value = [];
     previewSummary.value = '';
     selectedKey.value = 'start';
     step.value = 0;
     instanceId.value = `workflow-${crypto.randomUUID()}`;
-    moduleKey.value = '';
-    workflowKey.value = '';
+    moduleKey.value = fixedModuleKey ?? '';
+    workflowKey.value = fixedWorkflowKey ?? '';
   }
   async function save() {
     if (
@@ -334,7 +360,10 @@
         requestedModule,
         requestedWorkflow
       );
-      if (valid()) definition.value = resultDefinition;
+      if (valid()) {
+        definition.value = resultDefinition;
+        emit('definition', resultDefinition);
+      }
     } catch (cause) {
       if (!valid()) return;
       fail(cause);
@@ -362,7 +391,7 @@
       error.value = '请明确填写模拟发起人的字符串成员 ID';
       return;
     }
-    if (busy.value || !lifecycle.valid()) return;
+    if (busy.value || !allowedWrite.value || !lifecycle.valid()) return;
     busy.value = true;
     error.value = '';
     try {
@@ -404,6 +433,7 @@
       changed.value ||
       conflict.value ||
       revision.value === null ||
+      definitionScope.value !== `${moduleKey.value}:${workflowKey.value}` ||
       !allowedPublish.value ||
       !lifecycle.valid()
     )
@@ -419,6 +449,55 @@
       );
       if (lifecycle.valid())
         notice.value = '新版本已发布；在途实例仍使用原固定版本。';
+      if (lifecycle.valid()) await refreshPublishedDefinition();
+    } catch (cause) {
+      if (lifecycle.valid()) fail(cause);
+    } finally {
+      if (lifecycle.valid()) busy.value = false;
+    }
+  }
+  async function refreshPublishedDefinition() {
+    // Publish/activation increments the same CAS revision used by draft saves.
+    // Keep writes blocked if the command succeeded but the fresh read failed.
+    conflict.value = true;
+    const result = await api.definition(moduleKey.value, workflowKey.value);
+    if (!lifecycle.valid()) return;
+    definition.value = result;
+    revision.value = result.draft_revision;
+    history.replace({ graph: result.graph, layout: result.layout });
+    sync();
+    issues.value = graphIssues(result.graph);
+    conflict.value = false;
+    activationVersion.value = null;
+    emit('definition', result);
+  }
+  async function activate() {
+    if (
+      busy.value ||
+      changed.value ||
+      conflict.value ||
+      revision.value === null ||
+      !allowedPublish.value ||
+      activationVersion.value === null ||
+      !lifecycle.valid()
+    )
+      return;
+    const version = activationVersion.value;
+    if (!definition.value?.versions.some((item) => item.version === version))
+      return;
+    busy.value = true;
+    error.value = '';
+    try {
+      await api.activate(
+        moduleKey.value,
+        workflowKey.value,
+        revision.value,
+        version,
+        crypto.randomUUID()
+      );
+      if (!lifecycle.valid()) return;
+      notice.value = `已激活版本 ${version}；在途实例仍使用原固定版本。`;
+      await refreshPublishedDefinition();
     } catch (cause) {
       if (lifecycle.valid()) fail(cause);
     } finally {
@@ -520,7 +599,7 @@
   onBeforeUnmount(() =>
     window.removeEventListener('beforeunload', beforeUnload)
   );
-  onBeforeRouteLeave(async () => {
+  async function confirmLeave() {
     if (!changed.value || !lifecycle.valid()) return true;
     try {
       await ElMessageBox.confirm('当前草稿尚未保存，确定离开？', '未保存草稿', {
@@ -530,16 +609,24 @@
     } catch {
       return false;
     }
-  });
+  }
+  async function close() {
+    if (busy.value || !(await confirmLeave())) return;
+    emit('close');
+  }
+  onBeforeRouteLeave(confirmLeave);
 </script>
 
 <template>
   <section
-    v-if="pageActive"
+    v-if="pageActive && allowedRead"
     class="workflow-designer"
     aria-label="工作流设计器"
   >
     <h1>流程设计</h1>
+    <el-button v-if="embedded" :disabled="busy" @click="close"
+      >返回业务配置</el-button
+    >
     <el-alert
       v-if="error"
       :title="error"
@@ -575,13 +662,20 @@
         ><el-input
           v-model="moduleKey"
           placeholder="例如 peanut.application"
-          :disabled="busy || changed || definition !== null"
+          :disabled="
+            fixedModuleKey !== undefined || busy || changed || !!definitionScope
+          "
           aria-label="业务模块键" /></el-form-item
       ><el-form-item label="流程用途键"
         ><el-input
           v-model="workflowKey"
           placeholder="例如 approval"
-          :disabled="busy || changed || definition !== null"
+          :disabled="
+            fixedWorkflowKey !== undefined ||
+            busy ||
+            changed ||
+            !!definitionScope
+          "
           aria-label="流程用途键"
       /></el-form-item>
       <el-button
@@ -590,7 +684,12 @@
         @click="load"
         >读取服务器定义</el-button
       >
-      <el-button :disabled="busy" @click="switchDefinition">切换定义</el-button>
+      <el-button
+        v-if="fixedModuleKey === undefined || fixedWorkflowKey === undefined"
+        :disabled="busy"
+        @click="switchDefinition"
+        >切换定义</el-button
+      >
       <el-form-item label="业务资源合同键"
         ><el-input
           :model-value="state.graph.subject_resource_key"
@@ -799,11 +898,14 @@
           ><el-input v-model="previewSubjectType" /></el-form-item
         ><el-form-item label="模拟对象键"
           ><el-input v-model="previewSubjectKey" /></el-form-item></el-form
-      ><el-button :loading="busy" @click="check(false)"
+      ><el-button
+        :loading="busy"
+        :disabled="!allowedWrite"
+        @click="check(false)"
         >服务器完整校验</el-button
       ><el-button
         :loading="busy"
-        :disabled="!previewSubjectType || !previewSubjectKey"
+        :disabled="!allowedWrite || !previewSubjectType || !previewSubjectKey"
         @click="check(true)"
         >模拟预览</el-button
       ><p v-if="previewSummary">模拟：{{ previewSummary }}</p
@@ -843,9 +945,43 @@
         :disabled="changed || conflict || revision === null"
         @click="publish"
         >发布已保存版本</el-button
-      ></footer
-    >
+      >
+      <template v-if="allowedPublish && definition">
+        <span>当前激活版本：{{ definition.active_version ?? '无' }}</span>
+        <el-select
+          v-model="activationVersion"
+          placeholder="选择已发布版本"
+          aria-label="待激活版本"
+          :disabled="busy || changed || conflict"
+        >
+          <el-option
+            v-for="version in definition.versions"
+            :key="version.version"
+            :label="`版本 ${version.version}`"
+            :value="version.version"
+          />
+        </el-select>
+        <el-button
+          :loading="busy"
+          :disabled="
+            changed ||
+            conflict ||
+            revision === null ||
+            activationVersion === null
+          "
+          @click="activate"
+          >激活所选版本</el-button
+        >
+      </template>
+    </footer>
   </section>
+  <el-alert
+    v-else-if="pageActive"
+    title="当前身份没有工作流定义读取权限。"
+    type="error"
+    :closable="false"
+    role="alert"
+  />
   <el-alert
     v-else
     title="身份已变化，请重新进入工作流设计器。"

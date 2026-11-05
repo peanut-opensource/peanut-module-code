@@ -7,6 +7,7 @@
     ".": "./contribution.ts",
     "./runtime": "./runtime/contribution.ts",
     "./runtime-view": "./runtime/WorkflowRuntimePage.vue",
+    "./designer-view": "./designer/WorkflowDesignerPage.vue",
     "./forms": "./runtime/business-forms.ts",
     "./start": "./runtime/WorkflowStartButton.vue"
   },

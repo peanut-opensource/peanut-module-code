@@ -5,6 +5,79 @@ the designer and runtime routes. `./runtime` contributes only runtime routes;
 it does not import the designer or Vue Flow. These entries are consumed by the
 application's locked frontend contribution loader. Do not register both.
 
+## Embed a workflow designer in a business configuration page
+
+`./designer-view` exports the same Vue component used by the standalone
+`WorkflowDesigner` route. It includes the wizard, canvas, assignment editor,
+validation, simulation, local draft recovery, CAS save, publication and explicit
+activation of a published version. The host supplies its own page and navigation:
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import WorkflowDesignerView from '@peanut-modules/workflow-web/designer-view';
+
+const editing = ref(false);
+</script>
+
+<template>
+  <section>
+    <h2>稿件审核流程配置</h2>
+    <button v-if="!editing" type="button" @click="editing = true">配置审核流程</button>
+    <WorkflowDesignerView
+      v-else
+      module-key="custom.newsroom"
+      workflow-key="article-review"
+      embedded
+      @close="editing = false"
+    />
+  </section>
+</template>
+```
+
+| Input / event | Contract |
+| --- | --- |
+| `moduleKey?: string` | Fixed business module key for this mounted editor. Omit to allow input. |
+| `workflowKey?: string` | Fixed workflow purpose key for this mounted editor. Omit to allow input. |
+| `embedded?: boolean` | Show a return button which confirms discarding unsaved changes before emitting `close`. Default false. |
+| `close` | The return action was confirmed; the host can unmount the editor or navigate back. No automatic redirect. |
+| `dirty-change(boolean)` | Reports changes to unsaved editor state; hosts with their own tabs/dialog controls must protect those unmount paths. |
+| `definition(WorkflowDefinition)` | Latest successfully read server definition after load/save/publish/activate; not a business authorization grant. |
+
+Keys are captured at mount. Use a new keyed instance when changing the business
+binding, after handling unsaved changes; changing props alone does not retarget
+an existing draft. Either key may be fixed independently. Fixed inputs cannot be
+edited; switching definitions preserves fixed keys. Loading remains an explicit
+"读取服务器定义" action, including for fixed keys. A missing definition may be
+created by saving a new graph through the existing authorized draft endpoint;
+other read failures remain visible and never masquerade as an empty definition.
+
+The component requires the normal Web host (Vue Router, Pinia/user session,
+Element Plus, permission evaluator and configured API base URL). Its containing
+business page must declare its own access and action bindings through the normal
+module contracts. Read requires `peanut.workflow.definition.read`; editing,
+validation and simulation require `peanut.workflow.definition.write`;
+publication/activation require `peanut.workflow.definition.publish`. The current
+page's normal action binding evaluation still applies, and every request remains
+subject to server permissions, tenant module enablement, scenario validation and
+CAS checks. Embedding does not grant these permissions or expose design endpoints
+in a runtime-only backend artifact. Use an installed full Workflow module and a
+registered business scenario for the selected keys.
+
+Publication activates its resulting immutable version through the existing
+server contract. Explicit activation selects a server-listed published version.
+Both refresh the server definition and CAS revision; if that read fails after
+the command succeeded, the success notice remains and further writes stay blocked
+until the user reloads. Conflicts retain local content for local stash, server
+reload and manual merge. Failed commands are never automatically resubmitted.
+Logout, identity changes and unmount reuse the existing editor cleanup. Omit all
+props on the standalone route to keep its editable-key behavior.
+
+This source export is consumed through the existing locked module package and
+normal conflict-aware source/module upgrade flow. Do not copy the editor into a
+generated business application or edit managed baselines to adopt it. This entry
+does not register a media page, enable a tenant, install a module or migrate data.
+
 ## Embed a business task form
 
 `./runtime-view` exports the existing runtime page as a default Vue component.
