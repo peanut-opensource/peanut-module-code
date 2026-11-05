@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fa2c7722d515ea40d149b2e42fb09262",
+    "content-hash": "af4c5149482faebefa643f32f0b3a425",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2013,11 +2013,11 @@
         },
         {
             "name": "peanut-business/peanut-file",
-            "version": "1.0.38",
+            "version": "1.0.39",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/file",
-                "reference": "748a7d6eedd5e6caa806905dee38342fb2c35822"
+                "reference": "66e50e2a4db7983c6a8913b47b36533892dd7f25"
             },
             "require": {
                 "aws/aws-sdk-php": "^3.0",

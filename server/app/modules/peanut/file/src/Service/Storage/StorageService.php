@@ -75,7 +75,9 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
         if ($tenantId < 1 || !is_file($sourcePath) || !is_readable($sourcePath)) {
             throw new \InvalidArgumentException('待存储文件无效');
         }
-        if (($pdo = Db::connect()->getPdo()) instanceof \PDO && $pdo->inTransaction()) {
+        $connection = Db::connect();
+        $pdo = $connection->getPdo();
+        if ($pdo instanceof \PDO && $pdo->inTransaction()) {
             throw BusinessException::conflict('FILE_UPLOAD_OUTER_TRANSACTION_DENIED', '文件写入意图必须在外部写入之前持久完成');
         }
         $access = StoragePurpose::accessType($purpose);
@@ -126,7 +128,13 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
         if ($assertAuthority === null) {
             $this->reserveObject($tenantId, $attributes);
         } else {
-            Db::transaction(function () use ($tenantId, $attributes, $assertAuthority): void {
+            if (!$pdo instanceof \PDO) {
+                throw new \LogicException('文件发布需要已建立的数据库连接');
+            }
+            // Metadata reads can establish a snapshot before the blocked INSERT. Use current
+            // committed authorization for this reservation without changing the session default.
+            $pdo->exec('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+            $connection->transaction(function () use ($tenantId, $attributes, $assertAuthority): void {
                 $this->reserveObject($tenantId, $attributes);
                 // A blocked reservation may outlive the originating authorization.
                 $assertAuthority();
