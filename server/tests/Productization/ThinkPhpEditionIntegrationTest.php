@@ -95,7 +95,7 @@ INSERT INTO pa_article (id,tenant_id,cid,title,is_show) VALUES
  (21,101,11,'Alpha article',1),(22,202,12,'Beta article',1);
 SQL);
     $manifest = app(\PeanutAdmin\Kernel\Module\CompiledModuleRegistry::class)->requireManifest('peanut.article');
-    $installation = $pdo->prepare('INSERT INTO pa_module_installation (module_key,installed_version,manifest_schema_version,manifest_digest,status) VALUES (?,?,?,?,?)');
+    $installation = $pdo->prepare('INSERT INTO pa_module_installation (module_key,installed_version,manifest_schema_version,manifest_digest,status,created_at,updated_at) VALUES (?,?,?,?,?,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))');
     $installation->execute(['peanut.article', $manifest->data['version'], $manifest->data['schema_version'], $manifest->digest, 'active']);
 }
 
@@ -321,13 +321,12 @@ try {
     $passed = true;
 } catch (Throwable $exception) {
     $failure = $exception;
-}
-
-if ($passed) {
+} finally {
     try {
         RegisteredMysqlTestResource::cleanup($pdo, $database, $createdDatabase);
     } catch (Throwable $exception) {
-        $failure = $exception;
+        fwrite(STDERR, sprintf("TPQ52_CLEANUP_FAILED %s %s database=%s\n", $exception::class, $exception->getMessage(), $database));
+        $failure ??= $exception;
         $passed = false;
     }
 }

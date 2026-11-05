@@ -108,6 +108,16 @@ final class ArticleFixtureAuthorization implements AdminAuthorizationQuery
             : PermissionDecision::deny($accessUri, 'MISSING_CONTEXT');
     }
 
+    public function decisions(TenantContext $tenantContext, array $accessUris): array
+    {
+        $admin = $this->principal($tenantContext);
+        $decisions = [];
+        foreach ($accessUris as $accessUri) {
+            $decisions[$accessUri] = $this->decide($tenantContext, $admin, $accessUri);
+        }
+        return $decisions;
+    }
+
     public function assignableMenuRecords(TenantContext $tenantContext): array
     {
         return [];

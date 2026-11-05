@@ -10,7 +10,8 @@ use PeanutAdmin\Modules\OAuth\Infrastructure\Persistence\ThinkPhpOAuthPersistenc
 use app\common\execution\ExecutionContextStore;
 use PeanutAdmin\Modules\Integration\Contract\ExternalTenantBinding;
 use PeanutAdmin\Modules\Integration\Contract\ExternalTenantContext;
-use PeanutAdmin\Modules\Integration\Service\ExternalTenantResolver;
+use PeanutAdmin\Modules\Integration\Contract\ExternalProvider;
+use PeanutAdmin\Modules\Integration\Contract\ExternalTenantResolutionService;
 use PeanutAdmin\Modules\OAuth\Contract\OAuthCallbackLocator;
 use PeanutAdmin\IntegrationSecurity\OAuth\OAuthProfile;
 use PeanutAdmin\IntegrationSecurity\OAuth\OAuthTransport;
@@ -106,7 +107,7 @@ function oauthSystemContext(int $tenantId, string $operationId): TenantSystemCon
 {
     return new TenantSystemContext(
         $tenantId,
-        ExternalTenantResolver::ACTOR,
+        ExternalTenantResolutionService::SYSTEM_ACTOR,
         'oauth.mini-program',
         $operationId,
     );
@@ -117,7 +118,7 @@ function oauthBinding(int $id, int $tenantId): ExternalTenantBinding
     return new ExternalTenantBinding(
         $id,
         $tenantId,
-        ExternalTenantResolver::WECHAT_MINI_PROGRAM,
+        ExternalProvider::WECHAT_MINI_PROGRAM,
         'fixture-callback',
         'fixture-identity',
         'fixture',
@@ -149,7 +150,7 @@ function oauthCommands(OAuthTransport $transport): OAuthCommandService
         app(\PeanutAdmin\Modules\Notification\Contract\VerificationCodeCommands::class),
         app(\app\common\persistence\AdvisoryLockExecution::class),
         app(\PeanutAdmin\Modules\Settings\Service\TenantApplicationSettingService::class),
-        app(ExternalTenantResolver::class),
+        app(ExternalTenantResolutionService::class),
         app(OAuthPersistence::class),
         $transport,
         '',
@@ -211,8 +212,8 @@ INSERT INTO pa_external_channel_binding
   (id, tenant_id, provider, callback_key, identity_hash, identity_hint, config_json, status)
 VALUES
   (202, 202, 'oauth.wechat.oa', SHA2('beta-oauth-callback', 256), SHA2('beta-oauth-identity', 256), 'beta', JSON_OBJECT(), 1),
-  (301, 101, 'oauth.wechat.mnp', SHA2('alpha-mnp-callback', 256), SHA2('alpha-mnp-identity', 256), 'alpha-mnp', JSON_OBJECT('app_id', 'concurrent-app'), 1),
-  (302, 202, 'oauth.wechat.mnp', SHA2('beta-mnp-callback', 256), SHA2('beta-mnp-identity', 256), 'beta-mnp', JSON_OBJECT('app_id', 'concurrent-app'), 1);
+  (301, 101, 'oauth.wechat.mini-program', SHA2('alpha-mnp-callback', 256), SHA2('alpha-mnp-identity', 256), 'alpha-mnp', JSON_OBJECT('app_id', 'concurrent-app'), 1),
+  (302, 202, 'oauth.wechat.mini-program', SHA2('beta-mnp-callback', 256), SHA2('beta-mnp-identity', 256), 'beta-mnp', JSON_OBJECT('app_id', 'concurrent-app'), 1);
 INSERT INTO pa_oauth_principal (id, tenant_id, provider, union_scope, union_id, member_id)
 VALUES (31, 101, 'wechat', 'wechat_default', 'union-shared', 11);
 INSERT INTO pa_oauth_identity (id, tenant_id, provider, client_key, subject, principal_id, member_id, terminal)
@@ -345,11 +346,11 @@ SQL);
         ->wechatSubjectForMember($beta, 22, 1)) === 'openid-shared', 'payment compatibility lookup lost Beta owned subject');
 
     $sameStateHash = str_repeat('c', 64);
-    $alphaBegin = new TenantSystemContext(101, ExternalTenantResolver::ACTOR, 'oauth.begin', 'alpha-begin');
+    $alphaBegin = new TenantSystemContext(101, ExternalTenantResolutionService::SYSTEM_ACTOR, 'oauth.begin', 'alpha-begin');
     oauthRunSystem($alphaBegin, static fn() => $persistence->createAttempt($alphaBegin, [
         'state_hash' => $sameStateHash, 'scene' => 'oa', 'return_path' => '/alpha', 'expires_at' => time() + 600,
     ]));
-    $betaBegin = new TenantSystemContext(202, ExternalTenantResolver::ACTOR, 'oauth.begin', 'beta-begin');
+    $betaBegin = new TenantSystemContext(202, ExternalTenantResolutionService::SYSTEM_ACTOR, 'oauth.begin', 'beta-begin');
     oauthRunSystem($betaBegin, static fn() => $persistence->createAttempt($betaBegin, [
         'tenant_id' => 101, 'state_hash' => $sameStateHash, 'scene' => 'oa', 'return_path' => '/beta', 'expires_at' => time() + 600,
     ]));
@@ -362,13 +363,13 @@ SQL);
     ]));
     expectOAuthTenant(oauthRunTenant($alpha, 'read-beta-ticket', static fn() => $persistence->completionForUpdate($alpha, str_repeat('d', 64))) === null, 'Alpha read Beta completion ticket');
 
-    $officialProvider = ExternalTenantResolver::WECHAT_OFFICIAL_OAUTH;
-    $openPlatformProvider = ExternalTenantResolver::WECHAT_OPEN_PLATFORM;
+    $officialProvider = ExternalProvider::WECHAT_OFFICIAL_OAUTH;
+    $openPlatformProvider = ExternalProvider::WECHAT_OPEN_PLATFORM;
     $validStateHash = str_repeat('a', 64);
     expectOAuthTenant(count($locator->locateState($officialProvider, $validStateHash)) === 1, 'valid OAuth state was not located');
     expectOAuthTenant(count($locator->locateState($openPlatformProvider, $validStateHash)) === 0, 'wrong OAuth binding provider accepted state');
     $expiredStateHash = str_repeat('e', 64);
-    $expiredStateContext = new TenantSystemContext(101, ExternalTenantResolver::ACTOR, 'oauth.begin', 'expired-state');
+    $expiredStateContext = new TenantSystemContext(101, ExternalTenantResolutionService::SYSTEM_ACTOR, 'oauth.begin', 'expired-state');
     oauthRunSystem($expiredStateContext, static fn() => $persistence->createAttempt($expiredStateContext, [
         'state_hash' => $expiredStateHash, 'scene' => 'oa', 'return_path' => '/expired', 'expires_at' => time() - 1,
     ]));

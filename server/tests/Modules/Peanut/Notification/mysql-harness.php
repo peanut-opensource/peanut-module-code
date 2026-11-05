@@ -79,6 +79,7 @@ same(NOTIFICATION_MYSQL_DATABASE, guardedNotificationDatabase($pdo), 'registered
 
 $drop = array_reverse(Schema::tableNames());
 $taskDrop = array_reverse(TaskJobSchema::tableNames());
+$notificationExitCode = 0;
 try {
     guardedNotificationDatabase($pdo);
     IdentityMysqlFixture::install($pdo);
@@ -95,6 +96,11 @@ try {
         ['settings', 'reference_codes', 'integration', 'task', 'notification'],
     ));
     $pdo->exec("INSERT INTO pa_account(id,display_name,status,created_at,updated_at) VALUES (301,'Tenant A member','active','2026-01-01 00:00:00.000','2026-01-01 00:00:00.000'),(302,'Tenant B member','active','2026-01-01 00:00:00.000','2026-01-01 00:00:00.000')");
+    $credentialHash = (new \PeanutAdmin\Kernel\Identity\PasswordHasher())->hash('SyntheticNotificationFixture2026!');
+    $credential = $pdo->prepare('INSERT INTO pa_credential(account_id,kind,identifier_type,identifier_normalized,secret_hash,status,verified_at,secret_changed_at,created_at,updated_at) VALUES (?,"email_password","email",?, ?,"active",UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))');
+    foreach ([301 => 'notification-a@example.invalid', 302 => 'notification-b@example.invalid'] as $accountId => $email) {
+        $credential->execute([$accountId, $email, $credentialHash]);
+    }
     $pdo->exec("INSERT INTO pa_tenant(id,code,name,display_name,status,activated_at,created_at,updated_at) VALUES (101,'tenant-a','Tenant A','Tenant A','active','2026-01-01 00:00:00.000','2026-01-01 00:00:00.000','2026-01-01 00:00:00.000'),(202,'tenant-b','Tenant B','Tenant B','active','2026-01-01 00:00:00.000','2026-01-01 00:00:00.000','2026-01-01 00:00:00.000')");
     $pdo->exec("INSERT INTO pa_tenant_member(id,tenant_id,account_id,display_name,status,joined_at,created_at,updated_at) VALUES (501,101,301,'Tenant A member','active','2026-01-01 00:00:00.000','2026-01-01 00:00:00.000','2026-01-01 00:00:00.000'),(502,202,302,'Tenant B member','active','2026-01-01 00:00:00.000','2026-01-01 00:00:00.000','2026-01-01 00:00:00.000')");
     $pdo->exec("INSERT INTO pa_tenant_session(session_key,tenant_id,account_id,tenant_member_id,client_key,status,account_security_revision,tenant_security_revision,member_security_revision,issued_at,last_seen_at,idle_expires_at,absolute_expires_at,created_at,updated_at) VALUES ('01J00000000000000000000000',101,301,501,'admin-web','active',1,1,1,'2026-01-01 00:00:00.000','2026-01-01 00:00:00.000','2030-01-01 00:00:00.000','2030-01-02 00:00:00.000','2026-01-01 00:00:00.000','2026-01-01 00:00:00.000'),('01J00000000000000000000001',202,302,502,'admin-web','active',1,1,1,'2026-01-01 00:00:00.000','2026-01-01 00:00:00.000','2030-01-01 00:00:00.000','2030-01-02 00:00:00.000','2026-01-01 00:00:00.000','2026-01-01 00:00:00.000')");
@@ -313,7 +319,18 @@ try {
         notificationFeatureCases($pdo, $repository, $service, $manage101, $authorization, $publisher);
     }
 
-    fwrite(STDOUT, 'notification-sms MySQL harness: PASS (' . ($GLOBALS['notificationMysqlChecks'] ?? 0) . " checks)\n");
+} catch (Throwable $error) {
+    $notificationExitCode = 1;
+    fwrite(STDERR, $error::class . ': ' . $error->getMessage() . PHP_EOL);
 } finally {
-    RegisteredMysqlTestResource::cleanup($pdo, NOTIFICATION_MYSQL_DATABASE, $createdDatabase);
+    try {
+        RegisteredMysqlTestResource::cleanup($pdo, NOTIFICATION_MYSQL_DATABASE, $createdDatabase);
+    } catch (Throwable $error) {
+        $notificationExitCode = 1;
+        fwrite(STDERR, 'Notification cleanup: ' . $error::class . ': ' . $error->getMessage() . PHP_EOL);
+    }
 }
+if ($notificationExitCode !== 0) {
+    exit($notificationExitCode);
+}
+fwrite(STDOUT, 'notification-sms MySQL harness: PASS (' . ($GLOBALS['notificationMysqlChecks'] ?? 0) . " checks)\n");

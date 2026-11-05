@@ -598,7 +598,7 @@ SQL);
 
     // 路由注册、公共租户中间件和控制器限流依赖共同构成两个 HTTP 入口的装配合同。
     $memberRouteSource = (string) file_get_contents($serverRoot . '/app/modules/peanut/member/route/app.php');
-    $loginControllerSource = (string) file_get_contents($serverRoot . '/app/adminapi/controller/auth/LoginController.php');
+    $loginControllerSource = (string) file_get_contents($serverRoot . '/app/modules/peanut/member/src/Controller/MemberLoginController.php');
     expectNoticeTenant(
         str_contains($memberRouteSource, "['login/mobile', 'mobile', 'notice.verification.verify', 'http.mobile-login']")
             && str_contains($memberRouteSource, "['login/resetPassword', 'resetPassword', 'notice.verification.verify', 'http.reset-password']")

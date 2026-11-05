@@ -197,7 +197,7 @@ function notificationFeatureCases(
         featureSame(true, str_contains($schema, $needle), 'schema retains ' . $needle);
     }
     featureSame(false, str_contains($schema, 'phone_e164') || str_contains($schema, 'provider_secret'), 'schema stores no raw phone or secret');
-    fwrite(STDOUT, 'notification feature harness: PASS (' . ($GLOBALS['notificationFeatureChecks'] ?? 0) . " checks, real_mysql=true)\n");
 }
 
 require __DIR__ . '/mysql-harness.php';
+fwrite(STDOUT, 'notification feature harness: PASS (' . ($GLOBALS['notificationFeatureChecks'] ?? 0) . " checks, real_mysql=true)\n");
