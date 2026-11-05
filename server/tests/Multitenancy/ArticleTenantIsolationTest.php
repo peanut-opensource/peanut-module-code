@@ -236,10 +236,6 @@ try {
     ]);
     $pdo->exec(<<<'SQL'
 INSERT INTO pa_tenant (id,code,name,display_name,status,created_at,updated_at) VALUES (101,'alpha','Alpha','Alpha','active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)),(202,'beta','Beta','Beta','active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3));
-INSERT INTO pa_module_installation (module_key, installed_version, manifest_schema_version, manifest_digest, status)
-VALUES ('peanut.article', '1.0.0', 1, REPEAT('a', 64), 'active');
-INSERT INTO pa_tenant_module (tenant_id, module_key, status, effective_at)
-VALUES (101, 'peanut.article', 'enabled', UTC_TIMESTAMP(3)), (202, 'peanut.article', 'enabled', UTC_TIMESTAMP(3));
 INSERT INTO pa_member (id, tenant_id) VALUES (501, 101), (502, 202);
 INSERT INTO pa_article_cate (id, tenant_id, name, sort, is_show) VALUES (11, 101, 'Alpha seed', 10, 1), (12, 202, 'Beta', 10, 1);
 INSERT INTO pa_article (id, tenant_id, cid, title, is_show, click_actual) VALUES (21, 101, 11, 'Alpha seed article', 1, 0), (22, 202, 12, 'Beta visible', 1, 0);

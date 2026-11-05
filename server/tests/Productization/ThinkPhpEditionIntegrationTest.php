@@ -83,15 +83,20 @@ function tpq52CreateMultiTenantSchema(PDO $pdo): void
 INSERT INTO pa_tenant (id,code,name,display_name,status,created_at,updated_at) VALUES
  (101,'alpha','Alpha','Alpha','active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)),
  (202,'beta','Beta','Beta','active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3));
-INSERT INTO pa_module_installation (module_key,installed_version,manifest_digest,status)
- VALUES ('peanut.article','1.0.0',REPEAT('a',64),'active');
-INSERT INTO pa_tenant_module (tenant_id,module_key,status,effective_at) VALUES
- (101,'peanut.article','enabled',UTC_TIMESTAMP(3)),(202,'peanut.article','disabled',UTC_TIMESTAMP(3));
+INSERT INTO pa_plan (id,code,name,status,created_at,updated_at)
+ VALUES (1,'article-fixture','Article fixture','active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3));
+INSERT INTO pa_plan_module (plan_id,module_key) VALUES (1,'peanut.article');
+INSERT INTO pa_tenant_license (tenant_id,plan_id,status,effective_at,created_at,updated_at) VALUES
+ (101,1,'active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)),
+ (202,1,'suspended',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3));
 INSERT INTO pa_article_cate (id,tenant_id,name,sort,is_show) VALUES
  (11,101,'Alpha',10,1),(12,202,'Beta',10,1);
 INSERT INTO pa_article (id,tenant_id,cid,title,is_show) VALUES
  (21,101,11,'Alpha article',1),(22,202,12,'Beta article',1);
 SQL);
+    $manifest = app(\PeanutAdmin\Kernel\Module\CompiledModuleRegistry::class)->requireManifest('peanut.article');
+    $installation = $pdo->prepare('INSERT INTO pa_module_installation (module_key,installed_version,manifest_schema_version,manifest_digest,status) VALUES (?,?,?,?,?)');
+    $installation->execute(['peanut.article', $manifest->data['version'], $manifest->data['schema_version'], $manifest->digest, 'active']);
 }
 
 function tpq52CreateStandaloneSchema(PDO $pdo): void
