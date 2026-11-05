@@ -40,7 +40,7 @@ function documentDenied(callable $operation, string $message, ?string $errorCode
             || $error instanceof \PeanutAdmin\Modules\Identity\Contract\TenantSessionAccessException
             || $error instanceof \PeanutAdmin\Kernel\Module\ModuleException, $message . ': unexpected ' . $error::class . ': ' . $error->getMessage());
         if ($errorCode !== null) {
-            documentExpect($error instanceof \app\common\exception\BusinessException && $error->errorCode === $errorCode, $message . ': wrong rejection reason');
+            documentExpect(($error->errorCode ?? null) === $errorCode, $message . ': wrong rejection reason: ' . ($error->errorCode ?? $error::class));
         }
         return;
     }
@@ -61,7 +61,7 @@ try {
     $serverRoot = dirname(__DIR__, 4);
     IdentityMysqlFixture::install($pdo, array_map(
         static fn(string $module): string => $serverRoot . '/app/modules/peanut/' . $module . '/database/migrations',
-        ['settings', 'reference_codes', 'file', 'article', 'document', 'task'],
+        ['settings', 'reference_codes', 'file', 'member', 'article', 'document', 'task', 'collaboration'],
     ));
     ThinkPhpTestConnection::fromPdo($pdo);
     $bootstrap = new \PeanutAdmin\Modules\Identity\Platform\Bootstrap\BootstrapService(
@@ -73,23 +73,31 @@ try {
     $owner = $bootstrap->provisionTenantOwnerCandidate($platform->operatorId, 'default', 'B1 Synthetic', 'b1-owner@example.invalid', null, 'B1 Owner', 'b1-owner');
     $bootstrap->activateTenantOwner($platform->operatorId, $owner->tenantId, $owner->memberId, 'b1-owner-active');
     $bootstrap->activateTenant($platform->operatorId, $owner->tenantId, 'b1-tenant-active');
-    $app = new think\App($serverRoot);
+    $app = \think\Container::getInstance();
+    if (!$app instanceof \think\App) {
+        throw new RuntimeException('EXPLICIT_TEST_APPLICATION_REQUIRED');
+    }
+    $app->env->set(['DEPLOYMENT_MODE' => 'multi-tenant', 'APP_ENV' => 'development', 'APP_DEBUG' => 'true', 'JWT_SECRET' => str_repeat('d', 48), 'ASYNC_SIGNING_KEY' => str_repeat('e', 32)]);
     $app->initialize();
     ThinkPhpTestConnection::fromPdo($pdo);
     $registry = $app->make(CompiledModuleRegistry::class);
+    $seeds = new \app\common\module\ModuleSeedRun($registry->requireManifest('peanut.file'));
+    $seeds->setApp($app);
+    $seeds->run(new \think\console\Input([]), new \think\console\Output('buffer'));
     $pdo->exec("INSERT INTO pa_plan(code,name,status,revision,created_at,updated_at) VALUES('document-fixture','Document fixture','active',1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
     $planId = (int) $pdo->lastInsertId();
     $license = $pdo->prepare("INSERT INTO pa_tenant_license(tenant_id,plan_id,status,effective_at,revision,created_at,updated_at) VALUES(?,?,'active',UTC_TIMESTAMP(3),1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
     $license->execute([$owner->tenantId, $planId]);
-    foreach (['peanut.identity', 'peanut.file', 'peanut.content-tools', 'peanut.rich-text', 'peanut.document', 'peanut.article'] as $moduleKey) {
+    foreach (['peanut.identity', 'peanut.file', 'peanut.content-tools', 'peanut.rich-text', 'peanut.document', 'peanut.article', 'peanut.collaboration'] as $moduleKey) {
         $manifest = $registry->requireManifest($moduleKey);
         $s = $pdo->prepare('INSERT INTO pa_module_installation(module_key,installed_version,manifest_schema_version,manifest_digest,status,revision,installed_at,activated_at,created_at,updated_at) VALUES(?,?,?,?,"active",1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))');
         $s->execute([$moduleKey, $manifest->data['version'], $manifest->data['schema_version'], $manifest->digest]);
         $s = $pdo->prepare('INSERT INTO pa_plan_module(plan_id,module_key) VALUES(?,?)');
         $s->execute([$planId, $moduleKey]);
     }
-    $app->make(\app\platform\infrastructure\module\ModuleCatalogApplier::class)->apply($registry, ['peanut.identity', 'peanut.file', 'peanut.content-tools', 'peanut.rich-text', 'peanut.document', 'peanut.article']);
+    $app->make(\app\platform\infrastructure\module\ModuleCatalogApplier::class)->apply($registry, ['peanut.identity', 'peanut.file', 'peanut.content-tools', 'peanut.rich-text', 'peanut.document', 'peanut.article', 'peanut.collaboration']);
     $pdo->exec("INSERT INTO pa_plan_permission(plan_id,permission_key) SELECT {$planId},`key` FROM pa_permission WHERE status='active' AND `key` NOT LIKE 'platform.%'");
+    $pdo->exec("INSERT INTO pa_role_permission(tenant_id,role_id,permission_id,granted_by_member_id,granted_at) SELECT r.tenant_id,r.id,p.id,{$owner->memberId},UTC_TIMESTAMP(3) FROM pa_role r CROSS JOIN pa_permission p WHERE r.tenant_id={$owner->tenantId} AND r.`key`='core.tenant-owner' AND p.status='active' AND p.`key` NOT LIKE 'platform.%'");
 
     $tenant = $owner->tenantId;
     $account = $owner->accountId;
@@ -261,8 +269,8 @@ try {
     documentExpect(is_file($run(fn() => $storage->openForTenant($tenant, $sensitiveHistory))['path']), 'sensitive historic original still available with independent File download permission');
     $pdo->exec("UPDATE pa_document SET collaboration_enabled=1 WHERE id={$id}");
     documentDenied(fn() => $run(fn() => $commands->saveSolo($context, $id, 3, documentProjection('No fake collab'), 'b1-collab-save')), 'collaboration solo save fails closed', 'DOCUMENT_COLLABORATION_BARRIER_REQUIRED');
-    documentDenied(fn() => $run(fn() => $commands->freeze($context, $id, 3, 'No fake barrier', 'b1-collab-freeze')), 'collaboration freeze fails closed', 'DOCUMENT_COLLABORATION_BARRIER_REQUIRED');
-    documentDenied(fn() => $run(fn() => $articleAdmin->delete($context, (int) $article->id)), 'collaboration archive requires actual barrier', 'DOCUMENT_COLLABORATION_BARRIER_REQUIRED');
+    documentDenied(fn() => $run(fn() => $commands->freeze($context, $id, 3, 'No fake barrier', 'b1-collab-freeze')), 'collaboration freeze requires confirmed click target', 'DOCUMENT_TARGET_NOT_CONFIRMED');
+    documentDenied(fn() => $run(fn() => $articleAdmin->delete($context, (int) $article->id)), 'collaboration archive requires real native room barrier', 'COLLAB_UNAVAILABLE');
     documentExpect($pdo->query("SELECT delete_time FROM pa_article WHERE id={$article->id}")->fetchColumn() === null && $pdo->query("SELECT status FROM pa_document WHERE id={$id}")->fetchColumn() === 'active', 'owner soft delete rolls back with missing barrier');
     $pdo->exec("UPDATE pa_document SET collaboration_enabled=0 WHERE id={$id}");
     $run(fn() => $articleAdmin->delete($context, (int) $article->id));
@@ -272,10 +280,10 @@ try {
     $run(fn() => $articleAdmin->restore($context, [(int) $article->id]));
     documentExpect($pdo->query("SELECT status FROM pa_document WHERE id={$id}")->fetchColumn() === 'active', 'owner restoration restores Document current authorization');
     $pdo->exec("DELETE FROM pa_plan_module WHERE plan_id=(SELECT plan_id FROM pa_tenant_license WHERE tenant_id={$tenant}) AND module_key='peanut.article'");
-    documentDenied(fn() => $run(fn() => $queries->detail($context,$id)),'disabled owner module denied');
+    documentDenied(fn() => $run(fn() => $queries->detail($context, $id)), 'disabled owner module denied');
     $pdo->exec("INSERT INTO pa_plan_module(plan_id,module_key) SELECT plan_id,'peanut.article' FROM pa_tenant_license WHERE tenant_id={$tenant}");
     $pdo->exec("UPDATE pa_tenant_session SET status='revoked',revoked_at=UTC_TIMESTAMP(3) WHERE session_key='{$sessionKey}'");
-    documentDenied(fn() => $run(fn() => $queries->detail($context,$id)),'revoked trusted durable session denied');
+    documentDenied(fn() => $run(fn() => $queries->detail($context, $id)), 'revoked trusted durable session denied');
     echo 'DOCUMENT_PERSISTENCE_OK assertions=' . $assertions . ' real_mysql=8.4 local_bytes=real collaboration=deferred editions=engine-only' . PHP_EOL;
 } finally {
     try {
@@ -293,6 +301,6 @@ try {
             }
         }
     } finally {
-        RegisteredMysqlTestResource::cleanup($pdo,$database,$created);
+        RegisteredMysqlTestResource::cleanup($pdo, $database, $created);
     }
 }

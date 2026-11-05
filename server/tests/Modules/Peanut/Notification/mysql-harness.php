@@ -82,7 +82,11 @@ $taskDrop = array_reverse(TaskJobSchema::tableNames());
 try {
     guardedNotificationDatabase($pdo);
     IdentityMysqlFixture::install($pdo);
-    $app = new \think\App($root);
+    $app = \think\Container::getInstance();
+    if (!$app instanceof \think\App) {
+        throw new RuntimeException('EXPLICIT_TEST_APPLICATION_REQUIRED');
+    }
+    $app->env->set(['DEPLOYMENT_MODE' => 'multi-tenant', 'APP_ENV' => 'development', 'APP_DEBUG' => 'true']);
     $app->initialize();
     $app->config->set(['signing_key' => str_repeat('e', 32)], 'async');
     ThinkPhpTestConnection::fromPdo($pdo);
@@ -110,7 +114,7 @@ try {
     }
     $pdo->exec("INSERT INTO pa_plan_permission(plan_id,permission_key) SELECT 1,`key` FROM pa_permission WHERE status='active' AND `key` NOT LIKE 'platform.%'");
     foreach ([101 => 501, 202 => 502] as $tenantId => $memberId) {
-        $pdo->exec("INSERT INTO pa_tenant_license(tenant_id,plan_id,status,effective_at,revision,created_at,updated_at) VALUES({$tenantId},1,'active',UTC_TIMESTAMP(3),1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+        $pdo->exec("INSERT INTO pa_tenant_license(tenant_id,plan_id,status,effective_at,revision,created_at,updated_at) VALUES({$tenantId},1,'active',DATE_SUB(UTC_TIMESTAMP(3),INTERVAL 1 DAY),1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
         $pdo->exec("INSERT INTO pa_role(id,tenant_id,`key`,name,is_builtin,status,created_at,updated_at) VALUES({$tenantId},{$tenantId},'notification-fixture','Notification fixture',0,'active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
         $pdo->exec("INSERT INTO pa_member_role(tenant_id,tenant_member_id,role_id,assigned_at) VALUES({$tenantId},{$memberId},{$tenantId},UTC_TIMESTAMP(3))");
         $pdo->exec("INSERT INTO pa_role_permission(tenant_id,role_id,permission_id,granted_at) SELECT {$tenantId},{$tenantId},id,UTC_TIMESTAMP(3) FROM pa_permission WHERE `key` IN ('peanut.notification.delivery.manage','peanut.notification.inbox.read')");
@@ -172,11 +176,8 @@ try {
 
     $inbox101 = $service->inbox($read101, 'all', 1, 20);
     $inbox202 = $service->inbox($read202, 'all', 1, 20);
-    same(1, $inbox101['total'], 'own Tenant inbox');
+    same(0, $inbox101['total'], 'undelivered notification is not visible in own inbox');
     same(0, $inbox202['total'], 'cross-Tenant inbox isolation');
-    $read = $service->markRead($read101, $inbox101['items'][0]->messageKey, 1);
-    same('read', $read->status, 'read transition');
-    same(1, $service->bulk($read101, [$read->messageKey], 'archive'), 'archive transition');
 
     $recipientDigest = (new SmsRecipient('+8613800138000', $digestKey))->digest;
     for ($attempt = 0; $attempt < 5; ++$attempt) {
@@ -189,8 +190,8 @@ try {
     $publisher = new TrustedJobPublisher(
         new TaskJobStore(),
         new TaskSubmissionRegistry([
-            new OutboxTaskSubmissionProvider('inbox', $authorization),
-            new OutboxTaskSubmissionProvider('sms', $authorization),
+            new OutboxTaskSubmissionProvider('inbox', $authorization, $app->make(\PeanutAdmin\Modules\Notification\Delivery\Task\NotificationTaskWorkerDefinition::class)),
+            new OutboxTaskSubmissionProvider('sms', $authorization, $app->make(\PeanutAdmin\Modules\Notification\Delivery\Task\NotificationTaskWorkerDefinition::class)),
         ]),
         new TrustedEnvelopeCodec(str_repeat('e', 32)),
         $app->make(\PeanutAdmin\DataPermission\Catalog\ResourceOperationCatalog::class),
@@ -275,6 +276,12 @@ try {
     same(1, (int) $pdo->query(
         "SELECT COUNT(*) FROM pa_notification_event WHERE event_key='tenant.notification.delivered'",
     )->fetchColumn(), 'inbox delivery event is de-duplicated');
+    $inbox101 = $service->inbox($read101, 'all', 1, 20);
+    same(1, $inbox101['total'], 'own delivered Tenant inbox');
+    same(0, $service->inbox($read202, 'all', 1, 20)['total'], 'delivered notification remains isolated from another Tenant');
+    $read = $service->markRead($read101, $inbox101['items'][0]->messageKey, 1);
+    same('read', $read->status, 'read transition');
+    same(1, $service->bulk($read101, [$read->messageKey], 'archive'), 'archive transition');
 
     $messageCount = (int) $pdo->query('SELECT COUNT(*) FROM pa_notification_message')->fetchColumn();
     $outboxCount = (int) $pdo->query('SELECT COUNT(*) FROM pa_notification_outbox')->fetchColumn();

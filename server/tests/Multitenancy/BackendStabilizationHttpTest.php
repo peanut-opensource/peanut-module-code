@@ -62,9 +62,6 @@ function stabilizationHttp(
     global $requests, $runtime;
     $requests++;
     $environment = getenv();
-    foreach (peanutBackendEnvironmentKeys() as $key) {
-        unset($environment[$key], $environment['PHP_' . $key]);
-    }
     $environment['PEANUT_SERVER_ENV_FILE'] = IsolatedBackendEnvironment::required('PEANUT_SERVER_ENV_FILE');
     $process = proc_open([PHP_BINARY, __FILE__, '--request'], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, null, $environment);
     if (!is_resource($process)) {

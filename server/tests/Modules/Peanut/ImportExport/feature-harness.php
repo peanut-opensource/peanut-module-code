@@ -65,6 +65,7 @@ function context(int $tenantId, int $memberId, string $operation): AuthorizedOpe
         'admin-web',
         new DateTimeImmutable('2026-07-24T00:00:00Z'),
         1,
+        1,
     ), 'request-' . $tenantId);
     return AuthorizedOperationContext::fromDecision(AuthorizationDecision::allow($tenant, ImportExportService::RESOURCE_KEY, $operation, [], 'basis-' . $tenantId));
 }
@@ -245,15 +246,18 @@ $run = static function () use ($database, &$ownedDatabase): void {
     $pdo->exec("UPDATE pa_import_export_operation SET retention_until = TIMESTAMPADD(SECOND,-1,UTC_TIMESTAMP(3)) WHERE operation_key = " . $pdo->quote($cancel->operationKey));
     check(1, $maintenance(fn() => $repository->expireDue()), 'retention expiry');
     check('expired', $repository->get(101, $cancel->operationKey)->status, 'expired terminal state');
-    $pdo->exec('ALTER TABLE pa_import_export_operation CHANGE tenant_id incompatible_tenant_id BIGINT UNSIGNED NOT NULL');
+    // Preserve the valid table and its foreign keys while exposing an incompatible schema.
+    $pdo->exec('RENAME TABLE pa_import_export_operation TO pa_import_export_operation_saved');
     try {
+        $pdo->exec('CREATE TABLE pa_import_export_operation (id BIGINT UNSIGNED NOT NULL PRIMARY KEY) ENGINE=InnoDB');
         runtimeProblem(
             'TENANT_PERSISTENCE_SCHEMA_MODE_MISMATCH',
             fn() => (new ImportExportStore($maintenanceCurrent, $maintenanceAudit))->get(101, $cancel->operationKey),
             'repository rejects schema without tenant column',
         );
     } finally {
-        $pdo->exec('ALTER TABLE pa_import_export_operation CHANGE incompatible_tenant_id tenant_id BIGINT UNSIGNED NOT NULL');
+        $pdo->exec('DROP TABLE IF EXISTS pa_import_export_operation');
+        $pdo->exec('RENAME TABLE pa_import_export_operation_saved TO pa_import_export_operation');
     }
     check('expired', $repository->get(101, $cancel->operationKey)->status, 'schema rejection leaves expired record intact');
 

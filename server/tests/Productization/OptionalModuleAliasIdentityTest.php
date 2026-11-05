@@ -40,6 +40,19 @@ final class OptionalModuleAliasIdentityTest extends TestCase
         self::assertSame($app->make(ArticleQueries::class), $app->make(ArticleQueryService::class));
     }
 
+    public function testOptionalExportConsumersUseTheInjectedPrivateExporter(): void
+    {
+        foreach ([
+            \PeanutAdmin\Modules\Member\Service\MemberAdministrationService::class,
+            \PeanutAdmin\Modules\Payment\Service\RechargeAdministrationService::class,
+        ] as $class) {
+            $type = new ReflectionClass($class);
+            $parameters = array_column($type->getConstructor()->getParameters(), null, 'name');
+            self::assertSame(\app\common\services\XlsxExportService::class, $parameters['xlsxExport']->getType()->getName());
+            self::assertStringContainsString('$this->xlsxExport->create(', file_get_contents($type->getFileName()), $class);
+        }
+    }
+
     public function testOptionalPublicContractsAutowireActualProductionServices(): void
     {
         $targets = [

@@ -253,9 +253,10 @@ final class ArtifactRevisionServiceTest extends TestCase
     {
         [, $context] = $this->seedContext('req_artifact_rollback');
         $service = $this->service();
+        // Fail the real audit INSERT without requiring SUPER or changing binary logging.
         $this->pdo->exec(<<<'SQL'
-CREATE TRIGGER artifact_revision_fail_audit BEFORE INSERT ON pa_tenant_audit_event
-FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'artifact audit failure'
+ALTER TABLE pa_tenant_audit_event ADD CONSTRAINT artifact_revision_fail_audit
+CHECK (event_type = 'synthetic.audit.reject.all')
 SQL);
 
         try {
@@ -268,7 +269,7 @@ SQL);
                 'artifact-rollback-create',
             ));
         } finally {
-            $this->pdo->exec('DROP TRIGGER IF EXISTS artifact_revision_fail_audit');
+            $this->pdo->exec('ALTER TABLE pa_tenant_audit_event DROP CHECK artifact_revision_fail_audit');
         }
 
         self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM pa_artifact')->fetchColumn());

@@ -384,9 +384,10 @@ final class EntitlementQuotaServiceTest extends TestCase
             new MutableEntitlementPolicyProvider($this->snapshot()),
             new MutableEntitlementClock('2030-02-15T12:00:00.000Z'),
         );
+        // Fail the real audit INSERT without requiring SUPER or changing binary logging.
         $this->pdo->exec(<<<'SQL'
-CREATE TRIGGER entitlement_fail_audit BEFORE INSERT ON pa_tenant_audit_event
-FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'entitlement audit failure'
+ALTER TABLE pa_tenant_audit_event ADD CONSTRAINT entitlement_fail_audit
+CHECK (event_type = 'synthetic.audit.reject.all')
 SQL);
 
         try {
@@ -399,7 +400,7 @@ SQL);
                 'entitlement-reserve-rollback',
             ));
         } finally {
-            $this->pdo->exec('DROP TRIGGER IF EXISTS entitlement_fail_audit');
+            $this->pdo->exec('ALTER TABLE pa_tenant_audit_event DROP CHECK entitlement_fail_audit');
         }
 
         foreach ([

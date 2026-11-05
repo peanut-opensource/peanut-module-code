@@ -69,7 +69,7 @@ featureSame('{}', json_encode($request, JSON_THROW_ON_ERROR), 'provider request 
 featureSame($provider->send($request)->providerMessageKey, $provider->send($request)->providerMessageKey, 'provider idempotency');
 featureSame(1, $provider->acceptedCount(), 'provider deduplicates job key');
 
-/** Exercises real persistence; SQL triggers inject failures at the owned database boundary. */
+/** Exercises real persistence; temporary constraints reject writes at the owned database boundary. */
 function notificationFeatureCases(
     PDO $pdo,
     NotificationStore $repository,
@@ -123,12 +123,15 @@ function notificationFeatureCases(
         }
         throw new RuntimeException('Expected retry ' . $code);
     };
-    $fault = static function (string $condition, callable $call) use ($pdo): void {
-        $pdo->exec("CREATE TRIGGER notification_feature_fault BEFORE UPDATE ON pa_notification_outbox FOR EACH ROW BEGIN IF {$condition} THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='synthetic persistence failure'; END IF; END");
+    $fault = static function (JobExecution $execution, string $status, callable $call) use ($pdo): void {
+        $key = $pdo->quote($execution->payload['outbox_key']);
+        $rejectedStatus = $pdo->quote($status);
+        // Target only this fixture row; earlier delivered/retryable rows remain valid.
+        $pdo->exec("ALTER TABLE pa_notification_outbox ADD CONSTRAINT notification_feature_fault CHECK (NOT (outbox_key={$key} AND status={$rejectedStatus}))");
         try {
             $call();
         } finally {
-            $pdo->exec('DROP TRIGGER notification_feature_fault');
+            $pdo->exec('ALTER TABLE pa_notification_outbox DROP CHECK notification_feature_fault');
         }
     };
     $provider = new LocalDevSmsProvider();
@@ -154,16 +157,16 @@ function notificationFeatureCases(
             throw new RuntimeException('private lookup detail');
         }
     }, new LocalDevSmsProvider());
-    $fault("NEW.status='retryable'", fn() => $retry('SMS_RECIPIENT_LOOKUP_FAILED', fn() => $transient->handle($manage, $execution)));
+    $fault($execution, 'retryable', fn() => $retry('SMS_RECIPIENT_LOOKUP_FAILED', fn() => $transient->handle($manage, $execution)));
     featureSame(null, $failure($execution)['last_error_code'], 'failure-write error does not mask lookup retry class');
 
     $execution = $fresh();
-    $fault("NEW.status='processing'", fn() => $retry('SMS_OUTBOX_PERSISTENCE_FAILED', fn() => $handler->handle($manage, $execution)));
+    $fault($execution, 'processing', fn() => $retry('SMS_OUTBOX_PERSISTENCE_FAILED', fn() => $handler->handle($manage, $execution)));
     featureSame('queued', $failure($execution)['status'], 'failed begin rolls back');
 
     $execution = $fresh('inbox');
     $inbox = new InboxTaskHandler($repository, $authorization);
-    $fault("NEW.status='delivered'", fn() => $retry('NOTIFICATION_INBOX_PERSISTENCE_FAILED', fn() => $inbox->handle($manage, $execution)));
+    $fault($execution, 'delivered', fn() => $retry('NOTIFICATION_INBOX_PERSISTENCE_FAILED', fn() => $inbox->handle($manage, $execution)));
     featureSame('queued', $failure($execution)['status'], 'failed inbox delivery rolls back');
 
     $execution = $fresh();
@@ -182,7 +185,7 @@ function notificationFeatureCases(
     featureSame('SMS_DESTINATION_REJECTED', $failure($execution)['last_error_code'], 'permanent provider failure persisted');
 
     $execution = $fresh();
-    $fault("NEW.status='delivered'", fn() => $retry('SMS_DELIVERY_COMMIT_UNKNOWN', fn() => $handler->handle($manage, $execution)));
+    $fault($execution, 'delivered', fn() => $retry('SMS_DELIVERY_COMMIT_UNKNOWN', fn() => $handler->handle($manage, $execution)));
     featureSame('retryable', $failure($execution)['status'], 'unknown delivery state persisted');
     featureSame('SMS_DELIVERY_COMMIT_UNKNOWN', $failure($execution)['last_error_code'], 'unknown delivery error persisted');
     $handler->handle($manage, $execution);

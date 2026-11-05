@@ -61,7 +61,7 @@ try {
     $serverRoot = dirname(__DIR__, 4);
     IdentityMysqlFixture::install($pdo, array_map(
         static fn(string $module): string => $serverRoot . '/app/modules/peanut/' . $module . '/database/migrations',
-        ['settings', 'reference_codes', 'file', 'article', 'document', 'task'],
+        ['settings', 'reference_codes', 'file', 'member', 'article', 'document', 'task'],
     ));
     ThinkPhpTestConnection::fromPdo($pdo);
     $bootstrap = new \PeanutAdmin\Modules\Identity\Platform\Bootstrap\BootstrapService(
@@ -73,10 +73,17 @@ try {
     $owner = $bootstrap->provisionTenantOwnerCandidate($platform->operatorId, 'default', 'B1 Synthetic', 'b1-owner@example.invalid', null, 'B1 Owner', 'b1-owner');
     $bootstrap->activateTenantOwner($platform->operatorId, $owner->tenantId, $owner->memberId, 'b1-owner-active');
     $bootstrap->activateTenant($platform->operatorId, $owner->tenantId, 'b1-tenant-active');
-    $app = new think\App($serverRoot);
+    $app = \think\Container::getInstance();
+    if (!$app instanceof \think\App) {
+        throw new RuntimeException('EXPLICIT_TEST_APPLICATION_REQUIRED');
+    }
+    $app->env->set(['DEPLOYMENT_MODE' => 'multi-tenant', 'APP_ENV' => 'development', 'APP_DEBUG' => 'true', 'JWT_SECRET' => str_repeat('d', 48), 'ASYNC_SIGNING_KEY' => str_repeat('e', 32)]);
     $app->initialize();
     ThinkPhpTestConnection::fromPdo($pdo);
     $registry = $app->make(CompiledModuleRegistry::class);
+    $seeds = new \app\common\module\ModuleSeedRun($registry->requireManifest('peanut.file'));
+    $seeds->setApp($app);
+    $seeds->run(new \think\console\Input([]), new \think\console\Output('buffer'));
     $pdo->exec("INSERT INTO pa_plan(code,name,status,revision,created_at,updated_at) VALUES('document-fixture','Document fixture','active',1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
     $planId = (int) $pdo->lastInsertId();
     $license = $pdo->prepare("INSERT INTO pa_tenant_license(tenant_id,plan_id,status,effective_at,revision,created_at,updated_at) VALUES(?,?,'active',UTC_TIMESTAMP(3),1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
@@ -90,6 +97,7 @@ try {
     }
     $app->make(\app\platform\infrastructure\module\ModuleCatalogApplier::class)->apply($registry, ['peanut.identity', 'peanut.file', 'peanut.content-tools', 'peanut.rich-text', 'peanut.document', 'peanut.article', 'peanut.task']);
     $pdo->exec("INSERT INTO pa_plan_permission(plan_id,permission_key) SELECT {$planId},`key` FROM pa_permission WHERE status='active' AND `key` NOT LIKE 'platform.%'");
+    $pdo->exec("INSERT INTO pa_role_permission(tenant_id,role_id,permission_id,granted_by_member_id,granted_at) SELECT r.tenant_id,r.id,p.id,{$owner->memberId},UTC_TIMESTAMP(3) FROM pa_role r CROSS JOIN pa_permission p WHERE r.tenant_id={$owner->tenantId} AND r.`key`='core.tenant-owner' AND p.status='active' AND p.`key` NOT LIKE 'platform.%'");
 
     $tenant = $owner->tenantId;
     $account = $owner->accountId;

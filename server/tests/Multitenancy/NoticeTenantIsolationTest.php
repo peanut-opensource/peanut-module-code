@@ -92,9 +92,6 @@ function noticeConcurrentVerifications(string $mobile, string $code): array
     if (!is_array($environment)) {
         throw new RuntimeException('verification concurrency environment is unavailable');
     }
-    foreach (peanutBackendEnvironmentKeys() as $key) {
-        unset($environment[$key], $environment['PHP_' . $key]);
-    }
     $environment['PEANUT_SERVER_ENV_FILE'] = IsolatedBackendEnvironment::required('PEANUT_SERVER_ENV_FILE');
     $processes = [];
     try {
