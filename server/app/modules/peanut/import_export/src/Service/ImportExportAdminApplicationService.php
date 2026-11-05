@@ -6,6 +6,8 @@ namespace PeanutAdmin\Modules\ImportExport\Service;
 
 use app\common\contract\authorization\AdminAuthorizationQuery;
 use app\common\dto\authorization\AdminPrincipal;
+use app\common\execution\AdminExecutionContext;
+use app\common\execution\CurrentExecutionContext;
 use PeanutAdmin\Modules\ImportExport\Contract\Dto\AsyncExportOperation;
 use PeanutAdmin\Modules\ImportExport\Contract\ImportExportCommands;
 use PeanutAdmin\Modules\ImportExport\Contract\ImportExportQueries;
@@ -24,6 +26,7 @@ final readonly class ImportExportAdminApplicationService
         private ImportExportCommands $commands,
         private ImportExportQueries $queries,
         private AppFileMediaGateway $files,
+        private CurrentExecutionContext $executionContext,
     ) {}
 
     /** @return array{items:list<AsyncExportOperation>,page:int,page_size:int,total:int} */
@@ -104,6 +107,19 @@ final readonly class ImportExportAdminApplicationService
         string $permission,
         string $operation,
     ): AuthorizedOperationContext {
+        $execution = $this->executionContext->current();
+        $currentTenantId = $execution?->tenantId();
+        if ($currentTenantId !== null && $currentTenantId !== $tenant->tenantId) {
+            throw ImportExportException::denied();
+        }
+        // 可信直接调用仍由授权服务校验显式身份，已有后台执行身份时还须与它一致。
+        if ($execution instanceof AdminExecutionContext
+            && ($execution->tenant->accountId !== $tenant->accountId
+                || $execution->tenant->memberId !== $tenant->memberId
+                || $execution->tenant->authorizationRevision !== $tenant->authorizationRevision)
+        ) {
+            throw ImportExportException::denied();
+        }
         if (!$this->authorization->decide($tenant, $actor, $permission)->allowed) {
             throw ImportExportException::denied();
         }
