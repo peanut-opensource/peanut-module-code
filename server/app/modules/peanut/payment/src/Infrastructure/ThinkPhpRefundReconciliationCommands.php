@@ -8,10 +8,11 @@ use PeanutAdmin\Modules\Payment\Model\RechargeOrder;
 use PeanutAdmin\Modules\Payment\Model\RechargePaymentAttempt;
 use PeanutAdmin\Modules\Payment\Model\RefundLog;
 use PeanutAdmin\Modules\Payment\Model\RefundRecord;
+use app\common\exception\BusinessException;
 use app\common\execution\CurrentExecutionContext;
 use think\facade\Db;
-use app\common\contract\payment\RefundGatewayInterface;
-use app\common\composition\payment\PaymentServiceFactory;
+use PeanutAdmin\Modules\Payment\Infrastructure\Channel\RefundGatewayInterface;
+use PeanutAdmin\Modules\Payment\Infrastructure\Channel\PaymentServiceFactory;
 use app\common\infrastructure\runtime\OperationalLog;
 use PeanutAdmin\Modules\Payment\Contract\PaymentMethod;
 use PeanutAdmin\Modules\Payment\Contract\RefundReconciliationCommands;
@@ -102,7 +103,10 @@ final readonly class ThinkPhpRefundReconciliationCommands implements RefundRecon
                 (string) $record->sn,
             );
         } catch (\Throwable $e) {
-            $this->warning('refund_reconcile_gateway_query_failed', $diagnostics, (int) $record->id, $e);
+            $event = $e instanceof BusinessException && $e->errorCode === 'PAYMENT_ORIGIN_UNVERIFIED'
+                ? 'refund_reconcile_payment_origin_unverified'
+                : 'refund_reconcile_gateway_query_failed';
+            $this->warning($event, $diagnostics, (int) $record->id, $e);
             return false;
         }
 

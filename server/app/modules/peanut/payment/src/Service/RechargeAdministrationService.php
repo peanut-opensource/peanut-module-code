@@ -22,9 +22,9 @@ use app\common\exception\BusinessException;
 use app\common\persistence\AdvisoryLockUnavailable;
 use PeanutAdmin\Modules\File\Contract\FileReferences;
 use app\common\value\Money;
-use app\common\infrastructure\payment\PaymentRetryLock;
-use app\common\contract\payment\RefundGatewayInterface;
-use app\common\composition\payment\PaymentServiceFactory;
+use PeanutAdmin\Modules\Payment\Infrastructure\PaymentRetryLock;
+use PeanutAdmin\Modules\Payment\Infrastructure\Channel\RefundGatewayInterface;
+use PeanutAdmin\Modules\Payment\Infrastructure\Channel\PaymentServiceFactory;
 use app\common\services\XlsxExportService;
 use app\common\support\ExportPageInfo;
 use app\common\support\PaginationInput;
@@ -334,6 +334,9 @@ class RechargeAdministrationService
                 (string) $record->sn,
                 Money::toCents((string) $record->refund_amount),
             );
+            if ($result['status'] === RefundGatewayInterface::STATUS_FAILED) {
+                throw BusinessException::conflict('REFUND_CHANNEL_REJECTED', '渠道已确认退款失败');
+            }
         } catch (\Throwable $e) {
             $message = $e->getMessage() !== '' ? $e->getMessage() : '支付渠道退款失败';
             if ((int) $e->getCode() === RefundGatewayInterface::ERROR_RESULT_UNKNOWN) {

@@ -2,12 +2,11 @@
 
 declare(strict_types=1);
 
-namespace app\common\composition\payment;
+namespace PeanutAdmin\Modules\Payment\Infrastructure\Channel;
 
-use app\common\contract\payment\PaymentChannelGateway;
 use app\common\exception\BusinessException;
-use app\common\infrastructure\payment\YansongdaGateway;
 use PeanutAdmin\Modules\Integration\Contract\ExternalProvider;
+use PeanutAdmin\Modules\Integration\Contract\ExternalTenantResolutionException;
 use PeanutAdmin\Modules\Integration\Contract\ExternalTenantResolutionService;
 
 /** Resolve payment credentials only from a verified binding or a recorded payment attempt. */
@@ -21,11 +20,11 @@ final readonly class PaymentServiceFactory
             'wechat' => ExternalProvider::WECHAT_PAYMENT,
             'alipay' => ExternalProvider::ALIPAY_PAYMENT,
         };
-        $binding = $this->externalTenants->paymentBindingForHistory(
-            $tenantId,
-            $provider,
-            $bindingId,
-        );
+        try {
+            $binding = $this->externalTenants->paymentBindingForHistory($tenantId, $provider, $bindingId);
+        } catch (ExternalTenantResolutionException) {
+            throw BusinessException::conflict('PAYMENT_ORIGIN_UNVERIFIED', '原收款商户待核对');
+        }
         if (!hash_equals($binding->identityHash, $identityHash)) {
             throw BusinessException::conflict('PAYMENT_ORIGIN_UNVERIFIED', '原收款商户待核对');
         }

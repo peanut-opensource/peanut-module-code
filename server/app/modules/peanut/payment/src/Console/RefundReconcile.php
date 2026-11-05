@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Payment\Console;
 
 use PeanutAdmin\Modules\Payment\Contract\RefundReconciliationCommands;
-use app\common\context\payment\PaymentScheduledTenantContext;
-use app\common\infrastructure\payment\PaymentTenantDiagnostics;
+use PeanutAdmin\Kernel\Tenancy\ScheduledTenantContext;
+use PeanutAdmin\Modules\Payment\Infrastructure\Channel\PaymentTenantDiagnostics;
 use app\common\execution\ContextualCommand;
 use app\common\execution\CurrentExecutionContext;
 use app\common\execution\ExecutionContextStore;
@@ -31,8 +31,12 @@ class RefundReconcile extends ContextualCommand
 
     protected function handle(Input $input, Output $output): int
     {
-        $scope = PaymentScheduledTenantContext::require();
-        $diagnostics = PaymentTenantDiagnostics::fromScope($scope);
+        $scope = ScheduledTenantContext::require();
+        $diagnostics = [
+            'scope' => 'tenant',
+            'tenant_id' => $scope->tenantId(),
+            'correlation_id' => $scope->contextIdentity(),
+        ];
         $result = $this->refunds()->reconcile($scope, $diagnostics);
 
         $output->writeln(sprintf(

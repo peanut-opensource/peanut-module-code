@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\common\infrastructure\payment;
+namespace PeanutAdmin\Modules\Payment\Infrastructure;
 
 use app\common\persistence\AdvisoryLockExecution;
 use PeanutAdmin\Kernel\Auth\TenantContext;

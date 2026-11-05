@@ -2,13 +2,8 @@
 
 declare(strict_types=1);
 
-namespace app\common\infrastructure\payment;
+namespace PeanutAdmin\Modules\Payment\Infrastructure\Channel;
 
-use app\common\contract\payment\PaymentChannelGateway;
-use app\common\dto\payment\CallbackRequest;
-use app\common\dto\payment\PaymentEvent;
-use app\common\dto\payment\PrepayRequest;
-use app\common\dto\payment\PrepayResult;
 use app\common\value\Money;
 use GuzzleHttp\Psr7\ServerRequest;
 use Psr\Http\Message\ResponseInterface;
@@ -18,7 +13,10 @@ use Yansongda\Artful\Rocket;
 use Yansongda\Artful\Contract\ShortcutInterface;
 use Yansongda\Pay\Pay;
 use Yansongda\Pay\Plugin\Alipay\V2\StartPlugin;
+use Yansongda\Pay\Plugin\Wechat\ResponsePlugin as WechatResponsePlugin;
 use Yansongda\Pay\Shortcut\Alipay;
+use Yansongda\Pay\Shortcut\Wechat\CloseShortcut as WechatCloseShortcut;
+use Yansongda\Pay\Shortcut\Wechat\QueryShortcut as WechatQueryShortcut;
 use Yansongda\Supports\Collection;
 
 final readonly class YansongdaGateway implements PaymentChannelGateway
@@ -116,22 +114,26 @@ final readonly class YansongdaGateway implements PaymentChannelGateway
     {
         return $this->withinMerchant(function (array $params) use ($number): array {
             $params['out_trade_no'] = $number;
-            $data = self::result($this->channel === 'wechat'
-                ? Pay::wechat()->query($params + ['_action' => 'native'])
-                : $this->alipay(new Alipay\QueryShortcut(), $params));
-            if ($this->channel === 'alipay' && ($data['sub_code'] ?? '') === 'ACQ.TRADE_NOT_EXIST') {
+            $data = $this->channel === 'wechat'
+                ? $this->wechatPaymentQuery($params)
+                : self::result($this->alipay(new Alipay\QueryShortcut(), $params));
+            if ($data === null || ($this->channel === 'alipay' && ($data['sub_code'] ?? '') === 'ACQ.TRADE_NOT_EXIST')) {
                 return ['status' => 'absent', 'event' => null];
             }
             if (($data['out_trade_no'] ?? '') !== $number
                 || ($this->channel === 'alipay' && ($data['code'] ?? '') !== '10000')) {
                 throw new \RuntimeException('查单结果与原订单不匹配');
             }
+            if ($this->channel === 'wechat' && (($data['mchid'] ?? '') !== $this->config['wx_pay_mch_id']
+                || ($data['appid'] ?? '') !== $this->config['wx_pay_appid'])) {
+                throw new \RuntimeException('查单结果与原商户身份不匹配');
+            }
             $state = (string) ($data[$this->channel === 'wechat' ? 'trade_state' : 'trade_status'] ?? '');
             if (in_array($state, ['SUCCESS', 'TRADE_SUCCESS', 'TRADE_FINISHED'], true)) {
                 return ['status' => 'paid', 'event' => $this->verifiedEvent($data, true)];
             }
             $status = match ($state) {
-                'CLOSED', 'REVOKED', 'PAYERROR', 'TRADE_CLOSED' => 'closed',
+                'CLOSED', 'REVOKED', 'TRADE_CLOSED' => 'closed',
                 'NOTPAY', 'WAIT_BUYER_PAY' => 'unpaid',
                 default => 'unknown',
             };
@@ -139,21 +141,46 @@ final readonly class YansongdaGateway implements PaymentChannelGateway
         });
     }
 
+    /** Keep the SDK's signature check when classifying a signed order-not-found response. */
+    private function wechatPaymentQuery(array $params): ?array
+    {
+        $params += ['_action' => 'native', '_return_rocket' => true];
+        // The SDK's generic status plugin throws before the outer signature plugin runs.
+        $plugins = array_values(array_filter(
+            (new WechatQueryShortcut())->getPlugins($params),
+            static fn (string $plugin): bool => $plugin !== WechatResponsePlugin::class,
+        ));
+        $result = Pay::wechat()->pay($plugins, $params);
+        $response = $result instanceof Rocket ? $result->getDestinationOrigin() : null;
+        if (!$response instanceof ResponseInterface) {
+            throw new \RuntimeException('微信查单结果未确认');
+        }
+        $data = self::result($result->getDestination());
+        if ($response->getStatusCode() === 404 && ($data['code'] ?? '') === 'ORDER_NOT_EXIST') {
+            return null;
+        }
+        if ($response->getStatusCode() !== 200) {
+            throw new \RuntimeException('微信查单结果未确认');
+        }
+        return $data;
+    }
+
     public function close(string $number): void
     {
         $this->withinMerchant(function (array $params) use ($number): void {
             $params['out_trade_no'] = $number;
-            $result = $this->channel === 'wechat'
-                ? Pay::wechat()->close($params + ['_action' => 'native', '_return_rocket' => true])
-                : $this->alipay(new Alipay\CloseShortcut(), $params);
             if ($this->channel === 'wechat') {
+                // The SDK's close() convenience method discards the shortcut's response.
+                $params += ['_action' => 'native', '_return_rocket' => true];
+                $result = Pay::wechat()->pay((new WechatCloseShortcut())->getPlugins($params), $params);
                 $response = $result instanceof Rocket ? $result->getDestinationOrigin() : null;
                 if ($response instanceof ResponseInterface && $response->getStatusCode() === 204) {
                     return;
                 }
                 throw new \RuntimeException('微信关单结果未确认');
             }
-            if ($this->channel === 'alipay' && (self::result($result)['code'] ?? '') === '10000') {
+            $data = self::result($this->alipay(new Alipay\CloseShortcut(), $params));
+            if (($data['code'] ?? '') === '10000' && ($data['out_trade_no'] ?? '') === $number) {
                 return;
             }
             throw new \RuntimeException('关单结果未确认');
@@ -199,7 +226,8 @@ final readonly class YansongdaGateway implements PaymentChannelGateway
         if ($this->channel === 'wechat') {
             $state = $data['status'] ?? '';
             $id = (string) ($data['refund_id'] ?? '');
-            if (($data['out_refund_no'] ?? '') !== $refundSn || ($data['transaction_id'] ?? '') !== $order['transaction_id']
+            if (($data['out_refund_no'] ?? '') !== $refundSn || ($data['out_trade_no'] ?? '') !== $order['sn']
+                || ($data['transaction_id'] ?? '') !== $order['transaction_id']
                 || (int) ($data['amount']['refund'] ?? 0) !== $cents) {
                 throw new \RuntimeException('微信退款结果与原单不匹配');
             }
@@ -212,9 +240,12 @@ final readonly class YansongdaGateway implements PaymentChannelGateway
                 || ($query && ($data['out_request_no'] ?? '') !== $refundSn)) {
                 throw new \RuntimeException('支付宝退款结果与原单不匹配');
             }
-            $amount = (string) ($data[$query ? 'refund_amount' : 'refund_fee'] ?? '');
-            $state = $query ? ($data['refund_status'] ?? '') : (($data['fund_change'] ?? '') === 'Y' ? 'REFUND_SUCCESS' : '');
-            if ($state === 'REFUND_SUCCESS' && PaymentCrypto::decimalToCent($amount) !== $cents) {
+            if (!$query) {
+                // refund_fee is the cumulative total for the trade. The query can verify this refund alone.
+                return ['status' => self::STATUS_PENDING, 'transaction_id' => '', 'receipt' => ['channel_status' => 'ACCEPTED']];
+            }
+            $state = $data['refund_status'] ?? '';
+            if ($state === 'REFUND_SUCCESS' && PaymentCrypto::decimalToCent((string) ($data['refund_amount'] ?? '')) !== $cents) {
                 throw new \RuntimeException('支付宝退款金额不匹配');
             }
         }
@@ -293,6 +324,7 @@ final readonly class YansongdaGateway implements PaymentChannelGateway
         if ($wechat) {
             $platform = PaymentCrypto::fileOrValue((string) $this->config['wx_pay_platform_cert_path']);
             return [
+                'mode' => Pay::MODE_NORMAL,
                 'mch_id' => (string) $this->config['wx_pay_mch_id'],
                 'mch_secret_key' => (string) $this->config['wx_pay_secret'],
                 'mch_secret_cert' => $private,

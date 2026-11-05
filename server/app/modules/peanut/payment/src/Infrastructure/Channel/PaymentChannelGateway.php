@@ -2,9 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\common\contract\payment;
-
-use app\common\dto\payment\PaymentEvent;
+namespace PeanutAdmin\Modules\Payment\Infrastructure\Channel;
 
 interface PaymentChannelGateway extends PrepayGatewayInterface, CallbackParserInterface, RefundGatewayInterface
 {

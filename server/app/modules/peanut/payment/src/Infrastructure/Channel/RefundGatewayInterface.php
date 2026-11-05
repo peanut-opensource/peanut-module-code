@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\common\contract\payment;
+namespace PeanutAdmin\Modules\Payment\Infrastructure\Channel;
 
 interface RefundGatewayInterface
 {

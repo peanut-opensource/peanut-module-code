@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\common\dto\payment;
+namespace PeanutAdmin\Modules\Payment\Infrastructure\Channel;
 
 final class PrepayResult
 {

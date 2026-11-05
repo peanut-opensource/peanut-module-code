@@ -6,7 +6,7 @@ namespace PeanutAdmin\Modules\Payment\Controller;
 
 use app\api\controller\BaseApiController;
 use PeanutAdmin\Modules\Payment\Service\PaymentCallbackApplicationService;
-use app\common\dto\payment\CallbackRequest;
+use PeanutAdmin\Modules\Payment\Infrastructure\Channel\CallbackRequest;
 use app\common\http\RequestTrace;
 
 /**

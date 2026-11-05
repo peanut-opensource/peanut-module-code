@@ -24,14 +24,14 @@ use PeanutAdmin\Modules\Integration\Contract\ExternalTenantContext;
 use PeanutAdmin\Modules\Payment\Contract\PaymentChannelGrantCommands;
 use PeanutAdmin\Modules\Payment\Contract\RechargeCommands;
 use PeanutAdmin\Modules\Payment\Contract\RechargeQueries;
-use app\common\composition\payment\PaymentServiceFactory;
+use PeanutAdmin\Modules\Payment\Infrastructure\Channel\PaymentServiceFactory;
 use app\common\persistence\AdvisoryLockExecution;
 use app\common\persistence\AdvisoryLockUnavailable;
 use PeanutAdmin\Kernel\Tenancy\TenantNamespace;
 use PeanutAdmin\Kernel\Tenancy\TenantScope;
-use app\common\dto\payment\CallbackRequest;
-use app\common\dto\payment\PaymentEvent;
-use app\common\dto\payment\PrepayRequest;
+use PeanutAdmin\Modules\Payment\Infrastructure\Channel\CallbackRequest;
+use PeanutAdmin\Modules\Payment\Infrastructure\Channel\PaymentEvent;
+use PeanutAdmin\Modules\Payment\Infrastructure\Channel\PrepayRequest;
 use app\common\support\PaginationInput;
 use PeanutAdmin\Kernel\Audit\AuditOutcome;
 
@@ -39,6 +39,7 @@ use PeanutAdmin\Kernel\Audit\AuditOutcome;
 final class RechargeApplicationService implements RechargeCommands, RechargeQueries
 {
     private const MAX_AMOUNT_CENTS = 99999999;
+    private const ALIPAY_PAYMENT_WINDOW_SECONDS = 1800;
 
     public function __construct(
         private readonly AuditContractHost $audit,
@@ -187,8 +188,9 @@ final class RechargeApplicationService implements RechargeCommands, RechargeQuer
                 'merchant_order_sn' => RechargeOrder::generatePaySn(),
                 'amount_cents' => self::moneyToCents((string) $order->order_amount),
                 'currency' => 'CNY',
-                'expires_at' => $payWay === RechargeOrder::PAY_WAY_ALIPAY && $terminal === PrepayRequest::TERMINAL_PC
-                    ? time() + 1800 : null,
+                'expires_at' => $payWay === RechargeOrder::PAY_WAY_ALIPAY
+                    ? time() + self::ALIPAY_PAYMENT_WINDOW_SECONDS
+                    : null,
                 'status' => RechargePaymentAttempt::OPEN,
             ]);
 
@@ -326,9 +328,12 @@ final class RechargeApplicationService implements RechargeCommands, RechargeQuer
         if ($retrySameTrade && $result['status'] !== 'closed') {
             return;
         }
+        // WeChat creates the payable instrument on its server. Alipay can issue
+        // an offline signed link, so absence alone is insufficient before expiry.
+        $confirmedAbsent = $result['status'] === 'absent' && ($channel === 'wechat' || $expired);
         if ($result['status'] === 'unpaid') {
             $gateway->close($number);
-        } elseif ($result['status'] !== 'closed' && !($result['status'] === 'absent' && $expired)) {
+        } elseif ($result['status'] !== 'closed' && !$confirmedAbsent) {
             throw BusinessException::conflict('PAYMENT_ATTEMPT_OPEN', '旧支付单状态未确认');
         }
         RechargePaymentAttempt::where('id', (int) $origin->id)
