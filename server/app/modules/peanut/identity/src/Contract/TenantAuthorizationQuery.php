@@ -7,21 +7,19 @@ namespace PeanutAdmin\Modules\Identity\Contract;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
 use PeanutAdmin\Modules\Identity\Authorization\CorePermissionCatalog;
-use PeanutAdmin\Modules\Identity\Module\TenantEntitlementService;
 use PeanutAdmin\Modules\Identity\Persistence\Model\MemberRole;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Permission;
 use PeanutAdmin\Modules\Identity\Persistence\Model\RolePermission;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Tenant;
 use think\facade\Db;
-use think\facade\Cache;
 
-/** 公开授权投影；可信上下文版本隔离权限缓存，事务内始终读取当前授权。 */
+/** 公开授权投影；每次独立调用读取当前原生授权。 */
 final readonly class TenantAuthorizationQuery
 {
-    public function __construct(private TenantMemberDirectory $members, private CompiledModuleRegistry $registry, private TenantEntitlementService $entitlements) {}
+    public function __construct(private TenantMemberDirectory $members, private CompiledModuleRegistry $registry) {}
 
     /**
-     * Requested-key grants use trusted authority versions; deployment qualification remains with the caller.
+     * Requested-key grants read current authority; deployment qualification remains with the caller.
      * @param list<string> $permissionKeys
      * @return array<string,array{key:string,module_key:string|null,status:string}>
      */
@@ -36,33 +34,6 @@ final readonly class TenantAuthorizationQuery
             return [];
         }
         $permissionKeys = array_values(array_unique($permissionKeys));
-        $cacheKey = null;
-        $validUntil = null;
-        $pdo = Db::connect()->getPdo();
-        if (!($pdo !== false && $pdo->inTransaction())) {
-            $license = $this->entitlements->license($context->tenantId, false, $context);
-            $cacheKeys = $permissionKeys;
-            sort($cacheKeys, SORT_STRING);
-            $cacheKey = 'identity:permission-grants:v1:' . hash('sha256', json_encode([
-                $context->tenantId, $context->accountId, $context->memberId,
-                $context->tenantAuthorizationRevision, $context->authorizationRevision,
-                $this->registry->revision, $cacheKeys,
-            ], JSON_THROW_ON_ERROR));
-            $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
-            foreach ([$license['effective_at'] ?? null, $license['expires_at'] ?? null] as $boundary) {
-                if ($boundary !== null) {
-                    $date = new \DateTimeImmutable($boundary, new \DateTimeZone('UTC'));
-                    if ($date > $now && ($validUntil === null || $date < $validUntil)) {
-                        $validUntil = $date;
-                    }
-                }
-            }
-            $cached = Cache::get($cacheKey);
-            if ($cached !== null && ($cached['valid_until'] === null
-                || new \DateTimeImmutable('now', new \DateTimeZone('UTC')) < new \DateTimeImmutable($cached['valid_until']))) {
-                return $cached['grants'];
-            }
-        }
         $compiled = $this->registry->moduleKeys();
         $foundations = array_values(array_filter($compiled, $this->registry->isRequiredTenantFoundation(...)));
         $now = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d H:i:s.u');
@@ -121,10 +92,6 @@ final readonly class TenantAuthorizationQuery
                     ];
                 }
             }
-        }
-        if ($cacheKey !== null) {
-            // TTL only removes old versioned keys; exact transitions are checked on every hit.
-            Cache::set($cacheKey, ['valid_until' => $validUntil?->format('Y-m-d\TH:i:s.u\Z'), 'grants' => $grants], 300);
         }
         return $grants;
     }

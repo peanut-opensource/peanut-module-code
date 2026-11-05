@@ -7,20 +7,25 @@ namespace PeanutAdmin\Modules\Integration\Service;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Modules\Identity\Contract\AdminDirectoryQuery;
 use PeanutAdmin\Modules\Integration\Contract\ExternalBindingTransfer;
+use PeanutAdmin\Modules\Integration\Contract\ExternalProvider;
 use PeanutAdmin\Modules\Integration\Contract\ExternalTenantResolutionException;
+use PeanutAdmin\Modules\Integration\Infrastructure\ThinkPhpExternalTenantBindingRepository;
 use RuntimeException;
 use think\facade\Db;
 
 /** Integration owns binding persistence; Identity owns lifecycle reads and tenant locks. */
 final readonly class ExternalBindingTransferService implements ExternalBindingTransfer
 {
-    public function __construct(private AdminDirectoryQuery $directory) {}
+    public function __construct(
+        private AdminDirectoryQuery $directory,
+        private ThinkPhpExternalTenantBindingRepository $bindings,
+    ) {}
 
     public function snapshot(TenantContext $context): array
     {
         $this->assertContext($context);
         $states = [];
-        foreach (Db::name('external_channel_binding')->where('tenant_id', $context->tenantId)
+        foreach (Db::name('external_channel_binding')->where('tenant_id', $context->tenantId)->whereNull('retired_at')
             ->field('provider,identity_hash,identity_hint,config_json,status,update_time')->order('provider')->select()->toArray() as $row) {
             $states[] = $this->state((string) ($row['provider'] ?? ''), $row);
         }
@@ -31,7 +36,7 @@ final readonly class ExternalBindingTransferService implements ExternalBindingTr
     {
         $this->assertContext($context);
         $this->assertProvider($provider);
-        $row = Db::name('external_channel_binding')->where('tenant_id', $context->tenantId)->where('provider', $provider)
+        $row = Db::name('external_channel_binding')->where('tenant_id', $context->tenantId)->whereNull('retired_at')->where('provider', $provider)
             ->field('identity_hash,identity_hint,config_json,status,update_time')->find();
         return is_array($row) ? $this->state($provider, $row) : null;
     }
@@ -52,41 +57,25 @@ final readonly class ExternalBindingTransferService implements ExternalBindingTr
         }
         $identityHash = $value['identity_hash'];
         $identityHint = trim($value['identity_hint']);
-        $config = json_encode($value['config'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
-        Db::transaction(function () use ($context, $provider, $value, $expectedRevision, $identityHash, $identityHint, $config): void {
+        Db::transaction(function () use ($context, $provider, $value, $expectedRevision, $identityHash, $identityHint): void {
             if ($this->directory->tenantStatus($context->tenantId, true) !== 'active') {
                 throw new ExternalTenantResolutionException();
             }
-            $row = Db::name('external_channel_binding')->where('tenant_id', $context->tenantId)->where('provider', $provider)
-                ->field('id,identity_hash,identity_hint,config_json,status,update_time')->lock(true)->find();
+            $row = Db::name('external_channel_binding')->where('tenant_id', $context->tenantId)->whereNull('retired_at')->where('provider', $provider)
+                ->field('id,callback_key,identity_hash,identity_hint,config_json,status,update_time')->lock(true)->find();
             $row = is_array($row) ? $row : null;
             $revision = $row === null ? null : $this->revision($row);
             if (($expectedRevision === null && $row !== null)
                 || ($expectedRevision !== null && $expectedRevision !== $revision)) {
                 throw new RuntimeException('TRANSFER_CONFLICT');
             }
-            $now = time();
-            if ($row === null) {
-                Db::name('external_channel_binding')->insert([
-                    'tenant_id' => $context->tenantId,
-                    'provider' => $provider,
-                    'callback_key' => bin2hex(random_bytes(32)),
-                    'identity_hash' => $identityHash ?? hash('sha256', 'unconfigured:' . $provider . ':' . $context->tenantId),
-                    'identity_hint' => $identityHint,
-                    'config_json' => $config,
-                    'status' => $value['status'] ? 1 : 0,
-                    'create_time' => $now,
-                    'update_time' => $now,
-                ]);
-                return;
+            if (ExternalProvider::isPayment($provider) && $row !== null
+                && $identityHash !== null && !hash_equals((string) $row['identity_hash'], $identityHash)) {
+                throw new RuntimeException('请在支付设置更换商户，以同步新的收款授权');
             }
-            $changes = ['config_json' => $config, 'status' => $value['status'] ? 1 : 0, 'update_time' => $now];
-            if ($identityHash !== null) {
-                $changes['identity_hash'] = $identityHash;
-                $changes['identity_hint'] = $identityHint;
-            }
-            Db::name('external_channel_binding')->where('id', (int) $row['id'])
-                ->where('tenant_id', $context->tenantId)->where('provider', $provider)->update($changes);
+            $this->bindings->persistLocked(
+                $context->tenantId, $provider, $value['config'], $identityHash, $value['status'], $row, $identityHint,
+            );
         });
     }
 

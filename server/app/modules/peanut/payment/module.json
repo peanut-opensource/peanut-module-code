@@ -3,7 +3,7 @@
   "key": "peanut.payment",
   "name": "Payment",
   "description": "Tenant-owned payment settings, recharge orders and refund processing.",
-    "version": "1.0.26",
+    "version": "1.0.27",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-payment",
@@ -19,7 +19,7 @@
     },
     {
       "module_key": "peanut.integration",
-      "version": "^1.0"
+      "version": "^1.0.28"
     },
     {
       "module_key": "peanut.member",
@@ -35,7 +35,7 @@
     },
     {
       "module_key": "peanut.task",
-      "version": "^1.0"
+      "version": "^1.0.29"
     }
   ],
   "backend": {
@@ -61,6 +61,7 @@
       "pa_payment_scene",
       "pa_payment_tenant_channel_grant",
       "pa_recharge_order",
+      "pa_recharge_payment_attempt",
       "pa_refund_log",
       "pa_refund_record"
     ]

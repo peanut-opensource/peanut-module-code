@@ -36,11 +36,15 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, shallowRef, type ComponentPublicInstance } from 'vue';
+  import { ref, shallowRef, watch, type ComponentPublicInstance } from 'vue';
   import { Chart, type EChartsOption } from '@peanut-admin/peanut-chart/charts';
-  import { useAppStore } from '@/store';
+  import useThemes from '@/hooks/themes';
 
-  const dark = ref(useAppStore().shellAppearance.theme.mode === 'dark');
+  const { isDark } = useThemes();
+  const dark = ref(isDark.value);
+  watch(isDark, (value) => {
+    dark.value = value;
+  });
   const loading = ref(false);
   const interaction = ref('点击图形查看事件');
   const lineChart = shallowRef<InstanceType<typeof Chart> | null>(null);

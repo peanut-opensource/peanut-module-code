@@ -6,6 +6,8 @@ namespace PeanutAdmin\Modules\ImportExport\Service;
 
 use app\common\contract\authorization\AdminAuthorizationQuery;
 use app\common\dto\authorization\AdminPrincipal;
+use app\common\execution\AdminExecutionContext;
+use app\common\execution\CurrentExecutionContext;
 use PeanutAdmin\Modules\ImportExport\Contract\Dto\AsyncExportOperation;
 use PeanutAdmin\Modules\ImportExport\Contract\ImportExportCommands;
 use PeanutAdmin\Modules\ImportExport\Contract\ImportExportQueries;
@@ -16,7 +18,7 @@ use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Context\AuthorizationDecision;
 use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 
-/** 租户后台导入导出管理用例；HTTP、CLI 或其他调用者都必须提供可信租户与人员。 */
+/** 租户后台导入导出管理用例；显式租户与人员须对应当前后台执行身份。 */
 final readonly class ImportExportAdminApplicationService
 {
     public function __construct(
@@ -24,6 +26,7 @@ final readonly class ImportExportAdminApplicationService
         private ImportExportCommands $commands,
         private ImportExportQueries $queries,
         private AppFileMediaGateway $files,
+        private CurrentExecutionContext $executionContext,
     ) {}
 
     /** @return array{items:list<AsyncExportOperation>,page:int,page_size:int,total:int} */
@@ -104,7 +107,14 @@ final readonly class ImportExportAdminApplicationService
         string $permission,
         string $operation,
     ): AuthorizedOperationContext {
-        if (!$this->authorization->decide($tenant, $actor, $permission)->allowed) {
+        $execution = $this->executionContext->current();
+        if (!$execution instanceof AdminExecutionContext
+            || $execution->tenant->tenantId !== $tenant->tenantId
+            || $execution->tenant->accountId !== $tenant->accountId
+            || $execution->tenant->memberId !== $tenant->memberId
+            || $execution->tenant->authorizationRevision !== $tenant->authorizationRevision
+            || !$this->authorization->decide($tenant, $actor, $permission)->allowed
+        ) {
             throw ImportExportException::denied();
         }
         return AuthorizedOperationContext::fromDecision(AuthorizationDecision::allow(

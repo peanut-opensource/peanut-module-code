@@ -6,6 +6,7 @@ namespace PeanutAdmin\Modules\Integration\Infrastructure;
 
 use PeanutAdmin\Modules\Identity\Contract\AdminDirectoryQuery;
 use PeanutAdmin\Modules\Integration\Contract\ExternalChannelBindingStore;
+use PeanutAdmin\Modules\Integration\Contract\ExternalProvider;
 use PeanutAdmin\Modules\Integration\Contract\ExternalTenantBinding;
 use PeanutAdmin\Modules\Integration\Contract\ExternalTenantBindingRepository;
 use PeanutAdmin\Modules\Integration\Contract\ExternalTenantResolutionException;
@@ -66,6 +67,7 @@ final class ThinkPhpExternalTenantBindingRepository implements ExternalTenantBin
             ->field($this->bindingFields())
             ->where('b.provider', $provider)
             ->where('b.tenant_id', $tenantId)
+            ->whereNull('b.retired_at')
             ->limit(2);
         if ($lock) {
             $query->lock(true);
@@ -103,7 +105,7 @@ final class ThinkPhpExternalTenantBindingRepository implements ExternalTenantBin
         Db::transaction(function () use ($tenantId, $provider, $config, $identity, $enabled): void {
             $this->assertActiveTenant($tenantId, true);
             $binding = $this->lockedBinding($tenantId, $provider);
-            $this->persistLocked($tenantId, $provider, $config, $identity, $enabled, $binding);
+            $this->persistLocked($tenantId, $provider, $config, $identity !== '' ? hash('sha256', $identity) : null, $enabled, $binding, substr($identity, -8));
         });
     }
 
@@ -118,7 +120,10 @@ final class ThinkPhpExternalTenantBindingRepository implements ExternalTenantBin
                 $current = is_array($decoded) ? $decoded : [];
             }
             $change = $mutation($current);
-            $this->persistLocked($tenantId, $provider, $change['config'], $identity, $change['enabled'], $binding, $identityHint);
+            $this->persistLocked(
+                $tenantId, $provider, $change['config'], $identity !== '' ? hash('sha256', $identity) : null,
+                $change['enabled'], $binding, $identityHint ?? substr($identity, -8),
+            );
         });
     }
 
@@ -158,7 +163,7 @@ final class ThinkPhpExternalTenantBindingRepository implements ExternalTenantBin
     private function lockedBinding(int $tenantId, string $provider): ?array
     {
         $binding = Db::name('external_channel_binding')
-            ->where('tenant_id', $tenantId)->where('provider', $provider)->lock(true)->find();
+            ->where('tenant_id', $tenantId)->where('provider', $provider)->whereNull('retired_at')->lock(true)->find();
         return is_array($binding) ? $binding : null;
     }
 
@@ -170,8 +175,31 @@ final class ThinkPhpExternalTenantBindingRepository implements ExternalTenantBin
     }
 
     /** @param array<string, mixed>|null $binding */
-    private function persistLocked(int $tenantId, string $provider, array $config, string $identity, bool $enabled, ?array $binding, ?string $identityHint = null): void
+    public function persistLocked(int $tenantId, string $provider, array $config, ?string $identityHash, bool $enabled, ?array $binding, string $identityHint): void
     {
+        if (ExternalProvider::isPayment($provider)) {
+            $app = $provider === ExternalProvider::WECHAT_PAYMENT ? 'wx_pay_appid' : 'ali_pay_app_id';
+            $merchant = $provider === ExternalProvider::WECHAT_PAYMENT ? 'wx_pay_mch_id' : 'ali_pay_seller_id';
+            $configured = trim((string) ($config[$app] ?? '')) !== '' && trim((string) ($config[$merchant] ?? '')) !== '';
+            if ($configured && $identityHash !== hash('sha256', strtolower($config[$app] . ':' . $config[$merchant]))) {
+                throw new \RuntimeException('支付绑定与商户身份不一致');
+            }
+            $previousConfig = is_array($binding) ? json_decode((string) ($binding['config_json'] ?? '{}'), true) : [];
+            if (is_array($binding) && trim((string) ($previousConfig[$app] ?? '')) !== ''
+                && trim((string) ($previousConfig[$merchant] ?? '')) !== '') {
+                if (!$configured) {
+                    throw new \RuntimeException('请停用收款授权并保留历史交易的商户配置');
+                }
+                if (!hash_equals((string) $binding['identity_hash'], (string) $identityHash)) {
+                    // Preserve the old callback key and credentials for existing trades.
+                    Db::name('external_channel_binding')->where('id', (int) $binding['id'])
+                        ->where('tenant_id', $tenantId)->update(['retired_at' => time()]);
+                    $previous = Db::name('external_channel_binding')->where('tenant_id', $tenantId)
+                        ->where('provider', $provider)->where('identity_hash', $identityHash)->lock(true)->find();
+                    $binding = is_array($previous) ? $previous : null;
+                }
+            }
+        }
         $encoded = json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
         $currentKey = is_array($binding) ? (string) ($binding['callback_key'] ?? '') : '';
         $callbackKey = self::callbackKeyForUpdate($provider, $currentKey, $enabled);
@@ -181,8 +209,8 @@ final class ThinkPhpExternalTenantBindingRepository implements ExternalTenantBin
                 'tenant_id' => $tenantId,
                 'provider' => $provider,
                 'callback_key' => $callbackKey,
-                'identity_hash' => $identity !== '' ? hash('sha256', $identity) : hash('sha256', 'unconfigured:' . $provider . ':' . $tenantId),
-                'identity_hint' => $identityHint ?? ($identity !== '' ? substr($identity, -8) : ''),
+                'identity_hash' => $identityHash ?? hash('sha256', 'unconfigured:' . $provider . ':' . $tenantId),
+                'identity_hint' => $identityHint,
                 'config_json' => $encoded,
                 'status' => $enabled ? 1 : 0,
                 'create_time' => $now,
@@ -190,10 +218,10 @@ final class ThinkPhpExternalTenantBindingRepository implements ExternalTenantBin
             ]);
             return;
         }
-        $update = ['callback_key' => $callbackKey, 'config_json' => $encoded, 'status' => $enabled ? 1 : 0, 'update_time' => $now];
-        if ($identity !== '') {
-            $update['identity_hash'] = hash('sha256', $identity);
-            $update['identity_hint'] = $identityHint ?? substr($identity, -8);
+        $update = ['callback_key' => $callbackKey, 'config_json' => $encoded, 'status' => $enabled ? 1 : 0, 'update_time' => $now, 'retired_at' => null];
+        if ($identityHash !== null) {
+            $update['identity_hash'] = $identityHash;
+            $update['identity_hint'] = $identityHint;
         }
         Db::name('external_channel_binding')->where('id', (int) $binding['id'])->where('tenant_id', $tenantId)->update($update);
     }

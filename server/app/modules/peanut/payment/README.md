@@ -11,7 +11,7 @@ order, grant or settlement ledger.
 | --- | --- | --- |
 | `PaymentMethod` | Stable provider identifiers: `WECHAT=2`, `ALIPAY=3`; `isProvider` checks the set | Identifier only; not channel availability or a grant |
 | `PaymentChannelGrantCommands` | `ThinkPhpPaymentChannelGrantCommands`; `PayConfigApplicationService` calls `ensureSelfGrant` | Resolve pay-way/provider/channel and the tenant's active external binding; explicit grant/revoke remain privileged application operations |
-| `RechargeQueries` / `RechargeCommands` | Bound to module `RechargeApplicationService`; module `Service/MemberRechargeApplicationService.php` is the member API consumer | Current member config/orders, order creation, prepay and verified callback settlement |
+| `RechargeQueries` / `RechargeCommands` | Bound to module `RechargeApplicationService`; module `Service/MemberRechargeApplicationService.php` is the member API consumer | Current member config/orders, order creation and prepay |
 | `RefundReconciliationCommands` | `ThinkPhpRefundReconciliationCommands` | Existing refund reconciliation contract; not a browser success callback |
 
 The host establishes the current tenant/member context and operation access.
@@ -45,6 +45,42 @@ Web contribution supplies `/app-setting/pay`, `/finance/recharge` and
 `/finance/refund`. Their existing local `api.ts` helpers and pages are application
 implementation entries, not new public npm component exports. Change the host
 layout around these consumers without bypassing their route/command permissions.
+
+## Original merchant and channel SDK
+
+Payment attempts preserve the tenant, provider, merchant binding and the
+actual external trade number. Rotating a merchant in Payment settings switches
+the new-payment grant and retains old callback routing and credentials.
+Configuration import can update an existing payment identity but merchant
+changes use Payment settings to rotate the grant in the same transaction.
+Settling a late callback locks the recharge order and original attempt. A
+second successful attempt is recorded for financial review without crediting
+the member again.
+
+Existing orders retain their external recharge SN when a stored merchant
+snapshot can be recovered. Runtime compares that snapshot with both the
+selected Integration binding and its configured merchant identity. Missing
+or inconsistent provenance requires financial review before automatic
+refunds. The migration cannot recover previously overwritten attempts from
+the legacy order row alone.
+
+The channel adapter ships with Payment and delegates provider I/O and signature
+verification to `yansongda/pay`. Each blocking call loads one named merchant
+configuration and clears Artful state on exit. The verified callback is an
+internal module entry. An active tenant can settle a recorded payment through
+that entry after its Payment entitlement ends. An already authorized tenant
+schedule can likewise reconcile pending refunds while Payment is installed and
+active. Starting new payments and refunds still uses the normal entitlement checks.
+
+A channel switch first queries the recorded merchant and closes an unpaid
+trade before issuing a new number. WeChat requires a verified close response
+or a signed order-not-found result. New Alipay payment parameters use a
+30-minute absolute expiry, including WAP and App. Alipay trade absence can
+release the old attempt once its recorded expiry passes. An Alipay attempt
+with no known expiry stays open when the provider reports it absent.
+Alipay refund submission reports acceptance. Reconciliation uses the original
+trade number and stable refund request number to verify the individual refund
+amount. An unverifiable origin remains pending and is reported for review.
 
 ## Failure and current verification boundary
 

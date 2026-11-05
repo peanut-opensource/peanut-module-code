@@ -5,16 +5,19 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Payment\Infrastructure;
 
 use PeanutAdmin\Modules\Payment\Model\RechargeOrder;
+use PeanutAdmin\Modules\Payment\Model\RechargePaymentAttempt;
 use PeanutAdmin\Modules\Payment\Model\RefundLog;
 use PeanutAdmin\Modules\Payment\Model\RefundRecord;
+use app\common\exception\BusinessException;
 use app\common\execution\CurrentExecutionContext;
 use think\facade\Db;
-use app\common\contract\payment\RefundGatewayInterface;
-use app\common\composition\payment\PaymentServiceFactory;
+use PeanutAdmin\Modules\Payment\Infrastructure\Channel\RefundGatewayInterface;
+use PeanutAdmin\Modules\Payment\Infrastructure\Channel\PaymentServiceFactory;
 use app\common\infrastructure\runtime\OperationalLog;
 use PeanutAdmin\Modules\Payment\Contract\PaymentMethod;
 use PeanutAdmin\Modules\Payment\Contract\RefundReconciliationCommands;
 use PeanutAdmin\Modules\Payment\Service\RefundEnum;
+use PeanutAdmin\Kernel\Tenancy\TenantScope;
 
 /** Queries providers and converges pending recharge refunds to a final state. */
 final readonly class ThinkPhpRefundReconciliationCommands implements RefundReconciliationCommands
@@ -26,6 +29,9 @@ final readonly class ThinkPhpRefundReconciliationCommands implements RefundRecon
 
     public function reconcile(object $scope, array $diagnostics): array
     {
+        if (!$scope instanceof TenantScope || $scope->tenantId() !== $this->executionContext->tenantId()) {
+            throw new \DomainException('REFUND_RECONCILE_TENANT_MISMATCH');
+        }
         $records = RefundRecord::where([])
             ->where('order_type', RefundEnum::ORDER_TYPE_RECHARGE)
             ->where('refund_status', RefundEnum::REFUND_ING)
@@ -68,7 +74,7 @@ final readonly class ThinkPhpRefundReconciliationCommands implements RefundRecon
             }
 
             $checked++;
-            if ($this->reconcileOne($scope, $record, $order, $log, $diagnostics)) {
+            if ($this->reconcileOne($record, $order, $log, $diagnostics)) {
                 $settled++;
             }
         }
@@ -77,20 +83,30 @@ final readonly class ThinkPhpRefundReconciliationCommands implements RefundRecon
     }
 
     /** @param array<string,mixed> $diagnostics */
-    private function reconcileOne(object $scope, object $record, object $order, object $log, array $diagnostics): bool
+    private function reconcileOne(object $record, object $order, object $log, array $diagnostics): bool
     {
         try {
-            $channel = match ((int) $order->pay_way) {
+            $attempt = RechargePaymentAttempt::originalPayment($order);
+            $channel = match ((int) $attempt->pay_way) {
                 PaymentMethod::WECHAT => 'wechat',
                 PaymentMethod::ALIPAY => 'alipay',
                 default => throw new \runtimeException('支付方式异常'),
             };
-            $result = $this->payments->forTenant($scope, $channel)->refund($channel)->query(
-                $order->getData(),
+            $gateway = $this->payments->forHistory(
+                (int) $attempt->tenant_id, $channel, (int) $attempt->binding_id, (string) $attempt->merchant_identity_hash,
+            );
+            $result = $gateway->query(
+                [
+                    'sn' => (string) $attempt->merchant_order_sn,
+                    'requested_refund_cents' => \app\common\value\Money::toCents((string) $record->refund_amount),
+                ] + $order->getData(),
                 (string) $record->sn,
             );
         } catch (\Throwable $e) {
-            $this->warning('refund_reconcile_gateway_query_failed', $diagnostics, (int) $record->id, $e);
+            $event = $e instanceof BusinessException && $e->errorCode === 'PAYMENT_ORIGIN_UNVERIFIED'
+                ? 'refund_reconcile_payment_origin_unverified'
+                : 'refund_reconcile_gateway_query_failed';
+            $this->warning($event, $diagnostics, (int) $record->id, $e);
             return false;
         }
 

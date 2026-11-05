@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Workflow\Application;
 
 use PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries;
+use PeanutAdmin\Modules\Notification\Contract\NotificationLifecycleQueries;
 use think\facade\Db;
 
 /** Bounded lifecycle projections for the trusted host; no grant of object access. */
@@ -61,9 +62,19 @@ final readonly class WorkflowLifecycleQueries
         $sources = (clone $facts)->fieldRaw("DISTINCT JSON_UNQUOTE(JSON_EXTRACT(notification_fact_json, '$.producer_key')) AS producer_key")->limit(101)->select()->toArray();
         if (count($sources) > 100) { throw WorkflowException::blocked('Workflow notification source capacity exceeded; lifecycle review is required.'); }
         $keys = array_column($sources, 'producer_key');
-        if ($keys !== [] && class_exists(\PeanutAdmin\Modules\Notification\Contract\NotificationLifecycleQueries::class)) {
-            $notification = new \PeanutAdmin\Modules\Notification\Contract\NotificationLifecycleQueries();
-            $pending += $tenantId === null ? $notification->pendingAcrossTenants($keys) : $notification->pendingPublications($tenantId, $keys);
+        if ($keys !== []) {
+            $states = app(TenantModuleStateQueries::class)->installationStates(['peanut.notification']);
+            $status = $states['peanut.notification']['status'] ?? null;
+            // First installation can fail before DDL. A recorded outbox still requires reconciliation.
+            $mustCheckDeliveries = in_array($status, ['active', 'maintenance', 'upgrading'], true)
+                || (clone $facts)->whereRaw('JSON_LENGTH(notification_outbox_json)>0')->limit(1)->value('id') !== null;
+            if ($mustCheckDeliveries) {
+                if (!class_exists(NotificationLifecycleQueries::class)) {
+                    throw WorkflowException::blocked('Restore the Notification package to reconcile Workflow deliveries before continuing.');
+                }
+                $notification = app(NotificationLifecycleQueries::class);
+                $pending += $tenantId === null ? $notification->pendingAcrossTenants($keys) : $notification->pendingPublications($tenantId, $keys);
+            }
         }
         return $instances + (int) $effects->count() + $pending;
     }

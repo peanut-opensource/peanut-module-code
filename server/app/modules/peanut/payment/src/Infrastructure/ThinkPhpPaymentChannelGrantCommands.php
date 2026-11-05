@@ -50,6 +50,10 @@ final class ThinkPhpPaymentChannelGrantCommands implements PaymentChannelGrantCo
     private function findActiveGrant(object $context, string $provider, bool $lock = false): ?array
     {
         $tenantId = ExternalTenantContext::tenantId($context);
+        $binding = $this->bindingForTenant($provider, $tenantId, null, $lock);
+        if ($binding === null || !$binding->active || !$binding->tenantActive) {
+            return null;
+        }
         $query = PaymentTenantChannelGrant::where('provider', $provider)
             ->where('status', 1)
             ->whereNull('revoked_at')
@@ -66,13 +70,7 @@ final class ThinkPhpPaymentChannelGrantCommands implements PaymentChannelGrantCo
             throw new \runtimeException('支付渠道授权状态冲突');
         }
         $row = $rows[0];
-        $binding = $this->bindingForTenant(
-            $provider,
-            $tenantId,
-            (int) $row['external_binding_id'],
-            $lock,
-        );
-        if ($binding === null || !$binding->active || !$binding->tenantActive) {
+        if ((int) $row['external_binding_id'] !== $binding->id) {
             return null;
         }
         $row['callback_key'] = $binding->callbackKey;
@@ -127,15 +125,15 @@ final class ThinkPhpPaymentChannelGrantCommands implements PaymentChannelGrantCo
             $merchantAccountRef,
             $merchantGroupRef
         ): int {
+            $binding = $this->bindingForTenant($provider, $tenantId, $externalBindingId, true);
+            if ($binding === null || !$binding->tenantActive) {
+                throw new \runtimeException('支付渠道账户不存在或不属于当前租户');
+            }
             $this->grantQuery('grant.lock')
                 ->where('tenant_id', $tenantId)
                 ->where('provider', $provider)
                 ->lock(true)
                 ->select();
-            $binding = $this->bindingForTenant($provider, $tenantId, $externalBindingId, true);
-            if ($binding === null || !$binding->tenantActive) {
-                throw new \runtimeException('支付渠道账户不存在或不属于当前租户');
-            }
             $now = time();
             $this->grantQuery('grant.revoke-others')
                 ->where('tenant_id', $tenantId)

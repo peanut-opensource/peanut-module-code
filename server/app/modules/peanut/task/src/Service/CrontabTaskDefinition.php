@@ -12,6 +12,7 @@ use app\common\execution\SystemExecutionMetadata;
 use app\common\services\CrontabCommandService;
 use PeanutAdmin\Modules\Task\Model\Crontab;
 use app\common\infrastructure\module\ModuleExecutionBoundary;
+use PeanutAdmin\Kernel\Module\ModuleGuard;
 use PeanutAdmin\Modules\Identity\Contract\AdminDirectoryQuery;
 use PeanutAdmin\Modules\Task\Contract\TaskWorkerDefinition;
 use DateTimeImmutable;
@@ -42,6 +43,7 @@ final class CrontabTaskDefinition implements TaskSubmissionProvider, TaskWorkerD
     public function __construct(
         private readonly AdminDirectoryQuery $adminDirectory,
         private readonly ModuleExecutionBoundary $modules,
+        private readonly ModuleGuard $moduleGuard,
         private readonly ExecutionContextStore $executionContexts,
         private readonly CurrentExecutionContext $currentExecution,
         private readonly CrontabCommandService $commands,
@@ -150,7 +152,12 @@ final class CrontabTaskDefinition implements TaskSubmissionProvider, TaskWorkerD
             new SystemExecutionMetadata($task->jobKey, $task->attemptNumber, $task->handlerKey),
         ), function () use ($scope, $moduleKey, $command, $params): void {
             $this->modules->assertScheduled('peanut.task');
-            $this->modules->assertScheduled($moduleKey);
+            if ($command === 'refund:reconcile' && $moduleKey === 'peanut.payment') {
+                // An authorized tenant schedule may finish refunds after sales entitlement ends.
+                $this->moduleGuard->assertDeployment($moduleKey);
+            } else {
+                $this->modules->assertScheduled($moduleKey);
+            }
             ScheduledTenantContext::run($scope, function () use ($command, $params): void {
                 try {
                     ($this->dispatch)($command, $params);

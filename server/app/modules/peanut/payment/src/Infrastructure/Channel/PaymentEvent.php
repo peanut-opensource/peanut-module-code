@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\common\dto\payment;
+namespace PeanutAdmin\Modules\Payment\Infrastructure\Channel;
 
 /** 已通过渠道验签的标准支付事件；amount 单位固定为分。 */
 final class PaymentEvent

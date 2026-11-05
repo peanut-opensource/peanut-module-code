@@ -88,7 +88,7 @@ final class DemoAccountPolicy
         }
         $path = strtolower(trim($path, '/'));
         foreach ([
-            'menu/', 'role/', 'admin/add', 'admin/edit', 'admin/editself', 'admin/delete', 'admin/status',
+            'menu/', 'core.menu.manage', 'role/', 'admin/add', 'admin/edit', 'admin/editself', 'admin/delete', 'admin/status',
             'dept/', 'jobs/', 'config/', 'setting/', 'storage/setup', 'storage/change',
             'decoration/',
         ] as $prefix) {

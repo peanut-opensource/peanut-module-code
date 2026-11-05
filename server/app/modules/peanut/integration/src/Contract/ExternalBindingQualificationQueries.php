@@ -52,7 +52,7 @@ final readonly class ExternalBindingQualificationQueries
         $results = [];
         foreach (array_chunk($tenantIds, 500) as $chunk) {
             $bindings = [];
-            $rows = Db::name('external_channel_binding')->whereIn('tenant_id', $chunk)->whereIn('provider', $bindingProviders)
+            $rows = Db::name('external_channel_binding')->whereNull('retired_at')->whereIn('tenant_id', $chunk)->whereIn('provider', $bindingProviders)
                 ->field('id,tenant_id,provider,identity_hash,config_json,status,update_time')
                 ->order('tenant_id')->order('provider')->select()->toArray();
             foreach ($rows as $row) {

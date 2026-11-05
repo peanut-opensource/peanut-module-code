@@ -6,6 +6,7 @@ namespace PeanutAdmin\Modules\Payment\Service;
 
 use PeanutAdmin\Modules\Payment\Model\PaymentScene;
 use PeanutAdmin\Modules\Payment\Model\RechargeOrder;
+use PeanutAdmin\Modules\Payment\Model\RechargePaymentAttempt;
 use app\common\http\PageResult;
 use PeanutAdmin\Modules\Member\Contract\Dto\MemberBalanceMutation;
 use PeanutAdmin\Modules\Member\Contract\MemberBalanceCommands;
@@ -23,10 +24,14 @@ use PeanutAdmin\Modules\Integration\Contract\ExternalTenantContext;
 use PeanutAdmin\Modules\Payment\Contract\PaymentChannelGrantCommands;
 use PeanutAdmin\Modules\Payment\Contract\RechargeCommands;
 use PeanutAdmin\Modules\Payment\Contract\RechargeQueries;
-use app\common\composition\payment\PaymentServiceFactory;
-use app\common\dto\payment\CallbackRequest;
-use app\common\dto\payment\PaymentEvent;
-use app\common\dto\payment\PrepayRequest;
+use PeanutAdmin\Modules\Payment\Infrastructure\Channel\PaymentServiceFactory;
+use app\common\persistence\AdvisoryLockExecution;
+use app\common\persistence\AdvisoryLockUnavailable;
+use PeanutAdmin\Kernel\Tenancy\TenantNamespace;
+use PeanutAdmin\Kernel\Tenancy\TenantScope;
+use PeanutAdmin\Modules\Payment\Infrastructure\Channel\CallbackRequest;
+use PeanutAdmin\Modules\Payment\Infrastructure\Channel\PaymentEvent;
+use PeanutAdmin\Modules\Payment\Infrastructure\Channel\PrepayRequest;
 use app\common\support\PaginationInput;
 use PeanutAdmin\Kernel\Audit\AuditOutcome;
 
@@ -34,6 +39,7 @@ use PeanutAdmin\Kernel\Audit\AuditOutcome;
 final class RechargeApplicationService implements RechargeCommands, RechargeQueries
 {
     private const MAX_AMOUNT_CENTS = 99999999;
+    private const ALIPAY_PAYMENT_WINDOW_SECONDS = 1800;
 
     public function __construct(
         private readonly AuditContractHost $audit,
@@ -44,6 +50,7 @@ final class RechargeApplicationService implements RechargeCommands, RechargeQuer
         private readonly RechargeTenantSettingService $rechargeSettings,
         private readonly PaymentChannelGrantCommands $channelGrants,
         private readonly PaymentServiceFactory $payments,
+        private readonly AdvisoryLockExecution $locks,
     ) {}
 
     public function config(object $context, int $memberId, int $terminal): array
@@ -116,7 +123,7 @@ final class RechargeApplicationService implements RechargeCommands, RechargeQuer
             $order = RechargeOrder::create([
                 'sn' => RechargeOrder::generateSn(),
                 'user_id' => $memberId,
-                'pay_sn' => '',
+                'pay_sn' => null,
                 'pay_way' => (int) $defaultScene['pay_way'],
                 'pay_status' => RechargeOrder::PAY_STATUS_UNPAID,
                 'pay_time' => null,
@@ -139,7 +146,7 @@ final class RechargeApplicationService implements RechargeCommands, RechargeQuer
     }
 
     /** 锁定本人未支付订单并固化本次支付渠道、授权和请求号。 */
-    public function prepareAttempt(object $context, int $memberId, int $orderId, int $payWay): array
+    private function prepareAttempt(object $context, int $memberId, int $orderId, int $payWay): array
     {
         return Db::transaction(function () use ($context, $memberId, $orderId, $payWay): array {
             $order = RechargeOrder::where([])->lock(true)->findOrEmpty($orderId);
@@ -158,13 +165,35 @@ final class RechargeApplicationService implements RechargeCommands, RechargeQuer
             $provider = $this->channelGrants->providerForPayWay($payWay);
             $grant = $this->channelGrants->activeGrantForTenant($context, $provider, true);
 
-            $order->pay_way = $payWay;
-            $order->pay_sn = RechargeOrder::generatePaySn();
-            $order->payment_binding_id = (int) $grant['external_binding_id'];
-            $order->payment_grant_id = (int) $grant['id'];
-            $order->payment_merchant_account_ref = (string) ($grant['merchant_account_ref'] ?? '');
-            $order->payment_merchant_group_ref = (string) ($grant['merchant_group_ref'] ?? '');
-            $order->save();
+            $open = RechargePaymentAttempt::where('order_id', $orderId)
+                ->where('status', RechargePaymentAttempt::OPEN)->findOrEmpty();
+            if (!$open->isEmpty()) {
+                if ((int) $open->binding_id !== (int) $grant['external_binding_id']
+                    || (int) $open->pay_way !== $payWay) {
+                    throw BusinessException::conflict('PAYMENT_ATTEMPT_OPEN', '旧支付单状态未确认');
+                }
+                return ['order' => $order->toArray(), 'grant' => $grant, 'paymentAttempt' => $open];
+            }
+            if (((int) $order->payment_binding_id > 0 || (string) $order->pay_sn !== '')
+                && RechargePaymentAttempt::where('order_id', $orderId)->count() === 0) {
+                throw BusinessException::conflict('PAYMENT_ORIGIN_UNVERIFIED', '原收款商户待核对');
+            }
+
+            $paymentAttempt = RechargePaymentAttempt::create([
+                'order_id' => $orderId,
+                'pay_way' => $payWay,
+                'binding_id' => (int) $grant['external_binding_id'],
+                'grant_id' => (int) $grant['id'],
+                'merchant_identity_hash' => (string) $grant['identity_hash'],
+                'merchant_order_sn' => RechargeOrder::generatePaySn(),
+                'amount_cents' => self::moneyToCents((string) $order->order_amount),
+                'currency' => 'CNY',
+                'expires_at' => $payWay === RechargeOrder::PAY_WAY_ALIPAY
+                    ? time() + self::ALIPAY_PAYMENT_WINDOW_SECONDS
+                    : null,
+                'status' => RechargePaymentAttempt::OPEN,
+            ]);
+
             $this->recordPublicFinanceAudit(
                 $context,
                 'public.recharge.payment-prepared',
@@ -179,6 +208,7 @@ final class RechargeApplicationService implements RechargeCommands, RechargeQuer
             return [
                 'order' => $order->toArray(),
                 'grant' => $grant,
+                'paymentAttempt' => $paymentAttempt,
             ];
         });
     }
@@ -193,20 +223,46 @@ final class RechargeApplicationService implements RechargeCommands, RechargeQuer
         string $clientIp = '',
         string $openid = '',
     ): array {
+        $scope = TenantScope::fromTrustedContext($this->executionContext->tenantId(), $this->executionContext->current()?->requestId() ?? '');
+        $lock = TenantNamespace::lockName($scope, 'recharge:prepay:' . $orderId);
+        try {
+            return $this->locks->run($lock, 0, function () use (
+                $context, $memberId, $orderId, $payWay, $notifyUrl, $clientIp, $openid,
+            ): array {
+                $order = RechargeOrder::where([])->findOrEmpty($orderId);
+                self::assertOwnedUnpaid($order, $memberId);
+                $terminal = (int) $order->order_terminal;
+                if ($payWay === RechargeOrder::PAY_WAY_WECHAT && in_array($terminal, [1, 2], true)) {
+                    $openid = $this->oauth->wechatSubjectForMember($context, $memberId, $terminal);
+                    if ($openid === '') {
+                        throw BusinessException::conflict('PAYMENT_WECHAT_IDENTITY_REQUIRED', '当前微信终端尚未绑定可用身份');
+                    }
+                }
+                if ($payWay === RechargeOrder::PAY_WAY_WECHAT && $terminal === PrepayRequest::TERMINAL_H5
+                    && filter_var($clientIp, FILTER_VALIDATE_IP) === false) {
+                    throw BusinessException::invalid('PAYMENT_CLIENT_IP_REQUIRED', '微信 H5 支付缺少有效客户端 IP');
+                }
+                $this->closePreviousAttempt($context, $order, $payWay);
+                return $this->prepayLocked($context, $memberId, $orderId, $payWay, $notifyUrl, $clientIp, $openid);
+            });
+        } catch (AdvisoryLockUnavailable) {
+            throw BusinessException::conflict('PAYMENT_IN_PROGRESS', '支付单处理中，请稍后查询');
+        }
+    }
+
+    private function prepayLocked(
+        object $context,
+        int $memberId,
+        int $orderId,
+        int $payWay,
+        string $notifyUrl,
+        string $clientIp,
+        string $openid,
+    ): array {
         $attempt = $this->prepareAttempt($context, $memberId, $orderId, $payWay);
         $order = $attempt['order'];
         $grant = $attempt['grant'];
-        if ($payWay === RechargeOrder::PAY_WAY_WECHAT
-            && in_array((int) $order['order_terminal'], [1, 2], true)) {
-            $openid = $this->oauth->wechatSubjectForMember(
-                $context,
-                $memberId,
-                (int) $order['order_terminal'],
-            );
-            if ($openid === '') {
-                throw BusinessException::conflict('PAYMENT_WECHAT_IDENTITY_REQUIRED', '当前微信终端尚未绑定可用身份');
-            }
-        }
+        $paymentAttempt = $attempt['paymentAttempt'];
         $channel = match ($payWay) {
             RechargeOrder::PAY_WAY_WECHAT => 'wechat',
             RechargeOrder::PAY_WAY_ALIPAY => 'alipay',
@@ -215,25 +271,78 @@ final class RechargeApplicationService implements RechargeCommands, RechargeQuer
         $notifyUrl = rtrim($notifyUrl, '/')
             . '/api/payment/notify/' . $channel . '/' . (string) $grant['callback_key'];
         $request = new PrepayRequest(
-            (string) $order['sn'],
-            self::moneyToCents((string) $order['order_amount']),
+            (string) $paymentAttempt->merchant_order_sn,
+            (int) $paymentAttempt->amount_cents,
             (int) $order['order_terminal'],
             $notifyUrl,
             '账户充值',
             'CNY',
             $openid,
             $clientIp,
+            $paymentAttempt->expires_at === null ? null : (int) $paymentAttempt->expires_at,
         );
-        $result = $this->payments->forConfig($grant['config'])->prepay($channel)->prepay($request);
+        $result = $this->payments->forBinding(
+            $channel, $grant['config'], (string) $paymentAttempt->merchant_identity_hash,
+        )->prepay($request);
         return [
             'order' => self::formatOrder($order),
             'payment' => $result->toArray(),
         ];
     }
 
+    private function closePreviousAttempt(object $context, RechargeOrder $order, int $payWay): void
+    {
+        $terminal = (int) $order->order_terminal;
+        if (!PaymentScene::supports($terminal, $payWay) || $this->rechargeSettings->scene($context, $terminal, $payWay) === null
+            || !$this->rechargeSettings->channelConfigured($context, $payWay)) {
+            throw BusinessException::conflict('RECHARGE_PAY_WAY_DISABLED', '当前终端未启用该支付方式');
+        }
+        $provider = $this->channelGrants->providerForPayWay($payWay);
+        $grant = $this->channelGrants->activeGrantForTenant($context, $provider);
+        $origin = RechargePaymentAttempt::where('order_id', (int) $order->id)
+            ->where('status', RechargePaymentAttempt::OPEN)->findOrEmpty();
+        if ($origin->isEmpty()) {
+            return;
+        }
+        $expired = $origin->expires_at !== null && (int) $origin->expires_at <= time();
+        $retrySameTrade = !$expired && (int) $origin->pay_way === $payWay
+            && (int) $origin->binding_id === (int) $grant['external_binding_id'];
+        $channel = $this->channelGrants->channelForPayWay((int) $origin->pay_way);
+        $gateway = $this->payments->forHistory(
+            (int) $origin->tenant_id, $channel, (int) $origin->binding_id, (string) $origin->merchant_identity_hash,
+        );
+        $number = (string) $origin->merchant_order_sn;
+        try {
+            $result = $gateway->queryPayment($number);
+        } catch (\RuntimeException $exception) {
+            if ($retrySameTrade) {
+                // A safe retry keeps the exact same provider order number.
+                return;
+            }
+            throw $exception;
+        }
+        if ($result['event'] !== null) {
+            $this->settleVerifiedCallback((int) $origin->binding_id, $result['event'], (int) $origin->pay_way);
+            throw BusinessException::conflict('RECHARGE_ALREADY_PAID', '原支付单已到账');
+        }
+        if ($retrySameTrade && $result['status'] !== 'closed') {
+            return;
+        }
+        // WeChat creates the payable instrument on its server. Alipay can issue
+        // an offline signed link, so absence alone is insufficient before expiry.
+        $confirmedAbsent = $result['status'] === 'absent' && ($channel === 'wechat' || $expired);
+        if ($result['status'] === 'unpaid') {
+            $gateway->close($number);
+        } elseif ($result['status'] !== 'closed' && !$confirmedAbsent) {
+            throw BusinessException::conflict('PAYMENT_ATTEMPT_OPEN', '旧支付单状态未确认');
+        }
+        RechargePaymentAttempt::where('id', (int) $origin->id)
+            ->where('status', RechargePaymentAttempt::OPEN)->update(['status' => RechargePaymentAttempt::CLOSED]);
+    }
+
     public function parseCallback(string $channel, array $config, CallbackRequest $request): PaymentEvent
     {
-        return $this->payments->forConfig($config)->callback($channel)->parse($request);
+        return $this->payments->forConfig($channel, $config)->parse($request);
     }
 
     public function detail(object $context, int $memberId, int $orderId): array
@@ -263,136 +372,88 @@ final class RechargeApplicationService implements RechargeCommands, RechargeQuer
         );
     }
 
-    /**
-     * 可信渠道回调的唯一入账入口。
-     * @param PaymentEvent|array{order_sn:string,pay_way:int,transaction_id:string,amount_cents?:int,amount?:string|float|int,currency:string,status?:string} $payment
-     */
     public function settleVerifiedCallback(int $paymentBindingId, PaymentEvent $event, int $payWay): bool
     {
-        if ($paymentBindingId < 1) {
-            throw BusinessException::invalid('PAYMENT_CALLBACK_GRANT_REQUIRED', '支付回调授权缺失');
+        $tenantId = $this->executionContext->tenantId();
+        if ($tenantId < 1 || $paymentBindingId < 1 || $event->status() !== 'success') {
+            throw BusinessException::forbidden('PAYMENT_CALLBACK_GRANT_REQUIRED', '支付结果授权缺失');
         }
         $context = ExternalTenantContext::verified(
-            $this->executionContext->tenantId(),
+            $tenantId,
             'payment.settle',
-            'payment:' . hash('sha256', $event->orderSn() . ':' . (string) $paymentBindingId),
+            'payment:' . hash('sha256', $event->orderSn() . ':' . $paymentBindingId),
         );
-        $order = RechargeOrder::where([])->where('sn', $event->orderSn())
-            ->where('payment_binding_id', $paymentBindingId)
-            ->findOrEmpty();
-        if ($order->isEmpty()) {
-            throw BusinessException::notFound('RECHARGE_ORDER_NOT_FOUND', '充值订单不存在');
+        $origin = RechargePaymentAttempt::where('binding_id', $paymentBindingId)
+            ->where('merchant_order_sn', $event->orderSn())->findOrEmpty();
+        if ($origin->isEmpty()) {
+            throw BusinessException::notFound('PAYMENT_ATTEMPT_NOT_FOUND', '原支付尝试待核对');
         }
-        return $this->settle($context, [
-            'order_sn' => $event->orderSn(),
-            'pay_way' => $payWay,
-            'transaction_id' => $event->transactionId(),
-            'amount_cents' => $event->amount(),
-            'currency' => $event->currency(),
-            'status' => $event->status(),
-            'payment_binding_id' => $paymentBindingId,
-        ]);
-    }
 
-    public function settle(object $context, PaymentEvent|array $payment): bool
-    {
-        return Db::transaction(function () use ($context, $payment): bool {
-            if ($payment instanceof PaymentEvent) {
-                $payment = [
-                    'order_sn' => $payment->orderSn(),
-                    'pay_way' => self::channelToPayWay($payment->channel()),
-                    'transaction_id' => $payment->transactionId(),
-                    'amount_cents' => $payment->amount(),
-                    'currency' => $payment->currency(),
-                    'status' => $payment->status(),
-                ];
-            }
-            $orderSn = trim((string) ($payment['order_sn'] ?? ''));
-            $transactionId = trim((string) ($payment['transaction_id'] ?? ''));
-            $payWay = (int) ($payment['pay_way'] ?? 0);
-            $bindingId = (int) ($payment['payment_binding_id'] ?? 0);
-            $currency = strtoupper(trim((string) ($payment['currency'] ?? '')));
-            if ($orderSn === '' || $transactionId === '') {
-                throw BusinessException::invalid('PAYMENT_CALLBACK_IDENTITY_REQUIRED', '支付回调订单或交易流水缺失');
-            }
-            if ($bindingId < 1) {
-                throw BusinessException::invalid('PAYMENT_CALLBACK_GRANT_REQUIRED', '支付回调授权缺失');
-            }
-            if ($currency !== 'CNY') {
-                throw BusinessException::conflict('PAYMENT_CURRENCY_MISMATCH', '支付币种不一致');
-            }
-            if (($payment['status'] ?? 'success') !== 'success') {
-                throw BusinessException::conflict('PAYMENT_NOT_SUCCEEDED', '支付状态尚未成功');
-            }
-
-            if ($this->executionContext->tenantId() < 1) {
-                throw BusinessException::forbidden('PAYMENT_TENANT_INVALID', '支付回调租户无效');
-            }
-
-            $order = RechargeOrder::where([])->where('sn', $orderSn)->lock(true)->findOrEmpty();
-            if ($order->isEmpty()) {
+        return Db::transaction(function () use ($context, $origin, $event, $payWay): bool {
+            $order = RechargeOrder::where([])->lock(true)->findOrEmpty((int) $origin->order_id);
+            $attempt = RechargePaymentAttempt::where([])->lock(true)->findOrEmpty((int) $origin->id);
+            if ($order->isEmpty() || $attempt->isEmpty()) {
                 throw BusinessException::notFound('RECHARGE_ORDER_NOT_FOUND', '充值订单不存在');
             }
-            $callbackCents = array_key_exists('amount_cents', $payment)
-                ? (int) $payment['amount_cents']
-                : self::moneyToCents((string) ($payment['amount'] ?? ''));
-            $orderCents = self::moneyToCents((string) $order->order_amount);
-            if ($callbackCents !== $orderCents) {
-                throw BusinessException::conflict('PAYMENT_AMOUNT_MISMATCH', '支付金额不一致');
+            $identity = hash('sha256', strtolower($event->appIdentity() . ':' . $event->merchantIdentity()));
+            if ((int) $attempt->pay_way !== $payWay || self::channelToPayWay($event->channel()) !== $payWay
+                || !hash_equals((string) $attempt->merchant_identity_hash, $identity)) {
+                throw BusinessException::conflict('PAYMENT_GRANT_MISMATCH', '支付商户身份不一致');
             }
-            if ((int) $order->pay_way !== $payWay) {
-                throw BusinessException::conflict('PAYMENT_CHANNEL_MISMATCH', '支付渠道不一致');
+            if ((int) $attempt->amount_cents !== $event->amount() || (string) $attempt->currency !== $event->currency()
+                || self::moneyToCents((string) $order->order_amount) !== $event->amount()) {
+                throw BusinessException::conflict('PAYMENT_AMOUNT_MISMATCH', '支付金额或币种不一致');
             }
-            if ((int) ($order->payment_binding_id ?? 0) !== $bindingId
-                || (int) ($order->payment_grant_id ?? 0) < 1) {
-                throw BusinessException::conflict('PAYMENT_GRANT_MISMATCH', '支付渠道授权不一致');
-            }
-
-            if ((int) $order->pay_status === RechargeOrder::PAY_STATUS_PAID) {
-                if ((string) $order->transaction_id !== $transactionId) {
+            if ($attempt->transaction_id !== null) {
+                if ((string) $attempt->transaction_id !== $event->transactionId()) {
                     throw BusinessException::conflict('PAYMENT_TRANSACTION_CONFLICT', '支付交易流水冲突');
                 }
                 return true;
             }
 
-            $conflict = RechargeOrder::where([])->where('transaction_id', $transactionId)
-                ->where('id', '<>', (int) $order->id)->lock(true)->findOrEmpty();
-            if (!$conflict->isEmpty()) {
-                throw BusinessException::conflict('PAYMENT_TRANSACTION_IN_USE', '支付交易流水已被使用');
+            $attempt->transaction_id = $event->transactionId();
+            if ((int) $order->pay_status === RechargeOrder::PAY_STATUS_PAID) {
+                $attempt->status = RechargePaymentAttempt::DUPLICATE;
+                $attempt->save();
+                $this->recordPublicFinanceAudit($context, 'public.recharge.duplicate-payment', 'recharge.settle', $order, [
+                    'payment_attempt_id' => (int) $attempt->id,
+                    'amount_cents' => $event->amount(),
+                ]);
+                return true;
             }
 
+            $attempt->status = RechargePaymentAttempt::PAID;
+            $attempt->save();
             $this->memberBalances->applyInTransaction(
                 $context,
                 new MemberBalanceMutation(
                     (int) $order->user_id,
                     AccountLogEnum::USER_MONEY_INC_RECHARGE,
                     AccountLogEnum::INC,
-                    $orderCents,
+                    $event->amount(),
                     (string) $order->sn,
                     '用户充值',
                     [],
                     0,
-                    $orderCents,
+                    $event->amount(),
                 ),
             );
-
             $order->pay_status = RechargeOrder::PAY_STATUS_PAID;
             $order->pay_time = time();
-            $order->transaction_id = $transactionId;
+            $order->pay_way = $payWay;
+            $order->pay_sn = (string) $attempt->merchant_order_sn;
+            $order->payment_binding_id = (int) $attempt->binding_id;
+            $order->payment_grant_id = (int) $attempt->grant_id;
+            $order->payment_merchant_account_ref = (string) $attempt->merchant_identity_hash;
+            $order->transaction_id = $event->transactionId();
             $order->save();
 
-            $this->recordPublicFinanceAudit(
-                $context,
-                'public.recharge.settled',
-                'recharge.settle',
-                $order,
-                [
-                    'business_member_id' => (int) $order->user_id,
-                    'amount_cents' => $orderCents,
-                    'pay_way' => $payWay,
-                    'payment_binding_id' => $bindingId,
-                ],
-            );
+            $this->recordPublicFinanceAudit($context, 'public.recharge.settled', 'recharge.settle', $order, [
+                'business_member_id' => (int) $order->user_id,
+                'amount_cents' => $event->amount(),
+                'pay_way' => $payWay,
+                'payment_binding_id' => (int) $attempt->binding_id,
+            ]);
 
             return true;
         });

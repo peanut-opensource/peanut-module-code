@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\common\dto\payment;
+namespace PeanutAdmin\Modules\Payment\Infrastructure\Channel;
 
 final class PrepayRequest
 {
@@ -32,6 +32,7 @@ final class PrepayRequest
         string $currency = 'CNY',
         string $openid = '',
         string $clientIp = '',
+        public readonly ?int $expiresAt = null,
     ) {
         $orderSn = trim($orderSn);
         $notifyUrl = trim($notifyUrl);

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\common\dto\payment;
+namespace PeanutAdmin\Modules\Payment\Infrastructure\Channel;
 
 final class CallbackRequest
 {
@@ -30,6 +30,11 @@ final class CallbackRequest
     {
         return $this->params;
     }
+    public function headers(): array
+    {
+        return $this->headers;
+    }
+
     public function header(string $name): string
     {
         return trim((string) ($this->headers[strtolower($name)] ?? ''));

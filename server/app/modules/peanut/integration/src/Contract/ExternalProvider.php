@@ -13,6 +13,11 @@ final class ExternalProvider
     public const WECHAT_OPEN_PLATFORM = 'oauth.wechat.open-pc';
     public const WECHAT_MINI_PROGRAM = 'oauth.wechat.mini-program';
 
+    public static function isPayment(string $provider): bool
+    {
+        return in_array($provider, [self::WECHAT_PAYMENT, self::ALIPAY_PAYMENT], true);
+    }
+
     public static function oauth(string $scene): string
     {
         return match ($scene) {

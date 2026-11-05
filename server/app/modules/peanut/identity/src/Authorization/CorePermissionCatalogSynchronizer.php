@@ -10,7 +10,7 @@ use PeanutAdmin\Kernel\Authorization\Persistence\PermissionDefinition;
 
 final readonly class CorePermissionCatalogSynchronizer
 {
-    private const MANIFEST_VERSION = '0.1.0';
+    private const MANIFEST_VERSION = '0.2.0';
 
     public function __construct(private AuthorizationCatalogRepository $catalog) {}
 
@@ -51,8 +51,11 @@ final readonly class CorePermissionCatalogSynchronizer
             $key,
             match (true) {
                 str_contains($key, 'provision-owner') => 'critical',
-                in_array($key, ['core.member.effective-access.read', 'platform.upgrade.read', 'platform.ops.read', 'platform.ops.logs.read'], true) => 'sensitive',
+                in_array($key, ['core.member.effective-access.read', 'core.generator.read', 'core.generator.manage', 'core.generator.generate', 'core.system.read', 'platform.upgrade.read', 'platform.ops.read', 'platform.ops.logs.read'], true) => 'sensitive',
                 in_array($key, [
+                    'core.menu.manage',
+                    'core.system.cache.clear',
+                    'core.audit.clear',
                     'platform.ops.backup.manage',
                     'platform.ops.restore.manage',
                     'platform.ops.maintenance.manage',

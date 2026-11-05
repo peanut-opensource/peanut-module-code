@@ -16,6 +16,7 @@ use PeanutAdmin\Modules\Task\Service\TaskWorkerDefinitionRegistry;
 use app\common\execution\CurrentExecutionContext;
 use app\common\execution\ExecutionContextStore;
 use app\common\infrastructure\module\ModuleExecutionBoundary;
+use PeanutAdmin\Kernel\Module\ModuleGuard;
 use PeanutAdmin\Modules\Identity\Contract\AdminDirectoryQuery;
 use app\common\services\CrontabCommandService;
 use Closure;
@@ -38,6 +39,7 @@ final class ModuleProvider implements ModuleProviderContract
         CurrentExecutionContext $currentExecution,
         AdminDirectoryQuery $adminDirectory,
         ModuleExecutionBoundary $modules,
+        ModuleGuard $moduleGuard,
         CrontabCommandService $commands,
         Closure $dispatch,
         array $workerDefinitions,
@@ -52,6 +54,7 @@ final class ModuleProvider implements ModuleProviderContract
             $currentExecution,
             $adminDirectory,
             $modules,
+            $moduleGuard,
             $commands,
             $dispatch,
             $workerDefinitions,
@@ -70,6 +73,7 @@ final class ModuleProvider implements ModuleProviderContract
                 $app->make(CurrentExecutionContext::class),
                 $app->make(AdminDirectoryQuery::class),
                 $app->make(ModuleExecutionBoundary::class),
+                $app->make(ModuleGuard::class),
                 $app->make(CrontabCommandService::class),
                 function (string $command, array $parameters = [], string $driver = 'buffer') use ($app): \think\console\Output {
                     array_unshift($parameters, $command);
