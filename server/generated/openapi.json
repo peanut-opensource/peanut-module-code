@@ -38458,7 +38458,11 @@
                     }
                 },
                 "x-peanut-errors": [
-                    "TASK_PERMISSION_DENIED"
+                    "TASK_PERMISSION_DENIED",
+                    "MODULE_NOT_INSTALLED",
+                    "MODULE_INSTALLATION_FAILED",
+                    "MODULE_TENANT_DISABLED",
+                    "MODULE_TENANT_NOT_EFFECTIVE"
                 ],
                 "security": [
                     {
@@ -38529,7 +38533,11 @@
                     }
                 },
                 "x-peanut-errors": [
-                    "TASK_PERMISSION_DENIED"
+                    "TASK_PERMISSION_DENIED",
+                    "MODULE_NOT_INSTALLED",
+                    "MODULE_INSTALLATION_FAILED",
+                    "MODULE_TENANT_DISABLED",
+                    "MODULE_TENANT_NOT_EFFECTIVE"
                 ],
                 "security": [
                     {
