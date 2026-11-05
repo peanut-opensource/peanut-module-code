@@ -64,6 +64,8 @@ function taskImportExportInstalledAssertions(
     array $expectedDatabaseIdentity,
     callable $guard,
     callable $moduleSelection,
+    TenantContext $alphaManager,
+    callable $refreshAlpha,
 ): void {
     $GLOBALS['taskImportExportChecks'] = 0;
     // Only these existing qualification DML operations use this same native transaction.
@@ -418,9 +420,224 @@ function taskImportExportInstalledAssertions(
         expectAsyncTenant($exception->getMessage() === 'IMPORT_EXPORT_FILE_UNAVAILABLE', 'cross-Tenant download enumerated ownership');
     }
 
+    assertInFlightExportRevocation($app, $pdo, $runtime, $alphaTenant, $alphaManager, $alphaRoleId, $guard, $refreshAlpha, $runId);
+
     // Preserve all actual rows, artifacts, grant/tenant state and failed DDL.
     // Never restore a stale whole-instance backup after writers have reopened.
     echo 'MT03-TASK-IMPORT-EXPORT-TENANT-ISOLATION-001 passed (' . ($GLOBALS['taskImportExportChecks'] ?? 0) . " checks)\n";
+}
+
+/** Exercise the real CLI worker across its storage write, using the native InnoDB insertion gap. */
+function assertInFlightExportRevocation(
+    think\App $app,
+    PDO $pdo,
+    TaskImportExportRuntime $runtime,
+    TenantContext $actor,
+    TenantContext $manager,
+    int $roleId,
+    callable $guard,
+    callable $refreshActor,
+    string $runId,
+): void {
+    $guard();
+    expectAsyncTenant($manager->tenantId === $actor->tenantId && $manager->memberId !== $actor->memberId, 'a distinct authenticated Alpha role manager is required');
+    $permissions = $app->make(\PeanutAdmin\Modules\Identity\Contract\TenantAuthorizationQuery::class);
+    $managerKeys = ['core.permission.read', 'core.role.read', 'core.role.permission.assign'];
+    expectAsyncTenant(count($permissions->permissionGrants($manager, $managerKeys)) === count($managerKeys), 'manager lacks native role administration grants');
+    $roles = $app->make(\PeanutAdmin\Modules\Identity\Authorization\Application\RoleAdminService::class);
+    $roleBefore = $roles->get($actor->tenantId, $roleId);
+    $originalKeys = $roleBefore['permission_keys'];
+    $exportKey = 'peanut.import-export.operation-log.export';
+    expectAsyncTenant(in_array($exportKey, $originalKeys, true) && in_array('peanut.file.download-original', $originalKeys, true), 'fence actor requires independent export and file download rights');
+    $bindings = $pdo->prepare('SELECT tenant_member_id,role_id FROM pa_member_role WHERE tenant_id=? ORDER BY tenant_member_id,role_id');
+    $bindings->execute([$actor->tenantId]);
+    $bindingsBefore = $bindings->fetchAll(PDO::FETCH_ASSOC);
+    $diskSnapshot = static function () use ($app): array {
+        $files = [];
+        foreach (['private/storage', 'public/storage'] as $relative) {
+            $root = $app->getRootPath() . $relative;
+            if (!is_dir($root)) {
+                continue;
+            }
+            foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS)) as $file) {
+                if ($file->isFile()) {
+                    $files[] = $relative . substr($file->getPathname(), strlen($root));
+                }
+            }
+        }
+        sort($files, SORT_STRING);
+        return $files;
+    };
+    $diskBefore = $diskSnapshot();
+    expectAsyncTenant((int) $pdo->query("SELECT COUNT(*) FROM pa_storage_account WHERE status='active' AND driver<>'local'")->fetchColumn() === 0, 'disk assertions require the installed synthetic local storage configuration');
+    $maxObject = (int) $pdo->query('SELECT COALESCE(MAX(id),0) FROM pa_file_object')->fetchColumn();
+    $entryCount = (int) $pdo->query('SELECT COUNT(*) FROM pa_file')->fetchColumn();
+    $grantCount = (int) $pdo->query('SELECT COUNT(*) FROM pa_file_delivery_grant')->fetchColumn();
+    $authorization = $app->make(AdminAuthorizationService::class);
+    $freshActor = $refreshActor();
+    $context = $authorization->authorizedAsyncExport($freshActor, $authorization->principal($freshActor));
+    $operation = submitOperationLogExport($runtime, $guard, $context, 'in-flight-revocation-' . $runId);
+    $worker = null;
+    $transaction = false;
+    $revoked = false;
+    $stdout = tmpfile();
+    $stderr = tmpfile();
+    expectAsyncTenant(is_resource($stdout) && is_resource($stderr), 'native worker output streams are unavailable');
+    $workerExit = null;
+    $blockedConnection = null;
+    try {
+        // A next-key range above MAX covers a fresh AUTO_INCREMENT insert, including an empty table.
+        $pdo->exec('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+        \think\facade\Db::startTrans();
+        $transaction = true;
+        $pdo->query('SELECT id FROM pa_file_object FORCE INDEX (PRIMARY) WHERE id > ' . $maxObject . ' FOR UPDATE')->fetchAll();
+        $guard(true);
+        $worker = proc_open([PHP_BINARY, $app->getRootPath() . 'think', 'tenant-task:work', (string) $actor->tenantId,
+            '--job-key=' . $operation->taskJobKey], [0 => ['pipe', 'r'], 1 => $stdout, 2 => $stderr], $pipes, $app->getRootPath());
+        expectAsyncTenant(is_resource($worker), 'native exact-job worker could not start');
+        fclose($pipes[0]);
+        $database = (string) $pdo->query('SELECT DATABASE()')->fetchColumn();
+        $databaseUser = (string) $pdo->query('SELECT SUBSTRING_INDEX(CURRENT_USER(),\'@\',1)')->fetchColumn();
+        $deadline = microtime(true) + 15;
+        do {
+            foreach ($pdo->query('SHOW FULL PROCESSLIST')->fetchAll(PDO::FETCH_ASSOC) as $process) {
+                if (($process['db'] ?? null) === $database && ($process['User'] ?? null) === $databaseUser
+                    && preg_match('/^\s*INSERT\s+INTO\s+`?pa_file_object`?\s*\(/i', (string) ($process['Info'] ?? '')) === 1) {
+                    $blockedConnection = (int) $process['Id'];
+                    break;
+                }
+            }
+            if ($blockedConnection !== null) {
+                break;
+            }
+            $state = proc_get_status($worker);
+            if (!$state['running']) {
+                $workerExit = $state['exitcode'];
+                break;
+            }
+            usleep(50000);
+        } while (microtime(true) < $deadline);
+        expectAsyncTenant($blockedConnection !== null, 'worker did not reach the actual file-object INSERT barrier');
+        $guard(true);
+        $currentRole = $roles->get($actor->tenantId, $roleId);
+        $roles->replacePermissions($manager, $roleId, array_values(array_diff($originalKeys, [$exportKey])), (int) $currentRole['revision']);
+        \think\facade\Db::commit();
+        $transaction = false;
+        $revoked = true;
+        $deadline = microtime(true) + 20;
+        do {
+            $state = proc_get_status($worker);
+            if (!$state['running']) {
+                $workerExit = $state['exitcode'];
+                break;
+            }
+            usleep(50000);
+        } while (microtime(true) < $deadline);
+        expectAsyncTenant($workerExit !== null, 'native worker did not reach a terminal state after the barrier');
+        $closeExit = proc_close($worker);
+        $worker = null;
+        $workerExit = $workerExit >= 0 ? $workerExit : $closeExit;
+        rewind($stdout);
+        rewind($stderr);
+        $workerOutput = stream_get_contents($stdout);
+        $workerError = stream_get_contents($stderr);
+        expectAsyncTenant($workerExit === 0 && preg_match('/processed=1(?:\R|$)/', $workerOutput) === 1, 'exact-job CLI did not process its job');
+        expectAsyncTenant(!str_contains($workerError, 'execution context stack not empty'), 'native child CLI reported a context leak');
+        $freshActor = $refreshActor();
+        expectAsyncTenant(
+            $freshActor->tenantId === $actor->tenantId && $freshActor->memberId === $actor->memberId
+            && $freshActor->accountId === $actor->accountId && $freshActor->sessionKey === $actor->sessionKey,
+            'refreshed actor differs from the authenticated exporter session',
+        );
+        $remainingGrants = $permissions->permissionGrants($freshActor, [$exportKey, 'peanut.file.download-original']);
+        expectAsyncTenant(!isset($remainingGrants[$exportKey]) && isset($remainingGrants['peanut.file.download-original']), 'revocation must remove export while retaining independent File authorization');
+        $jobQuery = $pdo->prepare('SELECT status,last_error_code FROM pa_task_job WHERE job_key=?');
+        $jobQuery->execute([$operation->taskJobKey]);
+        $job = $jobQuery->fetch(PDO::FETCH_ASSOC);
+        $operationQuery = $pdo->prepare('SELECT status,result_file_key,error_file_key FROM pa_import_export_operation WHERE operation_key=?');
+        $operationQuery->execute([$operation->operationKey]);
+        $result = $operationQuery->fetch(PDO::FETCH_ASSOC);
+        $newObjects = $pdo->query('SELECT file_key,status FROM pa_file_object WHERE id > ' . $maxObject)->fetchAll(PDO::FETCH_ASSOC);
+        $entriesUnchanged = (int) $pdo->query('SELECT COUNT(*) FROM pa_file')->fetchColumn() === $entryCount;
+        $grantsUnchanged = (int) $pdo->query('SELECT COUNT(*) FROM pa_file_delivery_grant')->fetchColumn() === $grantCount;
+        $diskUnchanged = $diskSnapshot() === $diskBefore;
+        $audit = $pdo->prepare("SELECT COUNT(*) FROM pa_tenant_audit_event WHERE tenant_id=? AND target_resource_id=? AND event_type='tenant.import_export.succeeded' AND outcome='success'");
+        $audit->execute([$actor->tenantId, $operation->operationKey]);
+        $successAudit = (int) $audit->fetchColumn();
+        $contexts = $app->make(ExecutionContextStore::class);
+        $storage = $app->make(StorageService::class);
+        $genericDownloadAllowed = false;
+        $resultDownloadAllowed = false;
+        foreach ($newObjects as $object) {
+            // Probe with the freshly authenticated actor retaining its File permission, not a stale context.
+            $execution = new AdminExecutionContext($freshActor, 'qualification.in-flight-download', $authorization->principal($freshActor)->toArray());
+            try {
+                $contexts->run($execution, static fn(): string => $storage->accessUrlForTenant($freshActor->tenantId, $object['file_key']));
+                $genericDownloadAllowed = true;
+            } catch (\app\common\exception\BusinessException|RuntimeException $error) {
+                if (!in_array($error->getMessage(), ['文件对象不存在或不可用', '文件不存在或不可用'], true)) {
+                    throw $error;
+                }
+            }
+            try {
+                $contexts->run($execution, static fn(): array => $runtime->download($context, $object['file_key']));
+                $resultDownloadAllowed = true;
+            } catch (Throwable $error) {
+                if ($error->getMessage() !== 'IMPORT_EXPORT_FILE_UNAVAILABLE') {
+                    throw $error;
+                }
+            }
+        }
+        $effects = ['insert_barrier_observed' => true, 'connection_id' => $blockedConnection,
+            'job_denied' => ($job['status'] ?? null) === 'dead' && ($job['last_error_code'] ?? null) === 'TASK_PERMISSION_DENIED',
+            'operation_preserved' => is_array($result),
+            'operation_not_succeeded' => ($result['status'] ?? null) !== 'succeeded',
+            'no_result_pointer' => ($result['result_file_key'] ?? null) === null && ($result['error_file_key'] ?? null) === null,
+            'no_file_objects' => $newObjects === [], 'disk_unchanged' => $diskUnchanged, 'entries_unchanged' => $entriesUnchanged,
+            'grants_unchanged' => $grantsUnchanged, 'no_success_audit' => $successAudit === 0,
+            'generic_download_denied' => !$genericDownloadAllowed, 'result_download_denied' => !$resultDownloadAllowed,
+            'parent_context_empty' => $contexts->isEmpty()];
+        // The native consumer discards its output buffer on failure; retain only these safe booleans/PID.
+        fwrite(STDERR, 'SAFE_INFLIGHT_EXPORT_EFFECTS ' . json_encode($effects, JSON_THROW_ON_ERROR) . "\n");
+        foreach ($effects as $name => $passed) {
+            if ($name !== 'connection_id') {
+                expectAsyncTenant($passed === true, 'in-flight export revocation failed: ' . $name);
+            }
+        }
+    } finally {
+        if ($transaction) {
+            \think\facade\Db::rollback();
+        }
+        if (is_resource($worker)) {
+            // Only this test's own child is terminated; never spawn a replacement for an unknown outcome.
+            proc_terminate($worker);
+            $deadline = microtime(true) + 5;
+            do {
+                $state = proc_get_status($worker);
+                if (!$state['running']) {
+                    break;
+                }
+                usleep(50000);
+            } while (microtime(true) < $deadline);
+            if ($state['running']) {
+                proc_terminate($worker, 9);
+            }
+            proc_close($worker);
+        }
+        fclose($stdout);
+        fclose($stderr);
+        if ($revoked) {
+            $guard();
+            $currentRole = $roles->get($actor->tenantId, $roleId);
+            $restored = $roles->replacePermissions($manager, $roleId, $originalKeys, (int) $currentRole['revision']);
+            $restoredKeys = $restored['permission_keys'];
+            sort($restoredKeys, SORT_STRING);
+            sort($originalKeys, SORT_STRING);
+            expectAsyncTenant($restoredKeys === $originalKeys && (int) $restored['revision'] > (int) $roleBefore['revision'], 'normal role restoration did not retain permissions and advance revision');
+            $bindings->execute([$actor->tenantId]);
+            expectAsyncTenant($bindings->fetchAll(PDO::FETCH_ASSOC) === $bindingsBefore, 'normal role revocation/restoration changed member bindings');
+        }
+    }
 }
 
 // These assertions require a separately authorized installed-instance owner.
