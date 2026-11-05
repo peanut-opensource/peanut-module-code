@@ -21,8 +21,8 @@
     },
     "dependencies": {
         "@element-plus/nuxt": "^1.0.10",
-        "@peanut-admin/client": "file:../packages/core-web/peanut-admin-client-5.0.2.tgz",
-        "@peanut-admin/nuxt": "file:../packages/core-web/peanut-admin-nuxt-5.0.2.tgz",
+        "@peanut-admin/client": "5.0.4",
+        "@peanut-admin/nuxt": "5.0.4",
         "@pinia/nuxt": "^0.5.5",
         "dompurify": "^3.4.17",
         "element-plus": "^2.9.1",

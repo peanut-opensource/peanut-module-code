@@ -102,50 +102,6 @@
             }
         },
         {
-            "type": "package",
-            "package": {
-                "name": "peanut-admin/core",
-                "description": "Peanut Admin technical kernel and ThinkPHP integration",
-                "type": "library",
-                "license": "Apache-2.0",
-                "support": {
-                    "source": "https://github.com/peanut-business/peanut-admin-core-php"
-                },
-                "require": {
-                    "composer/semver": "^3.4.4",
-                    "ext-fileinfo": "*",
-                    "ext-json": "*",
-                    "ext-openssl": "*",
-                    "ext-pdo": "*",
-                    "ext-sodium": "*",
-                    "opis/json-schema": "^2.6.0",
-                    "php": "^8.3",
-                    "topthink/think-orm": "^4.0.51"
-                },
-                "suggest": {
-                    "aliyuncs/oss-sdk-php": "Required by hosts that construct AliyunStorageDriver.",
-                    "qcloud/cos-sdk-v5": "Required by hosts that construct QcloudStorageDriver.",
-                    "qiniu/php-sdk": "Required by hosts that construct QiniuStorageDriver."
-                },
-                "autoload": {
-                    "psr-4": {
-                        "PeanutAdmin\\DataPermission\\": "data-permission/src/",
-                        "PeanutAdmin\\FileMedia\\": "file-media/src/",
-                        "PeanutAdmin\\IntegrationSecurity\\": "integration-security/src/",
-                        "PeanutAdmin\\Kernel\\": "kernel/src/",
-                        "PeanutAdmin\\Settings\\": "settings/src/"
-                    }
-                },
-                "version": "5.0.3-alpha.6",
-                "dist": {
-                    "type": "zip",
-                    "url": "../packages/core-php/peanut-admin-core-5.0.3-alpha.6.zip",
-                    "reference": "f9d61786dbe582cdc00a4d6f97baa3c30fa3b6a0cf60633822ccd46f689a6db4",
-                    "shasum": "714cbec73ecc4cb05fd3e6dbcab882ad672d3a1c"
-                }
-            }
-        },
-        {
             "type": "path",
             "url": "app/modules/peanut/chart",
             "options": {
@@ -212,7 +168,7 @@
     "license": "Apache-2.0",
     "authors": [
         {
-            "name": "\u82b1\u751f\u79d1\u6280"
+            "name": "花生科技"
         }
     ],
     "provide": {
@@ -230,7 +186,7 @@
         "aws/aws-sdk-php": "^3.0",
         "aliyuncs/oss-sdk-php": "^2.4",
         "qcloud/cos-sdk-v5": "^2.5",
-        "peanut-admin/core": "5.0.3-alpha.6",
+        "peanut-admin/core": "5.0.3",
         "symfony/html-sanitizer": "^7.3",
         "composer/semver": "^3.4",
         "opis/json-schema": "^2.6",
@@ -300,6 +256,8 @@
             "vendor/peanut-admin/core/kernel/tests/",
             "vendor/peanut-admin/core/data-permission/tests/"
         ],
-        "files": []
+        "files": [
+            "tests/Support/ThinkPhpTestConnection.php"
+        ]
     }
 }

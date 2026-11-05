@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1ac7eeae3b940c7a12328343f6a1eb09",
+    "content-hash": "f37aa3b09b962f20736940125a70e832",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -1695,12 +1695,17 @@
         },
         {
             "name": "peanut-admin/core",
-            "version": "5.0.3-alpha.6",
+            "version": "v5.0.3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/peanut-business/peanut-admin-core-php.git",
+                "reference": "f2b0435f577c5119f1dfc58d34c274ccb149c477"
+            },
             "dist": {
                 "type": "zip",
-                "url": "../packages/core-php/peanut-admin-core-5.0.3-alpha.6.zip",
-                "reference": "f9d61786dbe582cdc00a4d6f97baa3c30fa3b6a0cf60633822ccd46f689a6db4",
-                "shasum": "714cbec73ecc4cb05fd3e6dbcab882ad672d3a1c"
+                "url": "https://api.github.com/repos/peanut-business/peanut-admin-core-php/zipball/f2b0435f577c5119f1dfc58d34c274ccb149c477",
+                "reference": "f2b0435f577c5119f1dfc58d34c274ccb149c477",
+                "shasum": ""
             },
             "require": {
                 "composer/semver": "^3.4.4",
@@ -1713,6 +1718,9 @@
                 "php": "^8.3",
                 "topthink/think-orm": "^4.0.51"
             },
+            "require-dev": {
+                "phpunit/phpunit": "^12.5.31"
+            },
             "suggest": {
                 "aliyuncs/oss-sdk-php": "Required by hosts that construct AliyunStorageDriver.",
                 "qcloud/cos-sdk-v5": "Required by hosts that construct QcloudStorageDriver.",
@@ -1721,20 +1729,23 @@
             "type": "library",
             "autoload": {
                 "psr-4": {
-                    "PeanutAdmin\\DataPermission\\": "data-permission/src/",
-                    "PeanutAdmin\\FileMedia\\": "file-media/src/",
-                    "PeanutAdmin\\IntegrationSecurity\\": "integration-security/src/",
                     "PeanutAdmin\\Kernel\\": "kernel/src/",
-                    "PeanutAdmin\\Settings\\": "settings/src/"
+                    "PeanutAdmin\\Settings\\": "settings/src/",
+                    "PeanutAdmin\\FileMedia\\": "file-media/src/",
+                    "PeanutAdmin\\DataPermission\\": "data-permission/src/",
+                    "PeanutAdmin\\IntegrationSecurity\\": "integration-security/src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "Apache-2.0"
             ],
             "description": "Peanut Admin technical kernel and ThinkPHP integration",
             "support": {
+                "issues": "https://github.com/peanut-business/peanut-admin-core-php/issues",
                 "source": "https://github.com/peanut-business/peanut-admin-core-php"
-            }
+            },
+            "time": "2026-11-04T22:40:53+00:00"
         },
         {
             "name": "peanut-business/artifact-revision",
@@ -5763,7 +5774,6 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "peanut-admin/core": 15,
         "peanut-business/artifact-revision": 5,
         "peanut-business/entitlement-quota": 5,
         "peanut-business/peanut-identity": 5,

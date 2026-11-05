@@ -36,10 +36,10 @@
         ]
     },
     "dependencies": {
-        "@peanut-admin/peanut-chart": "workspace:^1.0.0",
         "@element-plus/icons-vue": "2.3.2",
-        "@peanut-admin/ui-vue": "file:../packages/core-web/peanut-admin-ui-vue-5.0.2.tgz",
-        "@peanut-admin/vue": "file:../packages/core-web/peanut-admin-vue-5.0.2.tgz",
+        "@peanut-admin/peanut-chart": "workspace:^1.0.0",
+        "@peanut-admin/ui-vue": "5.0.4",
+        "@peanut-admin/vue": "5.0.4",
         "@vueuse/core": "^9.3.0",
         "axios": "0.34.0",
         "dayjs": "^1.11.5",

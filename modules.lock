@@ -2016,7 +2016,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "f7cd1535928fb10a1972d9659a0689b458b146f8370504eccff88060fddec3b6"
+                "sha256": "05e0f400fcf01cb48ba06cd69b471a0d65c66f92af7d2f81b393c44dcd4456b5"
             },
             "trust": {
                 "channel": "bundled",
@@ -2077,7 +2077,7 @@
                 {
                     "name": "@peanut-modules/workflow-web",
                     "version": "5.0.1",
-                    "integrity": "sha256-8168WvPYJ/EIw/NkUb72l30/MuPM2AjYeKj/FiMKrLw="
+                    "integrity": "sha256-vtJni+3FtHhW4aHn0sPqIc34k3VFJ6rk2y9aanDKB5w="
                 }
             ],
             "frontend": [
