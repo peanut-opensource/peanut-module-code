@@ -244,11 +244,30 @@ final readonly class CsvOperationRunner
         } while ($cursor !== null);
         rewind($stream);
         $execution->checkpoint();
-        $fileKey = $this->files->storePrivateCsv($context, $operation->operationKey, 'result', $operation->providerKey . '-export.csv', $stream);
-        $execution->assertLeaseOwned();
-        self::assertFileKey($fileKey);
-        $execution->assertLeaseOwned();
-        return $this->finish($execution, $operation->tenantId, $operation->id, $jobKey, $attempt, 'succeeded', $fileKey, null, $processed);
+        $result = null;
+        $this->files->storePrivateCsv(
+            $context,
+            $operation->operationKey,
+            'result',
+            $operation->providerKey . '-export.csv',
+            $stream,
+            $execution->assertLeaseOwned(...),
+            function (string $fileKey) use (&$result, $execution, $operation, $jobKey, $attempt, $processed): bool {
+                self::assertFileKey($fileKey);
+                $result = $this->repository->finish(
+                    $operation->tenantId, $operation->id, $jobKey, $attempt, 'succeeded', $fileKey, null, $processed,
+                );
+                $execution->assertLeaseOwned();
+                if ($result->status === 'cancelled') {
+                    return false;
+                }
+                if ($result->status !== 'succeeded' || $result->resultFileKey !== $fileKey) {
+                    throw ImportExportException::internal();
+                }
+                return true;
+            },
+        );
+        return $result ?? throw ImportExportException::internal();
     }
 
     private function storeErrorReport(JobExecution $execution, AuthorizedOperationContext $context, OperationRecord $operation): string

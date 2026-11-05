@@ -69,14 +69,22 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
         string $sourcePath,
         string $originalName,
         string $mediaType,
+        ?\Closure $assertAuthority = null,
+        ?\Closure $publish = null,
     ): array {
         if ($tenantId < 1 || !is_file($sourcePath) || !is_readable($sourcePath)) {
             throw new \InvalidArgumentException('待存储文件无效');
         }
-        if (($pdo = Db::connect()->getPdo()) instanceof \PDO && $pdo->inTransaction()) {
+        $connection = Db::connect();
+        $pdo = $connection->getPdo();
+        if ($pdo instanceof \PDO && $pdo->inTransaction()) {
             throw BusinessException::conflict('FILE_UPLOAD_OUTER_TRANSACTION_DENIED', '文件写入意图必须在外部写入之前持久完成');
         }
         $access = StoragePurpose::accessType($purpose);
+        if (($assertAuthority === null) !== ($publish === null)
+            || ($publish !== null && $purpose !== 'export.csv')) {
+            throw new \InvalidArgumentException('文件发布条件无效');
+        }
         $current = $this->execution->current();
         $uploadActor = $current instanceof \app\common\execution\AdminExecutionContext ? $current->tenant
             : ($current instanceof \app\common\execution\ConsumerExecutionContext ? $current->member : null);
@@ -117,7 +125,21 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
             'sha256' => $sha256,
             'created_by_member_id' => $memberId && $memberId > 0 ? $memberId : null,
         ];
-        $this->reserveObject($tenantId, $attributes);
+        if ($assertAuthority === null) {
+            $this->reserveObject($tenantId, $attributes);
+        } else {
+            if (!$pdo instanceof \PDO) {
+                throw new \LogicException('文件发布需要已建立的数据库连接');
+            }
+            // Metadata reads can establish a snapshot before the blocked INSERT. Use current
+            // committed authorization for this reservation without changing the session default.
+            $pdo->exec('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+            $connection->transaction(function () use ($tenantId, $attributes, $assertAuthority): void {
+                $this->reserveObject($tenantId, $attributes);
+                // A blocked reservation may outlive the originating authorization.
+                $assertAuthority();
+            });
+        }
         $recordWrite = function (string $event, array $metadata) use ($uploadActor, $tenantId, $memberId, $fileKey): void {
             if ($uploadActor instanceof TenantContext) {
                 $this->audit->appendTenantMember($uploadActor, $event, 'file.upload.write', 'file', $fileKey, null, null, 0, null, $metadata);
@@ -131,17 +153,32 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
             'object_key' => $objectKey, 'storage_space_id' => $attributes['storage_space_id'],
             'size_bytes' => $size, 'sha256' => $sha256, 'provider_write_outcome' => 'not_started',
         ]);
+        $putStarted = false;
         $putAcknowledged = false;
+        $published = true;
         try {
+            $assertAuthority?->__invoke();
+            $putStarted = true;
             $driver->put($objectKey, $sourcePath);
             $putAcknowledged = true;
             $recordWrite('file.upload.write_acknowledged', ['provider_write_outcome' => 'acknowledged']);
-            if (!$this->markObjectReady($tenantId, $fileKey)) {
+            if ($publish !== null) {
+                $published = Db::transaction(function () use ($tenantId, $fileKey, $assertAuthority, $publish): bool {
+                    $assertAuthority();
+                    $published = $publish($fileKey);
+                    $changed = $published
+                        ? $this->markObjectReady($tenantId, $fileKey)
+                        : $this->markObjectWriteFailed($tenantId, $fileKey);
+                    if (!$changed) {
+                        throw new \RuntimeException('文件对象账本未能完成发布');
+                    }
+                    return $published;
+                });
+            } elseif (!$this->markObjectReady($tenantId, $fileKey)) {
                 throw new \RuntimeException('文件对象账本未能切换到 ready');
             }
         } catch (\Throwable $error) {
-            // A thrown put may already have stored bytes. Neither this unknown result nor a
-            // subsequent ledger failure authorizes deleting or uploading the reserved key again.
+            // A thrown put may already have stored bytes. Preserve its key for observation.
             $failureRecorded = false;
             try {
                 $failureRecorded = $this->markObjectWriteFailed($tenantId, $fileKey);
@@ -149,8 +186,8 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
                 // Preserve the original provider/ledger error and pending reservation for observation.
             }
             $metadata = [
-                'provider_write_outcome' => $putAcknowledged ? 'acknowledged' : 'unknown',
-                'write_failed_recorded' => $failureRecorded, 'original_key_observation_required' => true,
+                'provider_write_outcome' => $putAcknowledged ? 'acknowledged' : ($putStarted ? 'unknown' : 'not_started'),
+                'write_failed_recorded' => $failureRecorded, 'original_key_observation_required' => $putStarted,
             ];
             try {
                 $recordWrite('file.upload.write_unconfirmed', $metadata);
@@ -162,8 +199,10 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
             throw $error;
         }
 
-        $this->newUploads->{$fileKey} = ['tenant_id' => $tenantId, 'member_id' => $memberId,
-            'request_id' => $this->execution->requestId(), 'object_key' => $objectKey,'driver' => $driver,'attributes' => $attributes];
+        if ($published) {
+            $this->newUploads->{$fileKey} = ['tenant_id' => $tenantId, 'member_id' => $memberId,
+                'request_id' => $this->execution->requestId(), 'object_key' => $objectKey,'driver' => $driver,'attributes' => $attributes];
+        }
         $stored = [
             'file_key' => $fileKey,
             'object_key' => $objectKey,
