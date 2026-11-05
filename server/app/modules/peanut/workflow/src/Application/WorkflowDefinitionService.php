@@ -146,6 +146,9 @@ final readonly class WorkflowDefinitionService
                     throw WorkflowException::definitionRetired();
                 }
                 $graph = WorkflowGraph::fromArray($row['draft_graph_json']);
+                if (!hash_equals($graph->sha256, $row['draft_graph_sha256'])) {
+                    throw WorkflowException::internal();
+                }
                 $this->checkScenario($context, $moduleKey, $workflowKey, $graph);
                 $version = (int) $row['latest_version'] + 1;
                 $identical = Version::scope('tenant', $this->scope($context))->where('definition_id', $row['id'])->where('graph_sha256', $graph->sha256)->find();

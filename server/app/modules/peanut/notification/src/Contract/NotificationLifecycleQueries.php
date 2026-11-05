@@ -23,9 +23,15 @@ final class NotificationLifecycleQueries
         if ($keys === []) { return 0; }
         if (!array_is_list($keys) || count($keys) > 100) { throw new \InvalidArgumentException('NOTIFICATION_LIFECYCLE_KEYS_INVALID'); }
         foreach ($keys as $key) { if (!is_string($key) || $key === '' || strlen($key) > 160) { throw new \InvalidArgumentException('NOTIFICATION_LIFECYCLE_KEYS_INVALID'); } }
-        $table = Db::name('notification_message')->getTable();
-        $columns = array_column(Db::query('SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?', [$table]), 'COLUMN_NAME');
-        if (!in_array('producer_key', $columns, true)) { throw new \RuntimeException('NOTIFICATION_PRODUCER_SCHEMA_UPGRADE_REQUIRED'); }
+        $messageTable = Db::name('notification_message')->getTable();
+        $outboxTable = Db::name('notification_outbox')->getTable();
+        $tables = array_column(Db::query(
+            'SELECT DISTINCT TABLE_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND ((TABLE_NAME=? AND COLUMN_NAME=?) OR TABLE_NAME=?)',
+            [$messageTable, 'producer_key', $outboxTable],
+        ), 'TABLE_NAME');
+        if (!in_array($messageTable, $tables, true) || !in_array($outboxTable, $tables, true)) {
+            throw new \RuntimeException('NOTIFICATION_PRODUCER_SCHEMA_UPGRADE_REQUIRED');
+        }
         $query = Db::name('notification_outbox')->alias('o')->join('notification_message m', 'm.id=o.message_id AND m.tenant_id=o.tenant_id')
             ->whereIn('m.producer_key', $keys)->whereIn('o.status', ['pending', 'queued', 'processing', 'retryable']);
         if ($tenantId !== null) { $query->where('o.tenant_id', $tenantId)->where('m.tenant_id', $tenantId); }
