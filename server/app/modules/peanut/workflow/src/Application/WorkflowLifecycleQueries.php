@@ -62,10 +62,17 @@ final readonly class WorkflowLifecycleQueries
         $sources = (clone $facts)->fieldRaw("DISTINCT JSON_UNQUOTE(JSON_EXTRACT(notification_fact_json, '$.producer_key')) AS producer_key")->limit(101)->select()->toArray();
         if (count($sources) > 100) { throw WorkflowException::blocked('Workflow notification source capacity exceeded; lifecycle review is required.'); }
         $keys = array_column($sources, 'producer_key');
-        // Package ownership includes disabled installations that may still have pending deliveries.
-        if ($keys !== [] && app(TenantModuleStateQueries::class)->installedPackageModuleCount(['peanut.notification']) !== 0) {
-            $notification = app(NotificationLifecycleQueries::class);
-            $pending += $tenantId === null ? $notification->pendingAcrossTenants($keys) : $notification->pendingPublications($tenantId, $keys);
+        if ($keys !== []) {
+            $states = app(TenantModuleStateQueries::class)->installationStates(['peanut.notification']);
+            $status = $states['peanut.notification']['status'] ?? null;
+            // First installation can fail before DDL. A recorded outbox still requires reconciliation.
+            $mustCheckDeliveries = in_array($status, ['active', 'maintenance', 'upgrading'], true)
+                || ($status !== 'uninstalled'
+                    && (clone $facts)->whereRaw('JSON_LENGTH(notification_outbox_json)>0')->limit(1)->value('id') !== null);
+            if ($mustCheckDeliveries) {
+                $notification = app(NotificationLifecycleQueries::class);
+                $pending += $tenantId === null ? $notification->pendingAcrossTenants($keys) : $notification->pendingPublications($tenantId, $keys);
+            }
         }
         return $instances + (int) $effects->count() + $pending;
     }
