@@ -74,7 +74,8 @@ final class ModuleProvider implements ModuleProviderContract, TaskWorkerContribu
             VerificationCodeCommands::class => NotificationApplicationService::class,
             \PeanutAdmin\Modules\Notification\Delivery\Application\AttachmentResolver::class => \PeanutAdmin\Modules\Notification\Delivery\Application\FileAttachmentResolver::class,
             \PeanutAdmin\Modules\Notification\Delivery\Application\NotificationService::class => fn(App $app) => new \PeanutAdmin\Modules\Notification\Delivery\Application\NotificationService(
-                $app->make(NotificationStore::class), $app->make(RecipientResolver::class),
+                $app->make(NotificationStore::class),
+                $app->make(RecipientResolver::class),
                 $app->bound(\PeanutAdmin\Modules\File\Contract\FileAccess::class)
                     ? $app->make(\PeanutAdmin\Modules\Notification\Delivery\Application\AttachmentResolver::class) : null,
                 $app->make(\PeanutAdmin\Modules\Notification\Delivery\Application\TemplateRenderer::class),
@@ -91,8 +92,8 @@ final class ModuleProvider implements ModuleProviderContract, TaskWorkerContribu
             NotificationOutboxDispatcher::class => fn(App $app): NotificationOutboxDispatcher => new NotificationOutboxDispatcher(
                 $app->make(NotificationStore::class),
                 $app->make(TaskJobRuntime::class)->publisher(
-                    new OutboxTaskSubmissionProvider('inbox', $app->make(\PeanutAdmin\Modules\Notification\Infrastructure\Authorization\NotificationAsyncAuthorization::class)),
-                    new OutboxTaskSubmissionProvider('sms', $app->make(\PeanutAdmin\Modules\Notification\Infrastructure\Authorization\NotificationAsyncAuthorization::class)),
+                    new OutboxTaskSubmissionProvider('inbox', $app->make(\PeanutAdmin\Modules\Notification\Infrastructure\Authorization\NotificationAsyncAuthorization::class), $app->make(NotificationTaskWorkerDefinition::class)),
+                    new OutboxTaskSubmissionProvider('sms', $app->make(\PeanutAdmin\Modules\Notification\Infrastructure\Authorization\NotificationAsyncAuthorization::class), $app->make(NotificationTaskWorkerDefinition::class)),
                 ),
             ),
         ];
