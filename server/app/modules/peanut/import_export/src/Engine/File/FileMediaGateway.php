@@ -11,12 +11,18 @@ interface FileMediaGateway
     /** @return resource */
     public function openCsvInput(AuthorizedOperationContext $context, string $fileKey);
 
-    /** @param resource $stream */
+    /**
+     * @param resource $stream
+     * @param (\Closure(): void)|null $assertAuthority
+     * @param (\Closure(string): bool)|null $publish
+     */
     public function storePrivateCsv(
         AuthorizedOperationContext $context,
         string $operationKey,
         string $purpose,
         string $filename,
         $stream,
+        ?\Closure $assertAuthority = null,
+        ?\Closure $publish = null,
     ): string;
 }

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a8ca84417f9ad7aeb990134d6c18da59",
+    "content-hash": "fa2c7722d515ea40d149b2e42fb09262",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2013,11 +2013,11 @@
         },
         {
             "name": "peanut-business/peanut-file",
-            "version": "1.0.36",
+            "version": "1.0.38",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/file",
-                "reference": "0daad59b26fe38eedb3b11301bc82ad44c9ab4c0"
+                "reference": "748a7d6eedd5e6caa806905dee38342fb2c35822"
             },
             "require": {
                 "aws/aws-sdk-php": "^3.0",
@@ -2085,16 +2085,16 @@
         },
         {
             "name": "peanut-business/peanut-import-export",
-            "version": "1.0.31",
+            "version": "1.0.32",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/import_export",
-                "reference": "b797314f5ec55f6cb2e36dfe516e2d0920581898"
+                "reference": "507f4cc896688d27fb8f7757d81456a52c0b38e1"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
                 "peanut-admin/module-composition-host": "^1.0",
-                "peanut-business/peanut-file": "^1.0",
+                "peanut-business/peanut-file": "^1.0.38",
                 "peanut-business/peanut-identity": "^4.0.0-rc.32",
                 "peanut-business/peanut-integration": "^1.0",
                 "peanut-business/peanut-settings": "^1.0",

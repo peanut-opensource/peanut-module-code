@@ -119,14 +119,27 @@ final class HarnessFiles implements FileMediaGateway
         rewind($stream);
         return $stream;
     }
-    public function storePrivateCsv(AuthorizedOperationContext $context, string $operationKey, string $purpose, string $filename, $stream): string
-    {
+    public function storePrivateCsv(
+        AuthorizedOperationContext $context,
+        string $operationKey,
+        string $purpose,
+        string $filename,
+        $stream,
+        ?\Closure $assertAuthority = null,
+        ?\Closure $publish = null,
+    ): string {
         $content = stream_get_contents($stream);
         if (!is_string($content)) {
             throw ImportExportException::fileUnavailable();
         }
         $key = 'file_' . substr(hash('sha256', $operationKey . '|' . $purpose), 0, 32);
-        $this->outputs[$key] = $content;
+        $assertAuthority?->__invoke();
+        if ($publish === null || Db::transaction(static function () use ($assertAuthority, $publish, $key): bool {
+            $assertAuthority();
+            return $publish($key);
+        })) {
+            $this->outputs[$key] = $content;
+        }
         return $key;
     }
 }

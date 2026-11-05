@@ -568,7 +568,6 @@ function assertInFlightExportRevocation(
         $result = $operationQuery->fetch(PDO::FETCH_ASSOC);
         $newObjects = $pdo->query('SELECT file_key,status FROM pa_file_object WHERE id > ' . $maxObject)->fetchAll(PDO::FETCH_ASSOC);
         $entriesUnchanged = (int) $pdo->query('SELECT COUNT(*) FROM pa_file')->fetchColumn() === $entryCount;
-        $grantsUnchanged = (int) $pdo->query('SELECT COUNT(*) FROM pa_file_delivery_grant')->fetchColumn() === $grantCount;
         $diskUnchanged = $diskSnapshot() === $diskBefore;
         $audit = $pdo->prepare("SELECT COUNT(*) FROM pa_tenant_audit_event WHERE tenant_id=? AND target_resource_id=? AND event_type='tenant.import_export.succeeded' AND outcome='success'");
         $audit->execute([$actor->tenantId, $operation->operationKey]);
@@ -596,6 +595,7 @@ function assertInFlightExportRevocation(
                 }
             }
         }
+        $grantsUnchanged = (int) $pdo->query('SELECT COUNT(*) FROM pa_file_delivery_grant')->fetchColumn() === $grantCount;
         $effects = ['insert_barrier_observed' => true, 'connection_id' => $blockedConnection,
             'job_denied' => ($job['status'] ?? null) === 'dead' && ($job['last_error_code'] ?? null) === 'TASK_PERMISSION_DENIED',
             'operation_preserved' => is_array($result),

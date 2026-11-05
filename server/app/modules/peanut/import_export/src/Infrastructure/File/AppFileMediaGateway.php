@@ -44,8 +44,15 @@ final readonly class AppFileMediaGateway implements FileMediaGateway
             }
         }
     }
-    public function storePrivateCsv(AuthorizedOperationContext $context, string $operationKey, string $purpose, string $filename, $stream): string
-    {
+    public function storePrivateCsv(
+        AuthorizedOperationContext $context,
+        string $operationKey,
+        string $purpose,
+        string $filename,
+        $stream,
+        ?\Closure $assertAuthority = null,
+        ?\Closure $publish = null,
+    ): string {
         if (!is_resource($stream) || $purpose !== 'result' || preg_match('/^iox_[0-9a-f]{32}$/D', $operationKey) !== 1) {
             throw ImportExportException::fileUnavailable();
         }
@@ -65,7 +72,16 @@ final readonly class AppFileMediaGateway implements FileMediaGateway
             if (!is_int($bytes) || $bytes < 1 || $bytes > 20 * 1024 * 1024) {
                 throw ImportExportException::limitExceeded();
             }
-            $stored = $this->storage->storePath($context->tenantContext->tenantId, $context->tenantContext->memberId, 'export.csv', $temporary, $filename, 'text/csv');
+            $stored = $this->storage->storePath(
+                $context->tenantContext->tenantId,
+                $context->tenantContext->memberId,
+                'export.csv',
+                $temporary,
+                $filename,
+                'text/csv',
+                $assertAuthority,
+                $publish,
+            );
             return $stored['file_key'];
         } finally {
             if (is_resource($output)) {
