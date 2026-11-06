@@ -16,6 +16,32 @@ use PeanutAdmin\Modules\Task\Service\TaskWorkerDefinitionRegistry;
 use app\common\execution\AdminExecutionContext;
 use app\common\execution\ExecutionContextStore;
 
+if (PHP_SAPI === 'cli' && ini_get('auto_prepend_file') === __FILE__) {
+    // Only the exact child launched below gets this shutdown observer and its dedicated FD.
+    $arguments = $_SERVER['argv'] ?? [];
+    register_shutdown_function(static function () use ($arguments): void {
+        $app = $GLOBALS['app'] ?? null; // The App constructed by the real server/think entry.
+        $runtimeType = \PeanutAdmin\Modules\Task\Contract\TaskJobRuntime::class;
+        if (count($arguments) !== 4 || $arguments[1] !== 'tenant-task:work'
+            || !preg_match('/^--job-key=(job_[a-f0-9]{32})$/D', $arguments[3], $job)
+            || !$app instanceof \think\App || $app !== \think\Container::getInstance()
+            || realpath($arguments[0]) !== realpath($app->getRootPath() . 'think')
+            || !$app->exists($runtimeType) || !$app->exists(ExecutionContextStore::class)) {
+            return;
+        }
+        $runtime = $app->make($runtimeType);
+        $store = $app->make(ExecutionContextStore::class);
+        if (!$runtime instanceof \PeanutAdmin\Modules\Task\Infrastructure\Runtime\ThinkPhpTaskJobRuntime
+            || (new ReflectionProperty($runtime, 'executionContexts'))->getValue($runtime) !== $store) {
+            return;
+        }
+        $record = ['pid' => getmypid(), 'job_sha256' => hash('sha256', $job[1]),
+            'empty' => $store->isEmpty(), 'root_null' => $store->rootIdentity() === null];
+        file_put_contents('php://fd/3', json_encode($record, JSON_THROW_ON_ERROR) . "\n");
+    });
+    return;
+}
+
 function expectAsyncTenant(bool $condition, string $message): void
 {
     $GLOBALS['taskImportExportChecks'] = ($GLOBALS['taskImportExportChecks'] ?? 0) + 1;
@@ -486,7 +512,9 @@ function assertInFlightExportRevocation(
     $revoked = false;
     $stdout = tmpfile();
     $stderr = tmpfile();
-    expectAsyncTenant(is_resource($stdout) && is_resource($stderr), 'native worker output streams are unavailable');
+    $contextObservation = tmpfile();
+    $childContext = null;
+    expectAsyncTenant(is_resource($stdout) && is_resource($stderr) && is_resource($contextObservation), 'native worker output streams are unavailable');
     $workerExit = null;
     $workerPid = null;
     $blockedConnection = null;
@@ -498,8 +526,8 @@ function assertInFlightExportRevocation(
         expectAsyncTenant(\think\facade\Db::connect()->getPdo() === $pdo && $pdo->inTransaction(), 'gap lock and Role service must share the active native transaction');
         $pdo->query('SELECT id FROM pa_file_object FORCE INDEX (PRIMARY) WHERE id > ' . $maxObject . ' FOR UPDATE')->fetchAll();
         $guard(true);
-        $worker = proc_open([PHP_BINARY, $app->getRootPath() . 'think', 'tenant-task:work', (string) $actor->tenantId,
-            '--job-key=' . $operation->taskJobKey], [0 => ['pipe', 'r'], 1 => $stdout, 2 => $stderr], $pipes, $app->getRootPath());
+        $worker = proc_open([PHP_BINARY, '-d', 'auto_prepend_file=' . __FILE__, $app->getRootPath() . 'think', 'tenant-task:work', (string) $actor->tenantId,
+            '--job-key=' . $operation->taskJobKey], [0 => ['pipe', 'r'], 1 => $stdout, 2 => $stderr, 3 => $contextObservation], $pipes, $app->getRootPath());
         expectAsyncTenant(is_resource($worker), 'native exact-job worker could not start');
         $workerPid = (int) proc_get_status($worker)['pid'];
         fclose($pipes[0]);
@@ -549,9 +577,11 @@ function assertInFlightExportRevocation(
         $workerOutput = stream_get_contents($stdout);
         $workerError = stream_get_contents($stderr);
         expectAsyncTenant($workerExit === 0 && preg_match('/processed=1(?:\R|$)/', $workerOutput) === 1, 'exact-job CLI did not process its job');
-        // Absence of the native leak diagnostic is not direct observation of the child's store.
+        rewind($contextObservation);
+        $childContext = json_decode(stream_get_contents($contextObservation), true, 8, JSON_THROW_ON_ERROR);
+        expectAsyncTenant($childContext === ['pid' => $workerPid, 'job_sha256' => hash('sha256', (string) $operation->taskJobKey),
+            'empty' => true, 'root_null' => true], 'exact-job child did not release its actual worker execution store');
         expectAsyncTenant(!str_contains($workerError, 'execution context stack not empty'), 'native child CLI emitted a context-leak diagnostic');
-        fwrite(STDERR, "CHILD_CONTEXT_RELEASE_NOT_RUN: no direct observation of the child store\n");
         $freshActor = $refreshActor();
         expectAsyncTenant(
             $freshActor->tenantId === $actor->tenantId && $freshActor->memberId === $actor->memberId
@@ -596,7 +626,7 @@ function assertInFlightExportRevocation(
             }
         }
         $grantsUnchanged = (int) $pdo->query('SELECT COUNT(*) FROM pa_file_delivery_grant')->fetchColumn() === $grantCount;
-        $effects = ['insert_barrier_observed' => true, 'connection_id' => $blockedConnection,
+        $effects = ['insert_barrier_observed' => true, 'child_context_released' => true, 'connection_id' => $blockedConnection,
             'job_denied' => ($job['status'] ?? null) === 'dead' && ($job['last_error_code'] ?? null) === 'TASK_PERMISSION_DENIED',
             'operation_preserved' => is_array($result),
             'operation_not_succeeded' => ($result['status'] ?? null) !== 'succeeded',
@@ -656,7 +686,7 @@ function assertInFlightExportRevocation(
                 $records = [
                     '.stdout.log' => (string) stream_get_contents($stdout),
                     '.stderr.log' => (string) stream_get_contents($stderr),
-                    '.status.json' => json_encode(['pid' => $workerPid, 'exit_code' => $workerExit,
+                    '.status.json' => json_encode(['pid' => $workerPid, 'exit_code' => $workerExit, 'child_context' => $childContext,
                         'insert_barrier_observed' => $blockedConnection !== null, 'revocation_committed' => $revoked], JSON_THROW_ON_ERROR) . "\n",
                 ];
                 foreach ($records as $suffix => $body) {
@@ -675,6 +705,7 @@ function assertInFlightExportRevocation(
             } finally {
                 fclose($stdout);
                 fclose($stderr);
+                fclose($contextObservation);
             }
         }
     }
