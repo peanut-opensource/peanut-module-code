@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9cc1ca2a2e5251f159713d1d2acf40a3",
+    "content-hash": "ac7039df1e0ec8545c3e46cea31c366f",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -278,6 +278,43 @@
                 }
             ],
             "time": "2025-08-20T19:15:30+00:00"
+        },
+        {
+            "name": "custom/custom-ai-assistant",
+            "version": "1.2.0",
+            "dist": {
+                "type": "path",
+                "url": "app/modules/custom/ai_assistant",
+                "reference": "740a7ccdc87a3c49f5b8202b735e53d0c7199183"
+            },
+            "require": {
+                "peanut-business/peanut-document": "^1.0.14",
+                "peanut-business/peanut-file": "^1.0.0",
+                "peanut-business/peanut-identity": "^4.0.0-rc.32",
+                "peanut-business/peanut-settings": "^1.0.24",
+                "peanut-business/peanut-task": "^1.0.27"
+            },
+            "type": "peanut-admin-module",
+            "extra": {
+                "peanut": {
+                    "editions": [
+                        "multi-tenant"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Custom\\Modules\\AiAssistant\\": "src/"
+                }
+            },
+            "license": [
+                "Apache-2.0"
+            ],
+            "description": "AI production configuration, native tasks, protected candidates and human adoption.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
         },
         {
             "name": "dragonmantank/cron-expression",
@@ -2203,11 +2240,11 @@
         },
         {
             "name": "peanut-business/peanut-article",
-            "version": "1.0.16",
+            "version": "1.0.17",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/article",
-                "reference": "4fae80b21d3b78b1c770c592ce0bad028c4f0880"
+                "reference": "0f645b4b7a123c3e00b3f32e49caaf1d8ee8e5f7"
             },
             "require": {
                 "peanut-business/peanut-document": "^1.0",
@@ -2363,11 +2400,11 @@
         },
         {
             "name": "peanut-business/peanut-document",
-            "version": "1.0.15",
+            "version": "1.0.16",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/document",
-                "reference": "70abd1b891a9e24ef8890adbe38344b9212f6c34"
+                "reference": "6790637dda62824917fc8c0bd0f2e1e691b4b838"
             },
             "require": {
                 "peanut-business/peanut-file": "^1.0",
@@ -2773,11 +2810,11 @@
         },
         {
             "name": "peanut-business/peanut-rich-text",
-            "version": "1.0.13",
+            "version": "1.0.15",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/rich_text",
-                "reference": "00f4416dce5064ca17c49748a52b9eb4bbd4c612"
+                "reference": "13917d79a0d5d5010f82ea03e3af6abbb8366f62"
             },
             "require": {
                 "peanut-business/peanut-identity": "^4.0.0-rc.32"
