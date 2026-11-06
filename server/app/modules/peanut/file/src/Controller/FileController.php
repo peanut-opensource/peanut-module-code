@@ -9,7 +9,10 @@ use PeanutAdmin\Modules\File\Contract\FileAdministration;
 use PeanutAdmin\Modules\File\Validation\FileCateValidate;
 use app\common\exception\BusinessException;
 
-/** @property-read FileAdministration $files 当前 App 中声明式解析的控制器依赖。 */
+/**
+ * @property-read FileAdministration $files 当前 App 中声明式解析的控制器依赖。
+ * @property-read \PeanutAdmin\Modules\File\Contract\FileDocumentSnapshots $snapshots 当前 App 中声明式解析的控制器依赖。
+ */
 class FileController extends BaseAdminController
 {
     protected string $filesClass = FileAdministration::class;
