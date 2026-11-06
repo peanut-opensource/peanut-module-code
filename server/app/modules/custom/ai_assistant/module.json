@@ -3,7 +3,7 @@
   "key": "custom.ai-assistant",
   "name": "AI制作助手",
   "description": "受控连接与能力路由、原生任务、固定候选、用量和人工采纳",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "custom/custom-ai-assistant",

@@ -82,8 +82,13 @@ final readonly class AiConfiguration
             $r->secret_payload = AiAccess::json($sealed);
             $d['credential_configured'] = true;
             $this->access->update($r, $d);
-            $result = AiAccess::present($r);
-            $this->access->event($c, 'connection', $r, 'credential', $request, $input, $result);
+            $stored = $this->access->find($c, 'connection', $id, 'configure', true);
+            if ((int) $stored->version !== $version + 1 || !(AiAccess::data($stored)['credential_configured'] ?? false)
+                || !$stored->secret_payload || AiAccess::hash(AiAccess::decode($stored->secret_payload)) !== AiAccess::hash($sealed)) {
+                throw BusinessException::conflict('AI_CREDENTIAL_WRITE_UNCONFIRMED', '未能核实凭据已保存，请核对连接后重试');
+            }
+            $result = AiAccess::present($stored);
+            $this->access->event($c, 'connection', $stored, 'credential', $request, $input, $result, ['stored_version' => $version + 1]);
             return $result;
         });
     }

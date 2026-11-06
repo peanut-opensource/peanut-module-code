@@ -75,11 +75,11 @@ final readonly class AiAccess
     {
         $r->save(['details' => self::json($data),'status' => $status ?? $r->status,'version' => (int) $r->version + 1,'updated_at' => time()]);
     }
-    public function event(TenantContext $c, string $kind, Model $r, string $action, string $request, array $input, array $safeResult = []): void
+    public function event(TenantContext $c, string $kind, Model $r, string $action, string $request, array $input, array $safeResult = [], array $evidence = []): void
     {
         $system = $this->execution->current() instanceof \app\common\execution\SystemExecutionContext;
         $event = new Event();
-        $event->save(['title' => $action,'status' => 'recorded','version' => 1,'created_by' => $c->memberId,'details' => self::json(['kind' => $kind,'input_hash' => self::hash($input),'result' => $safeResult,'actor' => $system ? ['type' => 'task_system','actor_key' => $this->execution->system()->actorKey,'initiating_member_id' => $c->memberId] : ['type' => 'tenant_member','member_id' => $c->memberId,'account_id' => $c->accountId]]),'request_id' => $request,'created_at' => time(),'updated_at' => time(),'parent_id' => (int) $r->id,'actor_type' => $system ? 'task_system' : 'tenant_member']);
+        $event->save(['title' => $action,'status' => 'recorded','version' => 1,'created_by' => $c->memberId,'details' => self::json(['kind' => $kind,'input_hash' => self::hash($input),'result' => $safeResult,'actor' => $system ? ['type' => 'task_system','actor_key' => $this->execution->system()->actorKey,'initiating_member_id' => $c->memberId] : ['type' => 'tenant_member','member_id' => $c->memberId,'account_id' => $c->accountId]] + ($evidence === [] ? [] : ['evidence' => $evidence])),'request_id' => $request,'created_at' => time(),'updated_at' => time(),'parent_id' => (int) $r->id,'actor_type' => $system ? 'task_system' : 'tenant_member']);
         if ($system) {
             $this->audit->appendTenantSystem($c->tenantId, 'custom.ai-assistant.' . $action, $action, $request, ['kind' => $kind,'id' => (int) $r->id,'version' => (int) $r->version]);
         } else {
@@ -95,7 +95,16 @@ final readonly class AiAccess
         }$d = self::data($e);
         if ($e->title !== $action || (int) $e->parent_id !== $id || (int) $e->created_by !== $c->memberId || ($d['kind'] ?? null) !== $kind || $d['input_hash'] !== self::hash($input)) {
             throw BusinessException::conflict('AI_REQUEST_CONFLICT', '相同请求标识对应不同操作');
-        }return $d['result'];
+        }
+        if ($action === 'credential' && !self::credentialWriteVerified($d)) {
+            throw BusinessException::conflict('AI_CREDENTIAL_RECEIPT_UNVERIFIED', '原回执缺少存储验证，请核对当前连接并用新请求重新绑定');
+        }
+        return $d['result'];
+    }
+    public static function credentialWriteVerified(array $event): bool
+    {
+        $version = $event['evidence']['stored_version'] ?? null;
+        return is_int($version) && $version > 1 && $version === ($event['result']['version'] ?? null);
     }
     public function history(TenantContext $c, string $kind, int $id, ?int $before, int $limit): array
     {

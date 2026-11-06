@@ -2,7 +2,7 @@
   "name": "custom/custom-ai-assistant",
   "description": "AI production configuration, native tasks, protected candidates and human adoption.",
   "type": "peanut-admin-module",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "license": "Apache-2.0",
   "extra": {
     "peanut": {

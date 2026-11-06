@@ -3,11 +3,11 @@
     "modules": [
         {
             "key": "custom.ai-assistant",
-            "version": "1.2.0",
+            "version": "1.2.1",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "301b4fd0e400848966240b20bca5554adab9700485f2d1b5b0e0c7df811a1278"
+                "sha256": "7d4fe7f84e0b2b53c6a6b30d67d21c88a0c2b7cd69c6c76cb2b4d90c11f271a7"
             },
             "trust": {
                 "channel": "bundled",
@@ -41,7 +41,7 @@
                     "modules": [
                         {
                             "key": "custom.ai-assistant",
-                            "version": "1.2.0",
+                            "version": "1.2.1",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -76,22 +76,22 @@
             "composer": [
                 {
                     "name": "custom/custom-ai-assistant",
-                    "version": "1.2.0",
-                    "sha256": "dfbc4a759b9639197f00069e4a2ed2c70173249f0e2d91867db2673a37d36f1a"
+                    "version": "1.2.1",
+                    "sha256": "6544fecbdccbc4bbe804a0c9897792657c848403da0ecd28bba3d5a8b3615a82"
                 }
             ],
             "npm": [
                 {
                     "name": "@custom/custom-ai-assistant",
-                    "version": "1.2.0",
-                    "integrity": "sha256-M5RawAEl5kpDz2Pgv6daz5ANO2AZ6o6pIcYtrB+GceI="
+                    "version": "1.2.1",
+                    "integrity": "sha256-8ZVSIHhLl/tcdnyGjULYXah20sHzMdNsmYPlCe0Bxio="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "admin-web",
                     "package": "@custom/custom-ai-assistant",
-                    "version": "1.2.0",
+                    "version": "1.2.1",
                     "entry": "web/src/modules/custom-ai-assistant/contribution.ts",
                     "sha256": "fd39850882ceec5e35be865262e787bddf653502f1122e4a727e98b83d9e65fb"
                 }
@@ -103,7 +103,7 @@
                 }
             ],
             "manifest": "server/app/modules/custom/ai_assistant/module.json",
-            "manifest_sha256": "24d4e4a2bc862a3d0fc3e74570eea559b29613c259c935f97bd5bd829063320f"
+            "manifest_sha256": "00ee3bb1c66d89f2a37bf103382cb21fe0571bab75c82652bda527f28c24ac31"
         },
         {
             "key": "peanut.article",

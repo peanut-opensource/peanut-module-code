@@ -96,6 +96,9 @@ final readonly class AiRequestStatus
             if ((int) $event->created_by !== $c->memberId || (int) $event->parent_id !== (int) $row->id || $event->actor_type !== 'tenant_member' || ($e['kind'] ?? null) !== $d['kind'] || $event->title !== $d['event_action']) {
                 throw BusinessException::conflict('AI_REQUEST_CONFLICT', '原请求标识不属于该实际成员、对象或操作');
             }
+            if ($d['endpoint'] === 'saveCredential' && !AiAccess::credentialWriteVerified($e)) {
+                return $this->result($c, $d, 'unconfirmed', $e['result'] ?? null, true, 'credential_receipt_without_storage_proof');
+            }
             if ($d['endpoint'] === 'candidateLifecycle') {
                 if (!is_string($e['input_hash'] ?? null) || preg_match('/^[a-f0-9]{64}$/D', $e['input_hash']) !== 1 || !is_array($e['result'] ?? null)) {
                     return $this->result($c, $d, 'unconfirmed', null, true, 'committed_receipt_missing_input_proof');

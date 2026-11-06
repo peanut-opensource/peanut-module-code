@@ -145,7 +145,25 @@ $store->run(new AdminExecutionContext($actor,'http.admin',['id'=>7]), function (
     }
     $make = function (string $kind, array $data, string $tag) use ($config,$actor,$key) {
         $r = $config->save($actor,$kind,null,null,'DEV '.$tag,$data,'cfg-'.$tag);
-        if ($kind === 'connection') $r = $config->secret($actor,$r['id'],$r['version'],$key,'secret-'.$tag);
+        if ($kind === 'connection') {
+            $version = $r['version'];
+            $request = 'secret-'.$tag;
+            $r = $config->secret($actor,$r['id'],$version,$key,$request);
+            $read = fn() => Db::table('ai_assistant_config')->where('id',$r['id'])->find();
+            $stored = $read();
+            check((int)$stored['version'] === $version+1 && $stored['secret_payload'] && json_decode($stored['details'],true)['credential_configured'], 'credential persisted');
+            check($config->secret($actor,$r['id'],$version,$key,$request) === $r && $read()['secret_payload'] === $stored['secret_payload'], 'replay does not rotate ciphertext');
+            if ($tag === 'one-connection') {
+                $event = Db::table('ai_assistant_event')->where('request_id',$request)->find();
+                $old = json_decode($event['details'],true,64,JSON_THROW_ON_ERROR);
+                unset($old['evidence'],$event['id']);
+                $event['details'] = json_encode($old,JSON_THROW_ON_ERROR);
+                $event['request_id'] = 'DEV-legacy-receipt';
+                Db::table('ai_assistant_event')->insert($event);
+                denied('AI_CREDENTIAL_RECEIPT_UNVERIFIED', fn()=> $config->secret($actor,$r['id'],$version,$key,'DEV-legacy-receipt'));
+                check($read()['secret_payload'] === $stored['secret_payload'], 'historical event cannot rotate credential');
+            }
+        }
         return $config->state($actor,$kind,$r['id'],$r['version'],'enable','enable-'.$tag,'DEV probe')['id'];
     };
     $configure = function (string $protocol,string $origin,string $prefix,string $model,string $tag) use ($make) {

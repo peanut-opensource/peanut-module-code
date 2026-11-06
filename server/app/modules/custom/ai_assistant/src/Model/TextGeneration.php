@@ -9,6 +9,7 @@ use app\common\model\TenantOwnedModel;
 final class TextGeneration extends TenantOwnedModel
 {
     protected $name = 'ai_assistant_text_generation';
+    protected $pk = 'id';
     protected $autoWriteTimestamp = false;
     protected $schema = [
         'id' => 'int', 'tenant_id' => 'int', 'created_by' => 'int', 'request_id' => 'string',
