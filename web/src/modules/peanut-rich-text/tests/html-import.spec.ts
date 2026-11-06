@@ -70,4 +70,36 @@ describe('explicit HTML import preview', () => {
       ' a  b & <x> '
     );
   });
+
+  it('accepts adjacent equivalent inline marks without losing their text', () => {
+    const preview = previewRichTextHtml(
+      '<p><strike>S</strike><del>D</del></p>'
+    );
+    expect(preview, JSON.stringify(preview)).toMatchObject({ ok: true });
+    if (!preview.ok) return;
+    expect(preview.document.content.content?.[0].content).toEqual([
+      { type: 'text', text: 'SD', marks: [{ type: 'strike' }] },
+    ]);
+  });
+
+  it('retains block boundaries and different link destinations', () => {
+    const preview = previewRichTextHtml(
+      '<p><b>A</b></p><p><strong>B</strong><a href="https://one.invalid">C</a><a href="https://two.invalid">D</a></p>'
+    );
+    expect(preview, JSON.stringify(preview)).toMatchObject({ ok: true });
+    if (!preview.ok) return;
+    const paragraphs = preview.document.content.content;
+    expect(paragraphs?.length).toBe(2);
+    expect(paragraphs?.[0].content?.[0].text).toBe('A');
+    expect(paragraphs?.[1].content?.map((node) => node.text)).toEqual([
+      'B',
+      'C',
+      'D',
+    ]);
+    expect(
+      paragraphs?.[1].content
+        ?.slice(1)
+        .map((node) => node.marks?.[0].attrs?.href)
+    ).toEqual(['https://one.invalid', 'https://two.invalid']);
+  });
 });

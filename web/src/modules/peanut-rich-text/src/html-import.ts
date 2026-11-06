@@ -65,7 +65,8 @@ const blocked = (code: string, message: string): RichTextHtmlImportPreview => ({
   limitations: [{ code, message }],
 });
 
-// Normalize only equivalent HTML spelling and schema-owned default attributes.
+// Normalize equivalent HTML spelling, adjacent identical inline marks and
+// schema-owned default attributes. Block boundaries are never merged.
 // Structural repairs, removed marks and text changes remain observable differences.
 const canonical = (root: ParentNode): string => {
   const aliases: Record<string, string> = {
@@ -74,33 +75,61 @@ const canonical = (root: ParentNode): string => {
     strike: 's',
     del: 's',
   };
-  const children = (parent: ParentNode): unknown[] =>
-    Array.from(parent.childNodes).flatMap((node): unknown[] => {
-      if (node.nodeType === 3) return [node.textContent];
-      if (node.nodeType !== 1) return [];
-      const element = node as Element;
-      const tag = aliases[element.localName] ?? element.localName;
-      if (tag === 'tbody') return children(element);
-      const attrs = Object.fromEntries(
-        Array.from(element.attributes)
-          .filter(
-            (attr) =>
-              !(
-                (tag === 'ol' && attr.name === 'start' && attr.value === '1') ||
-                (['td', 'th'].includes(tag) &&
-                  ['colspan', 'rowspan'].includes(attr.name) &&
-                  attr.value === '1')
-              )
-          )
-          .map((attr) => [attr.name, attr.value])
-          .sort(([left], [right]) => left.localeCompare(right))
-      );
-      if (tag === 'a') {
-        attrs.target ??= '_blank';
-        attrs.rel ??= 'noopener noreferrer';
+  type CanonicalNode = string | [string, [string, string][], CanonicalNode[]];
+  const inlineMarks = new Set(['strong', 'em', 's', 'u', 'a', 'code']);
+  const mergeInline = (nodes: CanonicalNode[]): CanonicalNode[] => {
+    const result: CanonicalNode[] = [];
+    for (const node of nodes) {
+      const previous = result[result.length - 1];
+      if (typeof node === 'string' && typeof previous === 'string') {
+        result[result.length - 1] = previous + node;
+      } else if (
+        Array.isArray(node) &&
+        Array.isArray(previous) &&
+        inlineMarks.has(node[0]) &&
+        node[0] === previous[0] &&
+        node[2].length > 0 &&
+        previous[2].length > 0 &&
+        JSON.stringify(node[1]) === JSON.stringify(previous[1])
+      ) {
+        previous[2] = mergeInline([...previous[2], ...node[2]]);
+      } else {
+        result.push(node);
       }
-      return [[tag, Object.entries(attrs).sort(), children(element)]];
-    });
+    }
+    return result;
+  };
+  const children = (parent: ParentNode): CanonicalNode[] =>
+    mergeInline(
+      Array.from(parent.childNodes).flatMap((node): CanonicalNode[] => {
+        if (node.nodeType === 3) return [node.textContent ?? ''];
+        if (node.nodeType !== 1) return [];
+        const element = node as Element;
+        const tag = aliases[element.localName] ?? element.localName;
+        if (tag === 'tbody') return children(element);
+        const attrs = Object.fromEntries<string>(
+          Array.from(element.attributes)
+            .filter(
+              (attr) =>
+                !(
+                  (tag === 'ol' &&
+                    attr.name === 'start' &&
+                    attr.value === '1') ||
+                  (['td', 'th'].includes(tag) &&
+                    ['colspan', 'rowspan'].includes(attr.name) &&
+                    attr.value === '1')
+                )
+            )
+            .map((attr): [string, string] => [attr.name, attr.value])
+            .sort(([left], [right]) => left.localeCompare(right))
+        );
+        if (tag === 'a') {
+          attrs.target ??= '_blank';
+          attrs.rel ??= 'noopener noreferrer';
+        }
+        return [[tag, Object.entries(attrs).sort(), children(element)]];
+      })
+    );
   return JSON.stringify(children(root));
 };
 
