@@ -580,14 +580,18 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
     public function pendingDocumentSnapshots(TenantContext $context): array
     {
         $this->authorization->requireManagementPermission($context, 'peanut.file.delete');
-        $objects = $this->ownedObjects($context->tenantId)->whereIn('purpose', ['document.snapshot','document.snapshot-sensitive'])->where('created_at', '<', gmdate('Y-m-d H:i:s', time() - 3600))->order('created_at')->limit(100)->select()->toArray();
-        return array_values(array_filter(array_map(function (array $object): ?array {
+        // Exclude completed/claimed objects before limiting so they cannot starve the recovery batch.
+        $objects = $this->ownedObjects($context->tenantId)
+            ->whereIn('purpose', ['document.snapshot','document.snapshot-sensitive'])
+            ->whereNull('snapshot_cleanup_acknowledged_at')
+            ->whereNotIn('file_key', new Raw(FileImmutableSnapshot::whereIn('status', ['claimed', 'abandoned'])->field('file_key')->buildSql()))
+            ->whereNotIn('file_key', new Raw(FileReference::where([])->field('file_key')->buildSql()))
+            ->where('created_at', '<', gmdate('Y-m-d H:i:s', time() - 3600))
+            ->order('created_at')->order('file_key')->limit(100)->select()->toArray();
+        return array_map(function (array $object): array {
             $capture = FileImmutableSnapshot::where('file_key', $object['file_key'])->find();
-            if ($capture?->status === 'claimed' || $capture?->status === 'abandoned' || FileReference::where('file_key', $object['file_key'])->find() !== null) {
-                return null;
-            }
             return ['file_key' => $object['file_key'],'status' => $capture?->status ?? 'interrupted_capture','created_at' => $object['created_at']];
-        }, $objects)));
+        }, $objects);
     }
 
     public function recoverDocumentSnapshot(TenantContext $context, string $fileKey): array
@@ -615,6 +619,9 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
                 || Db::name('file_derivative')->where('source_file_key|derivative_file_key', $key)->find() !== null) {
                 throw BusinessException::conflict('FILE_SNAPSHOT_RECOVERY_DENIED', '快照已被认领、仍被引用或尚未进入恢复窗口');
             }
+            if ($object['snapshot_cleanup_acknowledged_at'] !== null || $capture?->status === 'abandoned') {
+                return ['cleanup_complete' => true];
+            }
             $this->ownedObjects($context->tenantId)->where('file_key', $key)->update(['status' => 'archived','archived_at' => new Raw('UTC_TIMESTAMP(3)'),'updated_at' => new Raw('UTC_TIMESTAMP(3)'),'revision' => new Raw('revision+1')]);
             $capture?->save(['status' => 'cleanup_pending']);
             $space = StorageSpace::where('id', $object['storage_space_id'])->lock(true)->find();
@@ -629,9 +636,17 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
             $this->audit->appendTenantMember($context, 'file.snapshot.cleanup_intent', 'file.snapshot.recover', 'file', $key);
             return $configured;
         });
+        if (isset($object['cleanup_complete'])) {
+            return ['file_key' => $key,'cleanup_pending' => false,'provider_delete_acknowledged' => true];
+        }
         try {
             $receipt = $this->drivers->make($object, $object)->delete((string) $object['object_key']);
-            FileImmutableSnapshot::where('file_key', $key)->update(['status' => 'abandoned']);
+            Db::transaction(function () use ($context, $key): void {
+                // The object ledger also survives interrupted captures which have no capture row.
+                $this->ownedObjects($context->tenantId)->where('file_key', $key)->lock(true)->find();
+                $this->ownedObjects($context->tenantId)->where('file_key', $key)->update(['snapshot_cleanup_acknowledged_at' => new Raw('UTC_TIMESTAMP(3)')]);
+                FileImmutableSnapshot::where('file_key', $key)->update(['status' => 'abandoned']);
+            });
             $result = ['file_key' => $key,'cleanup_pending' => false,'provider_delete_acknowledged' => true,'provider_outcome' => $receipt->outcome];
         } catch (\Throwable) {
             $result = ['file_key' => $key,'cleanup_pending' => true,'provider_delete_acknowledged' => false];
