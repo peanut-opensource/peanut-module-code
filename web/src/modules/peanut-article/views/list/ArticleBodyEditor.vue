@@ -16,6 +16,15 @@
       class="article-document-editor"
       :disabled="busy || enablingCollaboration || !!targetAttempt || !!attempt"
     >
+      <component
+        :is="AiTextDraft"
+        v-if="AiTextDraft"
+        :key="context"
+        consumer-module="peanut.article"
+        :context-key="context"
+        :disabled="!canAppendDraft"
+        @adopt="adoptDraft"
+      />
       <DocumentEditor
         ref="documentEditor"
         :document-id="editor.document_id"
@@ -97,6 +106,8 @@
 <script setup lang="ts">
   import {
     computed,
+    defineAsyncComponent,
+    type Component,
     nextTick,
     onBeforeUnmount,
     ref,
@@ -147,6 +158,12 @@
     | 'request_id'
   >;
 
+  const panels = import.meta.glob<Component>(
+    '/src/modules/custom-ai-assistant/optional-runtime/AiTextDraft.vue',
+    { import: 'default' }
+  );
+  const loadDraftPanel = Object.values(panels)[0];
+  const AiTextDraft = loadDraftPanel && defineAsyncComponent(loadDraftPanel);
   const props = defineProps<{ articleId: number; contextKey: string }>();
   const emit = defineEmits<{
     (event: 'saved', value: ArticleBodySaved): void;
@@ -220,6 +237,14 @@
   const phase = ref<
     'idle' | 'pending' | 'unknown' | 'completed' | 'conflicted'
   >('idle');
+  const canAppendDraft = computed(() =>
+    mountedEditor.value && editor.value?.can_edit === true && !reloadRequired.value &&
+    !busy.value && !enablingCollaboration.value && !documentOperationLocked.value &&
+    !targetAttempt.value && !attempt.value && ['saved', 'idle', 'persisting'].includes(saveState.value)
+  );
+  function adoptDraft(text: string, acknowledge: (accepted: boolean) => void) {
+    acknowledge(canAppendDraft.value && documentEditor.value?.appendPlainText(text) === true);
+  }
   const canEnableCollaboration = computed(
     () =>
       mountedEditor.value &&

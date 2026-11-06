@@ -1,0 +1,567 @@
+[
+  {
+    "key": "custom.ai-assistant.connection",
+    "name": "AI连接",
+    "ownership": "tenant_owned",
+    "provider": "Custom\\Modules\\AiAssistant\\Service\\AiScopeProvider",
+    "operations": [
+      {
+        "key": "view",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.view"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "configure",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.configure"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "use",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.use"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "review",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.review"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "manage",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.manage"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "key": "custom.ai-assistant.model",
+    "name": "模型目录",
+    "ownership": "tenant_owned",
+    "provider": "Custom\\Modules\\AiAssistant\\Service\\AiScopeProvider",
+    "operations": [
+      {
+        "key": "view",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.view"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "configure",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.configure"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "use",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.use"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "review",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.review"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "manage",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.manage"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "key": "custom.ai-assistant.route",
+    "name": "能力路由",
+    "ownership": "tenant_owned",
+    "provider": "Custom\\Modules\\AiAssistant\\Service\\AiScopeProvider",
+    "operations": [
+      {
+        "key": "view",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.view"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "configure",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.configure"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "use",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.use"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "review",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.review"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "manage",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.manage"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "key": "custom.ai-assistant.template",
+    "name": "制作模板",
+    "ownership": "tenant_owned",
+    "provider": "Custom\\Modules\\AiAssistant\\Service\\AiScopeProvider",
+    "operations": [
+      {
+        "key": "view",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.view"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "configure",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.configure"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "use",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.use"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "review",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.review"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "manage",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.manage"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "key": "custom.ai-assistant.task",
+    "name": "AI制作任务",
+    "ownership": "tenant_owned",
+    "provider": "Custom\\Modules\\AiAssistant\\Service\\AiScopeProvider",
+    "operations": [
+      {
+        "key": "view",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.view"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "configure",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.configure"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "use",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.use"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "review",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.review"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      },
+      {
+        "key": "manage",
+        "access_mode": "rule_filtered",
+        "target_cardinality": "none",
+        "permission_match": "all",
+        "audit_level": "deny_and_write",
+        "permissions": [
+          "custom.ai-assistant.manage"
+        ],
+        "target_types": [],
+        "conditions": [
+          {
+            "key": "core.tenant_all",
+            "selector_resource_key": null
+          },
+          {
+            "key": "core.self",
+            "selector_resource_key": null
+          }
+        ]
+      }
+    ]
+  }
+]

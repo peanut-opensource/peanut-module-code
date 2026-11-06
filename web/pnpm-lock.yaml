@@ -204,6 +204,8 @@ importers:
         specifier: 3.2.5
         version: 3.2.5(typescript@5.9.3)
 
+  src/modules/custom-ai-assistant: {}
+
   src/modules/peanut-article: {}
 
   src/modules/peanut-chart:

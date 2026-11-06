@@ -92,6 +92,7 @@
     parseRichTextDocument,
     validLink,
     type RichTextDocumentValue,
+    type TextAppendBinding,
   } from '../src/document';
   import richTextExtensions from '../src/extensions';
   import type { RichTextCollaborationConfig } from './types';
@@ -103,7 +104,7 @@
       collaboration?: RichTextCollaborationConfig | null;
       contextKey?: string;
       readOnly?: boolean;
-      callbacks?: SurfaceCallbacks;
+      callbacks?: SurfaceCallbacks & TextAppendBinding;
       registry?: ContentToolRegistry;
       collaborationBinding?: ContentCollaborationBinding;
     }>(),
@@ -164,7 +165,10 @@
   let picker: AbortController | undefined;
   let boundDocument: Doc | undefined;
   let emittedProjection: RichTextDocumentValue | undefined;
+  let releaseTextAppender: (() => void) | undefined;
   const dispose = () => {
+    releaseTextAppender?.();
+    releaseTextAppender = undefined;
     emittedProjection = undefined;
     boundDocument?.off('destroy', dispose);
     boundDocument = undefined;
@@ -289,6 +293,34 @@
         },
       });
       updateToolbar(editor.value);
+      const instance = editor.value;
+      if (!props.readOnly && props.callbacks.registerTextAppender) {
+        releaseTextAppender = props.callbacks.registerTextAppender((text) => {
+          const live = props.collaborationBinding;
+          if (
+            editor.value !== instance || instance.isDestroyed || !instance.isEditable ||
+            props.readOnly || (live && (!live.ready || live.frozen || !live.writable)) ||
+            typeof text !== 'string' || !text.trim()
+          ) return false;
+          try {
+            const { state, schema } = instance;
+            const paragraphs = text.split(/\r\n|\r|\n/).map(line =>
+              schema.nodes.paragraph.create(null, line ? schema.text(line) : undefined)
+            );
+            const end = state.doc.content.size;
+            // Validate the entire prospective document before dispatching one undoable edit.
+            const emptyPlaceholder = state.doc.childCount === 1 &&
+              state.doc.firstChild?.eq(schema.nodes.paragraph.create());
+            const from = emptyPlaceholder ? 0 : end;
+            const tr = state.tr.replaceWith(from, end, paragraphs);
+            parseRichTextDocument({ ...props.modelValue, content: tr.doc.toJSON() });
+            instance.view.dispatch(tr);
+            return true;
+          } catch {
+            return false;
+          }
+        });
+      }
       emit('ready');
     } catch {
       dispose();

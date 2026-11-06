@@ -29,7 +29,8 @@
     return surface.value.prepareSaveTarget(requestId);
   };
   const releaseSaveTargetHold = () => surface.value?.releaseSaveTargetHold();
-  defineExpose({ prepareSaveTarget, releaseSaveTargetHold });
+  const appendPlainText = (text: string) => surface.value?.appendPlainText(text) === true;
+  defineExpose({ appendPlainText, prepareSaveTarget, releaseSaveTargetHold });
 
   const props = withDefaults(
     defineProps<

@@ -2949,6 +2949,346 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/adminapi/custom.ai-assistant.textRoutes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 按指定消费模块列出当前成员可使用的文本路由，各级配置均须启用，模型必须在有效期内。 */
+        get: operations["aiAssistantTextRoutes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.generateText": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description 当前登录成员确认后将本次主题、提纲和路由模板交给所选文本服务，同成员同请求只能发送一次。候选由消费者明确采用。 */
+        post: operations["aiAssistantGenerateText"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。 */
+        get: operations["aiAssistantOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。 */
+        get: operations["aiAssistantList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。 */
+        get: operations["aiAssistantDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。 */
+        get: operations["aiAssistantHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.lookups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。 */
+        get: operations["aiAssistantLookups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.saveConfiguration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description 每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。 */
+        post: operations["aiAssistantSaveConfiguration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.saveCredential": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description 仅写入SecretProtector认证密文，绑定当前tenant/真实connection；响应仅已配置状态，密钥环不可用拒绝，无明文回显或请求体通用日志。 */
+        post: operations["aiAssistantSaveCredential"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.configurationState": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description 每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。 */
+        post: operations["aiAssistantConfigurationState"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.createTask": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description 先回读同request的既有任务；固定配置及Document版本准备在事务外，原生证明在CAS事务内关联。POST外发当前严格阻断；未知另发须确认可能重复消耗。 */
+        post: operations["aiAssistantCreateTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.taskStatus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。 */
+        get: operations["aiAssistantTaskStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.taskAction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description 原生Task read/manage独立权限。取消不冒称远端取消/退款；未知POST无已确认同job回执不能重发；有真实Gemini interaction ID才允许GET核对。 */
+        post: operations["aiAssistantTaskAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.collectCandidate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description 实际Admin当前源Document/File、配置及任务范围重新授权后领取；必须原生Task succeeded和真实私有候选。输出MIME/SHA/尺寸复核，真实File/Document固定，未知写入同请求恢复不盲重传。 */
+        post: operations["aiAssistantCollectCandidate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.candidate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 实际Admin当前源与配置授权下比较固定来源/已领取候选；纯文本规范化，不执行工具或HTML，不自动审批发布。 */
+        get: operations["aiAssistantCandidate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.decide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description 真实人员按CAS留下接受/退回理由与固定结果；不更新新闻正文、业务审批或自动发布。 */
+        post: operations["aiAssistantDecide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description 每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。 */
+        post: operations["aiAssistantResolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.manualCandidate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description 人工提供的文字/PNG/WAV/MP4，当前Admin真实File授权和固定源复核。另一个原生任务仅本地验证真实字节，标记manual_text_entry/manual_upload与provider_verified=false；不调用模型，不把原未知调用改成功。 */
+        post: operations["aiAssistantManualCandidate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.requestStatus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 仅原实际成员，在当前原动作和对象范围下核对同UUID的固定回执/准备锚点；未找到永不证明未执行，不读取或返回凭据。 */
+        get: operations["aiAssistantRequestStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-assistant.candidateLifecycle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description 当前 task.view/review 范围、原UUID及对象CAS；撤回只终止旧采纳可用性。重做先保留旧固定版本，再显式建立新Task；替代须指定另一当前已采纳任务及其版本，不自动批准制作或发起外部生成。 */
+        post: operations["aiAssistantCandidateLifecycle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/adminapi/peanut.article.document.editor": {
         parameters: {
             query?: never;
@@ -8249,6 +8589,81 @@ export interface components {
             health: {
                 [key: string]: components["schemas"]["ApplicationDynamicValue"];
             };
+        };
+        AiRecord: {
+            id: number;
+            title: string;
+            status: string;
+            version: number;
+            created_by: number;
+            details: {
+                [key: string]: unknown;
+            };
+            created_at?: number;
+            updated_at?: number;
+            history?: components["schemas"]["AiRecord"][];
+            history_next_before_id?: number | null;
+            native_task?: {
+                [key: string]: unknown;
+            };
+        };
+        AiRecordResponse: {
+            code?: number;
+            msg?: string;
+            data: components["schemas"]["AiRecord"];
+            show?: number;
+        };
+        AiObjectResponse: {
+            code?: number;
+            msg?: string;
+            data: {
+                [key: string]: unknown;
+            };
+            show?: number;
+        };
+        AiPageResponse: {
+            code?: number;
+            msg?: string;
+            data: {
+                list: components["schemas"]["AiRecord"][];
+                count: number;
+            };
+            show?: number;
+        };
+        AiHistoryResponse: {
+            code?: number;
+            msg?: string;
+            data: {
+                list: components["schemas"]["AiRecord"][];
+                next_before_id: number | null;
+            };
+            show?: number;
+        };
+        AiRequestReceipt: {
+            request_id: string;
+            endpoint: string;
+            kind: string;
+            object_id: number | null;
+            actor: {
+                tenant_id: number;
+                member_id: number;
+            };
+            /** @enum {string} */
+            state: "applied" | "preparing" | "unconfirmed";
+            anchor_present: boolean;
+            evidence: string;
+            result: components["schemas"]["AiRecord"] | null;
+            /** @enum {boolean} */
+            absence_proves_not_executed: false;
+            /** @enum {boolean} */
+            provider_success: false;
+            /** @description candidateLifecycle 的持久Event原规范化五元组输入SHA；缺失不能确认本地原输入已执行 */
+            input_hash?: string;
+        };
+        AiRequestReceiptResponse: {
+            data: components["schemas"]["AiRequestReceipt"];
+            code?: number;
+            msg?: string;
         };
         ArticleBodySaveRequest: {
             id: components["schemas"]["ArticlePositiveIntegerInput"];
@@ -18176,6 +18591,808 @@ export interface operations {
             409: components["responses"]["ErrorResponse"];
             422: components["responses"]["ErrorResponse"];
             503: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantTextRoutes: {
+        parameters: {
+            query: {
+                consumer_module: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 可使用的文本路由 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: number;
+                        msg?: string;
+                        show?: number;
+                        data: {
+                            list: {
+                                id: number;
+                                title: string;
+                                version: number;
+                                /** @enum {string} */
+                                capability: "text";
+                                consumer_module: string;
+                            }[];
+                            count: number;
+                            /** @enum {integer} */
+                            page_size: 50;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantGenerateText: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    route_id: number;
+                    consumer_module: string;
+                    topic: string;
+                    outline?: string;
+                    request_id: string;
+                    /** @enum {boolean} */
+                    confirm_send: true;
+                };
+            };
+        };
+        responses: {
+            /** @description 本次已保存或原请求已保存的文本候选 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: number;
+                        msg?: string;
+                        data: {
+                            request_id: string;
+                            candidate_id: number;
+                            text: string;
+                        };
+                        show?: number;
+                    };
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiObjectResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantList: {
+        parameters: {
+            query: {
+                kind: "connection" | "model" | "route" | "template" | "task" | "usage";
+                page?: number;
+                limit?: number;
+                search?: string;
+                status?: string;
+                capability?: "text" | "image" | "speech" | "transcription" | "video";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiPageResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantDetail: {
+        parameters: {
+            query: {
+                kind: "connection" | "model" | "route" | "template" | "task" | "usage";
+                id: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiRecordResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantHistory: {
+        parameters: {
+            query: {
+                kind: "connection" | "model" | "route" | "template" | "task" | "usage";
+                id: number;
+                before_id?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiHistoryResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantLookups: {
+        parameters: {
+            query: {
+                kind: "connection" | "model" | "route" | "template";
+                operation?: "use" | "configure";
+                page?: number;
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiObjectResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantSaveConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    kind: "connection";
+                    title: string;
+                    data: {
+                        /** @enum {string} */
+                        protocol: "openai_text" | "anthropic_messages" | "openai_image" | "openai_speech" | "openai_transcription" | "gemini_video";
+                        origin: string;
+                        api_prefix: string;
+                        /** @enum {string} */
+                        responsibility: "self_deployed" | "institution_provider" | "platform_service";
+                        responsibility_note: string;
+                        daily_request_limit: number;
+                    };
+                    request_id: string;
+                } | {
+                    /** @enum {string} */
+                    kind: "connection";
+                    title: string;
+                    data: {
+                        /** @enum {string} */
+                        protocol: "openai_text" | "anthropic_messages" | "openai_image" | "openai_speech" | "openai_transcription" | "gemini_video";
+                        origin: string;
+                        api_prefix: string;
+                        /** @enum {string} */
+                        responsibility: "self_deployed" | "institution_provider" | "platform_service";
+                        responsibility_note: string;
+                        daily_request_limit: number;
+                    };
+                    request_id: string;
+                    id: number;
+                    version: number;
+                } | {
+                    /** @enum {string} */
+                    kind: "model";
+                    title: string;
+                    data: {
+                        connection_id: number;
+                        provider_model_id: string;
+                        /** @enum {string} */
+                        capability: "text" | "image" | "speech" | "transcription" | "video";
+                        input_limit_chars: number;
+                        max_output_tokens: number;
+                        voice?: string;
+                        /** Format: date-time */
+                        valid_until?: string;
+                        supports_background: boolean;
+                    };
+                    request_id: string;
+                } | {
+                    /** @enum {string} */
+                    kind: "model";
+                    title: string;
+                    data: {
+                        connection_id: number;
+                        provider_model_id: string;
+                        /** @enum {string} */
+                        capability: "text" | "image" | "speech" | "transcription" | "video";
+                        input_limit_chars: number;
+                        max_output_tokens: number;
+                        voice?: string;
+                        /** Format: date-time */
+                        valid_until?: string;
+                        supports_background: boolean;
+                    };
+                    request_id: string;
+                    id: number;
+                    version: number;
+                } | {
+                    /** @enum {string} */
+                    kind: "route";
+                    title: string;
+                    data: {
+                        /** @enum {string} */
+                        capability: "text" | "image" | "speech" | "transcription" | "video";
+                        model_id: number;
+                        template_id: number;
+                        consumer_module: string;
+                        scope_note: string;
+                    };
+                    request_id: string;
+                } | {
+                    /** @enum {string} */
+                    kind: "route";
+                    title: string;
+                    data: {
+                        /** @enum {string} */
+                        capability: "text" | "image" | "speech" | "transcription" | "video";
+                        model_id: number;
+                        template_id: number;
+                        consumer_module: string;
+                        scope_note: string;
+                    };
+                    request_id: string;
+                    id: number;
+                    version: number;
+                } | {
+                    /** @enum {string} */
+                    kind: "template";
+                    title: string;
+                    data: {
+                        /** @enum {string} */
+                        capability: "text" | "image" | "speech" | "transcription" | "video";
+                        instructions: string;
+                        scope_note: string;
+                    };
+                    request_id: string;
+                } | {
+                    /** @enum {string} */
+                    kind: "template";
+                    title: string;
+                    data: {
+                        /** @enum {string} */
+                        capability: "text" | "image" | "speech" | "transcription" | "video";
+                        instructions: string;
+                        scope_note: string;
+                    };
+                    request_id: string;
+                    id: number;
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiRecordResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantSaveCredential: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    id: number;
+                    version: number;
+                    secret: string;
+                    request_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiRecordResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantConfigurationState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    kind: "connection" | "model" | "route" | "template";
+                    id: number;
+                    version: number;
+                    /** @enum {string} */
+                    action: "enable" | "disable";
+                    reason: string;
+                    request_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiRecordResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantCreateTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title: string;
+                    route_id: number;
+                    document_id: number;
+                    revision_id: number;
+                    instruction?: string;
+                    consumer_module: string;
+                    request_id: string;
+                    repeat_of_task_id?: number;
+                    confirm_possible_duplicate_cost?: boolean;
+                    rework_of_task_id?: number;
+                    rework_of_task_version?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiRecordResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantTaskStatus: {
+        parameters: {
+            query: {
+                id: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiRecordResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantTaskAction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    id: number;
+                    /** @enum {string} */
+                    action: "cancel" | "retry" | "observeUnknown" | "poll";
+                    job_revision: number;
+                    request_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiRecordResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantCollectCandidate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    id: number;
+                    version: number;
+                    request_id: string;
+                    recovered_file_key?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiRecordResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantCandidate: {
+        parameters: {
+            query: {
+                id: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiObjectResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantDecide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    id: number;
+                    version: number;
+                    /** @enum {string} */
+                    decision: "accept" | "return";
+                    reason: string;
+                    request_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiRecordResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantResolve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    id: number;
+                    /** @enum {string} */
+                    operation: "preview" | "download_original";
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiObjectResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantManualCandidate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    id: number;
+                    version: number;
+                    /** @enum {string} */
+                    result_type: "text" | "transcript";
+                    text: string;
+                    reason: string;
+                    request_id: string;
+                } | {
+                    id: number;
+                    version: number;
+                    /** @enum {string} */
+                    result_type: "image" | "audio" | "video";
+                    file_key: string;
+                    reason: string;
+                    request_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiRecordResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantRequestStatus: {
+        parameters: {
+            query: {
+                endpoint: "saveConfiguration" | "saveCredential" | "configurationState" | "createTask" | "manualCandidate" | "taskAction" | "collectCandidate" | "decide" | "candidateLifecycle";
+                kind: "connection" | "model" | "route" | "template" | "task";
+                id?: number;
+                action?: "enable" | "disable" | "cancel" | "retry" | "poll" | "observeUnknown" | "withdraw" | "rework" | "supersede";
+                request_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiRequestReceiptResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAssistantCandidateLifecycle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    id: number;
+                    version: number;
+                    /** @enum {string} */
+                    action: "withdraw" | "rework" | "supersede";
+                    reason: string;
+                    request_id: string;
+                    replacement_task_id?: number;
+                    replacement_task_version?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiRequestReceiptResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
         };
     };
     articleBodyEditor: {

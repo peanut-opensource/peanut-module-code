@@ -4,7 +4,7 @@
     "inputs": [
         {
             "path": "modules.lock",
-            "sha256": "1f1845ece4648992422364a6865a82218c09278fb1b592e57bcfb25f33c199cc"
+            "sha256": "7040831b3dd2c250fb16b43ba3a38f3ef0692d04e959d95f651dc72ae44d11dc"
         },
         {
             "path": "release-versions.json",
@@ -37,6 +37,14 @@
         {
             "path": "server/app/api/metadata/contracts/openapi.json",
             "sha256": "09ce51a7fa7b7f7cb2c64eba119ffae1ee16f1db4e32188847b85a6c2e44f529"
+        },
+        {
+            "path": "server/app/modules/custom/ai_assistant/api/metadata/openapi.php",
+            "sha256": "98ab709d34b55e8e1584c65f6e4bb945a53a2b8d265653d8f807cd50a43625e9"
+        },
+        {
+            "path": "server/app/modules/custom/ai_assistant/route/app.php",
+            "sha256": "cc0adb18c7a2ed584811635e5e7147bf0587909dcc9bb60cac8071dc81b45892"
         },
         {
             "path": "server/app/modules/peanut/article/api/metadata/openapi.php",
@@ -192,27 +200,27 @@
         ]
     },
     "summary": {
-        "route_count": 441,
-        "generated_api_operations": 415,
+        "route_count": 461,
+        "generated_api_operations": 435,
         "route_only_operations": 26,
-        "complete_operations": 415,
+        "complete_operations": 435,
         "partial_operations": 0,
-        "runtime_routes": 441,
-        "documented_operations": 415,
+        "runtime_routes": 461,
+        "documented_operations": 435,
         "undocumented_routes": 26,
-        "automatic_route_metadata": 441,
+        "automatic_route_metadata": 461,
         "requires_owner_contract": 26,
-        "owners": 18,
+        "owners": 19,
         "runtime_inventory": {
-            "total": 441,
+            "total": 461,
             "methods": {
                 "DELETE": 4,
-                "GET": 197,
-                "POST": 229,
+                "GET": 206,
+                "POST": 240,
                 "PUT": 11
             },
             "applications": {
-                "adminapi": 304,
+                "adminapi": 324,
                 "api": 47,
                 "installation": 9,
                 "platform": 81
@@ -222,6 +230,7 @@
                 "application:api": 7,
                 "application:installation": 9,
                 "application:platform": 72,
+                "module:custom.ai-assistant": 20,
                 "module:peanut.article": 37,
                 "module:peanut.collaboration": 11,
                 "module:peanut.document": 12,
@@ -245,6 +254,7 @@
         "application:api": 7,
         "application:installation": 9,
         "application:platform": 72,
+        "module:custom.ai-assistant": 20,
         "module:peanut.article": 37,
         "module:peanut.collaboration": 11,
         "module:peanut.document": 12,
@@ -3833,6 +3843,724 @@
             "contract_quality": "complete",
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "e9590605ee40ef77fc69c17baab5e2864a4418423215e4337ca0eb6b75cb1d4e",
+            "method": "GET",
+            "path": "/adminapi/custom.ai-assistant.candidate",
+            "runtime_path": "/adminapi/custom.ai-assistant.candidate",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "candidate",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.view"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.view"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 16
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantCandidate",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "4f13d400adc085682ed3403f079c75f2ac2e25e3cc17730b8c333485a532f22b",
+            "method": "GET",
+            "path": "/adminapi/custom.ai-assistant.detail",
+            "runtime_path": "/adminapi/custom.ai-assistant.detail",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "detail",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.view"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.view"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 16
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantDetail",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "836b48cdf4d57209388b7e714c4d3b51ba66902e82840bc04a01ea643fb70441",
+            "method": "GET",
+            "path": "/adminapi/custom.ai-assistant.history",
+            "runtime_path": "/adminapi/custom.ai-assistant.history",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "history",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.view"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.view"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 16
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantHistory",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "0d2af9304c203c1aa5e4a8102ae4a7b1fcb3bebdcb8e57689a9e14380696d403",
+            "method": "GET",
+            "path": "/adminapi/custom.ai-assistant.list",
+            "runtime_path": "/adminapi/custom.ai-assistant.list",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "listing",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.view"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.view"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 16
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantList",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "f3cf45e39ae9f5eb371f8a39dbef50f50c5e784de6111f82a6491a306b035713",
+            "method": "GET",
+            "path": "/adminapi/custom.ai-assistant.lookups",
+            "runtime_path": "/adminapi/custom.ai-assistant.lookups",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "lookups",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.view"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.view"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 16
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantLookups",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "7a7c3e6f60b6dd765e2fb071952b63bfaba6dc4393be8399916203c0763bbb55",
+            "method": "GET",
+            "path": "/adminapi/custom.ai-assistant.overview",
+            "runtime_path": "/adminapi/custom.ai-assistant.overview",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "overview",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.view"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.view"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 16
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantOverview",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "c95e44c6f839a0b15cfe91b7c623aa3b899ed890f07a110aeb3b0688db1f8e1d",
+            "method": "GET",
+            "path": "/adminapi/custom.ai-assistant.requestStatus",
+            "runtime_path": "/adminapi/custom.ai-assistant.requestStatus",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "requestStatus",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.view"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.view"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 16
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantRequestStatus",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "336b1bb1c3e28881b460df8933de567e2d8e460f81fc541f286bc0b8630086b9",
+            "method": "GET",
+            "path": "/adminapi/custom.ai-assistant.taskStatus",
+            "runtime_path": "/adminapi/custom.ai-assistant.taskStatus",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "taskStatus",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.view"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.view"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 16
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantTaskStatus",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "c38b6db9c27ea78c4e539971b1d7250b418173a0c6a8b06c6b89fcc1d46ec678",
+            "method": "GET",
+            "path": "/adminapi/custom.ai-assistant.textRoutes",
+            "runtime_path": "/adminapi/custom.ai-assistant.textRoutes",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "textRoutes",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.use"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.use"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 18
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantTextRoutes",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
             ],
             "documentation": {
                 "status": "documented",
@@ -19006,6 +19734,886 @@
             "contract_quality": "complete",
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "07c9b9fbf751de3a2b684dbf1585c9764fff51ddaf3b86fe902600e906e92a67",
+            "method": "POST",
+            "path": "/adminapi/custom.ai-assistant.candidateLifecycle",
+            "runtime_path": "/adminapi/custom.ai-assistant.candidateLifecycle",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "candidateLifecycle",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.review"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.review"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 20
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantCandidateLifecycle",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "af1250aeb68794ef82c3f262167a95a87228f8fe85c0fd796f3ebd9900410b64",
+            "method": "POST",
+            "path": "/adminapi/custom.ai-assistant.collectCandidate",
+            "runtime_path": "/adminapi/custom.ai-assistant.collectCandidate",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "collectCandidate",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.use"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.use"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 20
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantCollectCandidate",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "3d8da4429791c19878f067b7de028f90c01686a273f6ad1923aceb42daaecdb4",
+            "method": "POST",
+            "path": "/adminapi/custom.ai-assistant.configurationState",
+            "runtime_path": "/adminapi/custom.ai-assistant.configurationState",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "configurationState",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.configure"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.configure"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 20
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantConfigurationState",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "aaf26e2a14571cf09e37194dffa1c97d4fa8ef37b28a20bbec37ab588044a4c3",
+            "method": "POST",
+            "path": "/adminapi/custom.ai-assistant.createTask",
+            "runtime_path": "/adminapi/custom.ai-assistant.createTask",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "createTask",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.use"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.use"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 20
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantCreateTask",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "ef6bb19d37b1532d6fa81799597c4664277be753af60580c635a0e4cf9a72d9a",
+            "method": "POST",
+            "path": "/adminapi/custom.ai-assistant.decide",
+            "runtime_path": "/adminapi/custom.ai-assistant.decide",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "decide",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.review"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.review"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 20
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantDecide",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "cf5c0022f58225a4470afb02c7ab03c6539fca008b863488f9ddc06e7f87505b",
+            "method": "POST",
+            "path": "/adminapi/custom.ai-assistant.generateText",
+            "runtime_path": "/adminapi/custom.ai-assistant.generateText",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "generateText",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.use"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.use"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 20
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantGenerateText",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "3a94665fb14bab8be9198fdd1e34dc20e9c18923cba614c4e0bbad73069e2a70",
+            "method": "POST",
+            "path": "/adminapi/custom.ai-assistant.manualCandidate",
+            "runtime_path": "/adminapi/custom.ai-assistant.manualCandidate",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "manualCandidate",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.use"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.use"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 20
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantManualCandidate",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "ea7e841bab29a91b2688c6487e9b541081468717b417659efc40f3e55357cda1",
+            "method": "POST",
+            "path": "/adminapi/custom.ai-assistant.resolve",
+            "runtime_path": "/adminapi/custom.ai-assistant.resolve",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "resolve",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.view"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.view"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 20
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantResolve",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "e0b64e8fabbb57943188a73653cc518d9e20f06301b717d7ae7af6f14bd008b2",
+            "method": "POST",
+            "path": "/adminapi/custom.ai-assistant.saveConfiguration",
+            "runtime_path": "/adminapi/custom.ai-assistant.saveConfiguration",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "saveConfiguration",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.configure"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.configure"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 20
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantSaveConfiguration",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "d956b0ba908e70ab6c3ada461f4c057c4f697709ed56157328fb21576354070a",
+            "method": "POST",
+            "path": "/adminapi/custom.ai-assistant.saveCredential",
+            "runtime_path": "/adminapi/custom.ai-assistant.saveCredential",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "saveCredential",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.configure"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.configure"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 20
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantSaveCredential",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "44e73d38aab736ea577308c54758589fcc0cf853cc7a40a2ad8e314826762eac",
+            "method": "POST",
+            "path": "/adminapi/custom.ai-assistant.taskAction",
+            "runtime_path": "/adminapi/custom.ai-assistant.taskAction",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-assistant"
+            },
+            "controller": "Custom\\Modules\\AiAssistant\\Controller\\AiController",
+            "action": "taskAction",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-assistant.use"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-assistant"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-assistant.use"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-assistant",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_assistant/route/app.php",
+                "line": 20
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAssistantTaskAction",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-assistant/generated/openapi.ts"
             ],
             "documentation": {
                 "status": "documented",

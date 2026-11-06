@@ -1,0 +1,32 @@
+[
+  {
+    "key": "custom.ai-assistant.view",
+    "type": "api",
+    "name": "查看制作记录",
+    "risk_level": "normal"
+  },
+  {
+    "key": "custom.ai-assistant.configure",
+    "type": "action",
+    "name": "维护AI配置和凭据",
+    "risk_level": "critical"
+  },
+  {
+    "key": "custom.ai-assistant.use",
+    "type": "action",
+    "name": "提交和领取AI候选",
+    "risk_level": "normal"
+  },
+  {
+    "key": "custom.ai-assistant.review",
+    "type": "action",
+    "name": "人工采纳候选",
+    "risk_level": "normal"
+  },
+  {
+    "key": "custom.ai-assistant.manage",
+    "type": "action",
+    "name": "管理恢复和用量",
+    "risk_level": "critical"
+  }
+]

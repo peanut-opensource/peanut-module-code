@@ -1,0 +1,92 @@
+[
+  {
+    "key": "custom.ai-assistant.connection",
+    "parent_key": "core.applications",
+    "scope": "tenant",
+    "type": "page",
+    "name": "AI连接",
+    "route_name": "AiAssistantConnection",
+    "route_path": "/ai-assistant/connection",
+    "component_key": "custom.ai-assistant.connection",
+    "required_permission": "custom.ai-assistant.view",
+    "sort_order": 600,
+    "client_keys": [
+      "admin-web"
+    ]
+  },
+  {
+    "key": "custom.ai-assistant.model",
+    "parent_key": "core.applications",
+    "scope": "tenant",
+    "type": "page",
+    "name": "模型目录",
+    "route_name": "AiAssistantModel",
+    "route_path": "/ai-assistant/model",
+    "component_key": "custom.ai-assistant.model",
+    "required_permission": "custom.ai-assistant.view",
+    "sort_order": 601,
+    "client_keys": [
+      "admin-web"
+    ]
+  },
+  {
+    "key": "custom.ai-assistant.route",
+    "parent_key": "core.applications",
+    "scope": "tenant",
+    "type": "page",
+    "name": "能力路由",
+    "route_name": "AiAssistantRoute",
+    "route_path": "/ai-assistant/route",
+    "component_key": "custom.ai-assistant.route",
+    "required_permission": "custom.ai-assistant.view",
+    "sort_order": 602,
+    "client_keys": [
+      "admin-web"
+    ]
+  },
+  {
+    "key": "custom.ai-assistant.template",
+    "parent_key": "core.applications",
+    "scope": "tenant",
+    "type": "page",
+    "name": "制作模板",
+    "route_name": "AiAssistantTemplate",
+    "route_path": "/ai-assistant/template",
+    "component_key": "custom.ai-assistant.template",
+    "required_permission": "custom.ai-assistant.view",
+    "sort_order": 603,
+    "client_keys": [
+      "admin-web"
+    ]
+  },
+  {
+    "key": "custom.ai-assistant.task",
+    "parent_key": "core.applications",
+    "scope": "tenant",
+    "type": "page",
+    "name": "AI制作任务",
+    "route_name": "AiAssistantTask",
+    "route_path": "/ai-assistant/task",
+    "component_key": "custom.ai-assistant.task",
+    "required_permission": "custom.ai-assistant.view",
+    "sort_order": 604,
+    "client_keys": [
+      "admin-web"
+    ]
+  },
+  {
+    "key": "custom.ai-assistant.usage",
+    "parent_key": "core.applications",
+    "scope": "tenant",
+    "type": "page",
+    "name": "用量台账",
+    "route_name": "AiAssistantUsage",
+    "route_path": "/ai-assistant/usage",
+    "component_key": "custom.ai-assistant.usage",
+    "required_permission": "custom.ai-assistant.view",
+    "sort_order": 605,
+    "client_keys": [
+      "admin-web"
+    ]
+  }
+]

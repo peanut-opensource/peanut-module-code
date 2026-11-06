@@ -94,7 +94,7 @@
     SurfaceCallbacks,
     ContentCollaborationBinding,
   } from '@/modules/peanut-content-tools/src/contracts';
-  import { parseRichTextDocument } from '@/modules/peanut-rich-text/src/document';
+  import { parseRichTextDocument, type TextAppendBinding } from '@/modules/peanut-rich-text/src/document';
   import {
     createCollaborationProvider,
     type AuthenticatedPresence,
@@ -171,9 +171,20 @@
   const surface = shallowRef<{
     content: ContentDescriptor;
     capabilities: SurfaceCapabilities;
-    callbacks: SurfaceCallbacks;
+    callbacks: SurfaceCallbacks & TextAppendBinding;
     operations: ('view' | 'edit' | 'download_original')[];
   }>();
+  let appendInEditor: ((text: string) => boolean) | undefined;
+  const appendPlainText = (text: string): boolean => {
+    if (!editable.value || disposed || loading.value || frozen.value ||
+        savingBusy.value || targetPending.value || operationLocked.value ||
+        !['saved', 'idle', 'persisting'].includes(saveState.value) ||
+        getSessionSnapshot().generation !== generation.value ||
+        (grants.value?.collaboration_enabled &&
+          (!binding.value?.ready || !binding.value.writable || !collaboration?.writable)))
+      return false;
+    return appendInEditor?.(text) === true;
+  };
   let disposed = false;
   let request: AbortController | undefined;
   let saving: AbortController | undefined;
@@ -279,6 +290,7 @@
     saving?.abort();
     saving = undefined;
     savingBusy.value = false;
+    appendInEditor = undefined;
     frozen.value = false;
     frozenContext = undefined;
     targetPending.value = false;
@@ -466,7 +478,16 @@
         content,
         capabilities,
         operations,
-        callbacks: { ...props.callbacks, ...fileCallbacks },
+        callbacks: {
+          ...props.callbacks,
+          ...fileCallbacks,
+          registerTextAppender(append) {
+            if (valid(current, key)) appendInEditor = append;
+            return () => {
+              if (appendInEditor === append) appendInEditor = undefined;
+            };
+          },
+        },
       };
       emit('load', data);
       setSaveState(
@@ -684,6 +705,7 @@
     unsubscribe();
   });
   defineExpose({
+    appendPlainText,
     prepareSaveTarget,
     releaseSaveTargetHold,
     reload: () => {

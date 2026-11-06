@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "key": "custom.ai-assistant",
+  "name": "AI制作助手",
+  "description": "受控连接与能力路由、原生任务、固定候选、用量和人工采纳",
+  "version": "1.2.0",
+  "kernel_constraint": "^1.0",
+  "license": "Apache-2.0",
+  "php_package": "custom/custom-ai-assistant",
+  "web_package": "@custom/custom-ai-assistant",
+  "dependencies": [
+    {
+      "module_key": "peanut.identity",
+      "version": "^4.0.0-rc.32"
+    },
+    {
+      "module_key": "peanut.settings",
+      "version": "^1.0.24"
+    },
+    {
+      "module_key": "peanut.task",
+      "version": "^1.0.27"
+    },
+    {
+      "module_key": "peanut.document",
+      "version": "^1.0.14"
+    },
+    {
+      "module_key": "peanut.file",
+      "version": "^1.0.0"
+    }
+  ],
+  "lifecycle": {
+    "protected": false
+  },
+  "backend": {
+    "provider": "Custom\\Modules\\AiAssistant\\ModuleProvider",
+    "menus": "resources/menus.json",
+    "permissions": "resources/permissions.json",
+    "setting_definitions": "resources/setting-definitions.json",
+    "migrations": "database/migrations",
+    "protected_resources": "resources/protected-resources.json"
+  },
+  "frontend": {
+    "entry": "web/src/modules/custom-ai-assistant/contribution.ts"
+  },
+  "database": {
+    "owned_tables": [
+      "pa_ai_assistant_config",
+      "pa_ai_assistant_task",
+      "pa_ai_assistant_event",
+      "pa_ai_assistant_quota",
+      "pa_ai_assistant_text_generation"
+    ]
+  },
+  "contracts": {
+    "exports": ["Custom\\Modules\\AiAssistant\\Contract\\AiCandidateQueries", "Custom\\Modules\\AiAssistant\\Contract\\AiTextGeneration"],
+    "events": []
+  },
+  "tenant": {
+    "enableable": true,
+    "disable_behavior": "reject_new_operations",
+    "requires": [
+      "peanut.identity",
+      "peanut.settings",
+      "peanut.task",
+      "peanut.document",
+      "peanut.file"
+    ]
+  }
+}

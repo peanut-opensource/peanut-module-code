@@ -1,0 +1,26 @@
+{
+  "name": "custom/custom-ai-assistant",
+  "description": "AI production configuration, native tasks, protected candidates and human adoption.",
+  "type": "peanut-admin-module",
+  "version": "1.2.0",
+  "license": "Apache-2.0",
+  "extra": {
+    "peanut": {
+      "editions": [
+        "multi-tenant"
+      ]
+    }
+  },
+  "autoload": {
+    "psr-4": {
+      "Custom\\Modules\\AiAssistant\\": "src/"
+    }
+  },
+  "require": {
+    "peanut-business/peanut-identity": "^4.0.0-rc.32",
+    "peanut-business/peanut-settings": "^1.0.24",
+    "peanut-business/peanut-task": "^1.0.27",
+    "peanut-business/peanut-document": "^1.0.14",
+    "peanut-business/peanut-file": "^1.0.0"
+  }
+}

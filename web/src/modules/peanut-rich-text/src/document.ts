@@ -1,6 +1,10 @@
 import type { JSONContent } from '@tiptap/core';
 
 export const DOCUMENT_VERSION = 'peanut.richtext/1' as const;
+/** Binds commands to one mounted, writable projection. */
+export interface TextAppendBinding {
+  registerTextAppender?: (append: (text: string) => boolean) => () => void;
+}
 export interface RichTextDocumentValue {
   schemaVersion: typeof DOCUMENT_VERSION;
   editorModel: 'tiptap-prosemirror';
