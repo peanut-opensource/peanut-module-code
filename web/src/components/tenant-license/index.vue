@@ -84,6 +84,17 @@
 
 <style scoped>
   .tenant-license {
-    padding: 12px 16px 0;
+    min-width: 0;
+  }
+  .tenant-license :deep(.el-alert) {
+    align-items: flex-start;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 10px;
+    padding: 14px 18px;
+  }
+  @media (max-width: 768px) {
+    .tenant-license :deep(.el-alert) {
+      padding: 12px;
+    }
   }
 </style>

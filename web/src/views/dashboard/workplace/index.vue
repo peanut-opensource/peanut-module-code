@@ -1,10 +1,12 @@
 <template>
   <div class="container">
     <div class="workplace-actions">
+      <h1 class="workplace-title">{{ $t('menu.dashboard.workplace') }}</h1>
       <el-button :loading="loading" :disabled="loading" @click="fetchWorkbench">
         {{ $t('workplace.refresh') }}
       </el-button>
     </div>
+    <TenantLicense class="workplace-license" />
     <div v-loading="loading" class="workplace-loading">
       <el-alert
         v-if="workbench.statistics_state === 'demo'"
@@ -113,8 +115,10 @@
               <el-col
                 v-for="item in workbench.menu"
                 :key="item.url"
-                :xs="6"
-                :sm="3"
+                :xs="12"
+                :sm="6"
+                :md="4"
+                :lg="3"
               >
                 <router-link :to="item.url" class="shortcut">
                   <el-avatar :size="48" shape="square" :src="item.image">
@@ -136,8 +140,14 @@
           <el-card class="general-card">
             <template #header>{{ $t('workplace.visitor.title') }}</template>
             <el-table v-if="hasVisitorData" :data="visitorRows" height="320">
-              <el-table-column prop="date" :label="$t('workplace.demoData.date')" />
-              <el-table-column prop="value" :label="$t('workplace.demoData.visitor')" />
+              <el-table-column
+                prop="date"
+                :label="$t('workplace.demoData.date')"
+              />
+              <el-table-column
+                prop="value"
+                :label="$t('workplace.demoData.visitor')"
+              />
             </el-table>
             <el-empty
               v-else
@@ -150,8 +160,14 @@
           <el-card class="general-card">
             <template #header>{{ $t('workplace.sale.title') }}</template>
             <el-table v-if="hasSaleData" :data="saleRows" height="320">
-              <el-table-column prop="date" :label="$t('workplace.demoData.date')" />
-              <el-table-column prop="value" :label="$t('workplace.demoData.sale')" />
+              <el-table-column
+                prop="date"
+                :label="$t('workplace.demoData.date')"
+              />
+              <el-table-column
+                prop="value"
+                :label="$t('workplace.demoData.sale')"
+              />
             </el-table>
             <el-empty
               v-else
@@ -213,6 +229,7 @@
   import { Grid, QuestionFilled } from '@element-plus/icons-vue';
   import { useI18n } from 'vue-i18n';
   import { getWorkbench, type WorkbenchData } from '@/api/workbench';
+  import TenantLicense from '@/components/tenant-license/index.vue';
 
   const { t } = useI18n();
   const loading = ref(true);
@@ -366,13 +383,30 @@
 
 <style scoped lang="less">
   .container {
-    padding: 20px;
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    flex-direction: column;
+    gap: 16px;
   }
 
   .workplace-actions {
     display: flex;
-    justify-content: flex-end;
-    margin-bottom: 16px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .workplace-title {
+    margin: 0;
+    color: var(--el-text-color-primary);
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 30px;
+  }
+
+  .workplace-license {
+    width: 100%;
   }
 
   .scaffold-upgrade-demo-card {
@@ -381,6 +415,13 @@
 
   .full-height {
     height: 100%;
+  }
+
+  .workplace-grid > .el-col,
+  .metrics-grid > .el-col,
+  .shortcut-grid > .el-col,
+  .support-grid > .el-col {
+    min-width: 0;
   }
 
   .workplace-loading {
@@ -471,5 +512,28 @@
 
   .workplace-empty--chart {
     height: 320px;
+  }
+
+  @media (max-width: 768px) {
+    .container {
+      gap: 12px;
+    }
+    .workplace-title {
+      font-size: 18px;
+    }
+    .workplace-grid,
+    .metrics-grid,
+    .shortcut-grid,
+    .support-grid {
+      row-gap: 12px;
+    }
+    .shortcut {
+      min-width: 0;
+      text-align: center;
+      overflow-wrap: anywhere;
+    }
+    .support-item {
+      padding: 12px;
+    }
   }
 </style>

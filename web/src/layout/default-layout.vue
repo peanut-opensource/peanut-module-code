@@ -52,7 +52,6 @@
       </el-breadcrumb>
     </template>
     <template #tabs><TabBar v-if="appStore.tabBar" /></template>
-    <TenantLicense />
     <div class="tenant-page-tools"
       ><ShellContributions name="page-tools"
     /></div>
@@ -73,7 +72,6 @@
   import TabBar from '@/components/tab-bar/index.vue';
   import usePermission from '@/hooks/permission';
   import useResponsive from '@/hooks/responsive';
-  import TenantLicense from '@/components/tenant-license/index.vue';
   import PageLayout from './page-layout.vue';
   import ShellContributions from './shell-contributions.vue';
 
@@ -137,6 +135,7 @@
     .pa-shell__main {
       flex: 1;
       min-width: 0;
+      width: 100%;
       padding: var(--pa-shell-spacing);
     }
     .tenant-sidebar {
@@ -164,6 +163,11 @@
     }
     .tenant-content {
       min-width: 0;
+      width: 100%;
+      > * {
+        min-width: 0;
+        max-width: 100%;
+      }
     }
     &.pa-shell--layout-workspace .pa-shell__main {
       max-width: var(--pa-shell-content-max-width);
@@ -179,7 +183,7 @@
   }
   @media (max-width: 768px) {
     .tenant-shell .pa-shell__main {
-      padding: var(--pa-shell-gap);
+      padding: max(12px, var(--pa-shell-gap));
     }
   }
 </style>
