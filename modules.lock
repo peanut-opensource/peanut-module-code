@@ -723,7 +723,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "db9aa38154c48ed7296f5ada7ddd4a1b181b2b2f0a90485dac1d301c028e3f35"
+                "sha256": "2884659ee4eb61624f828b6dc0bc8585fb10aad6cccdeb0d8686d2f6c7aaf907"
             },
             "trust": {
                 "channel": "bundled",
