@@ -3,7 +3,7 @@
   "key": "peanut.rich-text",
   "name": "Structured Rich Text",
   "description": "Tiptap/ProseMirror content projection and editor/viewer adapters; document lifecycle belongs to peanut.document.",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-rich-text",

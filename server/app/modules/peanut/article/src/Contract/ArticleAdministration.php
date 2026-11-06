@@ -16,6 +16,8 @@ interface ArticleAdministration
     public function bodyTransport(TenantContext $context, int $id): array;
     public function bodySave(TenantContext $context, array $input): array;
     public function bodySaveOperation(TenantContext $context, int $id, string $requestId): array;
+    public function bodyHtmlPreview(TenantContext $context, int $id): array;
+    public function bodyHtmlMigrate(TenantContext $context, array $input): array;
     /** Normal page; export=1 returns ExportPageInfo, export=2 returns the private ExportFile. */
     public function lists(TenantContext $context, array $params): PageResult|array;
 

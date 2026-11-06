@@ -1,6 +1,134 @@
 import axios from 'axios';
 import type { PageData } from '@/types/global';
 import type { components } from '@/generated/openapi';
+import type { RichTextDocumentValue } from '@peanut-admin/peanut-rich-text/document';
+
+export interface ArticleHtmlPreview {
+  article_id: number;
+  source_html: string;
+  source_sha256: string;
+  owner_revision: string;
+}
+export interface ArticleHtmlMigrationInput {
+  id: number;
+  request_id: string;
+  confirmed: true;
+  source_sha256: string;
+  owner_revision: string;
+  structured_content: RichTextDocumentValue;
+}
+export interface ArticleHtmlMigrated {
+  article_id: number;
+  request_id: string;
+  document_id: number;
+  state_seq: 1;
+  source_sha256: string;
+  phase: 'completed';
+  published: false;
+}
+export class ArticleHtmlMigrationRejected extends Error {
+  constructor() {
+    super('原文、资讯状态或正文绑定已改变，请重新预览当前来源。');
+  }
+}
+const htmlResponse = (value: unknown): Record<string, unknown> => {
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new Error('ARTICLE_HTML_RESPONSE_INVALID');
+  return value as Record<string, unknown>;
+};
+const htmlId = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
+const htmlDigest = (value: unknown): value is string =>
+  typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
+export const previewArticleHtml = async (id: number, signal: AbortSignal) => {
+  const response = await axios.get<unknown>(
+    '/adminapi/peanut.article.document.html-preview',
+    { params: { id }, signal }
+  );
+  const value = htmlResponse(response.data);
+  if (
+    !htmlId(value.article_id) ||
+    typeof value.source_html !== 'string' ||
+    !htmlDigest(value.source_sha256) ||
+    !htmlDigest(value.owner_revision)
+  )
+    throw new Error('ARTICLE_HTML_RESPONSE_INVALID');
+  return {
+    ...response,
+    data: {
+      article_id: value.article_id,
+      source_html: value.source_html,
+      source_sha256: value.source_sha256,
+      owner_revision: value.owner_revision,
+    } satisfies ArticleHtmlPreview,
+  };
+};
+export const migrateArticleHtml = async (
+  input: ArticleHtmlMigrationInput,
+  signal: AbortSignal
+) => {
+  let rejected = false;
+  const defaults = axios.defaults.transformResponse;
+  const transforms = Array.isArray(defaults) ? [...defaults] : [];
+  if (typeof defaults === 'function') transforms.push(defaults);
+  const response = await axios
+    .post<unknown>('/adminapi/peanut.article.document.html-migrate', input, {
+      signal,
+      // Preserve only exact pre-write conflicts before the shared interceptor reduces them to messages.
+      transformResponse: [
+        ...transforms,
+        (value: unknown, _headers: unknown, status?: number) => {
+          if (
+            status === 409 &&
+            value &&
+            typeof value === 'object' &&
+            'code' in value &&
+            value.code === 40900 &&
+            'data' in value &&
+            value.data &&
+            typeof value.data === 'object' &&
+            'error_code' in value.data &&
+            typeof value.data.error_code === 'string'
+          ) {
+            rejected = [
+              'ARTICLE_HTML_SOURCE_CHANGED',
+              'ARTICLE_HTML_MIGRATION_UNAVAILABLE',
+              'ARTICLE_HTML_DOCUMENT_EXISTS',
+            ].includes(value.data.error_code);
+          }
+          return value;
+        },
+      ],
+    })
+    .catch((error: unknown) => {
+      if (rejected && !signal.aborted) throw new ArticleHtmlMigrationRejected();
+      throw error;
+    });
+  const value = htmlResponse(response.data);
+  if (
+    !htmlId(value.article_id) ||
+    typeof value.request_id !== 'string' ||
+    !value.request_id ||
+    !htmlId(value.document_id) ||
+    value.state_seq !== 1 ||
+    !htmlDigest(value.source_sha256) ||
+    value.phase !== 'completed' ||
+    value.published !== false
+  )
+    throw new Error('ARTICLE_HTML_RESPONSE_INVALID');
+  return {
+    ...response,
+    data: {
+      article_id: value.article_id,
+      request_id: value.request_id,
+      document_id: value.document_id,
+      state_seq: value.state_seq,
+      source_sha256: value.source_sha256,
+      phase: value.phase,
+      published: value.published,
+    } satisfies ArticleHtmlMigrated,
+  };
+};
 
 export type ArticleBodyEditor =
   components['schemas']['ArticleBodyEditorResponse']['data'];
@@ -225,6 +353,7 @@ export function updateArticleCateStatus(
 // ─── 文章 ─────────────────────────────────────────────────────────────────
 export interface ArticleRecord {
   id: number;
+  body_document_id?: number | null;
   cid: number;
   cate_name?: string;
   title: string;
@@ -286,9 +415,7 @@ export function getArticleExportInfo(
   params: ArticleListParams = {},
   recycled = false
 ) {
-  const path = recycled
-    ? 'peanut.article.recycle.list'
-    : 'peanut.article.list';
+  const path = recycled ? 'peanut.article.recycle.list' : 'peanut.article.list';
   return axios.get<ArticleExportInfo>(`/adminapi/${path}`, {
     params: { ...params, export: 1 },
   });
@@ -298,9 +425,7 @@ export function exportArticles(
   params: ArticleListParams & ArticleExportRange = {},
   recycled = false
 ) {
-  const path = recycled
-    ? 'peanut.article.recycle.list'
-    : 'peanut.article.list';
+  const path = recycled ? 'peanut.article.recycle.list' : 'peanut.article.list';
   return axios.get<ArticleExportResult>(`/adminapi/${path}`, {
     params: { ...params, export: 2 },
   });

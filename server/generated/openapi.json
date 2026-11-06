@@ -21971,6 +21971,171 @@
                 }
             }
         },
+        "/adminapi/peanut.article.document.html-preview": {
+            "get": {
+                "tags": [
+                    "Article"
+                ],
+                "operationId": "articleHtmlMigrationPreview",
+                "summary": "读取未发布旧资讯的原 HTML 与当前来源版本供显式转换预览",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "id",
+                        "required": true,
+                        "description": "资讯 ID",
+                        "schema": {
+                            "$ref": "#/components/schemas/ArticlePositiveIntegerInput"
+                        },
+                        "example": 12
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "读取未发布旧资讯的原 HTML 与当前来源版本供显式转换预览成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArticleHtmlMigrationPreviewResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ArticleErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ArticleErrorResponse"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ArticleErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ArticleErrorResponse"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ArticleErrorResponse"
+                    }
+                },
+                "x-peanut-errors": [
+                    "ARTICLE_HTML_MIGRATION_UNAVAILABLE"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.article"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ArticleController",
+                    "action": "bodyHtmlPreview",
+                    "permission": "peanut.article.edit",
+                    "source": {
+                        "file": "server/app/modules/peanut/article/route/app.php",
+                        "line": 65
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.article"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "peanut.article.edit"
+                    }
+                ]
+            }
+        },
+        "/adminapi/peanut.article.document.html-migrate": {
+            "post": {
+                "tags": [
+                    "Article"
+                ],
+                "operationId": "migrateArticleHtml",
+                "summary": "明确确认后原子接入可编辑草稿；原 HTML 保留，不发布或正式保存",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "明确确认后原子接入可编辑草稿；原 HTML 保留，不发布或正式保存成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArticleHtmlMigrationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ArticleErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ArticleErrorResponse"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ArticleErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ArticleErrorResponse"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ArticleErrorResponse"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ArticleHtmlMigrationRequest"
+                            }
+                        }
+                    }
+                },
+                "x-peanut-errors": [
+                    "ARTICLE_HTML_INPUT_INVALID",
+                    "ARTICLE_HTML_MEDIA_UNSUPPORTED",
+                    "ARTICLE_HTML_SOURCE_CHANGED",
+                    "ARTICLE_HTML_MIGRATION_UNAVAILABLE",
+                    "ARTICLE_HTML_DOCUMENT_EXISTS",
+                    "ARTICLE_HTML_REQUEST_CONFLICT",
+                    "ARTICLE_HTML_ACTOR_DENIED"
+                ],
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.article"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ArticleController",
+                    "action": "bodyHtmlMigrate",
+                    "permission": "peanut.article.edit",
+                    "source": {
+                        "file": "server/app/modules/peanut/article/route/app.php",
+                        "line": 66
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.article"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "peanut.article.edit"
+                    }
+                ]
+            }
+        },
         "/adminapi/peanut.article.document.editor": {
             "get": {
                 "tags": [
@@ -22033,7 +22198,7 @@
                     "permission": "peanut.article.edit",
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 65
+                        "line": 67
                     }
                 },
                 "x-peanut-permissions": [
@@ -22112,7 +22277,7 @@
                     "permission": "peanut.article.edit",
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 66
+                        "line": 68
                     }
                 },
                 "x-peanut-permissions": [
@@ -22197,7 +22362,7 @@
                     "permission": "peanut.article.edit",
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 67
+                        "line": 69
                     }
                 },
                 "x-peanut-permissions": [
@@ -22283,7 +22448,7 @@
                     "permission": "peanut.article.edit",
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 68
+                        "line": 70
                     }
                 },
                 "x-peanut-permissions": [
@@ -23901,7 +24066,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 69
+                        "line": 71
                     }
                 },
                 "x-peanut-permissions": [
@@ -23978,7 +24143,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 70
+                        "line": 72
                     }
                 },
                 "x-peanut-permissions": [
@@ -24171,7 +24336,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 71
+                        "line": 73
                     }
                 },
                 "x-peanut-permissions": [
@@ -24242,7 +24407,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 72
+                        "line": 74
                     }
                 },
                 "x-peanut-permissions": [
@@ -24316,7 +24481,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 73
+                        "line": 75
                     }
                 },
                 "x-peanut-permissions": [
@@ -24390,7 +24555,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/article/route/app.php",
-                        "line": 74
+                        "line": 76
                     }
                 },
                 "x-peanut-permissions": [
@@ -50066,6 +50231,163 @@
                     "data"
                 ]
             },
+            "ArticleHtmlMigrationRequest": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "id": {
+                        "$ref": "#/components/schemas/ArticlePositiveIntegerInput"
+                    },
+                    "request_id": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9:_-]{1,128}$"
+                    },
+                    "confirmed": {
+                        "type": "boolean",
+                        "enum": [
+                            true
+                        ]
+                    },
+                    "owner_revision": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "source_sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "structured_content": {
+                        "$ref": "#/components/schemas/DocumentStructuredContent"
+                    }
+                },
+                "required": [
+                    "id",
+                    "request_id",
+                    "confirmed",
+                    "owner_revision",
+                    "source_sha256",
+                    "structured_content"
+                ]
+            },
+            "ArticleHtmlMigrationPreviewResponse": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "code": {
+                        "type": "integer",
+                        "enum": [
+                            20000
+                        ]
+                    },
+                    "msg": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "article_id": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 9007199254740991
+                            },
+                            "source_html": {
+                                "type": "string"
+                            },
+                            "source_sha256": {
+                                "type": "string",
+                                "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "owner_revision": {
+                                "type": "string",
+                                "pattern": "^[a-f0-9]{64}$"
+                            }
+                        },
+                        "required": [
+                            "article_id",
+                            "source_html",
+                            "source_sha256",
+                            "owner_revision"
+                        ]
+                    }
+                },
+                "required": [
+                    "code",
+                    "msg",
+                    "data"
+                ]
+            },
+            "ArticleHtmlMigrationResponse": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "code": {
+                        "type": "integer",
+                        "enum": [
+                            20000
+                        ]
+                    },
+                    "msg": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "article_id": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 9007199254740991
+                            },
+                            "request_id": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9:_-]{1,128}$"
+                            },
+                            "document_id": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 9007199254740991
+                            },
+                            "state_seq": {
+                                "type": "integer",
+                                "enum": [
+                                    1
+                                ]
+                            },
+                            "source_sha256": {
+                                "type": "string",
+                                "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "phase": {
+                                "type": "string",
+                                "enum": [
+                                    "completed"
+                                ]
+                            },
+                            "published": {
+                                "type": "boolean",
+                                "enum": [
+                                    false
+                                ]
+                            }
+                        },
+                        "required": [
+                            "article_id",
+                            "request_id",
+                            "document_id",
+                            "state_seq",
+                            "source_sha256",
+                            "phase",
+                            "published"
+                        ]
+                    }
+                },
+                "required": [
+                    "code",
+                    "msg",
+                    "data"
+                ]
+            },
             "ArticleBodySaveRequest": {
                 "type": "object",
                 "additionalProperties": false,
@@ -51099,7 +51421,8 @@
                     "cate_name",
                     "create_time",
                     "update_time",
-                    "delete_time"
+                    "delete_time",
+                    "body_document_id"
                 ],
                 "properties": {
                     "id": {
@@ -51127,6 +51450,11 @@
                     },
                     "content": {
                         "type": "string"
+                    },
+                    "body_document_id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "nullable": true
                     },
                     "click_virtual": {
                         "type": "integer",
@@ -51605,6 +51933,11 @@
                     "content": {
                         "type": "string"
                     },
+                    "body_document_id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "nullable": true
+                    },
                     "click_virtual": {
                         "type": "integer",
                         "minimum": 0
@@ -51639,11 +51972,6 @@
                     },
                     "delete_time": {
                         "$ref": "#/components/schemas/ArticleTimestamp"
-                    },
-                    "body_document_id": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "nullable": true
                     }
                 }
             },

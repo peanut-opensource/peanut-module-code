@@ -206,7 +206,11 @@ importers:
 
   src/modules/custom-ai-assistant: {}
 
-  src/modules/peanut-article: {}
+  src/modules/peanut-article:
+    dependencies:
+      '@peanut-admin/peanut-rich-text':
+        specifier: workspace:^1.0.9
+        version: link:../peanut-rich-text
 
   src/modules/peanut-chart:
     dependencies:

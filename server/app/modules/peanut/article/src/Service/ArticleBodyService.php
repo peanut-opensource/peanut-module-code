@@ -10,6 +10,8 @@ use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Modules\Article\Contract\ArticleBodySaveInput;
 use PeanutAdmin\Modules\Article\Model\Article;
 use PeanutAdmin\Modules\Article\Model\ArticleBodySave;
+use PeanutAdmin\Modules\Article\Model\ArticleHtmlMigration;
+use PeanutAdmin\Modules\Article\Contract\ArticleHtmlMigrationInput;
 use PeanutAdmin\Modules\Document\Contract\DocumentCommands;
 use PeanutAdmin\Modules\Document\Contract\DocumentQueries;
 use PeanutAdmin\Modules\Document\Contract\DocumentOwnerReference;
@@ -28,6 +30,59 @@ final readonly class ArticleBodyService
     private static function owner(int $id): DocumentOwnerReference
     {
         return new DocumentOwnerReference('peanut.article', 'article', (string) $id, 'body');
+    }
+
+    public function htmlPreview(TenantContext $context, int $id): array
+    {
+        return $this->commands->runOwnerVersionSave($context, self::owner($id), function (TenantContext $current, DocumentOwnerState $state) use ($id): array {
+            $article = self::legacyArticle($id);
+            return ['article_id' => $id, 'source_html' => (string) $article->content,
+                'source_sha256' => hash('sha256', (string) $article->content), 'owner_revision' => $state->revision];
+        });
+    }
+
+    public function htmlMigrate(TenantContext $context, ArticleHtmlMigrationInput $input): array
+    {
+        return $this->commands->runOwnerVersionSave($context, self::owner($input->articleId), function (TenantContext $current, DocumentOwnerState $state) use ($input): array {
+            $receipt = ArticleHtmlMigration::where('article_id', $input->articleId)->where('request_id', $input->requestId)->lock(true)->find();
+            if ($receipt !== null) {
+                if ((int) $receipt->actor_account_id !== $current->accountId || (int) $receipt->actor_member_id !== $current->memberId) {
+                    throw BusinessException::forbidden('ARTICLE_HTML_ACTOR_DENIED', '只能由原人员继续原迁移请求');
+                }
+                if (!hash_equals($receipt->input_sha256, $input->hash())) {
+                    throw BusinessException::conflict('ARTICLE_HTML_REQUEST_CONFLICT', '原迁移编号不可改变来源、版本或转换内容');
+                }
+                // Fresh owner authorization above is still required. Replay never writes the current draft.
+                return self::json($receipt->result_json);
+            }
+            $article = self::legacyArticle($input->articleId);
+            if (!hash_equals($input->sourceSha256, hash('sha256', (string) $article->content)) || !hash_equals($input->ownerRevision, $state->revision)) {
+                throw BusinessException::conflict('ARTICLE_HTML_SOURCE_CHANGED', '原 HTML 或资讯状态已改变，请重新预览并确认');
+            }
+            $key = 'article-html:' . hash('sha256', $input->requestId);
+            $document = $this->commands->create($current, self::owner($input->articleId), 'rich_text', $key . ':create');
+            // An unbound but already occupied owner slot is not permission to replace its content.
+            if (($document['created'] ?? false) !== true || ($document['state_seq'] ?? null) !== 0) {
+                throw BusinessException::conflict('ARTICLE_HTML_DOCUMENT_EXISTS', '资讯已有 Document，不能导入覆盖');
+            }
+            $saved = $this->commands->saveSolo($current, $document['document_id'], 0, json_decode($input->projection->json, true, 64, JSON_THROW_ON_ERROR), $key . ':save');
+            $article->save(['body_document_id' => $document['document_id']]);
+            $result = ['article_id' => $input->articleId, 'request_id' => $input->requestId, 'document_id' => $document['document_id'],
+                'state_seq' => $saved['state_seq'], 'source_sha256' => $input->sourceSha256, 'phase' => 'completed', 'published' => false];
+            ArticleHtmlMigration::create(['tenant_id' => $current->tenantId, 'article_id' => $input->articleId, 'document_id' => $document['document_id'],
+                'request_id' => $input->requestId, 'input_sha256' => $input->hash(), 'source_sha256' => $input->sourceSha256,
+                'actor_account_id' => $current->accountId, 'actor_member_id' => $current->memberId, 'result_json' => $result, 'created_at' => gmdate('Y-m-d H:i:s')]);
+            return $result;
+        });
+    }
+
+    private static function legacyArticle(int $id): Article
+    {
+        $article = Article::where('id', $id)->lock(true)->find();
+        if ($article === null || $article->body_document_id !== null || (int) $article->is_show !== 0 || trim((string) $article->content) === '') {
+            throw BusinessException::conflict('ARTICLE_HTML_MIGRATION_UNAVAILABLE', '仅可迁移未发布、未删除且未接入 Document 的非空旧正文');
+        }
+        return $article;
     }
 
     public function ensure(TenantContext $context, int $id, string $requestId): array

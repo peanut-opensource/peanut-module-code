@@ -3289,6 +3289,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/adminapi/peanut.article.document.html-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取未发布旧资讯的原 HTML 与当前来源版本供显式转换预览 */
+        get: operations["articleHtmlMigrationPreview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.document.html-migrate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 明确确认后原子接入可编辑草稿；原 HTML 保留，不发布或正式保存 */
+        post: operations["migrateArticleHtml"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/adminapi/peanut.article.document.editor": {
         parameters: {
             query?: never;
@@ -8665,6 +8699,43 @@ export interface components {
             code?: number;
             msg?: string;
         };
+        ArticleHtmlMigrationRequest: {
+            id: components["schemas"]["ArticlePositiveIntegerInput"];
+            request_id: string;
+            /** @enum {boolean} */
+            confirmed: true;
+            owner_revision: string;
+            source_sha256: string;
+            structured_content: components["schemas"]["DocumentStructuredContent"];
+        };
+        ArticleHtmlMigrationPreviewResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                article_id: number;
+                source_html: string;
+                source_sha256: string;
+                owner_revision: string;
+            };
+        };
+        ArticleHtmlMigrationResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                article_id: number;
+                request_id: string;
+                document_id: number;
+                /** @enum {integer} */
+                state_seq: 1;
+                source_sha256: string;
+                /** @enum {string} */
+                phase: "completed";
+                /** @enum {boolean} */
+                published: false;
+            };
+        };
         ArticleBodySaveRequest: {
             id: components["schemas"]["ArticlePositiveIntegerInput"];
             document_id: components["schemas"]["ArticlePositiveIntegerInput"];
@@ -8924,6 +8995,7 @@ export interface components {
             image: string;
             author: string;
             content: string;
+            body_document_id: number | null;
             click_virtual: number;
             click_actual: number;
             click: number;
@@ -9036,6 +9108,7 @@ export interface components {
             image: string;
             author: string;
             content: string;
+            body_document_id: number | null;
             click_virtual: number;
             click_actual: number;
             click: number;
@@ -9046,7 +9119,6 @@ export interface components {
             create_time: components["schemas"]["ArticleTimestamp"];
             update_time: components["schemas"]["ArticleTimestamp"];
             delete_time: components["schemas"]["ArticleTimestamp"];
-            body_document_id: number | null;
         };
         ApplicationArticleCategory: {
             id: number;
@@ -19393,6 +19465,66 @@ export interface operations {
             403: components["responses"]["ErrorResponse"];
             404: components["responses"]["ErrorResponse"];
             409: components["responses"]["ErrorResponse"];
+        };
+    };
+    articleHtmlMigrationPreview: {
+        parameters: {
+            query: {
+                /**
+                 * @description 资讯 ID
+                 * @example 12
+                 */
+                id: components["schemas"]["ArticlePositiveIntegerInput"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 读取未发布旧资讯的原 HTML 与当前来源版本供显式转换预览成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleHtmlMigrationPreviewResponse"];
+                };
+            };
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+            404: components["responses"]["ArticleErrorResponse"];
+            409: components["responses"]["ArticleErrorResponse"];
+            422: components["responses"]["ArticleErrorResponse"];
+        };
+    };
+    migrateArticleHtml: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArticleHtmlMigrationRequest"];
+            };
+        };
+        responses: {
+            /** @description 明确确认后原子接入可编辑草稿；原 HTML 保留，不发布或正式保存成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleHtmlMigrationResponse"];
+                };
+            };
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
+            404: components["responses"]["ArticleErrorResponse"];
+            409: components["responses"]["ArticleErrorResponse"];
+            422: components["responses"]["ArticleErrorResponse"];
         };
     };
     articleBodyEditor: {

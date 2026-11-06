@@ -17,6 +17,16 @@ class ArticleController extends BaseAdminController
     use CrudTrait;
 
     protected string $crudClass = ArticleAdministration::class;
+    public function bodyHtmlPreview(): Json
+    {
+        $input = $this->bodyInput($this->request->get(), false);
+        return $this->data($this->crud->bodyHtmlPreview($this->tenantAdminContext(), $input['id']));
+    }
+
+    public function bodyHtmlMigrate(): Json
+    {
+        return $this->data($this->crud->bodyHtmlMigrate($this->tenantAdminContext(), $this->request->post()));
+    }
     public function bodyEditor(): Json
     {
         $input = $this->bodyInput($this->request->get(), false);

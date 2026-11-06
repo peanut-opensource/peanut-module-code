@@ -3,7 +3,7 @@
   "key": "peanut.article",
   "name": "Article Content",
   "description": "Tenant-owned article and category content with member collections.",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-article",
@@ -19,7 +19,7 @@
     },
     {
       "module_key": "peanut.rich-text",
-      "version": "^1.0"
+      "version": "^1.0.16"
     },
     {
       "module_key": "peanut.member",
@@ -60,13 +60,15 @@
       "pa_article_cate",
       "pa_article",
       "pa_article_collect",
-      "pa_article_body_save"
+      "pa_article_body_save",
+      "pa_article_html_migration"
     ]
   },
   "contracts": {
     "exports": [
       "PeanutAdmin\\Modules\\Article\\Contract\\ArticleAdministration",
       "PeanutAdmin\\Modules\\Article\\Contract\\ArticleBodySaveInput",
+      "PeanutAdmin\\Modules\\Article\\Contract\\ArticleHtmlMigrationInput",
       "PeanutAdmin\\Modules\\Article\\Contract\\ArticleQueries",
       "PeanutAdmin\\Modules\\Article\\Contract\\PublicArticleQueries"
     ],
@@ -78,6 +80,7 @@
     "requires": [
       "peanut.file",
       "peanut.document",
+      "peanut.rich-text",
       "peanut.member",
       "peanut.identity"
     ]

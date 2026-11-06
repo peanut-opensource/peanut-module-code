@@ -305,7 +305,7 @@
               v-if="
                 modalVisible &&
                 form.id &&
-                !form.content.trim() &&
+                (form.body_document_id !== null || !form.content.trim()) &&
                 form.is_show === 0
               "
               ref="bodyEditor"
@@ -317,9 +317,20 @@
               @metadata-ready="bodyMetadataReady = $event"
               @metadata="onMetadataLoaded"
             />
-            <p v-else-if="form.id && form.content.trim()" role="status">
-              已有 HTML 正文需显式迁移，当前只读；此处不会转换或覆盖原正文。
-            </p>
+            <ArticleHtmlMigration
+              v-else-if="
+                modalVisible &&
+                form.id &&
+                form.body_document_id === null &&
+                form.content.trim() &&
+                form.is_show === 0
+              "
+              :key="form.id"
+              :article-id="form.id"
+              :context-key="contextKey"
+              @locked="bodyLocked = $event"
+              @completed="onHtmlMigrated"
+            />
             <p v-else role="status">
               {{
                 form.id
@@ -327,7 +338,9 @@
                   : '新建资讯暂只创建元数据，正文请在创建后接入。'
               }}
             </p>
-            <pre v-if="form.content.trim()">{{ form.content }}</pre>
+            <pre v-if="form.content.trim() && form.is_show !== 0">{{
+              form.content
+            }}</pre>
           </el-form-item>
         </el-form>
         <template #footer
@@ -392,12 +405,15 @@
     type ArticleListParams,
     type ArticleBodyEditor as ArticleEditorMetadata,
     type ArticleBodyMetadata,
+    type ArticleHtmlMigrated,
   } from '@/modules/peanut-article/api';
   import ArticleBodyEditor from './ArticleBodyEditor.vue';
+  import ArticleHtmlMigration from './ArticleHtmlMigration.vue';
   import ArticleBodyHistory from './ArticleBodyHistory.vue';
 
   interface ArticleForm {
     id: number;
+    body_document_id: number | null;
     cid: number | undefined;
     title: string;
     desc: string;
@@ -616,6 +632,7 @@
   );
   const generateForm = (): ArticleForm => ({
     id: 0,
+    body_document_id: null,
     cid: undefined,
     title: '',
     desc: '',
@@ -628,6 +645,13 @@
     is_show: 0,
   });
   const form = ref<ArticleForm>(generateForm());
+  const onHtmlMigrated = (value: ArticleHtmlMigrated) => {
+    if (!modalVisible.value || value.article_id !== form.value.id) return;
+    form.value.body_document_id = value.document_id;
+    bodyMetadataReady.value = false;
+    bodyLocked.value = false;
+    fetchData(pagination.current);
+  };
   const metadataDisabled = computed(
     () => bodyLocked.value || (form.value.id !== 0 && !bodyMetadataReady.value)
   );
@@ -651,6 +675,7 @@
     } = metadata;
     coverUrl.value = imageUrl;
     Object.assign(form.value, {
+      body_document_id: value.document_id,
       cid,
       title,
       desc,
@@ -720,6 +745,7 @@
     coverUrl.value = record.image || '';
     form.value = {
       id: record.id,
+      body_document_id: record.body_document_id ?? null,
       cid: record.cid,
       title: record.title,
       desc: record.desc || '',
@@ -805,7 +831,7 @@
         if (
           !bodyEditor.value ||
           !bodyMetadataReady.value ||
-          content.trim() ||
+          (content.trim() && form.value.body_document_id === null) ||
           form.value.is_show !== 0
         )
           return false;

@@ -62,6 +62,8 @@ Route::group(function (): void {
     Route::post('peanut.article.add', [ArticleController::class, 'add']);
     Route::post('peanut.article.edit', [ArticleController::class, 'edit']);
     Route::post('peanut.article.document', [ArticleController::class, 'bodyDocument'])->option(['peanut_permission' => 'peanut.article.edit']);
+    Route::get('peanut.article.document.html-preview', [ArticleController::class, 'bodyHtmlPreview'])->option(['peanut_permission' => 'peanut.article.edit']);
+    Route::post('peanut.article.document.html-migrate', [ArticleController::class, 'bodyHtmlMigrate'])->option(['peanut_permission' => 'peanut.article.edit']);
     Route::get('peanut.article.document.editor', [ArticleController::class, 'bodyEditor'])->option(['peanut_permission' => 'peanut.article.edit']);
     Route::post('peanut.article.document.transport', [ArticleController::class, 'bodyTransport'])->option(['peanut_permission' => 'peanut.article.edit']);
     Route::post('peanut.article.document.save', [ArticleController::class, 'bodySave'])->option(['peanut_permission' => 'peanut.article.edit']);

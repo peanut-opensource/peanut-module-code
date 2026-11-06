@@ -172,6 +172,22 @@ $bodyOperation = $bodyObject([
 
 $articleContract = [
     'paths' => [
+        '/adminapi/peanut.article.document.html-preview' => ['get' => $operation(
+            'articleHtmlMigrationPreview',
+            '读取未发布旧资讯的原 HTML 与当前来源版本供显式转换预览',
+            'ArticleHtmlMigrationPreviewResponse',
+            [$identifierParameter('资讯 ID')],
+            businessErrors: ['ARTICLE_HTML_MIGRATION_UNAVAILABLE'],
+            errorStatuses: [404, 409, 422],
+        )],
+        '/adminapi/peanut.article.document.html-migrate' => ['post' => $operation(
+            'migrateArticleHtml',
+            '明确确认后原子接入可编辑草稿；原 HTML 保留，不发布或正式保存',
+            'ArticleHtmlMigrationResponse',
+            requestSchema: 'ArticleHtmlMigrationRequest',
+            businessErrors: ['ARTICLE_HTML_INPUT_INVALID', 'ARTICLE_HTML_MEDIA_UNSUPPORTED', 'ARTICLE_HTML_SOURCE_CHANGED', 'ARTICLE_HTML_MIGRATION_UNAVAILABLE', 'ARTICLE_HTML_DOCUMENT_EXISTS', 'ARTICLE_HTML_REQUEST_CONFLICT', 'ARTICLE_HTML_ACTOR_DENIED'],
+            errorStatuses: [404, 409, 422],
+        )],
         '/adminapi/peanut.article.document.editor' => ['get' => $operation(
             'articleBodyEditor',
             '读取当前人员获准编辑的既有正文',
@@ -418,6 +434,21 @@ $articleContract = [
     ],
     'components' => [
         'schemas' => [
+            'ArticleHtmlMigrationRequest' => $bodyObject([
+                'id' => $positiveIntegerInput, 'request_id' => $bodyKey,
+                'confirmed' => ['type' => 'boolean', 'enum' => [true]],
+                'owner_revision' => $bodyHash, 'source_sha256' => $bodyHash,
+                'structured_content' => $schemaRef('DocumentStructuredContent'),
+            ], ['id', 'request_id', 'confirmed', 'owner_revision', 'source_sha256', 'structured_content']),
+            'ArticleHtmlMigrationPreviewResponse' => $bodyEnvelope($bodyObject([
+                'article_id' => $bodyId, 'source_html' => ['type' => 'string'],
+                'source_sha256' => $bodyHash, 'owner_revision' => $bodyHash,
+            ], ['article_id', 'source_html', 'source_sha256', 'owner_revision'])),
+            'ArticleHtmlMigrationResponse' => $bodyEnvelope($bodyObject([
+                'article_id' => $bodyId, 'request_id' => $bodyKey, 'document_id' => $bodyId,
+                'state_seq' => ['type' => 'integer', 'enum' => [1]], 'source_sha256' => $bodyHash,
+                'phase' => ['type' => 'string', 'enum' => ['completed']], 'published' => ['type' => 'boolean', 'enum' => [false]],
+            ], ['article_id', 'request_id', 'document_id', 'state_seq', 'source_sha256', 'phase', 'published'])),
             'ArticleBodySaveRequest' => $bodyObject($bodySaveProperties, ['id', 'document_id', 'expected_state_seq', 'owner_revision', 'request_id', 'cid', 'title', 'is_show']),
             'ArticleBodyEditorResponse' => $bodyEnvelope($bodyEditor),
             'ArticleBodyTransportResponse' => $bodyEnvelope($bodyTransport),
@@ -552,7 +583,7 @@ $articleContract = [
                 'required' => [
                     'id', 'cid', 'title', 'desc', 'abstract', 'image', 'author', 'content',
                     'click_virtual', 'click_actual', 'click', 'is_show', 'sort', 'cate_name',
-                    'create_time', 'update_time', 'delete_time',
+                    'create_time', 'update_time', 'delete_time', 'body_document_id',
                 ],
                 'properties' => [
                     'id' => ['type' => 'integer', 'minimum' => 1],
@@ -563,6 +594,7 @@ $articleContract = [
                     'image' => ['type' => 'string'],
                     'author' => ['type' => 'string'],
                     'content' => ['type' => 'string'],
+                    'body_document_id' => ['type' => 'integer', 'minimum' => 1, 'nullable' => true],
                     'click_virtual' => ['type' => 'integer', 'minimum' => 0],
                     'click_actual' => ['type' => 'integer', 'minimum' => 0],
                     'click' => ['type' => 'integer', 'minimum' => 0],
@@ -745,6 +777,4 @@ $articleContract = [
     ],
 ];
 $articleContract['components']['schemas']['ArticleDetailRecord'] = $articleContract['components']['schemas']['ArticleRecord'];
-$articleContract['components']['schemas']['ArticleDetailRecord']['properties']['body_document_id'] = ['type' => 'integer', 'minimum' => 1, 'nullable' => true];
-$articleContract['components']['schemas']['ArticleDetailRecord']['required'][] = 'body_document_id';
 return array_replace_recursive($articleContract, require __DIR__ . '/consumer.php');

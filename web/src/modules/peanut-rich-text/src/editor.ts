@@ -1,5 +1,11 @@
 import { defineAsyncComponent } from 'vue';
 
+export {
+  previewRichTextHtml,
+  type RichTextHtmlImportLimitation,
+  type RichTextHtmlImportPreview,
+} from './html-import';
+
 export const RichTextEditor = defineAsyncComponent(
   () => import('../components/RichTextEditor.vue')
 );

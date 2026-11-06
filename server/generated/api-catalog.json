@@ -4,7 +4,7 @@
     "inputs": [
         {
             "path": "modules.lock",
-            "sha256": "13f10b2349b9cf93781aef984b36b2f2097924184fcc94891d1fcc2f4a6da7e6"
+            "sha256": "8ed7b21923fecf0909bab2603bf7c7aa8893dbf683e974051ac03fa9cede27b0"
         },
         {
             "path": "release-versions.json",
@@ -48,11 +48,11 @@
         },
         {
             "path": "server/app/modules/peanut/article/api/metadata/openapi.php",
-            "sha256": "595c6d8cf742f700fd087feb4c3c51499ad3f460fa616da3cbed56349130db2f"
+            "sha256": "e5d37ab29ea195eb3ee30a65864a8a76f6d40189288107cbb37c03ebf36ed621"
         },
         {
             "path": "server/app/modules/peanut/article/route/app.php",
-            "sha256": "a02b6a9483e67d9abcfa5ff587a94e16f12c293eed026c86db102c4afcbf101c"
+            "sha256": "e6f8deb1b3bd558f2aa00ee371384c7cfc7ab5bf579ffdfa1b8c4381b125478f"
         },
         {
             "path": "server/app/modules/peanut/collaboration/api/metadata/openapi.php",
@@ -200,27 +200,27 @@
         ]
     },
     "summary": {
-        "route_count": 461,
-        "generated_api_operations": 435,
+        "route_count": 463,
+        "generated_api_operations": 437,
         "route_only_operations": 26,
-        "complete_operations": 435,
+        "complete_operations": 437,
         "partial_operations": 0,
-        "runtime_routes": 461,
-        "documented_operations": 435,
+        "runtime_routes": 463,
+        "documented_operations": 437,
         "undocumented_routes": 26,
-        "automatic_route_metadata": 461,
+        "automatic_route_metadata": 463,
         "requires_owner_contract": 26,
         "owners": 19,
         "runtime_inventory": {
-            "total": 461,
+            "total": 463,
             "methods": {
                 "DELETE": 4,
-                "GET": 206,
-                "POST": 240,
+                "GET": 207,
+                "POST": 241,
                 "PUT": 11
             },
             "applications": {
-                "adminapi": 324,
+                "adminapi": 326,
                 "api": 47,
                 "installation": 9,
                 "platform": 81
@@ -231,7 +231,7 @@
                 "application:installation": 9,
                 "application:platform": 72,
                 "module:custom.ai-assistant": 20,
-                "module:peanut.article": 37,
+                "module:peanut.article": 39,
                 "module:peanut.collaboration": 11,
                 "module:peanut.document": 12,
                 "module:peanut.file": 31,
@@ -255,7 +255,7 @@
         "application:installation": 9,
         "application:platform": 72,
         "module:custom.ai-assistant": 20,
-        "module:peanut.article": 37,
+        "module:peanut.article": 39,
         "module:peanut.collaboration": 11,
         "module:peanut.document": 12,
         "module:peanut.file": 31,
@@ -7277,10 +7277,94 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 65
+                "line": 67
             },
             "documented": true,
             "openapi_operation_id": "articleBodyEditor",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-article/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "aafa041473750d1125b6d6b4ca13fc0fd7593e68e664451ef7658f9fb1d2052d",
+            "method": "GET",
+            "path": "/adminapi/peanut.article.document.html-preview",
+            "runtime_path": "/adminapi/peanut.article.document.html-preview",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.article"
+            },
+            "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ArticleController",
+            "action": "bodyHtmlPreview",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "peanut.article.edit"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.article"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "peanut.article.edit"
+                }
+            ],
+            "errors": [
+                401,
+                403,
+                404,
+                409,
+                422
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.article",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/article/route/app.php",
+                "line": 65
+            },
+            "documented": true,
+            "openapi_operation_id": "articleHtmlMigrationPreview",
             "contract_quality": "complete",
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts",
@@ -7361,7 +7445,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 68
+                "line": 70
             },
             "documented": true,
             "openapi_operation_id": "articleBodySaveOperation",
@@ -7607,7 +7691,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 72
+                "line": 74
             },
             "documented": true,
             "openapi_operation_id": "getRecycledArticle",
@@ -7689,7 +7773,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 71
+                "line": 73
             },
             "documented": true,
             "openapi_operation_id": "listRecycledArticles",
@@ -24011,7 +24095,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 69
+                "line": 71
             },
             "documented": true,
             "openapi_operation_id": "deleteArticle",
@@ -24119,6 +24203,90 @@
             }
         },
         {
+            "api_id": "348bc440451000d70c9ea0883d9b085f95ffd56f66771ff43c000c94245d5304",
+            "method": "POST",
+            "path": "/adminapi/peanut.article.document.html-migrate",
+            "runtime_path": "/adminapi/peanut.article.document.html-migrate",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.article"
+            },
+            "controller": "PeanutAdmin\\Modules\\Article\\Controller\\ArticleController",
+            "action": "bodyHtmlMigrate",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "peanut.article.edit"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.article"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "peanut.article.edit"
+                }
+            ],
+            "errors": [
+                401,
+                403,
+                404,
+                409,
+                422
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.article",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/article/route/app.php",
+                "line": 66
+            },
+            "documented": true,
+            "openapi_operation_id": "migrateArticleHtml",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-article/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
             "api_id": "f1ab1a2983a4212cd2ac626514fbaf39b5fb4241fd4435d5a879b720d7eb4c89",
             "method": "POST",
             "path": "/adminapi/peanut.article.document.save",
@@ -24180,7 +24348,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 67
+                "line": 69
             },
             "documented": true,
             "openapi_operation_id": "saveArticleBody",
@@ -24265,7 +24433,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 66
+                "line": 68
             },
             "documented": true,
             "openapi_operation_id": "articleBodyTransport",
@@ -24431,7 +24599,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 74
+                "line": 76
             },
             "documented": true,
             "openapi_operation_id": "forceDeleteArticles",
@@ -24513,7 +24681,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 73
+                "line": 75
             },
             "documented": true,
             "openapi_operation_id": "restoreArticles",
@@ -24596,7 +24764,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 70
+                "line": 72
             },
             "documented": true,
             "openapi_operation_id": "updateArticleStatus",

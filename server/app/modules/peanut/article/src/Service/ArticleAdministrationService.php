@@ -61,6 +61,18 @@ final class ArticleAdministrationService implements ArticleAdministration
         return $this->bodies->ensure($context, $id, $requestId);
     }
 
+    public function bodyHtmlPreview(TenantContext $context, int $id): array
+    {
+        $this->assertPermission($context, 'peanut.article.edit');
+        return $this->bodies->htmlPreview($context, $id);
+    }
+
+    public function bodyHtmlMigrate(TenantContext $context, array $input): array
+    {
+        $this->assertPermission($context, 'peanut.article.edit');
+        return $this->bodies->htmlMigrate($context, new \PeanutAdmin\Modules\Article\Contract\ArticleHtmlMigrationInput($input));
+    }
+
     public function bodyEditor(TenantContext $context, int $id): array
     {
         $this->assertPermission($context, 'peanut.article.edit');
@@ -313,12 +325,11 @@ final class ArticleAdministrationService implements ArticleAdministration
     private function findRow(int $id, bool $onlyTrashed): array
     {
         $query = $onlyTrashed ? Article::onlyTrashed() : Article::where([]);
-        $article = $query->field([...self::articleFields(), 'body_document_id'])->where('id', $id)->findOrEmpty();
+        $article = $query->field(self::articleFields())->where('id', $id)->findOrEmpty();
         if ($article->isEmpty()) {
             return [];
         }
         $row = $article->toArray();
-        $row['body_document_id'] = $row['body_document_id'] === null ? null : (int) $row['body_document_id'];
         return $this->formatArticleRow(
             $row,
             $this->categoryNames([(int) $article['cid']], $onlyTrashed),
@@ -358,7 +369,7 @@ final class ArticleAdministrationService implements ArticleAdministration
     {
         return [
             'id', 'cid', 'title', 'desc', 'abstract', 'image', 'author', 'content',
-            'click_virtual', 'click_actual', 'is_show', 'sort',
+            'click_virtual', 'click_actual', 'is_show', 'sort', 'body_document_id',
             'create_time', 'update_time', 'delete_time',
         ];
     }
@@ -416,6 +427,7 @@ final class ArticleAdministrationService implements ArticleAdministration
         $row['click'] = $row['click_actual'] + $row['click_virtual'];
         $row['image'] = $this->assets->forRead((string) ($row['image'] ?? ''));
         $row['content'] = $this->richText->forRead((string) ($row['content'] ?? ''));
+        $row['body_document_id'] = $row['body_document_id'] === null ? null : (int) $row['body_document_id'];
         foreach (['create_time', 'update_time', 'delete_time'] as $field) {
             $row[$field] = self::formatTime($row[$field] ?? 0);
         }
