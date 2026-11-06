@@ -27335,7 +27335,8 @@
                 },
                 "x-peanut-errors": [
                     "FILE_NAME_REQUIRED",
-                    "FILE_NAME_TOO_LONG"
+                    "FILE_NAME_TOO_LONG",
+                    "INVALID_ARGUMENT"
                 ],
                 "security": [
                     {

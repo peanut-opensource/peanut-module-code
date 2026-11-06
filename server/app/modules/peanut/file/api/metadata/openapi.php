@@ -273,7 +273,7 @@ return [
             'tags' => ['File'], 'operationId' => 'renameFile',
             'requestBody' => ['required' => true, 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/FileRenameRequest']]]],
             'responses' => ['200' => $mutationResponse, '400' => $typedError, '401' => $typedError, '403' => $typedError],
-            'x-peanut-errors' => ['FILE_NAME_REQUIRED', 'FILE_NAME_TOO_LONG'],
+            'x-peanut-errors' => ['FILE_NAME_REQUIRED', 'FILE_NAME_TOO_LONG', 'INVALID_ARGUMENT'],
         ]],
         '/adminapi/peanut.file.delete' => ['post' => [
             'tags' => ['File'], 'operationId' => 'deleteFiles',
