@@ -123,6 +123,11 @@ final class ProbeTransport implements OutboundHttpTransport {
     }
 }
 
+foreach (['Configuration','GenerationTask','Event','Quota','TextGeneration'] as $name) {
+    $type = 'Custom\\Modules\\AiAssistant\\Model\\' . $name;
+    check((new $type())->getPk() === 'id', $name . ' must update by its declared primary key');
+}
+
 $actorRef = new ReflectionClass(TenantContext::class);
 $actor = $actorRef->newInstanceWithoutConstructor();
 foreach (['tenantId'=>1,'memberId'=>7,'accountId'=>9,'requestId'=>'dev-admin-text'] as $field=>$value) $actorRef->getProperty($field)->setValue($actor,$value);
@@ -143,7 +148,7 @@ $store->run(new AdminExecutionContext($actor,'http.admin',['id'=>7]), function (
         $resultFile = fopen($argv[6], 'x');
         check($resultFile !== false, 'result file must be new');
     }
-    $make = function (string $kind, array $data, string $tag) use ($config,$actor,$key) {
+    $make = function (string $kind, array $data, string $tag) use ($config,$actor,$key,$access) {
         $r = $config->save($actor,$kind,null,null,'DEV '.$tag,$data,'cfg-'.$tag);
         if ($kind === 'connection') {
             $version = $r['version'];
@@ -152,7 +157,7 @@ $store->run(new AdminExecutionContext($actor,'http.admin',['id'=>7]), function (
             $read = fn() => Db::table('ai_assistant_config')->where('id',$r['id'])->find();
             $stored = $read();
             check((int)$stored['version'] === $version+1 && $stored['secret_payload'] && json_decode($stored['details'],true)['credential_configured'], 'credential persisted');
-            check($config->secret($actor,$r['id'],$version,$key,$request) === $r && $read()['secret_payload'] === $stored['secret_payload'], 'replay does not rotate ciphertext');
+            check(AiAccess::hash($config->secret($actor,$r['id'],$version,$key,$request)) === AiAccess::hash($r) && $read()['secret_payload'] === $stored['secret_payload'], 'replay does not rotate ciphertext');
             if ($tag === 'one-connection') {
                 $event = Db::table('ai_assistant_event')->where('request_id',$request)->find();
                 $old = json_decode($event['details'],true,64,JSON_THROW_ON_ERROR);
@@ -161,6 +166,13 @@ $store->run(new AdminExecutionContext($actor,'http.admin',['id'=>7]), function (
                 $event['request_id'] = 'DEV-legacy-receipt';
                 Db::table('ai_assistant_event')->insert($event);
                 denied('AI_CREDENTIAL_RECEIPT_UNVERIFIED', fn()=> $config->secret($actor,$r['id'],$version,$key,'DEV-legacy-receipt'));
+                $sources = (new ReflectionClass(\Custom\Modules\AiAssistant\Service\AiSources::class))->newInstanceWithoutConstructor();
+                $status = new \Custom\Modules\AiAssistant\Service\AiRequestStatus($access,$sources);
+                $descriptor = ['endpoint'=>'saveCredential','kind'=>'connection','id'=>$r['id']];
+                $historic = $status->status($actor,$descriptor + ['request_id'=>'DEV-legacy-receipt']);
+                $verified = $status->status($actor,$descriptor + ['request_id'=>$request]);
+                check($historic['state']==='unconfirmed' && $historic['anchor_present'] && $historic['result']['version']===$version+1
+                    && $verified['state']==='applied', 'historic event is visible, only verified event confirms storage');
                 check($read()['secret_payload'] === $stored['secret_payload'], 'historical event cannot rotate credential');
             }
         }
