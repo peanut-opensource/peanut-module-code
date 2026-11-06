@@ -11,6 +11,7 @@ use PeanutAdmin\Modules\File\Model\Storage\FileImageAsset;
 use PeanutAdmin\Modules\File\Model\Storage\FileObject;
 use PeanutAdmin\Modules\File\Contract\FileAdministration;
 use app\common\enum\FileEnum;
+use app\common\exception\BusinessException;
 use app\common\execution\CurrentExecutionContext;
 use app\common\http\PageResult;
 use PeanutAdmin\Modules\File\Service\Storage\StorageService;
@@ -217,7 +218,7 @@ final class FileAdministrationService implements FileAdministration
         }
         $file = File::where('id', $id)->find();
         if (!$file) {
-            throw new \InvalidArgumentException('素材不存在');
+            throw BusinessException::invalid('INVALID_ARGUMENT', '素材不存在');
         }
         $file->save(['name' => $name]);
     }
