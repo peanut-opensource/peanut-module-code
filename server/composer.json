@@ -220,7 +220,7 @@
         "peanut-business/peanut-rich-text": "1.0.15",
         "peanut-business/workflow": "4.0.0-rc.48",
         "peanut-business/peanut-chart-examples": "1.0.3",
-        "custom/custom-ai-assistant": "1.2.0"
+        "custom/custom-ai-assistant": "1.2.1"
     },
     "require-dev": {
         "phpunit/phpunit": "12.5.31",
