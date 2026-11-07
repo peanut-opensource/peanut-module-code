@@ -290,3 +290,44 @@ The first consumer is `custom.ai-assistant`. Its preparation, explicit retry and
 cancellation retain their business request identities and native Task revisions.
 A source grant does not authorize publication, acceptance, payment or a new
 external request after an unknown result.
+
+## Fixed revision comments
+
+The public `DocumentRevisionComments` contract adds persistent threads, replies, resolution, and reopening on a committed immutable rich-text revision. Read a real version through `DocumentQueries` and pass its document/revision IDs to `threads()`. The service returns the fixed revision number, current owner, exact plain text, its profile/digest, and current write capability.
+
+`threads()` and `thread()` require current owner view (the existing archive-read policy applies to archived documents). Every command, including request replay, independently requires current owner edit and view. Tenant/member/account identity comes from the native validated context. The service uses Identity's public read fence, locks the owner before Document and comment rows, and verifies the same native prepared version again before commit. It does not require Collaboration to be enabled.
+
+The source text is the public RichText `plainText()` result for `peanut.richtext.plain-text/1`. Offsets use Unicode code points in a half-open `[start_offset,end_offset)` interval. Chinese and astral emoji each count as one; a combining mark counts separately. No Unicode normalization, trimming, or automatic movement to another revision occurs. The exact quote must equal that interval; quotes are limited to 4096 code points and comment bodies to 4000. File-backed documents are unsupported; referenced resources in rich text retain the existing public File read checks.
+
+A create input contains `request_id`, `version_digest`, `text_profile`, `text_sha256`, `start_offset`, `end_offset`, `quote`, and `body`. Reply/resolve/reopen inputs carry the same source binding, a `thread_id`, and the actual `expected_thread_revision`; only reply includes `body`. Unknown fields, including actor/tenant overrides, are rejected. Replies and resolve require an open thread; reopen requires a resolved thread.
+
+Each successful command atomically appends one immutable activity and one immutable request receipt. The thread revision increases by one. The same request and exact input from the same member/account returns its original receipt after fresh authorization; changed input/action/actor conflicts. A replay receipt describes that original write, so consumers must reload current thread state instead of applying the receipt as the latest revision. A failed transaction leaves no thread/message/receipt. Concurrent requests serialize on the existing Document/owner locks; this feature adds no background work.
+
+The append-only migration owns `pa_document_comment_thread`, `pa_document_comment_message`, and `pa_document_comment_operation`. Its foreign keys refer only to Document-owned tables. Member existence/permissions are checked through current Identity contracts; there are no Identity private-table queries or new cross-module foreign keys. Comments never write the document body, invoke restore, or bypass the business save barrier.
+
+### Public component
+
+Import the independent component or opt into the existing viewer export:
+
+```vue
+<script setup lang="ts">
+import { DocumentRevisionComments } from '@peanut-admin/peanut-document/viewer';
+</script>
+
+<template>
+  <DocumentRevisionComments
+    :document-id="documentId"
+    :revision-id="fixedRevisionId"
+    :context-key="currentTenantMemberContextKey"
+    :owner="owner"
+  />
+</template>
+```
+
+`DocumentViewer` also accepts `comments`, an explicit `revisionId`, and a nonempty `contextKey`. The host changes the context key when the identity/authorization context changes; it is a UI invalidation key, never authorization evidence. The panel displays the fixed version, exact quote, member IDs, messages, status and thread revision, and uses the actual contextual HTTP endpoints. It renders all content as text.
+
+The component uses the existing authenticated Axios client. It clears stale content after read failures or revocation, discards late reads, and retains immutable pending commands by context/revision for its lifetime. An unknown write retries the original request unchanged. A later denial cannot turn an earlier unknown outcome into a safe new request. Acknowledgements from a different context cannot select or overwrite its thread; successful writes reload current state. Pending client commands are in memory, not persisted across a full page reload or component destruction; server receipts remain durable and callers retaining the original input can recover them through the same command.
+
+HTTP methods: GET `peanut.document.comments`, GET `peanut.document.comment.thread`; POST `peanut.document.comment.create`, `reply`, `resolve`, and `reopen`. All remain behind the native login/module/contextual access boundary. The host's versioned authenticated-route registry must contain those exact six method/path pairs.
+
+This slice does not implement live editor annotations, moving anchors, suggestions, range authors, cursors, notifications, or a diff engine. The RichText projection still rejects nonempty editor annotations.

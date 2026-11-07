@@ -38,6 +38,13 @@ return [
         'POST adminapi/peanut.document.version.restore',
         'POST adminapi/peanut.document.archive',
         'POST adminapi/peanut.document.restore',
+        // Revision comments retain current owner and immutable-source authorization in Document.
+        'GET adminapi/peanut.document.comments',
+        'GET adminapi/peanut.document.comment.thread',
+        'POST adminapi/peanut.document.comment.create',
+        'POST adminapi/peanut.document.comment.reply',
+        'POST adminapi/peanut.document.comment.resolve',
+        'POST adminapi/peanut.document.comment.reopen',
         'POST adminapi/user/info',
         'POST adminapi/user/menu',
         'GET adminapi/login/info',

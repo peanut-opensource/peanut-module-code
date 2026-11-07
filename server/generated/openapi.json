@@ -27324,7 +27324,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 15
+                        "line": 21
                     }
                 },
                 "x-peanut-permissions": [
@@ -27414,7 +27414,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 16
+                        "line": 22
                     }
                 },
                 "x-peanut-permissions": [
@@ -27498,7 +27498,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 14
+                        "line": 20
                     }
                 },
                 "x-peanut-permissions": [
@@ -27581,7 +27581,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 11
+                        "line": 17
                     }
                 },
                 "x-peanut-permissions": [
@@ -27674,7 +27674,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 12
+                        "line": 18
                     }
                 },
                 "x-peanut-permissions": [
@@ -27769,7 +27769,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 13
+                        "line": 19
                     }
                 },
                 "x-peanut-permissions": [
@@ -27868,7 +27868,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 17
+                        "line": 23
                     }
                 },
                 "x-peanut-permissions": [
@@ -27968,7 +27968,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 18
+                        "line": 24
                     }
                 },
                 "x-peanut-permissions": [
@@ -28069,7 +28069,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 19
+                        "line": 25
                     }
                 },
                 "x-peanut-permissions": [
@@ -28169,7 +28169,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 20
+                        "line": 26
                     }
                 },
                 "x-peanut-permissions": [
@@ -28264,7 +28264,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 21
+                        "line": 27
                     }
                 },
                 "x-peanut-permissions": [
@@ -28359,7 +28359,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 22
+                        "line": 28
                     }
                 },
                 "x-peanut-permissions": [
@@ -28370,6 +28370,743 @@
                     {
                         "kind": "tenant_action",
                         "key": "peanut.document.restore"
+                    }
+                ]
+            }
+        },
+        "/adminapi/peanut.document.comments": {
+            "get": {
+                "tags": [
+                    "Document"
+                ],
+                "operationId": "documentRevisionCommentThreads",
+                "parameters": [
+                    {
+                        "name": "document_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "revision_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100,
+                            "default": 20
+                        }
+                    },
+                    {
+                        "name": "before_thread_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DocumentCommentThreadsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.document"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Document\\Controller\\DocumentRevisionCommentController",
+                    "action": "threads",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/document/route/app.php",
+                        "line": 11
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.document"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "peanut.document.comments"
+                    }
+                ]
+            }
+        },
+        "/adminapi/peanut.document.comment.thread": {
+            "get": {
+                "tags": [
+                    "Document"
+                ],
+                "operationId": "documentRevisionCommentThread",
+                "parameters": [
+                    {
+                        "name": "document_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "revision_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "thread_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100,
+                            "default": 50
+                        }
+                    },
+                    {
+                        "name": "after_message_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DocumentCommentThreadResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.document"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Document\\Controller\\DocumentRevisionCommentController",
+                    "action": "thread",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/document/route/app.php",
+                        "line": 12
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.document"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "peanut.document.comment.thread"
+                    }
+                ]
+            }
+        },
+        "/adminapi/peanut.document.comment.create": {
+            "post": {
+                "tags": [
+                    "Document"
+                ],
+                "operationId": "documentRevisionCommentCreate",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DocumentCommentReceiptResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "document_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "revision_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "request_id": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z0-9:_-]{1,128}$"
+                                    },
+                                    "version_digest": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "text_profile": {
+                                        "type": "string",
+                                        "enum": [
+                                            "peanut.richtext.plain-text/1"
+                                        ]
+                                    },
+                                    "text_sha256": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "start_offset": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    "end_offset": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "quote": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 4096
+                                    },
+                                    "body": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 4000
+                                    }
+                                },
+                                "required": [
+                                    "document_id",
+                                    "revision_id",
+                                    "request_id",
+                                    "version_digest",
+                                    "text_profile",
+                                    "text_sha256",
+                                    "start_offset",
+                                    "end_offset",
+                                    "quote",
+                                    "body"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.document"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Document\\Controller\\DocumentRevisionCommentController",
+                    "action": "createThread",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/document/route/app.php",
+                        "line": 13
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.document"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "peanut.document.comment.create"
+                    }
+                ]
+            }
+        },
+        "/adminapi/peanut.document.comment.reply": {
+            "post": {
+                "tags": [
+                    "Document"
+                ],
+                "operationId": "documentRevisionCommentReply",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DocumentCommentReceiptResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "document_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "revision_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "request_id": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z0-9:_-]{1,128}$"
+                                    },
+                                    "version_digest": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "text_profile": {
+                                        "type": "string",
+                                        "enum": [
+                                            "peanut.richtext.plain-text/1"
+                                        ]
+                                    },
+                                    "text_sha256": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "thread_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "expected_thread_revision": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "body": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 4000
+                                    }
+                                },
+                                "required": [
+                                    "document_id",
+                                    "revision_id",
+                                    "request_id",
+                                    "version_digest",
+                                    "text_profile",
+                                    "text_sha256",
+                                    "thread_id",
+                                    "expected_thread_revision",
+                                    "body"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.document"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Document\\Controller\\DocumentRevisionCommentController",
+                    "action": "reply",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/document/route/app.php",
+                        "line": 14
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.document"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "peanut.document.comment.reply"
+                    }
+                ]
+            }
+        },
+        "/adminapi/peanut.document.comment.resolve": {
+            "post": {
+                "tags": [
+                    "Document"
+                ],
+                "operationId": "documentRevisionCommentResolve",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DocumentCommentReceiptResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "document_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "revision_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "request_id": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z0-9:_-]{1,128}$"
+                                    },
+                                    "version_digest": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "text_profile": {
+                                        "type": "string",
+                                        "enum": [
+                                            "peanut.richtext.plain-text/1"
+                                        ]
+                                    },
+                                    "text_sha256": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "thread_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "expected_thread_revision": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    }
+                                },
+                                "required": [
+                                    "document_id",
+                                    "revision_id",
+                                    "request_id",
+                                    "version_digest",
+                                    "text_profile",
+                                    "text_sha256",
+                                    "thread_id",
+                                    "expected_thread_revision"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.document"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Document\\Controller\\DocumentRevisionCommentController",
+                    "action": "resolve",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/document/route/app.php",
+                        "line": 15
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.document"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "peanut.document.comment.resolve"
+                    }
+                ]
+            }
+        },
+        "/adminapi/peanut.document.comment.reopen": {
+            "post": {
+                "tags": [
+                    "Document"
+                ],
+                "operationId": "documentRevisionCommentReopen",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DocumentCommentReceiptResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "document_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "revision_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "request_id": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z0-9:_-]{1,128}$"
+                                    },
+                                    "version_digest": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "text_profile": {
+                                        "type": "string",
+                                        "enum": [
+                                            "peanut.richtext.plain-text/1"
+                                        ]
+                                    },
+                                    "text_sha256": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "thread_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "expected_thread_revision": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    }
+                                },
+                                "required": [
+                                    "document_id",
+                                    "revision_id",
+                                    "request_id",
+                                    "version_digest",
+                                    "text_profile",
+                                    "text_sha256",
+                                    "thread_id",
+                                    "expected_thread_revision"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.document"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Document\\Controller\\DocumentRevisionCommentController",
+                    "action": "reopen",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/document/route/app.php",
+                        "line": 16
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.document"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "peanut.document.comment.reopen"
                     }
                 ]
             }
@@ -54877,6 +55614,814 @@
                     "state",
                     "unavailableReason",
                     "capabilityRevision"
+                ]
+            },
+            "DocumentCommentSource": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "document_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "revision_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "revision_no": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "source_state_seq": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "version_digest": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "text_profile": {
+                        "type": "string",
+                        "enum": [
+                            "peanut.richtext.plain-text/1"
+                        ]
+                    },
+                    "offset_unit": {
+                        "type": "string",
+                        "enum": [
+                            "unicode-code-point"
+                        ]
+                    },
+                    "text": {
+                        "type": "string"
+                    },
+                    "text_sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "text_length": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "owner": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "module_key": {
+                                "type": "string"
+                            },
+                            "object_type": {
+                                "type": "string"
+                            },
+                            "object_id": {
+                                "type": "string"
+                            },
+                            "slot": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "module_key",
+                            "object_type",
+                            "object_id",
+                            "slot"
+                        ]
+                    }
+                },
+                "required": [
+                    "document_id",
+                    "revision_id",
+                    "revision_no",
+                    "source_state_seq",
+                    "version_digest",
+                    "text_profile",
+                    "offset_unit",
+                    "text",
+                    "text_sha256",
+                    "text_length",
+                    "owner"
+                ]
+            },
+            "DocumentCommentThread": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "thread_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "document_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "revision_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "version_digest": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "text_profile": {
+                        "type": "string",
+                        "enum": [
+                            "peanut.richtext.plain-text/1"
+                        ]
+                    },
+                    "text_sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "start_offset": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "end_offset": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "quote": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 4096
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "open",
+                            "resolved"
+                        ]
+                    },
+                    "thread_revision": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "created_by_member_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "updated_by_member_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "thread_id",
+                    "document_id",
+                    "revision_id",
+                    "version_digest",
+                    "text_profile",
+                    "text_sha256",
+                    "start_offset",
+                    "end_offset",
+                    "quote",
+                    "status",
+                    "thread_revision",
+                    "created_by_member_id",
+                    "updated_by_member_id",
+                    "created_at",
+                    "updated_at"
+                ]
+            },
+            "DocumentCommentMessage": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "message_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "thread_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "thread_revision": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "action": {
+                        "type": "string",
+                        "enum": [
+                            "create",
+                            "reply",
+                            "resolve",
+                            "reopen"
+                        ]
+                    },
+                    "body": {
+                        "type": "string",
+                        "nullable": true,
+                        "minLength": 1,
+                        "maxLength": 4000
+                    },
+                    "actor_member_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "created_at": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "message_id",
+                    "thread_id",
+                    "thread_revision",
+                    "action",
+                    "body",
+                    "actor_member_id",
+                    "created_at"
+                ]
+            },
+            "DocumentCommentThreadsResponse": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "code": {
+                        "type": "integer",
+                        "enum": [
+                            20000
+                        ]
+                    },
+                    "msg": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "source": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "document_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "revision_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "revision_no": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "source_state_seq": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    "version_digest": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "text_profile": {
+                                        "type": "string",
+                                        "enum": [
+                                            "peanut.richtext.plain-text/1"
+                                        ]
+                                    },
+                                    "offset_unit": {
+                                        "type": "string",
+                                        "enum": [
+                                            "unicode-code-point"
+                                        ]
+                                    },
+                                    "text": {
+                                        "type": "string"
+                                    },
+                                    "text_sha256": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "text_length": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    "owner": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "module_key": {
+                                                "type": "string"
+                                            },
+                                            "object_type": {
+                                                "type": "string"
+                                            },
+                                            "object_id": {
+                                                "type": "string"
+                                            },
+                                            "slot": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": [
+                                            "module_key",
+                                            "object_type",
+                                            "object_id",
+                                            "slot"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "document_id",
+                                    "revision_id",
+                                    "revision_no",
+                                    "source_state_seq",
+                                    "version_digest",
+                                    "text_profile",
+                                    "offset_unit",
+                                    "text",
+                                    "text_sha256",
+                                    "text_length",
+                                    "owner"
+                                ]
+                            },
+                            "can_write": {
+                                "type": "boolean"
+                            },
+                            "items": {
+                                "type": "array",
+                                "maxItems": 100,
+                                "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "thread_id": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "document_id": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "revision_id": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "version_digest": {
+                                            "type": "string",
+                                            "pattern": "^[0-9a-f]{64}$"
+                                        },
+                                        "text_profile": {
+                                            "type": "string",
+                                            "enum": [
+                                                "peanut.richtext.plain-text/1"
+                                            ]
+                                        },
+                                        "text_sha256": {
+                                            "type": "string",
+                                            "pattern": "^[0-9a-f]{64}$"
+                                        },
+                                        "start_offset": {
+                                            "type": "integer",
+                                            "minimum": 0
+                                        },
+                                        "end_offset": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "quote": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 4096
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "enum": [
+                                                "open",
+                                                "resolved"
+                                            ]
+                                        },
+                                        "thread_revision": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "created_by_member_id": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "updated_by_member_id": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "created_at": {
+                                            "type": "string"
+                                        },
+                                        "updated_at": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "thread_id",
+                                        "document_id",
+                                        "revision_id",
+                                        "version_digest",
+                                        "text_profile",
+                                        "text_sha256",
+                                        "start_offset",
+                                        "end_offset",
+                                        "quote",
+                                        "status",
+                                        "thread_revision",
+                                        "created_by_member_id",
+                                        "updated_by_member_id",
+                                        "created_at",
+                                        "updated_at"
+                                    ]
+                                }
+                            },
+                            "next_before_thread_id": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "nullable": true
+                            }
+                        },
+                        "required": [
+                            "source",
+                            "can_write",
+                            "items",
+                            "next_before_thread_id"
+                        ]
+                    }
+                },
+                "required": [
+                    "code",
+                    "msg",
+                    "data"
+                ]
+            },
+            "DocumentCommentThreadResponse": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "code": {
+                        "type": "integer",
+                        "enum": [
+                            20000
+                        ]
+                    },
+                    "msg": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "source": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "document_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "revision_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "revision_no": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "source_state_seq": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    "version_digest": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "text_profile": {
+                                        "type": "string",
+                                        "enum": [
+                                            "peanut.richtext.plain-text/1"
+                                        ]
+                                    },
+                                    "offset_unit": {
+                                        "type": "string",
+                                        "enum": [
+                                            "unicode-code-point"
+                                        ]
+                                    },
+                                    "text": {
+                                        "type": "string"
+                                    },
+                                    "text_sha256": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "text_length": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    "owner": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "module_key": {
+                                                "type": "string"
+                                            },
+                                            "object_type": {
+                                                "type": "string"
+                                            },
+                                            "object_id": {
+                                                "type": "string"
+                                            },
+                                            "slot": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": [
+                                            "module_key",
+                                            "object_type",
+                                            "object_id",
+                                            "slot"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "document_id",
+                                    "revision_id",
+                                    "revision_no",
+                                    "source_state_seq",
+                                    "version_digest",
+                                    "text_profile",
+                                    "offset_unit",
+                                    "text",
+                                    "text_sha256",
+                                    "text_length",
+                                    "owner"
+                                ]
+                            },
+                            "can_write": {
+                                "type": "boolean"
+                            },
+                            "thread": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "thread_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "document_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "revision_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "version_digest": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "text_profile": {
+                                        "type": "string",
+                                        "enum": [
+                                            "peanut.richtext.plain-text/1"
+                                        ]
+                                    },
+                                    "text_sha256": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "start_offset": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    "end_offset": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "quote": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 4096
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "open",
+                                            "resolved"
+                                        ]
+                                    },
+                                    "thread_revision": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "created_by_member_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "updated_by_member_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "created_at": {
+                                        "type": "string"
+                                    },
+                                    "updated_at": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "thread_id",
+                                    "document_id",
+                                    "revision_id",
+                                    "version_digest",
+                                    "text_profile",
+                                    "text_sha256",
+                                    "start_offset",
+                                    "end_offset",
+                                    "quote",
+                                    "status",
+                                    "thread_revision",
+                                    "created_by_member_id",
+                                    "updated_by_member_id",
+                                    "created_at",
+                                    "updated_at"
+                                ]
+                            },
+                            "messages": {
+                                "type": "array",
+                                "maxItems": 100,
+                                "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "message_id": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "thread_id": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "thread_revision": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "action": {
+                                            "type": "string",
+                                            "enum": [
+                                                "create",
+                                                "reply",
+                                                "resolve",
+                                                "reopen"
+                                            ]
+                                        },
+                                        "body": {
+                                            "type": "string",
+                                            "nullable": true,
+                                            "minLength": 1,
+                                            "maxLength": 4000
+                                        },
+                                        "actor_member_id": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "created_at": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message_id",
+                                        "thread_id",
+                                        "thread_revision",
+                                        "action",
+                                        "body",
+                                        "actor_member_id",
+                                        "created_at"
+                                    ]
+                                }
+                            },
+                            "next_after_message_id": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "nullable": true
+                            }
+                        },
+                        "required": [
+                            "source",
+                            "can_write",
+                            "thread",
+                            "messages",
+                            "next_after_message_id"
+                        ]
+                    }
+                },
+                "required": [
+                    "code",
+                    "msg",
+                    "data"
+                ]
+            },
+            "DocumentCommentReceiptResponse": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "code": {
+                        "type": "integer",
+                        "enum": [
+                            20000
+                        ]
+                    },
+                    "msg": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "document_id": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "revision_id": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "version_digest": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                            },
+                            "text_profile": {
+                                "type": "string",
+                                "enum": [
+                                    "peanut.richtext.plain-text/1"
+                                ]
+                            },
+                            "text_sha256": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                            },
+                            "request_id": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9:_-]{1,128}$"
+                            },
+                            "action": {
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "reply",
+                                    "resolve",
+                                    "reopen"
+                                ]
+                            },
+                            "thread_id": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "thread_revision": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "status": {
+                                "type": "string",
+                                "enum": [
+                                    "open",
+                                    "resolved"
+                                ]
+                            },
+                            "message_id": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "actor_member_id": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "created_at": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "document_id",
+                            "revision_id",
+                            "version_digest",
+                            "text_profile",
+                            "text_sha256",
+                            "request_id",
+                            "action",
+                            "thread_id",
+                            "thread_revision",
+                            "status",
+                            "message_id",
+                            "actor_member_id",
+                            "created_at"
+                        ]
+                    }
+                },
+                "required": [
+                    "code",
+                    "msg",
+                    "data"
                 ]
             },
             "StorageAccountSnapshot": {

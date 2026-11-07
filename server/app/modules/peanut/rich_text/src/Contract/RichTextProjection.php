@@ -10,6 +10,7 @@ use app\common\exception\BusinessException;
 final readonly class RichTextProjection
 {
     public const SCHEMA = 'peanut.richtext/1';
+    public const TEXT_PROFILE = 'peanut.richtext.plain-text/1';
     private function __construct(public string $json, public array $fileReferences) {}
     public static function empty(): self
     {
@@ -148,6 +149,38 @@ final readonly class RichTextProjection
             }self::node($child, $references, $nodes, $depth + 1);
         }
     }
+
+    /**
+     * Stable plain text for revision-bound consumers, not a position map for the live editor.
+     * Inline text is concatenated. Block children join with LF and table cells with TAB.
+     * Hard breaks are LF; media and horizontal rules are U+FFFC. No trimming or normalization.
+     */
+    public function plainText(): string
+    {
+        $projection = json_decode($this->json, true, 64, JSON_THROW_ON_ERROR);
+        return self::plainTextNode($projection['content']);
+    }
+
+    private static function plainTextNode(array $node): string
+    {
+        $type = $node['type'];
+        if ($type === 'text') {
+            return $node['text'];
+        }
+        if ($type === 'hardBreak') {
+            return "\n";
+        }
+        if (in_array($type, ['image', 'video', 'audio', 'file', 'media', 'horizontalRule'], true)) {
+            return "\u{FFFC}";
+        }
+        $separator = match ($type) {
+            'paragraph', 'heading', 'codeBlock' => '',
+            'tableRow' => "\t",
+            default => "\n",
+        };
+        return implode($separator, array_map(self::plainTextNode(...), $node['content'] ?? []));
+    }
+
     public static function canonical(mixed $value): mixed
     {
         if (!is_array($value)) {

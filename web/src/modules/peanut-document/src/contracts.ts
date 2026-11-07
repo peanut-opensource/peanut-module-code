@@ -73,3 +73,9 @@ export interface DocumentSurfaceOptions {
     signal: AbortSignal
   ) => Promise<AuthorizedDocumentTransport>;
 }
+
+/** Opt-in fixed-revision comments; contextKey follows the host's tenant/member authorization context. */
+export interface DocumentViewerOptions extends DocumentSurfaceOptions {
+  revisionId?: number;
+  comments?: boolean;
+}

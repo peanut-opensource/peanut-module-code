@@ -65,6 +65,84 @@ $operation = static function (string $name, string $response, ?array $input = nu
 };
 $parameters = [['name' => 'document_id','in' => 'query','required' => true,'schema' => $id],['name' => 'revision_id','in' => 'query','schema' => $id]];
 $base = ['document_id' => $id,'expected_state_seq' => $seq,'request_id' => $request];
+
+$commentSource = $object([
+    'document_id' => $id, 'revision_id' => $id, 'revision_no' => $id, 'source_state_seq' => $seq,
+    'version_digest' => $digest, 'text_profile' => ['type' => 'string', 'enum' => ['peanut.richtext.plain-text/1']],
+    'offset_unit' => ['type' => 'string', 'enum' => ['unicode-code-point']],
+    'text' => $text, 'text_sha256' => $digest, 'text_length' => $seq, 'owner' => $detail['properties']['owner'],
+], ['document_id','revision_id','revision_no','source_state_seq','version_digest','text_profile','offset_unit','text','text_sha256','text_length','owner']);
+$commentBinding = ['version_digest' => $digest, 'text_profile' => $commentSource['properties']['text_profile'], 'text_sha256' => $digest];
+$commentAnchor = ['start_offset' => $seq, 'end_offset' => $id, 'quote' => ['type' => 'string','minLength' => 1,'maxLength' => 4096]];
+$commentState = ['type' => 'string','enum' => ['open','resolved']];
+$commentAction = ['type' => 'string','enum' => ['create','reply','resolve','reopen']];
+$commentThreadFields = ['thread_id' => $id,'document_id' => $id,'revision_id' => $id] + $commentBinding + $commentAnchor + [
+    'status' => $commentState,'thread_revision' => $id,'created_by_member_id' => $id,'updated_by_member_id' => $id,
+    'created_at' => $text,'updated_at' => $text,
+];
+$commentThread = $object($commentThreadFields, array_keys($commentThreadFields));
+$commentMessageFields = ['message_id' => $id,'thread_id' => $id,'thread_revision' => $id,'action' => $commentAction,
+    'body' => ['type' => 'string','nullable' => true,'minLength' => 1,'maxLength' => 4000],
+    'actor_member_id' => $id,'created_at' => $text];
+$commentMessage = $object($commentMessageFields, array_keys($commentMessageFields));
+$commentReceiptFields = ['document_id' => $id,'revision_id' => $id] + $commentBinding + [
+    'request_id' => $request,'action' => $commentAction,'thread_id' => $id,'thread_revision' => $id,
+    'status' => $commentState,'message_id' => $id,'actor_member_id' => $id,'created_at' => $text,
+];
+$commentInputs = ['document_id' => $id,'revision_id' => $id,'request_id' => $request] + $commentBinding;
+$commentExisting = ['thread_id' => $id,'expected_thread_revision' => $id];
+$commentBody = ['body' => ['type' => 'string','minLength' => 1,'maxLength' => 4000]];
+$commentOperation = static function (string $name, string $response, ?array $input = null, array $parameters = []) use ($operation): array {
+    $value = $operation($name, $response, $input, $parameters);
+    $value['responses']['400'] = ['$ref' => '#/components/responses/ErrorResponse'];
+    $value['responses']['200']['description'] = 'Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit.';
+    return $value;
+};
+$commentParameters = [['name' => 'document_id','in' => 'query','required' => true,'schema' => $id],
+    ['name' => 'revision_id','in' => 'query','required' => true,'schema' => $id]];
+$commentPaths = [
+    '/adminapi/peanut.document.comments' => ['get' => $commentOperation(
+        'documentRevisionCommentThreads',
+        'DocumentCommentThreadsResponse',
+        null,
+        [...$commentParameters, ['name' => 'limit','in' => 'query','schema' => $id + ['maximum' => 100,'default' => 20]],
+            ['name' => 'before_thread_id','in' => 'query','schema' => $id]],
+    )],
+    '/adminapi/peanut.document.comment.thread' => ['get' => $commentOperation(
+        'documentRevisionCommentThread',
+        'DocumentCommentThreadResponse',
+        null,
+        [...$commentParameters, ['name' => 'thread_id','in' => 'query','required' => true,'schema' => $id],
+            ['name' => 'limit','in' => 'query','schema' => $id + ['maximum' => 100,'default' => 50]],
+            ['name' => 'after_message_id','in' => 'query','schema' => $id]],
+    )],
+];
+foreach (['create','reply','resolve','reopen'] as $action) {
+    $input = $commentInputs + ($action === 'create' ? $commentAnchor : $commentExisting)
+        + (in_array($action, ['create','reply'], true) ? $commentBody : []);
+    $commentPaths['/adminapi/peanut.document.comment.' . $action] = ['post' => $commentOperation(
+        'documentRevisionComment' . ucfirst($action),
+        'DocumentCommentReceiptResponse',
+        $object($input, array_keys($input)),
+    )];
+}
+$commentSchemas = [
+    'DocumentCommentSource' => $commentSource,
+    'DocumentCommentThread' => $commentThread,
+    'DocumentCommentMessage' => $commentMessage,
+    'DocumentCommentThreadsResponse' => $envelope($object([
+        'source' => $commentSource,'can_write' => ['type' => 'boolean'],
+        'items' => ['type' => 'array','maxItems' => 100,'items' => $commentThread],
+        'next_before_thread_id' => $id + ['nullable' => true],
+    ], ['source','can_write','items','next_before_thread_id'])),
+    'DocumentCommentThreadResponse' => $envelope($object([
+        'source' => $commentSource,'can_write' => ['type' => 'boolean'],'thread' => $commentThread,
+        'messages' => ['type' => 'array','maxItems' => 100,'items' => $commentMessage],
+        'next_after_message_id' => $id + ['nullable' => true],
+    ], ['source','can_write','thread','messages','next_after_message_id'])),
+    'DocumentCommentReceiptResponse' => $envelope($object($commentReceiptFields, array_keys($commentReceiptFields))),
+];
+
 return ['paths' => [
     '/adminapi/peanut.document.target' => ['get' => $operation(
         'getDocumentTarget',
@@ -99,7 +177,7 @@ return ['paths' => [
     '/adminapi/peanut.document.version.restore' => ['post' => $operation('restoreDocumentVersion', 'DocumentVersionResponse', $object($base + ['revision_id' => $id], ['document_id','expected_state_seq','request_id','revision_id']))],
     '/adminapi/peanut.document.archive' => ['post' => $operation('archiveDocument', 'DocumentMetadataResponse', $object(['document_id' => $id,'expected_auth_revision' => $id,'request_id' => $request], ['document_id','expected_auth_revision','request_id']))],
     '/adminapi/peanut.document.restore' => ['post' => $operation('restoreDocument', 'DocumentMetadataResponse', $object(['document_id' => $id,'expected_auth_revision' => $id,'request_id' => $request], ['document_id','expected_auth_revision','request_id']))],
-], 'components' => ['schemas' => [
+] + $commentPaths, 'components' => ['schemas' => [
     'DocumentStructuredContent' => $structured,'DocumentMetadataResponse' => $envelope($metadata),'DocumentDetailResponse' => $envelope($detail),
     'DocumentVersionResponse' => $envelope($version),'DocumentSaveResponse' => $envelope($save),'DocumentCapabilitiesResponse' => $envelope($capabilities),
     'DocumentVersionsResponse' => $envelope($versionPage),
@@ -116,4 +194,4 @@ return ['paths' => [
         'phase' => ['type' => 'string','enum' => ['canceled']]], ['document_id','request_id','phase'])),
     'DocumentBusinessResult' => $businessResult,
     'DocumentContentCapabilities' => $capability,
-]]];
+] + $commentSchemas]];

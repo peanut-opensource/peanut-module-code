@@ -4302,6 +4302,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/adminapi/peanut.document.comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["documentRevisionCommentThreads"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.comment.thread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["documentRevisionCommentThread"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.comment.create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["documentRevisionCommentCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.comment.reply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["documentRevisionCommentReply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.comment.resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["documentRevisionCommentResolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.comment.reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["documentRevisionCommentReopen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platformapi/infrastructure/storage": {
         parameters: {
             query?: never;
@@ -9740,6 +9836,184 @@ export interface components {
             state: "permission_denied" | "preview_unavailable" | "edit_unsupported" | "service_unavailable" | "read_only" | "available";
             unavailableReason: string | null;
             capabilityRevision: string;
+        };
+        DocumentCommentSource: {
+            document_id: number;
+            revision_id: number;
+            revision_no: number;
+            source_state_seq: number;
+            version_digest: string;
+            /** @enum {string} */
+            text_profile: "peanut.richtext.plain-text/1";
+            /** @enum {string} */
+            offset_unit: "unicode-code-point";
+            text: string;
+            text_sha256: string;
+            text_length: number;
+            owner: {
+                module_key: string;
+                object_type: string;
+                object_id: string;
+                slot: string;
+            };
+        };
+        DocumentCommentThread: {
+            thread_id: number;
+            document_id: number;
+            revision_id: number;
+            version_digest: string;
+            /** @enum {string} */
+            text_profile: "peanut.richtext.plain-text/1";
+            text_sha256: string;
+            start_offset: number;
+            end_offset: number;
+            quote: string;
+            /** @enum {string} */
+            status: "open" | "resolved";
+            thread_revision: number;
+            created_by_member_id: number;
+            updated_by_member_id: number;
+            created_at: string;
+            updated_at: string;
+        };
+        DocumentCommentMessage: {
+            message_id: number;
+            thread_id: number;
+            thread_revision: number;
+            /** @enum {string} */
+            action: "create" | "reply" | "resolve" | "reopen";
+            body: string | null;
+            actor_member_id: number;
+            created_at: string;
+        };
+        DocumentCommentThreadsResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                source: {
+                    document_id: number;
+                    revision_id: number;
+                    revision_no: number;
+                    source_state_seq: number;
+                    version_digest: string;
+                    /** @enum {string} */
+                    text_profile: "peanut.richtext.plain-text/1";
+                    /** @enum {string} */
+                    offset_unit: "unicode-code-point";
+                    text: string;
+                    text_sha256: string;
+                    text_length: number;
+                    owner: {
+                        module_key: string;
+                        object_type: string;
+                        object_id: string;
+                        slot: string;
+                    };
+                };
+                can_write: boolean;
+                items: {
+                    thread_id: number;
+                    document_id: number;
+                    revision_id: number;
+                    version_digest: string;
+                    /** @enum {string} */
+                    text_profile: "peanut.richtext.plain-text/1";
+                    text_sha256: string;
+                    start_offset: number;
+                    end_offset: number;
+                    quote: string;
+                    /** @enum {string} */
+                    status: "open" | "resolved";
+                    thread_revision: number;
+                    created_by_member_id: number;
+                    updated_by_member_id: number;
+                    created_at: string;
+                    updated_at: string;
+                }[];
+                next_before_thread_id: number | null;
+            };
+        };
+        DocumentCommentThreadResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                source: {
+                    document_id: number;
+                    revision_id: number;
+                    revision_no: number;
+                    source_state_seq: number;
+                    version_digest: string;
+                    /** @enum {string} */
+                    text_profile: "peanut.richtext.plain-text/1";
+                    /** @enum {string} */
+                    offset_unit: "unicode-code-point";
+                    text: string;
+                    text_sha256: string;
+                    text_length: number;
+                    owner: {
+                        module_key: string;
+                        object_type: string;
+                        object_id: string;
+                        slot: string;
+                    };
+                };
+                can_write: boolean;
+                thread: {
+                    thread_id: number;
+                    document_id: number;
+                    revision_id: number;
+                    version_digest: string;
+                    /** @enum {string} */
+                    text_profile: "peanut.richtext.plain-text/1";
+                    text_sha256: string;
+                    start_offset: number;
+                    end_offset: number;
+                    quote: string;
+                    /** @enum {string} */
+                    status: "open" | "resolved";
+                    thread_revision: number;
+                    created_by_member_id: number;
+                    updated_by_member_id: number;
+                    created_at: string;
+                    updated_at: string;
+                };
+                messages: {
+                    message_id: number;
+                    thread_id: number;
+                    thread_revision: number;
+                    /** @enum {string} */
+                    action: "create" | "reply" | "resolve" | "reopen";
+                    body: string | null;
+                    actor_member_id: number;
+                    created_at: string;
+                }[];
+                next_after_message_id: number | null;
+            };
+        };
+        DocumentCommentReceiptResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_id: number;
+                revision_id: number;
+                version_digest: string;
+                /** @enum {string} */
+                text_profile: "peanut.richtext.plain-text/1";
+                text_sha256: string;
+                request_id: string;
+                /** @enum {string} */
+                action: "create" | "reply" | "resolve" | "reopen";
+                thread_id: number;
+                thread_revision: number;
+                /** @enum {string} */
+                status: "open" | "resolved";
+                message_id: number;
+                actor_member_id: number;
+                created_at: string;
+            };
         };
         StorageAccountSnapshot: {
             /** @description ThinkORM bigint projection. */
@@ -21497,6 +21771,232 @@ export interface operations {
                     "application/json": components["schemas"]["DocumentMetadataResponse"];
                 };
             };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    documentRevisionCommentThreads: {
+        parameters: {
+            query: {
+                document_id: number;
+                revision_id: number;
+                limit?: number;
+                before_thread_id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentCommentThreadsResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    documentRevisionCommentThread: {
+        parameters: {
+            query: {
+                document_id: number;
+                revision_id: number;
+                thread_id: number;
+                limit?: number;
+                after_message_id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentCommentThreadResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    documentRevisionCommentCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: number;
+                    revision_id: number;
+                    request_id: string;
+                    version_digest: string;
+                    /** @enum {string} */
+                    text_profile: "peanut.richtext.plain-text/1";
+                    text_sha256: string;
+                    start_offset: number;
+                    end_offset: number;
+                    quote: string;
+                    body: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentCommentReceiptResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    documentRevisionCommentReply: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: number;
+                    revision_id: number;
+                    request_id: string;
+                    version_digest: string;
+                    /** @enum {string} */
+                    text_profile: "peanut.richtext.plain-text/1";
+                    text_sha256: string;
+                    thread_id: number;
+                    expected_thread_revision: number;
+                    body: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentCommentReceiptResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    documentRevisionCommentResolve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: number;
+                    revision_id: number;
+                    request_id: string;
+                    version_digest: string;
+                    /** @enum {string} */
+                    text_profile: "peanut.richtext.plain-text/1";
+                    text_sha256: string;
+                    thread_id: number;
+                    expected_thread_revision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentCommentReceiptResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    documentRevisionCommentReopen: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: number;
+                    revision_id: number;
+                    request_id: string;
+                    version_digest: string;
+                    /** @enum {string} */
+                    text_profile: "peanut.richtext.plain-text/1";
+                    text_sha256: string;
+                    thread_id: number;
+                    expected_thread_revision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentCommentReceiptResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
             401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
             404: components["responses"]["ErrorResponse"];

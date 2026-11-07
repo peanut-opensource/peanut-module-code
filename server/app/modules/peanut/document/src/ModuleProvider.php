@@ -18,7 +18,8 @@ final class ModuleProvider implements \PeanutAdmin\Kernel\Module\ModuleProvider,
     {
         return [DocumentCommands::class => DocumentService::class,DocumentQueries::class => DocumentService::class,
             \PeanutAdmin\Modules\Document\Contract\DocumentCollaborativeWrites::class => DocumentService::class,
-            \PeanutAdmin\Modules\Document\Contract\DocumentSourceGrants::class => DocumentService::class];
+            \PeanutAdmin\Modules\Document\Contract\DocumentSourceGrants::class => DocumentService::class,
+            \PeanutAdmin\Modules\Document\Contract\DocumentRevisionComments::class => \PeanutAdmin\Modules\Document\Service\DocumentRevisionCommentService::class];
     }
     public function fileDocumentReferencePolicy(): string
     {

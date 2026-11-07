@@ -8,6 +8,12 @@ if (($peanutRouteApplication ?? null) !== 'adminapi') {
     return;
 }
 Route::group(function (): void {
+    Route::get('peanut.document.comments', [\PeanutAdmin\Modules\Document\Controller\DocumentRevisionCommentController::class,'threads']);
+    Route::get('peanut.document.comment.thread', [\PeanutAdmin\Modules\Document\Controller\DocumentRevisionCommentController::class,'thread']);
+    Route::post('peanut.document.comment.create', [\PeanutAdmin\Modules\Document\Controller\DocumentRevisionCommentController::class,'createThread']);
+    Route::post('peanut.document.comment.reply', [\PeanutAdmin\Modules\Document\Controller\DocumentRevisionCommentController::class,'reply']);
+    Route::post('peanut.document.comment.resolve', [\PeanutAdmin\Modules\Document\Controller\DocumentRevisionCommentController::class,'resolve']);
+    Route::post('peanut.document.comment.reopen', [\PeanutAdmin\Modules\Document\Controller\DocumentRevisionCommentController::class,'reopen']);
     Route::get('peanut.document.detail', [DocumentController::class,'detail']);
     Route::get('peanut.document.versions', [DocumentController::class,'versions']);
     Route::get('peanut.document.capabilities', [DocumentController::class,'capabilities']);

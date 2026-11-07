@@ -4,7 +4,7 @@
     "inputs": [
         {
             "path": "modules.lock",
-            "sha256": "732d3e3461d9e900127ace97ef99507ac013572d973a8e2ba023f2be82fd203f"
+            "sha256": "ba1171cb5f75eaee62127816710f58c8d57d40373659a45f0828427063c15708"
         },
         {
             "path": "release-versions.json",
@@ -64,11 +64,11 @@
         },
         {
             "path": "server/app/modules/peanut/document/api/metadata/openapi.php",
-            "sha256": "9bc307d40fb89cc9d8b4cc2ac2a9d3557286313f1ad960a2559bbb96193f99af"
+            "sha256": "59409f51b9b8e536cafaa05406153396602ae7e8a48c5e987389f30790ce6a51"
         },
         {
             "path": "server/app/modules/peanut/document/route/app.php",
-            "sha256": "69ac222e61e60b0428cb80924c95fc76a6582c7609b2f30eb6c980dfe0c7842c"
+            "sha256": "f0d31770d4afc2f082d6b7a73ac82272addcf48075ed97cd1b04137400b72f93"
         },
         {
             "path": "server/app/modules/peanut/file/api/metadata/openapi.php",
@@ -164,7 +164,7 @@
         },
         {
             "path": "server/config/admin_api_access.php",
-            "sha256": "8f1d6dc2610530f8346fc12dac495f63b4b8102a1c5e22308261d697ecb6619c"
+            "sha256": "8ef1d99149c332ed2d0bacf3577d1a11a9f14b5d7ababadf6a85a80b1909beb7"
         },
         {
             "path": "server/route/admin.php",
@@ -200,27 +200,27 @@
         ]
     },
     "summary": {
-        "route_count": 463,
-        "generated_api_operations": 437,
+        "route_count": 469,
+        "generated_api_operations": 443,
         "route_only_operations": 26,
-        "complete_operations": 437,
+        "complete_operations": 443,
         "partial_operations": 0,
-        "runtime_routes": 463,
-        "documented_operations": 437,
+        "runtime_routes": 469,
+        "documented_operations": 443,
         "undocumented_routes": 26,
-        "automatic_route_metadata": 463,
+        "automatic_route_metadata": 469,
         "requires_owner_contract": 26,
         "owners": 19,
         "runtime_inventory": {
-            "total": 463,
+            "total": 469,
             "methods": {
                 "DELETE": 4,
-                "GET": 207,
-                "POST": 241,
+                "GET": 209,
+                "POST": 245,
                 "PUT": 11
             },
             "applications": {
-                "adminapi": 326,
+                "adminapi": 332,
                 "api": 47,
                 "installation": 9,
                 "platform": 81
@@ -233,7 +233,7 @@
                 "module:custom.ai-assistant": 20,
                 "module:peanut.article": 39,
                 "module:peanut.collaboration": 11,
-                "module:peanut.document": 12,
+                "module:peanut.document": 18,
                 "module:peanut.file": 31,
                 "module:peanut.import-export": 11,
                 "module:peanut.integration": 12,
@@ -257,7 +257,7 @@
         "module:custom.ai-assistant": 20,
         "module:peanut.article": 39,
         "module:peanut.collaboration": 11,
-        "module:peanut.document": 12,
+        "module:peanut.document": 18,
         "module:peanut.file": 31,
         "module:peanut.import-export": 11,
         "module:peanut.integration": 12,
@@ -7851,10 +7851,168 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/document/route/app.php",
-                "line": 13
+                "line": 19
             },
             "documented": true,
             "openapi_operation_id": "documentCapabilities",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-document/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "bd09f7aaca1111ad9770a9ab04703bdcbea07b53ea4ed294fd8622eaef055bdc",
+            "method": "GET",
+            "path": "/adminapi/peanut.document.comment.thread",
+            "runtime_path": "/adminapi/peanut.document.comment.thread",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.document"
+            },
+            "controller": "PeanutAdmin\\Modules\\Document\\Controller\\DocumentRevisionCommentController",
+            "action": "thread",
+            "auth": {
+                "mode": "authenticated",
+                "exception_registration": "authenticated"
+            },
+            "default_permission_keys": [],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.document"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409,
+                422
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.document",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/document/route/app.php",
+                "line": 12
+            },
+            "documented": true,
+            "openapi_operation_id": "documentRevisionCommentThread",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-document/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "4aa65390cc1d31c9e3756d5bc493d423527515f0e28addad93fa6faf12473e8b",
+            "method": "GET",
+            "path": "/adminapi/peanut.document.comments",
+            "runtime_path": "/adminapi/peanut.document.comments",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.document"
+            },
+            "controller": "PeanutAdmin\\Modules\\Document\\Controller\\DocumentRevisionCommentController",
+            "action": "threads",
+            "auth": {
+                "mode": "authenticated",
+                "exception_registration": "authenticated"
+            },
+            "default_permission_keys": [],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.document"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409,
+                422
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.document",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/document/route/app.php",
+                "line": 11
+            },
+            "documented": true,
+            "openapi_operation_id": "documentRevisionCommentThreads",
             "contract_quality": "complete",
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts",
@@ -7929,7 +8087,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/document/route/app.php",
-                "line": 11
+                "line": 17
             },
             "documented": true,
             "openapi_operation_id": "documentDetail",
@@ -8007,7 +8165,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/document/route/app.php",
-                "line": 14
+                "line": 20
             },
             "documented": true,
             "openapi_operation_id": "queryDocumentBusinessOperation",
@@ -8085,7 +8243,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/document/route/app.php",
-                "line": 15
+                "line": 21
             },
             "documented": true,
             "openapi_operation_id": "getDocumentTarget",
@@ -8163,7 +8321,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/document/route/app.php",
-                "line": 12
+                "line": 18
             },
             "documented": true,
             "openapi_operation_id": "documentVersions",
@@ -24924,10 +25082,326 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/document/route/app.php",
-                "line": 21
+                "line": 27
             },
             "documented": true,
             "openapi_operation_id": "archiveDocument",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-document/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "2cc8c045c54de8a2cfdb0e739afceee2d412c86f5c6d745aaf24f25be88a9fbe",
+            "method": "POST",
+            "path": "/adminapi/peanut.document.comment.create",
+            "runtime_path": "/adminapi/peanut.document.comment.create",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.document"
+            },
+            "controller": "PeanutAdmin\\Modules\\Document\\Controller\\DocumentRevisionCommentController",
+            "action": "createThread",
+            "auth": {
+                "mode": "authenticated",
+                "exception_registration": "authenticated"
+            },
+            "default_permission_keys": [],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.document"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409,
+                422
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.document",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/document/route/app.php",
+                "line": 13
+            },
+            "documented": true,
+            "openapi_operation_id": "documentRevisionCommentCreate",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-document/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "54621f702491ac8f7a2548cbaa134df161b78d0bc1a136ece6dc8a8d9b8cd36c",
+            "method": "POST",
+            "path": "/adminapi/peanut.document.comment.reopen",
+            "runtime_path": "/adminapi/peanut.document.comment.reopen",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.document"
+            },
+            "controller": "PeanutAdmin\\Modules\\Document\\Controller\\DocumentRevisionCommentController",
+            "action": "reopen",
+            "auth": {
+                "mode": "authenticated",
+                "exception_registration": "authenticated"
+            },
+            "default_permission_keys": [],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.document"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409,
+                422
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.document",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/document/route/app.php",
+                "line": 16
+            },
+            "documented": true,
+            "openapi_operation_id": "documentRevisionCommentReopen",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-document/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "80525ce8fcd5043eefb1f61b23a52e5284730cbdd4d7a2fa512534a09e87fe85",
+            "method": "POST",
+            "path": "/adminapi/peanut.document.comment.reply",
+            "runtime_path": "/adminapi/peanut.document.comment.reply",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.document"
+            },
+            "controller": "PeanutAdmin\\Modules\\Document\\Controller\\DocumentRevisionCommentController",
+            "action": "reply",
+            "auth": {
+                "mode": "authenticated",
+                "exception_registration": "authenticated"
+            },
+            "default_permission_keys": [],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.document"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409,
+                422
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.document",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/document/route/app.php",
+                "line": 14
+            },
+            "documented": true,
+            "openapi_operation_id": "documentRevisionCommentReply",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-document/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "d17020230a242fe446d21da9bb8ecd1e4b1df73fd24c0946744bed215684a915",
+            "method": "POST",
+            "path": "/adminapi/peanut.document.comment.resolve",
+            "runtime_path": "/adminapi/peanut.document.comment.resolve",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.document"
+            },
+            "controller": "PeanutAdmin\\Modules\\Document\\Controller\\DocumentRevisionCommentController",
+            "action": "resolve",
+            "auth": {
+                "mode": "authenticated",
+                "exception_registration": "authenticated"
+            },
+            "default_permission_keys": [],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.document"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409,
+                422
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.document",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/document/route/app.php",
+                "line": 15
+            },
+            "documented": true,
+            "openapi_operation_id": "documentRevisionCommentResolve",
             "contract_quality": "complete",
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts",
@@ -25002,7 +25476,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/document/route/app.php",
-                "line": 18
+                "line": 24
             },
             "documented": true,
             "openapi_operation_id": "bindDocumentResource",
@@ -25080,7 +25554,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/document/route/app.php",
-                "line": 22
+                "line": 28
             },
             "documented": true,
             "openapi_operation_id": "restoreDocument",
@@ -25158,7 +25632,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/document/route/app.php",
-                "line": 17
+                "line": 23
             },
             "documented": true,
             "openapi_operation_id": "saveSoloDocument",
@@ -25236,7 +25710,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/document/route/app.php",
-                "line": 16
+                "line": 22
             },
             "documented": true,
             "openapi_operation_id": "cancelDocumentTarget",
@@ -25314,7 +25788,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/document/route/app.php",
-                "line": 19
+                "line": 25
             },
             "documented": true,
             "openapi_operation_id": "createDocumentVersion",
@@ -25392,7 +25866,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/document/route/app.php",
-                "line": 20
+                "line": 26
             },
             "documented": true,
             "openapi_operation_id": "restoreDocumentVersion",

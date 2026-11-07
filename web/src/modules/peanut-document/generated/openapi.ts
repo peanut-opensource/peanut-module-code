@@ -16,6 +16,12 @@ export interface ModuleApiOperations {
   restoreDocumentVersion: paths['/adminapi/peanut.document.version.restore']['post'];
   archiveDocument: paths['/adminapi/peanut.document.archive']['post'];
   restoreDocument: paths['/adminapi/peanut.document.restore']['post'];
+  documentRevisionCommentThreads: paths['/adminapi/peanut.document.comments']['get'];
+  documentRevisionCommentThread: paths['/adminapi/peanut.document.comment.thread']['get'];
+  documentRevisionCommentCreate: paths['/adminapi/peanut.document.comment.create']['post'];
+  documentRevisionCommentReply: paths['/adminapi/peanut.document.comment.reply']['post'];
+  documentRevisionCommentResolve: paths['/adminapi/peanut.document.comment.resolve']['post'];
+  documentRevisionCommentReopen: paths['/adminapi/peanut.document.comment.reopen']['post'];
 }
 
 export function createModuleApi(client: Client<paths>) {
@@ -33,6 +39,12 @@ export function createModuleApi(client: Client<paths>) {
     restoreDocumentVersion: pathClient['/adminapi/peanut.document.version.restore'].POST,
     archiveDocument: pathClient['/adminapi/peanut.document.archive'].POST,
     restoreDocument: pathClient['/adminapi/peanut.document.restore'].POST,
+    documentRevisionCommentThreads: pathClient['/adminapi/peanut.document.comments'].GET,
+    documentRevisionCommentThread: pathClient['/adminapi/peanut.document.comment.thread'].GET,
+    documentRevisionCommentCreate: pathClient['/adminapi/peanut.document.comment.create'].POST,
+    documentRevisionCommentReply: pathClient['/adminapi/peanut.document.comment.reply'].POST,
+    documentRevisionCommentResolve: pathClient['/adminapi/peanut.document.comment.resolve'].POST,
+    documentRevisionCommentReopen: pathClient['/adminapi/peanut.document.comment.reopen'].POST,
   };
 }
 
