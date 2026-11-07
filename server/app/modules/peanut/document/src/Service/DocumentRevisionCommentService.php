@@ -231,7 +231,8 @@ final readonly class DocumentRevisionCommentService implements DocumentRevisionC
             $this->authorization->document($actor, (int) $document->id, 'edit');
             return true;
         } catch (BusinessException $error) {
-            if ($error->httpStatus !== 403) {
+            // Independent view checks remain mandatory when edit scope or business state denies writing.
+            if (!in_array($error->httpStatus, [403, 404, 409], true)) {
                 throw $error;
             }
             return false;

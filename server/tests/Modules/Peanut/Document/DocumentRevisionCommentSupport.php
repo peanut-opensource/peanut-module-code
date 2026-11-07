@@ -78,6 +78,8 @@ final class Owner implements DocumentOwnerPolicy
 {
     public array $objects = [];
     public array $denied = [];
+    /** @var array<string, \Throwable> Explicit synthetic owner errors, not native Document authorization. */
+    public array $authorizationFailures = [];
     public array $calls = [];
     public function __construct(private ExecutionContextStore $contexts) {}
     public function add(int $tenant, string $id): DocumentOwnerReference
@@ -116,6 +118,9 @@ final class Owner implements DocumentOwnerPolicy
         if (!in_array($action, ['create', 'view', 'edit', 'version.create', 'archive', 'archive.read', 'restore'], true)
             || isset($this->denied[$context->memberId . ':' . $action])) {
             throw BusinessException::forbidden('COMMENT_FIXTURE_' . strtoupper(str_replace('.', '_', $action)) . '_DENIED', 'Synthetic owner denied');
+        }
+        if (isset($this->authorizationFailures[$action])) {
+            throw $this->authorizationFailures[$action];
         }
     }
     public function stateRevision(DocumentOwnerState $owner): string

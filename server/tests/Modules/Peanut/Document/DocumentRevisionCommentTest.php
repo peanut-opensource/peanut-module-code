@@ -57,7 +57,10 @@ final class DocumentRevisionCommentTest extends TestCase
         // Production Document/RichText classes use the unchanged normal Composer loader.
         class_alias(DocumentCommentFixture\ReadFence::class, PeanutAdmin\Modules\Identity\Contract\TenantAuthorizationReadFence::class);
         class_alias(DocumentCommentFixture\Audit::class, app\common\services\audit\AuditContractHost::class);
-        $this->directory = dirname($server) . '/.local/007-document-comments-20261107/tmp/' . bin2hex(random_bytes(8));
+        $temporaryRoot = getenv('PEANUT_DOCUMENT_COMMENT_TEST_TMP');
+        $this->directory = ($temporaryRoot === false || $temporaryRoot === ''
+            ? dirname($server) . '/.local/007-document-comments-20261107/tmp'
+            : $temporaryRoot) . '/' . bin2hex(random_bytes(8));
         mkdir($this->directory, 0700, true);
         $this->app = new think\App($this->directory . '/');
         $this->app->instance(think\App::class, $this->app);
@@ -221,6 +224,337 @@ final class DocumentRevisionCommentTest extends TestCase
         }
         self::assertSame($before, $this->state(), 'All Document/source/comment/request rows must remain unchanged');
         self::assertFalse(Db::connect()->getPdo()->inTransaction());
+    }
+
+
+    #[DataProvider('readEndpoints')]
+    public function testLockedOwnerKeepsFixedRevisionReadable(string $endpoint): void
+    {
+        $revision = $this->revision();
+        $source = $this->source($revision);
+        $created = $this->comments->createThread(
+            $this->sessions->actor(11),
+            $revision['document_id'],
+            $revision['revision_id'],
+            $this->input($source, 'state-lock-readable'),
+        );
+        $reader = $this->sessions->actor(22);
+        $read = fn(): array => $endpoint === 'threads'
+            ? $this->comments->threads($reader, $revision['document_id'], $revision['revision_id'])
+            : $this->comments->thread($reader, $revision['document_id'], $revision['revision_id'], $created['thread_id']);
+        $before = $this->state();
+        $this->owner->authorizationFailures['edit'] = BusinessException::conflict(
+            'COMMENT_FIXTURE_OWNER_EDIT_LOCKED',
+            'COMMENT_FIXTURE_OWNER_EDIT_LOCKED: synthetic owner is viewable but editing is locked',
+        );
+
+        $locked = $read();
+        self::assertFalse($locked['can_write']);
+        self::assertSame($source, $locked['source']);
+        if ($endpoint === 'threads') {
+            self::assertSame([$created['thread_id']], array_column($locked['items'], 'thread_id'));
+        } else {
+            self::assertSame($created['thread_id'], $locked['thread']['thread_id']);
+            self::assertSame([$created['message_id']], array_column($locked['messages'], 'message_id'));
+            self::assertSame([11], array_column($locked['messages'], 'actor_member_id'));
+        }
+        self::assertSame($before, $this->state(), 'Reading a locked owner must not change any source, comment or receipt row');
+        self::assertFalse(Db::connect()->getPdo()->inTransaction());
+
+        unset($this->owner->authorizationFailures['edit']);
+        $unlocked = $read();
+        self::assertTrue($unlocked['can_write']);
+        self::assertSame($source, $unlocked['source']);
+        self::assertSame($before, $this->state());
+        self::assertFalse(Db::connect()->getPdo()->inTransaction());
+    }
+
+    public static function readEndpoints(): array
+    {
+        return ['list' => ['threads'], 'detail' => ['thread']];
+    }
+
+
+
+    #[DataProvider('readEndpoints')]
+    public function testEditScopeMissKeepsFixedRevisionReadable(string $endpoint): void
+    {
+        $revision = $this->revision();
+        $source = $this->source($revision);
+        $created = $this->comments->createThread(
+            $this->sessions->actor(11),
+            $revision['document_id'],
+            $revision['revision_id'],
+            $this->input($source, 'scope-miss-readable'),
+        );
+        $reader = $this->sessions->actor(22);
+        $read = fn(): array => $endpoint === 'threads'
+            ? $this->comments->threads($reader, $revision['document_id'], $revision['revision_id'])
+            : $this->comments->thread($reader, $revision['document_id'], $revision['revision_id'], $created['thread_id']);
+        $before = $this->state();
+        $this->owner->authorizationFailures['edit'] = BusinessException::notFound(
+            'COMMENT_FIXTURE_OWNER_EDIT_SCOPE_MISS',
+            'COMMENT_FIXTURE_OWNER_EDIT_SCOPE_MISS: synthetic owner is viewable but outside edit scope',
+        );
+
+        $restricted = $read();
+        self::assertFalse($restricted['can_write']);
+        self::assertSame($source, $restricted['source']);
+        if ($endpoint === 'threads') {
+            self::assertSame([$created['thread_id']], array_column($restricted['items'], 'thread_id'));
+        } else {
+            self::assertSame($created['thread_id'], $restricted['thread']['thread_id']);
+            self::assertSame([$created['message_id']], array_column($restricted['messages'], 'message_id'));
+        }
+        self::assertSame($before, $this->state());
+        self::assertFalse(Db::connect()->getPdo()->inTransaction());
+
+        unset($this->owner->authorizationFailures['edit']);
+        $restored = $read();
+        self::assertTrue($restored['can_write']);
+        self::assertSame($source, $restored['source']);
+        self::assertSame($before, $this->state(), 'Restoring edit scope cannot create a comment or change its fixed version');
+        self::assertFalse(Db::connect()->getPdo()->inTransaction());
+    }
+
+    private function ownerErrorUnchanged(Throwable $expected, callable $operation): void
+    {
+        $before = $this->state();
+        try {
+            $operation();
+            self::fail('The current owner rejection must propagate');
+        } catch (Throwable $actual) {
+            self::assertSame($expected, $actual, 'Preserve the original error, including its status and cause');
+        }
+        self::assertSame($before, $this->state(), 'All source, comment and request rows must remain unchanged');
+        self::assertFalse(Db::connect()->getPdo()->inTransaction());
+    }
+
+    #[DataProvider('readErrors')]
+    public function testReadCapabilityDoesNotHideViewRefusalOrOtherOwnerErrors(string $endpoint, string $action, string $kind): void
+    {
+        $revision = $this->revision();
+        $created = $this->comments->createThread(
+            $this->sessions->actor(11),
+            $revision['document_id'],
+            $revision['revision_id'],
+            $this->input($this->source($revision), 'read-error-thread'),
+        );
+        $this->owner->authorizationFailures['edit'] = BusinessException::conflict('COMMENT_FIXTURE_OWNER_EDIT_LOCKED', 'Synthetic owner editing is locked');
+        $error = match ($kind) {
+            'unauthenticated' => new BusinessException('COMMENT_FIXTURE_SESSION_EXPIRED', 401, 'Synthetic owner session expired'),
+            'forbidden' => BusinessException::forbidden('COMMENT_FIXTURE_OWNER_VIEW_DENIED', 'Synthetic owner view denied'),
+            'missing' => BusinessException::notFound('COMMENT_FIXTURE_OWNER_MISSING', 'Synthetic owner is unavailable'),
+            'conflict' => BusinessException::conflict('COMMENT_FIXTURE_OWNER_VIEW_LOCKED', 'Synthetic owner view is locked'),
+            'server' => new think\exception\HttpException(500, 'Synthetic owner storage unavailable'),
+            'program' => new LogicException('SYNTHETIC_OWNER_PROGRAM_FAILURE'),
+        };
+        $this->owner->authorizationFailures[$action] = $error;
+        $reader = $this->sessions->actor(22);
+        $this->ownerErrorUnchanged($error, fn(): array => $endpoint === 'threads'
+            ? $this->comments->threads($reader, $revision['document_id'], $revision['revision_id'])
+            : $this->comments->thread($reader, $revision['document_id'], $revision['revision_id'], $created['thread_id']));
+    }
+
+    public static function readErrors(): iterable
+    {
+        foreach (['threads', 'thread'] as $endpoint) {
+            foreach ([
+                ['view', 'forbidden'],
+                ['view', 'conflict'],
+                ['edit', 'unauthenticated'],
+                ['view', 'missing'],
+                ['edit', 'server'],
+                ['edit', 'program'],
+            ] as [$action, $kind]) {
+                yield $endpoint . '-' . $action . '-' . $kind => [$endpoint, $action, $kind];
+            }
+        }
+    }
+
+    #[DataProvider('editDenials')]
+    public function testOwnerStateLockRejectsAllCommandsAndOriginalReceiptsWithoutChangingRows(int $status): void
+    {
+        $revision = $this->revision();
+        $source = $this->source($revision);
+        $one = $this->sessions->actor(11);
+        $two = $this->sessions->actor(22);
+        $documentId = $revision['document_id'];
+        $revisionId = $revision['revision_id'];
+        $createInput = $this->input($source, 'lock-original-create');
+        $created = $this->comments->createThread($one, $documentId, $revisionId, $createInput);
+        $replyInput = $this->transition($created, 'lock-original-reply') + ['body' => 'Synthetic second actor reply'];
+        $replied = $this->comments->reply($two, $documentId, $revisionId, $replyInput);
+        $resolveInput = $this->transition($replied, 'lock-original-resolve');
+        $resolved = $this->comments->resolve($two, $documentId, $revisionId, $resolveInput);
+        $reopenInput = $this->transition($resolved, 'lock-original-reopen');
+        $opened = $this->comments->reopen($one, $documentId, $revisionId, $reopenInput);
+        $other = $this->comments->createThread($one, $documentId, $revisionId, $this->input($source, 'lock-closed-thread'));
+        $closed = $this->comments->resolve($two, $documentId, $revisionId, $this->transition($other, 'lock-close-thread'));
+
+        $fresh = [
+            fn() => $this->comments->createThread($two, $documentId, $revisionId, $this->input($source, 'lock-new-create')),
+            fn() => $this->comments->reply($two, $documentId, $revisionId, $this->transition($opened, 'lock-new-reply') + ['body' => 'Must not persist']),
+            fn() => $this->comments->resolve($one, $documentId, $revisionId, $this->transition($opened, 'lock-new-resolve')),
+            fn() => $this->comments->reopen($two, $documentId, $revisionId, $this->transition($closed, 'lock-new-reopen')),
+        ];
+        $replays = [
+            [$created, fn() => $this->comments->createThread($one, $documentId, $revisionId, $createInput)],
+            [$replied, fn() => $this->comments->reply($two, $documentId, $revisionId, $replyInput)],
+            [$resolved, fn() => $this->comments->resolve($two, $documentId, $revisionId, $resolveInput)],
+            [$opened, fn() => $this->comments->reopen($one, $documentId, $revisionId, $reopenInput)],
+        ];
+        $before = $this->state();
+        $error = self::editDenial($status);
+        self::assertSame($status, $error->httpStatus);
+        $this->owner->authorizationFailures['edit'] = $error;
+        foreach ($fresh as $command) {
+            $this->ownerErrorUnchanged($error, $command);
+        }
+        foreach ($replays as [, $replay]) {
+            $this->ownerErrorUnchanged($error, $replay);
+        }
+
+        unset($this->owner->authorizationFailures['edit']);
+        self::assertTrue($this->comments->threads($two, $documentId, $revisionId)['can_write']);
+        foreach ($replays as [$receipt, $replay]) {
+            self::assertSame($receipt, $replay(), 'Unlocked original requests recover their original receipts, not a new write');
+        }
+        self::assertSame($before, $this->state());
+        self::assertFalse(Db::connect()->getPdo()->inTransaction());
+    }
+
+    #[DataProvider('editDenials')]
+    public function testFinalOwnerStateLockRollsBackWriteAndKeepsOriginalRequestRetryable(int $status): void
+    {
+        $revision = $this->revision();
+        $input = $this->input($this->source($revision), 'final-state-lock');
+        $actor = $this->sessions->actor(22);
+        $error = self::editDenial($status);
+        $this->fence->locks = 0;
+        $this->fence->onLock = function (int $lock) use ($error): void {
+            if ($lock === 2) {
+                $this->owner->authorizationFailures['edit'] = $error;
+            }
+        };
+        $command = fn() => $this->comments->createThread($actor, $revision['document_id'], $revision['revision_id'], $input);
+        $this->ownerErrorUnchanged($error, $command);
+        $this->fence->onLock = null;
+        unset($this->owner->authorizationFailures['edit']);
+        $created = $command();
+        self::assertSame(1, $created['thread_revision']);
+        self::assertSame(22, $created['actor_member_id']);
+        self::assertCount(1, $this->state()['document_comment_thread']);
+        self::assertCount(1, $this->state()['document_comment_message']);
+        self::assertCount(1, $this->state()['document_comment_operation']);
+    }
+
+
+    public static function editDenials(): array
+    {
+        return ['edit-scope-miss' => [404], 'edit-state-lock' => [409]];
+    }
+
+    private static function editDenial(int $status): BusinessException
+    {
+        return match ($status) {
+            404 => BusinessException::notFound('COMMENT_FIXTURE_OWNER_EDIT_SCOPE_MISS', 'Synthetic owner is outside current edit scope'),
+            409 => BusinessException::conflict('COMMENT_FIXTURE_OWNER_EDIT_LOCKED', 'Synthetic owner editing is locked'),
+        };
+    }
+
+    #[DataProvider('missingReadTargets')]
+    public function testReadStillRejectsMissingDocumentOwnerRevisionOrThread(string $endpoint, string $missing, string $code): void
+    {
+        $revision = $this->revision();
+        $source = $this->source($revision);
+        $created = $this->comments->createThread(
+            $this->sessions->actor(11),
+            $revision['document_id'],
+            $revision['revision_id'],
+            $this->input($source, 'missing-read-target'),
+        );
+        $documentId = $revision['document_id'];
+        $revisionId = $revision['revision_id'];
+        $threadId = $created['thread_id'];
+        $before = $this->state();
+        if ($missing === 'document') {
+            $documentId += 100000;
+            self::assertNotContains($documentId, array_column($before['document'], 'id'));
+        } elseif ($missing === 'revision') {
+            $revisionId += 100000;
+            self::assertNotContains($revisionId, array_column($before['document_revision'], 'id'));
+        } elseif ($missing === 'thread') {
+            $threadId += 100000;
+            self::assertNotContains($threadId, array_column($before['document_comment_thread'], 'id'));
+        } else {
+            // Only this external business-owner absence is synthetic; no Document rows are removed.
+            unset($this->owner->objects['1:' . $source['owner']['object_id']]);
+        }
+        $this->owner->authorizationFailures['edit'] = self::editDenial(404);
+        $reader = $this->sessions->actor(22);
+        try {
+            if ($endpoint === 'threads') {
+                $this->comments->threads($reader, $documentId, $revisionId);
+            } else {
+                $this->comments->thread($reader, $documentId, $revisionId, $threadId);
+            }
+            self::fail('A missing read target must not become a successful read-only result');
+        } catch (BusinessException $error) {
+            self::assertSame($code, $error->errorCode);
+            self::assertSame(404, $error->httpStatus);
+        }
+        self::assertSame($before, $this->state(), 'Missing targets cannot change an existing source, thread or receipt');
+        self::assertFalse(Db::connect()->getPdo()->inTransaction());
+    }
+
+    public static function missingReadTargets(): iterable
+    {
+        foreach (['threads', 'thread'] as $endpoint) {
+            foreach ([
+                ['document', 'DOCUMENT_NOT_FOUND'],
+                ['owner', 'COMMENT_FIXTURE_OWNER_NOT_FOUND'],
+                ['revision', 'DOCUMENT_REVISION_NOT_FOUND'],
+            ] as [$missing, $code]) {
+                yield $endpoint . '-' . $missing => [$endpoint, $missing, $code];
+            }
+        }
+        yield 'thread-missing' => ['thread', 'thread', 'DOCUMENT_COMMENT_THREAD_NOT_FOUND'];
+    }
+
+    #[DataProvider('lateViewRefusals')]
+    public function testLockedAndFinalViewScopeChecksStillRejectBeforeReturningComments(string $endpoint, int $guard): void
+    {
+        $revision = $this->revision();
+        $created = $this->comments->createThread(
+            $this->sessions->actor(11),
+            $revision['document_id'],
+            $revision['revision_id'],
+            $this->input($this->source($revision), 'late-view-refusal'),
+        );
+        $this->owner->authorizationFailures['edit'] = self::editDenial(404);
+        $error = BusinessException::notFound('COMMENT_FIXTURE_OWNER_VIEW_SCOPE_MISS', 'Synthetic owner is no longer in current view scope');
+        $this->fence->locks = 0;
+        $this->fence->onLock = function (int $lock) use ($guard, $error): void {
+            if ($lock === $guard) {
+                $this->owner->authorizationFailures['view'] = $error;
+            }
+        };
+        $reader = $this->sessions->actor(22);
+        $this->ownerErrorUnchanged($error, fn(): array => $endpoint === 'threads'
+            ? $this->comments->threads($reader, $revision['document_id'], $revision['revision_id'])
+            : $this->comments->thread($reader, $revision['document_id'], $revision['revision_id'], $created['thread_id']));
+        self::assertSame($guard, $this->fence->locks, 'The rejection must reach the selected native read guard');
+    }
+
+    public static function lateViewRefusals(): array
+    {
+        return [
+            'list-locked-view' => ['threads', 1],
+            'detail-locked-view' => ['thread', 1],
+            'list-final-view' => ['threads', 2],
+            'detail-final-view' => ['thread', 2],
+        ];
     }
 
     public function testTwoActorsPersistListReplyResolveAndReopenAgainstRealPublicVersion(): void
