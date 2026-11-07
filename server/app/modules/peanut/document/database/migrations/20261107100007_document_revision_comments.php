@@ -23,7 +23,7 @@ CREATE TABLE `pa_document_comment_thread` (
   `text_sha256` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `start_offset` int unsigned NOT NULL,
   `end_offset` int unsigned NOT NULL,
-  `quote_text` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `quote_text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `status` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
   `thread_revision` bigint unsigned NOT NULL,
   `created_by_member_id` bigint unsigned NOT NULL,
@@ -35,6 +35,7 @@ CREATE TABLE `pa_document_comment_thread` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_document_comment_thread_tenant` (`tenant_id`,`id`),
   KEY `idx_document_comment_revision` (`tenant_id`,`document_id`,`revision_id`,`id`),
+  KEY `fk_document_comment_revision` (`revision_id`),
   CONSTRAINT `fk_document_comment_document` FOREIGN KEY (`tenant_id`, `document_id`) REFERENCES `pa_document` (`tenant_id`, `id`),
   CONSTRAINT `fk_document_comment_revision` FOREIGN KEY (`revision_id`) REFERENCES `pa_document_revision` (`id`),
   CONSTRAINT `chk_document_comment_status` CHECK ((`status` in (_utf8mb4'open',_utf8mb4'resolved'))),
@@ -49,7 +50,7 @@ CREATE TABLE `pa_document_comment_message` (
   `thread_id` bigint unsigned NOT NULL,
   `thread_revision` bigint unsigned NOT NULL,
   `action` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `body` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `body` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `actor_member_id` bigint unsigned NOT NULL,
   `actor_account_id` bigint unsigned NOT NULL,
   `created_at` datetime(3) NOT NULL,
@@ -57,7 +58,7 @@ CREATE TABLE `pa_document_comment_message` (
   UNIQUE KEY `uk_document_comment_message_tenant` (`tenant_id`,`id`),
   UNIQUE KEY `uk_document_comment_message_revision` (`tenant_id`,`thread_id`,`thread_revision`),
   CONSTRAINT `fk_document_comment_message_thread` FOREIGN KEY (`tenant_id`, `thread_id`) REFERENCES `pa_document_comment_thread` (`tenant_id`, `id`),
-  CONSTRAINT `chk_document_comment_message_action` CHECK (((`action` in (_utf8mb4'create',_utf8mb4'reply')) and (`body` is not null)) or ((`action` in (_utf8mb4'resolve',_utf8mb4'reopen')) and (`body` is null)))
+  CONSTRAINT `chk_document_comment_message_action` CHECK ((((`action` in (_utf8mb4'create',_utf8mb4'reply')) and (`body` is not null)) or ((`action` in (_utf8mb4'resolve',_utf8mb4'reopen')) and (`body` is null))))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 SQL,
         'pa_document_comment_operation' => <<<'SQL'
@@ -76,6 +77,8 @@ CREATE TABLE `pa_document_comment_operation` (
   `created_at` datetime(3) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_document_comment_request` (`tenant_id`,`document_id`,`request_id`),
+  KEY `fk_document_comment_operation_thread` (`tenant_id`,`thread_id`),
+  KEY `fk_document_comment_operation_message` (`tenant_id`,`message_id`),
   CONSTRAINT `fk_document_comment_operation_document` FOREIGN KEY (`tenant_id`, `document_id`) REFERENCES `pa_document` (`tenant_id`, `id`),
   CONSTRAINT `fk_document_comment_operation_thread` FOREIGN KEY (`tenant_id`, `thread_id`) REFERENCES `pa_document_comment_thread` (`tenant_id`, `id`),
   CONSTRAINT `fk_document_comment_operation_message` FOREIGN KEY (`tenant_id`, `message_id`) REFERENCES `pa_document_comment_message` (`tenant_id`, `id`)

@@ -3,7 +3,7 @@
   "key": "peanut.document",
   "name": "Business Documents",
   "description": "Business-owned documents, committed immutable versions and controlled File references.",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-document",
