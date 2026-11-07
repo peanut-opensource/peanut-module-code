@@ -1,269 +1,269 @@
 {
-    "name": "peanut-business/peanut-module-code",
-    "description": "Peanut Module Code application backend",
-    "type": "project",
-    "keywords": [
-        "admin",
-        "scaffold",
-        "thinkphp",
-        "vue"
-    ],
-    "homepage": "https://github.com/peanut-business/peanut-admin-code",
-    "repositories": [
-        {
-            "type": "path",
-            "url": "app/modules/custom/ai_assistant",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/chart_examples",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/workflow",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/rich_text",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/payment",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/oauth",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/notification",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/member",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/import_export",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/entitlement_quota",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/document",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/collaboration",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/artifact_revision",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/article",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/chart",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/settings",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/reference_codes",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/ops",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/integration",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/task",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/file",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/identity",
-            "options": {
-                "symlink": false
-            }
-        },
-        {
-            "type": "path",
-            "url": "app/modules/peanut/content_tools",
-            "options": {
-                "symlink": false
-            }
-        }
-    ],
-    "license": "Apache-2.0",
-    "authors": [
-        {
-            "name": "\u82b1\u751f\u79d1\u6280"
-        }
-    ],
-    "provide": {
-        "peanut-admin/module-composition-host": "1.0.0"
+  "name": "peanut-business/peanut-module-code",
+  "description": "Peanut Module Code application backend",
+  "type": "project",
+  "keywords": [
+    "admin",
+    "scaffold",
+    "thinkphp",
+    "vue"
+  ],
+  "homepage": "https://github.com/peanut-business/peanut-admin-code",
+  "repositories": [
+    {
+      "type": "path",
+      "url": "app/modules/custom/ai_assistant",
+      "options": {
+        "symlink": false
+      }
     },
-    "require": {
-        "php": "^8.3",
-        "topthink/framework": "^8.0",
-        "topthink/think-multi-app": "^1.1.1",
-        "topthink/think-orm": "^3.0|^4.0",
-        "topthink/think-filesystem": "^2.0|^3.0",
-        "firebase/php-jwt": "^7.1",
-        "dragonmantank/cron-expression": "^3.3",
-        "qiniu/php-sdk": "^7.4",
-        "aws/aws-sdk-php": "^3.0",
-        "aliyuncs/oss-sdk-php": "^2.4",
-        "qcloud/cos-sdk-v5": "^2.5",
-        "peanut-admin/core": "5.0.3",
-        "symfony/html-sanitizer": "^7.3",
-        "composer/semver": "^3.4",
-        "opis/json-schema": "^2.6",
-        "topthink/think-migration": "3.1.1",
-        "peanut-business/peanut-content-tools": "1.0.2",
-        "peanut-business/peanut-identity": "4.0.0-rc.57",
-        "peanut-business/peanut-file": "1.0.43",
-        "peanut-business/peanut-task": "1.0.29",
-        "peanut-business/peanut-integration": "1.0.29",
-        "peanut-business/peanut-ops": "1.0.32",
-        "peanut-business/peanut-reference-codes": "1.0.25",
-        "peanut-business/peanut-settings": "1.0.26",
-        "peanut-business/peanut-chart": "1.0.3",
-        "peanut-business/peanut-article": "1.0.18",
-        "peanut-business/artifact-revision": "4.0.0-rc.39",
-        "peanut-business/peanut-collaboration": "1.0.18",
-        "peanut-business/peanut-document": "1.0.16",
-        "peanut-business/entitlement-quota": "4.0.0-rc.38",
-        "peanut-business/peanut-import-export": "1.0.34",
-        "peanut-business/peanut-member": "1.0.25",
-        "peanut-business/peanut-notification": "1.0.32",
-        "peanut-business/peanut-oauth": "1.0.11",
-        "peanut-business/peanut-payment": "1.0.28",
-        "peanut-business/peanut-rich-text": "1.0.16",
-        "peanut-business/workflow": "4.0.0-rc.48",
-        "peanut-business/peanut-chart-examples": "1.0.3",
-        "custom/custom-ai-assistant": "1.2.1"
+    {
+      "type": "path",
+      "url": "app/modules/peanut/chart_examples",
+      "options": {
+        "symlink": false
+      }
     },
-    "require-dev": {
-        "phpunit/phpunit": "12.5.31",
-        "topthink/think-dumper": "^1.0",
-        "topthink/think-trace": "^2.0"
+    {
+      "type": "path",
+      "url": "app/modules/peanut/workflow",
+      "options": {
+        "symlink": false
+      }
     },
-    "autoload": {
-        "psr-4": {
-            "app\\": "app",
-            "PeanutAdmin\\Modules\\File\\": "app/modules/peanut/file/src/",
-            "PeanutAdmin\\Modules\\Identity\\": "app/modules/peanut/identity/src/",
-            "PeanutAdmin\\Modules\\Integration\\": "app/modules/peanut/integration/src/",
-            "PeanutAdmin\\Modules\\Ops\\": "app/modules/peanut/ops/src/",
-            "PeanutAdmin\\Modules\\ReferenceCodes\\": "app/modules/peanut/reference_codes/src/",
-            "PeanutAdmin\\Modules\\Settings\\": "app/modules/peanut/settings/src/",
-            "PeanutAdmin\\Modules\\Task\\": "app/modules/peanut/task/src/"
-        },
-        "exclude-from-classmap": [
-            "app/modules/*/*/database/migrations/",
-            "app/modules/*/*/*/database/migrations/",
-            "tests/Modules/Official/ImportExport/feature-harness.php",
-            "tests/Modules/Official/Notification/feature-harness.php"
-        ]
+    {
+      "type": "path",
+      "url": "app/modules/peanut/rich_text",
+      "options": {
+        "symlink": false
+      }
     },
-    "config": {
-        "preferred-install": "dist"
+    {
+      "type": "path",
+      "url": "app/modules/peanut/payment",
+      "options": {
+        "symlink": false
+      }
     },
-    "scripts": {
-        "post-autoload-dump": [
-            "@php docker/scripts/prepare-vendor.php"
-        ]
+    {
+      "type": "path",
+      "url": "app/modules/peanut/oauth",
+      "options": {
+        "symlink": false
+      }
     },
-    "autoload-dev": {
-        "psr-4": {
-            "PeanutAdmin\\Testing\\": [
-                "tests/CoreIntegration/testing/src/",
-                "vendor/peanut-admin/core/testing/src/"
-            ]
-        },
-        "classmap": [
-            "vendor/peanut-admin/core/kernel/tests/",
-            "vendor/peanut-admin/core/data-permission/tests/"
-        ],
-        "files": []
+    {
+      "type": "path",
+      "url": "app/modules/peanut/notification",
+      "options": {
+        "symlink": false
+      }
+    },
+    {
+      "type": "path",
+      "url": "app/modules/peanut/member",
+      "options": {
+        "symlink": false
+      }
+    },
+    {
+      "type": "path",
+      "url": "app/modules/peanut/import_export",
+      "options": {
+        "symlink": false
+      }
+    },
+    {
+      "type": "path",
+      "url": "app/modules/peanut/entitlement_quota",
+      "options": {
+        "symlink": false
+      }
+    },
+    {
+      "type": "path",
+      "url": "app/modules/peanut/document",
+      "options": {
+        "symlink": false
+      }
+    },
+    {
+      "type": "path",
+      "url": "app/modules/peanut/collaboration",
+      "options": {
+        "symlink": false
+      }
+    },
+    {
+      "type": "path",
+      "url": "app/modules/peanut/artifact_revision",
+      "options": {
+        "symlink": false
+      }
+    },
+    {
+      "type": "path",
+      "url": "app/modules/peanut/article",
+      "options": {
+        "symlink": false
+      }
+    },
+    {
+      "type": "path",
+      "url": "app/modules/peanut/chart",
+      "options": {
+        "symlink": false
+      }
+    },
+    {
+      "type": "path",
+      "url": "app/modules/peanut/settings",
+      "options": {
+        "symlink": false
+      }
+    },
+    {
+      "type": "path",
+      "url": "app/modules/peanut/reference_codes",
+      "options": {
+        "symlink": false
+      }
+    },
+    {
+      "type": "path",
+      "url": "app/modules/peanut/ops",
+      "options": {
+        "symlink": false
+      }
+    },
+    {
+      "type": "path",
+      "url": "app/modules/peanut/integration",
+      "options": {
+        "symlink": false
+      }
+    },
+    {
+      "type": "path",
+      "url": "app/modules/peanut/task",
+      "options": {
+        "symlink": false
+      }
+    },
+    {
+      "type": "path",
+      "url": "app/modules/peanut/file",
+      "options": {
+        "symlink": false
+      }
+    },
+    {
+      "type": "path",
+      "url": "app/modules/peanut/identity",
+      "options": {
+        "symlink": false
+      }
+    },
+    {
+      "type": "path",
+      "url": "app/modules/peanut/content_tools",
+      "options": {
+        "symlink": false
+      }
     }
+  ],
+  "license": "Apache-2.0",
+  "authors": [
+    {
+      "name": "花生科技"
+    }
+  ],
+  "provide": {
+    "peanut-admin/module-composition-host": "1.0.0"
+  },
+  "require": {
+    "php": "^8.3",
+    "topthink/framework": "^8.0",
+    "topthink/think-multi-app": "^1.1.1",
+    "topthink/think-orm": "^3.0|^4.0",
+    "topthink/think-filesystem": "^2.0|^3.0",
+    "firebase/php-jwt": "^7.1",
+    "dragonmantank/cron-expression": "^3.3",
+    "qiniu/php-sdk": "^7.4",
+    "aws/aws-sdk-php": "^3.0",
+    "aliyuncs/oss-sdk-php": "^2.4",
+    "qcloud/cos-sdk-v5": "^2.5",
+    "peanut-admin/core": "5.0.3",
+    "symfony/html-sanitizer": "^7.3",
+    "composer/semver": "^3.4",
+    "opis/json-schema": "^2.6",
+    "topthink/think-migration": "3.1.1",
+    "peanut-business/peanut-content-tools": "1.0.2",
+    "peanut-business/peanut-identity": "4.0.0-rc.57",
+    "peanut-business/peanut-file": "1.0.43",
+    "peanut-business/peanut-task": "1.0.29",
+    "peanut-business/peanut-integration": "1.0.29",
+    "peanut-business/peanut-ops": "1.0.32",
+    "peanut-business/peanut-reference-codes": "1.0.25",
+    "peanut-business/peanut-settings": "1.0.26",
+    "peanut-business/peanut-chart": "1.0.3",
+    "peanut-business/peanut-article": "1.0.18",
+    "peanut-business/artifact-revision": "4.0.0-rc.39",
+    "peanut-business/peanut-collaboration": "1.0.18",
+    "peanut-business/peanut-document": "1.0.16",
+    "peanut-business/entitlement-quota": "4.0.0-rc.38",
+    "peanut-business/peanut-import-export": "1.0.34",
+    "peanut-business/peanut-member": "1.0.25",
+    "peanut-business/peanut-notification": "1.0.32",
+    "peanut-business/peanut-oauth": "1.0.11",
+    "peanut-business/peanut-payment": "1.0.28",
+    "peanut-business/peanut-rich-text": "1.0.16",
+    "peanut-business/workflow": "4.0.0-rc.48",
+    "peanut-business/peanut-chart-examples": "1.0.3",
+    "custom/custom-ai-assistant": "1.2.1"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "12.5.31",
+    "topthink/think-dumper": "^1.0",
+    "topthink/think-trace": "^2.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "app\\": "app",
+      "PeanutAdmin\\Modules\\File\\": "app/modules/peanut/file/src/",
+      "PeanutAdmin\\Modules\\Identity\\": "app/modules/peanut/identity/src/",
+      "PeanutAdmin\\Modules\\Integration\\": "app/modules/peanut/integration/src/",
+      "PeanutAdmin\\Modules\\Ops\\": "app/modules/peanut/ops/src/",
+      "PeanutAdmin\\Modules\\ReferenceCodes\\": "app/modules/peanut/reference_codes/src/",
+      "PeanutAdmin\\Modules\\Settings\\": "app/modules/peanut/settings/src/",
+      "PeanutAdmin\\Modules\\Task\\": "app/modules/peanut/task/src/"
+    },
+    "exclude-from-classmap": [
+      "app/modules/*/*/database/migrations/",
+      "app/modules/*/*/*/database/migrations/",
+      "tests/Modules/Official/ImportExport/feature-harness.php",
+      "tests/Modules/Official/Notification/feature-harness.php"
+    ]
+  },
+  "config": {
+    "preferred-install": "dist"
+  },
+  "scripts": {
+    "post-autoload-dump": [
+      "@php docker/scripts/prepare-vendor.php"
+    ]
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "PeanutAdmin\\Testing\\": [
+        "tests/CoreIntegration/testing/src/",
+        "vendor/peanut-admin/core/testing/src/"
+      ]
+    },
+    "classmap": [
+      "vendor/peanut-admin/core/kernel/tests/",
+      "vendor/peanut-admin/core/data-permission/tests/"
+    ],
+    "files": []
+  }
 }
