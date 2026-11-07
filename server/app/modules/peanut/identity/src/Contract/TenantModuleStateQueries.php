@@ -200,6 +200,12 @@ final readonly class TenantModuleStateQueries
         return $states;
     }
 
+    /** 包含停用但未卸载的安装，供生命周期依赖保护使用。 @return list<string> */
+    public function installedModuleKeys(): array
+    {
+        return array_values(array_map('strval', Db::name('module_installation')->where('status', '<>', 'uninstalled')->order('module_key')->column('module_key')));
+    }
+
     /**
      * Fixed read-only package receipt for an Ops postflight smoke.
      * Identity owns the installation table; this projection never grants
