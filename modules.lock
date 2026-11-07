@@ -1844,7 +1844,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "4ffbe04e9284c30938e013fc5b36713140b26d323d63c0ed85c526f0947179f1"
+                "sha256": "6d34c352385e7d719a2a5c623e0b368fbec69ebc565532b5082572d5b0042395"
             },
             "trust": {
                 "channel": "bundled",

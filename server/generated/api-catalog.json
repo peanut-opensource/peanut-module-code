@@ -4,7 +4,7 @@
     "inputs": [
         {
             "path": "modules.lock",
-            "sha256": "7be13338ca58856c1bc0cbbe3e82c4bc3d4ab77402cda0febdcc5f378c818689"
+            "sha256": "c6c0f04772ae992c26c3cf0b1a9eb35091f0528f6f087e7cba1df9a115bf0888"
         },
         {
             "path": "release-versions.json",
