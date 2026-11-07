@@ -24,7 +24,7 @@ final class TaskSubmissionRegistry
     {
         $key = $provider->taskType();
         if (preg_match('/^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$/D', $key) !== 1
-            || preg_match('/^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$/D', $provider->resourceKey()) !== 1
+            || preg_match('/^[a-z][a-zA-Z0-9]*(?:[.-][a-zA-Z0-9]+)*$/D', $provider->resourceKey()) !== 1
             || preg_match('/^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$/D', $provider->operation()) !== 1
             || isset($this->providers[$key])
         ) {
