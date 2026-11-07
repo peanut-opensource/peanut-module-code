@@ -10,6 +10,7 @@ use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Context\{AuthorizationDecision,AuthorizedOperationContext};
 use PeanutAdmin\Modules\Task\Contract\TaskJobRuntime;
 use PeanutAdmin\Modules\Task\Contract\TaskJobService;
+use PeanutAdmin\Modules\Task\Job\Application\TaskJobException;
 use think\facade\Db;
 
 final readonly class AiTasks
@@ -72,7 +73,8 @@ final readonly class AiTasks
         $fixed = AiAccess::decode($old->sealed_config);
         $this->sources->readable($c, $source);
         $this->configuration->recheck($c, $fixed);
-        return $this->private->exclusive($c->tenantId, $id, function () use ($c, $id, $source, $fixed, $request): array {
+        $prepared = $this->sources->prepareAuthorization($c, $source);
+        return $this->private->exclusive($c->tenantId, $id, function () use ($c, $id, $source, $fixed, $request, $prepared): array {
             $current = $this->access->find($c, 'task', $id, 'use');
             if ($current->job_key) {
                 return AiAccess::present($current);
@@ -82,7 +84,7 @@ final readonly class AiTasks
             if ($fixed['route']['details']['capability'] === 'transcription') {
                 $manifest = $this->sources->copyAudio($c, $source, $directory . '/input-audio.bin');
             }
-            return Db::transaction(function () use ($c, $id, $manifest, $request): array {
+            return Db::transaction(function () use ($c, $id, $manifest, $request, $prepared): array {
                 $r = $this->access->find($c, 'task', $id, 'use', true);
                 if ($r->job_key) {
                     return AiAccess::present($r);
@@ -99,6 +101,8 @@ final readonly class AiTasks
                 $definition = app()->make(AiNativeTask::class);
                 $job = $this->native->publisher($definition)->publish($this->authorization->authorize($c, $id), $definition->taskType(), ['task_id' => $id], 'ai-generate:' . $c->tenantId . ':' . $id . ':' . $request);
                 $r->job_key = $job->jobKey;
+                $r->save(); // Native Task reauthorization reads this server-owned binding before grant issuance.
+                $d['source_authorization'] = $this->sources->issueAuthorization($c, $prepared, $job->jobKey, $d['private_expires_at'], 'ai-source:' . $job->jobKey);
                 $d['native_job_key'] = $job->jobKey;
                 $this->access->update($r, $d, 'queued');
                 $result = AiAccess::present($r);
@@ -151,15 +155,18 @@ final readonly class AiTasks
             $out['native_task'] = $this->native->jobs()->detail($this->nativeContext($c, 'read'), $r->job_key)->toPublicArray();
         }return $out;
     }
-    public function command(TenantContext $c, int $id, string $action, int $jobRevision, string $request): array
+    public function command(TenantContext $c, int $id, string $action, ?int $jobRevision, string $request, ?int $taskVersion = null): array
     {
-        $this->access->find($c, 'task', $id, 'use');
-        return $this->private->exclusive($c->tenantId, $id, fn(): array => $this->commandLocked($c, $id, $action, $jobRevision, $request));
+        $row = $this->access->find($c, 'task', $id, 'use');
+        $prepared = in_array($action, ['retry', 'poll'], true) && !isset(AiAccess::data($row)['manual_input'])
+            ? $this->sources->prepareAuthorization($c, AiAccess::decode($row->source_snapshot)) : null;
+        return $this->private->exclusive($c->tenantId, $id, fn(): array => $this->commandLocked($c, $id, $action, $jobRevision, $request, $prepared, $taskVersion));
     }
-    private function commandLocked(TenantContext $c, int $id, string $action, int $jobRevision, string $request): array
+    private function commandLocked(TenantContext $c, int $id, string $action, ?int $jobRevision, string $request, ?array $prepared, ?int $taskVersion): array
     {
-        return Db::transaction(function () use ($c, $id, $action, $jobRevision, $request): array {
-            if ($saved = $this->access->replay($c, 'task', $id, $action, $request, [$jobRevision], 'use')) {
+        return Db::transaction(function () use ($c, $id, $action, $jobRevision, $request, $prepared, $taskVersion): array {
+            $commandInput = $taskVersion === null ? [$jobRevision] : [$jobRevision,$taskVersion];
+            if ($saved = $this->access->replay($c, 'task', $id, $action, $request, $commandInput, 'use')) {
                 return $saved;
             }
             $r = $this->access->find($c, 'task', $id, 'use', true);
@@ -168,10 +175,46 @@ final readonly class AiTasks
                 throw BusinessException::conflict('AI_COLLECTION_IN_PROGRESS', '候选已开始领取；沿原领取请求恢复，不能改写其任务');
             }
             if (!$r->job_key) {
-                throw BusinessException::conflict('AI_TASK_NOT_QUEUED', '尚未产生原生任务');
+                $this->nativeContext($c, 'manage'); // Preparation cancellation retains the existing native management permission.
+                if ($action !== 'cancel' || $jobRevision !== null || $taskVersion === null || $r->status !== 'preparing'
+                    || !in_array($d['stage'], ['preparing','prepared'], true) || isset($d['attempt_started_at']) || isset($d['provider_id'])) {
+                    throw BusinessException::conflict('AI_TASK_NOT_QUEUED', '未排队任务须按当前业务版本取消准备');
+                }
+                $this->access->cas($r, $taskVersion);
+                $this->quota->settle($c, $r, $d, 'not_sent');
+                $d['local_cancelled'] = true;
+                $d['remote_cancellation'] = 'not_required';
+                $d['stage'] = 'not_sent';
+                $d['usage'] = ['state' => 'not_sent','source' => 'cancelled_before_enqueue','billing_amount' => null];
+                $d['private_expires_at'] = time();
+                $this->access->update($r, $d, 'cancelled');
+                $result = AiAccess::present($r);
+                $this->access->event($c, 'task', $r, $action, $request, $commandInput, $result);
+                return $result;
+            }
+            if ($jobRevision === null || $taskVersion !== null) {
+                throw BusinessException::conflict('AI_TASK_ALREADY_QUEUED', '任务已排队，请刷新后使用真实原生任务修订');
             }
             if ($action === 'cancel') {
-                $job = $this->native->jobs()->cancel($this->nativeContext($c, 'manage'), $r->job_key, $jobRevision);
+                $manage = $this->nativeContext($c, 'manage');
+                try {
+                    $job = $this->native->jobs()->cancel($manage, $r->job_key, $jobRevision);
+                } catch (TaskJobException $error) {
+                    if ($error->problemCode !== 'TASK_STATE_CONFLICT'
+                        || !in_array($d['stage'], ['prepared','blocked_source_authorization'], true)
+                        || isset($d['attempt_started_at']) || isset($d['provider_id'])) {
+                        throw $error;
+                    }
+                    $job = $this->native->jobs()->detailForRecovery($manage, $r->job_key, $jobRevision);
+                    if ($job->status !== 'dead') {
+                        throw $error;
+                    }
+                    // Recovery holds the native terminal row lock in this transaction and rejects any live lease/attempt.
+                }
+                $actor = AiAccess::decode($r->actor_binding);
+                if (isset($d['source_authorization']) && ($actor['account_id'] ?? null) === $c->accountId && ($actor['member_id'] ?? null) === $c->memberId) {
+                    $this->sources->revokeAuthorization($c, $d['source_authorization']);
+                }
                 $state = in_array($d['stage'], ['preparing','prepared','blocked_source_authorization'], true) ? 'not_sent' : 'unknown';
                 if (in_array($d['quota']['state'], ['reserved','unknown'], true)) {
                     $this->quota->settle($c, $r, $d, $state);
@@ -199,7 +242,19 @@ final readonly class AiTasks
                     $d['quota'] = $this->quota->reserve($c, $fixed['connection'], $r);
                 }
                 $r->actor_binding = AiAccess::json(self::actor($c));
+                $r->save();
                 $job = $this->native->jobs()->retry($this->nativeContext($c, 'manage'), $r->job_key, $jobRevision);
+                if ($prepared !== null) {
+                    if (isset($d['source_authorization'])) {
+                        $this->sources->revokeAuthorization($c, $d['source_authorization']);
+                    }
+                    $d['private_expires_at'] = time() + 86400;
+                    $d['source_authorization'] = $this->sources->issueAuthorization($c, $prepared, $r->job_key, $d['private_expires_at'], 'ai-retry-source:' . hash('sha256', $request));
+                    if ($d['stage'] === 'blocked_source_authorization') {
+                        $d['stage'] = 'prepared';
+                        $d['execution_block'] = null;
+                    }
+                }
                 $this->access->update($r, $d, 'queued');
             } elseif ($action === 'poll') {
                 $job = $this->native->jobs()->detail($this->nativeContext($c, 'read'), $r->job_key);
@@ -210,8 +265,15 @@ final readonly class AiTasks
                 $this->configuration->recheck($c, AiAccess::decode($r->sealed_config));
                 $definition = app()->make(AiNativeTask::class);
                 $next = $this->native->publisher($definition)->publish($this->authorization->authorize($c, $id), $definition->taskType(), ['task_id' => $id], 'ai-poll:' . $c->tenantId . ':' . $id . ':' . $request);
+                $previousActor = AiAccess::decode($r->actor_binding);
+                if (isset($d['source_authorization']) && ($previousActor['account_id'] ?? null) === $c->accountId && ($previousActor['member_id'] ?? null) === $c->memberId) {
+                    $this->sources->revokeAuthorization($c, $d['source_authorization']);
+                }
                 $r->job_key = $next->jobKey;
                 $r->actor_binding = AiAccess::json(self::actor($c));
+                $r->save();
+                $d['private_expires_at'] = time() + 86400;
+                $d['source_authorization'] = $this->sources->issueAuthorization($c, $prepared, $next->jobKey, $d['private_expires_at'], 'ai-poll-source:' . hash('sha256', $request));
                 $d['native_job_key'] = $next->jobKey;
                 $this->access->update($r, $d, 'queued');
             } elseif ($action === 'observeUnknown') {
@@ -227,7 +289,7 @@ final readonly class AiTasks
                 throw BusinessException::invalid('AI_TASK_ACTION_INVALID', '任务动作无效');
             }
             $result = AiAccess::present($r);
-            $this->access->event($c, 'task', $r, $action, $request, [$jobRevision], $result);
+            $this->access->event($c, 'task', $r, $action, $request, $commandInput, $result);
             return $result;
         });
     }

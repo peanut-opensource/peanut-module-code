@@ -1813,6 +1813,10 @@ $metadata = json_decode(<<<'JSON'
                     "type": "integer",
                     "minimum": 1
                   },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
                   "request_id": {
                     "type": "string",
                     "pattern": "^[A-Za-z0-9:_-]{1,100}$"
@@ -1821,8 +1825,36 @@ $metadata = json_decode(<<<'JSON'
                 "required": [
                   "id",
                   "action",
-                  "job_revision",
                   "request_id"
+                ],
+                "oneOf": [
+                  {
+                    "required": [
+                      "job_revision"
+                    ],
+                    "not": {
+                      "required": [
+                        "version"
+                      ]
+                    }
+                  },
+                  {
+                    "required": [
+                      "version"
+                    ],
+                    "properties": {
+                      "action": {
+                        "enum": [
+                          "cancel"
+                        ]
+                      }
+                    },
+                    "not": {
+                      "required": [
+                        "job_revision"
+                      ]
+                    }
+                  }
                 ]
               }
             }

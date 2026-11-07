@@ -31,13 +31,35 @@
     />
     <section v-if="permissions.configure" class="setup-guide">
       <strong>本模块设置顺序</strong>
-      <p>连接保存后单独写入凭据并启用；分别准备模型、模板和路由，再准备制作任务。配置启用不代表提供方已连通或来源授权已接入。</p>
+      <p
+        >连接保存后单独写入凭据并启用；分别准备模型、模板和路由，再准备制作任务。配置启用不代表提供方已连通或来源授权已接入。</p
+      >
       <ol>
-        <li><router-link to="/ai-assistant/connection">机构连接与凭据</router-link></li>
-        <li><router-link to="/ai-assistant/model">模型标识与限制</router-link></li>
-        <li><router-link to="/ai-assistant/template">制作模板与复核责任</router-link></li>
-        <li><router-link to="/ai-assistant/route">能力与适用模块路由</router-link></li>
-        <li><router-link to="/ai-assistant/task">制作任务与人工候选</router-link></li>
+        <li
+          ><router-link to="/ai-assistant/connection"
+            >机构连接与凭据</router-link
+          ></li
+        >
+        <li
+          ><router-link to="/ai-assistant/model"
+            >模型标识与限制</router-link
+          ></li
+        >
+        <li
+          ><router-link to="/ai-assistant/template"
+            >制作模板与复核责任</router-link
+          ></li
+        >
+        <li
+          ><router-link to="/ai-assistant/route"
+            >能力与适用模块路由</router-link
+          ></li
+        >
+        <li
+          ><router-link to="/ai-assistant/task"
+            >制作任务与人工候选</router-link
+          ></li
+        >
       </ol>
     </section>
     <el-alert v-if="error" type="error" :closable="false" :title="error" />
@@ -237,12 +259,14 @@
               v-if="
                 permissions.use &&
                 permissions.task_manage &&
-                selected.native_task &&
-                ['queued', 'running'].includes(selected.native_task.status) &&
-                !selected.details.collection_claim
+                api.canCancelTask(selected)
               "
               @click="openAction('cancel')"
-              >取消本系统任务</el-button
+              >{{
+                api.canCancelTaskPreparation(selected)
+                  ? '取消准备并释放额度'
+                  : '取消本系统任务'
+              }}</el-button
             ><el-button
               v-if="
                 permissions.use &&
@@ -421,7 +445,9 @@
               v-model="form.origin"
               placeholder="https://机构已批准的服务域名（不含路径/查询/密钥）"
           /></el-form-item>
-          <p v-if="editing">更换服务商地址、API 前缀或协议后，请重新设置密钥并启用连接。</p>
+          <p v-if="editing"
+            >更换服务商地址、API 前缀或协议后，请重新设置密钥并启用连接。</p
+          >
           <el-form-item label="API 路径前缀" required
             ><el-input
               v-model="form.api_prefix"
@@ -454,8 +480,7 @@
             ><EnabledConfigSelect
               v-model="numbers.connection_id"
               kind="connection"
-            /></el-form-item
-          >
+          /></el-form-item>
           <el-form-item label="提供方实际模型标识" required
             ><el-input
               v-model="form.provider_model_id"
@@ -528,7 +553,11 @@
               :capability="form.capability"
           /></el-form-item>
           <el-form-item label="适用制作模块" required
-            ><el-input v-model.trim="form.consumer_module" maxlength="96" placeholder="模块标识（例如 peanut.article）或 general" /></el-form-item>
+            ><el-input
+              v-model.trim="form.consumer_module"
+              maxlength="96"
+              placeholder="模块标识（例如 peanut.article）或 general"
+          /></el-form-item>
           <el-form-item label="使用范围和责任说明" required
             ><el-input v-model="form.scope_note" type="textarea"
           /></el-form-item>
@@ -598,7 +627,11 @@
               :rows="4"
               maxlength="4000" /></el-form-item
           ><el-form-item label="用于哪个工作台" required
-            ><el-input v-model.trim="form.consumer_module" maxlength="96" placeholder="模块标识（例如 peanut.article）或 general" /></el-form-item>
+            ><el-input
+              v-model.trim="form.consumer_module"
+              maxlength="96"
+              placeholder="模块标识（例如 peanut.article）或 general"
+          /></el-form-item>
           <p v-if="numbers.rework_of_task_id"
             >重做依据：原任务 #{{ numbers.rework_of_task_id }} / 版本
             {{
@@ -658,8 +691,7 @@
           ><template v-if="action === 'manual'"
             ><el-alert
               :closable="false"
-              title="这是人工录入/上传，未验证提供方生成。仅以本地任务验证真实字节，不调用AI服务或把原未知调用改记成功。"
-            />
+              title="这是人工录入/上传，未验证提供方生成。仅以本地任务验证真实字节，不调用AI服务或把原未知调用改记成功。" />
             <p>本任务接收{{ manualLabels[manualType] }}。</p>
             <el-input
               v-if="['text', 'transcript'].includes(manualType)"
@@ -797,9 +829,7 @@
           :disabled="pendingStopping[recoveryTarget.id]"
           @click="stopWaiting(recoveryTarget)"
           >{{
-            pendingStopping[recoveryTarget.id]
-              ? '正在停止等待'
-              : '停止本次等待'
+            pendingStopping[recoveryTarget.id] ? '正在停止等待' : '停止本次等待'
           }}</el-button
         ><el-button
           v-if="recoveryTarget"
@@ -1654,7 +1684,9 @@
       fixed.revision_id < 1 ||
       typeof row.details.consumer_module !== 'string' ||
       (row.details.consumer_module !== 'general' &&
-        !/^[a-z][a-z0-9-]*(?:[.][a-z][a-z0-9-]*)+$/.test(row.details.consumer_module))
+        !/^[a-z][a-z0-9-]*(?:[.][a-z][a-z0-9-]*)+$/.test(
+          row.details.consumer_module
+        ))
     ) {
       detailError.value = '原重做任务的固定来源不完整，请重新核对。';
       return;
@@ -1800,11 +1832,7 @@
           };
         } else {
           endpoint = 'taskAction';
-          data = {
-            ...data,
-            action: name,
-            job_revision: r.native_task?.revision,
-          };
+          data = api.taskActionPayload(r, name, intent.requestId);
         }
         record = await originals.prepare(endpoint, intent.kind, data);
         if (!active()) return;

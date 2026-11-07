@@ -95,7 +95,7 @@ final readonly class LocalWorker
                         ($this->executeAuthorizedJob)($context, $claim, function () use ($handler, $context, $execution): void {
                             $handler->handle($context, $execution);
                             $execution->assertLeaseOwned();
-                        });
+                        }, $execution);
                     },
                 );
             } else {

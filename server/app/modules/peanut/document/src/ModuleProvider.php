@@ -17,7 +17,8 @@ final class ModuleProvider implements \PeanutAdmin\Kernel\Module\ModuleProvider,
     public function bindings(): array
     {
         return [DocumentCommands::class => DocumentService::class,DocumentQueries::class => DocumentService::class,
-            \PeanutAdmin\Modules\Document\Contract\DocumentCollaborativeWrites::class => DocumentService::class];
+            \PeanutAdmin\Modules\Document\Contract\DocumentCollaborativeWrites::class => DocumentService::class,
+            \PeanutAdmin\Modules\Document\Contract\DocumentSourceGrants::class => DocumentService::class];
     }
     public function fileDocumentReferencePolicy(): string
     {

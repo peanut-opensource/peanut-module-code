@@ -25,6 +25,84 @@ export interface BusinessRecord {
     last_error_code: string | null;
   };
 }
+
+/** A preparation has no native revision; its business version is the CAS input. */
+export function canCancelTaskPreparation(record: BusinessRecord): boolean {
+  const d = record.details;
+  return (
+    Number.isSafeInteger(record.id) &&
+    record.id > 0 &&
+    Number.isSafeInteger(record.version) &&
+    record.version > 0 &&
+    record.status === 'preparing' &&
+    !record.native_task &&
+    !d.native_job_key &&
+    ['preparing', 'prepared'].includes(String(d.stage)) &&
+    d.attempt_started_at == null &&
+    d.provider_id == null &&
+    d.collection_claim == null &&
+    d.collect_request_id == null &&
+    d.fixed_result == null
+  );
+}
+export function canCancelTask(record: BusinessRecord): boolean {
+  if (canCancelTaskPreparation(record)) return true;
+  const job = record.native_task;
+  const d = record.details;
+  if (
+    !job ||
+    !Number.isSafeInteger(job.revision) ||
+    job.revision < 1 ||
+    d.collection_claim != null ||
+    d.collect_request_id != null ||
+    d.fixed_result != null
+  )
+    return false;
+  return (
+    ['queued', 'running'].includes(job.status) ||
+    (job.status === 'dead' &&
+      ['prepared', 'blocked_source_authorization'].includes(String(d.stage)) &&
+      d.attempt_started_at == null &&
+      d.provider_id == null)
+  );
+}
+export function taskActionPayload(
+  record: BusinessRecord,
+  action: string,
+  requestId: string
+): Record<string, unknown> {
+  if (
+    !Number.isSafeInteger(record.id) ||
+    record.id < 1 ||
+    !['cancel', 'retry', 'observeUnknown', 'poll'].includes(action)
+  )
+    throw new Error('任务动作无效，请刷新后重试');
+  if (action === 'cancel' && canCancelTaskPreparation(record))
+    return {
+      id: record.id,
+      action,
+      version: record.version,
+      request_id: requestId,
+    };
+  const job = record.native_task;
+  if (
+    !job ||
+    !job.job_key ||
+    !Number.isSafeInteger(job.revision) ||
+    job.revision < 1 ||
+    (record.details.native_job_key &&
+      record.details.native_job_key !== job.job_key) ||
+    (action === 'cancel' && !canCancelTask(record))
+  )
+    throw new Error('请刷新执行实况，核对真实任务修订后再办理');
+  return {
+    id: record.id,
+    action,
+    job_revision: job.revision,
+    request_id: requestId,
+  };
+}
+
 export interface Overview {
   permissions: Record<string, boolean>;
   current_member_id: number;
@@ -218,16 +296,35 @@ export interface GenerateTextInput {
   confirm_send: true;
 }
 
-export async function generateText(input: GenerateTextInput, signal: AbortSignal) {
-  const result = await current<{ candidate_id: number; request_id: string; text: string }>(() =>
+export async function generateText(
+  input: GenerateTextInput,
+  signal: AbortSignal
+) {
+  const result = await current<{
+    candidate_id: number;
+    request_id: string;
+    text: string;
+  }>(() =>
     axios.post(base + 'generateText', input, { signal, timeout: 45000 })
   );
-  if (!Number.isSafeInteger(result?.candidate_id) || result.candidate_id < 1 ||
-      result.request_id !== input.request_id || typeof result.text !== 'string' || !result.text.trim())
+  if (
+    !Number.isSafeInteger(result?.candidate_id) ||
+    result.candidate_id < 1 ||
+    result.request_id !== input.request_id ||
+    typeof result.text !== 'string' ||
+    !result.text.trim()
+  )
     throw new Error('未取得匹配原请求的正文候选，请核对原请求。');
   return result;
 }
-export const textRoutes = (consumer: string, page: number, signal: AbortSignal) =>
+export const textRoutes = (
+  consumer: string,
+  page: number,
+  signal: AbortSignal
+) =>
   current<{ list: Lookup[]; count: number; page_size: number }>(() =>
-    axios.get(base + 'textRoutes', { params: { consumer_module: consumer, page }, signal })
+    axios.get(base + 'textRoutes', {
+      params: { consumer_module: consumer, page },
+      signal,
+    })
   );

@@ -3,7 +3,7 @@
   "key": "peanut.file",
   "name": "File and Media",
   "description": "Tenant-owned media library, uploads and private file metadata.",
-  "version": "1.0.43",
+  "version": "1.0.44",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-file",
@@ -69,16 +69,14 @@
       "PeanutAdmin\\Modules\\File\\Contract\\FileDocumentReferencePolicy",
       "PeanutAdmin\\Modules\\File\\Contract\\FileDocumentReferenceContributor",
       "PeanutAdmin\\Modules\\File\\Contract\\FileDocumentSnapshots",
-      "PeanutAdmin\\Modules\\File\\Service\\FileDocumentReferenceRegistry"
+      "PeanutAdmin\\Modules\\File\\Service\\FileDocumentReferenceRegistry",
+      "PeanutAdmin\\Modules\\File\\Contract\\FileDocumentSourceChecks"
     ],
     "events": []
   },
   "tenant": {
     "enableable": true,
     "disable_behavior": "reject_new_operations",
-    "requires": [
-      "peanut.identity",
-      "peanut.content-tools"
-    ]
+    "requires": ["peanut.identity", "peanut.content-tools"]
   }
 }

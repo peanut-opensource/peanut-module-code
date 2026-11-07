@@ -202,3 +202,16 @@ the extended shape only with both actual executed migration rows and its exact
 schema. Backups cover the selected File recovery graph; restoring an old database
 after normal business has resumed is not an automatic operation. Business recovery
 continues the accepted private transition and does not republish an old source.
+
+## Checking fixed Document sources in a native worker
+
+Version 1.0.44 exports `FileDocumentSourceChecks`. Its
+`assertBackgroundDocumentSnapshotReadable` operation verifies the current
+member's independent original-download permission, tenant and Document binding,
+claimed immutable snapshot, MIME type, SHA-256 and materialized source bytes.
+It returns no bytes, URL, transferable grant or task authority.
+
+Document must establish and recheck its native Task binding around this call.
+File has no Task dependency and does not manufacture a member session for a
+background operation. Normal previews, downloads and Document snapshot APIs
+retain their existing authorization paths.

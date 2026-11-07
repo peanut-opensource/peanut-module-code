@@ -18,6 +18,20 @@ final class AiInput
             self::invalid('请求包含未声明字段');
         }
     }
+    /** One real CAS identity: native job revision, or business preparation version for cancel before enqueue. */
+    public static function taskAction(array $p): array
+    {
+        self::only($p, ['id','action','job_revision','version','request_id']);
+        $action = self::choice($p['action'] ?? null, ['cancel','retry','observeUnknown','poll']);
+        $job = array_key_exists('job_revision', $p) ? self::integer($p['job_revision']) : null;
+        $version = array_key_exists('version', $p) ? self::integer($p['version']) : null;
+        if ($job !== null && $version !== null || $job === null && ($action !== 'cancel' || $version === null)) {
+            self::invalid('操作须提供原生任务修订；仅未排队取消准备使用业务版本');
+        }
+        return ['id' => self::integer($p['id'] ?? null),'action' => $action,'job_revision' => $job,
+            'version' => $version,'request_id' => self::requestId($p['request_id'] ?? null)];
+    }
+
     public static function integer(mixed $v, int $min = 1, int $max = PHP_INT_MAX): int
     {
         if (!(is_int($v) || is_string($v) && preg_match('/^[0-9]+$/D', $v)) || filter_var($v, FILTER_VALIDATE_INT) === false || (int) $v < $min || (int) $v > $max) {

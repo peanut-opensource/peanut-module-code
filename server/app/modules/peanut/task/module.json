@@ -3,7 +3,7 @@
   "key": "peanut.task",
   "name": "Task Scheduler",
   "description": "Tenant-owned schedules and trusted background task execution.",
-  "version": "1.0.29",
+  "version": "1.0.30",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-task",
@@ -53,15 +53,15 @@
       "PeanutAdmin\\Modules\\Task\\Contract\\TaskHandler",
       "PeanutAdmin\\Modules\\Task\\Contract\\TaskSubmission",
       "PeanutAdmin\\Modules\\Task\\Contract\\TaskSubmissionProvider",
-      "PeanutAdmin\\Modules\\Task\\Contract\\TrustedJobPublisher"
+      "PeanutAdmin\\Modules\\Task\\Contract\\TrustedJobPublisher",
+      "PeanutAdmin\\Modules\\Task\\Contract\\TaskSourceAuthorizations",
+      "PeanutAdmin\\Modules\\Task\\Contract\\SourceTaskBinding"
     ],
     "events": []
   },
   "tenant": {
     "enableable": true,
     "disable_behavior": "reject_new_operations",
-    "requires": [
-      "peanut.identity"
-    ]
+    "requires": ["peanut.identity"]
   }
 }

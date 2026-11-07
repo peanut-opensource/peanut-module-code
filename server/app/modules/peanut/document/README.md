@@ -257,3 +257,36 @@ installation/upgrade lifecycle. Existing RichText records, tables and migrations
 are preserved. Single/Multi Edition qualification, collaborative Yjs persistence,
 browser editors/viewers and external-storage migration are separate integration
 checks; this module's solo persistence implementation does not prove those paths.
+
+## Revocable fixed sources for native Task consumers
+
+Version 1.0.17 exports `DocumentSourceGrants`. Ordinary Document reads and writes
+remain available without Task; the optional native Task integration requires
+Task 1.0.30 and File 1.0.44.
+
+A consumer first checks source eligibility before creating preparation records or
+reserving quota. It then publishes the real member-authorized native job, stores
+its business-to-job binding and calls `issueTaskSource` in the same Admin database
+transaction with the prepared `VersionSnapshot`, owner and `SourceTaskBinding`.
+An arbitrary job key, copied member context or serialized binding is insufficient.
+
+The durable grant fixes the tenant, original member/session, owner state,
+Document authorization revision, committed version digest, consumer operation,
+handler and actual native job. Its expiry is at most 24 hours. The original issuer
+may revoke after losing source visibility; another member needs current owner
+edit authority. Revocation and request replay records are retained in Document's
+own source-grant table. Membership is checked through Identity's public session
+contracts, without a foreign key or query against Identity's private tables.
+
+Inside the actual native worker, `redeemTaskSource` returns the authoritative fixed
+snapshot only after live Task, member, tenant, owner and source checks. It attaches
+those checks to subsequent execution fences, including the consumer's final
+authorization check before an external effect. File-backed sources also require
+current original-download permission, a claimed immutable Document snapshot and
+matching stored bytes. Text that contains File references currently fails with
+`DOCUMENT_SOURCE_REFERENCES_UNSUPPORTED`; references are never silently omitted.
+
+The first consumer is `custom.ai-assistant`. Its preparation, explicit retry and
+cancellation retain their business request identities and native Task revisions.
+A source grant does not authorize publication, acceptance, payment or a new
+external request after an unknown result.

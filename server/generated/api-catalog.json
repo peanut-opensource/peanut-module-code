@@ -4,7 +4,7 @@
     "inputs": [
         {
             "path": "modules.lock",
-            "sha256": "61d91cc07629d12e6f99a71f04ea98ad7bb50a8a49600e970b19e67a1d16b39e"
+            "sha256": "732d3e3461d9e900127ace97ef99507ac013572d973a8e2ba023f2be82fd203f"
         },
         {
             "path": "release-versions.json",
@@ -40,7 +40,7 @@
         },
         {
             "path": "server/app/modules/custom/ai_assistant/api/metadata/openapi.php",
-            "sha256": "98ab709d34b55e8e1584c65f6e4bb945a53a2b8d265653d8f807cd50a43625e9"
+            "sha256": "66124657b9c74f4c960cda148e12a9daa8ec943ed06ad8ec4afd48fbd65a95e1"
         },
         {
             "path": "server/app/modules/custom/ai_assistant/route/app.php",

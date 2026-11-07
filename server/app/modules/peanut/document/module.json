@@ -3,7 +3,7 @@
   "key": "peanut.document",
   "name": "Business Documents",
   "description": "Business-owned documents, committed immutable versions and controlled File references.",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-document",
@@ -15,7 +15,7 @@
     },
     {
       "module_key": "peanut.file",
-      "version": "^1.0"
+      "version": "^1.0.44"
     },
     {
       "module_key": "peanut.content-tools",
@@ -24,6 +24,12 @@
     {
       "module_key": "peanut.rich-text",
       "version": "^1.0.14"
+    }
+  ],
+  "optional_dependencies": [
+    {
+      "module_key": "peanut.task",
+      "version": "^1.0.30"
     }
   ],
   "lifecycle": {
@@ -46,7 +52,8 @@
       "pa_document_revision",
       "pa_document_file_ref",
       "pa_document_resource_binding",
-      "pa_document_operation"
+      "pa_document_operation",
+      "pa_document_source_grant"
     ]
   },
   "contracts": {
@@ -73,7 +80,8 @@
       "PeanutAdmin\\Modules\\Document\\Contract\\DocumentAcceptedWriteContributor",
       "PeanutAdmin\\Modules\\Document\\Service\\DocumentAcceptedWriteRegistry",
       "PeanutAdmin\\Modules\\Document\\Service\\DocumentAcceptedCommitQuery",
-      "PeanutAdmin\\Modules\\Document\\Service\\DocumentOwnerRegistry"
+      "PeanutAdmin\\Modules\\Document\\Service\\DocumentOwnerRegistry",
+      "PeanutAdmin\\Modules\\Document\\Contract\\DocumentSourceGrants"
     ],
     "events": []
   },

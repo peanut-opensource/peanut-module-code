@@ -47,8 +47,11 @@ final class AiController extends BaseAdminController
     {
         $p = $this->request->get();
         I::only($p, ['consumer_module','page']);
-        return $this->data(app()->make(AiWorkspace::class)->textRoutes($this->tenantAdminContext(),
-            I::consumerModule($p['consumer_module'] ?? null), I::integer($p['page'] ?? 1)));
+        return $this->data(app()->make(AiWorkspace::class)->textRoutes(
+            $this->tenantAdminContext(),
+            I::consumerModule($p['consumer_module'] ?? null),
+            I::integer($p['page'] ?? 1),
+        ));
     }
     public function lookups()
     {
@@ -111,9 +114,8 @@ final class AiController extends BaseAdminController
     }
     public function taskAction()
     {
-        $p = $this->request->post();
-        I::only($p, ['id','action','job_revision','request_id']);
-        return $this->data(app()->make(AiTasks::class)->command($this->tenantAdminContext(), I::integer($p['id'] ?? null), I::choice($p['action'] ?? null, ['cancel','retry','observeUnknown','poll']), I::integer($p['job_revision'] ?? null), I::requestId($p['request_id'] ?? null)));
+        $p = I::taskAction($this->request->post());
+        return $this->data(app()->make(AiTasks::class)->command($this->tenantAdminContext(), $p['id'], $p['action'], $p['job_revision'], $p['request_id'], $p['version']));
     }
     public function manualCandidate()
     {

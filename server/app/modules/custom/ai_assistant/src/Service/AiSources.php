@@ -38,7 +38,7 @@ final readonly class AiSources
     }
     public function verify(TenantContext $c, array $prepared): void
     {
-        $this->documents->verifyPreparedVersion($c, $prepared['snapshot'], $prepared['owner']);
+        $this->grants()->verifyTaskSourceEligibility($c, $prepared['snapshot'], $prepared['owner']);
     }
     public function readable(TenantContext $c, array $source): void
     {
@@ -69,10 +69,77 @@ final readonly class AiSources
             }
         }
     }
-    /** No public current-System source authorization grant exists in the installed Document API. */
-    public function authorizeExternalSend(): never
+    /** Prepare a fresh public proof outside the caller's submission/retry transaction. */
+    public function prepareAuthorization(TenantContext $c, array $source): array
     {
-        throw BusinessException::conflict('SOURCE_AUTHORIZATION_BRIDGE_REQUIRED', '排队后再次授权源Document固定版本的公开System合同尚缺失；本任务尚未向提供方发送，不产生已调用或已计费用量');
+        $detail = $this->documents->detail($c, $source['document_id']);
+        if (AiAccess::hash($detail['owner']) !== AiAccess::hash($source['owner'])) {
+            throw BusinessException::conflict('AI_SOURCE_OWNER_CHANGED', '来源归属已改变');
+        }
+        $o = $detail['owner'];
+        $snapshot = $this->documents->versionSnapshot($c, $source['document_id'], $source['revision_id']);
+        $this->assertFixedSource($source, $snapshot);
+        return ['snapshot' => $snapshot, 'owner' => new DocumentOwnerReference($o['module_key'], $o['object_type'], $o['object_id'], $o['slot'])];
+    }
+
+    public function issueAuthorization(TenantContext $c, array $prepared, string $jobKey, int $expiresAt, string $requestId): array
+    {
+        return $this->grants()->issueTaskSource($c, $prepared['snapshot'], $prepared['owner'], self::taskBinding($jobKey), $expiresAt, $requestId);
+    }
+
+    public function revokeAuthorization(TenantContext $c, array $receipt): void
+    {
+        $this->grants()->revokeTaskSource($c, $receipt['grant_key']);
+    }
+
+    /** Redeem through the actual native worker and return only the revalidated fixed source. */
+    public function authorizeExternalSend(\PeanutAdmin\Modules\Task\Contract\JobExecution $execution, ?array $receipt, array $source, string $audioPath): array
+    {
+        if (!is_array($receipt) || !is_string($receipt['grant_key'] ?? null)) {
+            throw BusinessException::conflict('AI_SOURCE_GRANT_REQUIRED', '该任务没有固定来源授权，请由原提交成员重新授权后重试');
+        }
+        $snapshot = $this->grants()->redeemTaskSource($execution, $receipt['grant_key'], self::taskBinding($execution->jobKey));
+        $this->assertFixedSource($source, $snapshot);
+        if ($snapshot->contentKind === 'file_resource') {
+            $check = static function () use ($snapshot, $audioPath): void {
+                $size = is_file($audioPath) ? filesize($audioPath) : false;
+                if (!is_int($size) || $size < 1 || $size > D::INPUT_FILE_LIMIT || hash_file('sha256', $audioPath) !== $snapshot->fileSha256) {
+                    throw BusinessException::conflict('AI_SOURCE_BYTES_INVALID', '准备后的音视频字节已改变或过期');
+                }
+            };
+            $check();
+            $execution->addAuthorizationCheck($check);
+        }
+        $source['structured_content'] = $snapshot->structuredContent;
+        $source['text'] = $snapshot->structuredContent === null ? '' : self::plainText($snapshot->structuredContent['content']);
+        $execution->assertLeaseOwned();
+        return $source;
+    }
+
+    private function assertFixedSource(array $source, \PeanutAdmin\Modules\Document\Contract\VersionSnapshot $snapshot): void
+    {
+        $expected = ['document_id' => $snapshot->documentId, 'revision_id' => $snapshot->revisionId, 'digest' => $snapshot->digest,
+            'content_kind' => $snapshot->contentKind, 'structured_content' => $snapshot->structuredContent,
+            'text' => $snapshot->structuredContent === null ? '' : self::plainText($snapshot->structuredContent['content']),
+            'file_key' => $snapshot->fileKey, 'sha256' => $snapshot->fileSha256, 'verified_mime_type' => $snapshot->verifiedMimeType];
+        foreach ($expected as $key => $value) {
+            if (!array_key_exists($key, $source) || AiAccess::hash($source[$key]) !== AiAccess::hash($value)) {
+                throw BusinessException::conflict('AI_SOURCE_FIXED_VERSION_CHANGED', '任务来源与真实固定文档版本不一致');
+            }
+        }
+    }
+
+    private function grants(): \PeanutAdmin\Modules\Document\Contract\DocumentSourceGrants
+    {
+        if (!$this->documents instanceof \PeanutAdmin\Modules\Document\Contract\DocumentSourceGrants) {
+            throw BusinessException::conflict('SOURCE_AUTHORIZATION_BRIDGE_REQUIRED', '当前文档模块尚未提供后台固定来源授权');
+        }
+        return $this->documents;
+    }
+
+    private static function taskBinding(string $jobKey): \PeanutAdmin\Modules\Task\Contract\SourceTaskBinding
+    {
+        return new \PeanutAdmin\Modules\Task\Contract\SourceTaskBinding($jobKey, 'custom.ai-assistant', 'custom.ai-assistant.task', 'use', 'custom.ai-assistant.generate');
     }
     private static function plainText(array $node): string
     {

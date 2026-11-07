@@ -3,7 +3,7 @@
   "key": "custom.ai-assistant",
   "name": "AI制作助手",
   "description": "受控连接与能力路由、原生任务、固定候选、用量和人工采纳",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "custom/custom-ai-assistant",
@@ -19,15 +19,15 @@
     },
     {
       "module_key": "peanut.task",
-      "version": "^1.0.27"
+      "version": "^1.0.30"
     },
     {
       "module_key": "peanut.document",
-      "version": "^1.0.14"
+      "version": "^1.0.17"
     },
     {
       "module_key": "peanut.file",
-      "version": "^1.0.0"
+      "version": "^1.0.44"
     }
   ],
   "lifecycle": {
@@ -54,7 +54,10 @@
     ]
   },
   "contracts": {
-    "exports": ["Custom\\Modules\\AiAssistant\\Contract\\AiCandidateQueries", "Custom\\Modules\\AiAssistant\\Contract\\AiTextGeneration"],
+    "exports": [
+      "Custom\\Modules\\AiAssistant\\Contract\\AiCandidateQueries",
+      "Custom\\Modules\\AiAssistant\\Contract\\AiTextGeneration"
+    ],
     "events": []
   },
   "tenant": {

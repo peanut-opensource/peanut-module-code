@@ -34,8 +34,10 @@ use app\common\execution\SystemExecutionMetadata;
 use PeanutAdmin\DataPermission\Catalog\ResourceOperationCatalog;
 use PeanutAdmin\Modules\Identity\Module\TenantEntitlementService;
 
-final readonly class ThinkPhpTaskJobRuntime implements TaskJobRuntime
+final readonly class ThinkPhpTaskJobRuntime implements TaskJobRuntime, \PeanutAdmin\Modules\Task\Contract\TaskSourceAuthorizations
 {
+    /** Only LocalWorker-issued executions are registered, for the exact running System root. */
+    private \WeakMap $sourceExecutions;
     /** @param list<TaskWorkerDefinition> $workerDefinitions */
     public function __construct(
         private TaskJobStore $repository,
@@ -52,6 +54,7 @@ final readonly class ThinkPhpTaskJobRuntime implements TaskJobRuntime
         private ResourceOperationCatalog $operations,
         private TenantEntitlementService $entitlements,
     ) {
+        $this->sourceExecutions = new \WeakMap();
         if (strlen($this->signingKey) < 32) {
             throw new \runtimeException('ASYNC_SIGNING_KEY_INVALID');
         }
@@ -112,18 +115,27 @@ final readonly class ThinkPhpTaskJobRuntime implements TaskJobRuntime
             $this->repository,
             new TaskHandlerRegistry($handlers),
             new JobHandlerAdapter($this->envelopes(), new TaskAuthorizationRouter($definitions)),
-            function (AuthorizedOperationContext|\PeanutAdmin\Modules\Task\Job\Execution\NegativeFactJobEnvelope $context, JobClaim $claim, Closure $handle): void {
+            function (AuthorizedOperationContext|\PeanutAdmin\Modules\Task\Job\Execution\NegativeFactJobEnvelope $context, JobClaim $claim, Closure $handle, ?\PeanutAdmin\Modules\Task\Contract\JobExecution $execution = null): void {
                 $negative = $context instanceof \PeanutAdmin\Modules\Task\Job\Execution\NegativeFactJobEnvelope;
                 if (!$this->executionContexts->isEmpty() || ($negative ? $context->tenantId : $context->tenantContext->tenantId) !== $claim->tenantId) {
                     throw new \DomainException('TASK_EXECUTION_ROOT_REQUIRED');
                 }
-                $this->executionContexts->run(
-                    new SystemExecutionContext(
-                        new TenantSystemContext($claim->tenantId, 'task-worker', $negative ? 'identity.revocation.propagate' : 'async.worker', $claim->jobKey),
-                        new SystemExecutionMetadata($claim->jobKey, $claim->attemptNumber, $claim->handlerKey),
-                    ),
-                    $handle,
+                $root = new SystemExecutionContext(
+                    new TenantSystemContext($claim->tenantId, 'task-worker', $negative ? 'identity.revocation.propagate' : 'async.worker', $claim->jobKey),
+                    new SystemExecutionMetadata($claim->jobKey, $claim->attemptNumber, $claim->handlerKey),
                 );
+                $this->executionContexts->run($root, function () use ($root, $claim, $handle, $execution, $negative): void {
+                    if (!$negative && $execution !== null) {
+                        $this->sourceExecutions[$execution] = ['root' => $root, 'claim' => $claim];
+                    }
+                    try {
+                        $handle();
+                    } finally {
+                        if ($execution !== null) {
+                            unset($this->sourceExecutions[$execution]);
+                        }
+                    }
+                });
             },
             negativeSigningKey: $this->signingKey,
             jobKey: $jobKey,
@@ -135,6 +147,83 @@ final readonly class ThinkPhpTaskJobRuntime implements TaskJobRuntime
             ++$processed;
         }
         return $processed;
+    }
+
+
+    public function assertSourceSubmission(\PeanutAdmin\Kernel\Auth\TenantContext $issuer, \PeanutAdmin\Modules\Task\Contract\SourceTaskBinding $binding): void
+    {
+        $actor = $this->currentExecution->tenantAdmin();
+        if ($actor->tenantId !== $issuer->tenantId || $actor->accountId !== $issuer->accountId || $actor->memberId !== $issuer->memberId
+            || $actor->clientKey !== $issuer->clientKey || !hash_equals($actor->sessionKey, $issuer->sessionKey)
+            || !\think\facade\Db::connect()->getPdo()->inTransaction()) {
+            throw new \DomainException('TASK_SOURCE_SUBMISSION_DENIED');
+        }
+        $this->assertSourceDefinition($binding);
+        $row = $this->repository->sourceSubmission($issuer->tenantId, $binding->jobKey);
+        if ($row['handler_key'] !== $binding->handlerKey || (int) $row['created_by_member_id'] !== $issuer->memberId) {
+            throw new \DomainException('TASK_SOURCE_SUBMISSION_DENIED');
+        }
+        $adapter = new JobHandlerAdapter($this->envelopes(), new TaskAuthorizationRouter($this->workerDefinitions));
+        $adapter->handle($row['trusted_envelope'], function (AuthorizedOperationContext $context, \PeanutAdmin\Kernel\Async\VerifiedJobEnvelope $envelope) use ($issuer, $binding): void {
+            if ($envelope->tenantId !== $issuer->tenantId || $envelope->accountId !== $issuer->accountId || $envelope->memberId !== $issuer->memberId
+                || $envelope->operationId !== $binding->jobKey || $envelope->resourceKey !== $binding->resourceKey || $envelope->operation !== $binding->operation
+                || $context->tenantContext->tenantId !== $issuer->tenantId || $context->tenantContext->accountId !== $issuer->accountId
+                || $context->tenantContext->memberId !== $issuer->memberId || $context->tenantContext->authorizationRevision !== $issuer->authorizationRevision
+                || $context->tenantContext->clientKey !== $issuer->clientKey || !hash_equals($context->tenantContext->sessionKey, $issuer->sessionKey)
+                || $context->resourceKey !== $binding->resourceKey || $context->operation !== $binding->operation
+                || self::sourceTargets($context->targets) !== self::sourceTargets($envelope->requestedTargets)) {
+                throw new \DomainException('TASK_SOURCE_SUBMISSION_DENIED');
+            }
+        });
+    }
+
+    public function sourceActor(\PeanutAdmin\Modules\Task\Contract\JobExecution $execution, \PeanutAdmin\Modules\Task\Contract\SourceTaskBinding $binding): \PeanutAdmin\Kernel\Auth\TenantContext
+    {
+        $active = $this->sourceExecutions[$execution] ?? null;
+        $root = $this->executionContexts->current();
+        if ($active === null || $active['root'] !== $root || !$root instanceof SystemExecutionContext
+            || $root->system->actorKey !== 'task-worker' || $root->system->operation !== 'async.worker'
+            || $root->metadata->jobKey !== $execution->jobKey || $root->system->operationId !== $execution->jobKey
+            || $root->metadata->attemptNumber !== $execution->attemptNumber || $root->tenantId() !== $execution->tenantId
+            || $root->metadata->handlerKey !== $binding->handlerKey || $execution->jobKey !== $binding->jobKey) {
+            throw new \DomainException('TASK_SOURCE_EXECUTION_DENIED');
+        }
+        $this->assertSourceDefinition($binding);
+        $claim = $active['claim'];
+        $this->repository->assertExecutable($claim);
+        $fence = new \PeanutAdmin\Modules\Task\Job\Execution\JobAuthorizationFence(
+            new JobHandlerAdapter($this->envelopes(), new TaskAuthorizationRouter($this->workerDefinitions)),
+            $claim,
+        );
+        // Do not recurse through JobExecution's additional source checks: this IS its native fence.
+        return $fence->handle(function (AuthorizedOperationContext $context) use ($binding): \PeanutAdmin\Kernel\Auth\TenantContext {
+            if ($context->resourceKey !== $binding->resourceKey || $context->operation !== $binding->operation) {
+                throw new \DomainException('TASK_SOURCE_EXECUTION_DENIED');
+            }
+            return $context->tenantContext;
+        });
+    }
+
+    private function assertSourceDefinition(\PeanutAdmin\Modules\Task\Contract\SourceTaskBinding $binding): void
+    {
+        foreach ($this->workerDefinitions as $definition) {
+            if ($definition->ownerModuleKey() === $binding->moduleKey && $definition->resourceKey() === $binding->resourceKey
+                && $definition->operation() === $binding->operation) {
+                foreach ($definition->handlers() as $handler) {
+                    if ($handler->key() === $binding->handlerKey) {
+                        return;
+                    }
+                }
+            }
+        }
+        throw new \DomainException('TASK_SOURCE_CONSUMER_DENIED');
+    }
+
+    private static function sourceTargets(array $targets): array
+    {
+        $values = array_map(static fn($target): array => $target->toArray(), $targets);
+        usort($values, static fn(array $left, array $right): int => strcmp(json_encode($left, JSON_THROW_ON_ERROR), json_encode($right, JSON_THROW_ON_ERROR)));
+        return $values;
     }
 
     private function envelopes(): TrustedEnvelopeCodec

@@ -49,6 +49,20 @@ final readonly class AiExecution
         $source = AiAccess::decode($r->source_snapshot);
         $this->configuration->recheck($c, $fixed);
         $directory = $this->private->directory($c->tenantId, $id);
+        try {
+            $source = $this->sources->authorizeExternalSend($execution, $d['source_authorization'] ?? null, $source, $directory . '/input-audio.bin');
+        } catch (\Throwable $error) {
+            // Only a persisted pre-send state can release quota. A pending/unknown provider attempt is never downgraded.
+            if (in_array($d['stage'], ['prepared','blocked_source_authorization'], true) && !isset($d['attempt_started_at']) && !isset($d['provider_id'])) {
+                try {
+                    $this->recordSourceBlock($execution, $id, $error instanceof BusinessException ? $error->errorCode : 'AI_SOURCE_AUTHORIZATION_DENIED');
+                } catch (\Throwable) {
+                    // If native identity/lease also vanished, keep the original not_sent fact and reserved quota for an authorized retry/cancel.
+                    // No source content or provider action is permitted by this bookkeeping path.
+                }
+            }
+            throw $error;
+        }
         if ($d['stage'] === 'candidate') {
             $meta = $d['candidate'];
             $actual = $this->verifier->verify($directory . '/candidate.bin', $meta['result_type']);
@@ -77,23 +91,7 @@ final readonly class AiExecution
                 }, 'unknown');
                 throw new \RuntimeException('AI_PROVIDER_OUTCOME_UNKNOWN');
             }
-            if ($providerId === null) {
-                try {
-                    $this->sources->authorizeExternalSend();
-                } catch (BusinessException $error) {
-                    if ($error->errorCode !== 'SOURCE_AUTHORIZATION_BRIDGE_REQUIRED') {
-                        throw $error;
-                    }
-                    $this->update($c, $execution, $id, function ($r, array &$data) use ($c): void {
-                        $this->quota->settle($c, $r, $data, 'not_sent');
-                        $data['stage'] = 'blocked_source_authorization';
-                        $data['execution_block'] = 'SOURCE_AUTHORIZATION_BRIDGE_REQUIRED';
-                        $data['usage'] = ['state' => 'not_sent','source' => 'blocked_before_provider_attempt','billing_amount' => null];
-                    }, 'blocked_source_authorization');
-                    throw $error;
-                }
-            }
-            // The installed public source fence above deliberately fails closed before this boundary.
+            // Source grant checks now participate in the native checkpoint immediately before the provider boundary.
             $key = $this->configuration->revealCredential($c, $fixed);
             $safeId = 'ai_' . $id . '_' . substr(hash('sha256', $execution->jobKey . ':' . $r->request_hash), 0, 32);
             $request = $this->protocol->request($fixed, $source, $source['instruction'], $key, $safeId, $rawPath, $directory . '/input-audio.bin', $providerId);
@@ -185,6 +183,39 @@ final readonly class AiExecution
         }, 'awaiting_collection');
         // Native Task owns its final fence/succeeded. No File, visible text, adoption or approval occurs here.
     }
+
+    /** Release only demonstrably unstarted work, using the real native task fence without borrowing revoked source authority. */
+    private function recordSourceBlock(JobExecution $execution, int $id, string $code): void
+    {
+        $tasks = app()->make(\PeanutAdmin\Modules\Task\Contract\TaskSourceAuthorizations::class);
+        $binding = new \PeanutAdmin\Modules\Task\Contract\SourceTaskBinding($execution->jobKey, 'custom.ai-assistant', 'custom.ai-assistant.task', 'use', 'custom.ai-assistant.generate');
+        $c = $tasks->sourceActor($execution, $binding);
+        Db::transaction(function () use ($tasks, $binding, $c, $execution, $id, $code): void {
+            $r = $this->access->find($c, 'task', $id, 'use', true);
+            $d = AiAccess::data($r);
+            if ($r->job_key !== $execution->jobKey || ($execution->payload['task_id'] ?? null) !== $id
+                || !in_array($d['stage'], ['prepared','blocked_source_authorization'], true)
+                || isset($d['attempt_started_at']) || isset($d['provider_id'])) {
+                throw new \DomainException('AI_SOURCE_BLOCK_STATE_CHANGED');
+            }
+            $this->quota->settle($c, $r, $d, 'not_sent');
+            $d['stage'] = 'blocked_source_authorization';
+            $d['execution_block'] = $code;
+            $d['usage'] = ['state' => 'not_sent','source' => 'blocked_before_provider_attempt','billing_amount' => null];
+            $this->access->update($r, $d, 'blocked_source_authorization');
+            $this->access->event(
+                $c,
+                'task',
+                $r,
+                'execution',
+                'source-block:' . hash('sha256', $execution->jobKey . ':' . $execution->attemptNumber),
+                [$execution->jobKey,$code],
+                ['stage' => $d['stage'],'usage' => $d['usage'],'execution_block' => $code],
+            );
+            $tasks->sourceActor($execution, $binding);
+        });
+    }
+
     public function verifyManual(AuthorizedOperationContext $context, JobExecution $execution, int $id): void
     {
         $c = $context->tenantContext;

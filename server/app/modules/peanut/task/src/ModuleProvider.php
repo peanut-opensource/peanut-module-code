@@ -89,6 +89,7 @@ final class ModuleProvider implements ModuleProviderContract
                 $app->make(ResourceOperationCatalog::class),
                 $app->make(TenantEntitlementService::class),
             ),
+            \PeanutAdmin\Modules\Task\Contract\TaskSourceAuthorizations::class => fn(App $app): \PeanutAdmin\Modules\Task\Contract\TaskSourceAuthorizations => $app->make(TaskJobRuntime::class),
             TaskBootstrapCommands::class => TaskBootstrapService::class,
             TaskDiagnosticQuery::class => TaskDiagnosticService::class,
             TaskScheduler::class => TaskSchedulerService::class,

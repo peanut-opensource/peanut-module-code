@@ -164,6 +164,36 @@ final readonly class FileAuthorizationService
         });
     }
 
+
+    /** Current independent original-download right under the existing System root; never creates an Admin root. */
+    public function authorizeBackgroundDocumentSource(TenantContext $context, array $object): void
+    {
+        $root = $this->execution->current();
+        if (!$root instanceof \app\common\execution\SystemExecutionContext || $root->tenantId() !== $context->tenantId
+            || $root->system->actorKey !== 'task-worker' || $root->operation() !== 'async.worker'
+            || $root->metadata->jobKey !== $root->system->operationId || $root->metadata->handlerKey === null
+            || $root->metadata->attemptNumber === null || $root->metadata->attemptNumber < 1
+            || $context->tenantId !== (int) $object['tenant_id'] || $object['status'] !== 'ready') {
+            throw BusinessException::forbidden('FILE_SOURCE_CONTEXT_DENIED', '固定来源校验需要当前后台任务上下文');
+        }
+        $current = $this->sessions->revalidateSession(
+            $context->tenantId,
+            $context->accountId,
+            $context->memberId,
+            $context->sessionKey,
+            $context->clientKey,
+            $context->requestId,
+        );
+        if ($current->authorizationRevision !== $context->authorizationRevision
+            || $current->tenantAuthorizationRevision !== $context->tenantAuthorizationRevision) {
+            throw BusinessException::forbidden('FILE_AUTHORIZATION_STALE', '资源授权已改变');
+        }
+        $guard = new ModuleGuard($this->modules);
+        $guard->assertDeployment('peanut.file');
+        $guard->assertTenant($current->tenantId, 'peanut.file', new DateTimeImmutable('now', new DateTimeZone('UTC')));
+        $this->requireOperationPermission($current, $this->authorization->principal($current), 'download_original');
+    }
+
     /** Restores only a verified durable grant's identity through Identity's live validation. */
     public function grantContext(array $subject): TenantContext
     {

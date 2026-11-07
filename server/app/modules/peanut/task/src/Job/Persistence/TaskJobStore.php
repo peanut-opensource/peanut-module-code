@@ -131,6 +131,20 @@ final class TaskJobStore
         return $this->map($row, $tenantId);
     }
 
+
+    /** Task-internal signed evidence for a source grant; never export private job rows to consumers. */
+    public function sourceSubmission(int $tenantId, string $jobKey): array
+    {
+        $this->assertStorageMode();
+        $row = $this->rowByJobKey($tenantId, $jobKey, true);
+        if ($row === null || $row['authorization_profile'] !== 'member' || $row['status'] !== 'queued') {
+            throw TaskJobException::denied();
+        }
+        $this->assertPayloadHash($row, $this->payload($row['payload_json']));
+        return ['handler_key' => $row['handler_key'], 'created_by_member_id' => $row['created_by_member_id'],
+            'trusted_envelope' => $row['trusted_envelope']];
+    }
+
     public function terminalForRecovery(int $tenantId, string $jobKey, int $expectedRevision): JobRecord
     {
         $this->assertStorageMode();

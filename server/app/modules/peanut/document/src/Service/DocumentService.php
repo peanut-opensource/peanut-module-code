@@ -42,7 +42,7 @@ use PeanutAdmin\Modules\ContentTools\Service\ContentCapabilitiesService;
 use think\facade\Db;
 
 /** One native owner/Document transaction per mutation; versions and command receipts are append-only. */
-final readonly class DocumentService implements DocumentCommands, DocumentQueries, DocumentCollaborativeWrites, FileDocumentReferencePolicy
+final readonly class DocumentService implements DocumentCommands, DocumentQueries, DocumentCollaborativeWrites, FileDocumentReferencePolicy, \PeanutAdmin\Modules\Document\Contract\DocumentSourceGrants
 {
     private \WeakMap $preparedVersions;
     private \WeakMap $acceptedTransfers;
@@ -921,6 +921,207 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
         });
     }
 
+
+    public function verifyTaskSourceEligibility(TenantContext $context, VersionSnapshot $snapshot, DocumentOwnerReference $owner): void
+    {
+        $this->sourceTasks($context);
+        $this->verifyPreparedVersion($context, $snapshot, $owner);
+        $this->assertSourceKind($snapshot);
+        if ($snapshot->contentKind === 'file_resource') {
+            $this->files->requireOriginalDownloadPermission($context->tenantId);
+        }
+    }
+
+    public function issueTaskSource(
+        TenantContext $context,
+        VersionSnapshot $snapshot,
+        DocumentOwnerReference $owner,
+        \PeanutAdmin\Modules\Task\Contract\SourceTaskBinding $binding,
+        int $expiresAt,
+        string $requestId,
+    ): array {
+        if ($expiresAt <= time() || $expiresAt > time() + 86400 || strlen($requestId) < 8 || strlen($requestId) > 200) {
+            throw BusinessException::invalid('DOCUMENT_SOURCE_GRANT_INPUT_INVALID', '固定来源授权须提供有效请求号及一天以内的期限');
+        }
+        $tasks = $this->sourceTasks($context);
+        $tasks->assertSourceSubmission($context, $binding);
+        $this->verifyTaskSourceEligibility($context, $snapshot, $owner);
+        return $this->authorization->run($context, function (TenantContext $current) use ($snapshot, $owner, $binding, $expiresAt, $requestId): array {
+            $document = $this->authorization->document($current, $snapshot->documentId, 'view', true);
+            $ownerState = $this->authorization->owner($current, $owner, 'view', true);
+            $ownerRevision = $this->owners->requirePolicy($owner)->stateRevision($ownerState);
+            $ownerData = self::sourceOwner($owner);
+            $payload = [$current->tenantId, $current->accountId, $current->memberId, $current->sessionKey, $current->clientKey,
+                $current->authorizationRevision, $current->tenantAuthorizationRevision, $ownerData, $ownerRevision,
+                (int) $document->auth_revision, self::snapshotHash($snapshot), $binding->toArray(), $expiresAt];
+            $requestHash = hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR));
+            $requestKey = hash('sha256', $requestId);
+            $existing = \PeanutAdmin\Modules\Document\Model\DocumentSourceGrant::where('member_id', $current->memberId)
+                ->where('request_key', $requestKey)->lock(true)->find();
+            if ($existing !== null) {
+                if (!hash_equals((string) $existing->request_sha256, $requestHash)) {
+                    throw BusinessException::conflict('DOCUMENT_SOURCE_REQUEST_CONFLICT', '同号固定来源授权的身份、来源、任务或期限不同');
+                }
+                $this->assertSourceGrantLive($existing);
+                return self::sourceReceipt($existing);
+            }
+            $grant = new \PeanutAdmin\Modules\Document\Model\DocumentSourceGrant();
+            $grant->save([
+                'tenant_id' => $current->tenantId, 'grant_key' => 'dsrc_' . bin2hex(random_bytes(16)),
+                'document_id' => $snapshot->documentId, 'revision_id' => $snapshot->revisionId,
+                'owner_json' => json_encode($ownerData, JSON_THROW_ON_ERROR), 'owner_revision' => $ownerRevision,
+                'document_auth_revision' => (int) $document->auth_revision, 'snapshot_sha256' => self::snapshotHash($snapshot),
+                'version_digest' => $snapshot->digest, 'account_id' => $current->accountId, 'member_id' => $current->memberId,
+                'session_key' => $current->sessionKey, 'client_key' => $current->clientKey,
+                'authorization_revision' => $current->authorizationRevision, 'tenant_authorization_revision' => $current->tenantAuthorizationRevision,
+                'binding_json' => json_encode($binding->toArray(), JSON_THROW_ON_ERROR), 'expires_at' => $expiresAt,
+                'revoked_at' => null, 'issued_at' => time(), 'request_key' => $requestKey, 'request_sha256' => $requestHash,
+            ]);
+            return self::sourceReceipt($grant);
+        });
+    }
+
+    public function redeemTaskSource(
+        \PeanutAdmin\Modules\Task\Contract\JobExecution $execution,
+        string $grantKey,
+        \PeanutAdmin\Modules\Task\Contract\SourceTaskBinding $binding,
+    ): VersionSnapshot {
+        $snapshot = $this->verifyTaskSource($execution, $grantKey, $binding);
+        $execution->addAuthorizationCheck(function () use ($execution, $grantKey, $binding): void {
+            $this->verifyTaskSource($execution, $grantKey, $binding);
+        });
+        $execution->assertLeaseOwned();
+        return $snapshot;
+    }
+
+    private function verifyTaskSource(
+        \PeanutAdmin\Modules\Task\Contract\JobExecution $execution,
+        string $grantKey,
+        \PeanutAdmin\Modules\Task\Contract\SourceTaskBinding $binding,
+    ): VersionSnapshot {
+        if (preg_match('/^dsrc_[0-9a-f]{32}$/D', $grantKey) !== 1) {
+            throw BusinessException::forbidden('DOCUMENT_SOURCE_GRANT_DENIED', '固定来源授权无效');
+        }
+        // The runtime's object registry, signed native authorization and lease are all checked here.
+        $tasks = app()->make(\PeanutAdmin\Modules\Task\Contract\TaskSourceAuthorizations::class);
+        $current = $tasks->sourceActor($execution, $binding);
+        $this->sourceTasks($current);
+        return Db::transaction(function () use ($tasks, $current, $execution, $grantKey, $binding): VersionSnapshot {
+            $grant = \PeanutAdmin\Modules\Document\Model\DocumentSourceGrant::where('grant_key', $grantKey)->find();
+            if ($grant === null || (int) $grant->tenant_id !== $current->tenantId
+                || RichTextProjection::canonical(self::json($grant->binding_json)) !== RichTextProjection::canonical($binding->toArray()) || (int) $grant->account_id !== $current->accountId
+                || (int) $grant->member_id !== $current->memberId || $grant->client_key !== $current->clientKey
+                || !hash_equals((string) $grant->session_key, $current->sessionKey)
+                || (int) $grant->authorization_revision !== $current->authorizationRevision
+                || (int) $grant->tenant_authorization_revision !== $current->tenantAuthorizationRevision) {
+                throw BusinessException::forbidden('DOCUMENT_SOURCE_GRANT_DENIED', '来源授权与当前租户、成员或任务不一致');
+            }
+            $this->assertSourceGrantLive($grant);
+            $ownerData = self::json($grant->owner_json);
+            $owner = new DocumentOwnerReference($ownerData['module_key'], $ownerData['object_type'], $ownerData['object_id'], $ownerData['slot']);
+            $this->authorization->requireModule($current, 'peanut.document');
+            $this->authorization->requireModule($current, $binding->moduleKey);
+            // Owner implementations that lack a real System-compatible public policy remain fail-closed here.
+            $document = $this->authorization->document($current, (int) $grant->document_id, 'view', true);
+            $ownerState = $this->authorization->owner($current, $owner, 'view', true);
+            if (DocumentAuthorizationService::reference($document) != $owner || (int) $document->auth_revision !== (int) $grant->document_auth_revision
+                || $this->owners->requirePolicy($owner)->stateRevision($ownerState) !== $grant->owner_revision) {
+                throw BusinessException::conflict('DOCUMENT_SOURCE_OWNER_CHANGED', '固定来源业务归属或授权状态已改变');
+            }
+            $revision = DocumentRevision::where('document_id', $document->id)->where('id', $grant->revision_id)->lock(true)->find();
+            if ($revision === null) {
+                throw BusinessException::conflict('DOCUMENT_SOURCE_VERSION_CHANGED', '固定来源版本已不存在');
+            }
+            $snapshot = $this->snapshotFromRevision($current, $document, $revision);
+            if (!hash_equals((string) $grant->snapshot_sha256, self::snapshotHash($snapshot))
+                || !hash_equals((string) $grant->version_digest, $snapshot->digest)) {
+                throw BusinessException::conflict('DOCUMENT_SOURCE_VERSION_CHANGED', '固定来源版本与签发摘要不同');
+            }
+            $this->assertSourceKind($snapshot);
+            if ($snapshot->contentKind === 'file_resource') {
+                app()->make(\PeanutAdmin\Modules\File\Contract\FileDocumentSourceChecks::class)->assertBackgroundDocumentSnapshotReadable(
+                    $current,
+                    $snapshot->documentId,
+                    $snapshot->fileKey,
+                    $snapshot->fileSha256,
+                    $snapshot->verifiedMimeType,
+                );
+            }
+            // Owner/Document locks precede the grant lock, as at issuance. Recheck revocation at this boundary.
+            $locked = \PeanutAdmin\Modules\Document\Model\DocumentSourceGrant::where('grant_key', $grantKey)->lock(true)->find();
+            if ($locked === null || $locked->toArray() !== $grant->toArray()) {
+                throw BusinessException::forbidden('DOCUMENT_SOURCE_GRANT_CHANGED', '来源授权已改变');
+            }
+            $this->assertSourceGrantLive($locked);
+            $fresh = $tasks->sourceActor($execution, $binding);
+            if ($fresh->authorizationRevision !== $current->authorizationRevision
+                || $fresh->tenantAuthorizationRevision !== $current->tenantAuthorizationRevision
+                || $fresh->accountId !== $current->accountId || $fresh->memberId !== $current->memberId
+                || $fresh->clientKey !== $current->clientKey || !hash_equals($fresh->sessionKey, $current->sessionKey)) {
+                throw BusinessException::forbidden('DOCUMENT_SOURCE_GRANT_CHANGED', '来源成员授权在消费前已改变');
+            }
+            return $snapshot;
+        });
+    }
+
+    public function revokeTaskSource(TenantContext $context, string $grantKey): void
+    {
+        $this->authorization->run($context, function (TenantContext $current) use ($grantKey): void {
+            Db::transaction(function () use ($current, $grantKey): void {
+                $grant = \PeanutAdmin\Modules\Document\Model\DocumentSourceGrant::where('grant_key', $grantKey)->find();
+                if ($grant === null || (int) $grant->tenant_id !== $current->tenantId) {
+                    throw BusinessException::notFound('DOCUMENT_SOURCE_GRANT_NOT_FOUND', '固定来源授权不存在');
+                }
+                if ((int) $grant->member_id !== $current->memberId || (int) $grant->account_id !== $current->accountId) {
+                    $this->authorization->document($current, (int) $grant->document_id, 'edit', true);
+                }
+                $grant = \PeanutAdmin\Modules\Document\Model\DocumentSourceGrant::where('grant_key', $grantKey)->lock(true)->find();
+                if ($grant->revoked_at === null) {
+                    $grant->save(['revoked_at' => time()]);
+                }
+            });
+        });
+    }
+
+    private function sourceTasks(TenantContext $context): \PeanutAdmin\Modules\Task\Contract\TaskSourceAuthorizations
+    {
+        try {
+            $this->authorization->requireModule($context, 'peanut.task');
+        } catch (\PeanutAdmin\Kernel\Module\ModuleException) {
+            throw BusinessException::conflict('DOCUMENT_SOURCE_TASK_UNAVAILABLE', '后台来源授权需要已启用的原生任务模块');
+        }
+        return app()->make(\PeanutAdmin\Modules\Task\Contract\TaskSourceAuthorizations::class);
+    }
+
+    private function assertSourceKind(VersionSnapshot $snapshot): void
+    {
+        if ($snapshot->contentKind === 'rich_text' && $snapshot->references !== []) {
+            throw BusinessException::conflict('DOCUMENT_SOURCE_REFERENCES_UNSUPPORTED', '含资源引用的正文须等待逐引用后台授权接入，不能直接交给后台消费');
+        }
+    }
+
+    private function assertSourceGrantLive(\PeanutAdmin\Modules\Document\Model\DocumentSourceGrant $grant): void
+    {
+        if ($grant->revoked_at !== null) {
+            throw BusinessException::forbidden('DOCUMENT_SOURCE_GRANT_REVOKED', '固定来源授权已撤销');
+        }
+        if ((int) $grant->expires_at <= time()) {
+            throw BusinessException::forbidden('DOCUMENT_SOURCE_GRANT_EXPIRED', '固定来源授权已过期');
+        }
+    }
+
+    private static function sourceOwner(DocumentOwnerReference $owner): array
+    {
+        return ['module_key' => $owner->moduleKey, 'object_type' => $owner->objectType, 'object_id' => $owner->objectId, 'slot' => $owner->slot];
+    }
+
+    private static function sourceReceipt(\PeanutAdmin\Modules\Document\Model\DocumentSourceGrant $grant): array
+    {
+        return ['grant_key' => (string) $grant->grant_key, 'expires_at' => (int) $grant->expires_at,
+            'document_id' => (int) $grant->document_id, 'revision_id' => (int) $grant->revision_id,
+            'digest' => (string) $grant->version_digest, 'task' => self::json($grant->binding_json)];
+    }
+
     private function snapshotFromRevision(TenantContext|int $context, Document $document, DocumentRevision $revision): VersionSnapshot
     {
         $projection = $revision->content_snapshot_json === null ? null : RichTextProjection::fromStructured(self::json($revision->content_snapshot_json));
@@ -1059,8 +1260,13 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
 
     public function authorizeCollaboration(TenantContext $context, int $documentId, string $mode, bool $enable = false): array
     {
-        return $this->withAuthorizedCollaboration($context, $documentId, $mode, $enable,
-            static fn(Document $document, DocumentState $state, array $authorization): array => $authorization);
+        return $this->withAuthorizedCollaboration(
+            $context,
+            $documentId,
+            $mode,
+            $enable,
+            static fn(Document $document, DocumentState $state, array $authorization): array => $authorization,
+        );
     }
 
     /** Keep authorization and its consumer inside the same native transaction and DocAuth run. */
@@ -1102,7 +1308,11 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
 
     public function loadAuthorizedCollaboration(TenantContext $context, int $documentId, DocumentOwnerReference $owner, string $mode): array
     {
-        return $this->withAuthorizedCollaboration($context, $documentId, $mode, false,
+        return $this->withAuthorizedCollaboration(
+            $context,
+            $documentId,
+            $mode,
+            false,
             function (Document $document, DocumentState $state, array $authorization) use ($documentId, $owner): array {
                 if (DocumentAuthorizationService::reference($document) != $owner || !(bool) $document->collaboration_enabled) {
                     throw BusinessException::forbidden('COLLABORATION_DOCUMENT_BINDING_INVALID', '协作读取与当前文档不一致');
@@ -1113,7 +1323,8 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
                     'initialization_required' => $state->yjs_state_binary === null,
                     'structured_content' => self::json($state->projected_json),'schema_version' => $state->projection_schema_version,
                     'lease_epoch' => (int) $document->lease_epoch,'store_id' => $this->baselineReceipt($document, $state)]];
-            });
+            },
+        );
     }
 
     public function recoverCollaborationEpoch(int $documentId, DocumentOwnerReference $owner, int $expectedEpoch, string $requestId): array

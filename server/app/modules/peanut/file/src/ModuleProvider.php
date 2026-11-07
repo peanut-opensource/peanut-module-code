@@ -30,6 +30,7 @@ final class ModuleProvider implements ModuleProviderContract
         return [
             \PeanutAdmin\Modules\File\Contract\FileVisibility::class => \PeanutAdmin\Modules\File\Service\FileVisibilityService::class,
             \PeanutAdmin\Modules\File\Contract\FileDocumentSnapshots::class => StorageService::class,
+            \PeanutAdmin\Modules\File\Contract\FileDocumentSourceChecks::class => StorageService::class,
             \PeanutAdmin\Modules\File\Contract\FileAccess::class => \PeanutAdmin\Modules\File\Service\FileAccessService::class,
             \PeanutAdmin\Modules\File\Contract\FileReferenceCommands::class => \PeanutAdmin\Modules\File\Service\FileReferenceService::class,
             FileAdministration::class => FileAdministrationService::class,

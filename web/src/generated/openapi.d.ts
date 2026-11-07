@@ -19201,9 +19201,13 @@ export interface operations {
                     id: number;
                     /** @enum {string} */
                     action: "cancel" | "retry" | "observeUnknown" | "poll";
-                    job_revision: number;
+                    job_revision?: number;
+                    version?: number;
                     request_id: string;
-                };
+                } & (unknown | {
+                    /** @enum {unknown} */
+                    action?: "cancel";
+                });
             };
         };
         responses: {

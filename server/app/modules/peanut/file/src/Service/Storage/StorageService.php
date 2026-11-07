@@ -33,7 +33,7 @@ use PeanutAdmin\Modules\File\Service\FileAuthorizationService;
 use PeanutAdmin\Modules\File\Model\Storage\FileReference;
 use app\common\services\audit\AuditContractHost;
 
-final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules\File\Contract\FileDocumentSnapshots
+final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules\File\Contract\FileDocumentSnapshots, \PeanutAdmin\Modules\File\Contract\FileDocumentSourceChecks
 {
     public const DELIVERY_URL_TTL = 600;
     private SignedDeliveryTokenService $deliveryTokens;
@@ -144,8 +144,13 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
             if ($uploadActor instanceof TenantContext) {
                 $this->audit->appendTenantMember($uploadActor, $event, 'file.upload.write', 'file', $fileKey, null, null, 0, null, $metadata);
             } else {
-                $this->audit->appendTenantSystem($tenantId, $event, 'file.upload.write', $this->execution->requestId(),
-                    $metadata + ['file_key' => $fileKey, 'initiating_member_id' => $memberId]);
+                $this->audit->appendTenantSystem(
+                    $tenantId,
+                    $event,
+                    'file.upload.write',
+                    $this->execution->requestId(),
+                    $metadata + ['file_key' => $fileKey, 'initiating_member_id' => $memberId],
+                );
             }
         };
         // Durable intent precedes the external write; the reservation keeps its exact key and byte identity.
@@ -194,8 +199,11 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
             } catch (\Throwable) {
                 // The durable pre-write intent remains even if the current database is unavailable.
             }
-            OperationalLog::warning($this->execution, 'file_upload_write_unconfirmed',
-                $metadata + ['file_key' => $fileKey, 'exception' => $error::class]);
+            OperationalLog::warning(
+                $this->execution,
+                'file_upload_write_unconfirmed',
+                $metadata + ['file_key' => $fileKey, 'exception' => $error::class],
+            );
             throw $error;
         }
 
@@ -435,6 +443,36 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
             throw BusinessException::conflict('FILE_DOCUMENT_SNAPSHOT_CHANGED', '不可变文件快照与文档版本不一致');
         }
         $this->authorization->authorizeDocumentReference($context, $object, $documentId);
+    }
+
+
+    public function assertBackgroundDocumentSnapshotReadable(TenantContext $context, int $documentId, string $fileKey, string $sha256, string $verifiedMimeType): void
+    {
+        if (!(($pdo = Db::connect()->getPdo()) instanceof \PDO) || !$pdo->inTransaction()) {
+            throw BusinessException::conflict('FILE_REFERENCE_TRANSACTION_REQUIRED', '后台固定快照复核必须在来源事务内');
+        }
+        $object = $this->lockedReferenceObject($context, $fileKey);
+        $capture = FileImmutableSnapshot::where('file_key', $fileKey)->lock(true)->find();
+        if ($documentId < 1 || $capture === null || $capture->status !== 'claimed' || (int) $capture->claimed_document_id !== $documentId
+            || !in_array($object['purpose'], ['document.snapshot', 'document.snapshot-sensitive'], true) || $object['access_type'] !== 'private'
+            || preg_match('/^[0-9a-f]{64}$/D', $sha256) !== 1
+            || !hash_equals($sha256, (string) $object['sha256']) || !hash_equals($sha256, (string) $capture->source_sha256)
+            || $verifiedMimeType !== $object['media_type'] || $verifiedMimeType !== $capture->verified_mime_type) {
+            throw BusinessException::conflict('FILE_DOCUMENT_SNAPSHOT_CHANGED', '后台固定文件快照与文档版本不一致');
+        }
+        $this->authorization->authorizeBackgroundDocumentSource($context, $object);
+        $opened = $this->materialize($object);
+        try {
+            $actual = is_file($opened['path']) ? hash_file('sha256', $opened['path']) : false;
+            if (!is_string($actual) || !hash_equals($sha256, $actual)) {
+                throw BusinessException::conflict('FILE_DOCUMENT_SOURCE_BYTES_CHANGED', '后台固定文件字节与版本摘要不一致');
+            }
+            $this->authorization->authorizeBackgroundDocumentSource($context, $object);
+        } finally {
+            if ($opened['temporary'] ?? false) {
+                @unlink($opened['path']);
+            }
+        }
     }
 
     /** File-internal reference locking/enrichment; never exposed by a cross-module or HTTP contract. */
