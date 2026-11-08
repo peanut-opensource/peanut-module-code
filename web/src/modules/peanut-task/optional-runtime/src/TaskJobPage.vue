@@ -38,7 +38,7 @@
 <template>
   <PageContent class="task-job-page">
     <PageHeader>
-      {{ $t('taskJobs.title') }}
+      <h1>{{ $t('taskJobs.title') }}</h1>
       <template #actions>
         <ElButton
           :aria-label="$t('taskJobs.action.reload')"
