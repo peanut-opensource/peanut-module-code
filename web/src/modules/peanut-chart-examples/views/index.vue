@@ -1,10 +1,11 @@
 <template>
-  <div class="chart-examples">
-    <el-alert
-      title="静态演示数据，不代表业务统计。示例可独立安装和卸载。"
-      type="info"
-      :closable="false"
-    />
+  <PageContent class="chart-examples">
+    <PageHeader>
+      <h1>图表示例</h1>
+      <p class="pa-page-header__description">
+        静态演示数据，不代表业务统计。示例可独立安装和卸载。
+      </p>
+    </PageHeader>
     <el-space class="chart-examples__controls" wrap>
       <el-switch v-model="loading" active-text="加载状态" />
       <el-switch v-model="dark" active-text="深色主题" />
@@ -32,11 +33,12 @@
         </el-card>
       </el-col>
     </el-row>
-  </div>
+  </PageContent>
 </template>
 
 <script setup lang="ts">
   import { ref, shallowRef, watch, type ComponentPublicInstance } from 'vue';
+  import { PageContent, PageHeader } from '@peanut-admin/ui-vue';
   import { Chart, type EChartsOption } from '@peanut-admin/peanut-chart/charts';
   import useThemes from '@/hooks/themes';
 
@@ -188,9 +190,6 @@
 </script>
 
 <style scoped>
-  .chart-examples {
-    padding: 20px;
-  }
   .chart-examples__controls {
     margin: 16px 0;
   }
