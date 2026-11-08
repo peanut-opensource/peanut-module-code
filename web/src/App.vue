@@ -12,15 +12,20 @@
   import GlobalSetting from '@/components/global-setting/index.vue';
   import useLocale from '@/hooks/locale';
   import { useAppStore, useBrandStore } from '@/store';
+  import { createShellTheme } from '@peanut-admin/ui-vue/theme';
 
   const { currentLocale } = useLocale();
   const appStore = useAppStore();
   watch(
-    () => appStore.shellAppearance.theme.mode,
-    (mode) => {
-      document.documentElement.classList.toggle('dark', mode === 'dark');
+    () => appStore.shellAppearance.theme,
+    (theme) => {
+      const root = document.documentElement;
+      root.classList.toggle('dark', theme.mode === 'dark');
+      Object.entries(createShellTheme(theme)).forEach(([property, value]) => {
+        root.style.setProperty(property, value);
+      });
     },
-    { immediate: true }
+    { immediate: true, deep: true }
   );
   useBrandStore().load();
   const locale = computed(() => {

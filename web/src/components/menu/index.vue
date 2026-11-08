@@ -5,14 +5,13 @@
     h,
     nextTick,
     ref,
-    type Component,
+    watch,
     type VNode,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter, RouteRecordRaw } from 'vue-router';
   import type { RouteMeta } from 'vue-router';
   import {
-    ElButton,
     ElIcon,
     ElMenu,
     ElMenuItem,
@@ -20,68 +19,11 @@
     ElSubMenu,
     type MenuInstance,
   } from 'element-plus';
-  import {
-    Back,
-    Bell,
-    Briefcase,
-    Brush,
-    Clock,
-    Connection,
-    CreditCard,
-    DataAnalysis,
-    Document,
-    Folder,
-    Grid,
-    Key,
-    Lightning,
-    Menu as MenuIcon,
-    Monitor,
-    Notebook,
-    Postcard,
-    PriceTag,
-    Search,
-    Service,
-    Setting,
-    Share,
-    Tools,
-    User,
-  } from '@element-plus/icons-vue';
+  import { Grid } from '@element-plus/icons-vue';
   import { useAppStore } from '@/store';
-  import { listenerRouteChange } from '@/utils/route-listener';
   import { openWindow, regexUrl } from '@/utils';
-  import useMenuTree from './use-menu-tree';
-
-  const iconMap: Record<string, Component> = {
-    'icon-apps': Grid,
-    'icon-bar-chart': DataAnalysis,
-    'icon-brush': Brush,
-    'icon-code': Tools,
-    'icon-clock-circle': Clock,
-    'icon-customer-service': Service,
-    'icon-dashboard': Monitor,
-    'icon-desktop': Monitor,
-    'icon-file': Document,
-    'icon-fingerprint': Key,
-    'icon-folder': Folder,
-    'icon-history': Clock,
-    'icon-idcard': Postcard,
-    'icon-menu': MenuIcon,
-    'icon-mind-mapping': Connection,
-    'icon-notification': Bell,
-    'icon-palette': Brush,
-    'icon-payment': CreditCard,
-    'icon-search': Search,
-    'icon-settings': Setting,
-    'icon-share-alt': Share,
-    'icon-storage': Folder,
-    'icon-tag': PriceTag,
-    'icon-thunderbolt': Lightning,
-    'icon-tool': Tools,
-    'icon-undo': Back,
-    'icon-user': User,
-    'icon-user-group': Briefcase,
-    'icon-book': Notebook,
-  };
+  import resolveMenuIcon from './menu-icons';
+  import useMenuTree, { findMenuRoutePath } from './use-menu-tree';
 
   export default defineComponent({
     props: {
@@ -95,16 +37,12 @@
       const route = useRoute();
       const { menuTree } = useMenuTree();
       const menuRef = ref<MenuInstance>();
-      const collapsed = computed({
-        get() {
-          if (appStore.device === 'desktop' && props.navigationMode !== 'top')
-            return appStore.menuCollapse;
-          return false;
-        },
-        set(value: boolean) {
-          appStore.updateSettings({ menuCollapse: value });
-        },
-      });
+      const collapsed = computed(
+        () =>
+          appStore.device === 'desktop' &&
+          props.navigationMode !== 'top' &&
+          appStore.menuCollapse
+      );
 
       const topMenu = computed(
         () => props.navigationMode === 'top' && appStore.device !== 'mobile'
@@ -112,14 +50,10 @@
       const openKeys = ref<string[]>([]);
       const selectedKey = ref<string[]>([]);
       const submenuKeys = new Set<string>();
-      const showCollapseButton = computed(
-        () => appStore.device !== 'mobile' && !topMenu.value
-      );
-
       const updateSelectedKey = (key?: string) => {
         selectedKey.value = key ? [key] : [];
         nextTick(() => {
-          if (key) menuRef.value?.updateActiveIndex(key);
+          menuRef.value?.updateActiveIndex(key || '');
         });
       };
 
@@ -158,53 +92,18 @@
         });
       };
 
-      const findMenuOpenKeys = (target: string) => {
-        const result: string[] = [];
-        let isFind = false;
-        const backtrack = (item: RouteRecordRaw, keys: string[]) => {
-          if (item.name === target) {
-            isFind = true;
-            result.push(...keys);
-            return;
-          }
-          if (item.children?.length) {
-            item.children.forEach((el) => {
-              backtrack(el, [...keys, el.name as string]);
-            });
-          }
-        };
-        menuTree.value.forEach((el: RouteRecordRaw) => {
-          if (isFind) return; // Performance optimization
-          backtrack(el, [el.name as string]);
-        });
-        return result;
-      };
-
-      listenerRouteChange((newRoute) => {
-        const { requiresAuth, activeMenu, hideInMenu } = newRoute.meta;
-        if (requiresAuth && (!hideInMenu || activeMenu)) {
-          const menuOpenKeys = findMenuOpenKeys(
-            (activeMenu || newRoute.name) as string
-          );
-
-          const keySet = new Set([...menuOpenKeys, ...openKeys.value]);
+      watch(
+        [() => route.fullPath, menuTree],
+        () => {
+          const menuPath = findMenuRoutePath(menuTree.value, route);
+          const keys = menuPath?.map((item) => String(item.name ?? '')) ?? [];
+          const keySet = new Set([...keys, ...openKeys.value]);
           openKeys.value = [...keySet];
-
-          updateSelectedKey(
-            (activeMenu || menuOpenKeys[menuOpenKeys.length - 1]) as
-              | string
-              | undefined
-          );
+          updateSelectedKey(keys[keys.length - 1]);
           syncMenuState();
-        }
-      }, true);
-
-      const setCollapse = (val: boolean) => {
-        if (appStore.device === 'desktop') {
-          collapsed.value = val;
-          syncMenuState();
-        }
-      };
+        },
+        { immediate: true, flush: 'post' }
+      );
 
       const handleOpen = (key: string) => {
         if (!openKeys.value.includes(key)) {
@@ -217,13 +116,15 @@
       };
 
       const renderIcon = (iconName?: unknown) => {
-        if (!iconName) return null;
-        const icon = iconMap[String(iconName)] || MenuIcon;
+        if (!iconName && !collapsed.value) return null;
+        if (!iconName)
+          return h(ElIcon, { class: 'menu-icon' }, { default: () => h(Grid) });
+        const icon = resolveMenuIcon(iconName);
         return h(ElIcon, { class: 'menu-icon' }, { default: () => h(icon) });
       };
 
-      const renderLabel = (item: RouteRecordRaw) => [
-        renderIcon(item.meta?.icon),
+      const renderLabel = (item: RouteRecordRaw, showIcon = true) => [
+        showIcon ? renderIcon(item.meta?.icon) : null,
         h(
           'span',
           null,
@@ -237,18 +138,19 @@
 
       const renderSubMenu = () => {
         submenuKeys.clear();
-        function travel(_route: RouteRecordRaw[]): VNode[] {
+        function travel(_route: RouteRecordRaw[], depth = 0): VNode[] {
           if (!_route) return [];
           return _route.map((element) => {
             const index = element.name as string;
             if (element.children?.length) {
-              if (props.navigationMode === 'grouped') {
+              if (props.navigationMode === 'grouped' && !collapsed.value) {
                 return h(
                   ElMenuItemGroup,
-                  { key: index },
+                  { key: index, class: { 'menu-section-nested': depth > 0 } },
                   {
-                    title: () => renderLabel(element),
-                    default: () => travel(element.children as RouteRecordRaw[]),
+                    title: () => renderLabel(element, false),
+                    default: () =>
+                      travel(element.children as RouteRecordRaw[], depth + 1),
                   }
                 );
               }
@@ -258,7 +160,8 @@
                 { key: index, index },
                 {
                   title: () => renderLabel(element),
-                  default: () => travel(element.children as RouteRecordRaw[]),
+                  default: () =>
+                    travel(element.children as RouteRecordRaw[], depth + 1),
                 }
               );
             }
@@ -267,6 +170,7 @@
               {
                 key: index,
                 index,
+                class: { 'menu-entry-root': depth === 0 },
                 onClick: () => goto(element),
               },
               () => renderLabel(element)
@@ -294,33 +198,6 @@
             },
             { default: () => renderSubMenu() }
           ),
-          showCollapseButton.value
-            ? h(
-                ElButton,
-                {
-                  'class': 'collapse-button',
-                  'text': true,
-                  'title': t(
-                    collapsed.value
-                      ? 'settings.menu.expand'
-                      : 'settings.menu.collapse'
-                  ),
-                  'aria-label': t(
-                    collapsed.value
-                      ? 'settings.menu.expand'
-                      : 'settings.menu.collapse'
-                  ),
-                  'aria-expanded': !collapsed.value,
-                  'onClick': () => setCollapse(!collapsed.value),
-                },
-                {
-                  default: () =>
-                    h(ElIcon, null, {
-                      default: () => h(collapsed.value ? MenuIcon : Back),
-                    }),
-                }
-              )
-            : null,
         ]);
     },
   });
@@ -340,13 +217,23 @@
     overflow-y: auto;
     flex: 1;
     border-right: none;
+
+    &:not(.el-menu--horizontal) {
+      --el-menu-item-height: calc(var(--el-component-size) + 8px);
+      --el-menu-sub-item-height: calc(var(--el-component-size) + 8px);
+      padding-block: 12px;
+    }
   }
 
-  .collapse-button {
-    width: 100%;
-    min-height: 40px;
-    border-radius: 0;
-    color: var(--el-text-color-secondary);
+  :deep(.el-menu.el-menu--collapse) {
+    .el-menu-item {
+      margin-inline: 0;
+      padding-inline: 20px;
+      border-radius: 0;
+    }
+    .el-sub-menu__title {
+      padding-inline: 20px;
+    }
   }
 
   :deep(.el-menu--horizontal) {
@@ -357,6 +244,56 @@
   :deep(.el-sub-menu__title) {
     .el-icon {
       font-size: 18px;
+    }
+  }
+
+  :deep(.el-menu:not(.el-menu--horizontal) .el-menu-item-group) {
+    margin-block: 4px 16px;
+  }
+
+  :deep(.el-menu:not(.el-menu--horizontal) .el-menu-item-group__title) {
+    padding: 8px 24px;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 20px;
+  }
+
+  :deep(.el-menu:not(.el-menu--horizontal) .el-menu-item-group .el-menu-item) {
+    margin-inline: 16px 12px;
+    padding-inline: 16px 12px;
+    font-weight: 400;
+  }
+
+  :deep(.el-menu:not(.el-menu--horizontal) .el-menu-item) {
+    margin: 2px 12px;
+    border-radius: 6px;
+
+    .el-icon {
+      color: var(--el-text-color-secondary);
+      font-size: 16px;
+    }
+  }
+
+  :deep(.el-menu:not(.el-menu--horizontal) .menu-entry-root) {
+    padding-inline: 12px;
+    font-weight: 500;
+  }
+
+  :deep(.el-menu:not(.el-menu--horizontal) .menu-section-nested) {
+    margin-left: 12px;
+  }
+
+  :deep(
+    .el-menu:not(.el-menu--horizontal)
+      .el-menu-item-group
+      .el-menu-item.is-active
+  ) {
+    color: var(--el-color-primary);
+    background-color: var(--el-color-primary-light-9);
+
+    .el-icon {
+      color: inherit;
     }
   }
 </style>

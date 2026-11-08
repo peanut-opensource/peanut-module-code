@@ -12,6 +12,7 @@ declare module 'vue-router' {
     order?: number; // Sort routing menu items. If set key, the higher the value, the more forward it is
     noAffix?: boolean; // if set true, the tag will not affix in the tab-bar
     ignoreCache?: boolean; // if set true, the page will not be cached
+    fullPathKey?: boolean; // false reuses one tab/cache for the path; navigation keeps query/hash
     controlPlane?: 'tenant-selection' | 'platform'; // hidden and unregistered in Standalone deployments
     instanceTool?: boolean; // registered only when deployment mode is explicitly Standalone
     tenantModuleKey?: string; // deployment presence is not Tenant enablement

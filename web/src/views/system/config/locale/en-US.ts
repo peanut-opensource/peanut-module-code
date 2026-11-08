@@ -24,4 +24,13 @@ export default {
   'systemConfig.field.placeholder': 'Enter a configuration value',
 
   'systemConfig.tip.success': 'Saved',
+  'systemConfig.footer.title': 'Sidebar footer menu',
+  'systemConfig.footer.groupTitle':
+    'Group title (blank uses the default label)',
+  'systemConfig.footer.permissionNote':
+    'These switches control visibility only; they do not grant business permissions.',
+  'systemConfig.footer.sidebar_footer_enabled': 'Show auxiliary menu',
+  'systemConfig.footer.sidebar_footer_settings': 'Show page settings',
+  'systemConfig.footer.sidebar_footer_license': 'Show license information',
+  'systemConfig.footer.sidebar_footer_about': 'Show about application',
 };

@@ -1,7 +1,8 @@
 <template>
-  <PageContent class="admin-directory-page">
+  <PageContent class="pa-page-stack">
     <PageHeader>
       <h1>{{ $t('menu.system.admin') }}</h1>
+      <p class="pa-page-header__description">{{ $t('systemAdmin.page.description') }}</p>
       <template #actions>
         <el-button
           v-permission="['core.member.create']"
@@ -15,9 +16,9 @@
       </template>
     </PageHeader>
 
-    <el-card class="general-card admin-directory-search">
-      <PageToolbar :label="$t('menu.system.admin')">
-        <el-form class="admin-directory-filters" :model="queryParams" inline>
+    <el-card class="general-card">
+      <PageToolbar :label="$t('systemAdmin.region.filters')">
+        <el-form class="pa-page-filters" :model="queryParams" label-position="left" label-width="80px" @submit.prevent="search">
         <el-form-item prop="account" :label="$t('systemAdmin.search.account')">
           <el-input
             v-model="queryParams.account"
@@ -40,7 +41,6 @@
             :disabled="!canReadRoles"
             clearable
             :placeholder="$t('systemAdmin.search.role.all')"
-            style="width: 180px"
             ><el-option
               v-for="option in roleOptions"
               :key="option.value"
@@ -48,7 +48,7 @@
               :value="option.value"
           /></el-select>
         </el-form-item>
-        <el-form-item>
+        <el-form-item class="pa-page-filters__actions" label-width="0">
           <el-space>
             <el-button type="primary" @click="search">
               <template #icon><Search /></template>
@@ -58,23 +58,36 @@
               <template #icon><Refresh /></template>
               {{ $t('systemAdmin.operation.reset') }}
             </el-button>
-            <el-button @click="openExport">
-              <template #icon><Download /></template>
-              {{ $t('systemAdmin.operation.export') }}
-            </el-button>
           </el-space>
         </el-form-item>
         </el-form>
       </PageToolbar>
     </el-card>
 
-    <el-card class="general-card admin-directory-list">
-      <div class="admin-directory-table-scroll">
-        <el-table row-key="id" :loading="loading" :data="renderData">
+    <el-card class="general-card">
+      <div class="pa-page-results-toolbar pa-page-results-toolbar--standalone">
+        <div class="pa-page-results-title">
+          <h2>{{ $t('systemAdmin.region.results') }}</h2>
+          <span aria-live="polite">{{ $t('systemAdmin.pagination.total', { total: pagination.total }) }}</span>
+        </div>
+        <el-button @click="openExport">
+          <template #icon><Download /></template>
+          {{ $t('systemAdmin.operation.export') }}
+        </el-button>
+      </div>
+        <el-table class="pa-page-table" row-key="id" v-loading="loading" :data="renderData" max-height="max(320px, calc(100dvh - 440px))">
         <el-table-column
           prop="id"
           :label="$t('systemAdmin.columns.id')"
-          width="70"
+          width="64"
+          :fixed="desktopTable ? 'left' : false"
+        />
+        <el-table-column
+          prop="account"
+          :label="$t('systemAdmin.columns.account')"
+          width="240"
+          :fixed="desktopTable ? 'left' : false"
+          show-overflow-tooltip
         />
         <el-table-column :label="$t('systemAdmin.columns.avatar')" width="80"
           ><template #default="{ row }"
@@ -83,12 +96,6 @@
             }}</el-avatar></template
           ></el-table-column
         >
-        <el-table-column
-          prop="account"
-          :label="$t('systemAdmin.columns.account')"
-          width="240"
-          show-overflow-tooltip
-        />
         <el-table-column
           prop="name"
           :label="$t('systemAdmin.columns.name')"
@@ -153,7 +160,7 @@
         >
         <el-table-column
           :label="$t('systemAdmin.columns.operations')"
-          width="150"
+          :width="desktopTable ? 150 : 104"
           fixed="right"
           ><template #default="{ row }"
             ><el-space
@@ -181,21 +188,24 @@
           ></el-table-column
         >
         </el-table>
-      </div>
+      <nav class="pa-page-pagination" :aria-label="$t('systemAdmin.region.pagination')">
       <el-pagination
         v-model:current-page="pagination.current"
         v-model:page-size="pagination.pageSize"
         :total="pagination.total"
         :page-sizes="[10, 15, 30, 50]"
-        layout="total, sizes, prev, pager, next"
-        class="admin-directory-pagination"
+        :layout="desktopTable ? 'total, sizes, prev, pager, next' : 'total, prev, pager, next'"
+        :pager-count="5"
         @current-change="onPageChange"
         @size-change="onPageSizeChange"
       />
+      </nav>
     </el-card>
 
     <el-dialog
       v-model="modalVisible"
+      class="pa-page-form-dialog"
+      top="6vh"
       :title="
         isEdit
           ? $t('systemAdmin.modal.editTitle')
@@ -205,6 +215,9 @@
       width="min(620px, calc(100vw - 24px))"
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
+        <fieldset class="pa-page-form-section">
+          <legend>{{ $t('systemAdmin.section.identity') }}</legend>
+          <div class="pa-page-form-grid">
         <el-form-item prop="account" :label="$t('systemAdmin.field.account')">
           <el-input
             v-model="form.account"
@@ -214,8 +227,6 @@
           />
         </el-form-item>
 
-        <p class="form-tip">头像由账号本人在个人设置维护。</p>
-
         <el-form-item prop="name" :label="$t('systemAdmin.field.name')">
           <el-input
             v-model="form.name"
@@ -224,6 +235,12 @@
           />
         </el-form-item>
 
+          </div>
+          <p class="pa-page-form-help">{{ $t('systemAdmin.field.avatar.ownerTip') }}</p>
+        </fieldset>
+        <fieldset class="pa-page-form-section">
+          <legend>{{ $t('systemAdmin.section.organization') }}</legend>
+          <div class="pa-page-form-grid">
         <el-form-item prop="dept_id" :label="$t('systemAdmin.field.dept')">
           <DepartmentPicker
             v-model="form.dept_id"
@@ -249,6 +266,7 @@
 
         <el-form-item
           v-if="form.root !== 1"
+          class="pa-page-form-wide"
           prop="role_id"
           :label="$t('systemAdmin.field.roles')"
         >
@@ -266,6 +284,11 @@
           /></el-select>
         </el-form-item>
 
+          </div>
+        </fieldset>
+        <fieldset class="pa-page-form-section">
+          <legend>{{ $t('systemAdmin.section.security') }}</legend>
+          <div class="pa-page-form-grid">
         <el-form-item prop="password" :label="$t('systemAdmin.field.password')">
           <el-input
             type="password"
@@ -321,6 +344,8 @@
             </div>
           </div>
         </el-form-item>
+          </div>
+        </fieldset>
       </el-form>
       <template #footer
         ><el-button @click="modalVisible = false">取消</el-button
@@ -419,7 +444,7 @@
   import { Download, Plus, Refresh, Search } from '@element-plus/icons-vue';
   import useLoading from '@/hooks/loading';
   import { hasPermission } from '@/hooks/permission';
-  import { useUserStore } from '@/store';
+  import { useAppStore, useUserStore } from '@/store';
   import {
     getPasswordPolicy,
     passwordWithinPolicy,
@@ -445,6 +470,8 @@
 
   const { t } = useI18n();
   const userStore = useUserStore();
+  const appStore = useAppStore();
+  const desktopTable = computed(() => appStore.device === 'desktop');
   const route = useRoute();
   const canAssignRoles = computed(() =>
     hasPermission('core.member.role.assign', route.path)
@@ -849,70 +876,10 @@
 </script>
 
 <style scoped lang="less">
-  .admin-directory-page {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    min-width: 0;
-    width: 100%;
-
-    :deep(.pa-page-header) {
-      margin-bottom: 0;
-    }
-  }
-
-  .admin-directory-search,
-  .admin-directory-list {
-    min-width: 0;
-  }
-
-  .admin-directory-search :deep(.el-card__body) {
-    padding-bottom: 4px;
-  }
-
-  .admin-directory-filters {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 0 12px;
-
-    :deep(.el-form-item) {
-      max-width: 100%;
-      margin-right: 0;
-    }
-
-    :deep(.el-form-item__content) {
-      min-width: 0;
-      flex-wrap: wrap;
-    }
-  }
-
-  .admin-directory-table-scroll {
-    max-width: 100%;
-    overflow-x: auto;
-
-    :deep(.el-table) {
-      min-width: 1250px;
-    }
-  }
-
-  .admin-directory-pagination {
-    display: flex;
-    justify-content: flex-end;
-    max-width: 100%;
-    margin-top: 16px;
-    overflow-x: auto;
-  }
-
   .form-tip {
     margin-top: 8px;
     color: var(--color-text-3);
     font-size: 12px;
   }
 
-  @media (max-width: 768px) {
-    .admin-directory-pagination {
-      justify-content: flex-start;
-    }
-  }
 </style>

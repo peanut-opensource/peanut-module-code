@@ -1,8 +1,7 @@
 <template>
-  <div class="container">
-    <Breadcrumb :items="['menu.system', 'menu.system.dept']" />
+  <PageContent>
+    <PageHeader><h1>{{ $t('menu.system.dept') }}</h1></PageHeader>
     <el-card class="general-card">
-      <template #header>{{ $t('menu.system.dept') }}</template>
       <el-form :model="queryParams" inline style="margin-bottom: 16px">
         <el-form-item prop="name" :label="$t('systemDept.search.name')">
           <el-input
@@ -263,10 +262,11 @@
         >
       </template>
     </el-dialog>
-  </div>
+  </PageContent>
 </template>
 
 <script lang="ts" setup>
+  import { PageContent, PageHeader } from '@peanut-admin/ui-vue';
   import { computed, ref, reactive } from 'vue';
   import { useRoute } from 'vue-router';
   import { useI18n } from 'vue-i18n';
@@ -491,9 +491,6 @@
 </script>
 
 <style scoped lang="less">
-  .container {
-    padding: 0 20px 20px 20px;
-  }
   .department-actions {
     display: flex;
     flex-wrap: wrap;

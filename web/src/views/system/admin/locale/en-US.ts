@@ -1,7 +1,16 @@
 export default {
-  'menu.system.admin': 'Administrator Management',
+  'systemAdmin.pagination.total': '{total} members',
+  'menu.system.admin': 'Members',
+  'systemAdmin.page.description': 'Manage member accounts, organization and access',
+  'systemAdmin.region.filters': 'Filter members',
+  'systemAdmin.region.results': 'Member list',
+  'systemAdmin.region.pagination': 'Member list pagination',
+  'systemAdmin.section.identity': 'Basic information',
+  'systemAdmin.section.organization': 'Organization and roles',
+  'systemAdmin.section.security': 'Sign-in and security',
+  'systemAdmin.field.avatar.ownerTip': 'Members maintain their avatar in personal settings.',
 
-  'systemAdmin.operation.create': 'New Administrator',
+  'systemAdmin.operation.create': 'New Member',
   'systemAdmin.operation.search': 'Search',
   'systemAdmin.operation.reset': 'Reset',
   'systemAdmin.operation.export': 'Export',
@@ -9,9 +18,9 @@ export default {
   'systemAdmin.operation.delete': 'Delete',
 
   'systemAdmin.search.account': 'Account',
-  'systemAdmin.search.account.placeholder': 'Enter administrator account',
+  'systemAdmin.search.account.placeholder': 'Enter member account',
   'systemAdmin.search.name': 'Name',
-  'systemAdmin.search.name.placeholder': 'Enter administrator name',
+  'systemAdmin.search.name.placeholder': 'Enter member name',
   'systemAdmin.search.role': 'Role',
   'systemAdmin.search.role.all': 'All',
 
@@ -69,13 +78,13 @@ export default {
   'systemAdmin.field.passwordConfirm.placeholder': 'Confirm password',
   'systemAdmin.field.passwordConfirm.required': 'Confirmation is required',
   'systemAdmin.field.passwordConfirm.mismatch': 'Passwords do not match',
-  'systemAdmin.field.status': 'Administrator Status',
+  'systemAdmin.field.status': 'Member Status',
   'systemAdmin.field.multipoint': 'Multi-login',
   'systemAdmin.field.multipoint.tip': 'Allow simultaneous online sessions',
 
-  'systemAdmin.modal.addTitle': 'New Administrator',
-  'systemAdmin.modal.editTitle': 'Edit Administrator',
-  'systemAdmin.delete.confirm': 'Delete this administrator?',
+  'systemAdmin.modal.addTitle': 'New Member',
+  'systemAdmin.modal.editTitle': 'Edit Member',
+  'systemAdmin.delete.confirm': 'Delete this member?',
   'systemAdmin.tip.success': 'Success',
 
   'systemAdmin.export.title': 'Export Settings',

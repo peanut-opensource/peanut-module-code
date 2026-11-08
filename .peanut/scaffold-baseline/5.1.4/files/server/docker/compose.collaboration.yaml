@@ -1,0 +1,17 @@
+# Explicit ingress only; Node starts through its independent standard Compose file.
+services:
+  nginx:
+    ports:
+      - "${COLLABORATION_WSS_BIND:?}:${COLLABORATION_WSS_PORT:?}:443"
+    volumes:
+      - ./conf/nginx.collaboration.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./tls:/run/peanut-collaboration-tls:ro
+    tmpfs: ["/etc/nginx/collaboration:rw,noexec,nosuid,size=1m"]
+    environment:
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx/collaboration
+      COLLABORATION_PHP_TLS_HOST: ${COLLABORATION_PHP_TLS_HOST:?}
+      COLLABORATION_CONTROL_TLS_HOST: ${COLLABORATION_CONTROL_TLS_HOST:?}
+      COLLABORATION_WSS_HOSTNAME: ${COLLABORATION_WSS_HOSTNAME:?}
+    networks:
+      default:
+        aliases: ["${COLLABORATION_PHP_TLS_HOST:?}", "${COLLABORATION_CONTROL_TLS_HOST:?}"]

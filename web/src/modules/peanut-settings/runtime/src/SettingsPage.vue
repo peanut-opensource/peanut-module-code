@@ -103,7 +103,7 @@
 <template>
   <PageContent class="settings-page">
     <PageHeader>
-      {{ $t('officialSettings.title') }}
+      <h1>{{ $t('officialSettings.title') }}</h1>
       <template #actions>
         <ElButton
           :aria-label="$t('officialSettings.action.reloadSettings')"

@@ -14,6 +14,32 @@ final class BrandDefaults
         return self::stringMap(self::manifest()['website'] ?? null, '品牌默认配置格式错误');
     }
 
+    /** @return array<string, bool|string> */
+    public static function sidebarFooter(): array
+    {
+        $defaults = [
+            'sidebar_footer_enabled' => true,
+            'sidebar_footer_title' => '',
+            'sidebar_footer_settings' => true,
+            'sidebar_footer_license' => true,
+            'sidebar_footer_about' => true,
+        ];
+        $values = self::manifest()['sidebar_footer'] ?? [];
+        if (!is_array($values)
+            || array_diff(array_keys($values), array_keys($defaults)) !== []) {
+            throw new RuntimeException('侧栏底部配置格式错误');
+        }
+        $values = array_replace($defaults, $values);
+        $result = [];
+        foreach ($defaults as $field => $default) {
+            if (gettype($values[$field]) !== gettype($default)) {
+                throw new RuntimeException('侧栏底部配置格式错误');
+            }
+            $result[$field] = $values[$field];
+        }
+        return $result;
+    }
+
     /** @return array<string, string> */
     public static function defaultImages(): array
     {

@@ -1,27 +1,46 @@
 <template>
   <div class="navbar">
-    <div class="left-side">
+    <div
+      class="left-side"
+      :class="{ 'is-collapsed': sidebarCollapsed }"
+      :style="brandAreaStyle"
+    >
       <div class="left-content">
         <img
           v-if="brand?.logo || brandStore.website.web_logo"
+          class="brand-logo"
           alt="logo"
           :src="brand?.logo || brandStore.website.web_logo"
-          style="width: 28px; height: 28px"
+          :style="brandLogoStyle"
         />
-        <h5 class="brand-title" :title="brandTitle" :aria-label="brandTitle">
+        <h5
+          v-if="!sidebarCollapsed"
+          class="brand-title"
+          :title="brandTitle"
+          :aria-label="brandTitle"
+        >
           {{ brandTitle }}
         </h5>
-        <el-button
-          v-if="!topMenu && appStore.device === 'mobile'"
-          class="mobile-menu-button"
+
+      </div>
+    </div>
+    <el-button
+          v-if="!topMenu"
+          class="navigation-toggle"
           text
           circle
-          :aria-label="$t('settings.menu')"
-          @click="toggleDrawerMenu"
+          size="small"
+          :aria-label="navigationToggleLabel"
+          :title="navigationToggleLabel"
+          @click="toggleNavigation"
         >
-          <el-icon><Menu /></el-icon>
+          <el-icon>
+            <Expand v-if="appStore.device === 'mobile' || appStore.menuCollapse" />
+            <Fold v-else />
+          </el-icon>
         </el-button>
-      </div>
+    <div class="breadcrumb-side">
+      <slot name="breadcrumb" />
     </div>
     <div class="center-side">
       <MenuComponent v-if="topMenu" navigation-mode="top" />
@@ -289,8 +308,9 @@
   import type { RouteRecordRaw } from 'vue-router';
   import {
     Check,
+    Expand,
+    Fold,
     FullScreen,
-    Menu,
     MoreFilled,
     Moon,
     Platform,
@@ -345,9 +365,6 @@
         ? `${userStore.tenantName} - ${brandStore.website.name}`
         : brandStore.website.name)
   );
-  const theme = computed(() => {
-    return appStore.shellAppearance.theme.mode;
-  });
   const topMenu = computed(
     () =>
       (props.navigationMode === undefined
@@ -356,6 +373,27 @@
       appStore.menu &&
       appStore.device !== 'mobile'
   );
+  const sidebarCollapsed = computed(
+    () => appStore.device === 'desktop' && !topMenu.value && appStore.menuCollapse
+  );
+  const navigationToggleLabel = computed(() =>
+    appStore.device === 'mobile'
+      ? t('settings.menu')
+      : t(sidebarCollapsed.value ? 'settings.menu.expand' : 'settings.menu.collapse')
+  );
+  const brandLogoStyle = computed(() =>
+    sidebarCollapsed.value ? { width: '24px', height: '24px' } : undefined
+  );
+  const brandAreaStyle = computed(() => {
+    if (appStore.device !== 'desktop' || topMenu.value) return undefined;
+    const width = sidebarCollapsed.value
+      ? 'var(--pa-shell-sidebar-collapsed-width)'
+      : 'var(--pa-shell-sidebar-width)';
+    return { width, flex: `0 0 ${width}` };
+  });
+  const theme = computed(() => {
+    return appStore.shellAppearance.theme.mode;
+  });
   const tenantSession = computed(
     () => getToken()?.startsWith('pa_tat_') === true
   );
@@ -485,6 +523,13 @@
     }
   };
   const toggleDrawerMenu = inject('toggleDrawerMenu') as () => void;
+  const toggleNavigation = () => {
+    if (appStore.device === 'mobile') {
+      toggleDrawerMenu();
+      return;
+    }
+    appStore.updateSettings({ menuCollapse: !appStore.menuCollapse });
+  };
 </script>
 
 <style scoped lang="less">
@@ -495,26 +540,58 @@
     min-width: 0;
     height: 100%;
     background-color: var(--el-bg-color);
-    border-bottom: 1px solid var(--el-border-color);
+    border-bottom: 1px solid var(--el-border-color-extra-light);
+    box-shadow: var(--pa-shell-header-shadow);
   }
 
   .left-side {
     display: flex;
     align-items: center;
+    box-sizing: border-box;
     min-width: 0;
     flex: 0 1 auto;
-    padding-left: 20px;
+    padding-inline: 20px;
+    align-self: stretch;
+    border-right: 1px solid var(--el-border-color);
+    transition: width var(--pa-shell-motion-duration);
+  }
+
+  .left-side.is-collapsed {
+    padding-inline: 20px;
+  }
+
+  .brand-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
   }
 
   .left-content {
+    width: 100%;
     display: flex;
     align-items: center;
     gap: 12px;
     min-width: 0;
     img,
-    .mobile-menu-button {
+    .brand-logo,
+    .navigation-toggle {
       flex-shrink: 0;
     }
+  }
+
+  .left-side.is-collapsed .left-content {
+    justify-content: center;
+    gap: 0;
+  }
+
+  .left-side.is-collapsed {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .left-side.is-collapsed .brand-logo {
+    width: 20px;
+    height: 20px;
   }
 
   .brand-title {
@@ -524,13 +601,23 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--el-text-color-primary);
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
   }
 
-  .mobile-menu-button {
-    font-size: 22px;
+  .navigation-toggle {
+    flex: 0 0 auto;
+    margin-inline: 12px;
+    font-size: 18px;
+    color: var(--el-text-color-regular);
     cursor: pointer;
+  }
+
+  .breadcrumb-side {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    overflow: hidden;
   }
 
   .center-side {
@@ -582,7 +669,11 @@
   }
   @media (max-width: 991px) {
     .left-side {
-      padding-left: 8px;
+      padding-inline: 12px 0;
+      border-right: 0;
+    }
+    .navigation-toggle {
+      margin-inline: 8px;
     }
     .left-content {
       gap: 6px;
@@ -590,8 +681,11 @@
     .brand-title {
       font-size: 15px;
     }
+    .breadcrumb-side {
+      display: none;
+    }
     .center-side,
-    .desktop-action {
+    .right-side .desktop-action {
       display: none;
     }
     .right-side {

@@ -1,0 +1,24 @@
+{
+  "name": "peanut-business/peanut-identity",
+  "description": "Peanut Admin protected identity and access management module",
+  "type": "library",
+  "license": "Apache-2.0",
+  "require": {
+    "php": "^8.3",
+    "peanut-admin/core": "^5.0.3-alpha.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "PeanutAdmin\\Modules\\Identity\\": "src/"
+    }
+  },
+    "version": "4.0.0-rc.59",
+  "extra": {
+    "peanut": {
+      "editions": [
+        "multi-tenant",
+        "standalone"
+      ]
+    }
+  }
+}

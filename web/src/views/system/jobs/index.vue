@@ -1,67 +1,60 @@
 <template>
-  <div class="container">
-    <Breadcrumb :items="['menu.system', 'menu.system.jobs']" />
+  <PageContent>
+    <PageHeader><h1>{{ $t('menu.system.jobs') }}</h1></PageHeader>
     <el-card class="general-card">
-      <template #header>{{ $t('menu.system.jobs') }}</template>
-      <el-row>
-        <el-col :span="18">
-          <el-form :model="formModel" label-position="left">
-            <el-row :gutter="16">
-              <el-col :span="8">
-                <el-form-item prop="name" :label="$t('systemJobs.form.name')">
-                  <el-input
-                    v-model="formModel.name"
-                    clearable
-                    :placeholder="$t('systemJobs.form.name.placeholder')"
-                  />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item prop="code" :label="$t('systemJobs.form.code')">
-                  <el-input
-                    v-model="formModel.code"
-                    clearable
-                    :placeholder="$t('systemJobs.form.code.placeholder')"
-                  />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item
-                  prop="status"
-                  :label="$t('systemJobs.form.status')"
-                >
-                  <el-select
-                    v-model="formModel.status"
-                    clearable
-                    :placeholder="$t('systemJobs.form.status.placeholder')"
-                  >
-                    <el-option
-                      v-for="option in statusOptions"
-                      :key="option.value"
-                      :label="option.label"
-                      :value="option.value"
-                    />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-            </el-row>
-          </el-form>
-        </el-col>
-        <el-divider style="height: 84px" direction="vertical" />
-        <el-col :span="6" style="text-align: right">
-          <el-space direction="vertical" :size="18">
-            <el-button type="primary" @click="search">
-              <template #icon><Search /></template>
-              {{ $t('systemJobs.form.search') }}
-            </el-button>
-            <el-button @click="reset">
-              <template #icon><Refresh /></template>
-              {{ $t('systemJobs.form.reset') }}
-            </el-button>
-          </el-space>
-        </el-col>
-      </el-row>
-      <el-divider style="margin-top: 0" />
+      <PageToolbar :label="$t('systemJobs.form.search')">
+        <el-form
+          class="pa-page-filters"
+          :model="formModel"
+          label-position="left"
+          label-width="80px"
+          @submit.prevent="search"
+        >
+          <el-form-item prop="name" :label="$t('systemJobs.form.name')">
+            <el-input
+              v-model="formModel.name"
+              clearable
+              :placeholder="$t('systemJobs.form.name.placeholder')"
+              @keyup.enter="search"
+            />
+          </el-form-item>
+          <el-form-item prop="code" :label="$t('systemJobs.form.code')">
+            <el-input
+              v-model="formModel.code"
+              clearable
+              :placeholder="$t('systemJobs.form.code.placeholder')"
+              @keyup.enter="search"
+            />
+          </el-form-item>
+          <el-form-item prop="status" :label="$t('systemJobs.form.status')">
+            <el-select
+              v-model="formModel.status"
+              clearable
+              :placeholder="$t('systemJobs.form.status.placeholder')"
+            >
+              <el-option
+                v-for="option in statusOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item class="pa-page-filters__actions" label-width="0">
+            <el-space>
+              <el-button type="primary" @click="search">
+                <template #icon><Search /></template>
+                {{ $t('systemJobs.form.search') }}
+              </el-button>
+              <el-button @click="reset">
+                <template #icon><Refresh /></template>
+                {{ $t('systemJobs.form.reset') }}
+              </el-button>
+            </el-space>
+          </el-form-item>
+        </el-form>
+      </PageToolbar>
+      <el-divider />
       <el-row style="margin-bottom: 16px">
         <el-col :span="12">
           <el-space>
@@ -80,13 +73,23 @@
           </el-space>
         </el-col>
       </el-row>
-      <el-table row-key="id" :loading="loading" :data="renderData" border>
+      <el-table
+        class="pa-page-table"
+        row-key="id"
+        v-loading="loading"
+        :data="renderData"
+        border
+      >
         <el-table-column
           prop="id"
           :label="$t('systemJobs.columns.id')"
           width="80"
         />
-        <el-table-column prop="name" :label="$t('systemJobs.columns.name')" />
+        <el-table-column
+          prop="name"
+          :label="$t('systemJobs.columns.name')"
+          min-width="180"
+        />
         <el-table-column
           prop="code"
           :label="$t('systemJobs.columns.code')"
@@ -100,6 +103,7 @@
         <el-table-column
           prop="remark"
           :label="$t('systemJobs.columns.remark')"
+          min-width="220"
         />
         <el-table-column
           prop="create_time"
@@ -279,10 +283,11 @@
         ></template
       >
     </el-dialog>
-  </div>
+  </PageContent>
 </template>
 
 <script lang="ts" setup>
+  import { PageContent, PageHeader, PageToolbar } from '@peanut-admin/ui-vue';
   import { computed, ref, reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { ElMessage } from 'element-plus';
@@ -516,7 +521,4 @@
 </script>
 
 <style scoped lang="less">
-  .container {
-    padding: 0 20px 20px 20px;
-  }
 </style>

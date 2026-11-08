@@ -1,13 +1,13 @@
 import type { RouteLocationNormalized } from 'vue-router';
 import { defineStore } from 'pinia';
 import {
+  getTabKey,
   tabFromRoute,
   type ShellTab as TagProps,
   type ShellTabState as TabBarState,
-} from '@peanut-admin/ui-vue';
+} from '@peanut-admin/ui-vue/tabs';
 import {
   DEFAULT_ROUTE,
-  DEFAULT_ROUTE_NAME,
   REDIRECT_ROUTE_NAME,
 } from '@/router/constants';
 import { isString } from '@/utils/is';
@@ -16,7 +16,7 @@ const BAN_LIST = [REDIRECT_ROUTE_NAME];
 
 const useAppStore = defineStore('tabBar', {
   state: (): TabBarState => ({
-    cacheTabList: new Set([DEFAULT_ROUTE_NAME]),
+    cacheTabList: new Set([DEFAULT_ROUTE.fullPath]),
     tagList: [DEFAULT_ROUTE],
   }),
 
@@ -32,20 +32,24 @@ const useAppStore = defineStore('tabBar', {
   actions: {
     updateTabList(route: RouteLocationNormalized) {
       if (BAN_LIST.includes(route.name as string)) return;
-      this.tagList.push(tabFromRoute(route));
+      const tab = tabFromRoute(route);
+      const key = getTabKey(tab);
+      const index = this.tagList.findIndex((tag) => getTabKey(tag) === key);
+      if (index < 0) this.tagList.push(tab);
+      else this.tagList[index] = tab;
       if (!route.meta.ignoreCache) {
-        this.cacheTabList.add(route.name as string);
+        this.cacheTabList.add(key);
       }
     },
     deleteTag(idx: number, tag: TagProps) {
       this.tagList.splice(idx, 1);
-      this.cacheTabList.delete(tag.name);
+      if (!tag.ignoreCache) this.cacheTabList.delete(getTabKey(tag));
     },
-    addCache(name: string) {
-      if (isString(name) && name !== '') this.cacheTabList.add(name);
+    addCache(key: string) {
+      if (isString(key) && key !== '') this.cacheTabList.add(key);
     },
     deleteCache(tag: TagProps) {
-      this.cacheTabList.delete(tag.name);
+      this.cacheTabList.delete(getTabKey(tag));
     },
     freshTabList(tags: TagProps[]) {
       this.tagList = tags;
@@ -53,13 +57,13 @@ const useAppStore = defineStore('tabBar', {
       // 要先判断ignoreCache
       this.tagList
         .filter((el) => !el.ignoreCache)
-        .map((el) => el.name)
+        .map(getTabKey)
         .forEach((x) => this.cacheTabList.add(x));
     },
     resetTabList() {
       this.tagList = [DEFAULT_ROUTE];
       this.cacheTabList.clear();
-      this.cacheTabList.add(DEFAULT_ROUTE_NAME);
+      this.cacheTabList.add(DEFAULT_ROUTE.fullPath);
     },
   },
 });

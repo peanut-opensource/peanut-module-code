@@ -1,0 +1,6 @@
+# The application uses its registered database; this composition owns no MySQL instance.
+services:
+  php:
+    depends_on: !reset {}
+  mysql:
+    profiles: [bundled-database]

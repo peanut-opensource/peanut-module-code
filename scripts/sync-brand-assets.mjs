@@ -12,7 +12,20 @@ if (manifest.schema_version !== 1 || !manifest.website) {
   throw new Error('server/config/brand.json does not match schema version 1');
 }
 
-const generatedManifest = `${JSON.stringify(manifest, null, 2)}\n`;
+const sidebarFooterDefaults = {
+  sidebar_footer_enabled: true,
+  sidebar_footer_title: '',
+  sidebar_footer_settings: true,
+  sidebar_footer_license: true,
+  sidebar_footer_about: true,
+};
+const generatedManifest = `${JSON.stringify({
+  ...manifest,
+  sidebar_footer: {
+    ...sidebarFooterDefaults,
+    ...(manifest.sidebar_footer ?? {}),
+  },
+}, null, 2)}\n`;
 const manifestTargets = [
   'web/src/generated/brand.json',
   'pc/generated/brand.json',

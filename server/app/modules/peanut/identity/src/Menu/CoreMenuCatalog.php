@@ -10,7 +10,7 @@ final class CoreMenuCatalog
     public static function definitions(): array
     {
         return [
-            new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.workbench.index', 'core', 'tenant', null, 'page', '工作台', 'Workplace', '/dashboard/workplace', 'Workplace', 'workbench/index', ['admin-web'], 0, 'icon-dashboard'),
+            new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.workbench.index', 'core', 'tenant', null, 'page', '工作台', 'Workplace', '/dashboard/workplace', 'Workplace', 'workbench/index', ['admin-web'], -20, 'icon-dashboard'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.organization', 'core', 'tenant', null, 'group', '组织与权限', null, null, null, null, ['admin-web'], 10, 'icon-user-group'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.member.list', 'core', 'tenant', 'core.organization', 'page', '成员管理', 'tenant.members.list', '/app/members', 'core.member.list', 'core.member.read', ['admin-web'], 11, 'UserRound'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('core.department.list', 'core', 'tenant', 'core.organization', 'page', '部门管理', 'tenant.departments.list', '/app/departments', 'core.department.list', 'core.department.read', ['admin-web'], 12, 'Network'),
