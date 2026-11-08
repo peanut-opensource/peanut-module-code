@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5278f262ff413721f11bd6617856efd3",
+    "content-hash": "fb6950ac9c8f7ad1f55e5ecfd29ce3e6",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2474,11 +2474,11 @@
         },
         {
             "name": "peanut-business/peanut-identity",
-            "version": "4.0.0-rc.58",
+            "version": "4.0.0-rc.59",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/identity",
-                "reference": "ee7ac301fdc97a79de612cd03a865739652c8b8d"
+                "reference": "70e4b94fc0e501409c64fc96cb62c61068a7fb55"
             },
             "require": {
                 "peanut-admin/core": "^5.0.3-alpha.6",
@@ -2776,11 +2776,11 @@
         },
         {
             "name": "peanut-business/peanut-reference-codes",
-            "version": "1.0.25",
+            "version": "1.0.26",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/reference_codes",
-                "reference": "5a61bfbdbea93dac5c2876fdb6779075deb95a9c"
+                "reference": "d45a989a545664482129086451338bdc5d8e7a4b"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2845,11 +2845,11 @@
         },
         {
             "name": "peanut-business/peanut-settings",
-            "version": "1.0.26",
+            "version": "1.0.27",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/settings",
-                "reference": "84e53bb6d999750a7f101d174c7a52a5c2522086"
+                "reference": "b62f437c2caa518f2481c5851dcd95da572fcb3f"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",

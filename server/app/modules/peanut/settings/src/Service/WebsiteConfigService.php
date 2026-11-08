@@ -21,13 +21,13 @@ final readonly class WebsiteConfigService
         private FileReferences $files,
     ) {}
 
-    /** @return array<string, string> */
+    /** @return array<string, bool|string> */
     public function get(AuthenticatedMemberContext|TenantContext|TenantSystemContext $context): array
     {
         return $this->delegate($context)->get();
     }
 
-    /** @return array<string, string> */
+    /** @return array<string, bool|string> */
     public function getForEdit(AuthenticatedMemberContext|TenantContext|TenantSystemContext $context): array
     {
         return $this->delegate($context)->getForEdit();
@@ -48,11 +48,17 @@ final readonly class WebsiteConfigService
     }
 
     /** Public template defaults, not stored tenant state or an authorization decision.
-     * @return array<string, string>
+     * @return array<string, bool|string>
      */
     public static function defaults(): array
     {
         return BrandDefaults::website();
+    }
+
+    /** @return array<string, bool|string> */
+    private static function configurationDefaults(): array
+    {
+        return [...BrandDefaults::website(), ...BrandDefaults::sidebarFooter()];
     }
 
     private function delegate(
@@ -62,7 +68,7 @@ final readonly class WebsiteConfigService
             new TenantSettingWebsiteStore($context, $this->settings),
             fn(string $value): string => $this->files->getFileUrl($value),
             fn(string $value): string => $this->files->setTenantFileUrl($context, $value),
-            self::defaults(),
+            self::configurationDefaults(),
         );
     }
 }
