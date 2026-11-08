@@ -153,9 +153,9 @@ final readonly class ModuleLifecycleService implements ModuleLifecycleCommands
     }
 
     /** Uses the native lock/manifest/ownership rules, without entering lifecycle mutation or recovery. */
-    public function reconcilePlan(string $pluginKey, bool $preserveDisabled = false, ?callable $consumePlan = null): array
+    public function reconcilePlan(string $pluginKey, bool $preserveDisabled = false, ?callable $consumePlan = null, bool $preparedRelease = false): array
     {
-        return $this->nativeReadPlan($pluginKey, false, $preserveDisabled, $consumePlan);
+        return $this->nativeReadPlan($pluginKey, false, $preserveDisabled, $consumePlan, $preparedRelease);
     }
 
     /** Read only the actual install/resume policy; release plans retain their independent active-state gate. */
@@ -177,13 +177,17 @@ final readonly class ModuleLifecycleService implements ModuleLifecycleCommands
             'same_identity' => $sameIdentity, 'higher_version' => $forwardRepair];
     }
 
-    private function nativeReadPlan(string $pluginKey, bool $install, bool $preserveDisabled, ?callable $consumePlan): array
+    private function nativeReadPlan(string $pluginKey, bool $install, bool $preserveDisabled, ?callable $consumePlan, bool $preparedRelease = false): array
     {
-        return $this->withPackageLock($pluginKey, function () use ($pluginKey, $install, $preserveDisabled, $consumePlan): array {
+        return $this->withPackageLock($pluginKey, function () use ($pluginKey, $install, $preserveDisabled, $consumePlan, $preparedRelease): array {
             $plugin = $this->resolver->require($pluginKey);
             $this->assertTrustEligible($plugin);
             $manifests = $this->pluginManifests($plugin);
             $current = $this->pluginInstallation($pluginKey, false);
+            if (!$install && $preparedRelease && is_array($current)
+                && $current['status'] === 'failed' && $current['activated_at'] !== null) {
+                return $this->upgradeLocked($pluginKey, true, $consumePlan);
+            }
             $recovery = null; $installAction = 'planned_install';
             if ($install && is_array($current)) {
                 if (in_array($current['status'], ['active', 'maintenance'], true)

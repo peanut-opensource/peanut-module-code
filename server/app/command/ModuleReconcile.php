@@ -142,13 +142,11 @@ final class ModuleReconcile extends ModuleContextualCommand
             $resolver = ModuleLockResolver::forRuntime(dirname(__DIR__, 2), $lock);
             $selection = $this->releaseModuleSelection($resolver->all(), $preparedRelease);
             $this->dependencyOrderedPlugins($resolver, $selection['reconcile'], $config);
-            $recovering = $preparedRelease
-                ? Db::name('module_installation')->where('status', 'failed')->column('module_key') : [];
             $packages = [];
             foreach ([...$selection['reconcile'], ...$selection['preserved_disabled']] as $key) {
-                $packages[] = in_array($key, $recovering, true)
-                    ? $service->installPlan($key)
-                    : $service->reconcilePlan($key, in_array($key, $selection['preserved_disabled'], true));
+                $packages[] = $service->reconcilePlan(
+                    $key, in_array($key, $selection['preserved_disabled'], true), null, $preparedRelease,
+                );
             }
             return ['readonly' => true, 'packages' => $packages,
                 'preserved_uninstalled' => $selection['preserved_uninstalled'],
