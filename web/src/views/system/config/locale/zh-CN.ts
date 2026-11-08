@@ -24,4 +24,12 @@ export default {
   'systemConfig.field.placeholder': '请输入配置值',
 
   'systemConfig.tip.success': '保存成功',
+  'systemConfig.footer.title': '侧栏底部菜单',
+  'systemConfig.footer.groupTitle': '分组标题（留空使用默认文案）',
+  'systemConfig.footer.permissionNote':
+    '显示开关只控制菜单项是否出现，不授予业务权限。',
+  'systemConfig.footer.sidebar_footer_enabled': '显示辅助菜单',
+  'systemConfig.footer.sidebar_footer_settings': '显示页面设置入口',
+  'systemConfig.footer.sidebar_footer_license': '显示授权信息入口',
+  'systemConfig.footer.sidebar_footer_about': '显示关于应用入口',
 };

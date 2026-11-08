@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "private": true,
     "description": "Peanut Module Code instance platform control plane",
-    "author": "\u82b1\u751f\u79d1\u6280",
+    "author": "花生科技",
     "license": "Apache-2.0",
     "homepage": "https://github.com/peanut-business/peanut-admin-code",
     "repository": {
@@ -21,8 +21,8 @@
     },
     "dependencies": {
         "@element-plus/icons-vue": "2.3.2",
-        "@peanut-admin/ui-vue": "5.0.4",
-        "@peanut-admin/vue": "5.0.4",
+        "@peanut-admin/ui-vue": "5.0.5",
+        "@peanut-admin/vue": "5.0.5",
         "axios": "0.34.0",
         "element-plus": "2.14.3",
         "openapi-fetch": "0.17.0",

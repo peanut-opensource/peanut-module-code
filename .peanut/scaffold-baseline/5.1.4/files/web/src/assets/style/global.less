@@ -1,0 +1,380 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  background-color: var(--color-bg-1);
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+}
+
+.echarts-tooltip-diy {
+  background: linear-gradient(
+    304.17deg,
+    rgba(253, 254, 255, 0.6) -6.04%,
+    rgba(244, 247, 252, 0.6) 85.2%
+  ) !important;
+  border: none !important;
+  backdrop-filter: blur(10px) !important;
+  /* Note: backdrop-filter has minimal browser support */
+
+  border-radius: 6px !important;
+  .content-panel {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 9px;
+    background: rgba(255, 255, 255, 0.8);
+    width: 164px;
+    height: 32px;
+    line-height: 32px;
+    box-shadow: 6px 0px 20px rgba(34, 87, 188, 0.1);
+    border-radius: 4px;
+    margin-bottom: 4px;
+  }
+  .tooltip-title {
+    margin: 0 0 10px 0;
+  }
+  p {
+    margin: 0;
+  }
+  .tooltip-title,
+  .tooltip-value {
+    font-size: 13px;
+    line-height: 15px;
+    display: flex;
+    align-items: center;
+    text-align: right;
+    color: #1d2129;
+    font-weight: bold;
+  }
+  .tooltip-item-icon {
+    display: inline-block;
+    margin-right: 8px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+}
+
+.general-card {
+  min-width: 0;
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color-overlay);
+  & > .el-card__header {
+    height: auto;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    background: var(--el-fill-color-extra-light);
+    color: var(--el-text-color-primary);
+    font-weight: 600;
+    line-height: 24px;
+  }
+  & > .el-card__body {
+    min-width: 0;
+    padding: 24px;
+  }
+}
+
+// Match EP's two-class shadow selector, only for the application card opt-in.
+.general-card.el-card {
+  box-shadow: var(--pa-shell-panel-shadow);
+}
+
+// Application defaults for the existing public page primitives. All colors
+// inherit the owning Shell, including brand overrides and dark mode.
+.pa-page-content {
+  min-width: 0;
+}
+
+.pa-page-stack {
+  display: grid;
+  gap: var(--pa-shell-spacing);
+
+  > .pa-page-header {
+    margin-bottom: 0;
+  }
+}
+
+.pa-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-bottom: var(--pa-shell-spacing);
+}
+
+// The root page header is a distinct surface, not another content card.
+// Keep contributed page tools outside its top offset.
+:where(.tenant-content > .pa-page-content) > .pa-page-header:first-child {
+  margin-top: var(--pa-page-header-offset-top);
+  margin-inline: calc(-1 * var(--pa-page-inset));
+  padding: 20px var(--pa-page-inset);
+  border-bottom: 1px solid var(--el-border-color-extra-light);
+  background: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--el-color-primary) 4%, var(--el-bg-color)),
+    var(--el-bg-color) 70%
+  );
+  box-shadow: var(--pa-shell-page-header-shadow);
+  position: relative;
+}
+
+.pa-page-header__title {
+  min-width: 0;
+  color: var(--el-text-color-primary);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
+  overflow-wrap: anywhere;
+
+  > h1 {
+    margin: 0;
+    font: inherit;
+  }
+}
+
+.pa-page-header__actions,
+.pa-page-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pa-page-header__description {
+  margin: 8px 0 0;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 22px;
+}
+
+// Queries keep compact inline controls; editor forms follow Shell density.
+.pa-page-filters {
+  --el-component-size: 28px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(160px, 1fr)) auto;
+  align-items: center;
+  gap: 12px 20px;
+  width: 100%;
+
+  .el-form-item {
+    min-width: 0;
+    margin: 0;
+  }
+  .el-form-item__label {
+    height: auto;
+    margin-bottom: 0;
+    padding-inline-end: 8px;
+    color: var(--el-text-color-regular);
+    line-height: 28px;
+    font-size: 13px;
+  }
+  .el-form-item__content,
+  .el-select {
+    min-width: 0;
+    width: 100%;
+  }
+  .el-form-item__content {
+    line-height: 28px;
+  }
+}
+
+// EP's compiled default button/select heights do not consume component-size.
+// Adapt only Page regions; explicit sizes and link/text actions keep EP behavior.
+:where(.pa-page-header__actions, .pa-page-filters, .pa-shell-settings)
+  .el-button:not(.el-button--small):not(.el-button--large):not(.is-link):not(.is-text) {
+  height: var(--el-component-size);
+}
+
+:where(.pa-page-filters, .pa-page-form-grid, .pa-shell-settings)
+  .el-select:not(.el-select--small):not(.el-select--large) > .el-select__wrapper {
+  min-height: var(--el-component-size);
+}
+
+.pa-page-results-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pa-shell-gap);
+  margin-top: var(--pa-shell-spacing);
+  padding-block: var(--pa-shell-gap);
+  border-top: 1px solid var(--el-border-color-lighter);
+  color: var(--el-text-color-secondary);
+}
+
+.pa-page-results-toolbar--standalone {
+  margin-top: 0;
+  padding-block: 0 var(--pa-shell-gap);
+  border-top: 0;
+  flex-wrap: wrap;
+}
+
+.pa-page-results-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-width: 0;
+
+  > h2 {
+    margin: 0;
+    color: var(--el-text-color-primary);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 24px;
+  }
+}
+
+// Element Plus owns the only table scroll container and sticky columns.
+.pa-page-table.el-table {
+  width: 100%;
+  min-width: 0;
+
+  th.el-table__cell {
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-regular);
+    font-weight: 500;
+  }
+  th.el-table-fixed-column--left,
+  th.el-table-fixed-column--right {
+    background: var(--el-fill-color-light);
+  }
+  .el-table__cell {
+    padding-block: 12px;
+  }
+  .cell {
+    line-height: 22px;
+  }
+}
+
+.pa-page-pagination {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: var(--pa-shell-gap);
+  margin-top: var(--pa-shell-gap);
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.pa-page-form-section {
+  min-width: 0;
+  margin: 0 0 24px;
+  padding: 0;
+  border: 0;
+
+  > legend {
+    width: 100%;
+    margin-bottom: 16px;
+    padding: 0 0 10px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    color: var(--el-text-color-primary);
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 24px;
+  }
+}
+
+.pa-page-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+
+  .el-form-item {
+    min-width: 0;
+  }
+  .el-select {
+    width: 100%;
+  }
+  .pa-page-form-wide {
+    grid-column: 1 / -1;
+  }
+}
+
+.pa-page-form-dialog .el-dialog__body {
+  max-height: calc(88dvh - 140px);
+  overflow-y: auto;
+}
+
+.pa-page-form-help {
+  margin: 0 0 16px;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+:where(.pa-page-content) .general-card > .el-card__body {
+  padding: var(--pa-shell-spacing);
+}
+
+@media (max-width: 1200px) {
+  .pa-page-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  :where(.tenant-content > .pa-page-content) > .pa-page-header:first-child {
+    padding-block: 16px;
+  }
+  .pa-page-stack {
+    gap: 16px;
+  }
+  .pa-page-pagination {
+    justify-content: flex-start;
+  }
+  .pa-page-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pa-page-filters {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .pa-page-header {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .pa-page-header__title {
+    font-size: 20px;
+    line-height: 28px;
+  }
+  .general-card {
+    & > .el-card__header {
+      padding: 14px;
+    }
+    & > .el-card__body {
+      padding: 14px;
+    }
+  }
+  :where(.pa-page-content) .general-card > .el-card__body {
+    padding: 16px;
+  }
+}
+
+.split-line {
+  border-color: rgb(var(--gray-2));
+}
+
+.el-table__cell {
+  .circle {
+    display: inline-block;
+    margin-right: 4px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--el-color-primary);
+    &.pass {
+      background-color: var(--el-color-success);
+    }
+  }
+}

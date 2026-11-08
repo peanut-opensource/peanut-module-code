@@ -32,11 +32,11 @@ importers:
         specifier: workspace:^1.0.0
         version: link:src/modules/peanut-chart
       '@peanut-admin/ui-vue':
-        specifier: 5.0.4
-        version: 5.0.4(@peanut-admin/vue@5.0.4(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
+        specifier: 5.0.5
+        version: 5.0.5(@peanut-admin/vue@5.0.5(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
       '@peanut-admin/vue':
-        specifier: 5.0.4
-        version: 5.0.4(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
+        specifier: 5.0.5
+        version: 5.0.5(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
       '@vueuse/core':
         specifier: ^9.3.0
         version: 9.13.0(vue@3.5.40(typescript@5.9.3))
@@ -786,16 +786,16 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@peanut-admin/ui-vue@5.0.4':
-    resolution: {integrity: sha512-GqCqPMzHlFQuxHBOQOd8K9VUEic0MoSVuVmsmMMuqaBvYWj1pvqqpjkL/OK/iuxcCxUwhATu5gvu7m5hM5a1UA==}
+  '@peanut-admin/ui-vue@5.0.5':
+    resolution: {integrity: sha512-QF0bYbUpX109J8yjvYLS9tFcMt7hhHvAtJdLCmC8dlcF5tsOIqSELy6rX3Pta2Uix4bEOLZZ00glv4Ss4wc/VQ==}
     engines: {node: '>=22.12.0 <23'}
     peerDependencies:
-      '@peanut-admin/vue': 5.0.4
+      '@peanut-admin/vue': 5.0.5
       element-plus: ^2.14.3
       vue: ^3.4.21
 
-  '@peanut-admin/vue@5.0.4':
-    resolution: {integrity: sha512-ANbtW+oUAArfN8jgyc1vyuIS3mNGhmFya9sccTF+WR4P9p267dCUZ5rgTkaf5K7aPch/7685hwtdP0Tku8MMnw==}
+  '@peanut-admin/vue@5.0.5':
+    resolution: {integrity: sha512-zOzU13BuT3xjV9OijUlvYO0W16FQFRM+/+wqyAa22Oy64+mY8y2nWyBdlNdsZeKUWKUIz5HxEzu0EjRKiv1vTg==}
     engines: {node: '>=22.12.0 <23'}
     peerDependencies:
       pinia: '>=2.0.23 <5'
@@ -4457,13 +4457,13 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@peanut-admin/ui-vue@5.0.4(@peanut-admin/vue@5.0.4(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
+  '@peanut-admin/ui-vue@5.0.5(@peanut-admin/vue@5.0.5(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
     dependencies:
-      '@peanut-admin/vue': 5.0.4(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
+      '@peanut-admin/vue': 5.0.5(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
       element-plus: 2.14.3(vue@3.5.40(typescript@5.9.3))
       vue: 3.5.40(typescript@5.9.3)
 
-  '@peanut-admin/vue@5.0.4(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
+  '@peanut-admin/vue@5.0.5(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
     dependencies:
       pinia: 2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3))
       vue: 3.5.40(typescript@5.9.3)

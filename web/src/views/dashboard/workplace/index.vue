@@ -390,7 +390,7 @@
     width: 100%;
     min-width: 0;
     flex-direction: column;
-    gap: 16px;
+    gap: 24px;
   }
 
   .workplace-actions {

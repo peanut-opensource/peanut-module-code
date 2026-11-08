@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "key": "peanut.task",
+  "name": "Task Scheduler",
+  "description": "Tenant-owned schedules and trusted background task execution.",
+  "version": "1.0.31",
+  "kernel_constraint": "^1.0",
+  "license": "Apache-2.0",
+  "php_package": "peanut-business/peanut-task",
+  "web_package": "@peanut-admin/peanut-task",
+  "dependencies": [
+    {
+      "module_key": "peanut.identity",
+      "version": "^4.0.0-rc.48"
+    }
+  ],
+  "backend": {
+    "provider": "PeanutAdmin\\Modules\\Task\\ModuleProvider",
+    "menus": "resources/menus.json",
+    "permissions": "resources/permissions.json",
+    "setting_definitions": "resources/setting-definitions.json",
+    "migrations": "database/migrations"
+  },
+  "frontend": {
+    "entry": "web/src/modules/peanut-task/contribution.ts"
+  },
+  "database": {
+    "owned_tables": [
+      "pa_crontab",
+      "pa_task_job",
+      "pa_task_job_attempt",
+      "pa_task_job_event"
+    ]
+  },
+  "contracts": {
+    "exports": [
+      "PeanutAdmin\\Modules\\Task\\Contract\\NegativeFactTaskHandler",
+      "PeanutAdmin\\Modules\\Task\\Job\\Execution\\NegativeFactJobEnvelope",
+      "PeanutAdmin\\Modules\\Task\\Service\\TaskWorkerDefinitionRegistry",
+      "PeanutAdmin\\Modules\\Task\\Contract\\TaskBootstrapCommands",
+      "PeanutAdmin\\Modules\\Task\\Contract\\TaskDiagnosticQuery",
+      "PeanutAdmin\\Modules\\Task\\Contract\\TaskScheduler",
+      "PeanutAdmin\\Modules\\Task\\Contract\\TaskJobRuntime",
+      "PeanutAdmin\\Modules\\Task\\Contract\\TaskWorkerContributor",
+      "PeanutAdmin\\Modules\\Task\\Contract\\TaskWorkerDefinition",
+      "PeanutAdmin\\Modules\\Task\\Contract\\TaskJobRecordView",
+      "PeanutAdmin\\Modules\\Task\\Contract\\JobRecord",
+      "PeanutAdmin\\Modules\\Task\\Contract\\TaskJobService",
+      "PeanutAdmin\\Modules\\Task\\Contract\\JobExecution",
+      "PeanutAdmin\\Modules\\Task\\Contract\\LeaseLostException",
+      "PeanutAdmin\\Modules\\Task\\Contract\\RetryableTaskException",
+      "PeanutAdmin\\Modules\\Task\\Job\\Application\\TaskJobException",
+      "PeanutAdmin\\Modules\\Task\\Contract\\TaskHandler",
+      "PeanutAdmin\\Modules\\Task\\Contract\\TaskSubmission",
+      "PeanutAdmin\\Modules\\Task\\Contract\\TaskSubmissionProvider",
+      "PeanutAdmin\\Modules\\Task\\Contract\\TrustedJobPublisher",
+      "PeanutAdmin\\Modules\\Task\\Contract\\TaskSourceAuthorizations",
+      "PeanutAdmin\\Modules\\Task\\Contract\\SourceTaskBinding"
+    ],
+    "events": []
+  },
+  "tenant": {
+    "enableable": true,
+    "disable_behavior": "reject_new_operations",
+    "requires": ["peanut.identity"]
+  }
+}

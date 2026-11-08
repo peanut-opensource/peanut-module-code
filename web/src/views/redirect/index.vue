@@ -10,7 +10,7 @@
 
   const gotoPath = route.params.path as string;
 
-  router.replace({ path: gotoPath });
+  router.replace(gotoPath);
 </script>
 
 <style scoped lang="less"></style>

@@ -6,7 +6,7 @@ import {
   type WebsiteConfig,
 } from '@/api/system/config';
 
-const IMAGE_FIELDS: (keyof WebsiteConfig)[] = [
+const IMAGE_FIELDS = [
   'web_favicon',
   'web_logo',
   'login_image',
@@ -14,10 +14,15 @@ const IMAGE_FIELDS: (keyof WebsiteConfig)[] = [
   'pc_logo',
   'pc_ico',
   'h5_favicon',
-];
+] as const;
 
 function normalizeWebsite(website: WebsiteConfig): WebsiteConfig {
-  const normalized = { ...defaultBrand.website, ...website } as WebsiteConfig;
+  const footerDefaults = defaultBrand.sidebar_footer;
+  const normalized = {
+    ...defaultBrand.website,
+    ...footerDefaults,
+    ...website,
+  } as WebsiteConfig;
   const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
   IMAGE_FIELDS.forEach((field) => {
     const value = website[field];

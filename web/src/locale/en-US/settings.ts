@@ -1,6 +1,30 @@
 export default {
   'settings.title': 'Settings',
-  'settings.themeColor': 'Theme Color',
+  'settings.appearance': 'Appearance',
+  'settings.appearance.description':
+    'Theme, brand color and density share one system. Application brand overrides take priority.',
+  'settings.navigationSection': 'Layout and navigation',
+  'settings.navigationSection.description':
+    'Choose how navigation is organized. Page content and access keep their own responsibilities.',
+  'settings.regions': 'Visible regions',
+  'settings.regions.description':
+    'Choose shell regions. Page patterns organize headings, filters and results.',
+  'settings.accessibility': 'Accessibility',
+  'settings.themeColor': 'Brand primary color',
+  'settings.colorPreset': 'Color scheme',
+  'settings.colorPreset.enterprise': 'Business · Blue',
+  'settings.colorPreset.technology': 'Technology · Indigo',
+  'settings.colorPreset.operations': 'Operations · Green',
+  'settings.semanticColors': 'Semantic colors',
+  'settings.tone.primary': 'Primary',
+  'settings.tone.success': 'Success',
+  'settings.tone.warning': 'Warning',
+  'settings.tone.danger': 'Danger',
+  'settings.tone.info': 'Info',
+  'settings.color.fixed': 'Application fixed',
+  'settings.color.reset': 'Restore default colors',
+  'settings.themeColor.fixed':
+    'Brand primary color is fixed by the application',
   'settings.content': 'Content Setting',
   'settings.search': 'Search',
   'settings.search.empty': 'No matching menu items',
@@ -30,6 +54,7 @@ export default {
   'settings.navigation.top': 'Top',
   'settings.density.comfortable': 'Comfortable',
   'settings.density.compact': 'Compact',
+  'settings.density.spacious': 'Spacious',
   'settings.theme.light': 'Light',
   'settings.theme.dark': 'Dark',
   'settings.tabBar': 'Tab Bar',
@@ -37,10 +62,10 @@ export default {
   'settings.otherSettings': 'Other Settings',
   'settings.colorWeak': 'Color Weak',
   'settings.alertContent':
-    'After the configuration is only temporarily effective, if you want to really affect the project, click the "Copy Settings" button below and replace the configuration in settings.json.',
+    'Theme mode, color preset, semantic colors, layout, navigation, density and tabs are saved in this browser. Other page settings last for this session. Copy the configuration for application developers to set the default appearance.',
   'settings.copySettings': 'Copy Settings',
   'settings.copySettings.message':
-    'Copy succeeded, please paste to file src/settings.json.',
+    'Copied. Paste into web/src/config/settings.json when you want these values as application defaults.',
   'settings.close': 'Close',
   'settings.color.tooltip':
     '10 gradient colors generated according to the theme color',

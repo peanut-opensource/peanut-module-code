@@ -26,6 +26,25 @@
               :placeholder="$t('systemConfig.field.placeholder')"
             />
           </el-form-item>
+          <el-divider content-position="left">
+            {{ $t('systemConfig.footer.title') }}
+          </el-divider>
+          <el-form-item :label="$t('systemConfig.footer.groupTitle')">
+            <el-input v-model="form.sidebar_footer_title" :maxlength="60" />
+          </el-form-item>
+          <p class="footer-note">
+            {{ $t('systemConfig.footer.permissionNote') }}
+          </p>
+          <el-form-item
+            v-for="field in footerFlags"
+            :key="field"
+            :label="$t(`systemConfig.footer.${field}`)"
+          >
+            <el-switch
+              v-model="form[field]"
+              :aria-label="$t(`systemConfig.footer.${field}`)"
+            />
+          </el-form-item>
           <el-form-item>
             <el-button
               v-permission="['peanut.settings.manage']"
@@ -83,6 +102,13 @@
     { key: 'github_url' },
   ];
 
+  const footerFlags = [
+    'sidebar_footer_enabled',
+    'sidebar_footer_settings',
+    'sidebar_footer_license',
+    'sidebar_footer_about',
+  ] as const;
+
   const rules = {
     name: [{ required: true, message: t('systemConfig.field.name.required') }],
     shop_name: [
@@ -124,5 +150,11 @@
 <style scoped lang="less">
   .container {
     padding: 0 20px 20px 20px;
+  }
+
+  .footer-note {
+    margin: 0 0 16px;
+    color: var(--el-text-color-secondary);
+    font-size: 13px;
   }
 </style>

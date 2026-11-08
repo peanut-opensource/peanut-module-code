@@ -264,11 +264,17 @@ $schemas = [
     ],
     'WebsiteConfig' => [
         'type' => 'object', 'additionalProperties' => false,
-        'required' => ['name', 'web_favicon', 'web_logo', 'login_image', 'shop_name', 'shop_logo', 'pc_logo', 'pc_title', 'pc_ico', 'pc_desc', 'pc_keywords', 'h5_favicon', 'slogan', 'copyright', 'official_url', 'github_url'],
-        'properties' => array_fill_keys([
+        'required' => ['name', 'web_favicon', 'web_logo', 'login_image', 'shop_name', 'shop_logo', 'pc_logo', 'pc_title', 'pc_ico', 'pc_desc', 'pc_keywords', 'h5_favicon', 'slogan', 'copyright', 'official_url', 'github_url', 'sidebar_footer_enabled', 'sidebar_footer_title', 'sidebar_footer_settings', 'sidebar_footer_license', 'sidebar_footer_about'],
+        'properties' => array_merge(array_fill_keys([
             'name', 'web_favicon', 'web_logo', 'login_image', 'shop_name', 'shop_logo', 'pc_logo', 'pc_title',
             'pc_ico', 'pc_desc', 'pc_keywords', 'h5_favicon', 'slogan', 'copyright', 'official_url', 'github_url',
-        ], ['type' => 'string']),
+        ], ['type' => 'string']), [
+            'sidebar_footer_enabled' => ['type' => 'boolean'],
+            'sidebar_footer_title' => ['type' => 'string', 'maxLength' => 60],
+            'sidebar_footer_settings' => ['type' => 'boolean'],
+            'sidebar_footer_license' => ['type' => 'boolean'],
+            'sidebar_footer_about' => ['type' => 'boolean'],
+        ]),
     ],
     'AdminBrandConfig' => [
         'type' => 'object', 'additionalProperties' => false,

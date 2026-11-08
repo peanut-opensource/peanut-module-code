@@ -1,0 +1,22 @@
+<?php
+
+declare(strict_types=1);
+
+// This executable verifies generated declarations only, never claims tenant/business qualification.
+$root = dirname(__DIR__, 5);
+$backend = $root . '/' . ${BACKEND_RELATIVE_JSON};
+$manifest = json_decode((string) file_get_contents($backend . '/module.json'), true, 512, JSON_THROW_ON_ERROR);
+$composer = json_decode((string) file_get_contents($backend . '/composer.json'), true, 512, JSON_THROW_ON_ERROR);
+$prefix = ${PHP_PREFIX_JSON};
+if (($manifest['key'] ?? null) !== ${MODULE_KEY_JSON}
+    || ($composer['autoload']['psr-4'][$prefix] ?? null) !== 'src/'
+    || ($manifest['backend']['provider'] ?? null) !== $prefix . 'ModuleProvider'
+    || !is_file($backend . '/src/ModuleProvider.php')) {
+    throw new RuntimeException('GENERATED_MODULE_STRUCTURE_INVALID');
+}
+$frontend = ${FRONTEND_TEST_JSON};
+if (($manifest['frontend']['entry'] ?? null) !== $frontend
+    || ($frontend !== null && !is_file($root . '/' . $frontend))) {
+    throw new RuntimeException('GENERATED_MODULE_FRONTEND_INVALID');
+}
+echo 'MODULE-STRUCTURE-001 passed; business/security qualification not executed' . PHP_EOL;

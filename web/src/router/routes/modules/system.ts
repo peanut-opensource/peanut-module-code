@@ -28,6 +28,7 @@ const SYSTEM: AppRouteRecordRaw = {
       component: () => import('@/views/system/role/index.vue'),
       meta: {
         locale: 'menu.system.role',
+        fullPathKey: false,
         requiresAuth: true,
         requiredPermissions: 'core.role.read',
       },
@@ -38,6 +39,7 @@ const SYSTEM: AppRouteRecordRaw = {
       component: () => import('@/views/system/admin/index.vue'),
       meta: {
         locale: 'menu.system.admin',
+        fullPathKey: false,
         requiresAuth: true,
         requiredPermissions: 'core.member.read',
       },
@@ -48,6 +50,7 @@ const SYSTEM: AppRouteRecordRaw = {
       component: () => import('@/views/system/dept/index.vue'),
       meta: {
         locale: 'menu.system.dept',
+        fullPathKey: false,
         requiresAuth: true,
         requiredPermissions: 'core.department.read',
       },
@@ -58,6 +61,7 @@ const SYSTEM: AppRouteRecordRaw = {
       component: () => import('@/views/system/jobs/index.vue'),
       meta: {
         locale: 'menu.system.jobs',
+        fullPathKey: false,
         requiresAuth: true,
         requiredPermissions: ['core.job.read'],
       },

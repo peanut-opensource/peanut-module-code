@@ -1,8 +1,7 @@
 <template>
-  <div class="container">
-    <Breadcrumb :items="['menu.system', 'menu.system.role']" />
+  <PageContent>
+    <PageHeader><h1>{{ $t('menu.system.role') }}</h1></PageHeader>
     <el-card class="general-card">
-      <template #header>{{ $t('menu.system.role') }}</template>
       <el-row style="margin-bottom: 16px">
         <el-col :span="12">
           <el-space>
@@ -231,10 +230,11 @@
       :role="dataPolicyRole"
       @close="dataPolicyRole = null"
     />
-  </div>
+  </PageContent>
 </template>
 
 <script lang="ts" setup>
+  import { PageContent, PageHeader } from '@peanut-admin/ui-vue';
   import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { ElMessage } from 'element-plus';
@@ -521,9 +521,6 @@
 </script>
 
 <style scoped lang="less">
-  .container {
-    padding: 0 20px 20px 20px;
-  }
 
   .action-permissions {
     display: flex;

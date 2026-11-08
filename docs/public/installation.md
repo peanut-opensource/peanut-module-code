@@ -32,7 +32,7 @@ ThinkPHP 会优先使用 `server/runtime/config.php`，已有配置缓存可能�
 
 多租户首配只要求 `PLATFORM_HOSTS` 标识平台入口；租户站点入口在数据库中绑定。资源登记、endpoint、consumer 和租约证明属于需要它们的维护命令准入，普通运行与首次安装不强制填写维护资源身份。
 
-源码模板的 `resources/project-resources.json` 默认未分配任何运行资源。`./scripts/project-resource-registry validate` 仅检查登记结构，成功不代表资源已分配、可连接或健康；带资源作用域的校验及资源使用命令仍要求完整登记，不从维护者环境推断或借用资源。
+源码模板的 `resources/project-resources.json` 默认未分配任何运行资源。应用维护者在其中登记自己的实际资源及凭据引用；普通安装和运行使用上文原生配置，连接、权限及安装状态由安装向导预检。Code 的 `scripts/project-resource-registry` 是维护工具，不随生成应用交付；不从维护者环境推断或借用资源。
 
 操作前核实际目标、连接、权限、空库和安装身份。未知数据、已有 APP 库或 partial 库不得清空。开发源码、内部候选和正式实例身份不同，开发模式不能带入生产；具体身份适配尚未完成时停止相应安装路径，不手改清单或回执。
 

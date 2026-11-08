@@ -3,6 +3,7 @@
     v-if="type === 'number'"
     :style="{ width: '80px' }"
     size="small"
+    :aria-label="label"
     :model-value="(defaultValue as number)"
     @change="handleChange"
   />
@@ -10,6 +11,7 @@
     v-else
     :model-value="(defaultValue as boolean)"
     size="small"
+    :aria-label="label"
     @change="handleChange"
   />
 </template>
@@ -21,6 +23,10 @@
       default: '',
     },
     name: {
+      type: String,
+      default: '',
+    },
+    label: {
       type: String,
       default: '',
     },

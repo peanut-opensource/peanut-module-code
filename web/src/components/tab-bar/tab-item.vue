@@ -1,191 +1,65 @@
 <template>
-  <el-dropdown trigger="contextmenu" @command="actionSelect">
+  <TabBarMenu v-slot="{ closeCurrent }" :item-data="itemData" :index="index">
     <el-tag
-      :class="{ 'link-activated': itemData.fullPath === route.fullPath }"
+      :class="{ 'link-activated': getTabKey(itemData) === getTabKey(route) }"
       :closable="index !== 0"
-      @click="goto(itemData)"
-      @close="tagClose(itemData, index)"
+      @click="router.push(itemData.fullPath)"
+      @close="closeCurrent"
     >
-      <span class="tag-link">
-        {{ $t(itemData.title) }}
-      </span>
+      <el-icon v-if="icon" class="tab-icon" aria-hidden="true">
+        <component :is="resolveMenuIcon(icon)" />
+      </el-icon>
+      <span class="tag-link">{{ $t(itemData.title) }}</span>
     </el-tag>
-    <template #dropdown>
-      <el-dropdown-menu>
-        <el-dropdown-item :disabled="disabledReload" :command="Eaction.reload">
-          <el-icon><Refresh /></el-icon>
-          <span>重新加载</span>
-        </el-dropdown-item>
-        <el-dropdown-item
-          class="sperate-line"
-          :disabled="disabledCurrent"
-          :command="Eaction.current"
-        >
-          <el-icon><Close /></el-icon>
-          <span>关闭当前标签页</span>
-        </el-dropdown-item>
-        <el-dropdown-item :disabled="disabledLeft" :command="Eaction.left">
-          <el-icon><DArrowLeft /></el-icon>
-          <span>关闭左侧标签页</span>
-        </el-dropdown-item>
-        <el-dropdown-item
-          class="sperate-line"
-          :disabled="disabledRight"
-          :command="Eaction.right"
-        >
-          <el-icon><DArrowRight /></el-icon>
-          <span>关闭右侧标签页</span>
-        </el-dropdown-item>
-        <el-dropdown-item :command="Eaction.others">
-          <el-icon><Switch /></el-icon>
-          <span>关闭其它标签页</span>
-        </el-dropdown-item>
-        <el-dropdown-item :command="Eaction.all">
-          <el-icon><FolderDelete /></el-icon>
-          <span>关闭全部标签页</span>
-        </el-dropdown-item>
-      </el-dropdown-menu>
-    </template>
-  </el-dropdown>
+  </TabBarMenu>
 </template>
 
 <script lang="ts" setup>
-  import { PropType, computed } from 'vue';
   import { useRouter, useRoute } from 'vue-router';
-  import {
-    Close,
-    DArrowLeft,
-    DArrowRight,
-    FolderDelete,
-    Refresh,
-    Switch,
-  } from '@element-plus/icons-vue';
-  import type { ShellTab as TagProps } from '@peanut-admin/ui-vue';
-  import { useTabBarStore } from '@/store';
-  import { DEFAULT_ROUTE_NAME, REDIRECT_ROUTE_NAME } from '@/router/constants';
+  import { getTabKey, type ShellTab } from '@peanut-admin/ui-vue/tabs';
+  import resolveMenuIcon from '@/components/menu/menu-icons';
+  import TabBarMenu from './TabBarMenu.vue';
 
-  // eslint-disable-next-line no-shadow
-  enum Eaction {
-    reload = 'reload',
-    current = 'current',
-    left = 'left',
-    right = 'right',
-    others = 'others',
-    all = 'all',
-  }
-
-  const props = defineProps({
-    itemData: {
-      type: Object as PropType<TagProps>,
-      default() {
-        return {};
-      },
-    },
-    index: {
-      type: Number,
-      default: 0,
-    },
-  });
-
+  defineProps<{ itemData: ShellTab; index: number; icon?: string }>();
   const router = useRouter();
   const route = useRoute();
-  const tabBarStore = useTabBarStore();
-
-  const goto = (tag: TagProps) => {
-    router.push(tag.fullPath);
-  };
-  const tagList = computed(() => {
-    return tabBarStore.getTabList;
-  });
-
-  const disabledReload = computed(() => {
-    return props.itemData.fullPath !== route.fullPath;
-  });
-
-  const disabledCurrent = computed(() => {
-    return props.index === 0;
-  });
-
-  const disabledLeft = computed(() => {
-    return [0, 1].includes(props.index);
-  });
-
-  const disabledRight = computed(() => {
-    return props.index === tagList.value.length - 1;
-  });
-
-  const tagClose = (tag: TagProps, idx: number) => {
-    tabBarStore.deleteTag(idx, tag);
-    if (props.itemData.fullPath === route.fullPath) {
-      const latest = tagList.value[idx - 1]; // 获取队列的前一个tab
-      router.push({ name: latest.name });
-    }
-  };
-
-  const findCurrentRouteIndex = () => {
-    return tagList.value.findIndex((el) => el.fullPath === route.fullPath);
-  };
-  const actionSelect = async (value: unknown) => {
-    const { itemData, index } = props;
-    const copyTagList = [...tagList.value];
-    if (value === Eaction.current) {
-      tagClose(itemData, index);
-    } else if (value === Eaction.left) {
-      const currentRouteIdx = findCurrentRouteIndex();
-      copyTagList.splice(1, props.index - 1);
-
-      tabBarStore.freshTabList(copyTagList);
-      if (currentRouteIdx < index) {
-        router.push({ name: itemData.name });
-      }
-    } else if (value === Eaction.right) {
-      const currentRouteIdx = findCurrentRouteIndex();
-      copyTagList.splice(props.index + 1);
-
-      tabBarStore.freshTabList(copyTagList);
-      if (currentRouteIdx > index) {
-        router.push({ name: itemData.name });
-      }
-    } else if (value === Eaction.others) {
-      const filterList = tagList.value.filter((el, idx) => {
-        return idx === 0 || idx === props.index;
-      });
-      tabBarStore.freshTabList(filterList);
-      router.push({ name: itemData.name });
-    } else if (value === Eaction.reload) {
-      tabBarStore.deleteCache(itemData);
-      await router.push({
-        name: REDIRECT_ROUTE_NAME,
-        params: {
-          path: route.fullPath,
-        },
-      });
-      tabBarStore.addCache(itemData.name);
-    } else {
-      tabBarStore.resetTabList();
-      router.push({ name: DEFAULT_ROUTE_NAME });
-    }
-  };
 </script>
 
 <style scoped lang="less">
+  .tab-icon {
+    margin-inline-end: 6px;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .el-tag {
+    padding-inline: 16px;
+    font-size: 13px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    :deep(.el-tag__content) {
+      display: inline-flex;
+      align-items: center;
+      min-width: 0;
+      max-width: 100%;
+    }
+  }
   .tag-link {
+    min-width: 0;
     color: var(--el-text-color-regular);
     text-decoration: none;
   }
   .link-activated {
     color: var(--el-color-primary);
+    border-bottom-color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
     .tag-link {
       color: var(--el-color-primary);
+      font-weight: 500;
     }
     :deep(.el-tag__close) {
       color: var(--el-color-primary);
     }
-  }
-  :deep(.el-dropdown-menu__item .el-icon) {
-    margin-right: 10px;
-  }
-  .sperate-line {
-    border-bottom: 1px solid var(--el-border-color-lighter);
   }
 </style>

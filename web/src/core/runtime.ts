@@ -27,6 +27,8 @@ export const shellPresentation: ShellPresentation =
   application.shellPresentation ?? shellPresets.admin;
 export const shellUserOptions =
   application.shellUserOptions ?? defaultShellUserOptions;
+export const shellColorPresetOptions =
+  shellUserOptions.colorPresets ?? defaultShellUserOptions.colorPresets;
 
 export { PERMISSION_EVALUATOR_OVERRIDE_KEY } from '@peanut-admin/vue';
 export type { PermissionEvaluator } from '@peanut-admin/vue';

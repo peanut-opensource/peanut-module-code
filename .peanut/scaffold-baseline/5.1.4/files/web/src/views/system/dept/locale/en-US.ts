@@ -1,0 +1,48 @@
+export default {
+  'menu.system.dept': 'Department',
+
+  'systemDept.operation.create': 'New Department',
+  'systemDept.operation.refresh': 'Refresh',
+  'systemDept.operation.search': 'Search',
+  'systemDept.operation.reset': 'Reset',
+  'systemDept.operation.expand': 'Expand/Collapse',
+  'systemDept.operation.addChild': 'Add Child',
+  'systemDept.operation.edit': 'Edit',
+  'systemDept.operation.delete': 'Delete',
+
+  'systemDept.columns.name': 'Name',
+  'systemDept.columns.leader': 'Leader',
+  'systemDept.columns.mobile': 'Phone',
+  'systemDept.columns.sort': 'Sort',
+  'systemDept.columns.status': 'Status',
+  'systemDept.columns.updateTime': 'Updated At',
+  'systemDept.columns.operations': 'Operations',
+
+  'systemDept.field.pid': 'Parent Department',
+  'systemDept.field.pid.root': 'Top Level',
+  'systemDept.field.pid.placeholder': 'Select a parent department',
+  'systemDept.field.pid.required': 'Select a parent department',
+  'systemDept.field.name': 'Name',
+  'systemDept.field.name.placeholder': 'Enter department name',
+  'systemDept.field.name.required': 'Department name is required',
+  'systemDept.field.leader': 'Contact name (text)',
+  'systemDept.field.leader.placeholder':
+    'Contact information only; not a workflow assignment',
+  'systemDept.field.mobile': 'Phone',
+  'systemDept.field.mobile.placeholder': 'Enter contact phone',
+  'systemDept.field.mobile.invalid': 'Enter a valid mobile number',
+  'systemDept.field.sort': 'Sort',
+  'systemDept.field.status': 'Status',
+
+  'systemDept.search.name': 'Department Name',
+  'systemDept.search.name.placeholder': 'Enter department name',
+  'systemDept.search.status': 'Status',
+  'systemDept.search.status.all': 'All',
+  'systemDept.status.normal': 'Normal',
+  'systemDept.status.disabled': 'Disabled',
+
+  'systemDept.modal.addTitle': 'New Department',
+  'systemDept.modal.editTitle': 'Edit Department',
+  'systemDept.delete.confirm': 'Delete this department?',
+  'systemDept.tip.success': 'Success',
+};

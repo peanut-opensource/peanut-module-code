@@ -1,6 +1,29 @@
 export default {
   'settings.title': '页面配置',
-  'settings.themeColor': '主题色',
+  'settings.appearance': '外观',
+  'settings.appearance.description':
+    '统一主题、品牌色和界面密度。应用固定的品牌设置优先。',
+  'settings.navigationSection': '布局与导航',
+  'settings.navigationSection.description':
+    '选择导航组织方式；页面内容与业务权限保持各自职责。',
+  'settings.regions': '区域显示',
+  'settings.regions.description':
+    '控制整体界面区域。页头、查询和结果区域由统一页面模式组织。',
+  'settings.accessibility': '辅助功能',
+  'settings.themeColor': '品牌主色',
+  'settings.colorPreset': '场景配色',
+  'settings.colorPreset.enterprise': '通用商务 · 蓝',
+  'settings.colorPreset.technology': '科技协作 · 靛',
+  'settings.colorPreset.operations': '绿色运营 · 绿',
+  'settings.semanticColors': '语义配色',
+  'settings.tone.primary': '主色',
+  'settings.tone.success': '成功',
+  'settings.tone.warning': '警告',
+  'settings.tone.danger': '危险',
+  'settings.tone.info': '信息',
+  'settings.color.fixed': '应用固定',
+  'settings.color.reset': '恢复默认配色',
+  'settings.themeColor.fixed': '品牌主色由应用固定设置',
   'settings.content': '内容区域',
   'settings.search': '搜索',
   'settings.search.empty': '没有匹配的菜单项',
@@ -30,6 +53,7 @@ export default {
   'settings.navigation.top': '顶部',
   'settings.density.comfortable': '舒适',
   'settings.density.compact': '紧凑',
+  'settings.density.spacious': '宽松',
   'settings.theme.light': '亮色',
   'settings.theme.dark': '暗色',
   'settings.tabBar': '多页签',
@@ -37,10 +61,10 @@ export default {
   'settings.otherSettings': '其他设置',
   'settings.colorWeak': '色弱模式',
   'settings.alertContent':
-    '配置之后仅是临时生效，要想真正作用于项目，点击下方的 "复制配置" 按钮，将配置替换到 settings.json 中即可。',
+    '主题模式、场景配色、语义色、布局、导航、密度和多页签保存在当前浏览器；其他页面配置仅在本次会话生效。复制配置可供应用开发者设置默认外观。',
   'settings.copySettings': '复制配置',
   'settings.copySettings.message':
-    '复制成功，请粘贴到 src/settings.json 文件中',
+    '复制成功，请按需粘贴到 web/src/config/settings.json 作为应用默认值。',
   'settings.close': '关闭',
   'settings.color.tooltip':
     '根据主题颜色生成的 10 个梯度色（将配置复制到项目中，主题色才能对亮色 / 暗黑模式同时生效）',
