@@ -1,0 +1,1 @@
+import{ay as a}from"./index-CKDzxOck.js";const r="/adminapi/custom.ai-assistant.";async function e(t){const{generation:n}=a(),{data:s}=await t();if(n!==a().generation)throw new Error("会话已切换，请重新加载");return s}export{r as b,e as c};

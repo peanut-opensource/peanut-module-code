@@ -156,6 +156,9 @@
 
     <el-dialog
       v-model="modalVisible"
+      class="pa-page-form-dialog"
+      width="min(680px, calc(100vw - 24px))"
+      align-center
       :title="
         isEdit
           ? $t('systemDept.modal.editTitle')
