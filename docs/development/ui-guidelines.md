@@ -12,7 +12,7 @@
 
 **继续使用 Vue、Element Plus 和现有 PageContent / PageHeader / PageToolbar。** 不引入 Ant 组件、CSS reset、第二套主题或 Schema 页面引擎。Element Plus 拥有控件交互、尺寸及状态；Web Core 拥有无业务组件和 Shell 主题合同；Code 拥有应用视觉装配与官方业务样板；模块拥有业务内容及局部样式。
 
-应用默认样式位于 `web/src/assets/style/global.less`。只针对明确的 Page 类和已有 `.general-card` 装配样式，不能全局覆盖 `.el-*`；不增加 `!important` 压过应用定制。先核实际 CSS 加载顺序与选择器优先级，新增默认样式不能抢占模块自有布局。
+应用默认样式位于 `web/src/assets/style/global.less`。只针对明确的 Page 类和已有 `.general-card` 装配样式，不能全局覆盖 `.el-*`；不增加 `!important` 压过应用定制。先核实际 CSS 加载顺序与选择器优先级，新增默认样式不能抢占模块自有布局。应用保留有效品牌与业务布局定制；旧默认中的固定面包屑定位、依赖旧侧栏宽度的偏移、Shell与页面重复padding须按实际冲突原位移除，不能仅因位于应用override中而继续保留。
 
 公共视觉规则集中维护在本准则及既有公共装配入口，不散落复制到业务页面或模块。页面样式只表达业务结构和必要的局部布局，不重复定义公共颜色、标题、间距或卡片规则；新模块优先采用现有 Page 组件，并沿用 Element Plus 语义 tokens。应用品牌与主题 override 保留，由原生三方审阅处理。
 
@@ -94,8 +94,8 @@ PageHeader 标题插槽包含 h1；PageToolbar 使用准确的本地化 label。
 
 | 区域 | 内容与交互 | 现有承载及样式 |
 | --- | --- | --- |
-| 页面容器 | 继承Shell内容宽度；统一纵向节奏，页面不再叠padding | PageContent、`pa-page-stack` |
-| 页头 | 单h1、可选一句任务说明；创建等页面级主操作靠右，窄屏可另起一行 | PageHeader、`pa-page-header__description`、actions插槽 |
+| 页面容器 | 继承Shell内容宽度；workspace仅限制内容容器最大宽度，标签栏占主区域全宽；统一纵向节奏，页面不再叠padding | PageContent、`pa-page-stack` |
+| 页头 | 单h1、可选一句任务说明；创建等页面级主操作靠右，窄屏可另起一行；外边缘与内容面板对齐，保留Shell上方留白，不用负margin扩宽 | PageHeader、`pa-page-header__description`、actions插槽 |
 | 查询 | 只含查询条件与查询／重置；默认紧凑、标签与输入同行，Enter提交；普通3项不做无意义折叠 | 独立general-card、PageToolbar、el-form、`pa-page-filters` |
 | 结果工具栏 | 数据集名称h2、真实总数／选择数；导出和批量动作在右；批量动作仅在已有选择能力与权限时展示 | `pa-page-results-toolbar--standalone`、`pa-page-results-title` |
 | 数据主体 | 表格、树、列表或画布；包含自己的加载／空／失败状态 | el-table、`pa-page-table`；不套第二个横滚容器 |
@@ -138,7 +138,7 @@ PageHeader 标题插槽包含 h1；PageToolbar 使用准确的本地化 label。
 
 官方[Vben侧栏](https://github.com/vbenjs/vue-vben-admin/blob/main/packages/%40core/ui-kit/layout-ui/src/components/layout-sidebar.vue)将菜单、底部折叠和品牌分区，[Ant Design Pro布局](https://github.com/ant-design/ant-design-pro/blob/master/src/app.tsx)把账号放顶栏、版权放Footer。这些不是统一行业强制标准。Peanut已在Logo旁提供折叠，顶栏已有用户／租户入口，因此侧栏不重复头像、退出、套餐或组织切换。侧栏顶部用户区只适用于它确实承担独立工作空间切换的应用定制。
 
-默认底部是点击展开的低权重辅助菜单，复用 Footer 与 Element Plus Dropdown：页面设置打开现有设置面板；授权信息仅点击后打开现有只读许可证组件；关于应用始终排最后，显示应用自身品牌、真实客户端package版本与版权，开发构建明确DEV。普通页面不常驻套餐摘要，package版本不代表模板已经正式发布。折叠时图标带可访问名称，手机选择后关闭导航抽屉再呈现目标浮层。
+默认底部是点击展开的低权重辅助菜单，复用 Footer 与 Element Plus Dropdown：文字在左、水平三点在最右，折叠时图标居中；桌面浮层在侧栏右侧、窄屏向上展开，点击状态不因鼠标跨越浮层间距而关闭。页面设置打开现有设置面板；授权信息仅点击后打开现有只读许可证组件；关于应用始终排最后，显示应用自身品牌、真实客户端package版本与版权，开发构建明确DEV。普通页面不常驻套餐摘要，package版本不代表模板已经正式发布。折叠时图标带可访问名称，手机选择后关闭导航抽屉再呈现目标浮层。
 
 后台网站设置沿已有 tenant website JSON 配置 `sidebar_footer_enabled/title/settings/license/about`，不新增表或菜单权限。总开关、标题及三个入口开关通过既有Host绑定品牌配置下发，空标题采用本地化默认；未配置的应用沿生成品牌默认。后台保存仍需原设置管理权限，显示开关不授予访问权限，许可证仍由原租户接口授权。不得让普通成员为取得外观配置而读取受限网站管理接口。帮助／反馈由应用通过既有贡献槽接入真实入口；原footer开关只控制内置区，不能隐藏模块贡献。顶部导航模式保留原页面版权Footer。
 
@@ -152,7 +152,7 @@ PageHeader 标题插槽包含 h1；PageToolbar 使用准确的本地化 label。
 
 1. 先读本准则、直接消费者、组件实现、主题来源与升级归属，区分已有未用、环境问题和真实缺口。
 2. 按实际页面模式定义最小写集，复用现有组件；只修已观察问题，不创建竞争基础设施。
-3. 保留接口、结构、租户隔离、菜单及权限语义。模块 UI 改动计入模块内容身份，核对声明的完整前端根，包括可选运行目录与各客户端；内容变化须同步模块声明、Composer 和所属前端包版本，再由原生工具生成锁。已有内容一致的版本直接复用，不为标记同步空升版本，也不保留同版本异内容。同步公开入口与生成 AGENTS，AGENTS 只指向本文。
+3. 保留接口、结构、租户隔离、菜单及权限语义；菜单调整同时遵守[菜单与导航](menu-navigation.md)的安全域与实例引用边界，图表退出先按[图表能力](charts.md#独立交付与退出)核实际消费者。模块 UI 改动计入模块内容身份，核对声明的完整前端根，包括可选运行目录与各客户端；内容变化须同步模块声明、Composer 和所属前端包版本，再由原生工具生成锁。已有内容一致的版本直接复用，不为标记同步空升版本，也不保留同版本异内容。同步公开入口与生成 AGENTS，AGENTS 只指向本文。
 4. 用原生生成器更新模板 inventory。正式模板形成后，各应用分别通过 baseline 三方计划采用；不能复制覆盖目录、重设baseline或把整个客户端标为自有来跳过保护。
 5. 应用自有 AGENTS、页面、主题、菜单、角色、权限、业务数据和秘密继续受原生归属保护。同文件双方修改可能产生需要审阅的真实冲突，不能承诺任意二开零冲突，也不能靠覆盖消除冲突。
 

@@ -1,5 +1,5 @@
 <template>
-  <div class="navbar">
+  <div class="navbar" :class="{ 'navbar--top': topMenu }">
     <div
       class="left-side"
       :class="{ 'is-collapsed': sidebarCollapsed }"
@@ -21,24 +21,23 @@
         >
           {{ brandTitle }}
         </h5>
-
       </div>
     </div>
     <el-button
-          v-if="!topMenu"
-          class="navigation-toggle"
-          text
-          circle
-          size="small"
-          :aria-label="navigationToggleLabel"
-          :title="navigationToggleLabel"
-          @click="toggleNavigation"
-        >
-          <el-icon>
-            <Expand v-if="appStore.device === 'mobile' || appStore.menuCollapse" />
-            <Fold v-else />
-          </el-icon>
-        </el-button>
+      v-if="!topMenu"
+      class="navigation-toggle"
+      text
+      circle
+      size="small"
+      :aria-label="navigationToggleLabel"
+      :title="navigationToggleLabel"
+      @click="toggleNavigation"
+    >
+      <el-icon>
+        <Expand v-if="appStore.device === 'mobile' || appStore.menuCollapse" />
+        <Fold v-else />
+      </el-icon>
+    </el-button>
     <div class="breadcrumb-side">
       <slot name="breadcrumb" />
     </div>
@@ -374,18 +373,23 @@
       appStore.device !== 'mobile'
   );
   const sidebarCollapsed = computed(
-    () => appStore.device === 'desktop' && !topMenu.value && appStore.menuCollapse
+    () =>
+      appStore.device === 'desktop' && !topMenu.value && appStore.menuCollapse
   );
   const navigationToggleLabel = computed(() =>
     appStore.device === 'mobile'
       ? t('settings.menu')
-      : t(sidebarCollapsed.value ? 'settings.menu.expand' : 'settings.menu.collapse')
+      : t(
+          sidebarCollapsed.value
+            ? 'settings.menu.expand'
+            : 'settings.menu.collapse'
+        )
   );
   const brandLogoStyle = computed(() =>
     sidebarCollapsed.value ? { width: '24px', height: '24px' } : undefined
   );
   const brandAreaStyle = computed(() => {
-    if (appStore.device !== 'desktop' || topMenu.value) return undefined;
+    if (appStore.device !== 'desktop') return undefined;
     const width = sidebarCollapsed.value
       ? 'var(--pa-shell-sidebar-collapsed-width)'
       : 'var(--pa-shell-sidebar-width)';
@@ -552,7 +556,8 @@
     flex: 0 1 auto;
     padding-inline: 20px;
     align-self: stretch;
-    border-right: 1px solid var(--el-border-color);
+    overflow: hidden;
+    border-right: 1px solid var(--el-border-color-extra-light);
     transition: width var(--pa-shell-motion-duration);
   }
 
@@ -620,9 +625,15 @@
     overflow: hidden;
   }
 
+  .navbar--top .breadcrumb-side {
+    flex: 0 1 220px;
+    margin-inline: 16px;
+  }
+
   .center-side {
     flex: 1;
     min-width: 0;
+    overflow: hidden;
   }
 
   .right-side {

@@ -17,7 +17,7 @@ export const shellPresentation: ShellPresentation = {
 };
 ```
 
-`layout` 的 `admin/workspace`、`navigationMode` 的 `tree/grouped/top` 和 `theme` 相互独立。tree 保留分层折叠菜单；grouped 将每层分类标题和后代平铺显示，不按组折叠。两种侧栏模式都可用原收起/展开按钮切换整个侧栏宽度；grouped 收起时隐藏分类标题、保留平铺入口，展开恢复标题和文字，导航方式仍为 grouped。top 沿原页头菜单呈现。导航只消费 `AppSettings.shellNavigationMode`，原 `topMenu` 独立开关已经移除，避免双轨偏好冲突。`themeColor`、`menuWidth`、`tabBar`、`navbar/menu/footer` 保留独立语义。主题变量只应用于本宿主，不保存身份或发起业务请求。默认品牌沿 Brand store 及租户信息，应用指定 brand 时只替换展示。
+`layout` 的 `admin/workspace`、`navigationMode` 的 `tree/grouped/top` 和 `theme` 相互独立。tree 保留分层折叠菜单；grouped 将每层分类标题和后代平铺显示，不按组折叠。两种侧栏模式都可用原收起/展开按钮切换整个侧栏宽度；grouped 收起时使用 Element Plus 原生 SubMenu 图标入口及悬停浮层，展开恢复分组标题和组内缩进，导航方式仍为 grouped。展开专属缩进不作用于根级入口、顶部菜单或折叠浮层。top 沿原页头菜单呈现，品牌区沿侧栏宽度限宽并省略长名称，保留面包屑与导航空间。导航只消费 `AppSettings.shellNavigationMode`，原 `topMenu` 独立开关已经移除，避免双轨偏好冲突。`themeColor`、`menuWidth`、`tabBar`、`navbar/menu/footer` 保留独立语义。主题变量只应用于本宿主，不保存身份或发起业务请求。默认品牌沿 Brand store 及租户信息，应用指定 brand 时只替换展示。
 
 普通用户从原 Navbar 的“页面配置”打开 GlobalSetting，选择已登记的管理台/工作台预设，再调整应用允许的布局、导航、密度和主题模式。选择写入原 AppSettings：`shellPreset/shellLayout/shellNavigationMode/shellDensity`，主题仍使用 `theme` 与已有 `element-theme` 偏好键；其余展示项沿原临时设置/复制配置方式保存，没有新增服务端设置、存储账本或业务请求。更换预设只修改同一 Shell 的展示 props，不切换业务组件身份或重建 runtime。
 
@@ -37,7 +37,7 @@ export const shellUserOptions: ShellUserOptions = {
 
 主题应用于 `.tenant-shell` 根，侧栏使用 `--pa-shell-surface-color`，菜单继承 Element Plus 变量。仅需深色侧栏、浅色内容时，应用自有样式可在 `.tenant-shell .tenant-sidebar` 局部设置背景及 `--el-menu-bg-color/text-color/active-color/hover-bg-color`；不要为局部外观把整个 theme.mode 改为 dark。样式不替换菜单数据或账号动作。
 
-宿主使用原 `useMenuTree` 已授权菜单、原图标映射、`activeMenu` 与 route name 跳转；分类/预设不新增、删除或重新授予权限。外链继续交给浏览器并保留 `_self/_blank` 目标；内部跳转不另建 URL 映射。原账号、租户切换、退出、菜单搜索和 action binding 的消费者不变。面包屑来自已匹配路由，标签栏复用既有 TabBar 及缓存合同。
+宿主使用原 `useMenuTree` 已授权菜单、原图标映射、`activeMenu` 与 route name 跳转；分类/预设不新增、删除或重新授予权限。外链继续交给浏览器并保留 `_self/_blank` 目标；内部跳转不另建 URL 映射。原账号、租户切换、退出、菜单搜索和 action binding 的消费者不变。面包屑优先使用已授权可见菜单的层级与名称，无菜单页面再回退已匹配路由；标签栏复用既有 TabBar 及缓存合同。
 
 要替换整个外壳，在现有 `PEANUT_ADMIN_PRESETS` 或默认导出的应用 overrides 中登记 Core 的 `WORKSPACE_SHELL_OVERRIDE_KEY`（`peanut.shell.service.workspace-component`，kind=`service`，contractVersion=`1.0.0`），值为 `(audience) => Component`。`web/src/core/runtime.ts` 将现有 permission slot 和 `ADMIN_SHELL_OVERRIDE_SLOTS` 交给同一个 registry，按 default → preset → application 解析，不使用另一套扫描器。组件接收同一 theme/layout/navigation-mode 属性及 header/sidebar/breadcrumb/tabs/default slots，必须保留宿主传来的账号动作、授权菜单和页面内容；未知 key、合同或错误组件仍报错。
 

@@ -7,7 +7,9 @@
     <el-dropdown
       class="footer-actions"
       trigger="click"
-      placement="top-start"
+      :placement="appStore.device === 'mobile' ? 'top-start' : 'right-end'"
+      :offset="4"
+      :show-arrow="false"
       @command="handleAction"
     >
       <el-button
@@ -16,9 +18,8 @@
         :title="compact ? menuTitle : undefined"
         text
       >
-        <el-icon><MoreFilled /></el-icon>
         <span v-if="!compact" class="footer-menu-title">{{ menuTitle }}</span>
-        <el-icon v-if="!compact"><ArrowUp /></el-icon>
+        <el-icon class="footer-menu-more"><MoreFilled /></el-icon>
       </el-button>
       <template #dropdown>
         <el-dropdown-menu class="footer-dropdown-menu">
@@ -82,7 +83,6 @@
   import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import {
-    ArrowUp,
     InfoFilled,
     Key,
     MoreFilled,
@@ -140,7 +140,7 @@
     flex: 0 0 auto;
     height: auto;
     min-height: 40px;
-    padding: 4px 8px;
+    padding: 8px 12px;
     border-top: 1px solid var(--el-border-color-extra-light);
     .footer-actions {
       width: 100%;
@@ -148,16 +148,36 @@
     .footer-menu-trigger {
       width: 100%;
       min-height: 32px;
+      padding-inline: 12px;
       justify-content: flex-start;
       color: var(--el-text-color-secondary);
+
+      :deep(> span) {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        min-width: 0;
+      }
     }
     &.is-compact .footer-menu-trigger {
       justify-content: center;
+      padding-inline: 0;
+      :deep(> span) {
+        justify-content: center;
+      }
     }
   }
   .footer-menu-title {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     text-align: left;
+  }
+  .footer-menu-more {
+    flex: 0 0 auto;
   }
   .footer-dropdown-menu {
     min-width: 180px;

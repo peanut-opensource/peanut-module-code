@@ -58,3 +58,5 @@ peanut module uninstall peanut.chart-examples
 install 的来源摘要取对应制包输出，不把例子中的占位符当实际参数。后续安装示例前先安装其基础依赖；已有源码仍走同一原生包入口，不另设子插件系统。uninstall 先返回精确预览，按现有 UI 确认或将返回的 `confirm_plan` 保存为 JSON，再以 `--confirm-plan-file=<file> --confirm-plan-digest=<digest>` 执行同一操作。不加 `--purge` 时是 retire：退出该包源码、锁和原生依赖，重建受影响前端；不是仅隐藏菜单。保留的恢复现场按原服务管理。
 
 脚手架默认宿主已解除图表调用及 Web/Composer 直接依赖。采用应用若仍声明 `web/package.json` 的图表依赖，其生命周期反向依赖检查会返回 `host:web->peanut.chart` 并阻止基础模块退出；示例及其他已安装业务模块的依赖也按原合同检查。移除实际调用与依赖后，再走正常卸载入口。由安装器自动装配的 Module Composer require 不等同于宿主业务依赖；后端投影没有 Web 源码时不读取 Web 文件。模块专用应用拥有这些模块源码；上游脚手架升级删除旧受管路径前，必须沿原生升级 plan/resolve 的精确保留决策登记为 app-owned，不能改旧 baseline 或摘要冒充迁移。
+
+`uninstalled` 是安装历史状态，不能单独证明已清洁。确认清洁须核原生 purge 回执与同一模块版本／摘要、已移除源码和依赖、归属表及目录记录；已执行迁移、安装审计和必要恢复材料保留不属于运行残留。普通 UI 整理不授权清除模块数据，purge 仍按[模块卸载合同](../public/module-development.md)取得精确范围授权。菜单未显示或示例已退出不代表基础图表无消费者；媒体、模块开发等应用的有效调用及依赖继续保留。

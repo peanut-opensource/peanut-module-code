@@ -61,13 +61,17 @@
         nextTick(() => {
           const activeKey = selectedKey.value[0];
           if (activeKey) menuRef.value?.updateActiveIndex(activeKey);
-          if (!collapsed.value) {
+          if (!collapsed.value && !topMenu.value) {
             openKeys.value.forEach((key) => {
               if (submenuKeys.has(key)) menuRef.value?.open(key);
             });
           }
         });
       };
+
+      watch([collapsed, () => props.navigationMode], syncMenuState, {
+        flush: 'post',
+      });
 
       const goto = (item: RouteRecordRaw) => {
         // Open external link
@@ -170,7 +174,12 @@
               {
                 key: index,
                 index,
-                class: { 'menu-entry-root': depth === 0 },
+                class: {
+                  'menu-entry-root': depth === 0,
+                  'menu-entry-child': depth === 1,
+                  'menu-entry-grouped':
+                    props.navigationMode === 'grouped' && depth > 0,
+                },
                 onClick: () => goto(element),
               },
               () => renderLabel(element)
@@ -186,10 +195,11 @@
             ElMenu,
             {
               ref: menuRef,
-              class: 'peanut-menu',
+              class: ['peanut-menu', `peanut-menu--${props.navigationMode}`],
               mode: topMenu.value ? 'horizontal' : 'vertical',
               collapse: collapsed.value,
-              defaultOpeneds: openKeys.value,
+              defaultOpeneds:
+                collapsed.value || topMenu.value ? [] : openKeys.value,
               defaultActive: selectedKey.value[0] || '',
               collapseTransition: false,
               style: { height: '100%', width: '100%' },
@@ -247,11 +257,13 @@
     }
   }
 
-  :deep(.el-menu:not(.el-menu--horizontal) .el-menu-item-group) {
+  :deep(.peanut-menu--grouped:not(.el-menu--collapse) .el-menu-item-group) {
     margin-block: 4px 16px;
   }
 
-  :deep(.el-menu:not(.el-menu--horizontal) .el-menu-item-group__title) {
+  :deep(
+      .peanut-menu--grouped:not(.el-menu--collapse) .el-menu-item-group__title
+    ) {
     padding: 8px 24px;
     color: var(--el-text-color-secondary);
     font-size: 12px;
@@ -259,13 +271,10 @@
     line-height: 20px;
   }
 
-  :deep(.el-menu:not(.el-menu--horizontal) .el-menu-item-group .el-menu-item) {
-    margin-inline: 16px 12px;
-    padding-inline: 16px 12px;
-    font-weight: 400;
-  }
-
-  :deep(.el-menu:not(.el-menu--horizontal) .el-menu-item) {
+  :deep(
+      .peanut-menu:not(.el-menu--horizontal):not(.el-menu--collapse)
+        .el-menu-item
+    ) {
     margin: 2px 12px;
     border-radius: 6px;
 
@@ -275,20 +284,43 @@
     }
   }
 
-  :deep(.el-menu:not(.el-menu--horizontal) .menu-entry-root) {
+  :deep(
+      .peanut-menu--grouped:not(.el-menu--horizontal):not(.el-menu--collapse)
+        .menu-entry-grouped
+    ) {
+    margin-inline: 16px 12px;
+    padding-inline: 16px 12px;
+    font-weight: 400;
+  }
+
+  :deep(
+      .peanut-menu:not(.el-menu--horizontal):not(.el-menu--collapse)
+        > .menu-entry-root
+    ),
+  :deep(
+      .peanut-menu:not(.el-menu--horizontal):not(.el-menu--collapse)
+        > .el-sub-menu
+        > .el-sub-menu__title
+    ) {
+    margin: 2px 12px;
     padding-inline: 12px;
+    border-radius: 6px;
     font-weight: 500;
   }
 
-  :deep(.el-menu:not(.el-menu--horizontal) .menu-section-nested) {
+  :deep(.peanut-menu--tree:not(.el-menu--collapse) .menu-entry-child) {
+    padding-inline: 24px 12px;
+  }
+
+  :deep(.peanut-menu--grouped:not(.el-menu--collapse) .menu-section-nested) {
     margin-left: 12px;
   }
 
   :deep(
-    .el-menu:not(.el-menu--horizontal)
-      .el-menu-item-group
-      .el-menu-item.is-active
-  ) {
+      .peanut-menu--grouped:not(.el-menu--collapse)
+        .el-menu-item-group
+        .el-menu-item.is-active
+    ) {
     color: var(--el-color-primary);
     background-color: var(--el-color-primary-light-9);
 
