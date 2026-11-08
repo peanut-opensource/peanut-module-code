@@ -23,7 +23,7 @@
         <el-col>
           <el-space>
             <el-button
-              v-permission="['generator/import']"
+              v-permission="['core.generator.manage']"
               type="primary"
               @click="openSourceTables"
             >
@@ -31,7 +31,7 @@
               导入数据表
             </el-button>
             <el-button
-              v-permission="['generator/generate']"
+              v-permission="['core.generator.generate']"
               :disabled="selectedKeys.length === 0"
               :loading="generateLoading"
               @click="generateSelected"
@@ -68,19 +68,19 @@
           ><template #default="{ row }"
             ><el-space
               ><el-button
-                v-permission="['generator/detail']"
+                v-permission="['core.generator.read']"
                 link
                 size="small"
                 @click="openEdit(row)"
                 >配置</el-button
               ><el-button
-                v-permission="['generator/sync']"
+                v-permission="['core.generator.manage']"
                 link
                 size="small"
                 @click="handleSync(row)"
                 >同步字段</el-button
               ><el-button
-                v-permission="['generator/preview']"
+                v-permission="['core.generator.read']"
                 link
                 size="small"
                 @click="openPreview(row)"
@@ -90,7 +90,7 @@
                 @confirm="handleDelete(row)"
                 ><template #reference
                   ><el-button
-                    v-permission="['generator/delete']"
+                    v-permission="['core.generator.manage']"
                     link
                     type="danger"
                     size="small"
@@ -155,6 +155,7 @@
       <template #footer
         ><el-button @click="sourceVisible = false">取消</el-button
         ><el-button
+          v-permission="['core.generator.manage']"
           type="primary"
           :loading="importLoading"
           @click="handleImport"
@@ -417,7 +418,11 @@
       </el-form>
       <template #footer
         ><el-button @click="editVisible = false">取消</el-button
-        ><el-button type="primary" :loading="saveLoading" @click="handleSave"
+        ><el-button
+          v-permission="['core.generator.manage']"
+          type="primary"
+          :loading="saveLoading"
+          @click="handleSave"
           >保存</el-button
         ></template
       >

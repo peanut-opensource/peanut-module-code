@@ -44,12 +44,12 @@ PEANUT_INSTALLATION_ENV_FILE=/absolute/private/initial-admin.env php server/data
 php server/database/install.php --status
 ```
 
-B 部署包、`peanut package` 和 `release/apps` 退出日常生产环节。现有包生产者、固定 Git 输入与 `update.sh` 仍保留实际消费者的技术合同，不因文档改动删代码，也不作为新流程的额外用户步骤。源码升级不等于生产更新；Git 能退版本不意味着数据库可自动回退。
+产品在发布机通过 `scripts/deploy-update.sh --prepare-release` 准备所选 Edition 的前端资源；审核后将产品源码、锁和静态资源一同定版。已安装产品用同一脚本选择经过审核的 Git 提交执行更新。详情见[产品 Git 交付合同](application-release.md)。
 
 ## 4. 来源与失败保护
 
 取得来源后先核可信摘要与路径安全，再核APP/Edition/版本、逐文件清单和依赖。未知包旁自行计算的摘要不是可信来源。不要执行未认证目标包的更新入口，不复制其他APP的vendor或作无约束依赖更新。
 
-恢复消费原计划和真实journal。激活前按实际阶段成对恢复程序、依赖、配置身份及必要数据；激活后不自动回灌旧数据库。失败、拒绝和UNKNOWN保留，不通过重建APP、删锁或改账本重置事实。
+脚手架源码升级沿 `scaffold-upgrade` 的原计划与 journal 恢复。已安装产品的 Git 更新中断后，应先核 `.peanut/deploy-update.pending` 中的原目标、分支和 Compose 项目，再按同一组参数续跑。数据库恢复须核对原实例及配对备份。历史 server-update 事务使用对应已验证版本的原生恢复入口和原 workspace。
 
 上游Core发布、候选封存、main/tag证明和资格工具在源码仓docs/maintenance中维护，不属于普通APP教程。本文不授予正式发行、生产、客户数据或费用操作权限。

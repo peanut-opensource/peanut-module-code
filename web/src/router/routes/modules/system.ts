@@ -19,7 +19,7 @@ const SYSTEM: AppRouteRecordRaw = {
       meta: {
         locale: 'menu.system.menu',
         requiresAuth: true,
-        roles: ['admin'],
+        requiredPermissions: ['core.menu.read'],
       },
     },
     {
@@ -90,7 +90,7 @@ const SYSTEM: AppRouteRecordRaw = {
       meta: {
         locale: 'menu.system.maintenance',
         requiresAuth: true,
-        roles: ['admin'],
+        requiredPermissions: ['core.system.read'],
         instanceTool: true,
       },
     },

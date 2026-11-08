@@ -49,14 +49,7 @@ try {
     exit(1);
 }
 PHP
-    python3 - "$ROOT/server" <<'PY'
-import importlib.util, pathlib, sys
-sys.dont_write_bytecode = True
-server = pathlib.Path(sys.argv[1])
-spec = importlib.util.spec_from_file_location('native_vendor', server / 'docker/scripts/vendor-state.py')
-module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
-module.check_lock(server)
-PY
+    check_php_lock before-prepare
     static_target admin
     if [[ "$clients" == admin,platform ]]; then
       static_target platform
@@ -83,6 +76,7 @@ try {
     exit(1);
 }
 PHP
+    check_php_lock after-prepare
     printf '%s\n' '{"operation":"compile","arguments":[]}' | php -d zend.exception_ignore_args=1 server/module
     printf '[deploy-update] Prepared %s %s static files; review and commit server/public/admin' "$declared_version" "$edition"
     [[ "$clients" != admin,platform ]] || printf ' and server/public/platform'
@@ -191,6 +185,17 @@ backend() {
   if [[ "$compose_project" == - ]]; then php server/think "$@"
   else compose_run run -T --rm --no-deps --entrypoint php php think "$@"; fi
 }
+check_php_lock() {
+  python3 - "$ROOT/server" "$1" <<'PY'
+import importlib.util, pathlib, sys
+sys.dont_write_bytecode = True
+server = pathlib.Path(sys.argv[1])
+spec = importlib.util.spec_from_file_location('native_vendor', server / 'docker/scripts/vendor-state.py')
+module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+module.check_lock(server, preparing_release=sys.argv[2] == 'before-prepare')
+PY
+}
+
 static_target() {
   local destination="server/public/$1"
   [[ ! -L server && ! -L server/public && ! -L "$destination" ]] || fail 'static destination must not be linked'

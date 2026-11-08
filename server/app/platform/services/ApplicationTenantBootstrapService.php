@@ -10,7 +10,7 @@ use PeanutAdmin\Modules\Integration\Contract\ExternalIntegrationBootstrapCommand
 use app\common\execution\ExecutionContextStore;
 use app\common\execution\SystemExecutionContext;
 use PeanutAdmin\Modules\Settings\Service\WebsiteConfigService;
-use app\common\model\decoration\DecoratePage;
+use app\common\services\decoration\DecorationPageDefaultsService;
 use app\common\model\decoration\DecorateTabbar;
 use app\common\model\decoration\DecorationTabbarSetting;
 use app\common\model\setting\CustomerServiceSetting;
@@ -42,6 +42,7 @@ final readonly class ApplicationTenantBootstrapService
         private ExternalIntegrationBootstrapCommands $externalBindings,
         private DbManager $database,
         private CompiledModuleRegistry $modules,
+        private DecorationPageDefaultsService $pageDefaults,
         private ?NotificationBootstrapCommands $notifications = null,
     ) {}
 
@@ -155,35 +156,10 @@ final readonly class ApplicationTenantBootstrapService
 
     private function seedDecoration(): void
     {
-        // Empty page shells are application structure, not sample business content.
-        // Module pages and links are supplied by their selected Module contributions.
-        $pages = [
-            [1, '移动端首页', '[]', '[{"title":"页面设置","name":"page-meta","content":{"title":"首页","title_type":1,"title_img":"","bg_type":1,"bg_color":"#2F80ED","bg_image":"","text_color":1},"styles":{}}]'],
-            [2, '个人中心', '[]', '[{"title":"页面设置","name":"page-meta","content":{"title":"个人中心","title_type":1,"title_img":"","bg_type":1,"bg_color":"#2F80ED","bg_image":"","text_color":1},"styles":{}}]'],
-            [3, '客服设置', '[]', '[]'],
-            [4, 'PC 首页', '[]', '[]'],
-            [5, '系统风格', '{"themeColorId":3,"topTextColor":"white","navigationBarColor":"#A74BFD","themeColor1":"#A74BFD","themeColor2":"#CB60FF","buttonColor":"white"}', '[]'],
-        ];
+        $this->pageDefaults->ensureMissing();
         $tabbars = [
             [0, '首页', '{"target_type":"shop","target":"home"}'],
         ];
-        $existingPageTypes = array_fill_keys(array_map(
-            'intval',
-            DecoratePage::whereIn('type', array_column($pages, 0))->column('type'),
-        ), true);
-        $missingPages = [];
-        foreach ($pages as [$type, $name, $data, $meta]) {
-            if (!isset($existingPageTypes[$type])) {
-                $missingPages[] = compact('type', 'name', 'data', 'meta') + [
-                    'create_time' => 0,
-                    'update_time' => 0,
-                ];
-            }
-        }
-        if ($missingPages !== []) {
-            (new DecoratePage())->saveAll($missingPages);
-        }
-
         $existingPositions = array_fill_keys(array_map(
             'intval',
             DecorateTabbar::whereIn('position', array_column($tabbars, 0))->column('position'),

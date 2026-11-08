@@ -20,7 +20,7 @@ const DEV_TOOLS: AppRouteRecordRaw = {
       meta: {
         locale: 'menu.devTools.code',
         requiresAuth: true,
-        roles: ['admin'],
+        requiredPermissions: ['core.generator.read'],
       },
     },
     {

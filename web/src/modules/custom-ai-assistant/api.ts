@@ -6,6 +6,12 @@ import {
   type MutationEndpoint,
   type RequestReceipt,
 } from './request-recovery';
+import { base, current } from './api-session';
+import type { Lookup } from './text-draft-api';
+
+export { generateText, textRoutes } from './text-draft-api';
+export type { GenerateTextInput, Lookup } from './text-draft-api';
+
 export interface BusinessRecord {
   id: number;
   title: string;
@@ -120,28 +126,12 @@ export interface HistoryPage {
   list: BusinessRecord[];
   next_before_id: number | null;
 }
-export interface Lookup {
-  id: number;
-  title: string;
-  version: number;
-  capability: string | null;
-  provider_model_id?: string | null;
-  consumer_module?: string | null;
-}
 export interface Comparison {
   source_text: string | null;
   candidate_text: string | null;
   source: Record<string, unknown>;
   fixed_result: Record<string, unknown>;
   business_approval: false;
-}
-const base = '/adminapi/custom.ai-assistant.';
-async function current<T>(work: () => Promise<{ data: T }>): Promise<T> {
-  const generation = getSessionSnapshot().generation;
-  const response = await work();
-  if (generation !== getSessionSnapshot().generation)
-    throw new Error('会话已切换，请重新加载');
-  return response.data;
 }
 export const overview = (signal: AbortSignal) =>
   current<Overview>(() => axios.get(base + 'overview', { signal }));
@@ -286,45 +276,3 @@ export async function acceptedTask(
     updated_at: row.updated_at as number,
   };
 }
-
-export interface GenerateTextInput {
-  route_id: number;
-  consumer_module: string;
-  topic: string;
-  outline?: string;
-  request_id: string;
-  confirm_send: true;
-}
-
-export async function generateText(
-  input: GenerateTextInput,
-  signal: AbortSignal
-) {
-  const result = await current<{
-    candidate_id: number;
-    request_id: string;
-    text: string;
-  }>(() =>
-    axios.post(base + 'generateText', input, { signal, timeout: 45000 })
-  );
-  if (
-    !Number.isSafeInteger(result?.candidate_id) ||
-    result.candidate_id < 1 ||
-    result.request_id !== input.request_id ||
-    typeof result.text !== 'string' ||
-    !result.text.trim()
-  )
-    throw new Error('未取得匹配原请求的正文候选，请核对原请求。');
-  return result;
-}
-export const textRoutes = (
-  consumer: string,
-  page: number,
-  signal: AbortSignal
-) =>
-  current<{ list: Lookup[]; count: number; page_size: number }>(() =>
-    axios.get(base + 'textRoutes', {
-      params: { consumer_module: consumer, page },
-      signal,
-    })
-  );

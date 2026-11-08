@@ -225,13 +225,10 @@
       !session.loading &&
       !session.loadingThread
   );
-  const pendingLabel = computed(() =>
-    sending.value
-      ? '正在提交'
-      : session.pending?.uncertain
-      ? '结果尚未确认'
-      : '操作已被拒绝'
-  );
+  const pendingLabel = computed(() => {
+    if (sending.value) return '正在提交';
+    return session.pending?.uncertain ? '结果尚未确认' : '操作已被拒绝';
+  });
   const actionLabel = (action: DocumentCommentAction) =>
     ({
       create: '建立评论',
@@ -283,7 +280,7 @@
   const retry = () => perform(() => session.retry());
   const restart = () => {
     session.dismissRejected();
-    void refresh();
+    refresh();
   };
   const create = () =>
     perform(async () => {
@@ -335,7 +332,7 @@
           contextKey: props.contextKey,
           owner: props.owner,
         });
-        void session.load();
+        session.load();
       } catch (error) {
         localError.value =
           error instanceof Error

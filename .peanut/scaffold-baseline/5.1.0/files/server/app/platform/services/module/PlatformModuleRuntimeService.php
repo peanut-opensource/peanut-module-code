@@ -1,0 +1,384 @@
+<?php
+
+declare(strict_types=1);
+
+namespace app\platform\services\module;
+
+use PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries;
+use app\platform\exception\module\ModuleLifecycleException;
+use app\platform\infrastructure\module\ModuleCatalogApplier;
+use app\platform\infrastructure\module\ModuleLockResolver;
+use app\platform\infrastructure\module\ModulePackageInstaller;
+use app\platform\policy\module\ModuleLifecyclePolicy;
+use app\common\persistence\AdvisoryLockExecution;
+use app\common\persistence\AdvisoryLockUnavailable;
+use app\common\infrastructure\module\ModuleScaffoldGenerator;
+use PeanutAdmin\Kernel\Module\ManifestLoader;
+use Composer\Semver\Semver;
+use think\facade\Db;
+use PeanutAdmin\Kernel\Context\PlatformContext;
+use PeanutAdmin\Modules\Ops\Service\DeploymentModuleRequestService;
+use PeanutAdmin\Modules\Ops\Service\PlatformModuleOperationExecutionService;
+
+/** Application service shared by Platform HTTP adapters and module:* commands. */
+final readonly class PlatformModuleRuntimeService
+{
+    /** @param array<string,mixed> $moduleConfig @param array<string,string> $trustedPublicKeys */
+    public function __construct(
+        private string $serverRoot,
+        private array $moduleConfig,
+        private array $trustedPublicKeys,
+        private ModuleRuntimeGovernanceService $governance,
+        private ModuleCatalogSyncService $catalog,
+        private ModuleCatalogApplier $catalogs,
+        private TenantModuleStateQueries $tenantStates,
+        private DeploymentModuleRequestService $deliveryRequests,
+        private PlatformModuleOperationExecutionService $moduleOperations,
+        private \PeanutAdmin\Kernel\Module\CompiledModuleRegistry $definitions,
+    ) {}
+
+    /** @return array{items:list<array<string,mixed>>,total:int} */
+    public function modules(int $page, int $pageSize, ?string $moduleKey): array
+    {
+        $descriptors = ModuleLockResolver::forRuntime($this->serverRoot, (string) ($this->moduleConfig['module_lock'] ?? '../modules.lock'))->all();
+        $details = [];
+        $dependents = [];
+        foreach ($descriptors as $descriptor) {
+            $packageDetails = [];
+            $packageProtected = false;
+            foreach ($descriptor->moduleRoots as $key => $root) {
+                $manifest = (new ManifestLoader())->load($root);
+                $packageProtected = $packageProtected || ModuleLifecyclePolicy::isProtected($manifest);
+                $dependencies = [];
+                foreach ((array) ($manifest->data['dependencies'] ?? []) as $dependency) {
+                    if (!is_array($dependency) || !is_string($dependency['module_key'] ?? null)) {
+                        continue;
+                    }
+                    $dependencies[] = ['module_key' => $dependency['module_key'], 'version' => (string) ($dependency['version'] ?? '')];
+                    $dependents[$dependency['module_key']][] = $key;
+                }
+                $packageDetails[$key] = [
+                    'module_key' => $key,
+                    'name' => (string) ($manifest->data['name'] ?? $key),
+                    'version' => (string) ($manifest->data['version'] ?? ''),
+                    'manifest_digest' => $manifest->digest,
+                    'package_key' => $descriptor->key,
+                    'package_version' => $descriptor->version,
+                    'dependencies' => $dependencies,
+                    'optional_dependencies' => array_values((array) ($manifest->data['optional_dependencies'] ?? [])),
+                    'tenant' => [
+                        'enableable' => ($manifest->data['tenant']['enableable'] ?? false) === true,
+                        'required' => in_array($key, $this->definitions->moduleKeys(), true)
+                            && $this->definitions->isRequiredTenantFoundation($key),
+                        'requires' => array_values((array) ($manifest->data['tenant']['requires'] ?? [])),
+                    ],
+                ];
+            }
+            $packageModules = array_keys($packageDetails);
+            sort($packageModules, SORT_STRING);
+            foreach ($packageDetails as $key => $detail) {
+                $detail['package_modules'] = $packageModules;
+                $detail['lifecycle_protected'] = $packageProtected;
+                $details[$key] = $detail;
+            }
+        }
+        $rows = Db::name('module_installation')
+            ->field('module_key,installed_version,manifest_digest,installed_version AS package_version,status AS package_status,last_error_code AS package_error')
+            ->order('module_key')->select()->toArray();
+        $states = $this->tenantStates->installationStates(array_values(array_map(
+            static fn(array $row): string => (string) $row['module_key'],
+            $rows,
+        )));
+        $enabledCounts = $this->tenantStates->enabledCounts();
+        foreach ($rows as $row) {
+            $key = (string) $row['module_key'];
+            $state = $states[$key] ?? null;
+            $details[$key] ??= [
+                'module_key' => $key,
+                'name' => $key,
+                'version' => (string) $row['installed_version'],
+                'manifest_digest' => (string) $row['manifest_digest'],
+                'package_key' => (string) $row['module_key'],
+                'package_version' => (string) $row['package_version'],
+                'dependencies' => [],
+                'optional_dependencies' => [],
+                'tenant' => ['enableable' => false, 'required' => false, 'requires' => []],
+                'package_modules' => [$key],
+                'lifecycle_protected' => false,
+            ];
+            $details[$key]['status'] = $state['status'] ?? ($row['package_status'] === 'uninstalled' ? 'clean' : $row['package_status']);
+            $details[$key]['installed_version'] = (string) $row['installed_version'];
+            $details[$key]['tenant_enabled_count'] = (int) ($enabledCounts[$key] ?? 0);
+            $error = $state['last_error_code'] ?? $row['package_error'];
+            $details[$key]['blockers'] = $error === null
+                ? []
+                : [(string) $error];
+        }
+        foreach ($details as $key => &$detail) {
+            $detail['status'] ??= 'locked';
+            $detail['tenant_enabled_count'] ??= 0;
+            $detail['blockers'] ??= [];
+            $detail['dependents'] = array_values(array_unique($dependents[$key] ?? []));
+            sort($detail['dependents'], SORT_STRING);
+        }
+        unset($detail);
+        foreach ($details as &$detail) {
+            foreach (['dependencies', 'optional_dependencies'] as $field) {
+                foreach ($detail[$field] as &$dependency) {
+                    $target = $details[$dependency['module_key']] ?? null;
+                    $reason = match (true) {
+                        $target === null || !isset($target['installed_version']) => 'MODULE_NOT_INSTALLED',
+                        $target['status'] !== 'active' => 'MODULE_NOT_ACTIVE',
+                        !Semver::satisfies($target['installed_version'], $dependency['version']) => 'MODULE_VERSION_UNSATISFIED',
+                        default => null,
+                    };
+                    $dependency['satisfied'] = $reason === null;
+                    $dependency['unavailable_reason'] = $reason;
+                }
+                unset($dependency);
+            }
+            $detail['pending_actions'] = $detail['blockers'];
+            foreach ($detail['dependencies'] as $dependency) {
+                if (!$dependency['satisfied']) {
+                    $detail['pending_actions'][] = $dependency['module_key'] . ': ' . $dependency['unavailable_reason'];
+                }
+            }
+        }
+        unset($detail);
+        ksort($details, SORT_STRING);
+        if ($moduleKey !== null) {
+            $details = isset($details[$moduleKey]) ? [$moduleKey => $details[$moduleKey]] : [];
+        }
+        $total = count($details);
+        return ['items' => array_slice(array_values($details), ($page - 1) * $pageSize, $pageSize), 'total' => $total];
+    }
+
+    /** @return array<string,mixed> */
+    public function install(string $archivePath, ?string $expectedSha256, ?string $signatureKeyId,
+        ?PlatformContext $context = null, ?string $idempotencyKey = null): array
+    {
+        if ($context !== null) {
+            return $this->submitPackage($context, 'install', $archivePath, $expectedSha256, $signatureKeyId, $idempotencyKey);
+        }
+        $result = (new ModulePackageInstaller(
+            $this->serverRoot,
+            $this->moduleConfig,
+            $this->trustedPublicKeys,
+            $this->catalogs,
+        ))
+            ->install($archivePath, $expectedSha256, $signatureKeyId);
+        $catalog = $this->catalog();
+        $operation = ($result['operation'] ?? null) === 'unchanged'
+            ? 'unchanged'
+            : (($result['operation'] ?? null) === 'installed' ? 'installed' : 'reactivated');
+        $result['operation'] = $operation;
+        $result['catalog_revision'] = $catalog->catalogRevision();
+        return $result;
+    }
+
+    /** @return array<string,mixed> */
+    public function update(
+        string $archivePath,
+        ?string $expectedSha256,
+        ?string $signatureKeyId,
+        bool $dryRun,
+        ?PlatformContext $context = null,
+        ?string $idempotencyKey = null,
+    ): array {
+        if ($context !== null && !$dryRun) {
+            return $this->submitPackage($context, 'update', $archivePath, $expectedSha256, $signatureKeyId, $idempotencyKey);
+        }
+        $result = (new ModulePackageInstaller(
+            $this->serverRoot,
+            $this->moduleConfig,
+            $this->trustedPublicKeys,
+            $this->catalogs,
+        ))->update($archivePath, $expectedSha256, $signatureKeyId, $dryRun);
+        if (!$dryRun && ($result['operation'] ?? null) !== 'unchanged') {
+            $catalog = $this->catalog();
+            $result['catalog_revision'] = $catalog->catalogRevision();
+        }
+        return $result;
+    }
+
+    private function submitPackage(PlatformContext $context, string $operation, string $path, ?string $sha256,
+        ?string $keyId, ?string $idempotencyKey): array
+    {
+        if ($sha256 === null || preg_match('/^[a-f0-9]{64}$/D', $sha256) !== 1
+            || $idempotencyKey === null || strlen($idempotencyKey) < 8 || strlen($idempotencyKey) > 200
+            || preg_match('/^[\x21-\x7e]+$/D', $idempotencyKey) !== 1) {
+            throw new ModuleLifecycleException('MODULE_PACKAGE_REQUEST_INVALID', 'A package digest and Idempotency-Key are required.');
+        }
+        try {
+            // A submission is scoped to its trusted operator, not permanently to an archive digest.
+            $submissionDigest = hash('sha256', $context->operatorId . ':' . $idempotencyKey);
+            $request = $this->deliveryRequests->prepareUpload($operation, $path, $sha256, $keyId, $submissionDigest);
+            return $this->moduleOperations->submit($context, (string) $request['request_key'], $idempotencyKey);
+        } catch (\RuntimeException $exception) {
+            if (preg_match('/^OPS_MODULE_[A-Z0-9_]+$/D', $exception->getMessage()) === 1) {
+                throw new ModuleLifecycleException($exception->getMessage(), 'The Module worker is unavailable or rejected this package.');
+            }
+            throw $exception;
+        }
+    }
+
+    public function task(PlatformContext $context, string $taskKey): array
+    {
+        return $this->moduleOperations->taskIfModuleOperation($context, $taskKey)
+            ?? throw new ModuleLifecycleException('MODULE_TASK_NOT_FOUND', 'Module operation was not found.');
+    }
+
+    /** @return array<string,mixed> */
+    public function create(string $moduleKey, ?string $vendor = null, string $client = 'none'): array
+    {
+        return (new ModuleScaffoldGenerator(dirname($this->serverRoot)))->create($moduleKey, $vendor, $client);
+    }
+
+    /** @return array<string,mixed> */
+    public function uninstallPreview(string $key, bool $purge): array
+    {
+        return $this->governance->preview($key, $purge);
+    }
+
+    /** @param array<string,mixed> $plan @return array<string,mixed> */
+    public function uninstall(string $key, bool $purge, array $plan, string $digest,
+        ?PlatformContext $context = null, ?string $idempotencyKey = null): array
+    {
+        if ($context !== null) {
+            if ($idempotencyKey === null || strlen($idempotencyKey) < 8 || strlen($idempotencyKey) > 200
+                || preg_match('/^[\x21-\x7e]+$/D', $idempotencyKey) !== 1) {
+                throw new ModuleLifecycleException('MODULE_UNINSTALL_REQUEST_INVALID', 'An Idempotency-Key is required.');
+            }
+            if (!hash_equals((new \app\platform\infrastructure\module\ModuleUninstallPlanCodec())->digest($plan), $digest)) {
+                throw new ModuleLifecycleException('MODULE_UNINSTALL_PLAN_CHANGED', 'Confirmed Module uninstall plan digest differs.');
+            }
+            try {
+                $request = $this->deliveryRequests->prepare('', '', $purge ? 'purge' : 'retire',
+                    (string) $plan['package_key'], null, null, $digest,
+                    hash('sha256', $context->operatorId . ':' . $idempotencyKey));
+                return $this->moduleOperations->submit($context, (string) $request['request_key'], $idempotencyKey);
+            } catch (\RuntimeException $exception) {
+                if (preg_match('/^OPS_MODULE_[A-Z0-9_]+$/D', $exception->getMessage()) === 1) {
+                    throw new ModuleLifecycleException($exception->getMessage(), 'The Module worker is unavailable or rejected this removal.');
+                }
+                throw $exception;
+            }
+        }
+        $result = $this->governance->uninstall($key, $purge, $plan, $digest);
+        $catalog = $this->catalog();
+        return $result + ['catalog_revision' => $catalog->catalogRevision()];
+    }
+
+    /** @return array<string,mixed> */
+    public function disable(string $moduleKey): array
+    {
+        $scope = $this->disableScope($moduleKey);
+        $packageKey = $scope['package_key'];
+        $moduleKeys = array_keys($scope['manifests']);
+        $lockName = 'pa:module-runtime:' . substr(hash('sha256', $packageKey), 0, 40);
+        $unchanged = null;
+        try {
+            (new AdvisoryLockExecution())->run($lockName, 0, function () use (
+                $scope,
+                $packageKey,
+                $moduleKeys,
+                &$unchanged,
+            ): void {
+                ModuleLifecyclePolicy::assertMutable($scope['manifests']);
+                $statuses = $this->moduleStatuses($moduleKeys);
+                if (count($statuses) !== count($moduleKeys)
+                    || array_diff(array_values($statuses), ['active', 'maintenance']) !== []) {
+                    throw new ModuleLifecycleException('MODULE_STATE_INVALID', 'Every Bundle Module must be active or already disabled.');
+                }
+                if (count(array_filter($statuses, static fn(string $status): bool => $status === 'maintenance')) === count($moduleKeys)) {
+                    $unchanged = [
+                        'operation' => 'unchanged',
+                        'package_key' => $packageKey,
+                        'affected_modules' => $moduleKeys,
+                        'status' => 'maintenance',
+                        'catalog_revision' => $this->catalog()->catalogRevision(),
+                    ];
+                    return;
+                }
+                ModuleLifecyclePolicy::assertNoActiveBusinessDependents(
+                    ModuleLockResolver::forRuntime(
+                        $this->serverRoot,
+                        (string) ($this->moduleConfig['module_lock'] ?? '../modules.lock'),
+                    ),
+                    $moduleKeys,
+                );
+                if ($this->tenantStates->hasEnabledModules($moduleKeys)) {
+                    throw new ModuleLifecycleException('PLUGIN_TENANT_MODULE_ACTIVE', 'Remove the Bundle modules from tenant license plans first.');
+                }
+                Db::transaction(function () use ($moduleKeys): void {
+                    $this->catalogs->retire($moduleKeys, false);
+                    $this->catalogs->disableActivePackageModules($moduleKeys, false);
+                    $this->catalogs->invalidateTenantAuthorization($moduleKeys);
+                });
+            });
+        } catch (AdvisoryLockUnavailable) {
+            throw new ModuleLifecycleException('MODULE_LIFECYCLE_BUSY', 'Module lifecycle is busy.');
+        }
+        if (is_array($unchanged)) {
+            return $unchanged;
+        }
+        $catalog = $this->catalog();
+        return [
+            'operation' => 'disabled',
+            'package_key' => $packageKey,
+            'affected_modules' => $moduleKeys,
+            'status' => 'maintenance',
+            'catalog_revision' => $catalog->catalogRevision(),
+        ];
+    }
+
+    /** @return array<string,mixed> */
+    public function sync(?string $moduleKey): array
+    {
+        $result = $this->catalog()->sync($moduleKey);
+        return $result;
+    }
+
+    private function catalog(): ModuleCatalogSyncService
+    {
+        return $this->catalog;
+    }
+
+    /** @return array{package_key:string,manifests:array<string,\PeanutAdmin\Kernel\Module\ManifestDocument>} */
+    private function disableScope(string $moduleKey): array
+    {
+        $packageKey = Db::name('module_installation')->where('module_key', $moduleKey)->value('module_key');
+        if (!is_string($packageKey) || $packageKey === '') {
+            throw new ModuleLifecycleException('PLUGIN_NOT_INSTALLED', 'Module package is not installed.');
+        }
+        $descriptors = (ModuleLockResolver::forRuntime(
+            $this->serverRoot,
+            (string) ($this->moduleConfig['module_lock'] ?? '../modules.lock'),
+        ))->all();
+        $descriptor = $descriptors[$packageKey] ?? null;
+        if ($descriptor === null) {
+            $scope = $this->governance->installedOrphanScope($moduleKey);
+            if ($scope === null) {
+                throw new ModuleLifecycleException('PLUGIN_NOT_INSTALLED', 'Installed Module source is unavailable.');
+            }
+            return ['package_key' => $scope['package_key'], 'manifests' => $scope['manifests']];
+        }
+        $manifests = [];
+        foreach ($descriptor->moduleRoots as $key => $root) {
+            $manifests[$key] = (new ManifestLoader())->load($root);
+        }
+        ksort($manifests, SORT_STRING);
+        return ['package_key' => $packageKey, 'manifests' => $manifests];
+    }
+
+    /** @param list<string> $moduleKeys @return array<string,string> */
+    private function moduleStatuses(array $moduleKeys): array
+    {
+        $statuses = [];
+        foreach ($this->tenantStates->installationStates($moduleKeys) as $moduleKey => $state) {
+            $statuses[$moduleKey] = (string) ($state['status'] ?? '');
+        }
+        return $statuses;
+    }
+
+}

@@ -1,0 +1,28 @@
+{
+    "schema_version": 1,
+    "website": {
+        "name": "Peanut Module Code",
+        "web_favicon": "brand/favicon.svg",
+        "web_logo": "brand/logo.svg",
+        "login_image": "brand/login-background.svg",
+        "shop_name": "Peanut Module Code",
+        "shop_logo": "brand/logo.svg",
+        "pc_logo": "brand/logo.svg",
+        "pc_title": "Peanut Module Code",
+        "pc_ico": "brand/favicon.svg",
+        "pc_desc": "Peanut Module Code application",
+        "pc_keywords": "Peanut Module Code",
+        "h5_favicon": "brand/favicon.svg",
+        "slogan": "A maintainable application baseline",
+        "copyright": "",
+        "official_url": "",
+        "github_url": ""
+    },
+    "default_image": {
+        "admin_avatar": "brand/avatar-admin.svg",
+        "user_avatar": "brand/avatar-member.svg",
+        "menu": "brand/menu.svg",
+        "project_docs": "brand/docs.svg",
+        "technical_support": "brand/support.svg"
+    }
+}

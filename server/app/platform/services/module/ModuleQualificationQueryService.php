@@ -10,7 +10,6 @@ use app\common\contract\module\ModuleQualification;
 use app\common\contract\module\ModuleQualificationQuery;
 use app\common\contract\module\TenantModuleState;
 use PeanutAdmin\Kernel\Module\ManifestDocument;
-use think\facade\Db;
 
 /** Read-only qualification projection over the verified deployment registry. */
 final readonly class ModuleQualificationQueryService implements ModuleQualificationQuery
@@ -23,8 +22,7 @@ final readonly class ModuleQualificationQueryService implements ModuleQualificat
     public function installedModule(string $moduleKey): ModuleQualification
     {
         $manifest = $this->registry->requireInstalled($moduleKey, false);
-        $pluginKey = Db::name('module_installation')->where('module_key', $moduleKey)->value('module_key');
-        return $this->qualification($moduleKey, $manifest, $pluginKey);
+        return $this->qualification($moduleKey, $manifest);
     }
 
     public function installedModules(): array
@@ -34,23 +32,15 @@ final readonly class ModuleQualificationQueryService implements ModuleQualificat
             return [];
         }
         $manifests = $this->registry->requireInstalledMany($keys, false);
-        $pluginRows = Db::name('module_installation')->whereIn('module_key', $keys)
-            ->field('module_key,module_key')->select()->toArray();
-        // module_installation.module_key is unique; a missing ownership row is an explicit deployment root.
-        $pluginKeys = array_column($pluginRows, 'module_key', 'module_key');
         $modules = [];
         foreach ($keys as $moduleKey) {
-            $modules[] = $this->qualification($moduleKey, $manifests[$moduleKey], $pluginKeys[$moduleKey] ?? null);
+            $modules[] = $this->qualification($moduleKey, $manifests[$moduleKey]);
         }
         return $modules;
     }
 
-    private function qualification(string $moduleKey, ManifestDocument $manifest, mixed $pluginKey): ModuleQualification
+    private function qualification(string $moduleKey, ManifestDocument $manifest): ModuleQualification
     {
-        if (!is_string($pluginKey) || $pluginKey === '') {
-            // Explicit deployment roots are allowed to register a Module without a Plugin.
-            $pluginKey = 'deployment';
-        }
         $dependencies = [];
         foreach (($manifest->data['dependencies'] ?? []) as $dependency) {
             if (is_array($dependency) && is_string($dependency['module_key'] ?? null)) {
@@ -59,7 +49,6 @@ final readonly class ModuleQualificationQueryService implements ModuleQualificat
         }
         return new ModuleQualification(
             $moduleKey,
-            $pluginKey,
             (string) $manifest->data['version'],
             (int) $manifest->data['schema_version'],
             $manifest->digest,

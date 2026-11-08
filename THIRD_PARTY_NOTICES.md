@@ -1,13 +1,13 @@
 # Peanut Module Code Third-Party Notices
 
-Generated for Peanut Module Code 5.0.1 on 2026-10-06.
+Generated for Peanut Module Code 5.1.0 on 2026-11-07.
 
 Peanut Module Code is licensed under Apache-2.0: Copyright 2026 application owner. Third-party components remain governed by their own licenses.
 
 ## Distribution boundary
 
 - The normative GitHub Release distributes this repository's source. It does not attach prebuilt PHP/Nginx images; the fixed core packages are published separately in their public registries.
-- Production Compose builds static management, PC and H5 assets and installs the 39 Composer production packages listed below. No `node_modules` directory is copied into the final images.
+- Production Compose builds static management, PC and H5 assets and installs the 54 Composer production packages listed below. No `node_modules` directory is copied into the final images.
 - The exhaustive package/version/license/source inventory for the seven locked dependency graphs is `RELEASE_SBOM.spdx.json` (SPDX 2.3). The two quality-tool graphs are development inputs, separate from product runtime. Build-only entries are retained there so source-release recipients can reproduce the build and its notices.
 - Each installed dependency may include additional license or notice files. Those files remain authoritative for that dependency and must not be removed from redistributed dependency archives.
 
@@ -18,8 +18,8 @@ Peanut Module Code is licensed under Apache-2.0: Copyright 2026 application owne
 | Arco Design Pro Vue | MIT | The initial management client used Arco Design Pro Vue material; applicable upstream MIT attribution is retained. Source: https://github.com/arco-design/arco-design-pro-vue |
 | LikeAdmin 1.9.4 | MIT | Used as the documented behavioral parity reference. This notice does not claim the application is a clean-room implementation. Source: https://github.com/likeadmin-likeshop/likeadmin_php |
 | ThinkPHP 8 | Apache-2.0 | Backend framework. Its upstream notice is also retained at `server/LICENSE.txt`. Source: https://github.com/top-think/framework |
-| `peanut-admin/core` | Apache-2.0 | Composer core package locked at v5.0.1 (2b78ec95e28c3a03bc7c9c29ad8367ae88507fe1). Source: https://github.com/peanut-business/peanut-admin-core-php |
-| Peanut Module Code Core Web | Apache-2.0 | npm core packages locked as @peanut-admin/client@5.0.1, @peanut-admin/vue@5.0.1, @peanut-admin/ui-vue@5.0.1, @peanut-admin/nuxt@5.0.1, @peanut-admin/uniapp@5.0.1, @peanut-admin/testing@5.0.1. Source: https://github.com/peanut-business/peanut-admin-core-web |
+| `peanut-admin/core` | Apache-2.0 | Composer core package locked at v5.0.3 (f2b0435f577c5119f1dfc58d34c274ccb149c477). Source: https://github.com/peanut-business/peanut-admin-core-php |
+| Peanut Module Code Core Web | Apache-2.0 | npm core packages locked as @peanut-admin/client@5.0.4, @peanut-admin/vue@5.0.4, @peanut-admin/ui-vue@5.0.4, @peanut-admin/nuxt@5.0.4, @peanut-admin/uniapp@5.0.4, @peanut-admin/testing@5.0.4. Source: https://github.com/peanut-business/peanut-admin-core-web |
 
 ## License handling
 
@@ -33,9 +33,9 @@ Peanut Module Code is licensed under Apache-2.0: Copyright 2026 application owne
 
 | Ecosystem | Declared license | Lock entries |
 |---|---|---:|
-| composer | `Apache-2.0` | 13 |
+| composer | `Apache-2.0` | 24 |
 | composer | `BSD-3-Clause` | 24 |
-| composer | `MIT` | 31 |
+| composer | `MIT` | 34 |
 | pc | `Apache-2.0` | 21 |
 | pc | `BlueOak-1.0.0` | 14 |
 | pc | `BSD-2-Clause` | 11 |
@@ -50,7 +50,7 @@ Peanut Module Code is licensed under Apache-2.0: Copyright 2026 application owne
 | pc | `MIT-0` | 3 |
 | pc | `MPL-2.0` | 12 |
 | pc | `MPL-2.0 OR Apache-2.0` | 1 |
-| platform | `Apache-2.0` | 3 |
+| platform | `Apache-2.0` | 4 |
 | platform | `BSD-2-Clause` | 1 |
 | platform | `BSD-3-Clause` | 2 |
 | platform | `ISC` | 3 |
@@ -74,16 +74,16 @@ Peanut Module Code is licensed under Apache-2.0: Copyright 2026 application owne
 | uniapp | `MIT` | 878 |
 | uniapp | `MIT AND Zlib` | 1 |
 | uniapp | `MIT OR CC0-1.0` | 1 |
-| web | `0BSD` | 3 |
-| web | `Apache-2.0` | 18 |
+| web | `0BSD` | 2 |
+| web | `Apache-2.0` | 17 |
 | web | `BlueOak-1.0.0` | 1 |
 | web | `BSD-2-Clause` | 23 |
-| web | `BSD-3-Clause` | 10 |
+| web | `BSD-3-Clause` | 9 |
 | web | `CC-BY-3.0` | 1 |
 | web | `CC-BY-4.0` | 1 |
 | web | `CC0-1.0` | 3 |
-| web | `ISC` | 48 |
-| web | `MIT` | 730 |
+| web | `ISC` | 47 |
+| web | `MIT` | 676 |
 | web | `MIT OR Apache-2.0` | 1 |
 | web | `MIT OR CC0-1.0` | 6 |
 | web | `MPL-2.0 OR Apache-2.0` | 1 |
@@ -91,11 +91,13 @@ Peanut Module Code is licensed under Apache-2.0: Copyright 2026 application owne
 
 ## Composer production packages
 
-These 39 packages are installed with `composer install --no-dev` in the production PHP image.
+These 54 packages are installed with `composer install --no-dev` in the production PHP image.
 
 | Package | Version | License | Source |
 |---|---|---|---|
 | `aliyuncs/oss-sdk-php` | `v2.7.3` | `MIT` | https://github.com/aliyun/aliyun-oss-php-sdk.git |
+| `aws/aws-crt-php` | `v1.2.7` | `Apache-2.0` | https://github.com/awslabs/aws-crt-php.git |
+| `aws/aws-sdk-php` | `3.401.5` | `Apache-2.0` | https://github.com/aws/aws-sdk-php.git |
 | `composer/semver` | `3.4.4` | `MIT` | https://github.com/composer/semver.git |
 | `dragonmantank/cron-expression` | `v3.6.0` | `MIT` | https://github.com/dragonmantank/cron-expression.git |
 | `firebase/php-jwt` | `v7.1.0` | `BSD-3-Clause` | https://github.com/googleapis/php-jwt.git |
@@ -111,10 +113,19 @@ These 39 packages are installed with `composer install --no-dev` in the producti
 | `league/uri` | `7.8.1` | `MIT` | https://github.com/thephpleague/uri.git |
 | `league/uri-interfaces` | `7.8.1` | `MIT` | https://github.com/thephpleague/uri-interfaces.git |
 | `masterminds/html5` | `2.11.0` | `MIT` | https://github.com/Masterminds/html5-php.git |
+| `mtdowling/jmespath.php` | `2.9.2` | `MIT` | https://github.com/jmespath/jmespath.php.git |
 | `opis/json-schema` | `2.6.0` | `Apache-2.0` | https://github.com/opis/json-schema.git |
 | `opis/string` | `2.1.0` | `Apache-2.0` | https://github.com/opis/string.git |
 | `opis/uri` | `1.1.0` | `Apache-2.0` | https://github.com/opis/uri.git |
-| `peanut-admin/core` | `v5.0.1` | `Apache-2.0` | https://github.com/peanut-business/peanut-admin-core-php.git |
+| `peanut-admin/core` | `v5.0.3` | `Apache-2.0` | https://github.com/peanut-business/peanut-admin-core-php.git |
+| `peanut-business/peanut-content-tools` | `1.0.2` | `Apache-2.0` | app/modules/peanut/content_tools |
+| `peanut-business/peanut-file` | `1.0.42` | `Apache-2.0` | app/modules/peanut/file |
+| `peanut-business/peanut-identity` | `4.0.0-rc.56` | `Apache-2.0` | app/modules/peanut/identity |
+| `peanut-business/peanut-integration` | `1.0.29` | `Apache-2.0` | app/modules/peanut/integration |
+| `peanut-business/peanut-ops` | `1.0.32` | `Apache-2.0` | app/modules/peanut/ops |
+| `peanut-business/peanut-reference-codes` | `1.0.25` | `Apache-2.0` | app/modules/peanut/reference_codes |
+| `peanut-business/peanut-settings` | `1.0.26` | `Apache-2.0` | app/modules/peanut/settings |
+| `peanut-business/peanut-task` | `1.0.29` | `Apache-2.0` | app/modules/peanut/task |
 | `psr/container` | `2.0.2` | `MIT` | https://github.com/php-fig/container.git |
 | `psr/http-client` | `1.0.3` | `MIT` | https://github.com/php-fig/http-client.git |
 | `psr/http-factory` | `1.1.0` | `MIT` | https://github.com/php-fig/http-factory.git |
@@ -125,12 +136,16 @@ These 39 packages are installed with `composer install --no-dev` in the producti
 | `qiniu/php-sdk` | `v7.4.0` | `MIT` | https://github.com/qiniu/php-sdk.git |
 | `ralouphie/getallheaders` | `3.0.3` | `MIT` | https://github.com/ralouphie/getallheaders.git |
 | `symfony/deprecation-contracts` | `v3.7.1` | `MIT` | https://github.com/symfony/deprecation-contracts.git |
-| `symfony/html-sanitizer` | `v7.4.14` | `MIT` | https://github.com/symfony/html-sanitizer.git |
+| `symfony/filesystem` | `v7.4.23` | `MIT` | https://github.com/symfony/filesystem.git |
+| `symfony/html-sanitizer` | `v7.4.23` | `MIT` | https://github.com/symfony/html-sanitizer.git |
+| `symfony/polyfill-ctype` | `v1.37.0` | `MIT` | https://github.com/symfony/polyfill-ctype.git |
+| `symfony/polyfill-mbstring` | `v1.38.2` | `MIT` | https://github.com/symfony/polyfill-mbstring.git |
 | `symfony/polyfill-php80` | `v1.37.0` | `MIT` | https://github.com/symfony/polyfill-php80.git |
 | `topthink/framework` | `v8.1.4` | `Apache-2.0` | https://github.com/top-think/framework.git |
 | `topthink/think-container` | `v3.0.2` | `Apache-2.0` | https://github.com/top-think/think-container.git |
 | `topthink/think-filesystem` | `v3.0.0` | `Apache-2.0` | https://github.com/top-think/think-filesystem.git |
 | `topthink/think-helper` | `v3.1.12` | `Apache-2.0` | https://github.com/top-think/think-helper.git |
+| `topthink/think-migration` | `v3.1.1` | `Apache-2.0` | https://github.com/top-think/think-migration.git |
 | `topthink/think-multi-app` | `v1.1.1` | `Apache-2.0` | https://github.com/top-think/think-multi-app.git |
 | `topthink/think-orm` | `v4.0.51` | `Apache-2.0` | https://github.com/top-think/think-orm.git |
 | `topthink/think-validate` | `v3.0.7` | `Apache-2.0` | https://github.com/top-think/think-validate.git |
@@ -191,7 +206,7 @@ The following deduplicated package/version entries are outside the common MIT, A
 | quality-js | `lightningcss-linux-x64-musl` | `1.33.0` | `MPL-2.0` | https://registry.npmjs.org/lightningcss-linux-x64-musl/1.33.0 |
 | quality-js | `lightningcss-win32-arm64-msvc` | `1.33.0` | `MPL-2.0` | https://registry.npmjs.org/lightningcss-win32-arm64-msvc/1.33.0 |
 | quality-js | `lightningcss-win32-x64-msvc` | `1.33.0` | `MPL-2.0` | https://registry.npmjs.org/lightningcss-win32-x64-msvc/1.33.0 |
-| web | `dompurify` | `3.4.16` | `MPL-2.0 OR Apache-2.0` | https://registry.npmjs.org/dompurify/3.4.16 |
+| web | `dompurify` | `3.4.17` | `MPL-2.0 OR Apache-2.0` | https://registry.npmjs.org/dompurify/3.4.17 |
 | web | `argparse` | `2.0.1` | `Python-2.0` | https://registry.npmjs.org/argparse/2.0.1 |
 
 ## Obtaining license texts

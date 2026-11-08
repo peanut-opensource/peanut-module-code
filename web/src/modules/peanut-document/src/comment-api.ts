@@ -1,6 +1,6 @@
 import axios, { type AxiosRequestConfig } from 'axios';
 import type { DocumentCommentTransport } from './comment-contracts';
-import { DocumentCommentRejection } from './comments';
+import { DocumentCommentRejection } from './comment-rejection';
 
 /** Keep the normal application's authenticated Axios client and preserve native rejection codes. */
 async function request(
@@ -81,9 +81,10 @@ export const documentCommentTransport: DocumentCommentTransport = {
     request(
       {
         method: 'POST',
-        url: '/adminapi/peanut.document.comment.' + command.action,
+        url: `/adminapi/peanut.document.comment.${command.action}`,
         data: command.input,
       },
       signal
     ),
 };
+export default documentCommentTransport;

@@ -84,7 +84,7 @@
               >
                 <template #reference
                   ><el-button
-                    v-permission="['system/clearcache']"
+                    v-permission="['core.system.cache.clear']"
                     type="primary"
                     plain
                     :loading="clearing"

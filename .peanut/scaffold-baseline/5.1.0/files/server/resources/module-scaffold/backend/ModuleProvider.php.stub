@@ -1,0 +1,19 @@
+<?php
+declare(strict_types=1);
+
+namespace ${PHP_NAMESPACE};
+
+use PeanutAdmin\Kernel\Module\ModuleProvider as ModuleProviderContract;
+
+final class ModuleProvider implements ModuleProviderContract
+{
+    public function moduleKey(): string
+    {
+        return '${MODULE_KEY}';
+    }
+
+    public function bindings(): array
+    {
+        return [];
+    }
+}

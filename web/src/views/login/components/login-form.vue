@@ -150,7 +150,7 @@
 <style lang="less" scoped>
   .login-form {
     &-wrapper {
-      width: 320px;
+      width: 100%;
     }
 
     &-title {
@@ -167,9 +167,9 @@
     }
 
     &-error-msg {
-      height: 32px;
+      min-height: 28px;
       color: var(--el-color-danger);
-      line-height: 32px;
+      line-height: 28px;
     }
 
     &-actions {
@@ -180,7 +180,11 @@
 
     &-button {
       width: 100%;
+      min-height: 40px;
       margin-left: 0;
     }
+  }
+  .login-form :deep(.el-input__wrapper) {
+    min-height: 40px;
   }
 </style>

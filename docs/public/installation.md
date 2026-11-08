@@ -32,6 +32,8 @@ ThinkPHP 会优先使用 `server/runtime/config.php`，已有配置缓存可能�
 
 多租户首配只要求 `PLATFORM_HOSTS` 标识平台入口；租户站点入口在数据库中绑定。资源登记、endpoint、consumer 和租约证明属于需要它们的维护命令准入，普通运行与首次安装不强制填写维护资源身份。
 
+源码模板的 `resources/project-resources.json` 默认未分配任何运行资源。`./scripts/project-resource-registry validate` 仅检查登记结构，成功不代表资源已分配、可连接或健康；带资源作用域的校验及资源使用命令仍要求完整登记，不从维护者环境推断或借用资源。
+
 操作前核实际目标、连接、权限、空库和安装身份。未知数据、已有 APP 库或 partial 库不得清空。开发源码、内部候选和正式实例身份不同，开发模式不能带入生产；具体身份适配尚未完成时停止相应安装路径，不手改清单或回执。
 
 ## 3. 安装
@@ -75,6 +77,21 @@ HTTP worker 的执行时限须覆盖首次迁移和所选模块安装；本地�
 安装状态、服务启动、管理员登录、权限和业务分别确认。静态检查不替代运行结果；已有实例的更新、备份和回退见[产品 Git 交付](application-release.md)。
 
 结构使用官方 `migrate:run`，动态管理员和默认租户初始化后由官方 `seed:run --seed=InitialSeeder` 完成数据与权限目录。不要在网页安装成功后再执行 seed。初始迁移不支持回滚；种子发生部分失败后明确拒绝重复执行。原生版本表默认 pa_migrations；旧数据库基线和自研账本不再参与安装。
+
+## 已有租户缺失公共页面的定向维护
+
+实例维护者在已配置应用的 `server/` 运行原生命令，显式选择已有活动租户。先核对应用身份、数据库配置及租户 ID，再预览并应用：
+
+```sh
+php think tenant:decoration-pages --tenant-id=123 --dry-run
+php think tenant:decoration-pages --tenant-id=123
+```
+
+默认检查已声明的 type 1–5（移动首页、个人中心、客服、PC 首页、系统风格）；可用 `--types=4,5` 缩小范围。JSON 返回 `tenant_id`、`dry_run`、`requested_types`、`missing_types` 和 `inserted`。`--dry-run` 只读；不带该选项时，在原生 ORM 事务中仅插入缺失页面，保留已有页面的全部配置，重复运行新增为零。默认值与新租户开通共用同一实现。
+
+该入口仅供实例 CLI 维护，不注册为租户定时任务；嵌套租户/HTTP 执行上下文被拒绝。不调用首装、迁移或完整 tenant bootstrap，不补 tabbar、任务、通知、租户设置或外部绑定。缺表或数据库错误原样失败；不提供读取配置 fallback。对同一租户装修页面的并发维护/编辑应串行安排，真实数据库及 PC/H5 验收由目标应用执行。
+
+源码修复可由下游在自己的功能 worktree 通过 Git 精确采用上游提交中的 PHP 实现和命令注册，按需合并本节说明；保留与官方模板基线的源码差异，不手改 APP manifest 或 scaffold baseline，也不重放整包 apply。上游 inventory 由生成入口同步，不复制覆盖下游基线；该开发补丁不代表新官方模板发行。
 
 ## 5. 初始数据与可选示例
 

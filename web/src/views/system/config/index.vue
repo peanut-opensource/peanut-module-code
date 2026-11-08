@@ -1,6 +1,8 @@
 <template>
-  <div class="container">
-    <Breadcrumb :items="['menu.appSetting', 'menu.appSetting.website']" />
+  <PageContent class="container">
+    <PageHeader>
+      <h1>{{ $t('menu.appSetting.website') }}</h1>
+    </PageHeader>
     <el-card class="general-card">
       <template #header>{{ $t('menu.appSetting.website') }}</template>
       <div v-loading="loading" style="width: 100%">
@@ -37,7 +39,7 @@
         </el-form>
       </div>
     </el-card>
-  </div>
+  </PageContent>
 </template>
 
 <script lang="ts" setup>
@@ -45,6 +47,7 @@
   import { useI18n } from 'vue-i18n';
   import { ElMessage } from 'element-plus';
   import type { FormInstance } from 'element-plus';
+  import { PageContent, PageHeader } from '@peanut-admin/ui-vue';
   import useLoading from '@/hooks/loading';
   import { useBrandStore } from '@/store';
   import {

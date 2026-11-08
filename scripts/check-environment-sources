@@ -50,6 +50,8 @@ def database_environment_contract(errors: list[str]) -> None:
         "deploy/legacy-env-migrate",
         "deploy/tests/deploy-release-candidate-contract.sh",
         "scripts/project-development-database.sh",
+        # Asserts that credential synchronization strips the retired alias.
+        "server/tests/Productization/DatabaseResourceRegistryTest.php",
         "docs/development/current-code-lifecycle.md",
     }
     deprecated_file_alias_documentation = {
@@ -84,10 +86,9 @@ def scan_sources(errors: list[str]) -> None:
 
 def frontend_contract(errors: list[str]) -> None:
     required = [
-        "web/.env.example", "web/.env.development", "web/.env.production",
+        "web/.env.example",
         "web/.env.standalone", "web/.env.multi-tenant", "platform/.env.example",
-        "platform/.env.production", "pc/.env.example", "pc/.env.production",
-        "uniapp/.env.example", "uniapp/.env.production",
+        "pc/.env.example", "uniapp/.env.example",
     ]
     for relative in required:
         if not (ROOT / relative).is_file():

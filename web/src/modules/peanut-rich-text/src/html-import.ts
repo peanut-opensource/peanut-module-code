@@ -79,7 +79,7 @@ const canonical = (root: ParentNode): string => {
   const inlineMarks = new Set(['strong', 'em', 's', 'u', 'a', 'code']);
   const mergeInline = (nodes: CanonicalNode[]): CanonicalNode[] => {
     const result: CanonicalNode[] = [];
-    for (const node of nodes) {
+    nodes.forEach((node) => {
       const previous = result[result.length - 1];
       if (typeof node === 'string' && typeof previous === 'string') {
         result[result.length - 1] = previous + node;
@@ -96,7 +96,7 @@ const canonical = (root: ParentNode): string => {
       } else {
         result.push(node);
       }
-    }
+    });
     return result;
   };
   const children = (parent: ParentNode): CanonicalNode[] =>
@@ -160,58 +160,60 @@ export const previewRichTextHtml = (
     count += 1;
     if (count > 50000 || current.depth > 60)
       return blocked('HTML_TOO_COMPLEX', 'HTML 节点数量或嵌套深度超过限制。');
-    if (current.node.nodeType === 3) continue;
-    if (current.node.nodeType !== 1)
-      return blocked(
-        'HTML_NODE_UNSUPPORTED',
-        'HTML 注释或其他非文本节点不在本次导入范围。'
+    if (current.node.nodeType !== 3) {
+      if (current.node.nodeType !== 1)
+        return blocked(
+          'HTML_NODE_UNSUPPORTED',
+          'HTML 注释或其他非文本节点不在本次导入范围。'
+        );
+      const element = current.node as Element;
+      const tag = element.localName;
+      if (
+        element.namespaceURI !== 'http://www.w3.org/1999/xhtml' ||
+        !tags.includes(tag)
+      )
+        return blocked(
+          'HTML_NODE_UNSUPPORTED',
+          `暂不支持 <${tag}>；媒体需通过受控文件选择器添加。`
+        );
+      const unsupported = Array.from(element.attributes).find(
+        (attr) => !(attributes[tag] ?? []).includes(attr.name)
       );
-    const element = current.node as Element;
-    const tag = element.localName;
-    if (
-      element.namespaceURI !== 'http://www.w3.org/1999/xhtml' ||
-      !tags.includes(tag)
-    )
-      return blocked(
-        'HTML_NODE_UNSUPPORTED',
-        `暂不支持 <${tag}>；媒体需通过受控文件选择器添加。`
-      );
-    const unsupported = Array.from(element.attributes).find(
-      (attr) => !(attributes[tag] ?? []).includes(attr.name)
-    );
-    if (unsupported)
-      return blocked(
-        'HTML_ATTRIBUTE_UNSUPPORTED',
-        `<${tag}> 的 ${unsupported.name} 属性不在本次导入范围；样式与媒体属性不会自动丢弃。`
-      );
-    if (
-      tag === 'a' &&
-      (!validLink(element.getAttribute('href')) ||
-        (element.hasAttribute('target') &&
-          !['_blank', '_self'].includes(
-            element.getAttribute('target') ?? ''
-          )) ||
-        (element.hasAttribute('rel') &&
-          !['noopener noreferrer', 'noopener noreferrer nofollow'].includes(
-            element.getAttribute('rel') ?? ''
-          )))
-    )
-      return blocked(
-        'HTML_LINK_UNSAFE',
-        '链接必须是有效的 HTTP、HTTPS 或 mailto 地址，并使用支持的 target / rel。'
-      );
-    if (tag === 'ol' && element.hasAttribute('start')) {
-      const start = element.getAttribute('start') ?? '';
-      if (!/^[1-9][0-9]*$/.test(start) || Number(start) > 1000000)
+      if (unsupported)
         return blocked(
           'HTML_ATTRIBUTE_UNSUPPORTED',
-          '有序列表 start 必须为 1 至 1000000 的整数。'
+          `<${tag}> 的 ${unsupported.name} 属性不在本次导入范围；样式与媒体属性不会自动丢弃。`
         );
+      if (
+        tag === 'a' &&
+        (!validLink(element.getAttribute('href')) ||
+          (element.hasAttribute('target') &&
+            !['_blank', '_self'].includes(
+              element.getAttribute('target') ?? ''
+            )) ||
+          (element.hasAttribute('rel') &&
+            !['noopener noreferrer', 'noopener noreferrer nofollow'].includes(
+              element.getAttribute('rel') ?? ''
+            )))
+      )
+        return blocked(
+          'HTML_LINK_UNSAFE',
+          '链接必须是有效的 HTTP、HTTPS 或 mailto 地址，并使用支持的 target / rel。'
+        );
+      if (tag === 'ol' && element.hasAttribute('start')) {
+        const start = element.getAttribute('start') ?? '';
+        if (!/^[1-9][0-9]*$/.test(start) || Number(start) > 1000000)
+          return blocked(
+            'HTML_ATTRIBUTE_UNSUPPORTED',
+            '有序列表 start 必须为 1 至 1000000 的整数。'
+          );
+      }
+      if (count + pending.length + element.childNodes.length > 50000)
+        return blocked('HTML_TOO_COMPLEX', 'HTML 节点数量或嵌套深度超过限制。');
+      Array.from(element.childNodes).forEach((node) =>
+        pending.push({ node, depth: current.depth + 1 })
+      );
     }
-    if (count + pending.length + element.childNodes.length > 50000)
-      return blocked('HTML_TOO_COMPLEX', 'HTML 节点数量或嵌套深度超过限制。');
-    for (const node of Array.from(element.childNodes))
-      pending.push({ node, depth: current.depth + 1 });
   }
 
   const sanitizedDocument = DOMPurify.sanitize(html, {
@@ -250,15 +252,16 @@ export const previewRichTextHtml = (
     );
   try {
     const content: JSONContent = parsed.toJSON();
-    const pending = [content];
-    while (pending.length) {
-      const node = pending.pop();
-      if (!node) continue;
-      // Tiptap adds a null list-style default absent from the public projection.
-      // Explicit HTML list styles are rejected above; no source format is removed.
-      if (node.type === 'orderedList' && node.attrs?.type === null)
-        delete node.attrs.type;
-      pending.push(...(node.content ?? []));
+    const nodesToVisit = [content];
+    while (nodesToVisit.length) {
+      const node = nodesToVisit.pop();
+      if (node) {
+        // Tiptap adds a null list-style default absent from the public projection.
+        // Explicit HTML list styles are rejected above; no source format is removed.
+        if (node.type === 'orderedList' && node.attrs?.type === null)
+          delete node.attrs.type;
+        nodesToVisit.push(...(node.content ?? []));
+      }
     }
     const value = parseRichTextDocument({
       ...emptyDocument(),

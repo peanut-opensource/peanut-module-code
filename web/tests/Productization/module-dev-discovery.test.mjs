@@ -1,8 +1,6 @@
 import {
   mkdtempSync,
-  mkdirSync,
   readFileSync,
-  readdirSync,
   realpathSync,
   rmSync,
   symlinkSync,
@@ -17,24 +15,16 @@ function expect(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-function manifestPaths(directory) {
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const path = resolve(directory, entry.name);
-    if (entry.isDirectory()) return manifestPaths(path);
-    return entry.isFile() && entry.name === 'module.json' ? [path] : [];
-  });
-}
-
 const webRoot = realpathSync(
   resolve(fileURLToPath(new URL('../..', import.meta.url)))
 );
 const projectRoot = resolve(webRoot, '..');
 const virtualId = 'virtual:peanut-module-contributions';
 
-async function virtualSource() {
+async function virtualSource(command, mode) {
   const loaded = await loadConfigFromFile(
-    { command: 'serve', mode: 'development' },
-    resolve(webRoot, 'config/vite.config.dev.ts'),
+    { command, mode },
+    resolve(webRoot, 'vite.config.ts'),
     webRoot
   );
   expect(loaded !== null, 'development Vite config could not be loaded');
@@ -46,7 +36,7 @@ async function virtualSource() {
   return plugin.load(resolvedId);
 }
 
-async function productionVirtualSource(entries) {
+async function productionVirtualSource(entries, mode = 'production') {
   const probeDirectory = mkdtempSync(
     resolve(tmpdir(), 'pa-module-production-contribution-')
   );
@@ -55,17 +45,23 @@ async function productionVirtualSource(entries) {
     writeFileSync(
       probe,
       `import { createBaseConfig } from ${JSON.stringify(
-        resolve(webRoot, 'config/vite.config.base.ts')
-      )};\nexport default createBaseConfig({ command: 'build', mode: 'production' }, () => ${JSON.stringify(
+        resolve(webRoot, 'vite.config.ts')
+      )};\nexport default createBaseConfig({ command: 'build', mode: ${JSON.stringify(mode)} }, {}, () => ${JSON.stringify(
         entries
       )});\n`
     );
     const loaded = await loadConfigFromFile(
-      { command: 'build', mode: 'production' },
+      { command: 'build', mode },
       probe,
       probeDirectory
     );
     expect(loaded !== null, 'production Vite config could not be loaded');
+    if (mode !== 'production') {
+      expect(
+        loaded.config.define['import.meta.env.VITE_DEPLOYMENT_MODE'] === JSON.stringify(mode),
+        `generated APP without a mode env file lost its explicit ${mode} build`
+      );
+    }
     const plugin = loaded.config.plugins?.find(
       (candidate) => candidate.name === 'peanut-module-contribution-manifest'
     );
@@ -77,50 +73,31 @@ async function productionVirtualSource(entries) {
   }
 }
 
-const first = await virtualSource();
-const second = await virtualSource();
-expect(
-  first === second,
-  'development contribution discovery is not deterministic'
-);
-const expectedEntries = manifestPaths(
-  resolve(projectRoot, 'server/app/modules')
-)
-  .map((path) => JSON.parse(readFileSync(path, 'utf8')))
-  .map((manifest) => manifest.frontend?.entry)
-  .filter(Boolean)
+const first = await virtualSource('serve', 'development');
+const built = await virtualSource('build', 'production');
+expect(first === built, 'development and production Vite resolved different locked entries');
+const lock = JSON.parse(readFileSync(resolve(projectRoot, 'modules.lock'), 'utf8'));
+const expectedEntries = lock.modules.flatMap((module) => module.frontend)
+  .filter((entry) => entry.client_key === 'admin-web')
+  .map((entry) => entry.entry)
   .sort();
-expectedEntries.forEach((entry) => {
-  const importPath = `/${entry.slice('web/'.length)}`;
-  expect(
-    first.includes(JSON.stringify(importPath)),
-    `development Vite omitted ${entry}`
-  );
-});
-expect(
-  (first.match(/^import contribution/gm) || []).length ===
-    expectedEntries.length,
-  'development Vite contribution count differs from module.json'
-);
+expect(expectedEntries.length > 0, 'admin-web lock has no entries');
+for (const entry of expectedEntries) {
+  expect(first.includes(JSON.stringify('/' + entry.slice('web/'.length))), 'Vite omitted ' + entry);
+}
+expect((first.match(/^import contribution/gm) || []).length === expectedEntries.length,
+  'Vite contribution count differs from the installed lock');
 
-const devConfigSource = readFileSync(
-  resolve(webRoot, 'config/vite.config.dev.ts'),
-  'utf8'
-);
-expect(
-  !devConfigSource.includes('modules.lock') &&
-    devConfigSource.includes(
-      'createBaseConfig(configEnv, discoverAdminContributions)'
-    ),
-  'development Vite config still depends on modules.lock'
-);
+for (const edition of ['standalone', 'multi-tenant']) {
+  await productionVirtualSource([], edition);
+}
 
 const normalizedProductionSource = await productionVirtualSource([
-  'web/src/modules/official-article/../official-article/contribution.ts',
+  'web/src/modules/peanut-content-tools/../peanut-content-tools/contribution.ts',
 ]);
 expect(
   normalizedProductionSource.includes(
-    JSON.stringify('/src/modules/official-article/contribution.ts')
+    JSON.stringify('/src/modules/peanut-content-tools/contribution.ts')
   ),
   'production Vite did not normalize a legal contribution path'
 );
@@ -142,7 +119,7 @@ const symlinkDirectory = mkdtempSync(
 );
 try {
   symlinkSync(
-    resolve(webRoot, 'src/modules/official-article/contribution.ts'),
+    resolve(webRoot, 'src/modules/peanut-content-tools/contribution.ts'),
     resolve(symlinkDirectory, 'contribution.ts')
   );
   const symlinkEntry = `web/src/${symlinkDirectory
@@ -158,47 +135,6 @@ try {
   expect(rejected, 'production Vite accepted a symlinked contribution');
 } finally {
   rmSync(symlinkDirectory, { recursive: true, force: true });
-}
-
-const temporary = mkdtempSync(resolve(tmpdir(), 'pa-module-dev-discovery-'));
-try {
-  const invalidRoot = resolve(
-    temporary,
-    'server/app/modules/fixture/invalid_entry'
-  );
-  mkdirSync(invalidRoot, { recursive: true });
-  mkdirSync(resolve(temporary, 'web/src/modules/fixture-invalid-entry'), {
-    recursive: true,
-  });
-  writeFileSync(
-    resolve(invalidRoot, 'module.json'),
-    JSON.stringify({
-      key: 'fixture.invalid-entry',
-      frontend: { entry: 'web/src/modules/wrong/contribution.ts' },
-    })
-  );
-  const probe = resolve(temporary, 'vite.config.ts');
-  writeFileSync(
-    probe,
-    `import { discoverAdminContributions } from ${JSON.stringify(
-      resolve(webRoot, 'config/vite.config.dev.ts')
-    )};\nexport default { entries: discoverAdminContributions(${JSON.stringify(
-      temporary
-    )}) };\n`
-  );
-  let rejected = false;
-  try {
-    await loadConfigFromFile(
-      { command: 'serve', mode: 'development' },
-      probe,
-      temporary
-    );
-  } catch (error) {
-    rejected = String(error).includes('frontend.entry differs from key');
-  }
-  expect(rejected, 'mismatched development frontend.entry was accepted');
-} finally {
-  rmSync(temporary, { recursive: true, force: true });
 }
 
 // eslint-disable-next-line no-console

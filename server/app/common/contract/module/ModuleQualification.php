@@ -9,7 +9,6 @@ final readonly class ModuleQualification
     /** @param list<string> $dependencies */
     public function __construct(
         public string $moduleKey,
-        public string $pluginKey,
         public string $version,
         public int $schemaVersion,
         public string $manifestDigest,
@@ -22,7 +21,6 @@ final readonly class ModuleQualification
     {
         return [
             'module_key' => $this->moduleKey,
-            'module_key' => $this->pluginKey,
             'version' => $this->version,
             'schema_version' => $this->schemaVersion,
             'manifest_digest' => $this->manifestDigest,

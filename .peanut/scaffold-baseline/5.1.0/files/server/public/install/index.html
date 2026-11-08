@@ -1,0 +1,2211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Peanut Module Code · 安装向导</title>
+    <link rel="icon" href="/brand/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        color-scheme: light;
+        --blue: #2563eb;
+        --ink: #17243c;
+        --muted: #69778d;
+        --line: #e6ebf2;
+        --green: #15855b;
+        --red: #bf3636;
+        --surface: #f5f7fb;
+        font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+          'PingFang SC', 'Microsoft YaHei', sans-serif;
+        color: var(--ink);
+        font-size: 14px;
+        line-height: 1.65;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--surface);
+      }
+      [hidden] {
+        display: none !important;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button,
+      a,
+      input,
+      select,
+      summary {
+        -webkit-tap-highlight-color: transparent;
+      }
+      button,
+      a,
+      summary {
+        touch-action: manipulation;
+      }
+      button,
+      a {
+        transition: background 0.15s, color 0.15s, border-color 0.15s;
+      }
+      button:focus-visible,
+      a:focus-visible,
+      summary:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 3px solid #b5cdff;
+        outline-offset: 3px;
+      }
+      a {
+        color: var(--blue);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.46;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: 30px;
+        letter-spacing: -0.8px;
+        line-height: 1.35;
+      }
+      h2 {
+        font-size: 17px;
+        letter-spacing: -0.2px;
+      }
+      h3 {
+        font-size: 14px;
+      }
+      small,
+      .help {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .page {
+        max-width: 1200px;
+        margin: auto;
+        padding: 28px 40px;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 28px;
+        gap: 16px;
+      }
+      .brand {
+        display: flex;
+        gap: 11px;
+        align-items: center;
+        font-size: 17px;
+        font-weight: 650;
+        letter-spacing: -0.3px;
+      }
+      .brand img {
+        width: 35px;
+        height: 35px;
+      }
+      .top-note {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 230px minmax(0, 1fr);
+        gap: 28px;
+        align-items: start;
+      }
+      .sidebar {
+        padding: 24px 6px;
+      }
+      .sidebar-title {
+        font-size: 12px;
+        letter-spacing: 1px;
+        color: var(--muted);
+        margin: 0 0 24px 12px;
+      }
+      .steps {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .steps li {
+        position: relative;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 0 12px 27px;
+      }
+      .steps li:not(:last-child):after {
+        content: '';
+        position: absolute;
+        top: 33px;
+        left: 27px;
+        bottom: 6px;
+        width: 1px;
+        background: #dce3ef;
+      }
+      .step-number {
+        display: grid;
+        place-items: center;
+        width: 31px;
+        height: 31px;
+        flex-shrink: 0;
+        border: 1px solid #d6dfed;
+        border-radius: 50%;
+        background: var(--surface);
+        font-size: 12px;
+        color: #7b889d;
+      }
+      .step-copy strong {
+        display: block;
+        font-size: 13px;
+        font-weight: 550;
+        color: #8a96a8;
+        line-height: 1.4;
+        margin-top: 2px;
+      }
+      .step-copy small {
+        display: block;
+        font-size: 11px;
+        color: #97a2b2;
+        margin-top: 3px;
+      }
+      .steps [aria-current='step'] .step-number {
+        background: var(--blue);
+        border-color: var(--blue);
+        color: white;
+        box-shadow: 0 0 0 4px #e4edff;
+      }
+      .steps [aria-current='step'] strong {
+        color: var(--ink);
+        font-weight: 650;
+      }
+      .steps .done .step-number {
+        background: #e6f4ed;
+        color: var(--green);
+        border-color: #d3eadf;
+      }
+      .steps .done strong {
+        color: #596b81;
+      }
+      .sidebar-note {
+        border-top: 1px solid var(--line);
+        margin: 7px 12px 0;
+        padding-top: 20px;
+        font-size: 12px;
+        color: var(--muted);
+        max-width: 180px;
+      }
+      .card {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow: 0 12px 38px #253f6e05;
+        overflow: hidden;
+        min-width: 0;
+      }
+      .card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--line);
+        padding: 18px 32px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .edition {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: #f0f5ff;
+        color: #4268a3;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+      }
+      .edition:before {
+        content: '';
+        width: 5px;
+        height: 5px;
+        background: var(--blue);
+        border-radius: 50%;
+      }
+      .panel {
+        padding: 32px;
+        min-height: 430px;
+      }
+      .panel:focus {
+        outline: none;
+      }
+      .eyebrow {
+        color: var(--blue);
+        font-size: 11px;
+        font-weight: 650;
+        letter-spacing: 1.5px;
+        margin-bottom: 12px;
+      }
+      .intro {
+        color: var(--muted);
+        margin-top: 11px;
+        max-width: 520px;
+        line-height: 1.8;
+      }
+      .section {
+        margin-top: 27px;
+      }
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+      .section-head p {
+        margin-top: 4px;
+      }
+      .section + .section {
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+      }
+      .welcome-visual {
+        margin: 28px 0;
+        background: linear-gradient(115deg, #f0f5ff, #f7faff 66%, #eef9f6);
+        border: 1px solid #e3ecfc;
+        border-radius: 12px;
+        padding: 26px;
+        display: flex;
+        gap: 20px;
+        align-items: center;
+      }
+      .welcome-mark {
+        width: 68px;
+        height: 68px;
+        flex-shrink: 0;
+        border-radius: 18px;
+        background: white;
+        box-shadow: 0 7px 18px #2a56ad0b;
+        display: grid;
+        place-items: center;
+      }
+      .welcome-mark img {
+        width: 43px;
+        height: 43px;
+      }
+      .welcome-visual strong {
+        display: block;
+        font-size: 16px;
+        margin-bottom: 5px;
+      }
+      .welcome-visual p {
+        font-size: 12px;
+        color: #6b7e98;
+      }
+      .overview {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+        margin: 25px 0 28px;
+      }
+      .overview-number {
+        font-size: 11px;
+        font-weight: 650;
+        color: var(--blue);
+        margin-bottom: 6px;
+      }
+      .overview h3 {
+        margin-bottom: 5px;
+      }
+      .overview p {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+      .agreement {
+        border-top: 1px solid var(--line);
+        padding-top: 20px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .check-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        cursor: pointer;
+        margin-top: 14px;
+        color: #42516a;
+        font-size: 13px;
+      }
+      .check-label input {
+        flex-shrink: 0;
+        margin: 4px 0 0;
+        width: 15px;
+        height: 15px;
+        accent-color: var(--blue);
+      }
+      .actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        margin-top: 30px;
+        padding-top: 22px;
+        border-top: 1px solid var(--line);
+      }
+      .action-group {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        min-height: 41px;
+        padding: 8px 17px;
+        border-radius: 8px;
+        background: white;
+        border: 1px solid #dce3ed;
+        color: #485974;
+        font-size: 13px;
+        font-weight: 550;
+        text-decoration: none;
+        white-space: normal;
+      }
+      .button:hover {
+        background: #f8faff;
+        text-decoration: none;
+        border-color: #becde3;
+      }
+      .primary {
+        background: var(--blue);
+        border-color: var(--blue);
+        color: white;
+        box-shadow: 0 3px 6px #2563eb16;
+      }
+      .primary:hover {
+        background: #1e55ce;
+        border-color: #1e55ce;
+      }
+      .text-button {
+        border: 0;
+        box-shadow: none;
+        background: none;
+        color: var(--muted);
+        padding-left: 0;
+      }
+      .text-button:hover {
+        background: none;
+        color: var(--blue);
+      }
+      .notice {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        border: 1px solid #dee8fb;
+        background: #f5f8ff;
+        border-radius: 10px;
+        padding: 15px 17px;
+        margin-top: 22px;
+        color: #4d6489;
+        font-size: 12px;
+        line-height: 1.8;
+      }
+      .notice strong {
+        font-size: 13px;
+        color: #324f7e;
+        display: block;
+        margin-bottom: 2px;
+      }
+      .notice.success {
+        background: #f0f9f5;
+        border-color: #d5ebdf;
+        color: #517665;
+      }
+      .notice.success strong {
+        color: var(--green);
+      }
+      .notice.error {
+        background: #fff6f5;
+        border-color: #f2d9d5;
+        color: #8e534f;
+      }
+      .notice.error strong {
+        color: var(--red);
+      }
+      .notice-icon {
+        font-size: 17px;
+        line-height: 1.45;
+        flex-shrink: 0;
+      }
+      .empty-state {
+        padding: 38px 20px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 13px;
+        border: 1px dashed #dfe7f2;
+        border-radius: 10px;
+        margin-top: 24px;
+      }
+      .check-list {
+        margin-top: 22px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .check-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 15px 17px;
+      }
+      .check-row + .check-row {
+        border-top: 1px solid #eef1f6;
+      }
+      .check-icon {
+        display: grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        flex-shrink: 0;
+        border-radius: 50%;
+        background: #eaf6ef;
+        color: var(--green);
+        font-size: 12px;
+      }
+      .check-icon.failed {
+        background: #fcebe8;
+        color: var(--red);
+      }
+      .check-icon.waiting {
+        background: #f0f3f8;
+        color: #8290a5;
+      }
+      .check-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .check-body strong {
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .check-body p {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      .check-badge {
+        font-size: 11px;
+        color: var(--green);
+        white-space: nowrap;
+      }
+      .check-badge.failed {
+        color: var(--red);
+      }
+      .check-badge.diagnostic {
+        color: var(--muted);
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      .field {
+        min-width: 0;
+      }
+      .field.full {
+        grid-column: 1/-1;
+      }
+      .field label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 7px;
+        color: #46546b;
+      }
+      .field input,
+      .field select {
+        width: 100%;
+        height: 42px;
+        border: 1px solid #dce3ed;
+        border-radius: 7px;
+        background: white;
+        padding: 9px 12px;
+        color: var(--ink);
+        transition: border-color 0.15s, box-shadow 0.15s;
+        min-width: 0;
+      }
+      .field input::placeholder {
+        color: #a1acbc;
+      }
+      .field input:hover,
+      .field select:hover {
+        border-color: #b7c8e3;
+      }
+      .field input:focus,
+      .field select:focus {
+        border-color: #729ff5;
+        outline: 0;
+        box-shadow: 0 0 0 3px #ecf2ff;
+      }
+      .help {
+        margin-top: 6px;
+        line-height: 1.7;
+      }
+      .password-wrap {
+        position: relative;
+      }
+      .password-wrap input {
+        padding-right: 60px;
+      }
+      .password-toggle {
+        position: absolute;
+        right: 8px;
+        top: 8px;
+        bottom: 8px;
+        padding: 0 5px;
+        border: 0;
+        background: none;
+        font-size: 11px;
+        color: #718099;
+      }
+      .access {
+        background: #f8faff;
+        border: 1px solid #e5ecf8;
+        border-radius: 10px;
+        padding: 17px;
+        margin-top: 24px;
+      }
+      .access .help code {
+        word-break: break-all;
+        color: #55709d;
+      }
+      .account-card {
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        padding: 20px;
+      }
+      .account-card + .account-card {
+        margin-top: 18px;
+      }
+      .account-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .account-title span {
+        font-size: 11px;
+        background: #eef4ff;
+        color: #6280ac;
+        padding: 2px 7px;
+        border-radius: 4px;
+      }
+      .module-options {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .module-option {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        font-size: 12px;
+      }
+      .module-option input {
+        accent-color: var(--blue);
+        margin-top: 4px;
+      }
+      .module-option small {
+        display: block;
+        font-size: 11px;
+      }
+      .details {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 22px;
+      }
+      .details summary {
+        cursor: pointer;
+        padding: 5px 0;
+        user-select: none;
+      }
+      .details[open] summary {
+        margin-bottom: 10px;
+      }
+      .diagnostics {
+        border-top: 1px solid var(--line);
+        padding: 16px 32px;
+        margin: 0;
+      }
+      .diagnostics summary {
+        font-size: 12px;
+        color: var(--muted);
+        cursor: pointer;
+      }
+      .diagnostics pre {
+        font: 11px/1.7 ui-monospace, SFMono-Regular, Consolas, monospace;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        max-height: 280px;
+        overflow: auto;
+        background: #f7f9fc;
+        padding: 16px;
+        border-radius: 8px;
+        color: #5d6d84;
+      }
+      .status-message {
+        margin: 0 32px 24px;
+      }
+      .footer {
+        font-size: 11px;
+        color: #9aa6b8;
+        margin: 23px 0;
+        text-align: center;
+      }
+      .working {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 24px;
+        border: 1px solid #dfe9fc;
+        border-radius: 11px;
+        background: #f6f9ff;
+        margin-top: 24px;
+      }
+      .spinner {
+        width: 26px;
+        height: 26px;
+        border: 3px solid #d9e6ff;
+        border-top-color: var(--blue);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        flex-shrink: 0;
+      }
+      .working p {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      .complete {
+        text-align: center;
+        padding: 50px 32px;
+      }
+      .complete-icon {
+        width: 70px;
+        height: 70px;
+        background: #eaf7ef;
+        border: 1px solid #d6eddf;
+        display: grid;
+        place-items: center;
+        color: var(--green);
+        font-size: 30px;
+        border-radius: 50%;
+        margin: 0 auto 22px;
+      }
+      .complete .intro {
+        margin: 14px auto 0;
+      }
+      .complete .button {
+        margin-top: 26px;
+      }
+      .complete-note {
+        margin: 26px auto 0;
+        padding-top: 22px;
+        border-top: 1px solid var(--line);
+        max-width: 460px;
+        font-size: 12px;
+        color: var(--muted);
+        text-align: left;
+      }
+      .noscript {
+        margin-bottom: 20px;
+      }
+      .error-code {
+        font: 11px ui-monospace, SFMono-Regular, monospace;
+        color: #9a6c66;
+        margin-top: 8px;
+        overflow-wrap: anywhere;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+        .spinner {
+          animation: none;
+          border-style: dotted;
+        }
+      }
+      @media (min-width: 1400px) {
+        .page {
+          padding-top: 42px;
+        }
+        .topbar {
+          margin-bottom: 36px;
+        }
+        .panel {
+          padding: 38px;
+        }
+        .card-head {
+          padding-left: 38px;
+          padding-right: 38px;
+        }
+      }
+      @media (max-width: 900px) {
+        .page {
+          padding: 22px;
+        }
+        .layout {
+          grid-template-columns: 175px minmax(0, 1fr);
+          gap: 15px;
+        }
+        .step-copy small {
+          display: none;
+        }
+        .sidebar-note {
+          max-width: 145px;
+        }
+        .panel {
+          padding: 26px;
+        }
+        .card-head {
+          padding: 16px 26px;
+        }
+        .overview {
+          gap: 12px;
+        }
+        .welcome-visual {
+          padding: 20px;
+        }
+      }
+      @media (max-width: 640px) {
+        .page {
+          padding: 18px 16px;
+        }
+        .topbar {
+          margin-bottom: 18px;
+        }
+        .brand {
+          font-size: 15px;
+        }
+        .brand img {
+          width: 30px;
+          height: 30px;
+        }
+        .top-note {
+          font-size: 11px;
+        }
+        .layout {
+          display: block;
+        }
+        .sidebar {
+          padding: 6px 4px 23px;
+        }
+        .sidebar-title,
+        .sidebar-note,
+        .step-copy {
+          display: none;
+        }
+        .steps {
+          display: flex;
+          justify-content: space-between;
+        }
+        .steps li {
+          padding: 0;
+          flex: 1;
+        }
+        .steps li:last-child {
+          flex: 0;
+        }
+        .steps li:not(:last-child):after {
+          top: 15px;
+          left: 39px;
+          right: 8px;
+          bottom: auto;
+          width: auto;
+          height: 1px;
+        }
+        .step-number {
+          z-index: 1;
+        }
+        .card {
+          border-radius: 13px;
+        }
+        .card-head {
+          padding: 14px 21px;
+        }
+        .panel {
+          padding: 25px 21px;
+          min-height: 0;
+        }
+        h1 {
+          font-size: 25px;
+        }
+        .intro {
+          font-size: 13px;
+        }
+        .welcome-visual {
+          gap: 14px;
+          margin: 24px 0;
+          padding: 19px 15px;
+        }
+        .welcome-mark {
+          width: 52px;
+          height: 52px;
+          border-radius: 13px;
+        }
+        .welcome-mark img {
+          width: 34px;
+          height: 34px;
+        }
+        .welcome-visual strong {
+          font-size: 14px;
+        }
+        .overview {
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+        .overview-number {
+          float: left;
+          margin-right: 12px;
+          margin-top: 3px;
+        }
+        .overview p,
+        .overview h3 {
+          margin-left: 30px;
+        }
+        .form-grid,
+        .module-options {
+          grid-template-columns: 1fr;
+        }
+        .account-card {
+          padding: 17px;
+        }
+        .actions {
+          align-items: stretch;
+          gap: 10px;
+        }
+        .actions .primary {
+          margin-left: auto;
+        }
+        .action-group {
+          justify-content: flex-end;
+        }
+        .check-row {
+          padding: 13px 12px;
+          gap: 9px;
+        }
+        .check-badge {
+          display: none;
+        }
+        .diagnostics {
+          padding: 15px 21px;
+        }
+        .status-message {
+          margin: 0 21px 21px;
+        }
+        .complete {
+          padding: 40px 23px;
+        }
+        .footer {
+          font-size: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="topbar"
+        ><a class="brand" href="/install" aria-label="Peanut Module Code 安装向导"
+          ><img src="/brand/logo.svg" alt="" /><span data-product-name
+            >Peanut Module Code</span
+          ></a
+        ><span class="top-note"
+          >安装向导 <span aria-hidden="true">/</span> 实例初始化</span
+        ></header
+      >
+      <noscript
+        ><div class="notice error noscript"
+          >请开启浏览器 JavaScript 后继续安装。</div
+        ></noscript
+      >
+      <div class="layout">
+        <aside class="sidebar" aria-label="安装进度">
+          <p class="sidebar-title">准备好，即可开始</p>
+          <ol class="steps" id="steps">
+            <li aria-current="step"
+              ><span class="step-number">1</span
+              ><div class="step-copy"
+                ><strong>欢迎使用</strong><small>了解安装流程</small></div
+              ></li
+            >
+            <li
+              ><span class="step-number">2</span
+              ><div class="step-copy"
+                ><strong>环境检查</strong><small>确认运行条件</small></div
+              ></li
+            >
+            <li
+              ><span class="step-number">3</span
+              ><div class="step-copy"
+                ><strong>实例配置</strong><small>连接你的数据库</small></div
+              ></li
+            >
+            <li
+              ><span class="step-number">4</span
+              ><div class="step-copy"
+                ><strong>连接检查</strong><small>确认可以安全安装</small></div
+              ></li
+            >
+            <li
+              ><span class="step-number">5</span
+              ><div class="step-copy"
+                ><strong>管理员账号</strong><small>创建初始管理账号</small></div
+              ></li
+            >
+            <li
+              ><span class="step-number">6</span
+              ><div class="step-copy"
+                ><strong>安装完成</strong><small>开始使用你的应用</small></div
+              ></li
+            >
+          </ol>
+          <p class="sidebar-note"
+            >从环境准备到首次登录，<br />一步一步完成设置。</p
+          >
+        </aside>
+        <main class="card">
+          <header class="card-head"
+            ><span id="stepCaption">第 1 步，共 6 步</span
+            ><span class="edition" id="edition">首次安装</span></header
+          >
+          <section
+            class="panel"
+            id="agreement"
+            tabindex="-1"
+            aria-labelledby="welcomeTitle"
+          >
+            <p class="eyebrow">WELCOME</p
+            ><h1 id="welcomeTitle">让应用，从这里开始。</h1>
+            <p class="intro"
+              >欢迎使用
+              <span data-product-name>Peanut Module Code</span
+              >。接下来，我们将一起准备运行环境、连接数据库，并创建你的第一个管理员账号。</p
+            >
+            <div class="welcome-visual"
+              ><div class="welcome-mark"
+                ><img src="/brand/logo.svg" alt="" /></div
+              ><div
+                ><strong>一个属于你的全新工作空间</strong
+                ><p>完成基础设置后，即可进入管理后台。</p></div
+              ></div
+            >
+            <div class="overview"
+              ><div
+                ><div class="overview-number">01</div><h3>检查运行环境</h3
+                ><p>自动检查 PHP、扩展和目录权限。</p></div
+              ><div
+                ><div class="overview-number">02</div><h3>配置独立实例</h3
+                ><p>选择数据库，设置管理入口。</p></div
+              ><div
+                ><div class="overview-number">03</div><h3>创建管理账号</h3
+                ><p>设置登录信息，开始使用应用。</p></div
+              ></div
+            >
+            <div class="agreement"
+              ><p
+                >本项目基于
+                <a
+                  href="https://www.apache.org/licenses/LICENSE-2.0"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Apache License 2.0 ↗</a
+                >
+                提供。安装会在你指定的空数据库中创建应用所需的结构和初始数据。</p
+              ><label class="check-label" for="agree"
+                ><input id="agree" type="checkbox" /><span
+                  >我已阅读使用协议，开始设置此实例</span
+                ></label
+              ></div
+            >
+            <div class="actions"
+              ><span class="help">请准备好数据库连接信息</span
+              ><button class="button primary" id="environment" disabled
+                >开始安装 <span aria-hidden="true">→</span></button
+              ></div
+            >
+          </section>
+          <section
+            class="panel"
+            id="environmentPanel"
+            hidden
+            tabindex="-1"
+            aria-labelledby="environmentTitle"
+          >
+            <p class="eyebrow">ENVIRONMENT</p
+            ><h1 id="environmentTitle">先确认，一切准备就绪。</h1
+            ><p class="intro"
+              >检查应用运行所需的基础条件。这一步只读取环境信息，不会写入数据库。</p
+            >
+            <div id="environmentSummary" class="notice" role="status"></div
+            ><div id="environmentResult" class="check-list"></div>
+            <div class="actions"
+              ><button class="button text-button" data-back="agreement"
+                >← 上一步</button
+              ><div class="action-group"
+                ><button class="button" id="environmentRetry">重新检查</button
+                ><button class="button primary" id="configurationNext" disabled
+                  >继续配置 →</button
+                ></div
+              ></div
+            >
+          </section>
+          <section
+            class="panel"
+            id="configurationPanel"
+            hidden
+            tabindex="-1"
+            aria-labelledby="configurationTitle"
+          >
+            <p class="eyebrow">CONFIGURATION</p
+            ><h1 id="configurationTitle">连接你的应用实例。</h1
+            ><p class="intro"
+              >选择运行环境与数据库。连接信息仅保存在当前实例的私有配置中。</p
+            >
+            <div class="notice success" id="configuredState" hidden
+              ><span class="notice-icon" aria-hidden="true">✓</span
+              ><div
+                ><strong>实例配置已保存</strong
+                >现有连接配置将被保留，可以继续检查数据库。</div
+              ></div
+            >
+            <div class="notice" id="pendingState" hidden
+              ><span class="notice-icon" aria-hidden="true">i</span
+              ><div
+                ><strong>配置已提交，等待生效</strong
+                >请由部署人员按当前部署方式发布配置并重启 PHP
+                服务，然后点击“读取配置状态”。无需再次提交。</div
+              ></div
+            >
+            <form id="configurationForm">
+              <div class="section form-grid"
+                ><div class="field"
+                  ><label for="appEnv">运行环境</label
+                  ><select id="appEnv"
+                    ><option value="production">生产环境</option
+                    ><option value="development">开发环境</option></select
+                  ><p class="help">本次安装所使用的实例环境。</p></div
+                ><div class="field"
+                  ><label for="databaseSource">数据库来源</label
+                  ><select id="databaseSource"
+                    ><option value="existing">连接已有数据库</option
+                    ><option value="bundled">使用内置数据库</option></select
+                  ><p class="help" id="databaseSourceHelp"
+                    >使用已创建的空数据库与专用账号。</p
+                  ></div
+                ></div
+              >
+              <div class="section"
+                ><div class="section-head"><h2>数据库连接</h2></div
+                ><div class="form-grid">
+                  <div class="field full"
+                    ><label for="databaseName">数据库名称</label
+                    ><input
+                      id="databaseName"
+                      autocomplete="off"
+                      pattern="[A-Za-z0-9_]+"
+                      placeholder="例如 my_application"
+                    /><p class="help" id="databaseNameHelp"
+                      >请使用一个尚未存放业务数据的数据库。</p
+                    ></div
+                  >
+                  <div class="field full" id="existingDatabaseFields"
+                    ><div class="form-grid"
+                      ><div class="field"
+                        ><label for="databaseHost">数据库主机</label
+                        ><input
+                          id="databaseHost"
+                          autocomplete="off"
+                          placeholder="例如 127.0.0.1" /></div
+                      ><div class="field"
+                        ><label for="databasePort">端口</label
+                        ><input
+                          id="databasePort"
+                          type="number"
+                          min="1"
+                          max="65535"
+                          value="3306" /></div
+                      ><div class="field"
+                        ><label for="databaseUser">数据库账号</label
+                        ><input
+                          id="databaseUser"
+                          autocomplete="off"
+                          placeholder="此数据库的专用账号" /></div
+                      ><div class="field"
+                        ><label for="databasePassword">数据库密码</label
+                        ><div class="password-wrap"
+                          ><input
+                            id="databasePassword"
+                            type="password"
+                            autocomplete="off"
+                          /><button
+                            class="password-toggle"
+                            type="button"
+                            data-password="databasePassword"
+                            aria-pressed="false"
+                            >显示</button
+                          ></div
+                        ></div
+                      ></div
+                    ><p class="help"
+                      >账号需要具备此数据库的结构与数据读写权限。安装向导不会创建数据库或修改账号授权。</p
+                    ></div
+                  >
+                </div></div
+              >
+              <div class="section" id="platformHostsField" hidden
+                ><div class="section-head"
+                  ><div
+                    ><h2>平台管理入口</h2
+                    ><p class="help"
+                      >平台管理员使用此域名管理租户与应用。</p
+                    ></div
+                  ></div
+                ><div class="field"
+                  ><label for="platformHosts">平台域名</label
+                  ><input
+                    id="platformHosts"
+                    autocomplete="off"
+                    placeholder="platform.example.com"
+                  /><p class="help"
+                    >仅填写域名，多个域名以英文逗号分隔。</p
+                  ></div
+                ></div
+              >
+            </form>
+            <div id="configurationTokenSlot"></div>
+            <div class="actions"
+              ><button class="button text-button" data-back="environmentPanel"
+                >← 上一步</button
+              ><div class="action-group"
+                ><button class="button" id="configurationRefresh"
+                  >读取配置状态</button
+                ><button
+                  class="button primary"
+                  id="configure"
+                  type="submit"
+                  form="configurationForm"
+                  disabled
+                  >保存并继续 →</button
+                ><button class="button primary" id="database" hidden disabled
+                  >检查数据库 →</button
+                ></div
+              ></div
+            >
+          </section>
+          <section
+            class="panel"
+            id="databasePanel"
+            hidden
+            tabindex="-1"
+            aria-labelledby="databaseTitle"
+          >
+            <p class="eyebrow">DATABASE</p
+            ><h1 id="databaseTitle">确认连接，准备初始化。</h1
+            ><p class="intro"
+              >检查数据库连接与安装状态，查看权限诊断。连接和安装状态就绪后，即可开始初始化。</p
+            >
+            <div id="databaseSummary" class="notice" role="status"></div
+            ><div id="databaseResult" class="check-list"></div>
+            <div class="actions"
+              ><button class="button text-button" data-back="configurationPanel"
+                >← 上一步</button
+              ><div class="action-group"
+                ><button class="button" id="databaseRetry">重新检查</button
+                ><button class="button primary" id="executionNext" disabled
+                  >设置管理员 →</button
+                ></div
+              ></div
+            >
+          </section>
+          <section
+            class="panel"
+            id="executionPanel"
+            hidden
+            tabindex="-1"
+            aria-labelledby="executionTitle"
+          >
+            <p class="eyebrow">ADMINISTRATOR</p
+            ><h1 id="executionTitle">创建你的管理员账号。</h1
+            ><p class="intro"
+              >使用以下账号登录管理后台。请妥善保存密码，安装完成后不会再次展示。</p
+            >
+            <form id="executionForm" class="section">
+              <div class="account-card"
+                ><div class="account-title"
+                  ><h2>应用管理员</h2><span>管理后台</span></div
+                ><div class="form-grid"
+                  ><div class="field"
+                    ><label for="adminEmail">邮箱</label
+                    ><input
+                      id="adminEmail"
+                      type="email"
+                      required
+                      autocomplete="username"
+                      placeholder="you@example.com" /></div
+                  ><div class="field"
+                    ><label for="adminPassword">密码</label
+                    ><div class="password-wrap"
+                      ><input
+                        id="adminPassword"
+                        type="password"
+                        required
+                        autocomplete="new-password"
+                        aria-describedby="passwordHint"
+                      /><button
+                        class="password-toggle"
+                        type="button"
+                        data-password="adminPassword"
+                        aria-pressed="false"
+                        >显示</button
+                      ></div
+                    ></div
+                  ></div
+                ></div
+              >
+              <div class="account-card" id="platformAccount" hidden
+                ><div class="account-title"
+                  ><h2>平台管理员</h2><span>独立账号</span></div
+                ><p class="help" style="margin: -5px 0 14px"
+                  >用于管理租户与平台设置，与应用管理员分别登录。</p
+                ><div class="form-grid"
+                  ><div class="field"
+                    ><label for="platformEmail">邮箱</label
+                    ><input
+                      id="platformEmail"
+                      type="email"
+                      autocomplete="username"
+                      placeholder="platform@example.com" /></div
+                  ><div class="field"
+                    ><label for="platformPassword">密码</label
+                    ><div class="password-wrap"
+                      ><input
+                        id="platformPassword"
+                        type="password"
+                        autocomplete="new-password"
+                        aria-describedby="passwordHint"
+                      /><button
+                        class="password-toggle"
+                        type="button"
+                        data-password="platformPassword"
+                        aria-pressed="false"
+                        >显示</button
+                      ></div
+                    ></div
+                  ></div
+                ></div
+              >
+              <p class="help" id="passwordHint" role="status"
+                >正在读取密码要求…</p
+              ><button
+                class="button text-button"
+                type="button"
+                id="policyRetry"
+                hidden
+                >重新读取密码要求</button
+              >
+              <details class="details" id="moduleDetails" hidden
+                ><summary>选择初始启用的功能模块</summary
+                ><p class="help"
+                  >默认启用推荐模块，基础模块必须保留。安装后可在后台继续管理。</p
+                ><div class="module-options" id="moduleOptions"></div
+              ></details>
+            </form>
+            <div id="executionTokenSlot"></div>
+            <div class="working" id="installing" role="status" hidden
+              ><span class="spinner" aria-hidden="true"></span
+              ><div
+                ><strong>正在初始化你的应用…</strong
+                ><p
+                  >正在处理数据库和初始模块，请保持页面打开。完成时间取决于运行环境。</p
+                ></div
+              ></div
+            >
+            <div class="notice" id="executionUnknown" hidden
+              ><span class="notice-icon" aria-hidden="true">i</span
+              ><div
+                ><strong>先确认安装结果，再继续</strong
+                >连接中断不代表安装未执行。请读取安装状态，避免重复提交。</div
+              ></div
+            >
+            <div class="actions"
+              ><button
+                class="button text-button"
+                id="executionBack"
+                data-back="databasePanel"
+                >← 上一步</button
+              ><div class="action-group"
+                ><button class="button" id="executionRefresh" hidden
+                  >读取安装状态</button
+                ><button
+                  class="button"
+                  id="executionDatabaseRecheck"
+                  hidden
+                  disabled
+                  >重新检查数据库</button
+                ><button
+                  class="button primary"
+                  id="install"
+                  type="submit"
+                  form="executionForm"
+                  disabled
+                  >确认并安装 →</button
+                ></div
+              ></div
+            >
+          </section>
+          <section
+            class="panel complete"
+            id="completePanel"
+            hidden
+            tabindex="-1"
+            aria-labelledby="completeTitle"
+            ><div class="complete-icon" aria-hidden="true">✓</div
+            ><p class="eyebrow">READY TO GO</p
+            ><h1 id="completeTitle">一切就绪，欢迎使用。</h1
+            ><p class="intro" id="completeIntro"
+              >你的应用已完成初始化。现在可以使用刚刚创建的管理员账号，开始配置和使用管理后台。</p
+            ><a
+              class="button primary"
+              id="adminCompleteLink"
+              href="/admin/login"
+              >进入管理后台 <span aria-hidden="true">→</span></a
+            ><div class="complete-note"
+              ><strong>接下来可以做什么？</strong
+              ><p id="adminCompleteNote"
+                >完善应用信息，按需启用功能模块，并邀请团队成员。</p
+              ><div id="platformCompleteNote" hidden
+                ><p
+                  >1. 使用安装时创建的平台管理员账号，在已配置的平台访问地址打开
+                  /platform/。请保留部署时的实际协议与端口。</p
+                ><p
+                  >2. 在“租户运营 → 入口域名与客户端”选择初始 default
+                  租户，填写已指向此应用的租户域名，客户端选择“管理端网页”（admin-web），填写变更原因并启用绑定。租户域名须与平台域名分开。</p
+                ><p
+                  >3. 在绑定的租户访问地址打开
+                  /admin/login，使用安装时创建的应用管理员账号登录。</p
+                ></div
+              ><p class="help"
+                >安装入口已锁定，已有数据与管理员身份会被保留。</p
+              ></div
+            ></section
+          >
+          <div
+            class="notice error status-message"
+            id="message"
+            role="alert"
+            hidden
+            ><span class="notice-icon" aria-hidden="true">!</span
+            ><div
+              ><strong id="messageTitle"></strong><p id="messageBody"></p
+              ><p class="error-code" id="messageCode"></p></div
+          ></div>
+          <details class="diagnostics" id="diagnostics" hidden
+            ><summary>查看诊断详情</summary><pre id="status"></pre>
+          </details>
+        </main>
+      </div>
+      <footer class="footer"
+        ><span data-product-name>Peanut Module Code</span> ·
+        自主部署，由你掌控</footer
+      >
+    </div>
+    <div class="access" id="accessPanel" hidden
+      ><div class="field"
+        ><label for="token"
+          >安装验证密钥 <span class="muted">· Setup Token</span></label
+        ><div class="password-wrap"
+          ><input
+            id="token"
+            type="password"
+            autocomplete="off"
+            required
+            placeholder="粘贴本实例的安装验证密钥"
+          /><button
+            class="password-toggle"
+            type="button"
+            data-password="token"
+            aria-pressed="false"
+            >显示</button
+          ></div
+        ><p class="help"
+          >用于确认你有权安装此实例，仅在当前页面使用，不保存到浏览器。</p
+        ><details class="details" style="margin-top: 7px"
+          ><summary>在哪里找到验证密钥？</summary
+          ><p class="help"
+            >由部署人员在实例配置中设置，对应
+            <code>PEANUT_INSTALLATION_SETUP_TOKEN</code
+            >。如果你不是部署人员，请向实例维护者获取。</p
+          ></details
+        ></div
+      ></div
+    >
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const panels = [
+        'agreement',
+        'environmentPanel',
+        'configurationPanel',
+        'databasePanel',
+        'executionPanel',
+        'completePanel',
+      ];
+      const record = (value) =>
+        value !== null && typeof value === 'object' && !Array.isArray(value);
+      let configuration = null,
+        installation = null,
+        databaseReady = false,
+        busy = false,
+        attempted = false,
+        passwordPolicy = null;
+      let multiTenant = false,
+        stage = 0;
+
+      function show(id) {
+        stage = panels.indexOf(id);
+        panels.forEach((panel) => {
+          $(panel).hidden = panel !== id;
+        });
+        [...$('steps').children].forEach((item, index) => {
+          item.classList.toggle('done', index < stage);
+          if (index === stage) item.setAttribute('aria-current', 'step');
+          else item.removeAttribute('aria-current');
+          item.querySelector('.step-number').textContent =
+            index < stage ? '✓' : index + 1;
+        });
+        $('stepCaption').textContent = `第 ${stage + 1} 步，共 6 步`;
+        const tokenVisible =
+          stage === 4 ||
+          (stage === 2 &&
+            !configuration?.configured &&
+            configuration?.state === 'unconfigured');
+        $('accessPanel').hidden = !tokenVisible;
+        if (tokenVisible)
+          $(
+            stage === 4 ? 'executionTokenSlot' : 'configurationTokenSlot'
+          ).append($('accessPanel'));
+        $(id).focus({ preventScroll: true });
+      }
+      function diagnostics(value) {
+        $('status').textContent = JSON.stringify(
+          value,
+          (key, item) =>
+            /password|token|secret|authorization/i.test(key)
+              ? '[已隐藏]'
+              : item,
+          2
+        );
+        $('diagnostics').hidden = false;
+      }
+      function clearMessage() {
+        $('message').hidden = true;
+      }
+      function failure(error, phase) {
+        const detail = error?.diagnostic || {
+          category: 'unknown',
+          stage: phase,
+          reason: 'REQUEST_FAILED',
+          remedy: '请检查服务和网络连接后读取状态，暂时不要重复提交安装。',
+          safe_retry: false,
+        };
+        const partial =
+          detail.category === 'partial' ||
+          detail.reason === 'INSTALL_PARTIAL_STATE_REQUIRES_REBUILD';
+        $('message').className = 'notice error status-message';
+        $('messageTitle').textContent = partial
+          ? '安装尚未完成，需要维护者处理'
+          : phase === 'execution'
+          ? '暂时无法确认安装结果'
+          : '这一步还需要处理';
+        $('messageBody').textContent = partial
+          ? '数据库中已有部分安装数据。请保留当前数据与安装记录，并由实例维护者检查失败原因。'
+          : detail.remedy ||
+            detail.remediation ||
+            error.message ||
+            '请查看诊断详情，处理后重新读取状态。';
+        $('messageCode').textContent = detail.reason || detail.code || '';
+        $('message').hidden = false;
+        diagnostics(detail);
+        return detail;
+      }
+      async function jsonRequest(url, options = {}) {
+        const response = await fetch(url, {
+          credentials: 'same-origin',
+          ...options,
+        });
+        const body = await response.json();
+        if (!response.ok || body.code !== 20000) {
+          const error = new Error(body.msg || '请求失败');
+          error.diagnostic = body.data;
+          throw error;
+        }
+        return body.data;
+      }
+      const headers = () => ({
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + $('token').value.trim(),
+      });
+      function configurationResponse(value) {
+        if (
+          !record(value) ||
+          ![
+            'unconfigured',
+            'configured',
+            'blocked',
+            'pending',
+            'installed',
+          ].includes(value.state) ||
+          typeof value.code !== 'string' ||
+          typeof value.configured !== 'boolean' ||
+          !record(value.application) ||
+          typeof value.application.edition !== 'string' ||
+          typeof value.application.name !== 'string' ||
+          (value.app_environments !== undefined &&
+            (!Array.isArray(value.app_environments) ||
+              !value.app_environments.every((environment) =>
+                ['development', 'production'].includes(environment)
+              )))
+        )
+          throw new Error('配置响应无效，请重新读取状态');
+        return value;
+      }
+      function identity(value) {
+        multiTenant = value.application.edition === 'multi-tenant';
+        document.querySelectorAll('[data-product-name]').forEach((element) => {
+          element.textContent = value.application.name;
+        });
+        document.title = value.application.name + ' · 安装向导';
+        $('edition').textContent = multiTenant ? '多租户版' : '独立应用版';
+        $('platformHostsField').hidden = !multiTenant;
+        $('platformAccount').hidden = !multiTenant;
+        $('platformCompleteNote').hidden = !multiTenant;
+        $('adminCompleteLink').hidden = multiTenant;
+        $('adminCompleteNote').hidden = multiTenant;
+        $('completeTitle').textContent = multiTenant
+          ? '初始化完成，请配置租户入口。'
+          : '一切就绪，欢迎使用。';
+        $('completeIntro').textContent = multiTenant
+          ? '平台和应用管理员账号已创建。请先登录平台，为初始租户绑定管理域名，再进入租户管理后台。'
+          : '你的应用已完成初始化。现在可以使用刚刚创建的管理员账号，开始配置和使用管理后台。';
+        for (const id of ['platformHosts', 'platformEmail', 'platformPassword'])
+          $(id).required = multiTenant;
+      }
+      function summary(id, title, description, kind = '') {
+        const box = $(id);
+        box.className = 'notice ' + kind;
+        box.replaceChildren();
+        const icon = document.createElement('span');
+        icon.className = 'notice-icon';
+        icon.setAttribute('aria-hidden', 'true');
+        icon.textContent =
+          kind === 'success' ? '✓' : kind === 'error' ? '!' : 'i';
+        const copy = document.createElement('div'),
+          heading = document.createElement('strong'),
+          text = document.createElement('p');
+        heading.textContent = title;
+        text.textContent = description;
+        copy.append(heading, text);
+        box.append(icon, copy);
+      }
+      function checks(id, rows) {
+        $(id).replaceChildren();
+        for (const row of rows) {
+          const element = document.createElement('div');
+          element.className = 'check-row';
+          const icon = document.createElement('span');
+          icon.className =
+            'check-icon' +
+            (row.passed
+              ? ''
+              : row.waiting || row.diagnostic
+              ? ' waiting'
+              : ' failed');
+          icon.setAttribute('aria-hidden', 'true');
+          icon.textContent = row.passed
+            ? '✓'
+            : row.waiting || row.diagnostic
+            ? '·'
+            : '!';
+          const body = document.createElement('div');
+          body.className = 'check-body';
+          const label = document.createElement('strong');
+          label.textContent = row.label;
+          body.append(label);
+          if (row.detail) {
+            const detail = document.createElement('p');
+            detail.textContent = row.detail;
+            body.append(detail);
+          }
+          const badge = document.createElement('span');
+          badge.className =
+            'check-badge' +
+            (row.diagnostic ? ' diagnostic' : row.passed ? '' : ' failed');
+          badge.textContent = row.diagnostic
+            ? '仅供参考'
+            : row.passed
+            ? '已通过'
+            : row.waiting
+            ? '待确认'
+            : '需处理';
+          element.append(icon, body, badge);
+          $(id).append(element);
+        }
+      }
+      async function environment() {
+        if (busy) return;
+        busy = true;
+        clearMessage();
+        show('environmentPanel');
+        $('configurationNext').disabled = true;
+        $('environmentRetry').disabled = true;
+        summary(
+          'environmentSummary',
+          '正在检查运行环境…',
+          '检查完成后，会在下方列出每一项结果。'
+        );
+        $('environmentResult').replaceChildren();
+        try {
+          const report = await jsonRequest('/installapi/environment');
+          diagnostics(report);
+          const ready = report.status === 'ready';
+          summary(
+            'environmentSummary',
+            ready ? '运行环境已准备就绪' : '还有一些环境条件需要处理',
+            ready
+              ? '所有必要检查已通过，可以继续配置应用实例。'
+              : report.remediation || '请根据下方提示修复后重新检查。',
+            ready ? 'success' : 'error'
+          );
+          checks(
+            'environmentResult',
+            (report.checks || []).map((check) => ({
+              label: check.reason || check.code,
+              detail: check.status === 'passed' ? '' : check.remediation,
+              passed: check.status === 'passed',
+            }))
+          );
+          $('configurationNext').disabled = !ready;
+        } catch (error) {
+          failure(error, 'environment');
+          summary(
+            'environmentSummary',
+            '暂时无法检查运行环境',
+            '请确认应用服务可以访问，然后重新检查。',
+            'error'
+          );
+        } finally {
+          busy = false;
+          $('environmentRetry').disabled = false;
+        }
+      }
+      async function readConfiguration() {
+        $('configure').disabled = true;
+        $('database').disabled = true;
+        configuration = null;
+        const value = configurationResponse(
+          await jsonRequest('/installapi/configuration')
+        );
+        configuration = value;
+        identity(value);
+        diagnostics(value);
+        $('configurationForm').hidden = value.state !== 'unconfigured';
+        $('configuredState').hidden = !value.configured;
+        $('pendingState').hidden = value.state !== 'pending';
+        $('configure').hidden = value.state !== 'unconfigured';
+        $('configure').disabled = value.state !== 'unconfigured';
+        $('database').hidden = !value.configured;
+        $('database').disabled = !value.configured;
+        if (value.state === 'unconfigured') {
+          const previous = $('appEnv').value;
+          $('appEnv').replaceChildren();
+          for (const environment of value.app_environments || [])
+            $('appEnv').append(
+              new Option(
+                environment === 'development' ? '开发环境' : '生产环境',
+                environment
+              )
+            );
+          if (value.app_environments?.includes(previous))
+            $('appEnv').value = previous;
+        }
+        if (value.state === 'installed') {
+          await confirmCompletion();
+          return;
+        }
+        if (value.state === 'blocked')
+          failure(
+            {
+              diagnostic: {
+                ...value,
+                reason: value.code,
+                remedy:
+                  '检测到未完成的配置记录。请由部署人员保留现场并检查，不要再次提交配置。',
+              },
+            },
+            'configuration'
+          );
+        show('configurationPanel');
+      }
+      async function configurationStep() {
+        if (busy) return;
+        busy = true;
+        clearMessage();
+        try {
+          await readConfiguration();
+        } catch (error) {
+          show('configurationPanel');
+          failure(error, 'configuration');
+        } finally {
+          busy = false;
+        }
+      }
+      async function confirmCompletion() {
+        installation = await jsonRequest('/installapi/status');
+        diagnostics(installation);
+        if (installation.state === 'installed') {
+          clearCredentials();
+          show('completePanel');
+          return;
+        }
+        databaseReady = false;
+        $('executionNext').disabled = true;
+        show('databasePanel');
+        summary(
+          'databaseSummary',
+          '现有实例需要检查',
+          '检测到安装记录，但尚未确认实例已正常完成安装。请保留现有数据并检查下方提示。',
+          'error'
+        );
+        checks('databaseResult', [
+          {
+            label: '现有安装状态',
+            detail: '暂不开放新的初始化操作。',
+            passed: false,
+          },
+        ]);
+        failure({ diagnostic: installation }, 'status');
+      }
+      function databaseSource() {
+        const existing = $('databaseSource').value === 'existing';
+        $('existingDatabaseFields').hidden = !existing;
+        for (const id of [
+          'databaseName',
+          'databaseHost',
+          'databasePort',
+          'databaseUser',
+          'databasePassword',
+        ])
+          $(id).required = existing;
+        $('databaseSourceHelp').textContent = existing
+          ? '使用已创建的空数据库与专用账号。'
+          : '使用部署环境中已经配置的实例 MySQL。';
+        $('databaseNameHelp').textContent = existing
+          ? '请使用一个尚未存放业务数据的数据库。'
+          : '可留空，由实例配置器生成数据库名称。';
+      }
+      function modules() {
+        $('moduleOptions').replaceChildren();
+        for (const module of installation?.official_modules || []) {
+          const option =
+            typeof module === 'string'
+              ? { key: module, label: module, default: true }
+              : module;
+          const label = document.createElement('label');
+          label.className = 'module-option';
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.value = option.key;
+          input.checked = option.default !== false || option.required === true;
+          input.disabled = option.required === true;
+          const text = document.createElement('span');
+          text.textContent = option.label || option.key;
+          if (option.required) {
+            const note = document.createElement('small');
+            note.textContent = '基础模块 · 必选';
+            text.append(note);
+          }
+          label.append(input, text);
+          $('moduleOptions').append(label);
+        }
+        $('moduleDetails').hidden = !$('moduleOptions').childElementCount;
+      }
+      async function policy() {
+        passwordPolicy = null;
+        $('install').disabled = true;
+        $('policyRetry').hidden = true;
+        $('passwordHint').textContent = '正在读取密码要求…';
+        try {
+          const value = await jsonRequest('/installapi/password-policy');
+          if (
+            !Number.isSafeInteger(value?.minimum_length) ||
+            !Number.isSafeInteger(value?.maximum_length) ||
+            value.minimum_length < 1 ||
+            value.maximum_length < value.minimum_length ||
+            value.length_unit !== 'utf8_bytes'
+          )
+            throw new Error('无法读取有效的密码要求');
+          passwordPolicy = value;
+          $(
+            'passwordHint'
+          ).textContent = `密码长度为 ${value.minimum_length}–${value.maximum_length} 个 UTF-8 字节，建议使用较长且不重复的密码。`;
+          $('install').disabled = !databaseReady || attempted;
+        } catch (error) {
+          $('passwordHint').textContent =
+            '暂时无法读取密码要求，请恢复服务后重新读取。';
+          $('policyRetry').hidden = false;
+          failure(error, 'password_policy');
+        }
+      }
+      async function database() {
+        if (busy) return;
+        busy = true;
+        clearMessage();
+        show('databasePanel');
+        databaseReady = false;
+        $('executionNext').disabled = true;
+        $('databaseRetry').disabled = true;
+        summary(
+          'databaseSummary',
+          '正在检查数据库…',
+          '检查连接与安装状态，并读取权限诊断，不写入数据。'
+        );
+        $('databaseResult').replaceChildren();
+        try {
+          installation = await jsonRequest('/installapi/database-check');
+          diagnostics(installation);
+          if (installation.state === 'installed') {
+            show('completePanel');
+            return;
+          }
+          databaseReady =
+            installation.state === 'uninstalled' &&
+            installation.safe_retry === true &&
+            installation.database_check === 'ready';
+          const available = installation.database_check === 'ready';
+          const fresh =
+            installation.state === 'uninstalled' &&
+            installation.safe_retry === true;
+          checks('databaseResult', [
+            {
+              label: '数据库连接配置',
+              detail: installation.preflight?.database
+                ? `${installation.preflight.database.host}:${installation.preflight.database.port} / ${installation.preflight.database.database}`
+                : '请以实例配置中的实际连接为准。',
+              passed: available,
+            },
+            {
+              label: '全新数据库与安装状态',
+              detail: fresh
+                ? '没有发现需要保留的既有安装，可继续初始化。'
+                : '尚未确认可执行全新安装，请查看处理建议。',
+              passed: fresh,
+            },
+            {
+              label: '数据库账号权限（仅供诊断）',
+              detail:
+                installation.permissions_verified === true
+                  ? '权限文本包含此数据库所需的结构与数据读写权限。'
+                  : installation.permissions_missing_or_unconfirmed?.length
+                  ? '权限文本未确认：' +
+                    installation.permissions_missing_or_unconfirmed.join('、') +
+                    '。权限可能由角色授予，不阻止安装；实际权限错误由迁移报告。'
+                  : '连接就绪后可查看权限诊断。',
+              diagnostic: true,
+            },
+          ]);
+          summary(
+            'databaseSummary',
+            databaseReady ? '连接检查已通过' : '暂时无法开始安装',
+            databaseReady
+              ? '现在可以设置管理员账号，并初始化应用。'
+              : installation.remedy ||
+                  installation.permission_remedy ||
+                  '请处理连接或安装状态问题后重新检查。',
+            databaseReady ? 'success' : 'error'
+          );
+          if (!databaseReady)
+            failure({ diagnostic: installation }, 'database_check');
+          if (databaseReady) {
+            attempted = false;
+            modules();
+          }
+          $('executionNext').disabled = !databaseReady;
+        } catch (error) {
+          failure(error, 'database_check');
+          summary(
+            'databaseSummary',
+            '无法确认数据库状态',
+            '请恢复连接后重新检查，当前不会执行安装。',
+            'error'
+          );
+        } finally {
+          busy = false;
+          $('databaseRetry').disabled = false;
+        }
+      }
+      async function refreshExecution() {
+        if (busy) return;
+        busy = true;
+        clearMessage();
+        $('executionRefresh').disabled = true;
+        $('executionDatabaseRecheck').disabled = true;
+        try {
+          installation = await jsonRequest('/installapi/status');
+          diagnostics(installation);
+          if (installation.state === 'installed') {
+            clearCredentials();
+            show('completePanel');
+            return;
+          }
+          $('executionDatabaseRecheck').disabled = !(
+            installation.state === 'uninstalled' &&
+            installation.safe_retry === true
+          );
+          if (
+            installation.state === 'uninstalled' &&
+            installation.safe_retry === true
+          ) {
+            $('executionUnknown').hidden = true;
+            $('message').className = 'notice success status-message';
+            $('messageTitle').textContent = '当前状态允许重新检查';
+            $('messageBody').textContent =
+              '服务器确认尚未完成安装且可安全重新检查。请先重新检查数据库，再决定是否安装。';
+            $('messageCode').textContent = '';
+            $('message').hidden = false;
+          } else failure({ diagnostic: installation }, 'execution');
+        } catch (error) {
+          failure(error, 'status');
+        } finally {
+          busy = false;
+          $('executionRefresh').disabled = false;
+        }
+      }
+      function validToken() {
+        $('token').setCustomValidity(
+          $('token').value.trim() ? '' : '请输入本实例的安装验证密钥'
+        );
+        return $('token').reportValidity();
+      }
+      function clearCredentials() {
+        for (const id of [
+          'token',
+          'adminPassword',
+          'platformPassword',
+          'databasePassword',
+        ]) {
+          $(id).value = '';
+          $(id).type = 'password';
+        }
+      }
+      $('agree').addEventListener('change', () => {
+        $('environment').disabled = !$('agree').checked;
+      });
+      $('environment').addEventListener('click', environment);
+      $('environmentRetry').addEventListener('click', environment);
+      $('configurationNext').addEventListener('click', configurationStep);
+      $('configurationRefresh').addEventListener('click', configurationStep);
+      $('databaseSource').addEventListener('change', databaseSource);
+      databaseSource();
+      $('database').addEventListener('click', database);
+      $('databaseRetry').addEventListener('click', database);
+      $('executionNext').addEventListener('click', async () => {
+        if (!databaseReady || busy) return;
+        show('executionPanel');
+        $('executionBack').disabled = false;
+        $('executionUnknown').hidden = true;
+        $('executionRefresh').hidden = true;
+        $('executionDatabaseRecheck').hidden = true;
+        await policy();
+      });
+      $('policyRetry').addEventListener('click', policy);
+      $('executionRefresh').addEventListener('click', refreshExecution);
+      $('executionDatabaseRecheck').addEventListener('click', database);
+      document.querySelectorAll('[data-back]').forEach((button) =>
+        button.addEventListener('click', () => {
+          if (busy || (attempted && stage === 4)) return;
+          clearMessage();
+          show(button.dataset.back);
+        })
+      );
+      document.querySelectorAll('[data-password]').forEach((button) =>
+        button.addEventListener('click', () => {
+          const input = $(button.dataset.password);
+          input.type = input.type === 'password' ? 'text' : 'password';
+          button.textContent = input.type === 'password' ? '显示' : '隐藏';
+          button.setAttribute('aria-pressed', String(input.type === 'text'));
+        })
+      );
+      $('token').addEventListener('input', () =>
+        $('token').setCustomValidity('')
+      );
+      for (const id of ['adminPassword', 'platformPassword'])
+        $(id).addEventListener('input', () => $(id).setCustomValidity(''));
+      $('configurationForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (busy || configuration?.state !== 'unconfigured' || !validToken())
+          return;
+        busy = true;
+        clearMessage();
+        $('configure').disabled = true;
+        $('configurationRefresh').disabled = true;
+        try {
+          const body = {
+            app_env: $('appEnv').value,
+            database_source: $('databaseSource').value,
+            database_name: $('databaseName').value,
+            platform_hosts: multiTenant ? $('platformHosts').value : '',
+          };
+          if (body.database_source === 'existing')
+            Object.assign(body, {
+              database_host: $('databaseHost').value,
+              database_port: Number($('databasePort').value),
+              database_user: $('databaseUser').value,
+              database_password: $('databasePassword').value,
+            });
+          diagnostics(
+            await jsonRequest('/installapi/configure', {
+              method: 'POST',
+              headers: headers(),
+              body: JSON.stringify(body),
+            })
+          );
+          $('databasePassword').value = '';
+          await readConfiguration();
+        } catch (error) {
+          failure(error, 'configuration');
+        } finally {
+          busy = false;
+          $('configurationRefresh').disabled = false;
+        }
+      });
+      $('executionForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (
+          busy ||
+          attempted ||
+          !databaseReady ||
+          !passwordPolicy ||
+          !validToken()
+        )
+          return;
+        for (const id of multiTenant
+          ? ['adminPassword', 'platformPassword']
+          : ['adminPassword']) {
+          const length = new TextEncoder().encode($(id).value).length;
+          $(id).setCustomValidity(
+            length < passwordPolicy.minimum_length ||
+              length > passwordPolicy.maximum_length
+              ? $('passwordHint').textContent
+              : ''
+          );
+          if (!$(id).reportValidity()) return;
+        }
+        busy = true;
+        attempted = true;
+        databaseReady = false;
+        clearMessage();
+        $('install').disabled = true;
+        $('executionBack').disabled = true;
+        $('executionRefresh').hidden = true;
+        $('installing').hidden = false;
+        $('executionForm')
+          .querySelectorAll('input, button')
+          .forEach((input) => {
+            input.disabled = true;
+          });
+        try {
+          const body = {
+            admin_email: $('adminEmail').value.trim(),
+            admin_password: $('adminPassword').value,
+            official_modules: [
+              ...$('moduleOptions').querySelectorAll('input:checked'),
+            ].map((input) => input.value),
+          };
+          if (multiTenant)
+            Object.assign(body, {
+              platform_email: $('platformEmail').value.trim(),
+              platform_password: $('platformPassword').value,
+            });
+          const result = await jsonRequest('/installapi/execute', {
+            method: 'POST',
+            headers: headers(),
+            body: JSON.stringify(body),
+          });
+          diagnostics(result);
+          if (result.state !== 'installed')
+            throw new Error('服务器尚未确认安装完成，请读取安装状态');
+          clearCredentials();
+          show('completePanel');
+        } catch (error) {
+          failure(error, 'execution');
+          $('executionUnknown').hidden = false;
+          $('executionRefresh').hidden = false;
+          $('executionDatabaseRecheck').hidden = false;
+          $('executionDatabaseRecheck').disabled = true;
+        } finally {
+          busy = false;
+          $('installing').hidden = true;
+          $('executionForm')
+            .querySelectorAll('input, button')
+            .forEach((input) => {
+              input.disabled = false;
+            });
+          $('moduleOptions')
+            .querySelectorAll('input')
+            .forEach((input) => {
+              input.disabled =
+                input.closest('label').querySelector('small') !== null;
+            });
+        }
+      });
+      // Discover identity without opening a database connection or persisting form values.
+      jsonRequest('/installapi/configuration')
+        .then(async (value) => {
+          configuration = configurationResponse(value);
+          identity(configuration);
+          if (configuration.state === 'installed') await confirmCompletion();
+        })
+        .catch((error) => failure(error, 'configuration'));
+    </script>
+  </body>
+</html>

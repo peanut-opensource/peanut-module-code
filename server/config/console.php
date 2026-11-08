@@ -6,6 +6,7 @@
 return [
     // 指令定义
     'commands' => [
+        'tenant:decoration-pages' => \app\command\TenantDecorationPages::class,
         'module:compile' => \app\command\ModuleCompile::class,
         'identity:credential-recover' => \app\command\IdentityCredentialRecovery::class,
         'identity:revocations' => \PeanutAdmin\Modules\Identity\Console\RevocationFactsCommand::class,

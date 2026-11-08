@@ -11,6 +11,7 @@ import {
   createTenantLifecycle,
   registerTenantDisposer,
 } from '@peanut-admin/vue';
+import { ElButton, ElInput } from 'element-plus';
 import {
   getDeptAll,
   type DepartmentPage,
@@ -260,13 +261,13 @@ export const DepartmentPicker = defineComponent({
     const more = (parent: number) =>
       directory.pages.value[parent]?.hasMore
         ? h(
-            'button',
+            ElButton,
             {
-              type: 'button',
+              nativeType: 'button',
               disabled: directory.busy.value[parent],
               onClick: () => directory.read(parent, true),
             },
-            '加载下一页'
+            { default: () => '加载下一页' }
           )
         : null;
     const renderNodes = (
@@ -294,9 +295,9 @@ export const DepartmentPicker = defineComponent({
                   row.name,
                   row.realStatus === 'active' ? '' : `（${row.status_desc}）`,
                   h(
-                    'button',
+                    ElButton,
                     {
-                      type: 'button',
+                      nativeType: 'button',
                       disabled: props.disabled || !row.selectable,
                       onClick: (event: Event) => {
                         event.preventDefault();
@@ -304,7 +305,7 @@ export const DepartmentPicker = defineComponent({
                         choose(row.id);
                       },
                     },
-                    '选择'
+                    { default: () => '选择' }
                   ),
                 ]),
                 renderNodes(row.children),
@@ -316,17 +317,18 @@ export const DepartmentPicker = defineComponent({
       );
     directory.reset();
     return () =>
-      h('div', { style: 'width:100%' }, [
+      h('div', { style: { width: '100%', minWidth: 0 } }, [
         h(
           'div',
+          { style: { display: 'flex', flexWrap: 'wrap', gap: '8px' } },
           values.value.map((id) =>
-            h('span', { key: id }, [
+            h('span', { key: id, style: { minWidth: 0 } }, [
               label(id),
               props.multiple
                 ? h(
-                    'button',
+                    ElButton,
                     {
-                      type: 'button',
+                      nativeType: 'button',
                       disabled: props.disabled,
                       onClick: () =>
                         emit(
@@ -334,44 +336,64 @@ export const DepartmentPicker = defineComponent({
                           values.value.filter((value) => value !== id)
                         ),
                     },
-                    '移除'
+                    { default: () => '移除' }
                   )
                 : null,
             ])
           )
         ),
-        h('input', {
-          value: text.value,
-          placeholder: '搜索部门',
-          disabled: props.disabled,
-          onInput: (event: Event) => {
-            text.value = (event.target as HTMLInputElement).value;
-            directory.reset({ name: text.value });
+        h(
+          'div',
+          {
+            style: {
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              gap: '8px',
+              minWidth: 0,
+            },
           },
-        }),
-        props.rootLabel
-          ? h(
-              'button',
-              {
-                type: 'button',
-                disabled: props.disabled,
-                onClick: () => choose(0),
+          [
+            h(ElInput, {
+              modelValue: text.value,
+              placeholder: '搜索部门',
+              'aria-label': '搜索部门',
+              disabled: props.disabled,
+              'onUpdate:modelValue': (value: string) => {
+                text.value = value;
+                directory.reset({ name: text.value });
               },
-              props.rootLabel
-            )
-          : null,
-        h('div', { style: 'max-height:240px;overflow:auto' }, [
-          renderNodes(directory.tree.value),
-          more(0),
-        ]),
+              style: { flex: '1 1 220px', minWidth: 0 },
+            }),
+            props.rootLabel
+              ? h(
+                  ElButton,
+                  {
+                    nativeType: 'button',
+                    disabled: props.disabled,
+                    onClick: () => choose(0),
+                  },
+                  { default: () => props.rootLabel }
+                )
+              : null,
+          ]
+        ),
+        h(
+          'div',
+          { style: { maxHeight: '240px', overflow: 'auto', minWidth: 0 } },
+          [
+            renderNodes(directory.tree.value),
+            more(0),
+          ]
+        ),
         directory.error.value
           ? h(
-              'button',
+              ElButton,
               {
-                type: 'button',
+                nativeType: 'button',
                 onClick: () => directory.reset({ name: text.value }),
               },
-              directory.error.value
+              { default: () => directory.error.value }
             )
           : null,
       ]);

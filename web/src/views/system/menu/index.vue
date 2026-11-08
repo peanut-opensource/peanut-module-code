@@ -6,7 +6,11 @@
       <el-row style="margin-bottom: 16px">
         <el-col :span="12">
           <el-space>
-            <el-button type="primary" @click="handleAdd()">
+            <el-button
+              v-permission="['core.menu.manage']"
+              type="primary"
+              @click="handleAdd()"
+            >
               <template #icon><Plus /></template>
               {{ $t('systemMenu.operation.create') }}
             </el-button>
@@ -63,6 +67,7 @@
         <el-table-column :label="$t('systemMenu.columns.status')" width="90">
           <template #default="{ row }">
             <el-switch
+              v-permission="['core.menu.manage']"
               :model-value="row.status === 'active' && row.is_disable === 0"
               :disabled="row.status !== 'active'"
               @change="(v: string | number | boolean) => handleStatus(row, v as boolean)"
@@ -76,24 +81,33 @@
           <template #default="{ row }">
             <el-space>
               <el-button
+                v-permission="['core.menu.manage']"
                 v-if="row.type !== 'A'"
                 link
                 size="small"
                 @click="handleAdd(row)"
                 >{{ $t('systemMenu.operation.addChild') }}</el-button
               >
-              <el-button link size="small" @click="handleEdit(row)">{{
-                $t('systemMenu.operation.edit')
-              }}</el-button>
+              <el-button
+                v-permission="['core.menu.manage']"
+                link
+                size="small"
+                @click="handleEdit(row)"
+                >{{ $t('systemMenu.operation.edit') }}</el-button
+              >
               <el-popconfirm
                 v-if="!row.managed"
                 :title="$t('systemMenu.delete.confirm')"
                 @confirm="handleDelete(row)"
               >
                 <template #reference>
-                  <el-button link type="danger" size="small">{{
-                    $t('systemMenu.operation.delete')
-                  }}</el-button>
+                  <el-button
+                    v-permission="['core.menu.manage']"
+                    link
+                    type="danger"
+                    size="small"
+                    >{{ $t('systemMenu.operation.delete') }}</el-button
+                  >
                 </template>
               </el-popconfirm>
             </el-space>
@@ -251,6 +265,7 @@
       <template #footer>
         <el-button @click="modalVisible = false">取消</el-button>
         <el-button
+          v-permission="['core.menu.manage']"
           type="primary"
           :loading="submitLoading"
           :disabled="permissionLoading || !!permissionError"

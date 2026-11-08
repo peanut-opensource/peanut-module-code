@@ -65,4 +65,4 @@ Module key 和 vendor 是小写标识，PHP 厂商/类型前缀与测试目录�
 
 ## 8. 当前回归入口
 
-`server/tests/scripts/CheckModuleNamespaceMigration.php` 读取 `server/tests/fixtures/module-namespace-migration-map.json`，用于验证迁移类型的加载位置和旧名退出；它是测试数据，不是新模块的命名来源。一次性迁移执行器已退役，不能从旧起点再次应用。
+`server/tests/scripts/CheckModuleNamespaceMigration.php` 对照当前 `modules.lock`、宿主和模块 Composer 映射，逐个反射已选模块 `src/` 类型的加载位置，再用 `server/tests/fixtures/module-namespace-migration-map.json` 核查历史旧名均不可加载。一次性迁移执行器已退役，不能从旧起点再次应用。

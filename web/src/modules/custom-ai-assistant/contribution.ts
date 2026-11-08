@@ -1,5 +1,6 @@
 import type { ModuleFrontendContribution } from '@peanut-admin/vue';
 import { DEFAULT_LAYOUT } from '@/router/routes/base';
+
 const names: Record<string, string> = {
   connection: 'AI连接',
   model: '模型目录',
@@ -22,7 +23,7 @@ const contribution: ModuleFrontendContribution = {
       },
       children: Object.keys(names).map((kind) => ({
         path: kind,
-        name: 'AiAssistant' + kind[0].toUpperCase() + kind.slice(1),
+        name: `AiAssistant${kind[0].toUpperCase()}${kind.slice(1)}`,
         component: () => import('./Workspace.vue'),
         meta: {
           title: names[kind],

@@ -1,0 +1,28 @@
+<IfModule mod_rewrite.c>
+  Options +FollowSymlinks -Multiviews
+  RewriteEngine On
+
+  # The admin SPA is mounted below /admin/; keep the bare host canonical.
+  RewriteRule ^$ /admin/ [R=302,L]
+  RewriteRule ^admin$ /admin/ [R=302,L]
+
+  # Legacy admin login endpoints are ThinkPHP routes, not SPA history paths.
+  RewriteRule ^admin/login/(login|logout)/?$ index.php/admin/login/$1 [QSA,PT,L]
+
+  # The current API namespace is served by ThinkPHP.
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^api/(.*)$ index.php/api/$1 [QSA,PT,L]
+
+  RewriteRule ^favicon\.svg$ admin/favicon.svg [L]
+
+  # Client-side routes under /admin/ fall back to the built SPA shell.
+  RewriteRule ^admin/?$ admin/index.html [L]
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^admin/(.*)$ admin/index.html [QSA,L]
+
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^(.*)$ index.php/$1 [QSA,PT,L]
+</IfModule>

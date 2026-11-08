@@ -32,6 +32,11 @@ fi
 TMP_BASE="${TMPDIR:-/tmp}"
 [[ "$TMP_BASE" == /* && -d "$TMP_BASE" ]] \
   || { printf 'check-openapi: temporary directory base is unavailable: %s\n' "$TMP_BASE" >&2; exit 1; }
+TMP_BASE="$(CDPATH= cd -- "$TMP_BASE" && pwd -P)"
+if [[ "$TMP_BASE/" == "$ROOT_DIR/"* ]]; then
+  # The generator requires its separate output even under checkout-owned project-env.
+  TMP_BASE="${RUNNER_TEMP:-/tmp}"
+fi
 TMP_DIR="$(mktemp -d "${TMP_BASE%/}/peanut-openapi-check.XXXXXX")"
 trap 'rm -rf -- "$TMP_DIR"' EXIT
 

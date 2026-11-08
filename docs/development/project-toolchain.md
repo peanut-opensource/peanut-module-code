@@ -24,6 +24,25 @@ PHP 的 `local-core-composer` 仅在 ignored `.local/composer-core/composer.json
 
 使用已安装的 CLI，在选定 Code 根执行 `peanut config`，预览并确认已安装工具和路径；环境、路径和声明不变时，之后生成 ST/MT 模板只需 `peanut release`。CLI 内部调用 `project-env` 和原生模板生产者，不要求每次手动 prepare/install/hash。需要本地 Core 随模板携带时显式选择 `--with-local-core`。
 
+### 日常制包与正式发行的最短路径
+
+**生成模板不等于公开发行。** 开发机首次运行 `peanut config` 绑定已安装工具；配置、版本与输入不变时在 Code 根直接运行 `peanut release`，由现有 CLI/Code 生产者生成 ST、MT 双版模板。不要为每次制包重新准备工具、开发发行器、创建发行管理服务或手工重做已有验收。
+
+**正式公开版本沿现有 GitHub Actions，不从本机手工上传包。** 四类制品独立定版和发布：
+
+| 制品 | 常规触发方式 | GitHub Actions 负责 |
+| --- | --- | --- |
+| PHP Core（`peanut-admin/core`） | 确认固定源码及资格，审阅 `dev → main`，推送指向当前 `main` 的 annotated `vX.Y.Z` 或 `vX.Y.Z-rc.N` Tag | 核验固定的合格 CI run、原生锁与公共来源；等待 Packagist 对应版本索引并验证，再创建 GitHub Release |
+| Web Core 六包 | 六包及根版本一致、资格有效后同样推送当前 `main` 的正式 Tag | 从合格制品按依赖顺序通过 npm trusted publishing/OIDC 发布六包、核 npm 内容，再创建 GitHub Release |
+| Peanut CLI | 版本声明及当前 `main` 一致后推送 annotated 正式 Tag | 自动生成并核对 CLI tarball，发布 GitHub Release 附件；**CLI 当前不发布 npm** |
+| ST/MT 脚手架 | 先用 `peanut release` 准备内部候选；正式渠道从 Code 的 `scaffold-release.yml` `workflow_dispatch` 明确选择发行 | 校验同一固定输入的完整资格和传输产物，生成并核对正式两版附件，发布 GitHub Release；**单纯推 Code `main` 或 Tag 不会自动发行模板** |
+
+Core/CLI 的 `release.yml` 由**推送 Tag**触发，单独合入 `main` 不触发正式发布。PHP/Web Core 发行工作流要求事先指定该固定输入成功的 `CORE_QUALIFICATION_RUN_ID`；不存在、源码/锁已变或不符合时才按现有 `ci.yml` 补对应资格，不重跑无变化的旧 PASS，也不能跳过必要 Gate。正式 Tag 只接受 stable / RC，内部 `-alpha` 和本地 Git 归档不能假装已公开发包。
+
+GitHub Actions 使用自身短期 `GITHUB_TOKEN`；Web Core 使用 npm OIDC 可信发布。维护者优先用已授权的 `gh` CLI 和现有自动工作流，不提取浏览器 Cookie/Session、手工复制长期令牌或新增认证体系。需要本人确认的 `main`/Tag/公开发布权限只在具体版本、源码和资格明确后处理。
+
+**发行后验收：** 读取 GitHub Actions 真实结论、Packagist/npm/GitHub Release 的公开内容与摘要，再让独立干净消费者用官方版本实际创建 ST/MT、安装和完成至少一次必要升级。内部 `peanut release` 成功、开发机现有 `vendor` 和 Code `dev` 通过均不等于正式发布/正式包消费成功；运行时数据、已有客户菜单和权限需沿原生升级合同保全。没有实际缺陷，不重建制包/发行程序。
+
 npm/pnpm 必须绑定同一个登记 Node 与对应 CLI 文件，Composer 必须绑定登记 PHP 与所选 CLI 文件。工具及非 Core 目录路径可相对 Code 根，Core 参数可相对输入但配置保存绝对路径。`.local` 不随 Git 合并；新工作区、路径或声明变化后重新 config。配置先预览 Code/Core 工具、推荐差异和写入目标，确认（非交互 `--yes`）后才创建缓存并执行 `project-env prepare`；拒绝确认不写入，不安装工具或依赖、不改变全局 PATH。
 
 ```sh

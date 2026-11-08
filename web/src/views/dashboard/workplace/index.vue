@@ -1,11 +1,13 @@
 <template>
-  <div class="container">
-    <div class="workplace-actions">
-      <h1 class="workplace-title">{{ $t('menu.dashboard.workplace') }}</h1>
-      <el-button :loading="loading" :disabled="loading" @click="fetchWorkbench">
-        {{ $t('workplace.refresh') }}
-      </el-button>
-    </div>
+  <PageContent class="container">
+    <PageHeader class="workplace-actions">
+      <h1>{{ $t('menu.dashboard.workplace') }}</h1>
+      <template #actions>
+        <el-button :loading="loading" :disabled="loading" @click="fetchWorkbench">
+          {{ $t('workplace.refresh') }}
+        </el-button>
+      </template>
+    </PageHeader>
     <TenantLicense class="workplace-license" />
     <div v-loading="loading" class="workplace-loading">
       <el-alert
@@ -220,11 +222,12 @@
         </el-col>
       </el-row>
     </div>
-  </div>
+  </PageContent>
 </template>
 
 <script lang="ts" setup>
   import { computed, onMounted, reactive, ref } from 'vue';
+  import { PageContent, PageHeader } from '@peanut-admin/ui-vue';
   import { ElMessage } from 'element-plus';
   import { Grid, QuestionFilled } from '@element-plus/icons-vue';
   import { useI18n } from 'vue-i18n';
@@ -391,18 +394,7 @@
   }
 
   .workplace-actions {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  .workplace-title {
-    margin: 0;
-    color: var(--el-text-color-primary);
-    font-size: 20px;
-    font-weight: 600;
-    line-height: 30px;
+    margin-bottom: 0;
   }
 
   .workplace-license {
@@ -517,9 +509,6 @@
   @media (max-width: 768px) {
     .container {
       gap: 12px;
-    }
-    .workplace-title {
-      font-size: 18px;
     }
     .workplace-grid,
     .metrics-grid,

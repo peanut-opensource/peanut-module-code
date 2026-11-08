@@ -29,7 +29,7 @@ final class ModuleReconcile extends ModuleContextualCommand
         $this->setName('module:reconcile')
             ->setDescription('Reconcile immutable locked Plugin installations')
             ->addOption('official-locked', null, Option::VALUE_NONE, 'Reconcile the default initial Module packages in modules.lock')
-            ->addOption('release-locked', null, Option::VALUE_NONE, 'Reconcile all selected Modules in modules.lock, retaining disabled installations')
+            ->addOption('release-locked', null, Option::VALUE_NONE, 'Reconcile installed active Modules to modules.lock, retaining disabled installations')
             ->addOption('prepared-release', null, Option::VALUE_NONE, 'Verify already prepared release dependencies without builds')
             ->addOption('selected-installed', null, Option::VALUE_REQUIRED | Option::VALUE_IS_ARRAY, 'Prepare and reconcile only these already installed locked package keys')
             ->addOption('plan-only', null, Option::VALUE_NONE, 'Read the locked Plugin plans without lifecycle changes');
@@ -210,7 +210,8 @@ final class ModuleReconcile extends ModuleContextualCommand
     }
 
     /**
-     * Selected new Modules install; disabled and retired Modules retain the operator's choice.
+     * A lock entry makes source available; only active installations select release adoption.
+     * New Modules require explicit installation; disabled and retired Modules retain their state.
      * A source/lock deletion is not permission to discard a live installation or its data.
      *
      * @param array<string,ModuleDescriptor> $locked
@@ -218,7 +219,7 @@ final class ModuleReconcile extends ModuleContextualCommand
      */
     private function releaseModuleSelection(array $locked): array
     {
-        $keys = array_fill_keys(array_keys($locked), true);
+        $keys = [];
         $preserved = [];
         $retired = [];
         $rows = Db::name('module_installation')->field('module_key,status,last_error_code')
@@ -236,6 +237,7 @@ final class ModuleReconcile extends ModuleContextualCommand
             }
             $state = $row;
             if (($state['status'] ?? null) === 'active' && ($state['last_error_code'] ?? null) === null) {
+                $keys[$key] = true;
                 continue;
             }
             if (($state['status'] ?? null) === 'maintenance' && ($state['last_error_code'] ?? null) === null) {

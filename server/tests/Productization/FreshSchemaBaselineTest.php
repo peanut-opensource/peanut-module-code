@@ -40,7 +40,11 @@ foreach ([
     freshSchemaExpect(preg_match($identifier, $guard) !== 1, "environment guard still depends on retired table: {$retiredTable}");
 }
 
-freshSchemaExpect(str_contains($installer, "console->call('migrate:run')"), 'installer does not use the native migration command');
+$nativeRunner = file_get_contents($serverRoot . '/app/common/module/ModuleMigrationRun.php');
+freshSchemaExpect(str_contains($installer, 'ModuleMigrationRun::sources($selectedManifests')
+    && str_contains($installer, '$migration->run(')
+    && str_contains($nativeRunner, 'use think\migration\command\migrate\Run;')
+    && str_contains($nativeRunner, 'ModuleMigrationRun extends Run'), 'installer does not use the native migration command');
 freshSchemaExpect(str_contains($installer, 'BootstrapService'), 'installer does not use the native Core bootstrap service');
 freshSchemaExpect(str_contains($installer, "'default'"), 'installer does not create the formal default Tenant');
 freshSchemaExpect(str_contains($installer, "'core.tenant-owner'"), 'installer health contract does not verify the native owner role');
@@ -57,33 +61,34 @@ foreach (['information_schema', 'ALTER TABLE', 'PREPARE ', 'EXECUTE ', 'DEALLOCA
 }
 
 freshSchemaExpect(!in_array('pa_schema_migration', $applicationTables, true) && !in_array('pa_module_migration', $applicationTables, true), 'retired custom migration ledgers remain in the canonical schema');
-foreach ([
-    'pa_jobs',
-    'pa_plugin_installation',
-    'pa_task_job',
-    'pa_external_channel_binding',
-    'pa_tenant_setting',
-    'pa_tenant_entry_binding',
-    'pa_tenant_owner_invitation',
-    'pa_tenant_idempotency_record',
-    'pa_system_dict_type',
-    'pa_system_dict_data',
-] as $table) {
-    freshSchemaExpect(in_array($table, $applicationTables, true), "canonical business table missing: {$table}");
+require_once $serverRoot . '/database/InitialInstallationSource.php';
+$selectedTables = InitialInstallationSource::tables($serverRoot, InitialInstallationSource::MODULES);
+$owners = [
+    'identity' => ['pa_jobs', 'pa_module_installation', 'pa_tenant_entry_binding', 'pa_tenant_owner_invitation'],
+    'task' => ['pa_task_job'],
+    'integration' => ['pa_external_channel_binding'],
+    'settings' => ['pa_tenant_setting'],
+    'reference_codes' => ['pa_system_dict_type', 'pa_system_dict_data'],
+];
+$moduleSql = '';
+foreach ($owners as $module => $tables) {
+    $moduleRoot = $serverRoot . '/app/modules/peanut/' . $module;
+    $sql = implode("\n", array_map('file_get_contents', glob($moduleRoot . '/database/migrations/*.php') ?: []));
+    foreach ($tables as $table) {
+        freshSchemaExpect(in_array($table, $selectedTables, true) && !in_array($table, $applicationTables, true)
+            && str_contains($sql, 'CREATE TABLE `' . $table . '`'), "fresh module table missing or duplicated: {$module}/{$table}");
+    }
+    $moduleSql .= $sql;
 }
-foreach ([
-    'uk_tenant_setting_namespace',
-    'uk_tenant_entry_binding',
-    'uk_owner_invitation_pending_tenant',
-    'uk_tenant_idempotency',
-    'idx_refund_record_tenant_order_amount',
-    'uk_system_dict_type_code',
-    'uk_system_dict_data_type_value',
-] as $index) {
-    freshSchemaExpect(str_contains($schema, '`' . $index . '`'), "canonical schema index missing: {$index}");
+freshSchemaExpect(in_array('pa_tenant_idempotency_record', $applicationTables, true)
+    && str_contains($schema, '`uk_tenant_idempotency`'), 'host idempotency contract missing');
+foreach (['uk_tenant_setting_namespace', 'uk_tenant_entry_binding', 'uk_owner_invitation_pending_tenant',
+    'uk_system_dict_type_code', 'uk_system_dict_data_type_value'] as $index) {
+    freshSchemaExpect(str_contains($moduleSql, '`' . $index . '`'), "module index missing: {$index}");
 }
-foreach (['member_sex', 'member_status', 'member_channel', 'payment_status', 'refund_status'] as $dictionary) {
-    freshSchemaExpect(str_contains($data, "'{$dictionary}'"), "canonical system dictionary seed missing: {$dictionary}");
-}
+$projected = InitialInstallationSource::project($serverRoot, InitialInstallationSource::MODULES);
+freshSchemaExpect(str_contains($projected['schema/baseline-data.sql'], "JSON_OBJECT('user_avatar'")
+    && !str_contains($data, "'payment_status'") && !str_contains($data, "'refund_status'"),
+    'fresh scaffold must include brand defaults and leave optional Payment data to its owner');
 
 echo "FRESH-SCHEMA-BASELINE-001 passed\n";

@@ -180,10 +180,10 @@
     link.value = '';
     linkError.value = '';
     linkActive.value = false;
-    for (const state of Object.values(toolbarState.value)) {
+    Object.values(toolbarState.value).forEach((state) => {
       state.enabled = false;
       state.active = false;
-    }
+    });
   };
   const unavailable = () =>
     !props.collaborationBinding &&

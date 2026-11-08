@@ -12,7 +12,6 @@ use PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries;
 use app\common\infrastructure\module\ModuleHostLayoutFactory;
 use PeanutAdmin\Kernel\Module\ModuleKey;
 use think\facade\App;
-use think\facade\Db;
 
 /** Enforces manifest-owned core protection and explicit business dependencies. */
 final class ModuleLifecyclePolicy
@@ -90,8 +89,7 @@ final class ModuleLifecyclePolicy
             }
             $roots[$key] = $manifest->root;
         }
-        $installedKeys = Db::name('module_installation')
-            ->where('status', '<>', 'uninstalled')->column('module_key');
+        $installedKeys = $installationStates->installedModuleKeys();
         foreach ($installedKeys as $installedKey) {
             if (isset($roots[$installedKey])) {
                 continue;

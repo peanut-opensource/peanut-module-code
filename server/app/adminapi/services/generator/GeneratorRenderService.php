@@ -42,14 +42,6 @@ final class GeneratorRenderService
         $files[] = $context['openApiExists']
             ? self::mergeFile($context['openApiPath'], 'php', $openApiRegistry, $context['openApiSource'])
             : self::createFile($context['openApiPath'], 'php', $openApiRegistry, $root);
-        if ($context['hostRouteMergeRequired']) {
-            $files[] = self::mergeFile(
-                $context['hostRoutePath'],
-                'php',
-                self::mergeHostRouteRegistry($context),
-                $context['hostRouteSource'],
-            );
-        }
         return $files;
     }
 
@@ -136,7 +128,7 @@ final class GeneratorRenderService
             $primary,
         );
         $tree = self::treeConfig($storedConfig, $columns, $templateType);
-        $relations = self::relations($table['relations'] ?? [], $module, $edition);
+        $relations = self::relations($table['relations'] ?? [], $module, $edition, $root);
         $projection = self::projection($columns, $primary, $tree, $softDelete['field']);
         $backend = $module['backendRelative'];
         $frontend = $module['frontendRelative'];
@@ -146,9 +138,6 @@ final class GeneratorRenderService
         $openApiPath = $backend . '/api/metadata/openapi.php';
         $openApiAbsolute = $root . '/' . $openApiPath;
         $openApiSource = is_file($openApiAbsolute) ? self::readFile($openApiPath, $root) : '';
-        $hostRoutePath = 'server/app/adminapi/route/app.php';
-        $hostRouteSource = self::readFile($hostRoutePath, $root);
-        $moduleRouteRegistration = "'{$backend}/route/app.php',";
 
         return $module + [
             'entity' => $entity,
@@ -184,10 +173,6 @@ final class GeneratorRenderService
             'openApiPath' => $openApiPath,
             'openApiSource' => $openApiSource,
             'openApiExists' => is_file($openApiAbsolute),
-            'hostRoutePath' => $hostRoutePath,
-            'hostRouteSource' => $hostRouteSource,
-            'hostRouteMergeRequired' => !str_contains($hostRouteSource, $moduleRouteRegistration),
-            'moduleRouteRegistration' => $moduleRouteRegistration,
         ];
     }
 
@@ -429,7 +414,7 @@ final class GeneratorRenderService
     }
 
     /** @return list<array<string,mixed>> */
-    private static function relations(mixed $rawRelations, array $defaultModule, string $edition): array
+    private static function relations(mixed $rawRelations, array $defaultModule, string $edition, string $root): array
     {
         if (is_string($rawRelations)) {
             try {
@@ -456,7 +441,11 @@ final class GeneratorRenderService
             if (preg_match('/^[A-Z][A-Za-z0-9]{0,63}$/D', $model) !== 1) {
                 throw new RuntimeException('关联模型配置不符合生成规范');
             }
-            $relatedModule = self::module((string) ($raw['module'] ?? $defaultModule['key']));
+            $relatedInput = (string) ($raw['module'] ?? $defaultModule['key']);
+            if (str_contains($relatedInput, '.') && $relatedInput !== $defaultModule['key']) {
+                throw new RuntimeException('不允许跨模块 ORM 关联；请使用目标模块公开 query 合同');
+            }
+            $relatedModule = self::module($relatedInput, $root);
             if ($relatedModule['key'] !== $defaultModule['key']) {
                 throw new RuntimeException('不允许跨模块 ORM 关联；请使用目标模块公开 query 合同');
             }
@@ -1662,20 +1651,6 @@ PHP, $c + compact('softRoutes'));
             throw new RuntimeException('目标模块已登记同名生成路由');
         }
         return rtrim($c['routeSource']) . "\n\n{$include}\n";
-    }
-
-    private static function mergeHostRouteRegistry(array $c): string
-    {
-        // The host also has an inline optional-module loop. Only the multiline registry owns generated routes.
-        $marker = "\n] as \$moduleRoute) {";
-        if (substr_count($c['hostRouteSource'], $marker) !== 1) {
-            throw new RuntimeException('管理端 Module 路由登记入口无法安全合并');
-        }
-        return str_replace(
-            $marker,
-            "\n    {$c['moduleRouteRegistration']}{$marker}",
-            $c['hostRouteSource'],
-        );
     }
 
     private static function mergeOpenApiRegistry(array $c): string

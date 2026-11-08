@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 $repositoryRoot = dirname(__DIR__);
 require_once $repositoryRoot . '/server/route/registry_source.php';
+require_once $repositoryRoot . '/server/app/modules/peanut/identity/src/Authorization/CorePermissionCatalog.php';
 $inventory = peanut_route_endpoint_inventory($repositoryRoot . '/server');
 $accessConfig = require $repositoryRoot . '/server/config/admin_api_access.php';
 $markdown = in_array('--markdown', $argv, true);
@@ -13,19 +14,24 @@ $inventoryJson = in_array('--inventory-json', $argv, true);
 /** @return list<array{method:string,path:string,permission:string,access:string}> */
 function adminApiMatrix(string $repositoryRoot, array $inventory, array $accessConfig): array
 {
-    $permissionKeys = [];
-    $sqlFiles = [$repositoryRoot . '/server/database/schema/baseline-data.sql'];
-    $sqlFiles = array_merge(
-        $sqlFiles,
-        glob($repositoryRoot . '/server/database/migrations/*.sql') ?: [],
-        glob($repositoryRoot . '/server/app/modules/*/*/database/migrations/*.sql') ?: [],
-        glob($repositoryRoot . '/server/app/modules/*/database/migrations/*.sql') ?: [],
+    // Runtime API admission uses permission bundles, independently of menu paths.
+    $permissionKeys = array_fill_keys(
+        PeanutAdmin\Modules\Identity\Authorization\CorePermissionCatalog::TENANT,
+        true,
     );
-    foreach ($sqlFiles as $sqlFile) {
-        $sql = (string) file_get_contents($sqlFile);
-        preg_match_all("/['\"]([a-z0-9_.-]+(?:\\/[a-z0-9_.-]+)+)['\"]/i", $sql, $permissions);
-        foreach ($permissions[1] as $permission) {
-            $permissionKeys[strtolower($permission)] = true;
+    $lock = json_decode((string) file_get_contents($repositoryRoot . '/modules.lock'), true, 512, JSON_THROW_ON_ERROR);
+    foreach ($lock['modules'] as $selection) {
+        foreach ($selection['modules'] as $module) {
+            $moduleRoot = $repositoryRoot . '/' . $module['root'];
+            $manifest = json_decode((string) file_get_contents($moduleRoot . '/module.json'), true, 512, JSON_THROW_ON_ERROR);
+            $permissionPath = $manifest['backend']['permissions'] ?? null;
+            if ($permissionPath === null) {
+                continue;
+            }
+            $permissions = json_decode((string) file_get_contents($moduleRoot . '/' . $permissionPath), true, 512, JSON_THROW_ON_ERROR);
+            foreach ($permissions as $permission) {
+                $permissionKeys[$permission['key']] = true;
+            }
         }
     }
 
@@ -38,7 +44,7 @@ function adminApiMatrix(string $repositoryRoot, array $inventory, array $accessC
         }
         $method = strtoupper((string) $endpoint['method']);
         $path = strtolower(trim((string) $endpoint['path'], '/'));
-        $permission = substr($path, strlen('adminapi/'));
+        $permission = $endpoint['permission'] ?? substr($path, strlen('adminapi/'));
         $routeKey = $method . ' ' . $path;
         $access = isset($authenticated[$routeKey])
             ? 'authenticated'

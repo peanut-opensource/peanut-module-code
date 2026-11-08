@@ -13,6 +13,9 @@ import unittest
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 IMAGE = "local/php:prepared@sha256:" + "a" * 64
+CORE_PACKAGE = {"name": "peanut-admin/core", "version": "v5.0.2",
+                "source": {"type": "git", "url": "https://example.invalid/fixture-core.git", "reference": "a" * 40},
+                "dist": {"type": "zip", "url": "https://example.invalid/fixture-core.zip", "reference": "a" * 40}}
 
 
 def write(path, data, mode=0o644):
@@ -29,14 +32,14 @@ class FirstStartVendorTest(unittest.TestCase):
         self.server = self.root / "server"
         self.bin = self.root / "bin"
         self.bin.mkdir()
-        for name in ("start.sh", "prepare-vendor.sh", "vendor-state.py"):
+        for name in ("start.sh", "configure-collaboration.py", "prepare-vendor.sh", "vendor-state.py"):
             target = self.server / "docker/scripts" / name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(SCRIPTS / name, target)
         write(self.server / "docker/.env", f"PHP_IMAGE={IMAGE}\nNGINX_IMAGE=sha256:{'b'*64}\nMYSQL_IMAGE=sha256:{'c'*64}\nMYSQL_ROOT_PASSWORD={'d'*64}\n".encode(), 0o600)
         write(self.server / ".env.example", b"APP_DEBUG=false\n")
         write(self.server / "composer.json", b'{"name":"fixture/app"}\n')
-        write(self.server / "composer.lock", b'{"content-hash":"' + b"0" * 32 + b'","packages":[]}\n')
+        write(self.server / "composer.lock", json.dumps({"content-hash": "0" * 32, "packages": [CORE_PACKAGE]}).encode())
         write(self.server / "think", b'<?php echo "fixture";\n', 0o755)
         self.identity()
         sentinel = self.bin / "docker"
@@ -49,14 +52,14 @@ if args[:1] == ["run"]:
     mounts=[a for a in args if a.startswith("type=bind,src=") and a.endswith(",dst=/srv")]
     if len(mounts)!=1: sys.exit(43)
     envs=[args[i+1] for i,a in enumerate(args[:-1]) if a == "--env"]
-    if envs != ["PEANUT_SERVER_ENV_FILE=/srv/.env.vendor-bootstrap"]: sys.exit(44)
+    if envs: sys.exit(44)
     work=pathlib.Path(mounts[0].split("src=",1)[1].split(",dst=",1)[0])
     bootstrap=work/".env.vendor-bootstrap"
-    if not bootstrap.is_file() or bootstrap.stat().st_mode & 0o777 != 0o600: sys.exit(45)
-    if bootstrap.read_text() != "APP_DEBUG=false\\n": sys.exit(46)
+    if bootstrap.exists() or (work/".env").exists(): sys.exit(45)
     (work/"vendor/composer").mkdir(parents=True)
     (work/"vendor/autoload.php").write_text("<?php\\n")
-    (work/"vendor/composer/installed.json").write_text('{"packages":[]}')
+    packages=json.loads((work/"composer.lock").read_text())["packages"]
+    (work/"vendor/composer/installed.json").write_text(json.dumps({"packages":packages}))
     (work/"vendor/services.php").write_text("<?php\\n")
 sys.exit(0)
 ''', 0o755)
@@ -85,7 +88,7 @@ sys.exit(0)
 
     def complete_vendor(self):
         write(self.server / "vendor/autoload.php", b"<?php\n")
-        write(self.server / "vendor/composer/installed.json", b'{"packages":[]}')
+        write(self.server / "vendor/composer/installed.json", json.dumps({"packages": [CORE_PACKAGE]}).encode())
         result = subprocess.run(["python3", str(self.server / "docker/scripts/vendor-state.py"), "seal", "--server", str(self.server)], capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
@@ -100,7 +103,7 @@ sys.exit(0)
         self.assertEqual(sum(c[0] == "run" for c in calls), 1)
         self.assertEqual(sum(c[0] == "compose" and "up" in c for c in calls), 1)
         shell = next(c[-1] for c in calls if c[0] == "run")
-        for command in ("composer install", "service:discover", "vendor:publish", "check-platform-reqs"):
+        for command in ("composer install", "php docker/scripts/prepare-vendor.php", "check-platform-reqs"):
             self.assertIn(command, shell)
 
     def test_complete_vendor_uses_no_composer_or_container(self):
@@ -204,10 +207,7 @@ class PreparedVendorStageTest(unittest.TestCase):
             target = self.server / "docker/scripts" / name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(SCRIPTS / name, target)
-        core = {"name": "peanut-admin/core", "version": "v5.0.2",
-                "source": {"type": "git", "url": "https://example.invalid/fixture-core.git", "reference": "a" * 40},
-                "dist": {"type": "zip", "url": "https://example.invalid/fixture-core.zip", "reference": "a" * 40}}
-        lock = {"content-hash": "0" * 32, "packages": [core]}
+        lock = {"content-hash": "0" * 32, "packages": [CORE_PACKAGE]}
         for name, content in (("composer.json", b'{"name":"fixture/app"}\n'),
                               ("composer.lock", (json.dumps(lock) + "\n").encode()),
                               ("think", b'<?php echo "fixture";\n')):

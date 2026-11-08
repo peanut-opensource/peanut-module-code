@@ -13,6 +13,8 @@
 
 ## 二开开发：规范与源码
 
+[管理界面设计与开发准则](development/ui-guidelines.md)：管理端及模块页面的视觉参数、组件边界、Agent 执行与三方升级保护。
+
 [开发规范](development/standard.md)维护共用约定；[应用约定](development/application-conventions.md)、[Controller与命名空间](development/controller-access-and-namespaces.md)、[PHP/ThinkPHP](development/php-thinkphp-guidelines.md)解释具体写法。
 
 [当前代码导读](development/current-code-lifecycle.md)、[模块布局](module-layout.md)、[工具链](development/project-toolchain.md)、[开发者中心与文档生成](development/developer-center-and-documentation.md)、[菜单导航](development/menu-navigation.md)提供实际入口。Core Web 的组件、Shell、主题及覆盖合同见[UI/Vue扩展文档](https://github.com/peanut-business/peanut-admin-core-web/blob/dev/packages/ui-vue/README.md)。

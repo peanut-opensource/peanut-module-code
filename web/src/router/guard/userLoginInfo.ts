@@ -12,7 +12,7 @@ import { WHITE_LIST } from '../constants';
 function loginQuery(to: RouteLocationNormalized): LocationQueryRaw {
   const query: LocationQueryRaw = { ...to.query };
   if (to.name && to.name !== 'login') {
-    query.redirect = String(to.name);
+    query.redirect = to.fullPath;
   } else {
     delete query.redirect;
   }

@@ -32,7 +32,7 @@
 
 `module_installation` 是唯一安装实体，保留 Module ID、已安装版本、运行状态、制品/依赖身份和恢复字段。停用的 maintenance 状态不因发布选择或新版源码出现而变为 active；正常卸载保留该行历史、原生迁移记录和业务数据，明确 purge 才进入受控清除。第三方 Composer、Vite、编辑器等生态的 Plugin 概念不受此约束。
 
-已有应用通过原生脚手架升级计划完成一次性声明转换：验证原应用完整 `plugins.lock` 及包装摘要，将其全部选择（包括应用自有 Module）派生为 `modules.lock`，将旧锁及全部已验证包装的删除列入同一备份/应用/恢复写集，再允许新运行入口加载。不能直接覆盖成脚手架默认模块集，也不能要求应用手删锁或重装。旧安装账本沿原生前向 Migration 归并；具体数据与恢复边界见[迁移协议](../maintenance/migration-protocols.md)。
+已有应用通过原生脚手架升级计划完成一次性声明转换：验证原应用完整 `plugins.lock` 及包装摘要，将其全部选择（包括应用自有 Module）派生为 `modules.lock`，将旧锁及全部已验证包装的删除列入同一备份/应用/恢复写集，再允许新运行入口加载。不能直接覆盖成脚手架默认模块集，也不能要求应用手删锁或重装。旧安装账本沿原生前向 Migration 归并；应用的数据与恢复边界见[原目录更新说明](../public/application-release.md#4-已有生产原目录更新)。维护者迁移细节见 Code 源码仓的 `docs/maintenance/migration-protocols.md`，不随生成 APP 交付。
 
 
 ### 1.3 业务驱动完善，应用按固定基线采用 {#capability-evolution}

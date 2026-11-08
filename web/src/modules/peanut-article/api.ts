@@ -2,6 +2,9 @@ import axios from 'axios';
 import type { PageData } from '@/types/global';
 import type { components } from '@/generated/openapi';
 import type { RichTextDocumentValue } from '@peanut-admin/peanut-rich-text/document';
+import ArticleHtmlMigrationRejected from './article-html-migration-rejected';
+
+export { ArticleHtmlMigrationRejected };
 
 export interface ArticleHtmlPreview {
   article_id: number;
@@ -25,11 +28,6 @@ export interface ArticleHtmlMigrated {
   source_sha256: string;
   phase: 'completed';
   published: false;
-}
-export class ArticleHtmlMigrationRejected extends Error {
-  constructor() {
-    super('原文、资讯状态或正文绑定已改变，请重新预览当前来源。');
-  }
 }
 const htmlResponse = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== 'object' || Array.isArray(value))

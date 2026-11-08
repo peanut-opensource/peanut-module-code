@@ -1,0 +1,23 @@
+# Peanut Module Code 产品使用资料
+
+面向APP开发者、部署者、模块开发者及API使用者。本目录随脚手架模板和APP开发源码版本化交付，不依赖维护者私有Project或本机绝对路径。
+
+| 目标 | 唯一说明 |
+| --- | --- |
+| 选择来源、理解版本与升级对象 | [发行渠道与版本身份](release-channels.md) |
+| 首次配置并安装新实例 | [安装指南](installation.md) |
+| 产品定版、部署更新与保护 | [产品 Git 交付](application-release.md) |
+| 查接口、刷新SDK | [API合同与SDK](api-and-sdk.md) |
+| 编写和交付业务模块 | [模块开发](module-development.md) |
+| 了解界面组件与应用覆盖边界 | [Core能力与应用覆盖](../architecture/core-capabilities-and-application-overrides.md) |
+| 产品首次开发与定版流程 | [产品开发流程](#产品开发与定版) |
+
+## 产品开发与定版
+
+脚手架模板的 ST、MT 是两个独立交付形态；模板创建和升级继续使用 Peanut CLI。仅首次创建产品要求全新的空目录和空数据库，由 CLI `create` 生成源码；`create` 只写入源码，不安装依赖、不建库、不启动服务，也不初始化产品 Git 仓库。之后按生成项目的锁文件准备依赖、开发环境和必要构建，启动并通过安装页面向导完成首次安装，确认访问后同步该产品自己的 Git 仓库，在 `dev` 分支持续开发。
+
+既有产品保留固定目录、专库、Git、配置、上传、安装身份和业务数据。CLI `upgrade` 按旧模板 baseline、当前定制和目标模板做三方比较，审阅并解决冲突后应用同一计划；依赖准备、前端构建和迁移按变化另行处理。它不等于 Git 分支合并或生产更新，不通过重建产品消除冲突。
+
+产品定版环节在开发／发行机器按锁安装前端构建依赖，运行现有 `scripts/deploy-update.sh --prepare-release --version=<产品声明版本>`，将普通 admin、MT platform 静态文件与源码一起提交，经维护者审核合入产品 `main` 并创建 tag。生产首次从固定 `main` 在全新空目录、空库安装，后续在原目录更新固定 Git 提交；只准备 PHP 依赖和配置、应用尚未应用的迁移并确认访问，不要求 Node/npm/pnpm 或再传前端压缩包。PC/H5后置。具体入口和保护见[产品 Git 交付](application-release.md)；源码交付不等于实际安装或更新完成。
+
+完整使用手册阅读同一APP来源版本，不把开发分支的新说明当作旧实例已经具备的能力。既有包和更新器保留其实际消费者与技术合同，B 包、`peanut package`、`release/apps` 不再列为日常生产步骤。

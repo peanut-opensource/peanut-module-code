@@ -35,17 +35,27 @@
   import { registerTenantDisposer } from '@peanut-admin/vue';
   import { getSessionSnapshot } from '@/utils/auth';
   import randomUuid from '@/utils/random-uuid';
-  import { generateText, textRoutes, type GenerateTextInput, type Lookup } from '../api';
+  import { generateText, textRoutes, type GenerateTextInput, type Lookup } from '../text-draft-api';
 
   const props = defineProps<{ consumerModule: string; contextKey: string; disabled: boolean }>();
   const emit = defineEmits<{ (event: 'adopt', text: string, acknowledge: (applied: boolean) => void): void }>();
   const user = useUserStore();
   const canUse = computed(() => hasPermission('custom.ai-assistant.use', undefined, user.permissions));
-  const visible = ref(false), busy = ref(false), loading = ref(false), confirmed = ref(false), adopted = ref(false);
-  const topic = ref(''), outline = ref(''), preview = ref(''), error = ref('');
-  const routes = ref<Lookup[]>([]), routeId = ref<number>(), more = ref(false);
+  const visible = ref(false);
+  const busy = ref(false);
+  const loading = ref(false);
+  const confirmed = ref(false);
+  const adopted = ref(false);
+  const topic = ref('');
+  const outline = ref('');
+  const preview = ref('');
+  const error = ref('');
+  const routes = ref<Lookup[]>([]);
+  const routeId = ref<number>();
+  const more = ref(false);
   const original = shallowRef<GenerateTextInput>();
-  let page = 0, controller = new AbortController();
+  let page = 0;
+  let controller = new AbortController();
   function resetInput() {
     original.value = undefined; preview.value = ''; error.value = ''; confirmed.value = false; adopted.value = false;
   }
@@ -54,13 +64,8 @@
     page = 0; routes.value = []; routeId.value = undefined; more.value = false; topic.value = ''; outline.value = ''; resetInput();
   }
   watch(() => [props.contextKey, props.consumerModule, props.disabled, canUse.value], clear, { flush: 'sync' });
-  const dispose = registerTenantDisposer('custom.ai-assistant.draft.' + randomUuid(), clear);
+  const dispose = registerTenantDisposer(`custom.ai-assistant.draft.${randomUuid()}`, clear);
   onBeforeUnmount(() => { clear(); dispose(); });
-  async function show() {
-    if (props.disabled || !canUse.value) return;
-    visible.value = true;
-    if (!page && !loading.value) await readRoutes();
-  }
   async function readRoutes() {
     if (loading.value || props.disabled || !canUse.value) return;
     const { signal } = controller;
@@ -68,7 +73,7 @@
     try {
       const result = await textRoutes(props.consumerModule, page + 1, signal);
       if (signal.aborted) return;
-      page++;
+      page += 1;
       routes.value.push(...result.list.filter(r => r.capability === 'text' && r.consumer_module === props.consumerModule));
       more.value = page * result.page_size < result.count;
       if (!routeId.value && routes.value.length === 1) routeId.value = routes.value[0].id;
@@ -76,9 +81,15 @@
       if (!signal.aborted) error.value = cause instanceof Error ? cause.message : '文本路由读取失败';
     } finally { if (!signal.aborted) loading.value = false; }
   }
+  async function show() {
+    if (props.disabled || !canUse.value) return;
+    visible.value = true;
+    if (!page && !loading.value) await readRoutes();
+  }
   async function generate() {
     if (!canUse.value || props.disabled || busy.value || !routeId.value || !topic.value.trim() || !confirmed.value) return;
-    const { signal } = controller, generation = getSessionSnapshot().generation;
+    const { signal } = controller;
+    const { generation } = getSessionSnapshot();
     const request = original.value ?? { route_id: routeId.value, consumer_module: props.consumerModule,
       topic: topic.value.trim(), outline: outline.value.trim(), request_id: randomUuid(), confirm_send: true as const };
     original.value = request; busy.value = true; error.value = '';

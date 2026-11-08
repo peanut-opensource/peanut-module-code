@@ -26,7 +26,11 @@
 
   onLoad((options) => {
     try {
-      void loadPolicy(policyKind(options?.type));
+      const type = policyKind(options?.type);
+      uni.setNavigationBarTitle({
+        title: type === 'privacy' ? '隐私政策' : '用户协议',
+      });
+      void loadPolicy(type);
     } catch {
       loading.value = false;
       errorMessage.value = '协议类型无效';

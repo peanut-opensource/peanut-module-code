@@ -3,57 +3,53 @@
     "protocol": "peanut.release-metadata.v3",
     "product": "Peanut Module Code",
     "application_identity": "peanut-business/peanut-module-code",
-    "source_product_version": "5.0.15",
+    "source_product_version": "5.1.0",
     "instance_version": "1.0.0",
     "status": "generated-application-baseline",
     "release_policy": "replace this metadata from an immutable application release candidate before publishing",
     "public_runtime_dependencies": {
         "composer": {
             "package": "peanut-admin/core",
-            "constraint": "5.0.3-alpha.6",
-            "resolved_version": "5.0.3-alpha.6",
-            "source_type": "local",
-            "source_identity": {
-                "kind": "local",
-                "snapshot_sha256": "f9d61786dbe582cdc00a4d6f97baa3c30fa3b6a0cf60633822ccd46f689a6db4"
-            }
+            "constraint": "5.0.3",
+            "resolved_version": "v5.0.3",
+            "source_type": "git",
+            "source_url": "https://github.com/peanut-business/peanut-admin-core-php.git",
+            "source_reference": "f2b0435f577c5119f1dfc58d34c274ccb149c477"
         },
         "npm": {
-            "source_type": "local",
-            "source_identity": {
-                "kind": "local",
-                "snapshot_sha256": "a41a7abfe9c88af0729ceeaf7ede975815cf19b739863516a4819d26bda32332"
-            },
+            "source_type": "git",
+            "source_url": "https://github.com/peanut-business/peanut-admin-core-web.git",
+            "source_reference": "73d136722d583f39a59ca4456ec1f452a022349d",
             "packages": {
                 "@peanut-admin/client": {
-                    "version": "5.0.2",
-                    "archive": "packages/core-web/peanut-admin-client-5.0.2.tgz",
-                    "sha256": "4d097577ed575c958068f9dc1b216eb804851180e0dde004a6bda2f982ae4668"
+                    "version": "5.0.4",
+                    "resolved": "https://registry.npmjs.org/@peanut-admin/client/-/client-5.0.4.tgz",
+                    "integrity": "sha512-lbNvsGU3Jk+vG3+0mEfEzFT03ZHDkcII3tnpOSfmI1KQ4dUJNH5YxDw20/V6D2+QmL5SB9ZgCrjEddPbdmDdww=="
                 },
                 "@peanut-admin/vue": {
-                    "version": "5.0.2",
-                    "archive": "packages/core-web/peanut-admin-vue-5.0.2.tgz",
-                    "sha256": "4f7477a448cef7f3aa1304181690972f8247fa29eaf4d308d72deab2f0ee39c4"
+                    "version": "5.0.4",
+                    "resolved": "https://registry.npmjs.org/@peanut-admin/vue/-/vue-5.0.4.tgz",
+                    "integrity": "sha512-ANbtW+oUAArfN8jgyc1vyuIS3mNGhmFya9sccTF+WR4P9p267dCUZ5rgTkaf5K7aPch/7685hwtdP0Tku8MMnw=="
                 },
                 "@peanut-admin/ui-vue": {
-                    "version": "5.0.2",
-                    "archive": "packages/core-web/peanut-admin-ui-vue-5.0.2.tgz",
-                    "sha256": "2185e9055259eb3125a434f95f1b3a94c096b065ea68d3a66b70be7b71daceb3"
+                    "version": "5.0.4",
+                    "resolved": "https://registry.npmjs.org/@peanut-admin/ui-vue/-/ui-vue-5.0.4.tgz",
+                    "integrity": "sha512-GqCqPMzHlFQuxHBOQOd8K9VUEic0MoSVuVmsmMMuqaBvYWj1pvqqpjkL/OK/iuxcCxUwhATu5gvu7m5hM5a1UA=="
                 },
                 "@peanut-admin/nuxt": {
-                    "version": "5.0.2",
-                    "archive": "packages/core-web/peanut-admin-nuxt-5.0.2.tgz",
-                    "sha256": "976b8c5954ec1de557bb4fabe9f2575011532910271dbb9c8beecd82fb736fbb"
+                    "version": "5.0.4",
+                    "resolved": "https://registry.npmjs.org/@peanut-admin/nuxt/-/nuxt-5.0.4.tgz",
+                    "integrity": "sha512-M7Af5tcGTie8zMbQRQ3Q+e8GUb6IgW1A4saX+gCWr/N7hwbb7sCe4jLkokcwApJ2ev3aS4NMefnDZ/iFouJgQw=="
                 },
                 "@peanut-admin/uniapp": {
-                    "version": "5.0.2",
-                    "archive": "packages/core-web/peanut-admin-uniapp-5.0.2.tgz",
-                    "sha256": "b193dc5888950e2f8e3d2498092c2d16670d94c86143779d34a21f85193e820a"
+                    "version": "5.0.4",
+                    "resolved": "https://registry.npmjs.org/@peanut-admin/uniapp/-/uniapp-5.0.4.tgz",
+                    "integrity": "sha512-chpOOAQTW1WRiT+MtlfGHfi3uRMPP+DJ2cnLnHqty3K7rIkc3Pw3YAE6Lrse8ZRq2g4DrCFtsVjm1fwNgb8Fdw=="
                 },
                 "@peanut-admin/testing": {
-                    "version": "5.0.2",
-                    "archive": "packages/core-web/peanut-admin-testing-5.0.2.tgz",
-                    "sha256": "6e36c45cdfe450851fec075a2c8b91655168fa7db82ff8f8a264f9c682103284"
+                    "version": "5.0.4",
+                    "resolved": "https://registry.npmjs.org/@peanut-admin/testing/-/testing-5.0.4.tgz",
+                    "integrity": "sha512-eTg5h6sXw0GPKTGTnbNtlbDPSzZVaf03IbX3bAQayTsoKozaytl9pglbTDLkgLxBnCpORnQf0HgUhwGO3PPHuA=="
                 }
             }
         }

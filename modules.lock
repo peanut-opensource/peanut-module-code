@@ -7,7 +7,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "9eb6a500c2b901e34c10f3a8e96cd085056a8f369037708cbdca26679f1a6ec0"
+                "sha256": "21c6e7f2e1b05a62075eb6f7670a9658d0987154f090736143d3000b41e2b224"
             },
             "trust": {
                 "channel": "bundled",
@@ -93,7 +93,7 @@
                     "package": "@custom/custom-ai-assistant",
                     "version": "1.2.2",
                     "entry": "web/src/modules/custom-ai-assistant/contribution.ts",
-                    "sha256": "fd39850882ceec5e35be865262e787bddf653502f1122e4a727e98b83d9e65fb"
+                    "sha256": "f78dcaaa30c90f8f1c9785b59773aca3e379ed1899db6a3f8361e386db1ee677"
                 }
             ],
             "modules": [
@@ -111,7 +111,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "6c9d4b708f7a6aa09ac4b1cf2feb02325c54f6cb4e49037a77f2d6c8f99c5bcd"
+                "sha256": "f3ffb353b9aa381fa946fa2323a729e61d773646ce137fa0e4d05e0cc1803c95"
             },
             "trust": {
                 "channel": "bundled",
@@ -653,7 +653,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "9c859d8001d714282d733cf9c1282cc2fab748335119af86bcc59481b4f3c79e"
+                "sha256": "f146b8d96aade85587f26c4e49c0c27894300b6021cf30c05cbc12e9995a63d2"
             },
             "trust": {
                 "channel": "bundled",
@@ -1756,7 +1756,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "36ab0e10b8e4984f1bca5488a0aaea5e410eb82397b3ffe66da3765b48d2004c"
+                "sha256": "00a78138083654a7e6af764ba1586a393fdf808905d9956035d8858ae08d7a5c"
             },
             "trust": {
                 "channel": "bundled",
@@ -1844,7 +1844,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "6d34c352385e7d719a2a5c623e0b368fbec69ebc565532b5082572d5b0042395"
+                "sha256": "127ccc91dbcc4221478bd98d04d06887a80a9d487efef7b8c0b8cca58c76ab4b"
             },
             "trust": {
                 "channel": "bundled",

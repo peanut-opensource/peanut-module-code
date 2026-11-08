@@ -18,7 +18,11 @@ GitHub CI is optional and separately versioned through Recipes; this application
 
 ## Source and dependency boundaries
 
+For management UI changes, first read [the UI development guidelines](docs/development/ui-guidelines.md). Reuse Element Plus and existing Page components; preserve Shell themes and application overrides. Ant Design is a design reference, not an additional component or stylesheet dependency.
+
 The backend application and business modules live under `server/`; `web`, `platform`, `pc` and `uniapp` are distinct clients when included in this application profile. Module dependencies, public capabilities, routes and frontend contributions come from the checked-in declarations. Cross-module calls use explicitly exported operations or stable results, not another module's internal Models, repositories or private tables. Reuse the existing container, ORM, authorization, errors, tasks and upgrade mechanism rather than introducing parallel frameworks.
+
+For tenant-admin, platform and module management pages, follow the **管理内容区与页面布局** section in [the shipped development standard](docs/development/standard.md). Prefer the existing `@peanut-admin/ui-vue` page structure and Element Plus controls; do not rebuild page shells, global UI overrides or parallel component libraries. Select list, detail, form, workbench or complex-workspace patterns to fit the actual workflow, retaining business operations and authorization in their owning module. Verify changed pages in a real browser at desktop and narrow widths; record NOT_RUN when browser access is unavailable. Use the existing conflict-aware scaffold upgrade to preserve customer changes to AGENTS, pages and styles.
 
 Install dependencies with the relevant native lock and declared package manager before validating code. Missing dependencies or an unexpected source path must be reported, not silently replaced with a different version or a developer's global installation. Development checks in `tools/quality` are separate from runtime dependencies. Do not commit installed `vendor`, `node_modules`, caches, secrets or build logs.
 

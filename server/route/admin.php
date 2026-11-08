@@ -48,13 +48,13 @@ Route::group(function () use ($peanutRouteModules) {
 
     // 菜单
     Route::get('menu/route', [MenuController::class, 'route']);
-    Route::get('menu/lists', [MenuController::class, 'lists']);
-    Route::get('menu/all', [MenuController::class, 'all']);
-    Route::get('menu/detail', [MenuController::class, 'detail']);
-    Route::post('menu/add', [MenuController::class, 'add']);
-    Route::post('menu/edit', [MenuController::class, 'edit']);
-    Route::post('menu/delete', [MenuController::class, 'delete']);
-    Route::post('menu/status', [MenuController::class, 'updateStatus']);
+    Route::get('menu/lists', [MenuController::class, 'lists'])->option(['peanut_permission' => 'core.menu.read']);
+    Route::get('menu/all', [MenuController::class, 'all'])->option(['peanut_permission' => 'core.menu.read']);
+    Route::get('menu/detail', [MenuController::class, 'detail'])->option(['peanut_permission' => 'core.menu.read']);
+    Route::post('menu/add', [MenuController::class, 'add'])->option(['peanut_permission' => 'core.menu.manage']);
+    Route::post('menu/edit', [MenuController::class, 'edit'])->option(['peanut_permission' => 'core.menu.manage']);
+    Route::post('menu/delete', [MenuController::class, 'delete'])->option(['peanut_permission' => 'core.menu.manage']);
+    Route::post('menu/status', [MenuController::class, 'updateStatus'])->option(['peanut_permission' => 'core.menu.manage']);
 
     // 角色
     Route::get('role/lists', [RoleController::class, 'lists'])->option(['peanut_permission' => 'core.role.read']);
@@ -127,25 +127,25 @@ Route::group(function () use ($peanutRouteModules) {
     Route::post('dict/data/status', [DictDataController::class, 'updateStatus'])->option(['peanut_permission' => 'peanut.reference-codes.manage']);
 
     // 开发工具 - 安全代码生成器
-    Route::get('generator/source-tables', [GeneratorController::class, 'sourceTables']);
-    Route::get('generator/lists', [GeneratorController::class, 'lists']);
-    Route::get('generator/detail', [GeneratorController::class, 'detail']);
-    Route::post('generator/import', [GeneratorController::class, 'import']);
-    Route::post('generator/sync', [GeneratorController::class, 'sync']);
-    Route::post('generator/update', [GeneratorController::class, 'update']);
-    Route::post('generator/delete', [GeneratorController::class, 'delete']);
-    Route::post('generator/preview', [GeneratorController::class, 'preview']);
-    Route::post('generator/generate', [GeneratorController::class, 'generate']);
-    Route::get('generator/download', [GeneratorController::class, 'download']);
-    Route::get('generator/models', [GeneratorController::class, 'models']);
+    Route::get('generator/source-tables', [GeneratorController::class, 'sourceTables'])->option(['peanut_permission' => 'core.generator.read']);
+    Route::get('generator/lists', [GeneratorController::class, 'lists'])->option(['peanut_permission' => 'core.generator.read']);
+    Route::get('generator/detail', [GeneratorController::class, 'detail'])->option(['peanut_permission' => 'core.generator.read']);
+    Route::post('generator/import', [GeneratorController::class, 'import'])->option(['peanut_permission' => 'core.generator.manage']);
+    Route::post('generator/sync', [GeneratorController::class, 'sync'])->option(['peanut_permission' => 'core.generator.manage']);
+    Route::post('generator/update', [GeneratorController::class, 'update'])->option(['peanut_permission' => 'core.generator.manage']);
+    Route::post('generator/delete', [GeneratorController::class, 'delete'])->option(['peanut_permission' => 'core.generator.manage']);
+    Route::post('generator/preview', [GeneratorController::class, 'preview'])->option(['peanut_permission' => 'core.generator.read']);
+    Route::post('generator/generate', [GeneratorController::class, 'generate'])->option(['peanut_permission' => 'core.generator.generate']);
+    Route::get('generator/download', [GeneratorController::class, 'download'])->option(['peanut_permission' => 'core.generator.generate']);
+    Route::get('generator/models', [GeneratorController::class, 'models'])->option(['peanut_permission' => 'core.generator.read']);
 
     // 系统维护
-    Route::get('system/info', [SystemController::class, 'info']);
-    Route::post('system/clearCache', [SystemController::class, 'clearCache']);
+    Route::get('system/info', [SystemController::class, 'info'])->option(['peanut_permission' => 'core.system.read']);
+    Route::post('system/clearCache', [SystemController::class, 'clearCache'])->option(['peanut_permission' => 'core.system.cache.clear']);
 
     // 操作日志
     Route::get('log/lists', [OperationLogController::class, 'lists'])->option(['peanut_permission' => 'core.audit.read']);
-    Route::post('log/clear', [OperationLogController::class, 'clear']);
+    Route::post('log/clear', [OperationLogController::class, 'clear'])->option(['peanut_permission' => 'core.audit.clear']);
     // 系统配置 - 网站设置
     Route::get('config/website', [ConfigController::class, 'getWebsite'])->option(['peanut_permission' => 'peanut.settings.read']);
     Route::post('config/website/save', [ConfigController::class, 'saveWebsite'])->option(['peanut_permission' => 'peanut.settings.manage']);

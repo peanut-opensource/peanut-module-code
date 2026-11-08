@@ -11,7 +11,11 @@ use PeanutAdmin\Modules\Identity\Audit\AuditService;
 use PeanutAdmin\Modules\Identity\Menu\MenuAdministrationService;
 use think\facade\Db;
 
-/** @property-read ApiPermissionCatalog $catalog @property-read AuditService $audit */
+/**
+ * @property-read ApiPermissionCatalog $catalog
+ * @property-read AuditService $audit
+ * @property-read MenuAdministrationService $menus
+ */
 final class PermissionApiController extends BasePlatformController
 {
     protected string $catalogClass = ApiPermissionCatalog::class;

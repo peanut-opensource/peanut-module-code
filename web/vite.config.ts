@@ -123,13 +123,24 @@ export function createBaseConfig(
   fileEnv: Record<string, string>,
   contributionEntries: () => string[] = lockedAdminContributions
 ): UserConfig {
-  const resolvedDeploymentMode = fileEnv.VITE_DEPLOYMENT_MODE || 'standalone';
+  const buildEdition =
+    configEnv.command === 'build' &&
+    (configEnv.mode === 'standalone' || configEnv.mode === 'multi-tenant')
+      ? configEnv.mode
+      : undefined;
+  const resolvedDeploymentMode =
+    fileEnv.VITE_DEPLOYMENT_MODE || buildEdition || 'standalone';
   if (
     resolvedDeploymentMode !== 'standalone' &&
     resolvedDeploymentMode !== 'multi-tenant'
   ) {
     throw new Error(
       `Invalid VITE_DEPLOYMENT_MODE: ${resolvedDeploymentMode}; expected standalone or multi-tenant`
+    );
+  }
+  if (buildEdition && resolvedDeploymentMode !== buildEdition) {
+    throw new Error(
+      `VITE_DEPLOYMENT_MODE=${resolvedDeploymentMode} conflicts with build mode ${buildEdition}`
     );
   }
   const instanceToolsCompiled = compileInstanceTools(

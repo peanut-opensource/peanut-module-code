@@ -336,6 +336,7 @@ final readonly class Dependencies
                 if (!is_file($project . '/' . $entry)) {
                     throw new ModulePackageException('MODULE_RELEASE_PREPARATION_REQUIRED', 'Prepare the selected Module frontend through scripts/deploy-update.sh --prepare-release before HTTP installation.');
                 }
+                $this->verifyPublicBuild($client, $entry);
                 $frontend[$client] = ['entry' => $entry];
             }
             return ['status' => 'dependencies-already-installed', 'operations' => [], 'optional_modules' => $optional, 'optional_packages' => [], 'frontend_adoption' => $frontend];
@@ -423,13 +424,49 @@ final readonly class Dependencies
                 'pc' => ['pc-web', ['npm', 'run', 'build'], 'pc/.output/server/index.mjs'],
                 'uniapp' => ['uniapp', ['npm', 'run', 'build:h5'], 'uniapp/dist/build/h5/index.html'],
             };
+            // Vite/Nuxt copy public inputs verbatim, including dotfiles and linked file contents.
+            $publicInput = $project . '/' . $client . ($client === 'uniapp' ? '/src/static' : '/public');
+            if (file_exists($publicInput) || is_link($publicInput)) {
+                $this->verifyPublicAssets($publicInput);
+            }
             $result = $this->run($command, dirname($this->serverRoot) . '/' . $client);
+            $this->verifyPublicBuild($client, $entry);
             if (!is_file(dirname($this->serverRoot) . '/' . $entry)) {
                 throw new ModulePackageException('MODULE_FRONTEND_ADOPTION_REQUIRED', "The native {$key} build did not produce its application entry.");
             }
             $results[$key] = $result + [($client === 'web' ? 'static_entry' : 'runtime_entry') => $entry];
         }
         return $results;
+    }
+
+    private function verifyPublicBuild(string $client, string $entry): void
+    {
+        $publicOutput = $client === 'pc' ? 'pc/.output/public' : dirname($entry);
+        $this->verifyPublicAssets(dirname($this->serverRoot) . '/' . $publicOutput, built: true);
+    }
+
+    private function verifyPublicAssets(string $directory, bool $built = false): void
+    {
+        if (!is_dir($directory) || realpath($directory) !== $directory) {
+            throw new ModulePackageException('MODULE_FRONTEND_PUBLIC_PATH_INVALID', 'Public asset directory must be an ordinary build path.');
+        }
+        $seen = [];
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST,
+        );
+        foreach ($files as $file) {
+            $path = substr($file->getPathname(), strlen($directory) + 1);
+            $key = mb_convert_case($path, MB_CASE_FOLD, 'UTF-8');
+            $name = $file->getFilename();
+            $viteManifest = $built && (($path === '.vite' && $file->isDir())
+                || ($file->isFile() && in_array($path, ['.vite/manifest.json', '.vite/manifest.json.gz'], true)));
+            if (isset($seen[$key]) || $file->isLink() || (!$file->isDir() && (!$file->isFile() || lstat($file->getPathname())['nlink'] !== 1))
+                || strtolower($name) === 'node_modules' || (!$viteManifest && (str_starts_with($name, '.') || str_starts_with($path, '.vite/')))) {
+                throw new ModulePackageException('MODULE_FRONTEND_PUBLIC_ASSET_INVALID', 'Build contains an unsafe public asset: ' . $path);
+            }
+            $seen[$key] = true;
+        }
     }
 
     /** Composer ran in a child process; this invocation must see its newly installed package mappings. */

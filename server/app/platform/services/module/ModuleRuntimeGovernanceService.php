@@ -779,14 +779,21 @@ final class ModuleRuntimeGovernanceService
         $state = $this->installationState($packageKey);
         $marker = $purge ? 'MODULE_PURGE_IN_PROGRESS' : 'MODULE_RETIRE_IN_PROGRESS';
         if (!is_array($state) || $state['status'] !== 'maintenance' || $state['last_error_code'] !== $marker) { return null; }
-        $path = dirname($this->serverRoot) . '/.local/module-quarantine/' . $packageKey . '.plan.json';
-        if (!is_file($path)) { return null; }
-        $plan = json_decode((string) file_get_contents($path), true, 128, JSON_THROW_ON_ERROR);
+        $plan = $this->readRemovalPlan($packageKey);
+        if ($plan === null) { return null; }
         if (($plan['package_key'] ?? null) !== $packageKey || ($plan['operation'] ?? null) !== ($purge ? 'purge' : 'retire')) {
             throw new ModuleLifecycleException('MODULE_UNINSTALL_PLAN_CHANGED', 'Saved Module removal plan differs from its operation.');
         }
         $this->assertResumeScope($plan, $packageKey);
         return $plan;
+    }
+
+    /** @return array<string,mixed>|null */
+    private function readRemovalPlan(string $packageKey): ?array
+    {
+        ModuleKey::fromString($packageKey);
+        $path = dirname($this->serverRoot) . '/.local/module-quarantine/' . $packageKey . '.plan.json';
+        return is_file($path) ? json_decode((string) file_get_contents($path), true, 128, JSON_THROW_ON_ERROR) : null;
     }
 
     private function assertMutableSourceLock(): void
@@ -921,18 +928,40 @@ final class ModuleRuntimeGovernanceService
         if (!$purge) {
             return true;
         }
-        $modules = $this->confirmedModuleKeys($plan);
-        if ($modules === []) {
-            return true;
+        $packageKey = $plan['package_key'];
+        $saved = $this->readRemovalPlan($packageKey);
+        if (($saved['operation'] ?? null) !== 'purge' || ($saved['package_key'] ?? null) !== $packageKey
+            || $this->confirmedModuleKeys($saved) !== [$packageKey]) {
+            return false;
         }
-        return count($this->tenantStates->installationStates($modules)) === 0;
+        $codec = $this->codec();
+        $expected = $plan['affected_modules'] === [] ? $this->cleanPlan($packageKey, true) : $saved;
+        if ($codec->encode($plan) !== $codec->encode($expected)) {
+            return false;
+        }
+        // Completed purge keeps the installation identity; a retained retire plan is not a purge receipt.
+        $module = $saved['affected_modules'][0];
+        if (($module['version'] ?? null) !== $state['installed_version']
+            || ($module['manifest_digest'] ?? null) !== $state['manifest_digest']
+            || $this->existingOwnedTables($this->confirmedOwnedTables($this->confirmedOwnedTablesByModule($saved))) !== []) {
+            return false;
+        }
+        $projectRoot = dirname($this->serverRoot);
+        foreach ($module['source_paths'] as $relative) {
+            $path = $projectRoot . '/' . $relative;
+            if (file_exists($path) || is_link($path)) {
+                return false;
+            }
+        }
+        $catalog = $this->catalogs->plan([$packageKey], true);
+        return $catalog['removed'] === [] && $catalog['blockers'] === [];
     }
 
     /** @return array<string,mixed>|null */
     private function installationState(string $packageKey): ?array
     {
         $row = Db::name('module_installation')->where('module_key', $packageKey)
-            ->field('status,last_error_code')->find();
+            ->field('status,last_error_code,installed_version,manifest_digest')->find();
         return $row === null ? null : $row;
     }
 

@@ -81,7 +81,58 @@ body {
   }
 }
 
+// Match EP's two-class shadow selector, only for the application card opt-in.
+.general-card.el-card {
+  box-shadow: none;
+}
+
+// Application defaults for the existing public page primitives. All colors
+// inherit the owning Shell, including brand overrides and dark mode.
+.pa-page-content {
+  min-width: 0;
+}
+
+.pa-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-bottom: 24px;
+}
+
+.pa-page-header__title {
+  min-width: 0;
+  color: var(--el-text-color-primary);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
+  overflow-wrap: anywhere;
+
+  > h1 {
+    margin: 0;
+    font: inherit;
+  }
+}
+
+.pa-page-header__actions,
+.pa-page-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 @media (max-width: 768px) {
+  .pa-page-header {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .pa-page-header__title {
+    font-size: 20px;
+    line-height: 28px;
+  }
   .general-card {
     & > .el-card__header {
       padding: 14px;

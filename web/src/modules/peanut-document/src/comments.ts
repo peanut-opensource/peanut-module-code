@@ -12,12 +12,9 @@ import type {
   DocumentCommentTransport,
   DocumentCommentPending,
 } from './comment-contracts';
+import { DocumentCommentRejection } from './comment-rejection';
 
-export class DocumentCommentRejection extends Error {
-  constructor(readonly status: number, readonly errorCode: string) {
-    super(errorCode);
-  }
-}
+export { DocumentCommentRejection } from './comment-rejection';
 const fail = (): never => {
   throw new Error('DOCUMENT_COMMENT_RESPONSE_INVALID');
 };
@@ -209,7 +206,7 @@ export function parseCommentReceipt(
   command: DocumentCommentCommand
 ): DocumentCommentReceipt {
   const row = record(value);
-  const input = command.input;
+  const { input } = command;
   if (
     row.document_id !== input.document_id ||
     row.revision_id !== input.revision_id ||
@@ -268,30 +265,54 @@ export function commentAnchor(
 /** Actual component state machine. Pending inputs are immutable and retained per context/revision. */
 export class RevisionCommentSession {
   scope?: DocumentCommentScope;
+
   source?: DocumentCommentSource;
+
   threads: DocumentCommentThread[] = [];
+
   active?: DocumentCommentThread;
+
   messages: DocumentCommentMessage[] = [];
+
   canWrite = false;
+
   loading = false;
+
   loadingThread = false;
+
   nextThread: number | null = null;
+
   nextMessage: number | null = null;
+
   error?: string;
+
   pending?: DocumentCommentPending;
+
   lastReceipt?: DocumentCommentReceipt;
+
   private generation = 0;
+
   private selection = 0;
+
   private listRequest?: AbortController;
+
   private threadRequest?: AbortController;
+
   private readonly requests = new Map<string, DocumentCommentPending>();
+
   private disposed = false;
 
+  private readonly transport: DocumentCommentTransport;
+
+  private readonly requestId: () => string;
+
   constructor(
-    private readonly transport: DocumentCommentTransport,
-    private readonly requestId: () => string = () =>
-      globalThis.crypto.randomUUID()
-  ) {}
+    transport: DocumentCommentTransport,
+    requestId: () => string = () => globalThis.crypto.randomUUID()
+  ) {
+    this.transport = transport;
+    this.requestId = requestId;
+  }
 
   setScope(scope: DocumentCommentScope): void {
     this.generation += 1;
@@ -317,6 +338,7 @@ export class RevisionCommentSession {
     });
     this.pending = this.requests.get(scopeKey(scope));
   }
+
   private clearView(): void {
     this.source = undefined;
     this.threads = [];
@@ -326,23 +348,26 @@ export class RevisionCommentSession {
     this.nextThread = null;
     this.nextMessage = null;
   }
+
   private current(generation: number): boolean {
     return !this.disposed && generation === this.generation;
   }
+
   private readFailure(error: unknown): void {
     this.clearView();
-    this.error =
-      error instanceof DocumentCommentRejection
-        ? error.errorCode
-        : error instanceof Error
-        ? error.message
-        : 'DOCUMENT_COMMENT_LOAD_FAILED';
+    if (error instanceof DocumentCommentRejection) {
+      this.error = error.errorCode;
+    } else if (error instanceof Error) {
+      this.error = error.message;
+    } else {
+      this.error = 'DOCUMENT_COMMENT_LOAD_FAILED';
+    }
   }
 
   async load(append = false): Promise<void> {
-    const scope = this.scope;
+    const { scope } = this;
     if (!scope || this.disposed || (append && this.nextThread === null)) return;
-    const generation = this.generation;
+    const { generation } = this;
     this.listRequest?.abort();
     const request = new AbortController();
     this.listRequest = request;
@@ -366,8 +391,7 @@ export class RevisionCommentSession {
         scope
       );
       if (!this.current(generation) || this.listRequest !== request) return;
-      if (this.source && !sameBinding(record(page.source), this.source))
-        return fail();
+      if (this.source && !sameBinding(record(page.source), this.source)) fail();
       if (
         append &&
         (this.threads.some((thread) =>
@@ -378,7 +402,7 @@ export class RevisionCommentSession {
             page.items[0].thread_id >=
               this.threads[this.threads.length - 1].thread_id))
       )
-        return fail();
+        fail();
       this.source = page.source;
       this.threads = append ? [...this.threads, ...page.items] : page.items;
       this.canWrite = page.can_write;
@@ -397,7 +421,7 @@ export class RevisionCommentSession {
   }
 
   async select(threadId: number, append = false): Promise<void> {
-    const scope = this.scope;
+    const { scope } = this;
     if (
       !scope ||
       !this.source ||
@@ -407,9 +431,9 @@ export class RevisionCommentSession {
         (this.nextMessage === null || this.active?.thread_id !== threadId))
     )
       return;
-    const generation = this.generation;
+    const { generation } = this;
     this.selection += 1;
-    const selection = this.selection;
+    const { selection } = this;
     this.threadRequest?.abort();
     const request = new AbortController();
     this.threadRequest = request;
@@ -433,7 +457,7 @@ export class RevisionCommentSession {
       );
       if (!this.current(generation) || selection !== this.selection) return;
       if (!this.source || !sameBinding(record(page.source), this.source))
-        return fail();
+        fail();
       if (
         append &&
         (this.messages.some((message) =>
@@ -446,7 +470,7 @@ export class RevisionCommentSession {
               page.messages[0].thread_revision <=
                 this.messages[this.messages.length - 1].thread_revision)))
       )
-        return fail();
+        fail();
       this.active = page.thread;
       this.messages = append
         ? [...this.messages, ...page.messages]
@@ -485,8 +509,9 @@ export class RevisionCommentSession {
       text_sha256: this.source.text_sha256,
     };
   }
+
   async create(anchor: DocumentCommentAnchor, body: string): Promise<void> {
-    this.body(body);
+    RevisionCommentSession.body(body);
     if (
       !this.source ||
       anchor.end_offset <= anchor.start_offset ||
@@ -503,8 +528,9 @@ export class RevisionCommentSession {
       input: { ...this.base(), ...anchor, body },
     });
   }
+
   async reply(body: string): Promise<void> {
-    this.body(body);
+    RevisionCommentSession.body(body);
     if (!this.active || this.active.status !== 'open')
       throw new Error('DOCUMENT_COMMENT_STATE_CONFLICT');
     await this.start({
@@ -517,6 +543,7 @@ export class RevisionCommentSession {
       },
     });
   }
+
   async transition(action: 'resolve' | 'reopen'): Promise<void> {
     if (
       !this.active ||
@@ -532,10 +559,12 @@ export class RevisionCommentSession {
       },
     });
   }
-  private body(value: string): void {
+
+  private static body(value: string): void {
     if (!value.trim() || Array.from(value).length > 4000)
       throw new Error('DOCUMENT_COMMENT_INPUT_INVALID');
   }
+
   private async start(command: DocumentCommentCommand): Promise<void> {
     if (!this.scope) return;
     Object.freeze(command.input);
@@ -549,10 +578,12 @@ export class RevisionCommentSession {
     this.pending = pending;
     await this.send(pending);
   }
+
   async retry(): Promise<void> {
     if (this.pending && this.pending.state !== 'sending')
       await this.send(this.pending);
   }
+
   dismissRejected(): void {
     if (
       this.scope &&
@@ -563,11 +594,12 @@ export class RevisionCommentSession {
       this.pending = undefined;
     }
   }
+
   private async send(pending: DocumentCommentPending): Promise<void> {
-    const scope = this.scope;
+    const { scope } = this;
     if (!scope || this.disposed) return;
     const key = scopeKey(scope);
-    const generation = this.generation;
+    const { generation } = this;
     pending.state = 'sending';
     pending.errorCode = undefined;
     this.pending = { ...pending };
@@ -587,12 +619,13 @@ export class RevisionCommentSession {
         error instanceof DocumentCommentRejection ? 'rejected' : 'unknown';
       tracked.uncertain =
         tracked.uncertain || !(error instanceof DocumentCommentRejection);
-      tracked.errorCode =
-        error instanceof DocumentCommentRejection
-          ? error.errorCode
-          : error instanceof Error
-          ? error.message
-          : 'DOCUMENT_COMMENT_REQUEST_UNKNOWN';
+      if (error instanceof DocumentCommentRejection) {
+        tracked.errorCode = error.errorCode;
+      } else if (error instanceof Error) {
+        tracked.errorCode = error.message;
+      } else {
+        tracked.errorCode = 'DOCUMENT_COMMENT_REQUEST_UNKNOWN';
+      }
       if (
         !this.disposed &&
         this.scope &&
@@ -622,6 +655,7 @@ export class RevisionCommentSession {
     if (this.current(generation) && this.source)
       await this.select(receipt.thread_id);
   }
+
   dispose(): void {
     this.disposed = true;
     this.generation += 1;

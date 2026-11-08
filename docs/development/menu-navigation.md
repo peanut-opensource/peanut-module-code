@@ -53,7 +53,7 @@ Web 的静态模块和插件路由在 `router/routes/index.ts` 装配时递归�
 
 模块继续通过原有 `module.json` 引用的 `resources/menus.json` 声明菜单。租户 page 必须明确写 `parent_key`，选择产品装配提供的 `core.organization`、`core.business`、`core.content`、`core.applications`、`core.system`、`core.operations`，或本模块声明的同 scope 分类。确有高频独立入口时显式写 `parent_key: null`；遗漏字段会被同步器拒绝。禁止另建分类 manifest。实例展示定制使用菜单管理入口，不直接改库。通常采用分类和页面两层；分类必须有可见页面才显示。
 
-首次安装在正式应用迁移完成后，由 Identity 的 `MenuCatalogSynchronizer` 同步分类与模块贡献。正式模块目录同步复用运行入口已编译、准入的 registry，不扫描未登记源码目录来加入贡献。现行安装和升级由 Identity 的版本化原生迁移与正常 `module:reconcile --release-locked` 完成；历史 `20261004-group-default-navigation.sql`、`20261004-menu-stable-identities.sql` 属于既有升级记录，不在新实例重放。无需重新初始化权限或删除菜单。迁移保留旧菜单 ID、目录 key 和角色权限绑定；重复同步不会重复创建分类。
+首次安装在正式应用迁移完成后，由 Identity 的 `MenuCatalogSynchronizer` 同步分类与模块贡献。正式模块目录同步复用运行入口已编译、准入的 registry，不扫描未登记源码目录来加入贡献。现行安装和升级由 Identity 的版本化原生迁移与正常 `peanut module reconcile --release-locked` 完成；历史 `20261004-group-default-navigation.sql`、`20261004-menu-stable-identities.sql` 属于既有升级记录，不在新实例重放。无需重新初始化权限或删除菜单。迁移保留旧菜单 ID、目录 key 和角色权限绑定；重复同步不会重复创建分类。
 
 菜单表中的 `upstream_defaults_json` 保存上游默认比较值，`menu_conflict_json` 保存冲突原因。历史记录使用提交中固定的旧默认快照比较，不把现场值当作默认。原生 `menu_definition` 按字段进行三方比较：现场值仍等于上一版默认时采用新默认；现场已等于新默认时确认采用；现场独立修改的名称、父级、排序、图标、地址、隐藏、缓存、禁用或默认权限字段继续保留。修改显示名称不会使未修改的路由、组件等修正停在旧版本。记录最新源码默认，并在 `menu_conflict_json` 列明保留的字段；没有可信旧默认且内容不一致的记录整体保留。`instance_permission_id` 独立保留，永不从源码默认重置。旧 `system_menu` 的管理列表、权限引用目录和最终租户导航共用逐字段投影：有已登记旧默认时，仅实质偏离该字段默认的值覆盖原生目录，父级按稳定 key 或可确定的旧 pid 关系比较，祖先改名不会冻结子页未修改的地址或权限。没有旧默认的历史行继续完整保留，并在管理投影标记 `unknown_defaults`，不把现场值猜作源码默认。原有祖先停用和权限限制继续核验。不同模块或安全域不能认领同一个原生菜单 key。用户新增菜单不因目录发现消失而被删除或退役；受管菜单通过隐藏/禁用或所属模块生命周期退出，不能以普通删除按钮移除。
 

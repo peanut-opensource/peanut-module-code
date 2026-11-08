@@ -6,10 +6,9 @@ $serverDir = dirname(__DIR__, 2);
 $runtimeFiles = [
     'app/adminapi',
     'app/common/services/authorization',
-    'app/modules/official/identity/src',
-    'app/modules/official/identity/module.json',
+    'app/modules/peanut/identity/src',
+    'app/modules/peanut/identity/module.json',
     'app/platform/services/CoreTenantOwnerAdminProvisioner.php',
-    'app/modules/official/import_export/src/Infrastructure/Authorization/AdminAsyncAuthorization.php',
 ];
 $forbidden = [
     'pa_legacy_admin_tenant_map',
@@ -45,7 +44,7 @@ foreach ($forbidden as $table) {
 }
 // The ORM applies the configured prefix. Check declared ownership AND each
 // actual model's unprefixed name, not obsolete raw SQL in the application layer.
-$identityRoot = $serverDir . '/app/modules/official/identity';
+$identityRoot = $serverDir . '/app/modules/peanut/identity';
 $identity = json_decode((string) file_get_contents($identityRoot . '/module.json'), true, 128, JSON_THROW_ON_ERROR);
 $models = [
     'Account' => 'account', 'Credential' => 'credential',

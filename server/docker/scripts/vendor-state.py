@@ -99,7 +99,7 @@ def module_packages(server):
             package_path = root / relative / 'composer.json'
             ordinary(package_path)
             package = json.loads(package_path.read_text())
-            packages[package['name']] = {'version': package['version'],
+            packages[package['name']] = {'versions': {package['version']},
                                          'url': (root / relative).relative_to(server).as_posix(),
                                          'development': {'name': 'peanut-module-dev/' + module['key'],
                                                          'version': package['version'], 'type': 'metapackage',
@@ -110,7 +110,7 @@ def module_packages(server):
 def native_module(package, modules):
     declared = modules.get(package.get('name'))
     dist = package.get('dist') or {}
-    return declared is not None and package.get('version') == declared['version'] \
+    return declared is not None and package.get('version') in declared['versions'] \
         and not package.get('source') and dist.get('type') == 'path' and dist.get('url') == declared['url']
 
 
@@ -248,7 +248,7 @@ def archive_path(server, relative):
     return server / relative if re.fullmatch(SERVER_CORE_ARCHIVE, relative) else server.parent / relative
 
 
-def local_archives(server, inputs=None):
+def local_archives(server, inputs=None, *, modules=None):
     """Only the native Core zip may use a local dist, with independent canonical proof."""
     lock = json.loads((server / 'composer.lock').read_text())
     if any(re.fullmatch(SERVER_CORE_ARCHIVE, str(package.get('dist', {}).get('url', '')))
@@ -289,7 +289,8 @@ def local_archives(server, inputs=None):
                 or proof.get('lock_sha256') != digest(server / 'composer.lock') \
                 or any(proof.get(field) != declared.get(field) for field in ('server_root', 'composer_sha256', 'lock_sha256', 'archives')):
             raise ValueError('dependency input proof differs from its transaction inputs')
-    modules = module_packages(server)
+    if modules is None:
+        modules = module_packages(server)
     for package in lock['packages']:
         if native_module(package, modules):
             continue
@@ -363,7 +364,7 @@ def local_archives(server, inputs=None):
     return result
 
 
-def check_lock(server, inputs=None):
+def check_lock(server, inputs=None, *, preparing_release=False):
     composer, lock = server / "composer.json", server / "composer.lock"
     ordinary(composer)
     ordinary(lock)
@@ -371,6 +372,13 @@ def check_lock(server, inputs=None):
     if not isinstance(data.get("packages"), list) or not re.fullmatch(r"[a-f0-9]{32}", data.get("content-hash", "")):
         raise ValueError("composer.lock is invalid")
     modules = module_packages(server)
+    if preparing_release:
+        # Composer will replace these exact root pins with the selected Module versions.
+        requires = json.loads(composer.read_text()).get('require', {})
+        for name, module in modules.items():
+            pin = requires.get(name)
+            if isinstance(pin, str) and re.fullmatch(SEMVER, pin):
+                module['versions'].add(pin)
     for package in data["packages"]:
         if not re.fullmatch(r"[a-z0-9_.-]+/[a-z0-9_.-]+", package.get("name", "")):
             raise ValueError("locked package identity is invalid")
@@ -383,7 +391,7 @@ def check_lock(server, inputs=None):
                     and (re.fullmatch(CORE_ARCHIVE, str(value.get('url', '')))
                          or re.fullmatch(SERVER_CORE_ARCHIVE, str(value.get('url', ''))))):
                 raise ValueError("locked package has a non-HTTPS source")
-    local_archives(server, inputs)
+    local_archives(server, inputs, modules=modules)
     return digest(composer), digest(lock), {p["name"]: p["version"] for p in data["packages"]}
 
 

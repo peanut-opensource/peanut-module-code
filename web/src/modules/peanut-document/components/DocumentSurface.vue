@@ -175,16 +175,6 @@
     operations: ('view' | 'edit' | 'download_original')[];
   }>();
   let appendInEditor: ((text: string) => boolean) | undefined;
-  const appendPlainText = (text: string): boolean => {
-    if (!editable.value || disposed || loading.value || frozen.value ||
-        savingBusy.value || targetPending.value || operationLocked.value ||
-        !['saved', 'idle', 'persisting'].includes(saveState.value) ||
-        getSessionSnapshot().generation !== generation.value ||
-        (grants.value?.collaboration_enabled &&
-          (!binding.value?.ready || !binding.value.writable || !collaboration?.writable)))
-      return false;
-    return appendInEditor?.(text) === true;
-  };
   let disposed = false;
   let request: AbortController | undefined;
   let saving: AbortController | undefined;
@@ -216,6 +206,25 @@
       grants.value?.can_edit === true &&
       surface.value?.capabilities.canEdit === true
   );
+  const appendPlainText = (text: string): boolean => {
+    if (
+      !editable.value ||
+      disposed ||
+      loading.value ||
+      frozen.value ||
+      savingBusy.value ||
+      targetPending.value ||
+      operationLocked.value ||
+      !['saved', 'idle', 'persisting'].includes(saveState.value) ||
+      getSessionSnapshot().generation !== generation.value ||
+      (grants.value?.collaboration_enabled &&
+        (!binding.value?.ready ||
+          !binding.value.writable ||
+          !collaboration?.writable))
+    )
+      return false;
+    return appendInEditor?.(text) === true;
+  };
   const operationReadOnly = computed(
     () =>
       props.readOnly ||
@@ -490,13 +499,11 @@
         },
       };
       emit('load', data);
-      setSaveState(
-        permissions.collaboration_enabled && intent === 'edit'
-          ? 'syncing'
-          : editable.value
-          ? 'saved'
-          : 'readonly'
-      );
+      if (permissions.collaboration_enabled && intent === 'edit') {
+        setSaveState('syncing');
+      } else {
+        setSaveState(editable.value ? 'saved' : 'readonly');
+      }
       if (permissions.collaboration_enabled && intent === 'edit') {
         if (
           !editable.value ||

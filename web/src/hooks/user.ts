@@ -35,8 +35,7 @@ export default function useUser() {
       name: logoutTo && typeof logoutTo === 'string' ? logoutTo : 'login',
       query: {
         ...router.currentRoute.value.query,
-        redirect:
-          typeof currentRoute.name === 'string' ? currentRoute.name : undefined,
+        redirect: currentRoute.fullPath,
       },
     });
   };

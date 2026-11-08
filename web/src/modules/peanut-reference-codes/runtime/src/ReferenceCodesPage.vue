@@ -140,7 +140,7 @@
 <template>
   <PageContent class="reference-codes-page">
     <PageHeader>
-      {{ $t('officialReferenceCodes.title') }}
+      <h1>{{ $t('officialReferenceCodes.title') }}</h1>
       <template #actions>
         <ElButton
           :aria-label="$t('officialReferenceCodes.action.reloadCodes')"
