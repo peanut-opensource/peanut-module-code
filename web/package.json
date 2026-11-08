@@ -13,10 +13,10 @@
     },
     "scripts": {
         "dev": "vite --configLoader runner",
-        "build": "vue-tsc --noEmit && vite build --configLoader runner",
+    "build": "node ../scripts/sync-brand-assets.mjs && vue-tsc --noEmit && vite build --configLoader runner",
         "report": "REPORT=true npm run build",
         "preview": "npm run build && vite preview --host",
-        "type:check": "vue-tsc --noEmit --skipLibCheck",
+    "type:check": "node ../scripts/sync-brand-assets.mjs && vue-tsc --noEmit --skipLibCheck",
         "lint-staged": "npx lint-staged",
         "hooks:install": "husky install"
     },
