@@ -10,7 +10,6 @@ use PeanutAdmin\Modules\Ops\Domain\Application\PlatformPermissionChecker;
 use app\platform\exception\module\ModulePackageException;
 use app\platform\exception\module\ModuleLifecycleException;
 use PeanutAdmin\Modules\Identity\Contract\PlatformOperatorIdentityQuery;
-use PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries;
 use PeanutAdmin\Modules\Ops\Service\DeploymentModuleRequestService;
 use PeanutAdmin\Modules\Ops\Service\PlatformModuleOperationExecutionService;
 use app\common\services\audit\AuditContractHost;
@@ -577,7 +576,8 @@ final readonly class ThinkPhpModuleOperationTaskExecutionService implements Modu
         if (!hash_equals($payload['package_key'], (string) ($result['package_key'] ?? ''))) {
             return false;
         }
-        $row = (new TenantModuleStateQueries())->operationInstallationReceipt($payload['package_key']);
+        $row = Db::name('module_installation')->where('module_key', $payload['package_key'])
+            ->field('status,installed_version,artifact_sha256,lock_digest,last_error_code,manifest_digest')->find();
         if (in_array($payload['operation'], ['install', 'update'], true)) {
             return is_array($row)
                 && (string) $row['status'] === 'active'
@@ -587,18 +587,19 @@ final readonly class ThinkPhpModuleOperationTaskExecutionService implements Modu
         if ($payload['operation'] === 'retire') {
             return is_array($row) && (string) $row['status'] === 'uninstalled';
         }
-        if ($row !== null) {
+        if ($payload['operation'] !== 'purge' || !is_array($row)
+            || $row['status'] !== 'uninstalled' || $row['last_error_code'] !== null) {
             return false;
         }
-        $modules = $result['affected_modules'] ?? [];
-        if (!is_array($modules) || $modules === []) {
-            return ($result['operation'] ?? null) === 'unchanged';
+        if (($result['operation'] ?? null) === 'unchanged') {
+            return ($result['removed'] ?? null) === [];
         }
-        $keys = array_values(array_filter(array_column($modules, 'module_key'), 'is_string'));
-        if (count($keys) !== count($modules)) {
-            return false;
-        }
-        return count((new TenantModuleStateQueries())->installationStates($keys)) === 0;
+        $modules = $result['affected_modules'] ?? null;
+        $module = is_array($modules) && count($modules) === 1 ? ($modules[0] ?? null) : null;
+        return ($result['operation'] ?? null) === 'purged' && is_array($module)
+            && ($module['module_key'] ?? null) === $payload['package_key']
+            && ($module['version'] ?? null) === $row['installed_version']
+            && ($module['manifest_digest'] ?? null) === $row['manifest_digest'];
     }
 
     /** @param array<string,string> $payload @param array<string,mixed> $execution @return array<string,mixed> */
