@@ -78,7 +78,7 @@
         "baseline_root": ".peanut/scaffold-baseline/5.1.0/files"
     },
     "digests": {
-        "managed_tree_sha256": "99aa0fc07e4da90ced077bd08141e4fd74c6b28c1382685f04145b61451e7684",
+        "managed_tree_sha256": "9357a6c2e33d5242ab0d4349540386ca22a476fa0be5914279b3f6de48a1ca15",
         "app_owned_tree_sha256": "fc8063f01d7a450c9d199ce2e5bee285b59e189ede4bda6c1d81279872fe95e6"
     },
     "files": [
@@ -12924,17 +12924,6 @@
             "source": "server/database/installation/20261101020000_initial_scaffold_baseline.php"
         },
         {
-            "path": "server/database/installation/20261101020000_initial_scaffold_baseline.php",
-            "sha256": "8e06a94922c68927bcef71bed60f2298f9eb0bca4d023f4ce0048e3b977a8664",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/database/installation/20261101020000_initial_scaffold_baseline.php",
-            "baseline_path": ".peanut/scaffold-baseline/5.1.0/files/server/database/installation/20261101020000_initial_scaffold_baseline.php",
-            "baseline_sha256": "8e06a94922c68927bcef71bed60f2298f9eb0bca4d023f4ce0048e3b977a8664",
-            "baseline_mode": 420
-        },
-        {
             "path": "server/database/migrations/.gitkeep",
             "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
             "mode": 420,
@@ -12952,17 +12941,6 @@
             "classification": "app-owned",
             "owner": "application",
             "source": "server/database/migrations/20261103230000_unify_module_installation.php"
-        },
-        {
-            "path": "server/database/migrations/20261103230000_unify_module_installation.php",
-            "sha256": "5e0b994e51c401dd8abb9a82db82efa8fbf8c39682d3acd20e099f5d409256dc",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/database/migrations/20261103230000_unify_module_installation.php",
-            "baseline_path": ".peanut/scaffold-baseline/5.1.0/files/server/database/migrations/20261103230000_unify_module_installation.php",
-            "baseline_sha256": "5e0b994e51c401dd8abb9a82db82efa8fbf8c39682d3acd20e099f5d409256dc",
-            "baseline_mode": 420
         },
         {
             "path": "server/database/migrations/20261103235000_remove_retired_transaction_setting.php",
@@ -13006,34 +12984,12 @@
             "source": "server/database/schema/baseline-data.sql"
         },
         {
-            "path": "server/database/schema/baseline-data.sql",
-            "sha256": "6afda1a08f185862be9e94eddd15d77ac3ca24ff9825a24c0841a4132f825931",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/database/schema/baseline-data.sql",
-            "baseline_path": ".peanut/scaffold-baseline/5.1.0/files/server/database/schema/baseline-data.sql",
-            "baseline_sha256": "6afda1a08f185862be9e94eddd15d77ac3ca24ff9825a24c0841a4132f825931",
-            "baseline_mode": 420
-        },
-        {
             "path": "server/database/schema/baseline-schema.sql",
             "sha256": "d86d77048c00f343fe02522401411e7a77e7eca9fab2ab89cd4e537940357abd",
             "mode": 420,
             "classification": "app-owned",
             "owner": "application",
             "source": "server/database/schema/baseline-schema.sql"
-        },
-        {
-            "path": "server/database/schema/baseline-schema.sql",
-            "sha256": "d86d77048c00f343fe02522401411e7a77e7eca9fab2ab89cd4e537940357abd",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/database/schema/baseline-schema.sql",
-            "baseline_path": ".peanut/scaffold-baseline/5.1.0/files/server/database/schema/baseline-schema.sql",
-            "baseline_sha256": "ff835b6053fab03aacc00d3c7a36305d39f86cc3482125b7ae738408556c7a00",
-            "baseline_mode": 420
         },
         {
             "path": "server/database/seed-demo-data.php",
@@ -13053,17 +13009,6 @@
             "classification": "app-owned",
             "owner": "application",
             "source": "server/database/seeds/InitialSeeder.php"
-        },
-        {
-            "path": "server/database/seeds/InitialSeeder.php",
-            "sha256": "bc8e54ffc810b08c10732334fc994c52205c23c1c85374ab1416cbd0f172e0d8",
-            "mode": 420,
-            "classification": "managed",
-            "owner": "scaffold",
-            "source": "server/database/seeds/InitialSeeder.php",
-            "baseline_path": ".peanut/scaffold-baseline/5.1.0/files/server/database/seeds/InitialSeeder.php",
-            "baseline_sha256": "bc8e54ffc810b08c10732334fc994c52205c23c1c85374ab1416cbd0f172e0d8",
-            "baseline_mode": 420
         },
         {
             "path": "server/docker/.env.example",
