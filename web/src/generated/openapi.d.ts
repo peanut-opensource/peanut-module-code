@@ -7633,6 +7633,11 @@ export interface components {
             copyright: string;
             official_url: string;
             github_url: string;
+            sidebar_footer_enabled: boolean;
+            sidebar_footer_title: string;
+            sidebar_footer_settings: boolean;
+            sidebar_footer_license: boolean;
+            sidebar_footer_about: boolean;
         };
         AdminBrandConfig: {
             website: components["schemas"]["WebsiteConfig"];

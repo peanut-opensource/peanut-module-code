@@ -249,6 +249,10 @@ final readonly class ModuleLifecycleService implements ModuleLifecycleCommands
             return $this->installLocked($pluginKey, $preparedDependencies);
         }
 
+        if ($preparedDependencies !== null && $current['status'] === 'failed' && $current['activated_at'] !== null) {
+            return $this->upgradeLocked($pluginKey, false, null, $preparedDependencies);
+        }
+
         if ((string) $current['status'] !== 'active') {
             throw new ModuleLifecycleException(
                 'PLUGIN_STATE_INVALID',
