@@ -1,1 +1,0 @@
-import{d as o,u as s,o as a,c as r,t as e,b as n,_ as c}from"./index-DYBYhEqZ.js";const _={class:"footer"},p=o({__name:"index",setup(i){const t=s();return(d,f)=>(a(),r("footer",_," © "+e(new Date().getFullYear())+" "+e(n(t).website.copyright),1))}}),u=c(p,[["__scopeId","data-v-4e80a60a"]]);export{u as F};
