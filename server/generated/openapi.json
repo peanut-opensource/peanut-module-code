@@ -6,7 +6,7 @@
     },
     "info": {
         "title": "Peanut Module Code HTTP API",
-        "version": "5.0.15",
+        "version": "5.1.0",
         "description": "Application HTTP contract for the identity, Tenant, article, file and notification entry points. Runtime authorization and Tenant binding remain enforced by the server middleware.",
         "x-peanut-contract-generator": {
             "name": "scripts/generate-api-contracts.php",
@@ -4254,7 +4254,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\auth\\MenuController",
                     "action": "lists",
-                    "permission": null,
+                    "permission": "core.menu.read",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 51
@@ -4263,7 +4263,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "menu/lists"
+                        "key": "core.menu.read"
                     }
                 ]
             }
@@ -4329,7 +4329,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\auth\\MenuController",
                     "action": "all",
-                    "permission": null,
+                    "permission": "core.menu.read",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 52
@@ -4338,7 +4338,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "menu/all"
+                        "key": "core.menu.read"
                     }
                 ]
             }
@@ -4412,7 +4412,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\auth\\MenuController",
                     "action": "detail",
-                    "permission": null,
+                    "permission": "core.menu.read",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 53
@@ -4421,7 +4421,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "menu/detail"
+                        "key": "core.menu.read"
                     }
                 ]
             }
@@ -4512,7 +4512,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\auth\\MenuController",
                     "action": "add",
-                    "permission": null,
+                    "permission": "core.menu.manage",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 54
@@ -4521,7 +4521,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "menu/add"
+                        "key": "core.menu.manage"
                     }
                 ]
             }
@@ -4623,7 +4623,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\auth\\MenuController",
                     "action": "edit",
-                    "permission": null,
+                    "permission": "core.menu.manage",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 55
@@ -4632,7 +4632,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "menu/edit"
+                        "key": "core.menu.manage"
                     }
                 ]
             }
@@ -4734,7 +4734,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\auth\\MenuController",
                     "action": "delete",
-                    "permission": null,
+                    "permission": "core.menu.manage",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 56
@@ -4743,7 +4743,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "menu/delete"
+                        "key": "core.menu.manage"
                     }
                 ]
             }
@@ -4847,7 +4847,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\auth\\MenuController",
                     "action": "updateStatus",
-                    "permission": null,
+                    "permission": "core.menu.manage",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 57
@@ -4856,7 +4856,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "menu/status"
+                        "key": "core.menu.manage"
                     }
                 ]
             }
@@ -10286,7 +10286,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\generator\\GeneratorController",
                     "action": "sourceTables",
-                    "permission": null,
+                    "permission": "core.generator.read",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 130
@@ -10295,7 +10295,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "generator/source-tables"
+                        "key": "core.generator.read"
                     }
                 ]
             }
@@ -10398,7 +10398,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\generator\\GeneratorController",
                     "action": "lists",
-                    "permission": null,
+                    "permission": "core.generator.read",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 131
@@ -10407,7 +10407,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "generator/lists"
+                        "key": "core.generator.read"
                     }
                 ]
             }
@@ -10480,7 +10480,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\generator\\GeneratorController",
                     "action": "detail",
-                    "permission": null,
+                    "permission": "core.generator.read",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 132
@@ -10489,7 +10489,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "generator/detail"
+                        "key": "core.generator.read"
                     }
                 ]
             }
@@ -10583,7 +10583,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\generator\\GeneratorController",
                     "action": "import",
-                    "permission": null,
+                    "permission": "core.generator.manage",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 133
@@ -10592,7 +10592,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "generator/import"
+                        "key": "core.generator.manage"
                     }
                 ]
             }
@@ -10681,7 +10681,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\generator\\GeneratorController",
                     "action": "sync",
-                    "permission": null,
+                    "permission": "core.generator.manage",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 134
@@ -10690,7 +10690,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "generator/sync"
+                        "key": "core.generator.manage"
                     }
                 ]
             }
@@ -10770,7 +10770,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\generator\\GeneratorController",
                     "action": "update",
-                    "permission": null,
+                    "permission": "core.generator.manage",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 135
@@ -10779,7 +10779,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "generator/update"
+                        "key": "core.generator.manage"
                     }
                 ]
             }
@@ -10876,7 +10876,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\generator\\GeneratorController",
                     "action": "delete",
-                    "permission": null,
+                    "permission": "core.generator.manage",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 136
@@ -10885,7 +10885,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "generator/delete"
+                        "key": "core.generator.manage"
                     }
                 ]
             }
@@ -10973,7 +10973,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\generator\\GeneratorController",
                     "action": "preview",
-                    "permission": null,
+                    "permission": "core.generator.read",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 137
@@ -10982,7 +10982,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "generator/preview"
+                        "key": "core.generator.read"
                     }
                 ]
             }
@@ -11075,7 +11075,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\generator\\GeneratorController",
                     "action": "generate",
-                    "permission": null,
+                    "permission": "core.generator.generate",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 138
@@ -11084,7 +11084,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "generator/generate"
+                        "key": "core.generator.generate"
                     }
                 ]
             }
@@ -11148,7 +11148,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\generator\\GeneratorController",
                     "action": "download",
-                    "permission": null,
+                    "permission": "core.generator.generate",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 139
@@ -11157,7 +11157,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "generator/download"
+                        "key": "core.generator.generate"
                     }
                 ]
             }
@@ -11223,7 +11223,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\generator\\GeneratorController",
                     "action": "models",
-                    "permission": null,
+                    "permission": "core.generator.read",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 140
@@ -11232,7 +11232,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "generator/models"
+                        "key": "core.generator.read"
                     }
                 ]
             }
@@ -11475,7 +11475,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\log\\OperationLogController",
                     "action": "clear",
-                    "permission": null,
+                    "permission": "core.audit.clear",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 148
@@ -11484,7 +11484,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "log/clear"
+                        "key": "core.audit.clear"
                     }
                 ]
             }
@@ -11708,7 +11708,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\system\\SystemController",
                     "action": "info",
-                    "permission": null,
+                    "permission": "core.system.read",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 143
@@ -11717,7 +11717,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "system/info"
+                        "key": "core.system.read"
                     }
                 ]
             }
@@ -11787,7 +11787,7 @@
                     },
                     "controller": "app\\adminapi\\controller\\system\\SystemController",
                     "action": "clearCache",
-                    "permission": null,
+                    "permission": "core.system.cache.clear",
                     "source": {
                         "file": "server/route/admin.php",
                         "line": 144
@@ -11796,7 +11796,7 @@
                 "x-peanut-permissions": [
                     {
                         "kind": "tenant_action",
-                        "key": "system/clearCache"
+                        "key": "core.system.cache.clear"
                     }
                 ]
             }
