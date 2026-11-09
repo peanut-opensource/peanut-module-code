@@ -2,11 +2,13 @@
 
 This checkout is the application `peanut-business/peanut-module-code`. Use the source, dependency locks and public documentation shipped here; no separate maintainer repository or workstation is required for application or module development.
 
+Read [application-owned project rules](docs/project-rules.md) before changing this checkout's module sources or Git index.
+
 ## Start here
 
 Read only the task-relevant sections of [the development standard](docs/development/standard.md), then locate the relevant contract through [the documentation index](docs/README.md). Use [the quality-tool instructions](tools/quality/README.md) and each affected client's own package scripts for authorized validation. Read the affected implementation, module declarations and existing tests before changing them; reading tests does not authorize running them. Do not infer a completed capability or a passed test from a document or configuration alone.
 
-Confirm the actual checkout, branch, worktree changes and installed dependency paths before editing. Preserve existing work and use a separate feature branch or worktree for source changes. Never overwrite unrelated changes or force shared history. A change request does not implicitly authorize publication, deployment, paid operations, or changes to customer data.
+Confirm the actual checkout, branch, worktree changes and installed dependency paths before editing. Preserve existing work and follow this application's Git and business policy in docs/project-rules.md. Never overwrite unrelated changes or force shared history. A change request does not implicitly authorize publication, deployment, paid operations, or changes to customer data.
 
 ## Execution discipline
 
@@ -32,8 +34,6 @@ GitHub CI is optional and separately versioned through Recipes; this application
 For management UI changes, first read [the UI development guidelines](docs/development/ui-guidelines.md). Reuse Element Plus and existing Page components; preserve Shell themes and application overrides. Ant Design is a design reference, not an additional component or stylesheet dependency.
 
 The backend application and business modules live under `server/`; `web`, `platform`, `pc` and `uniapp` are distinct clients when included in this application profile. Module dependencies, public capabilities, routes and frontend contributions come from the checked-in declarations. Cross-module calls use explicitly exported operations or stable results, not another module's internal Models, repositories or private tables. Reuse the existing container, ORM, authorization, errors, tasks and upgrade mechanism rather than introducing parallel frameworks.
-
-This dedicated module-development application is the default place to develop reusable business modules. Put each module's data and migrations, services, APIs, permissions, menus and client contributions in its own `server/app/modules/<vendor>/<module>` ownership boundary. Prefer ThinkPHP/ThinkORM and existing PHP/Web Core before adding shared technology; do not put business implementations in host `app/common` or duplicate them in the scaffold. Consumers use declared module exports and native installation/upgrade rather than copying source.
 
 For tenant-admin, platform and module management pages, follow the **管理内容区与页面布局** section in [the shipped development standard](docs/development/standard.md). Prefer the existing `@peanut-admin/ui-vue` page structure and Element Plus controls; do not rebuild page shells, global UI overrides or parallel component libraries. Select list, detail, form, workbench or complex-workspace patterns to fit the actual workflow, retaining business operations and authorization in their owning module. Verify changed pages in a real browser at desktop and narrow widths; record NOT_RUN when browser access is unavailable. Use the existing conflict-aware scaffold upgrade to preserve customer changes to AGENTS, pages and styles.
 
