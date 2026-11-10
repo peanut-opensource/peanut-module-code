@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use app\api\controller\UploadController;
-use app\common\enum\FileEnum;
+use PeanutAdmin\Modules\File\Enum\FileEnum;
 use app\common\execution\ConsumerExecutionContext;
 use app\common\execution\ExecutionContextStore;
 use PeanutAdmin\Kernel\Context\AuthenticatedMemberContext;

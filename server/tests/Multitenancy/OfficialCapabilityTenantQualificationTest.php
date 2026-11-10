@@ -6,15 +6,19 @@ require_once dirname(__DIR__, 2) . '/route/registry_source.php';
 
 function qualificationExpect(bool $condition, string $message): void
 {
+    $GLOBALS['qualificationChecks'] = ($GLOBALS['qualificationChecks'] ?? 0) + 1;
     if (!$condition) {
-        throw new RuntimeException($message);
+        $GLOBALS['qualificationFailures'][] = $message;
     }
 }
 
 function qualificationSource(string $root, string $relative): string
 {
     $source = file_get_contents($root . '/' . $relative);
-    qualificationExpect(is_string($source), 'qualification source is unavailable: ' . $relative);
+    if (!is_string($source)) {
+        throw new RuntimeException('qualification source is unavailable: ' . $relative);
+    }
+    qualificationExpect(true, 'qualification source is available: ' . $relative);
     return $source;
 }
 
@@ -22,11 +26,11 @@ $root = dirname(__DIR__, 2);
 $sources = [];
 foreach ([
     'app_service' => 'app/AppService.php',
-    'default_context_module' => 'app/modules/official/identity/src/Tenancy/DefaultTenantContextResolver.php',
+    'default_context_module' => 'app/modules/peanut/identity/src/Tenancy/DefaultTenantContextResolver.php',
     'entry_binding_core' => 'vendor/peanut-admin/core/kernel/src/Tenancy/TenantEntryBindingResolver.php',
-    'entry_binding_lookup' => 'app/modules/official/identity/src/Tenancy/Infrastructure/ThinkPhpTenantEntryBindingLookup.php',
+    'entry_binding_lookup' => 'app/modules/peanut/identity/src/Tenancy/Infrastructure/ThinkPhpTenantEntryBindingLookup.php',
     'standalone_entry_lookup' => 'app/common/tenancy/DefaultTenantEntryBindingLookup.php',
-    'entry_schema' => 'database/init.sql',
+    'entry_schema' => 'app/modules/peanut/identity/database/migrations/20261101010001_initial_identity_schema.php',
     'public_tenant_module_middleware' => 'app/api/middleware/PublicTenantModuleMiddleware.php',
     'current_execution_context' => 'app/common/execution/CurrentExecutionContext.php',
     'execution_context_store' => 'app/common/execution/ExecutionContextStore.php',
@@ -36,73 +40,75 @@ foreach ([
     'admin_login_application' => 'app/adminapi/services/auth/LoginApplicationService.php',
     'authenticated_member_context_core' => 'vendor/peanut-admin/core/kernel/src/Context/AuthenticatedMemberContext.php',
     'member_context' => 'app/common/infrastructure/member/MemberApiTenantContextResolver.php',
-    'member_subject_lookup' => 'app/modules/official/member/src/Infrastructure/Persistence/ThinkPhpMemberSubjectLookup.php',
+    'member_subject_lookup' => 'app/modules/peanut/member/src/Infrastructure/Persistence/ThinkPhpMemberSubjectLookup.php',
     'member_middleware' => 'app/api/middleware/CheckTokenMiddleware.php',
-    'file_model' => 'app/modules/official/file/src/Model/File.php',
+    'file_model' => 'app/modules/peanut/file/src/Model/File.php',
     'file_namespace_core' => 'vendor/peanut-admin/core/file-media/src/Storage/TenantObjectNamespace.php',
-    'article_model' => 'app/modules/official/article/src/Model/Article.php',
+    'article_model' => 'app/modules/peanut/article/src/Model/Article.php',
     'decoration_model' => 'app/common/model/decoration/DecoratePage.php',
-    'notice_model' => 'app/modules/official/notification/src/Model/NoticeLog.php',
-    'oauth_repository' => 'app/modules/official/oauth/src/Infrastructure/Persistence/ThinkPhpOAuthPersistence.php',
-    'oauth_attempt_model' => 'app/modules/official/oauth/src/Model/OAuthAttempt.php',
-    'oauth_completion_model' => 'app/modules/official/oauth/src/Model/OAuthCompletionTicket.php',
-    'oauth_identity_model' => 'app/modules/official/oauth/src/Model/OAuthIdentity.php',
-    'oauth_principal_model' => 'app/modules/official/oauth/src/Model/OAuthPrincipal.php',
-    'oauth_queries' => 'app/modules/official/oauth/src/Service/OAuthQueryService.php',
-    'oauth_module_provider' => 'app/modules/official/oauth/src/ModuleProvider.php',
-    'external_resolver_module' => 'app/modules/official/integration/src/Service/ExternalTenantResolver.php',
-    'integration_module_provider' => 'app/modules/official/integration/src/ModuleProvider.php',
-    'external_binding_adapter' => 'app/modules/official/integration/src/Infrastructure/ThinkPhpExternalTenantBindingRepository.php',
-    'external_audit_adapter' => 'app/modules/official/integration/src/Infrastructure/ThinkPhpExternalTenantAudit.php',
-    'finance_model' => 'app/modules/official/payment/src/Model/RefundRecord.php',
-    'recharge_settings' => 'app/modules/official/payment/src/Service/RechargeTenantSettingService.php',
-    'tenant_settings' => 'app/modules/official/settings/src/Service/TenantSettingService.php',
-    'tenant_settings_provider' => 'app/modules/official/settings/src/Infrastructure/ThinkPhpTenantSettingsProvider.php',
-    'settings_module_provider' => 'app/modules/official/settings/src/ModuleProvider.php',
+    'notice_model' => 'app/modules/peanut/notification/src/Model/NoticeLog.php',
+    'oauth_repository' => 'app/modules/peanut/oauth/src/Infrastructure/Persistence/ThinkPhpOAuthPersistence.php',
+    'oauth_attempt_model' => 'app/modules/peanut/oauth/src/Model/OAuthAttempt.php',
+    'oauth_completion_model' => 'app/modules/peanut/oauth/src/Model/OAuthCompletionTicket.php',
+    'oauth_identity_model' => 'app/modules/peanut/oauth/src/Model/OAuthIdentity.php',
+    'oauth_principal_model' => 'app/modules/peanut/oauth/src/Model/OAuthPrincipal.php',
+    'oauth_queries' => 'app/modules/peanut/oauth/src/Service/OAuthQueryService.php',
+    'oauth_module_provider' => 'app/modules/peanut/oauth/src/ModuleProvider.php',
+    'external_resolver_module' => 'app/modules/peanut/integration/src/Service/ExternalTenantResolver.php',
+    'integration_module_provider' => 'app/modules/peanut/integration/src/ModuleProvider.php',
+    'external_binding_adapter' => 'app/modules/peanut/integration/src/Infrastructure/ThinkPhpExternalTenantBindingRepository.php',
+    'external_audit_adapter' => 'app/modules/peanut/integration/src/Infrastructure/ThinkPhpExternalTenantAudit.php',
+    'finance_model' => 'app/modules/peanut/payment/src/Model/RefundRecord.php',
+    'recharge_settings' => 'app/modules/peanut/payment/src/Service/RechargeTenantSettingService.php',
+    'tenant_settings' => 'app/modules/peanut/settings/src/Service/TenantSettingService.php',
+    'tenant_settings_provider' => 'app/modules/peanut/settings/src/Infrastructure/ThinkPhpTenantSettingsProvider.php',
+    'settings_module_provider' => 'app/modules/peanut/settings/src/ModuleProvider.php',
     'application_tenant_bootstrap' => 'app/platform/services/ApplicationTenantBootstrapService.php',
-    'tenant_application_settings' => 'app/modules/official/settings/src/Service/TenantApplicationSettingService.php',
+    'tenant_application_settings' => 'app/modules/peanut/settings/src/Service/TenantApplicationSettingService.php',
     'notice_channel' => 'app/common/services/notice/NoticeChannelService.php',
-    'platform_storage' => 'app/modules/official/identity/src/Platform/InstanceControlPlanePolicy.php',
+    'platform_storage' => 'app/modules/peanut/identity/src/Platform/InstanceControlPlanePolicy.php',
     'platform_storage_controller' => 'app/platform/controller/PlatformStorageController.php',
-    'file_module_provider' => 'app/modules/official/file/src/ModuleProvider.php',
+    'file_module_provider' => 'app/modules/peanut/file/src/ModuleProvider.php',
     'admin_permissions' => 'app/common/services/authorization/AdminAuthorizationService.php',
-    'crontab_scheduler' => 'app/modules/official/task/src/Service/CrontabSchedulerService.php',
-    'crontab_model' => 'app/modules/official/task/src/Model/Crontab.php',
-    'crontab_task_definition' => 'app/modules/official/task/src/Service/CrontabTaskDefinition.php',
+    'crontab_scheduler' => 'app/modules/peanut/task/src/Service/CrontabSchedulerService.php',
+    'crontab_model' => 'app/modules/peanut/task/src/Model/Crontab.php',
+    'crontab_task_definition' => 'app/modules/peanut/task/src/Service/CrontabTaskDefinition.php',
     'scheduled_context_core' => 'vendor/peanut-admin/core/kernel/src/Tenancy/ScheduledTenantContext.php',
     'tenant_scope_core' => 'vendor/peanut-admin/core/kernel/src/Tenancy/TenantScope.php',
-    'async_authorization' => 'app/modules/official/import_export/src/Infrastructure/Authorization/AdminAsyncAuthorization.php',
-    'async_runtime' => 'app/modules/official/import_export/src/Service/TaskImportExportRuntime.php',
-    'async_module_provider' => 'app/modules/official/import_export/src/ModuleProvider.php',
-    'async_worker_definition' => 'app/modules/official/import_export/src/Service/ImportExportTaskWorkerDefinition.php',
-    'async_files' => 'app/modules/official/import_export/src/Infrastructure/File/AppFileMediaGateway.php',
-    'storage_path' => 'app/modules/official/file/src/Value/Storage/StoragePath.php',
+    'async_authorization' => 'app/modules/peanut/import_export/src/Infrastructure/Authorization/AdminAsyncAuthorization.php',
+    'async_runtime' => 'app/modules/peanut/import_export/src/Service/TaskImportExportRuntime.php',
+    'async_module_provider' => 'app/modules/peanut/import_export/src/ModuleProvider.php',
+    'async_worker_definition' => 'app/modules/peanut/import_export/src/Service/ImportExportTaskWorkerDefinition.php',
+    'async_files' => 'app/modules/peanut/import_export/src/Infrastructure/File/AppFileMediaGateway.php',
+    'storage_path' => 'app/modules/peanut/file/src/Value/Storage/StoragePath.php',
     'routes' => 'route/registry_source.php',
-    'official_file_routes' => 'app/modules/official/file/route/app.php',
-    'official_notification_routes' => 'app/modules/official/notification/route/app.php',
-    'official_oauth_routes' => 'app/modules/official/oauth/route/app.php',
-    'official_payment_routes' => 'app/modules/official/payment/route/app.php',
-    'official_member_routes' => 'app/modules/official/member/route/app.php',
-    'official_task_routes' => 'app/modules/official/task/route/app.php',
-    'official_import_export_routes' => 'app/modules/official/import_export/route/app.php',
+    'official_file_routes' => 'app/modules/peanut/file/route/app.php',
+    'official_notification_routes' => 'app/modules/peanut/notification/route/app.php',
+    'official_oauth_routes' => 'app/modules/peanut/oauth/route/app.php',
+    'official_payment_routes' => 'app/modules/peanut/payment/route/app.php',
+    'official_member_routes' => 'app/modules/peanut/member/route/app.php',
+    'official_task_routes' => 'app/modules/peanut/task/route/app.php',
+    'official_import_export_routes' => 'app/modules/peanut/import_export/route/app.php',
     'official_module_middleware' => 'app/common/infrastructure/module/OfficialModuleMiddleware.php',
     'module_execution_boundary' => 'app/common/infrastructure/module/ModuleExecutionBoundary.php',
     'module_execution_context_core' => 'vendor/peanut-admin/core/kernel/src/Module/ModuleExecutionContext.php',
     'module_guard_core' => 'vendor/peanut-admin/core/kernel/src/Module/ModuleGuard.php',
-    'oauth_controller' => 'app/api/controller/OAuthController.php',
-    'payment_notify_controller' => 'app/api/controller/PaymentNotifyController.php',
-    'official_account_controller' => 'app/api/controller/OfficialAccountController.php',
+    'oauth_controller' => 'app/modules/peanut/oauth/src/Controller/MemberOAuthController.php',
+    'payment_notify_controller' => 'app/modules/peanut/payment/src/Controller/PaymentNotifyController.php',
+    'official_account_controller' => 'app/modules/peanut/oauth/src/Controller/OfficialAccountCallbackController.php',
     'oauth_application' => 'app/modules/peanut/oauth/src/Service/OAuthEntryService.php',
     'payment_callback_application' => 'app/modules/peanut/payment/src/Service/PaymentCallbackApplicationService.php',
     'official_account_application' => 'app/modules/peanut/oauth/src/Service/OfficialAccountCallbackService.php',
-    'module_worker' => 'app/common/infrastructure/async/ModuleAwareTaskHandler.php',
+    'module_worker' => 'app/modules/peanut/task/src/Infrastructure/Runtime/ModuleAwareTaskHandler.php',
     'console' => 'config/console.php',
     'module_manifest' => 'vendor/peanut-admin/core/kernel/src/Module/ManifestLoader.php',
     'module_compiled_registry' => 'vendor/peanut-admin/core/kernel/src/Module/CompiledModuleRegistry.php',
     'module_availability' => 'vendor/peanut-admin/core/kernel/src/Host/ModuleAvailabilityAdapter.php',
     'deployed_module_registry' => 'app/platform/infrastructure/module/DeployedTenantModuleRegistry.php',
-    'fixture_module_access' => 'app/modules/fixture/delivery_record/src/Infrastructure/Authorization/ThinkPhpDeliveryRecordAccess.php',
-    'official_article_manifest' => 'app/modules/official/article/module.json',
+    'module_runtime_repository' => 'app/modules/peanut/identity/src/Module/Persistence/ThinkPhpModuleRuntimeRepository.php',
+    'module_admin_bridge' => 'app/common/infrastructure/authorization/CoreTenantModuleAdminBridge.php',
+    'payment_module_provider' => 'app/modules/peanut/payment/src/ModuleProvider.php',
+    'official_article_manifest' => 'app/modules/peanut/article/module.json',
     'official_article_public' => 'app/api/middleware/PublicTenantModuleMiddleware.php',
     'member_token' => 'app/modules/peanut/member/src/Service/UserTokenService.php',
     'jwt_config' => 'config/jwt.php',
@@ -151,7 +157,7 @@ qualificationExpect(
     'async exports lost private Tenant namespace',
 );
 qualificationExpect(
-    str_contains($sources['app_service'], 'use PeanutAdmin\\Modules\\Identity\\Tenancy\\DefaultTenantContextResolver;')
+    str_contains($sources['standalone_entry_lookup'], 'use PeanutAdmin\\Modules\\Identity\\Tenancy\\DefaultTenantContextResolver;')
         && str_contains($sources['public_tenant_module_middleware'], 'RequestTrace::id($this->executionContext, $request, \'public\')')
         && !is_file($root . '/app/common/service/tenant/DefaultTenantContextResolver.php')
         && str_contains($sources['default_context_module'], "Tenant::where('code', 'default')->where('status', 'active')")
@@ -163,7 +169,7 @@ qualificationExpect(
 );
 qualificationExpect(
     str_contains($sources['member_context'], 'MemberSubjectLookup')
-        && str_contains($sources['member_context'], "where('status', 'active')")
+        && str_contains($sources['member_context'], "\$this->tenants->tenantStatus(\$tenantId) !== 'active'")
         && str_contains($sources['member_subject_lookup'], "where('status', 1)")
         && str_contains($sources['member_subject_lookup'], "whereNull('delete_time')")
         && str_contains($sources['member_subject_lookup'], "getData('tenant_id')")
@@ -196,7 +202,7 @@ qualificationExpect(
         && str_contains($sources['entry_schema'], 'fk_tenant_entry_binding_tenant')
         && str_contains($sources['app_service'], 'use PeanutAdmin\\Kernel\\Tenancy\\TenantEntryBindingResolver;')
         && !is_file($root . '/app/common/service/tenant/TenantEntryBindingResolver.php')
-        && str_contains($sources['app_service'], 'DefaultTenantContextResolver::class')
+        && str_contains($sources['standalone_entry_lookup'], 'private DefaultTenantContextResolver $defaultTenant')
         && str_contains($sources['app_service'], 'DeploymentMode::Standalone')
         && !str_contains($sources['app_service'], 'deployment.public_default_tenant_fallback')
         && preg_match('/new TenantEntryBindingResolver\(\s*null,\s*true,\s*\$lookup,?\s*\)/', $sources['app_service']) === 1
@@ -258,7 +264,8 @@ qualificationExpect(
     'OAuth subject lookup is not explicitly bound to the member Tenant context',
 );
 qualificationExpect(
-    str_contains($sources['crontab_scheduler'], "where('t.status', 'active')")
+    str_contains($sources['crontab_scheduler'], '$this->directory->activeTenantIds($candidateTenantIds)')
+        && str_contains($sources['crontab_scheduler'], '!isset($activeTenants[$tenantId])')
         && str_contains($sources['crontab_scheduler'], 'use PeanutAdmin\\Kernel\\Tenancy\\TenantScope;')
         && !str_contains($sources['crontab_scheduler'], 'Console::call')
         && str_contains($sources['crontab_task_definition'], 'ScheduledTenantContext::run')
@@ -298,9 +305,10 @@ qualificationExpect(
         && str_contains($sources['recharge_settings'], 'private readonly PaymentChannelGrantCommands $channelGrants')
         && str_contains($sources['settings_module_provider'], 'TenantSettingsQuery::class => TenantSettingService::class')
         && str_contains($sources['settings_module_provider'], 'TenantSettingsCommands::class => TenantSettingService::class')
-        && str_contains($sources['application_tenant_bootstrap'], 'private TenantSettingService $tenantSettings')
+        && str_contains($sources['application_tenant_bootstrap'], 'private TenantSettingsQuery $tenantSettings')
+        && str_contains($sources['application_tenant_bootstrap'], 'private TenantSettingsCommands $settingCommands')
         && str_contains($sources['application_tenant_bootstrap'], '$this->tenantSettings->get($context, $namespace)')
-        && str_contains($sources['application_tenant_bootstrap'], '$this->tenantSettings->replace($context, $namespace, $document)')
+        && str_contains($sources['application_tenant_bootstrap'], '$this->settingCommands->replace($context, $namespace, $document)')
         && !str_contains($sources['application_tenant_bootstrap'], 'TenantSettingsBootstrapRuntimeFactory')
         && !str_contains($sources['application_tenant_bootstrap'], 'PdoTenantSettingsBootstrapProvider')
         && str_contains($sources['recharge_settings'], '$this->channelGrants->channelConfigured('),
@@ -365,11 +373,9 @@ qualificationExpect(
 );
 foreach ([
     'official_member_routes' => [
-        "PublicTenantModuleMiddleware::class, 'peanut.member.public-auth', 'official.member', 'member.register'",
-        "PublicTenantModuleMiddleware::class, 'peanut.member.public-auth', 'official.member', 'member.login'",
-    ],
-    'official_notification_routes' => [
-        "PublicTenantModuleMiddleware::class, 'peanut.notice.verification', 'official.notification', 'notice.verification.send'",
+        "PublicTenantModuleMiddleware::class, 'peanut.member.public-auth', 'peanut.member', 'member.register'",
+        "PublicTenantModuleMiddleware::class, 'peanut.member.public-auth', 'peanut.member', 'member.login'",
+        "PublicTenantModuleMiddleware::class, 'peanut.notice.verification', 'peanut.notification', 'notice.verification.send'",
     ],
 ] as $sourceKey => $routeGuards) {
     foreach ($routeGuards as $routeGuard) {
@@ -380,7 +386,7 @@ foreach ([
     }
 }
 qualificationExpect(
-    str_contains($sources['official_member_routes'], "'peanut.notice.verification', 'official.notification'")
+    str_contains($sources['official_member_routes'], "'peanut.notice.verification', 'peanut.notification'")
         && str_contains($sources['official_member_routes'], 'notice.verification.verify'),
     'member password/mobile flows are missing the Tenant-owned notification guard',
 );
@@ -393,10 +399,10 @@ $matrix = [
     'payment_recharge_refund_callbacks' => ['trusted_context' => true, 'sql_scope' => true, 'external_owner_active' => true],
     'crontab_task_import_export' => ['trusted_context' => true, 'sql_scope' => true, 'non_sql_namespace' => true, 'execution_recheck' => true],
     'tenant_module' => [
-        'official_capabilities_are_enableable_modules' => true,
-        'reason' => 'Shared engines stay in Core, while each official business entry is packaged and Tenant enableable.',
+        'business_capabilities_have_explicit_tenant_policy' => true,
+        'reason' => 'Shared engines stay in Core; Module tenant access follows deployment policy and current plan/license, independently of member permissions.',
         'optional_module_manifest_required' => true,
-        'optional_module_enable_guard_required' => true,
+        'optional_module_license_guard_required' => true,
         'optional_module_guard_owner' => 'peanut-admin/core ModuleGuard plus permission catalog',
     ],
     'official_article_module' => [
@@ -416,7 +422,7 @@ foreach (array_diff(array_keys($matrix), ['tenant_module', 'official_article_mod
     );
 }
 qualificationExpect(
-    str_contains($sources['official_article_manifest'], '"key": "official.article"')
+    str_contains($sources['official_article_manifest'], '"key": "peanut.article"')
         && str_contains($sources['official_module_middleware'], 'ModuleExecutionBoundary')
         && str_contains($sources['official_article_public'], '$this->entryBindings->system(')
         && str_contains($sources['official_article_public'], 'ModuleExecutionBoundary')
@@ -427,28 +433,39 @@ qualificationExpect(
     str_contains($sources['module_manifest'], "'/module.json'")
         && str_contains($sources['module_availability'], 'assertDeployment(')
         && str_contains($sources['module_availability'], 'assertTenant(')
-        && str_contains($sources['fixture_module_access'], 'use PeanutAdmin\\Kernel\\Authorization\\TenantAuthorizationRepository;')
-        && str_contains($sources['fixture_module_access'], 'private TenantAuthorizationRepository $authorization')
-        && str_contains($sources['fixture_module_access'], '$this->authorization->permissions(')
-        && str_contains($sources['fixture_module_access'], "AUTHORIZATION_PERMISSION_DENIED")
+        && str_contains($sources['module_runtime_repository'], '$this->entitlements->license($tenantId,')
+        && str_contains($sources['module_runtime_repository'], '$this->entitlements->planIncludesModule(')
+        && str_contains($sources['module_runtime_repository'], '$license === null || !')
+        && !str_contains($sources['module_runtime_repository'], 'pa_tenant_module')
         && str_contains($sources['deployed_module_registry'], "(\$tenant['enableable'] ?? null) !== true")
         && str_contains($sources['deployed_module_registry'], '!$compiled->isRequiredTenantFoundation($key)')
-        && str_contains($sources['module_compiled_registry'], "(\$manifest->data['lifecycle']['protected'] ?? false) === true")
         && str_contains($sources['module_compiled_registry'], "(\$manifest->data['tenant']['enableable'] ?? null) === false"),
-    'optional Modules are not guarded by both module.json and Tenant enablement',
+    'optional Modules are not guarded by installed manifests and current Tenant plan/license',
+);
+// A license is only the ceiling. The actual member must also own an effective
+// permission; use the production bridge and API decision, not the retired fixture.
+qualificationExpect(
+    str_contains($sources['module_admin_bridge'], 'private TenantAuthorizationRepository $authorization')
+        && str_contains($sources['module_admin_bridge'], '$this->authorization->permissions(')
+        && str_contains($sources['admin_permissions'], '$this->permissionPolicy->canAccess(false, $key, $registered, $owned)')
+        && str_contains($sources['admin_permissions'], "PermissionDecision::deny(\$endpoint['path'], 'API_PERMISSION_NOT_GRANTED')")
+        && str_contains($sources['admin_permissions'], "PermissionDecision::deny(\$endpoint['path'], 'API_PREREQUISITE_NOT_GRANTED')")
+        && str_contains($sources['module_guard_core'], 'if (!$permissionGranted)')
+        && str_contains($sources['module_guard_core'], 'AUTHORIZATION_PERMISSION_DENIED'),
+    'an effective license bypassed the actual member permission boundary',
 );
 
 $officialModules = [
-    'official.file' => 'official_file_routes',
-    'official.notification' => 'official_notification_routes',
-    'official.oauth' => 'official_oauth_routes',
-    'official.payment' => 'official_payment_routes',
-    'official.member' => 'official_member_routes',
-    'official.task' => 'official_task_routes',
-    'official.import-export' => 'official_import_export_routes',
+    'peanut.file' => 'official_file_routes',
+    'peanut.notification' => 'official_notification_routes',
+    'peanut.oauth' => 'official_oauth_routes',
+    'peanut.payment' => 'official_payment_routes',
+    'peanut.member' => 'official_member_routes',
+    'peanut.task' => 'official_task_routes',
+    'peanut.import-export' => 'official_import_export_routes',
 ];
 foreach ($officialModules as $moduleKey => $routeSourceKey) {
-    $routeFile = '../app/modules/' . str_replace(['official.', '-'], ['official/', '_'], $moduleKey) . '/route/app.php';
+    $routeFile = '../app/modules/' . str_replace(['peanut.', '-'], ['peanut/', '_'], $moduleKey) . '/route/app.php';
     qualificationExpect(
         str_contains($sources[$routeSourceKey], "OfficialModuleMiddleware::class, '{$moduleKey}'")
             && str_contains($sources['routes'], "/* {$routeFile} */"),
@@ -479,17 +496,26 @@ qualificationExpect(
     str_contains($sources['oauth_controller'], '$this->application->callback(')
         && str_contains($sources['official_account_controller'], '$this->application->callback(')
         && str_contains($sources['payment_notify_controller'], '$this->application->wechat(')
-        && str_contains($sources['oauth_application'], "assertExternalCallback('official.oauth')")
-        && str_contains($sources['official_account_application'], "assertExternalCallback('official.oauth')")
-        && str_contains($sources['payment_callback_application'], "assertExternalCallback('official.payment')")
+        && str_contains($sources['oauth_application'], "assertExternalCallback('peanut.oauth')")
+        && str_contains($sources['official_account_application'], "assertExternalCallback('peanut.oauth')")
+        // Existing authenticated settlements survive sales-license revocation.
+        // They still require the verified provider binding, its Tenant context,
+        // an installed Payment Module and settlement of that binding's attempt.
+        && str_contains($sources['payment_callback_application'], '$this->externalTenants->verifiedCallback(')
+        && str_contains($sources['payment_callback_application'], '$this->recharges->parseCallback($channel, $config, $request)')
+        && str_contains($sources['payment_callback_application'], 'new SystemExecutionContext($resolution->context)')
+        && str_contains($sources['payment_callback_application'], "assertDeployment('peanut.payment')")
+        && str_contains($sources['payment_callback_application'], '$this->recharges->settleVerifiedCallback($resolution->binding->id, $event, $paymentMethod)')
         && !str_contains($sources['external_resolver_module'], 'assertExternalCallback(')
         && str_contains($sources['async_runtime'], 'ImportExportCommands')
         && str_contains($sources['async_module_provider'], 'TaskImportExportRuntime::class')
         && str_contains($sources['async_module_provider'], 'TaskJobRuntime::class')
-        && str_contains($sources['async_worker_definition'], "return 'official.import-export'")
-        && str_contains($sources['module_worker'], "assertWorker('official.task')")
-        && str_contains($sources['crontab_task_definition'], "assertScheduled('official.task')")
-        && str_contains($sources['console'], "'refund:reconcile' => 'official.payment'"),
+        && str_contains($sources['async_worker_definition'], "return 'peanut.import-export'")
+        && str_contains($sources['module_worker'], "assertWorker('peanut.task')")
+        && str_contains($sources['crontab_task_definition'], "assertScheduled('peanut.task')")
+        && str_contains($sources['payment_module_provider'], 'ModuleConsoleCommands::register($this->app, $this->moduleKey()')
+        && str_contains($sources['payment_module_provider'], "'refund:reconcile' =>")
+        && str_contains($sources['payment_module_provider'], "return 'peanut.payment'"),
     'external callback, worker or scheduler entry bypasses its official Module lifecycle',
 );
 
@@ -508,9 +534,9 @@ foreach ($shippedManifests as $manifestPath) {
     $tenant = is_array($manifest['tenant'] ?? null) ? $manifest['tenant'] : [];
     $backend = is_array($manifest['backend'] ?? null) ? $manifest['backend'] : [];
     $database = is_array($manifest['database'] ?? null) ? $manifest['database'] : [];
-    // Match the installed Core's required-foundation contract; ordinary Modules remain enableable.
-    $requiredFoundation = ($manifest['lifecycle']['protected'] ?? false) === true
-        && ($tenant['enableable'] ?? null) === false;
+    // Core treats enableable=false as deployment-managed; lifecycle protection
+    // is independent (the Chart component is intentionally not protected).
+    $requiredFoundation = ($tenant['enableable'] ?? null) === false;
     qualificationExpect(
         ($requiredFoundation || (($tenant['enableable'] ?? null) === true
             && ($tenant['disable_behavior'] ?? null) === 'reject_new_operations'))
@@ -524,10 +550,15 @@ foreach ($shippedManifests as $manifestPath) {
     $requiredFoundation ? $requiredFoundationCount++ : $optionalModuleCount++;
 }
 
+if (($GLOBALS['qualificationFailures'] ?? []) !== []) {
+    throw new RuntimeException(implode("\n", $GLOBALS['qualificationFailures']));
+}
+
 echo json_encode([
     'status' => 'passed',
     'evidence_scope' => 'source-contracts-only',
     'source_count' => count($sources),
+    'assertions' => $GLOBALS['qualificationChecks'],
     'shipped_module_count' => count($shippedManifests),
     'required_foundation_count' => $requiredFoundationCount,
     'optional_module_count' => $optionalModuleCount,
