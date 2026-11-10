@@ -30,7 +30,7 @@ Route::group(function (): void {
     'moduleKey' => '[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*',
     'setKey' => '[a-z][a-z0-9]*(?:-[a-z0-9]+)*',
     'code' => '[a-z][a-z0-9]*(?:-[a-z0-9]+)*',
-])->completeMatch()->middleware(LoginMiddleware::class)
+])->caseUrl(true)->completeMatch()->middleware(LoginMiddleware::class)
     ->middleware(OfficialModuleMiddleware::class, 'peanut.reference-codes', 'http.admin')
     ->middleware(AuthMiddleware::class)
     ->middleware(OperationLogMiddleware::class);
