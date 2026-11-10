@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PeanutAdmin\Modules\ImportExport\Infrastructure\configuration;
 
+use app\common\exception\BusinessException;
 use JsonException;
 use Opis\JsonSchema\Validator;
 
@@ -61,22 +62,22 @@ final class ConfigurationPackageCodec
                 ? json_decode($package, true, 512, JSON_THROW_ON_ERROR)
                 : json_decode(json_encode($package, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException) {
-            throw new \runtimeException('TRANSFER_PACKAGE_INVALID');
+            throw BusinessException::invalid('TRANSFER_PACKAGE_INVALID', 'TRANSFER_PACKAGE_INVALID');
         }
         if (!is_array($document) || array_is_list($document)) {
-            throw new \runtimeException('TRANSFER_PACKAGE_INVALID');
+            throw BusinessException::invalid('TRANSFER_PACKAGE_INVALID', 'TRANSFER_PACKAGE_INVALID');
         }
         if ($expectedScope !== null) {
             $this->assertScope($expectedScope);
             if (($document['scope'] ?? null) !== $expectedScope) {
-                throw new \runtimeException('TRANSFER_SCOPE_MISMATCH');
+                throw BusinessException::invalid('TRANSFER_SCOPE_MISMATCH', 'TRANSFER_SCOPE_MISMATCH');
             }
         }
         $this->assertNoTenantId($document);
         $this->assertValid($document);
         $checksum = $document['checksum'] ?? null;
         if (!is_string($checksum) || !hash_equals($checksum, $this->checksum($document))) {
-            throw new \runtimeException('TRANSFER_CHECKSUM_INVALID');
+            throw BusinessException::invalid('TRANSFER_CHECKSUM_INVALID', 'TRANSFER_CHECKSUM_INVALID');
         }
         $this->assertEntries(is_array($document['entries'] ?? null) ? $document['entries'] : []);
         return $document;
@@ -113,7 +114,7 @@ final class ConfigurationPackageCodec
             throw new \runtimeException('TRANSFER_PACKAGE_INVALID');
         }
         if (!(new Validator())->validate($value, $schema)->isValid()) {
-            throw new \runtimeException('TRANSFER_PACKAGE_INVALID');
+            throw BusinessException::invalid('TRANSFER_PACKAGE_INVALID', 'TRANSFER_PACKAGE_INVALID');
         }
         $this->assertNoPlainSecret($document);
     }
@@ -200,7 +201,7 @@ final class ConfigurationPackageCodec
         foreach ($value as $key => $child) {
             $normalized = strtolower(str_replace(['-', '_'], '', (string) $key));
             if ($normalized === 'tenantid') {
-                throw new \runtimeException('TRANSFER_PACKAGE_TENANT_ID_FORBIDDEN');
+                throw BusinessException::invalid('TRANSFER_PACKAGE_TENANT_ID_FORBIDDEN', 'TRANSFER_PACKAGE_TENANT_ID_FORBIDDEN');
             }
             $this->assertNoTenantId($child);
         }
@@ -216,7 +217,7 @@ final class ConfigurationPackageCodec
                 $name = strtolower((string) $childKey);
                 if ($name !== 'secrets' && preg_match('/(?:password|passwd|secret|token|private.?key|api.?key|credential)/i', $name) === 1) {
                     if (!SecretReferenceCodec::isMarker($child)) {
-                        throw new \runtimeException('TRANSFER_SECRET_VALUE_FORBIDDEN');
+                        throw BusinessException::invalid('TRANSFER_SECRET_VALUE_FORBIDDEN', 'TRANSFER_SECRET_VALUE_FORBIDDEN');
                     }
                 }
                 $this->assertNoPlainSecret($child, $name);
