@@ -132,7 +132,7 @@
         },
         {
             "path": "server/app/modules/peanut/reference_codes/route/app.php",
-            "sha256": "d770dd9f1fbc89d1a133d02f9500efb940419b8a487d9d61a8330a1eb69e75aa"
+            "sha256": "3c8a73ef3a96dd34ba3b2811dfb3eebf53a55f79db5e2f645ed42b87cc04aac4"
         },
         {
             "path": "server/app/modules/peanut/settings/api/metadata/openapi.php",
