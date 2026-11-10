@@ -76,7 +76,7 @@ final class ConfigurationPackageCodec
         $this->assertValid($document);
         $checksum = $document['checksum'] ?? null;
         if (!is_string($checksum) || !hash_equals($checksum, $this->checksum($document))) {
-            throw new \runtimeException('TRANSFER_CHECKSUM_INVALID');
+            throw \app\common\exception\BusinessException::invalid('TRANSFER_CHECKSUM_INVALID', 'TRANSFER_CHECKSUM_INVALID');
         }
         $this->assertEntries(is_array($document['entries'] ?? null) ? $document['entries'] : []);
         return $document;
