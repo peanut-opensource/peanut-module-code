@@ -1,0 +1,20 @@
+[
+  {
+    "key": "peanut.identity.device-credential.enroll",
+    "type": "api",
+    "name": "登记设备公钥凭据",
+    "risk_level": "sensitive"
+  },
+  {
+    "key": "peanut.identity.device-credential.bind-installation",
+    "type": "api",
+    "name": "将设备凭据绑定安装实例",
+    "risk_level": "sensitive"
+  },
+  {
+    "key": "peanut.identity.device-credential.revoke",
+    "type": "api",
+    "name": "撤销设备凭据",
+    "risk_level": "sensitive"
+  }
+]

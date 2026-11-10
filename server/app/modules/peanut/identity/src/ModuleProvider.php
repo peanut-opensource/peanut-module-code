@@ -39,6 +39,10 @@ final class ModuleProvider implements ModuleProviderContract
     public function bindings(): array
     {
         return [
+            \PeanutAdmin\Modules\Identity\Contract\DeviceCredentialEnrollment::class => \PeanutAdmin\Modules\Identity\Device\EnrollDeviceCredential::class,
+            \PeanutAdmin\Modules\Identity\Contract\DeviceCredentialBindings::class => \PeanutAdmin\Modules\Identity\Device\BindDeviceCredential::class,
+            \PeanutAdmin\Modules\Identity\Contract\DeviceCredentialBindingQueries::class => \PeanutAdmin\Modules\Identity\Device\BindDeviceCredential::class,
+            \PeanutAdmin\Modules\Identity\Contract\DeviceCredentialRevocations::class => \PeanutAdmin\Modules\Identity\Device\RevokeDeviceCredential::class,
             \PeanutAdmin\Modules\Identity\Contract\RevocationFacts::class => AuditService::class,
             AuditService::class => static fn(\think\App $app): AuditService => new AuditService(
                 $app->make(\app\common\execution\CurrentExecutionContext::class),

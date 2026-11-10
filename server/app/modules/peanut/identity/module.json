@@ -3,14 +3,15 @@
   "key": "peanut.identity",
   "name": "Identity and access management",
   "description": "Required account credentials, staff membership, organization, authorization, tenant onboarding and security audit foundation. Customer CRM remains peanut.member.",
-  "version": "4.0.0-rc.60",
+  "version": "4.0.0-rc.61",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-identity",
   "dependencies": [],
   "backend": {
     "provider": "PeanutAdmin\\Modules\\Identity\\ModuleProvider",
-    "migrations": "database/migrations"
+    "migrations": "database/migrations",
+    "permissions": "resources/permissions.json"
   },
   "frontend": {},
   "database": {
@@ -19,6 +20,7 @@
       "pa_api_endpoint",
       "pa_auth_security_event",
       "pa_credential",
+      "pa_device_credential",
       "pa_data_condition_definition",
       "pa_data_permission_condition",
       "pa_data_permission_group",
@@ -70,6 +72,13 @@
   },
   "contracts": {
     "exports": [
+      "PeanutAdmin\\Modules\\Identity\\Contract\\DeviceCredentialEnrollment",
+      "PeanutAdmin\\Modules\\Identity\\Contract\\DeviceCredentialBindings",
+      "PeanutAdmin\\Modules\\Identity\\Contract\\DeviceCredentialBindingQueries",
+      "PeanutAdmin\\Modules\\Identity\\Contract\\DeviceCredentialRevocations",
+      "PeanutAdmin\\Modules\\Identity\\Contract\\Dto\\EnrollDeviceCredentialInput",
+      "PeanutAdmin\\Modules\\Identity\\Contract\\Dto\\DeviceCredentialBinding",
+      "PeanutAdmin\\Modules\\Identity\\Contract\\Dto\\RevokeDeviceCredentialInput",
       "PeanutAdmin\\Modules\\Identity\\Contract\\RevocationFacts",
       "PeanutAdmin\\Modules\\Identity\\Contract\\RevocationFactDelivery",
       "PeanutAdmin\\Modules\\Identity\\Contract\\WorkflowOrganizationQuery",

@@ -37,6 +37,18 @@ final readonly class RecipientLookup
 
 真实消费者：Notification 的 `Delivery/Identity/TenantMemberRecipientResolver::snapshot` 通过 `activeMember` 生成收件人快照，成员不可用时拒绝；Collaboration 的 `Service/CollaborationService` 也注入此合同。两者随各自模块交付，不是本核心的依赖。目录查询不发送通知；数据库错误沿原边界传播，不能当作“无成员”吞掉。上下文与查询结果只用于本次操作，不能跨请求缓存为永久授权。
 
+## 设备凭据与安装绑定
+
+设备凭据由 Identity 维护，安装业务由调用模块维护。公开合同为 `DeviceCredentialEnrollment`、`DeviceCredentialBindings`、`DeviceCredentialBindingQueries`、`DeviceCredentialRevocations` 及其三个 DTO；以 `module.json` 导出和 `ModuleProvider` 绑定为准，不跨模块读取 `pa_device_credential`。
+
+- 登记：`POST /adminapi/api/v1/identity/device-credentials`，Ed25519 持有证明及固定签名编码见 `resources/device-credential-contract.json`。撤销：`POST /adminapi/api/v1/identity/device-credentials/{key}/revoke`，携带原命令、期望版本和原因。路由、OpenAPI 与独立的登记／安装绑定／撤销权限沿原生目录装配。
+- 仅当前可信 `admin-web` 上下文可操作，使用宿主 `AdminAuthorizationQuery` 的现行决策，保留 API 权限包重绑的准入结果及直接调用的独立授权。安装模块仍须检查自己的业务权限。
+- `bindInstallation` 和 `lockActiveInstallationBinding` 需要调用方事务；锁定同租户凭据，保留 CAS、设备及客户端关联校验。同安装重入不重复写入，已绑定凭据不能再绑定另一安装。登记和撤销根入口拥有独立事务；`revokeInTransaction` 参与调用方事务。
+- 授权后的历史恢复保留首次登记／撤销完整结果；撤销不删除安装关联和原始依据。已撤销凭据拒绝当前绑定查询及新绑定；旧撤销缺少永久命令依据时返回 `pending`，不补造成功事实。
+- 沿用原迁移 `20261119010001_create_device_credentials.php` / `CreateDeviceCredentials` 和 `20261121010001_enable_device_credential_revocation.php` / `EnableDeviceCredentialRevocation`、表结构及索引身份，不重建或回填既有 DCS 凭据。已执行原迁移的实例由原生迁移记录识别；升级前核对记录，不单独重放建表 SQL。两条迁移均禁止自动向下删除历史。
+
+定向用例位于 `server/tests/Modules/PeanutIdentity/integration/`，使用进程内 SQLite 和合成上下文；不连接登记开发库。它们验证原生服务、事务回滚、恢复和路由合同，不能替代 MySQL 迁移、真实并发锁、HTTP 登录或 DCS 业务／Cloud 验收。本模块宿主还需具有覆盖 credential、fingerprint、publickey 的操作日志脱敏策略。
+
 ## 会话与角色
 
 - [`TenantSessionAccess`](src/Contract/TenantSessionAccess.php)：`revalidateSession` 接收服务端持有的租户、账号、成员、会话键、客户端键、请求 ID，返回重新核验的 `TenantContext`；不得用客户端参数合成身份。`ownedSessions` 返回当前成员自有会话摘要，`revokeOwnedSession` 仅撤销自有会话并事务记录审计、失效令牌。失效身份、未知目标及冲突通过 [`TenantSessionAccessException`](src/Contract/TenantSessionAccessException.php) 区分；调用方按自己的边界处理。
