@@ -37,6 +37,7 @@ final class ImportExportTenantSettingsTransferBoundaryTest extends TestCase
         self::assertIsString($temporary);
         self::assertStringStartsWith($root . '/.local/tmp/', $temporary);
         require_once $root . '/server/vendor/topthink/framework/src/helper.php';
+        require_once $root . '/server/tests/Support/ThinkPhpTestConnection.php';
         $this->app = new App($temporary . '/case-' . bin2hex(random_bytes(6)));
         $this->database = new PDO('sqlite::memory:', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
         \ThinkPhpTestConnection::fromPdo($this->database);

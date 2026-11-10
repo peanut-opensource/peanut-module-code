@@ -28,13 +28,14 @@ officialArticleExpect(
     'official Article disable behavior changed',
 );
 officialArticleExpect(
-    ($manifest['database']['owned_tables'] ?? null) === ['pa_article_cate', 'pa_article', 'pa_article_collect', 'pa_article_body_save'],
+    ($manifest['database']['owned_tables'] ?? null) === ['pa_article_cate', 'pa_article', 'pa_article_collect', 'pa_article_body_save', 'pa_article_html_migration'],
     'official Article table ownership changed',
 );
 officialArticleExpect(
     ($manifest['contracts']['exports'] ?? null) === [
         'PeanutAdmin\\Modules\\Article\\Contract\\ArticleAdministration',
         'PeanutAdmin\\Modules\\Article\\Contract\\ArticleBodySaveInput',
+        'PeanutAdmin\\Modules\\Article\\Contract\\ArticleHtmlMigrationInput',
         'PeanutAdmin\\Modules\\Article\\Contract\\ArticleQueries',
         'PeanutAdmin\\Modules\\Article\\Contract\\PublicArticleQueries',
     ],
@@ -50,7 +51,7 @@ officialArticleExpect(
     'official Article setting definition catalog must be explicitly empty',
 );
 
-$migration = (string) file_get_contents($moduleRoot . '/database/migrations/20261102000009_initial_article_schema.php');
+$migration = implode("\n", array_map(static fn(string $path): string => (string) file_get_contents($path), glob($moduleRoot . '/database/migrations/*.php') ?: []));
 officialArticleExpect(str_contains($migration, 'extends Migrator'), 'Article must use the native PHP migration');
 foreach ($manifest['database']['owned_tables'] as $table) {
     officialArticleExpect(str_contains($migration, 'CREATE TABLE `' . $table . '`'), 'Article owned table missing: ' . $table);
@@ -93,8 +94,8 @@ $articlePersistence = $administration . $publicArticles
     . (string) file_get_contents($moduleRoot . '/src/Model/ArticleCollect.php');
 $provider = (string) file_get_contents($moduleRoot . '/src/ModuleProvider.php');
 $categoryController = (string) file_get_contents($moduleRoot . '/src/Controller/ArticleCateController.php');
-officialArticleExpect(substr_count($routes, "Route::get('peanut.article.") === 12, 'Article GET route count changed');
-officialArticleExpect(substr_count($routes, "Route::post('peanut.article.") === 15, 'Article POST route count changed');
+officialArticleExpect(substr_count($routes, "Route::get('peanut.article.") === 13, 'Article GET route count changed');
+officialArticleExpect(substr_count($routes, "Route::post('peanut.article.") === 16, 'Article POST route count changed');
 officialArticleExpect(str_contains($routes, "[OfficialModuleMiddleware::class, ['peanut.article', 'http.admin']]"), 'Article admin routes lost their Module boundary');
 officialArticleExpect(
     str_contains($categoryController, 'use CrudTrait;')

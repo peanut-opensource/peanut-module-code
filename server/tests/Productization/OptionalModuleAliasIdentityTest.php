@@ -19,8 +19,9 @@ final class OptionalModuleAliasIdentityTest extends TestCase
 
     public static function setUpBeforeClass(): void
     {
+        require_once dirname(__DIR__, 2) . '/vendor/topthink/framework/src/helper.php';
         self::$loader = new ClassLoader();
-        foreach (glob(dirname(__DIR__, 2) . '/app/modules/peanut/*/composer.json') as $path) {
+        foreach (glob(dirname(__DIR__, 2) . '/app/modules/*/*/composer.json') as $path) {
             $composer = json_decode(file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
             foreach ($composer['autoload']['psr-4'] as $prefix => $paths) {
                 self::$loader->addPsr4($prefix, array_map(static fn($source) => dirname($path) . '/' . $source, (array) $paths));
@@ -68,7 +69,6 @@ final class OptionalModuleAliasIdentityTest extends TestCase
             \PeanutAdmin\Modules\ImportExport\Service\OperationLogExportApplicationService::class => \PeanutAdmin\Modules\ImportExport\Service\OperationLogExportApplicationService::class,
             \app\common\services\notice\NoticeChannelService::class => \app\common\services\notice\NoticeChannelService::class,
             \PeanutAdmin\Modules\Notification\Contract\NotificationCommands::class => \PeanutAdmin\Modules\Notification\Service\NotificationApplicationService::class,
-            \app\common\composition\payment\PaymentServiceFactory::class => \app\common\composition\payment\PaymentServiceFactory::class,
             \PeanutAdmin\Modules\Payment\Contract\PaymentChannelGrantCommands::class => \PeanutAdmin\Modules\Payment\Infrastructure\ThinkPhpPaymentChannelGrantCommands::class,
         ];
         foreach ($targets as $abstract => $concrete) {
@@ -105,11 +105,11 @@ final class OptionalModuleAliasIdentityTest extends TestCase
     {
         $server = dirname(__DIR__, 2);
         $manifests = [];
-        foreach (glob($server . '/app/modules/peanut/*/module.json') as $path) {
+        foreach (glob($server . '/app/modules/*/*/module.json') as $path) {
             $manifests[] = ManifestDocument::fromObject(dirname($path), json_decode(file_get_contents($path), false, 512, JSON_THROW_ON_ERROR));
         }
         $registry = new CompiledModuleRegistry($manifests, [], [], [], 'optional-alias-identity');
-        self::assertCount(22, $registry->modules);
+        self::assertCount(23, $registry->modules);
         $app = new App($server);
         (new ReflectionProperty(App::class, 'initialized'))->setValue($app, true);
         $app->bind(require $server . '/app/adminapi/provider.php');

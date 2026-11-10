@@ -24,6 +24,7 @@ final class OptionalModuleCompositionTest extends TestCase
 
     public static function setUpBeforeClass(): void
     {
+        require_once dirname(__DIR__, 2) . '/vendor/topthink/framework/src/helper.php';
         self::$application = rtrim((string) getenv('PEANUT_COMPOSITION_APPLICATION_ROOT'), '/');
         self::$modules = rtrim((string) getenv('PEANUT_OPTIONAL_MODULE_APPLICATION_ROOT'), '/');
         foreach ([self::$application, self::$modules] as $root) {
@@ -64,10 +65,10 @@ final class OptionalModuleCompositionTest extends TestCase
         self::assertFalse($app->bound(\PeanutAdmin\Modules\Notification\Contract\NotificationProducerRegistry::class));
     }
 
-    public function testTwentyTwoModulesRegisterActualCommandsAndOwnedRegistries(): void
+    public function testAllTwentyThreeModulesRegisterActualCommandsAndOwnedRegistries(): void
     {
         [$app, $registry] = $this->compose(true);
-        self::assertCount(22, $registry->modules);
+        self::assertCount(23, $registry->modules);
         $commands = $app->make(ModuleConsoleCommands::class)->contributions();
         $console = $app->make('console');
         self::assertSame($console, $app->make('console'));

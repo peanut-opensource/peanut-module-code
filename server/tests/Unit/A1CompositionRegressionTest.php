@@ -48,6 +48,7 @@ final class A1CompositionRegressionTest extends TestCase
             $current,
             new AdminDirectoryQuery($current),
             new ModuleExecutionBoundary($current, $this->createStub(ModuleRuntimeRepository::class), new AdminDirectoryQuery($current)),
+            new \PeanutAdmin\Kernel\Module\ModuleGuard($this->createStub(ModuleRuntimeRepository::class)),
             new CrontabCommandService([], []),
             static fn(): int => 0,
             [],

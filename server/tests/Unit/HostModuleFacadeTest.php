@@ -33,7 +33,7 @@ final class HostModuleFacadeTest extends TestCase
     {
         $defaults = WebsiteConfigService::defaults();
         self::assertSame(BrandDefaults::website(), $defaults);
-        self::assertSame(WebsiteConfigService::fields(), array_keys($defaults));
+        self::assertSame(WebsiteConfigService::fields(), array_keys([...BrandDefaults::website(), ...BrandDefaults::sidebarFooter()]));
         $defaults['name'] = 'local change';
         self::assertNotSame($defaults, WebsiteConfigService::defaults());
         foreach (['common/services/readiness/FirstRunReadinessHost.php', 'platform/services/ApplicationTenantBootstrapService.php'] as $path) {
@@ -62,7 +62,7 @@ final class HostModuleFacadeTest extends TestCase
             $store = $this->createMock(WebsiteConfigStore::class);
             $store->expects(self::once())->method('read')->willReturn(['name' => 'Tenant ' . $tenant, 'web_logo' => 'tenant/' . $tenant . '.svg', 'private_extra' => 'not public']);
             $store->expects(self::never())->method('replaceAtomically');
-            $service = new WebsiteValues($store, static fn(string $path): string => 'public:' . $path, static fn(string $path): string => $path, BrandDefaults::website());
+            $service = new WebsiteValues($store, static fn(string $path): string => 'public:' . $path, static fn(string $path): string => $path, [...BrandDefaults::website(), ...BrandDefaults::sidebarFooter()]);
             $result = $service->get();
             self::assertSame('Tenant ' . $tenant, $result['name']);
             self::assertSame('public:tenant/' . $tenant . '.svg', $result['web_logo']);
@@ -76,13 +76,13 @@ final class HostModuleFacadeTest extends TestCase
         $source = file_get_contents(dirname(__DIR__, 2) . '/app/modules/peanut/settings/src/Service/WebsiteConfigService.php');
         self::assertStringContainsString('$this->files->setTenantFileUrl($context, $value)', $source);
         $store = $this->createMock(WebsiteConfigStore::class);
-        $store->expects(self::never())->method('read');
+        $store->expects(self::once())->method('read')->willReturn([]);
         $store->expects(self::once())->method('replaceAtomically')->willReturnCallback(static function (array $document): void {
             self::assertSame(WebsiteConfigService::fields(), array_keys($document));
             self::assertSame('Tenant A', $document['name']);
             self::assertSame('stored:logo.svg', $document['web_logo']);
         });
-        $service = new WebsiteValues($store, static fn(string $path): string => $path, static fn(string $path): string => 'stored:' . $path, BrandDefaults::website());
+        $service = new WebsiteValues($store, static fn(string $path): string => $path, static fn(string $path): string => 'stored:' . $path, [...BrandDefaults::website(), ...BrandDefaults::sidebarFooter()]);
         $service->save(['name' => ' Tenant A ', 'web_logo' => ' logo.svg ']);
     }
 
@@ -90,7 +90,7 @@ final class HostModuleFacadeTest extends TestCase
     {
         $store = $this->createMock(WebsiteConfigStore::class);
         $store->expects(self::once())->method('replaceAtomically')->willThrowException(new DomainException('FIXTURE_STORAGE_FAILURE'));
-        $service = new WebsiteValues($store, static fn(string $path): string => $path, static fn(string $path): string => $path, BrandDefaults::website());
+        $service = new WebsiteValues($store, static fn(string $path): string => $path, static fn(string $path): string => $path, [...BrandDefaults::website(), ...BrandDefaults::sidebarFooter()]);
         foreach ([['name' => []], ['name' => 'Tenant A', 'tenant_id' => 202], ['name' => 'Tenant A', 'private_extra' => 'rejected']] as $input) {
             try {
                 $service->save($input);

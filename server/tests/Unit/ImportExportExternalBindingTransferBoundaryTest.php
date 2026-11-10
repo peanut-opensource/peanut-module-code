@@ -41,12 +41,13 @@ final class ImportExportExternalBindingTransferBoundaryTest extends TestCase
         }
         self::assertStringStartsWith($root . '/.local/tmp/', (string) realpath($temporary));
         require_once $root . '/server/vendor/topthink/framework/src/helper.php';
+        require_once $root . '/server/tests/Support/ThinkPhpTestConnection.php';
         $this->app = new App($temporary . '/case-' . bin2hex(random_bytes(6)));
         $this->database = new PDO('sqlite::memory:', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
         \ThinkPhpTestConnection::fromPdo($this->database);
         $this->database->exec(<<<'SQL'
             CREATE TABLE pa_tenant (id INTEGER PRIMARY KEY, code TEXT, status TEXT);
-            CREATE TABLE pa_external_channel_binding (id INTEGER PRIMARY KEY AUTOINCREMENT, tenant_id INTEGER, provider TEXT, callback_key TEXT, identity_hash TEXT, identity_hint TEXT, config_json TEXT, status INTEGER, create_time INTEGER, update_time INTEGER, UNIQUE(tenant_id, provider));
+            CREATE TABLE pa_external_channel_binding (id INTEGER PRIMARY KEY AUTOINCREMENT, tenant_id INTEGER, provider TEXT, callback_key TEXT, identity_hash TEXT, identity_hint TEXT, config_json TEXT, status INTEGER, create_time INTEGER, update_time INTEGER, retired_at INTEGER NULL, current_key INTEGER GENERATED ALWAYS AS (CASE WHEN retired_at IS NULL THEN 1 ELSE NULL END) STORED, UNIQUE(tenant_id, provider, current_key));
             INSERT INTO pa_tenant VALUES (1, 'alpha', 'active'), (2, 'beta', 'active');
             SQL);
         $this->app->instance(AdminDirectoryQuery::class, new AdminDirectoryQuery(new CurrentExecutionContext(new ExecutionContextStore())));
