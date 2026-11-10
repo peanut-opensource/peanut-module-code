@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PeanutAdmin\Modules\Payment\Service;
 
+use PeanutAdmin\Modules\Payment\Contract\PaymentMethod;
 use PeanutAdmin\Modules\Payment\Model\RechargeOrder;
 use PeanutAdmin\Modules\Payment\Model\RechargePaymentAttempt;
 use PeanutAdmin\Modules\Payment\Model\RefundLog;

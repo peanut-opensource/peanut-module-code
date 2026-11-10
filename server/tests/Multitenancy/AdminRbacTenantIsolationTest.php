@@ -91,6 +91,12 @@ try {
     $app = new think\App($serverRoot);
     $app->setRuntimePath(sys_get_temp_dir() . '/peanut-rbac-' . bin2hex(random_bytes(8)) . '/');
     $app->initialize();
+    // ThinkPHP's console renderer can consume an uncaught exception with exit 0.
+    // A failed executable assertion must retain a failing process result.
+    set_exception_handler(static function (Throwable $error): void {
+        fwrite(STDERR, get_class($error) . ': ' . $error->getMessage() . "\n");
+        exit(1);
+    });
     createNativeRbacSchema($pdo, $serverRoot);
     $now = '2030-01-01 00:00:00.000';
     $pdo->exec(<<<SQL
@@ -124,12 +130,12 @@ VALUES
   ('peanut.file', '{$fileIdentity['version']}', 1, '{$fileIdentity['digest']}', 'active', '{$now}', '{$now}', '{$now}', '{$now}'),
   ('peanut.task', '{$taskIdentity['version']}', 1, '{$taskIdentity['digest']}', 'active', '{$now}', '{$now}', '{$now}', '{$now}'),
   ('peanut.import-export', '{$importExportIdentity['version']}', 1, '{$importExportIdentity['digest']}', 'active', '{$now}', '{$now}', '{$now}', '{$now}');
-INSERT INTO pa_tenant_module
-  (tenant_id, module_key, status, source, enabled_at, created_at, updated_at)
-VALUES
-  (101, 'peanut.file', 'enabled', 'manual', '{$now}', '{$now}', '{$now}'),
-  (101, 'peanut.task', 'enabled', 'manual', '{$now}', '{$now}', '{$now}'),
-  (101, 'peanut.import-export', 'enabled', 'manual', '{$now}', '{$now}', '{$now}');
+INSERT INTO pa_plan (id,code,name,status,created_at,updated_at) VALUES
+  (101,'alpha','Alpha','active','{$now}','{$now}'),
+  (202,'beta','Beta','active','{$now}','{$now}');
+INSERT INTO pa_tenant_license (tenant_id,plan_id,status,effective_at,created_at,updated_at) VALUES
+  (101,101,'active','2020-01-01','{$now}','{$now}'),
+  (202,202,'active','2020-01-01','{$now}','{$now}');
 INSERT INTO pa_permission
   (`key`, module_key, type, name, description, risk_level, status, manifest_version, created_at, updated_at, retired_at)
 VALUES
@@ -156,12 +162,15 @@ SQL);
     foreach ($registry->modules as $manifest) {
         $install = $pdo->prepare("INSERT IGNORE INTO pa_module_installation (module_key,installed_version,manifest_schema_version,manifest_digest,status,created_at,updated_at) VALUES (?,?,?,?,'active',?,?)");
         $install->execute([$manifest->data['key'], $manifest->data['version'], $manifest->data['schema_version'], $manifest->digest, $now, $now]);
-        $enable = $pdo->prepare("INSERT IGNORE INTO pa_tenant_module (tenant_id,module_key,status,source,created_at,updated_at) VALUES (?,?,'enabled','manual',?,?)");
-        $enable->execute([101, $manifest->data['key'], $now, $now]);
+        $enable = $pdo->prepare('INSERT INTO pa_plan_module (plan_id,module_key) VALUES (?,?)');
+        $enable->execute([101, $manifest->data['key']]);
         if ($manifest->data['key'] !== 'peanut.import-export') {
-            $enable->execute([202, $manifest->data['key'], $now, $now]);
+            $enable->execute([202, $manifest->data['key']]);
         }
     }
+    // The fixture gives both plans the permission ceiling; actual Role grants
+    // below remain independent, including Beta's missing ImportExport license.
+    $pdo->exec('INSERT INTO pa_plan_permission (plan_id,permission_key) SELECT plan.id,permission.`key` FROM pa_plan plan CROSS JOIN pa_permission permission');
     $permissionId = (int) $pdo->query("SELECT id FROM pa_permission WHERE `key` = 'peanut.import-export.operation-log.export'")->fetchColumn();
     $applicationPermissionId = (int) $pdo->query("SELECT id FROM pa_permission WHERE `key` = 'peanut.reference-codes.read'")->fetchColumn();
     expectRbacTenant($permissionId > 0, 'canonical export permission is missing');
@@ -250,7 +259,8 @@ SQL);
     $pdo->prepare(
         'INSERT INTO pa_role_permission (tenant_id, role_id, permission_id, granted_at) VALUES (?, ?, ?, ?)',
     )->execute([101, 11, $permissionId, $now]);
-    $pdo->exec("UPDATE pa_tenant_module SET status = 'disabled', disabled_at = UTC_TIMESTAMP(3) WHERE tenant_id = 101");
+    $pdo->exec("DELETE FROM pa_plan_module WHERE plan_id=101 AND module_key='peanut.import-export'");
+    $pdo->exec('UPDATE pa_plan SET revision=revision+1 WHERE id=101');
     expectRbacTenant(
         !$authorization->decide($alphaRootContext, $alphaRoot, 'peanut.import-export.operation-log.export')->allowed,
         'root bypassed Module revocation',

@@ -8,11 +8,11 @@ use app\common\contract\idempotency\IdempotentCommandExecutor;
 use app\common\contract\idempotency\IdempotencyCommand;
 use app\common\contract\idempotency\IdempotencyReceipt;
 use app\common\contract\idempotency\IdempotencyResult;
-use app\common\contract\payment\RefundGatewayInterface;
+use PeanutAdmin\Modules\Payment\Infrastructure\Channel\RefundGatewayInterface;
 use app\common\exception\BusinessException;
 use PeanutAdmin\Modules\File\Service\FileService;
-use app\common\infrastructure\payment\PaymentRetryLock;
-use app\common\composition\payment\PaymentServiceFactory;
+use PeanutAdmin\Modules\Payment\Infrastructure\PaymentRetryLock;
+use PeanutAdmin\Modules\Payment\Infrastructure\Channel\PaymentServiceFactory;
 use app\common\services\XlsxExportService;
 use PeanutAdmin\Modules\Member\Contract\MemberBalanceCommands;
 use PeanutAdmin\Modules\Member\Contract\MemberQueries;
@@ -95,8 +95,15 @@ function financeRefundService(
     );
 }
 
-final class RefundBehaviorGateway implements RefundGatewayInterface
+// Replace only the external transport. The real PaymentServiceFactory still
+// resolves the recorded binding and verifies its merchant identity before use.
+final class RefundBehaviorGateway implements \PeanutAdmin\Modules\Payment\Infrastructure\Channel\PaymentChannelGateway
 {
+    public function __construct(string $channel, array $config) {}
+    public function prepay(\PeanutAdmin\Modules\Payment\Infrastructure\Channel\PrepayRequest $request): \PeanutAdmin\Modules\Payment\Infrastructure\Channel\PrepayResult { throw new LogicException('prepay is outside this refund fixture'); }
+    public function parse(\PeanutAdmin\Modules\Payment\Infrastructure\Channel\CallbackRequest $request): \PeanutAdmin\Modules\Payment\Infrastructure\Channel\PaymentEvent { throw new LogicException('callback is outside this refund fixture'); }
+    public function queryPayment(string $number): array { throw new LogicException('payment query is outside this refund fixture'); }
+    public function close(string $number): void { throw new LogicException('close is outside this refund fixture'); }
     /** @var array<string,string> */
     private static array $modes = [];
     /** @var array<string,list<string>> */
@@ -144,19 +151,6 @@ final class RefundBehaviorGateway implements RefundGatewayInterface
     }
 }
 
-final class RefundBehaviorPaymentFactory
-{
-    public static function forTenant(object $context, string $channel, mixed $transport = null): self
-    {
-        return new self();
-    }
-
-    public function refund(string $channel): RefundGatewayInterface
-    {
-        return new RefundBehaviorGateway();
-    }
-}
-
 final readonly class FailingRefundIdempotency implements IdempotentCommandExecutor
 {
     public function __construct(private IdempotentCommandExecutor $delegate) {}
@@ -177,8 +171,8 @@ final readonly class FailingRefundIdempotency implements IdempotentCommandExecut
     }
 }
 
-if (!class_alias(RefundBehaviorPaymentFactory::class, 'app\common\composition\payment\PaymentServiceFactory')) {
-    throw new RuntimeException('cannot install fake refund Provider factory');
+if (!class_alias(RefundBehaviorGateway::class, 'PeanutAdmin\Modules\Payment\Infrastructure\Channel\YansongdaGateway')) {
+    throw new RuntimeException('cannot install isolated refund transport');
 }
 
 function createFinanceTenantSchema(PDO $pdo): void
@@ -217,6 +211,11 @@ VALUES (31,101,'RF-ALPHA',11,21,'RC-ALPHA','recharge',10.00,10.00,'TX-ALPHA',1,1
 INSERT INTO pa_refund_log
   (id,tenant_id,sn,record_id,user_id,handle_id,order_amount,refund_amount,refund_status,refund_msg)
 VALUES (41,101,'RL-ALPHA',31,11,1,10.00,10.00,2,'');
+INSERT INTO pa_external_channel_binding (id,tenant_id,provider,callback_key,identity_hash,identity_hint,config_json,status)
+VALUES (101,101,'payment.wechat',SHA2('alpha-callback',256),SHA2('alpha-app:alpha-merchant',256),'alpha',JSON_OBJECT('wx_pay_appid','alpha-app','wx_pay_mch_id','alpha-merchant'),1);
+INSERT INTO pa_payment_tenant_channel_grant (id,tenant_id,provider,external_binding_id,status) VALUES (101,101,'payment.wechat',101,1);
+INSERT INTO pa_recharge_payment_attempt (tenant_id,order_id,pay_way,binding_id,grant_id,merchant_identity_hash,merchant_order_sn,amount_cents,currency,status,transaction_id)
+SELECT tenant_id,id,pay_way,101,101,SHA2('alpha-app:alpha-merchant',256),sn,CAST(order_amount*100 AS UNSIGNED),'CNY','paid',transaction_id FROM pa_recharge_order;
 SQL);
 }
 
@@ -231,12 +230,20 @@ try {
     IsolatedBackendEnvironment::activateDatabase($host, $port, $database, $user, $password, 'multi-tenant');
     $fixtureApp = new think\App(dirname(__DIR__, 2));
     $fixtureApp->initialize();
+    set_exception_handler(static function (Throwable $error): void {
+        fwrite(STDERR, get_class($error) . ': ' . $error->getMessage() . "\n");
+        exit(1);
+    });
     ThinkPhpTestConnection::fromPdo($pdo);
     createFinanceTenantSchema($pdo);
     seedFinanceTenantSchema($pdo);
     IsolatedBackendEnvironment::activateDatabase($host, $port, $database, $user, $password, 'multi-tenant');
     $app = new think\App();
     $app->initialize();
+    set_exception_handler(static function (Throwable $error): void {
+        fwrite(STDERR, get_class($error) . ': ' . $error->getMessage() . "\n");
+        exit(1);
+    });
     ThinkPhpTestConnection::fromPdo($pdo);
     $alpha = financeTenantContext(101, 501, 'mt03-finance-alpha');
     $beta = financeTenantContext(202, 502, 'mt03-finance-beta');
