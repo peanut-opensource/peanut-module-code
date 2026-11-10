@@ -485,6 +485,16 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             || $object['space_status'] !== 'active' || $object['account_status'] !== 'active') {
             throw BusinessException::conflict('FILE_EVIDENCE_OBJECT_CHANGED', '原凭证或存储不可用');
         }
+        // Recheck the original protection under lock, including after provider I/O and for ready replays.
+        $reference = Db::name('file_reference')->where('tenant_id', $actor->tenantId)->where('file_key', $row['file_key'])
+            ->where('owner_module_key', $row['module_key'])->where('owner_type', 'evidence-upload')
+            ->where('owner_id', $row['command_key'])->lock(true)->find();
+        if ($reference === null || (int) $reference['tenant_id'] !== $actor->tenantId
+            || $reference['file_key'] !== $row['file_key'] || $reference['owner_module_key'] !== $row['module_key']
+            || $reference['owner_type'] !== 'evidence-upload' || $reference['owner_id'] !== $row['command_key']
+            || !hash_equals($row['input_digest'], $reference['reference_digest'])) {
+            throw BusinessException::conflict('FILE_EVIDENCE_OBJECT_CHANGED', '原凭证保护引用已改变');
+        }
         return array_replace($object, $locked);
     }
 

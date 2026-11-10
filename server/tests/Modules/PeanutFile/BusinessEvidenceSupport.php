@@ -25,6 +25,7 @@ final class Drivers
     public string $failure = '';
     public int $puts = 0;
     public ?\Closure $duringPut = null;
+    public ?\Closure $duringInspect = null;
 
     public function __construct(public string $root) {}
 
@@ -38,7 +39,12 @@ final readonly class Driver implements StorageDriver
 {
     public function __construct(private LocalStorageDriver $driver, private Drivers $control) {}
     public function capabilities(): StorageDriverCapabilities { return $this->driver->capabilities(); }
-    public function inspect(string $key, ?string $versionId = null): StorageObjectObservation { return $this->driver->inspect($key, $versionId); }
+    public function inspect(string $key, ?string $versionId = null): StorageObjectObservation
+    {
+        $observation = $this->driver->inspect($key, $versionId);
+        $this->control->duringInspect?->__invoke($key);
+        return $observation;
+    }
     public function put(string $key, string $path): void
     {
         ++$this->control->puts;

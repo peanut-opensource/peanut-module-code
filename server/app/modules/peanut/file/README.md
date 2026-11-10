@@ -53,6 +53,12 @@ not invent a new command/key or blindly repeat the write. A reservation interrup
 before PUT can remain unknown/absent; this contract adds no automatic retry,
 expiry, compensation, deletion or operator reconciliation workflow.
 
+Every replay and recovery requires the original same-tenant `evidence-upload`
+reference for that file/module/command with its exact input digest, checked under
+lock again before publication. A missing or changed protection raises
+`FILE_EVIDENCE_OBJECT_CHANGED`, including for an already published result; File
+does not recreate the reference, allocate a replacement key or repeat PUT.
+
 `retainEvidence(actor, BusinessEvidenceFact, authorizeFact)` requires the caller's
 existing business transaction and nonempty, unique file keys. The callback receives
 File-produced snapshots, locks and authorizes the persisted financial fact, and
