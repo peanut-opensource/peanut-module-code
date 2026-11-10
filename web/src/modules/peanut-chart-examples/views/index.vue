@@ -9,7 +9,9 @@
     <el-space class="chart-examples__controls" wrap>
       <el-switch v-model="loading" active-text="加载状态" />
       <el-switch v-model="dark" active-text="深色主题" />
-      <el-button @click="exportImage">导出折线图 PNG</el-button>
+      <el-button :disabled="!lineChartReady || loading" @click="exportImage"
+        >导出折线图 PNG</el-button
+      >
       <span role="status">{{ interaction }}</span>
     </el-space>
     <el-row :gutter="16">
@@ -29,6 +31,8 @@
             autoresize
             class="chart-examples__chart"
             @click="onChartClick"
+            @rendered="example.title === '折线图' && (lineChartReady = false)"
+            @finished="example.title === '折线图' && (lineChartReady = true)"
           />
         </el-card>
       </el-col>
@@ -48,6 +52,7 @@
     dark.value = value;
   });
   const loading = ref(false);
+  const lineChartReady = ref(false);
   const interaction = ref('点击图形查看事件');
   const lineChart = shallowRef<InstanceType<typeof Chart> | null>(null);
 
@@ -58,7 +63,7 @@
     interaction.value = `已点击：${event.seriesName || ''} ${event.name || ''}`;
   };
   const exportImage = () => {
-    if (!lineChart.value) return;
+    if (!lineChart.value || !lineChartReady.value || loading.value) return;
     const link = document.createElement('a');
     link.href = lineChart.value.getDataURL({ type: 'png', pixelRatio: 2 });
     link.download = 'chart-example.png';

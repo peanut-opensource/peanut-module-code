@@ -27,7 +27,7 @@ Route::group(function (): void {
     Route::delete('api/v1/reference-code-sets/:moduleKey/:setKey/codes/:code', [ReferenceCodesController::class, 'retire'])
         ->option(['peanut_permission' => 'peanut.reference-codes.manage']);
 })->pattern([
-    'moduleKey' => '[a-z][a-z0-9]*(?:-[a-z0-9]+)*\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*',
+    'moduleKey' => '[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*',
     'setKey' => '[a-z][a-z0-9]*(?:-[a-z0-9]+)*',
     'code' => '[a-z][a-z0-9]*(?:-[a-z0-9]+)*',
 ])->completeMatch()->middleware(LoginMiddleware::class)
