@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { createMemoryRefreshCoordinator } from '@peanut-admin/vue';
 import type { PlatformApiAccess } from '../core/platform-access';
 import {
   readPlan,
@@ -634,7 +635,7 @@ type SessionRequestConfig = AxiosRequestConfig & {
   platformRefreshRetried?: boolean;
   platformSession?: PlatformSessionSnapshot;
 };
-const platformRefreshRequests = new Map<string, Promise<string>>();
+const platformRefreshCoordinator = createMemoryRefreshCoordinator();
 let sessionCookieQueue: Promise<void> = Promise.resolve();
 function queueSessionCookieRequest<T>(
   operation: () => Promise<T>,
@@ -683,41 +684,36 @@ const handleResponse = async (response: AxiosResponse<Envelope<unknown>>) => {
     try {
       let refreshedToken = localStorage.getItem(tokenKey);
       if (refreshedToken === snapshot.token) {
-        const refreshKey = JSON.stringify([
-          snapshot.generation,
-          snapshot.token,
-        ]);
-        let refreshRequest = platformRefreshRequests.get(refreshKey);
-        if (!refreshRequest) {
-          refreshRequest = queueSessionCookieRequest(
-            () =>
-              client
-                .post<Envelope<Session>>('/platformapi/session/refresh', {}, {
-                  platformSession: snapshot,
-                } as SessionRequestConfig)
-                .then((result) => {
-                  if (result.data.code !== 20000)
-                    throw new Error(result.data.msg);
-                  if (!isPlatformSessionCurrent(snapshot))
+        refreshedToken = await platformRefreshCoordinator.coordinate({
+          scope: JSON.stringify([snapshot.generation, snapshot.token]),
+          failedToken: snapshot.token,
+          getAccessToken: () => localStorage.getItem(tokenKey),
+          refresh: () =>
+            queueSessionCookieRequest(
+              () =>
+                client
+                  .post<Envelope<Session>>('/platformapi/session/refresh', {}, {
+                    platformSession: snapshot,
+                  } as SessionRequestConfig)
+                  .then((result) => {
+                    if (result.data.code !== 20000)
+                      throw new Error(result.data.msg);
+                    if (!isPlatformSessionCurrent(snapshot))
+                      throw new Error('The platform session has changed.');
+                    const currentToken = localStorage.getItem(tokenKey);
+                    if (currentToken === snapshot.token) {
+                      setPlatformSessionToken(
+                        result.data.data.access_token,
+                        false
+                      );
+                      return result.data.data.access_token;
+                    }
+                    if (currentToken) return currentToken;
                     throw new Error('The platform session has changed.');
-                  const currentToken = localStorage.getItem(tokenKey);
-                  if (currentToken === snapshot.token) {
-                    setPlatformSessionToken(
-                      result.data.data.access_token,
-                      false
-                    );
-                    return result.data.data.access_token;
-                  }
-                  if (currentToken) return currentToken;
-                  throw new Error('The platform session has changed.');
-                }),
-            snapshot
-          ).finally(() => {
-            platformRefreshRequests.delete(refreshKey);
-          });
-          platformRefreshRequests.set(refreshKey, refreshRequest);
-        }
-        refreshedToken = await refreshRequest;
+                  }),
+              snapshot
+            ),
+        });
       }
       if (!isPlatformIdentityCurrent(snapshot) || !refreshedToken)
         throw new Error('The platform session has changed.');

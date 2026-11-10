@@ -6,10 +6,45 @@ namespace PeanutAdmin\Modules\Identity\Tenancy\Infrastructure;
 
 use PeanutAdmin\Modules\Identity\Persistence\Model\TenantEntryBinding;
 use PeanutAdmin\Kernel\Tenancy\TenantEntryBindingLookup;
+use think\facade\Cache;
+use think\facade\Db;
 
 final readonly class ThinkPhpTenantEntryBindingLookup implements TenantEntryBindingLookup
 {
+    private const CACHE_PREFIX = 'identity:tenant-entry:v2';
+
     public function binding(string $host, string $clientKey): ?array
+    {
+        // Writes read their own transaction; only committed entry bindings enter the shared cache.
+        $pdo = Db::connect()->getPdo();
+        if ($pdo !== false && $pdo->inTransaction()) {
+            return $this->readBinding($host, $clientKey);
+        }
+        $revision = Cache::get(self::CACHE_PREFIX . ':revision');
+        if ($revision === null) {
+            $revision = bin2hex(random_bytes(16));
+            Cache::set(self::CACHE_PREFIX . ':revision', $revision, 0);
+        }
+        $key = self::CACHE_PREFIX . ':' . $revision . ':' . hash('sha256', $host . "\0" . $clientKey);
+        $binding = Cache::get($key);
+        if ($binding !== null) {
+            return $binding;
+        }
+        $binding = $this->readBinding($host, $clientKey);
+        if ($binding !== null) {
+            Cache::set($key, $binding, 300);
+        }
+        return $binding;
+    }
+
+    /** Called by the owning binding/tenant lifecycle after its transaction commits. */
+    public static function invalidate(): void
+    {
+        // In-flight readers may finish filling an old key; new requests select only this revision.
+        Cache::set(self::CACHE_PREFIX . ':revision', bin2hex(random_bytes(16)), 0);
+    }
+
+    private function readBinding(string $host, string $clientKey): ?array
     {
         try {
             $rows = TenantEntryBinding::alias('binding')

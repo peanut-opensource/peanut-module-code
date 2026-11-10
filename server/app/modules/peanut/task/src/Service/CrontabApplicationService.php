@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace PeanutAdmin\Modules\Task\Service;
 
-use app\common\enum\CrontabEnum;
+use PeanutAdmin\Modules\Task\Enum\CrontabEnum;
 use app\common\exception\BusinessException;
 use app\common\http\PageResult;
 use app\common\infrastructure\module\ModuleExecutionBoundary;

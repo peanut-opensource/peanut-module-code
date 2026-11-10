@@ -8,6 +8,8 @@ use think\facade\Db;
 use PeanutAdmin\Modules\Identity\Module\Model\ModuleInstallation;
 use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
 use PeanutAdmin\Modules\Identity\Module\TenantEntitlementService;
+use PeanutAdmin\Modules\Identity\Auth\TenantAuthService;
+use think\facade\Cache;
 
 /** 固定的租户模块状态投影，不返回配置正文或授权能力；安装清单与必需基础模块仍由原部署登记器决定。 */
 final readonly class TenantModuleStateQueries
@@ -118,7 +120,8 @@ final readonly class TenantModuleStateQueries
     }
 
     /**
-     * Share the installed fact within one read-only HTTP Request, never across requests or transactions.
+     * Authenticated GETs share the installation map under the live tenant authorization revision.
+     * Catalog lifecycle writes advance that revision in the same transaction; other reads stay live.
      * Each consumer still checks the fact against its compiled manifest and original error contract.
      * A consumer with a combined live JOIN can request only an already shared fact without adding a query.
      * @return array{module_key:mixed,installed_version:mixed,manifest_schema_version:mixed,manifest_digest:mixed,status:mixed,revision:mixed}|null
@@ -134,6 +137,19 @@ final readonly class TenantModuleStateQueries
         }
         if (!$readIfMissing) {
             return null;
+        }
+        $admission = $request === null ? null : TenantAuthService::authenticatedRead();
+        if ($admission !== null) {
+            $context = $admission['context'];
+            $rows = Cache::remember('identity:installed-modules:v1:' . $context->tenantId . ':'
+                . $context->tenantAuthorizationRevision, static function (): array {
+                    $all = ModuleInstallation::field('module_key,installed_version,manifest_schema_version,manifest_digest,status,revision')
+                        ->select()->toArray();
+                    return array_column($all, null, 'module_key');
+                }, 300);
+            $rows[$moduleKey] ??= null;
+            $request->withMiddleware([self::class => $rows]);
+            return $rows[$moduleKey];
         }
         $model = new ModuleInstallation();
         $query = Db::name('module_installation')->pk($model->getPk())

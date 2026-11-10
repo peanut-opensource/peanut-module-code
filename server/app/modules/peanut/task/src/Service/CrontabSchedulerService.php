@@ -8,11 +8,11 @@ use app\common\contract\audit\AuditResource;
 use app\common\services\audit\AuditContractHost;
 use app\common\execution\CurrentExecutionContext;
 use app\common\execution\ExecutionContextStore;
-use app\common\infrastructure\crontab\CrontabTenantLock;
+use PeanutAdmin\Kernel\Tenancy\ThinkPhpTenantLockStore;
 use app\common\tenancy\PlatformTenantDataGateway;
 use PeanutAdmin\Modules\Task\Model\Crontab;
 use PeanutAdmin\Modules\Identity\Contract\AdminDirectoryQuery;
-use app\common\enum\CrontabEnum;
+use PeanutAdmin\Modules\Task\Enum\CrontabEnum;
 use PeanutAdmin\Kernel\Scheduling\ScheduleWindow;
 use PeanutAdmin\Kernel\Tenancy\TenantScope;
 use PeanutAdmin\Kernel\Context\TenantSystemContext;
@@ -25,7 +25,7 @@ final class CrontabSchedulerService
     public function __construct(
         private readonly ExecutionContextStore $contexts,
         private readonly CurrentExecutionContext $current,
-        private readonly CrontabTenantLock $locks,
+        private readonly ThinkPhpTenantLockStore $locks,
         private readonly AuditContractHost $audit,
         private readonly PlatformTenantDataGateway $tenantData,
         private readonly AdminDirectoryQuery $directory,
@@ -89,7 +89,8 @@ final class CrontabSchedulerService
         $this->contexts->run(
             new \app\common\execution\SystemExecutionContext($system),
             function () use ($scope, $jobId, $lastTime, $now, $item, $trigger): void {
-                if (!$this->locks->acquire($scope, $jobId)) {
+                $lockKey = 'crontab:job:' . $jobId;
+                if (!$this->locks->acquire($scope, $lockKey)) {
                     return;
                 }
                 try {
@@ -142,7 +143,7 @@ final class CrontabSchedulerService
                         $trigger($scope, $item);
                     });
                 } finally {
-                    $this->locks->release($scope, $jobId);
+                    $this->locks->release($scope, $lockKey);
                 }
             },
         );

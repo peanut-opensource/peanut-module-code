@@ -33,12 +33,25 @@ final readonly class TenantAuthorizationQuery
         if ($permissionKeys === []) {
             return [];
         }
-        $permissionKeys = array_values(array_unique($permissionKeys));
+        return $this->readPermissionGrants($context, array_values(array_unique($permissionKeys)));
+    }
+
+    /** Current effective member grants for a versioned snapshot; never grants deployment admission.
+     * @return array<string,array{key:string,module_key:string|null,status:string}>
+     */
+    public function permissionSnapshot(TenantContext $context): array
+    {
+        return $this->readPermissionGrants($context, null);
+    }
+
+    /** @param null|list<string> $permissionKeys */
+    private function readPermissionGrants(TenantContext $context, ?array $permissionKeys): array
+    {
         $compiled = $this->registry->moduleKeys();
         $foundations = array_values(array_filter($compiled, $this->registry->isRequiredTenantFoundation(...)));
         $now = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d H:i:s.u');
         $grants = [];
-        foreach (array_chunk($permissionKeys, 500) as $keys) {
+        foreach ($permissionKeys === null ? [null] : array_chunk($permissionKeys, 500) as $keys) {
             $rows = Permission::alias('permission')
                 ->join('tenant_member member', "member.status = 'active'")
                 ->join('tenant tenant', "tenant.id = member.tenant_id AND tenant.status = 'active'")
@@ -53,7 +66,7 @@ final readonly class TenantAuthorizationQuery
                 ->where('member.tenant_id', $context->tenantId)->where('member.id', $context->memberId)
                 ->where('member.account_id', $context->accountId)
                 ->where('permission.status', 'active')->whereNotLike('permission.key', 'platform.%')
-                ->whereIn('permission.key', $keys)
+                ->when($keys !== null, static fn($query) => $query->whereIn('permission.key', $keys))
                 ->where(static function ($query): void {
                     $query->pk('id')->whereNotNull('binding.permission_id')->whereOr(static function ($query): void {
                         // The built-in owner adds only Core's fixed tenant permissions.
@@ -84,7 +97,7 @@ final readonly class TenantAuthorizationQuery
                 ->select()->toArray();
             foreach ($rows as $row) {
                 // SQL collation may find a variant; grants retain the canonical-key contract.
-                if (in_array($row['key'], $keys, true)) {
+                if ($keys === null || in_array($row['key'], $keys, true)) {
                     $grants[(string) $row['key']] = [
                         'key' => (string) $row['key'],
                         'module_key' => $row['module_key'] === null ? null : (string) $row['module_key'],

@@ -189,6 +189,8 @@
       "docs/plugin-module-development.md",
       "docs/module-layout.md",
       "docs/development/standard.md",
+      "docs/development/agent-project-rules.md",
+      "docs/development/request-cache-contract.md",
       "docs/development/ui-guidelines.md",
       "docs/development/charts.md",
       "docs/README.md",
@@ -401,7 +403,6 @@
       "application-provider": [
         "server/app/modules/peanut/settings/src/Infrastructure/BrandDefaults.php",
         "server/app/modules/peanut/settings/src/Service/WebsiteConfigService.php",
-        "server/app/common/infrastructure/crontab/CrontabTenantLock.php",
         "server/app/common/contract/notice/sms/SmsDriver.php",
         "server/app/common/infrastructure/notice/sms/AliyunSms.php",
         "server/app/common/infrastructure/notice/sms/TencentSms.php",
@@ -425,6 +426,16 @@
     },
     "server/resources/scaffold-application/SECURITY.md.stub": {
       "target": "SECURITY.md",
+      "classification": "app-owned",
+      "transform": "docs-page",
+      "profiles": [
+        "minimal",
+        "standard",
+        "full"
+      ]
+    },
+    "server/resources/scaffold-application/project-rules.md.stub": {
+      "target": "docs/project-rules.md",
       "classification": "app-owned",
       "transform": "docs-page",
       "profiles": [

@@ -10,6 +10,7 @@ use PeanutAdmin\Kernel\Tenancy\TenantEntryBindingResolver;
 use PeanutAdmin\Kernel\Context\PlatformContext;
 use app\platform\services\PlatformApiAuthorization;
 use PeanutAdmin\Kernel\Audit\AuditOutcome;
+use PeanutAdmin\Modules\Identity\Tenancy\Infrastructure\ThinkPhpTenantEntryBindingLookup;
 use think\facade\Db;
 
 final readonly class TenantEntryBindingAdminService
@@ -59,7 +60,7 @@ final readonly class TenantEntryBindingAdminService
             );
         }
 
-        return Db::transaction(function () use (
+        $result = Db::transaction(function () use (
             $context,
             $tenantId,
             $host,
@@ -112,6 +113,8 @@ final readonly class TenantEntryBindingAdminService
                 'status' => 'active',
             ];
         });
+        ThinkPhpTenantEntryBindingLookup::invalidate();
+        return $result;
     }
 
     /** @return array{id:int,tenant_id:int,status:string} */
@@ -128,7 +131,7 @@ final readonly class TenantEntryBindingAdminService
             );
         }
 
-        return Db::transaction(function () use (
+        $result = Db::transaction(function () use (
             $context,
             $bindingId,
             $changeReason
@@ -156,6 +159,8 @@ final readonly class TenantEntryBindingAdminService
                 'status' => 'disabled',
             ];
         });
+        ThinkPhpTenantEntryBindingLookup::invalidate();
+        return $result;
     }
 
     /** @param array<string,int|string> $metadata */

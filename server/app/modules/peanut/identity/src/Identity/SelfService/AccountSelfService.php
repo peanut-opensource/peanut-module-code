@@ -17,6 +17,7 @@ use PeanutAdmin\Modules\Identity\Persistence\Model\Credential;
 use PeanutAdmin\Modules\Identity\Persistence\Model\LoginChallenge;
 use PeanutAdmin\Modules\Identity\Persistence\Model\PlatformSession;
 use PeanutAdmin\Modules\Identity\Persistence\Model\PlatformSessionToken;
+use PeanutAdmin\Modules\Identity\Persistence\Model\Tenant;
 use PeanutAdmin\Modules\Identity\Persistence\Model\TenantMember;
 use PeanutAdmin\Modules\Identity\Persistence\Model\TenantSession;
 use PeanutAdmin\Modules\Identity\Persistence\Model\TenantSessionToken;
@@ -136,6 +137,10 @@ final readonly class AccountSelfService
             $changedFields = [];
             if ((string) $current['display_name'] !== $displayName) {
                 $changedFields[] = 'display_name';
+                Tenant::where('id', $actor->tenantId)->update([
+                    'authorization_revision' => new Raw('authorization_revision + 1'),
+                    'updated_at' => $now,
+                ]);
             }
             $currentAvatar = $current['avatar_uri'] === null ? null : (string) $current['avatar_uri'];
             if ($currentAvatar !== $avatarUri) {

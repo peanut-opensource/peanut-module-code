@@ -57,9 +57,11 @@ Core 管范围表达与强制执行；通用授权模块核身份/授权并生�
 
 批量入口需要包含该API的Core版本：本轮固定开发候选为5.0.3-alpha.4，尚不代表公开发行或宿主默认Core已自动升级。实际消费须显式采用包含该API的固定Core。批量统计多个受保护资源时，使用 Core `DataPermissionEngine::queryConstraints(context, [resourceKey => operationName])`，将返回的每个约束分别交给原生 `ThinkPhpQueryConstraintApplier`，用于对应资源的列表和聚合。该入口复用本次计算的模块、权限和目录修订；操作目录通过原生findMany分离批量读取权限与目标集合，策略通过revisions按操作分组查询，逐项保留原修订摘要、有效期、目标基数及租户约束；指定目标仍使用 `queryConstraint`。独立调用重新读取，不建立请求级或跨请求授权缓存。Identity `TenantEntitlementService::permissionProjection` 同一次调用返回许可内模块与权限，宿主登记子集检查复用这份模块投影。
 
-普通API及批量业务权限由Identity `TenantAuthorizationQuery::permissionGrants` 对本次待判键执行原生关联查询，同时约束活动租户/成员/角色、显式角色授权、许可时间、套餐权限及已安装模块；内置租户owner仅补Core固定权限。Host复用本次权限状态，再对唯一模块owner调用原生installedModule验证版本/schema/manifest。API模块入口检查使用精确allowsModule，并保留前置安装身份校验。
+普通API及批量业务权限通过 Identity 的公开查询核对活动租户/成员/角色、显式角色授权、许可时间、套餐权限及已安装模块；内置租户owner仅补Core固定权限。非事务HTTP GET可复用以本次实时鉴权版本为键的有效权限集合和已安装模块字典，许可时间窗仍按当前时间判断；写入、事务、CLI和直接调用保留实时路径。API模块入口检查使用精确allowsModule，并保留前置安装身份校验。缓存键和写端失效责任以[请求缓存合同](../development/request-cache-contract.md)为准。
 
-既有EndpointPermissionGrant只交接同一Request、同一TenantContext对象的源码默认权限；业务decisions命中精确键时消费准入结果，不重读人员资料。语义是该请求准入持续到请求结束，不承诺命中调用即时感知请求中途撤权。其他键仍逐次检查活动成员/凭据/授权修订；对象范围、事务内权限fence、异步和后续请求保持原实时边界。本次没有新增请求或跨请求授权缓存。
+既有EndpointPermissionGrant只交接同一Request、同一TenantContext对象的源码默认权限；业务decisions命中精确键时消费准入结果，不重读人员资料。语义是该请求准入持续到请求结束，不承诺命中调用即时感知请求中途撤权。其他键从当前可信版本的权限集合判定；仅在非事务HTTP GET、CurrentExecutionContext持有同一TenantContext及有效principal时，复用Login已核验的身份与授权修订。直接调用、CLI、非GET及事务内调用仍读取当前活动成员/凭据/授权修订。对象范围、事务内权限fence、异步和后续请求保持原实时边界。
+
+业务用例应一次取得本次查询所需的权限与人员范围，通过参数传给递归条件和当前页投影，不在每次构造关联子查询时重新加载身份。只需要部门成员ID时使用Identity的AdminDirectoryQuery::activeMemberIdsInDepartments，保留租户与活动成员约束，不加载完整成员资料、角色或岗位后再过滤。普通服务由TP容器按构造类型装配；无需运行时参数的服务不另写只负责new的工厂。Settings的tenant_setting读取使用TenantApplicationSetting完整原生schema，字段来源为所属迁移。
 
 热路径Identity模型使用ThinkORM原生完整 `$schema` 与明确 `$pk`，字段、类型和主键来自所属迁移；既有模型生成器同时输出主键和完整schema。迁移改变字段或主键时同步所属模型声明，不能以部分字段映射代替完整schema。Core权限条件适配器在同表AND/OR闭包中将父Query已确定的主键传给子Query，字段类型继续由ORM原生传递，避免嵌套查询重复发现主键。裸Db查询及显式元数据调用仍遵循原生行为；这不是持久字段缓存。
 

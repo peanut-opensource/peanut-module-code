@@ -21,8 +21,8 @@
     },
     "dependencies": {
         "@element-plus/icons-vue": "2.3.2",
-        "@peanut-admin/ui-vue": "5.0.5",
-        "@peanut-admin/vue": "5.0.5",
+        "@peanut-admin/ui-vue": "5.1.0",
+        "@peanut-admin/vue": "5.1.0",
         "axios": "0.34.0",
         "element-plus": "2.14.3",
         "openapi-fetch": "0.17.0",

@@ -28,15 +28,18 @@ importers:
       '@element-plus/icons-vue':
         specifier: 2.3.2
         version: 2.3.2(vue@3.5.40(typescript@5.9.3))
+      '@peanut-admin/client':
+        specifier: 5.1.0
+        version: 5.1.0
       '@peanut-admin/peanut-chart':
         specifier: workspace:^1.0.0
         version: link:src/modules/peanut-chart
       '@peanut-admin/ui-vue':
-        specifier: 5.0.5
-        version: 5.0.5(@peanut-admin/vue@5.0.5(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
+        specifier: 5.1.0
+        version: 5.1.0(@peanut-admin/vue@5.1.0(@peanut-admin/client@5.1.0)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
       '@peanut-admin/vue':
-        specifier: 5.0.5
-        version: 5.0.5(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
+        specifier: 5.1.0
+        version: 5.1.0(@peanut-admin/client@5.1.0)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
       '@vueuse/core':
         specifier: ^9.3.0
         version: 9.13.0(vue@3.5.40(typescript@5.9.3))
@@ -786,18 +789,23 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@peanut-admin/ui-vue@5.0.5':
-    resolution: {integrity: sha512-QF0bYbUpX109J8yjvYLS9tFcMt7hhHvAtJdLCmC8dlcF5tsOIqSELy6rX3Pta2Uix4bEOLZZ00glv4Ss4wc/VQ==}
+  '@peanut-admin/client@5.1.0':
+    resolution: {integrity: sha512-dCULPj0M36T9tLdr8CuFa++EpiDHAdp7JPCF7afGXYI7GskT3uKxL2e7CLe4k8T79QEctcdxQuFmgYDU6ZOafA==}
+    engines: {node: '>=22.12.0 <23'}
+
+  '@peanut-admin/ui-vue@5.1.0':
+    resolution: {integrity: sha512-TpQwYxndXWXpbpMIW489rEe4XAVg0HhfTkVp6rYLKnxFmw96uV3+u7O4dswAXedazmmgC4V/01E0FbSNxFOX1g==}
     engines: {node: '>=22.12.0 <23'}
     peerDependencies:
-      '@peanut-admin/vue': 5.0.5
+      '@peanut-admin/vue': 5.1.0
       element-plus: ^2.14.3
       vue: ^3.4.21
 
-  '@peanut-admin/vue@5.0.5':
-    resolution: {integrity: sha512-zOzU13BuT3xjV9OijUlvYO0W16FQFRM+/+wqyAa22Oy64+mY8y2nWyBdlNdsZeKUWKUIz5HxEzu0EjRKiv1vTg==}
+  '@peanut-admin/vue@5.1.0':
+    resolution: {integrity: sha512-oL0YTM0Ww6Qe/h2m4tBZ878cLaffvUBa6GeBz3LBSvSCY/GFmb6PuOsLzktuhiWnQqKb+gLPi+Rv36KtYA+hkg==}
     engines: {node: '>=22.12.0 <23'}
     peerDependencies:
+      '@peanut-admin/client': 5.1.0
       pinia: '>=2.0.23 <5'
       vue: ^3.4.21
 
@@ -4457,14 +4465,17 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@peanut-admin/ui-vue@5.0.5(@peanut-admin/vue@5.0.5(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
+  '@peanut-admin/client@5.1.0': {}
+
+  '@peanut-admin/ui-vue@5.1.0(@peanut-admin/vue@5.1.0(@peanut-admin/client@5.1.0)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
     dependencies:
-      '@peanut-admin/vue': 5.0.5(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
+      '@peanut-admin/vue': 5.1.0(@peanut-admin/client@5.1.0)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
       element-plus: 2.14.3(vue@3.5.40(typescript@5.9.3))
       vue: 3.5.40(typescript@5.9.3)
 
-  '@peanut-admin/vue@5.0.5(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
+  '@peanut-admin/vue@5.1.0(@peanut-admin/client@5.1.0)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
     dependencies:
+      '@peanut-admin/client': 5.1.0
       pinia: 2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3))
       vue: 3.5.40(typescript@5.9.3)
 

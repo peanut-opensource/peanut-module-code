@@ -818,13 +818,13 @@ final readonly class ModuleLifecycleService implements ModuleLifecycleCommands
     }
 
     /** @param array<string,mixed> $current */
-    private function sameIdentity(ModuleDescriptor $plugin, array $current): bool
+    public static function sameIdentity(ModuleDescriptor $plugin, array $current): bool
     {
         return (string) $current['installed_version'] === $plugin->version
             && hash_equals((string) $current['artifact_sha256'], $plugin->source['sha256'])
-            && $this->jsonColumn($current['composer_identity_json']) === $this->json($plugin->composer)
-            && $this->jsonColumn($current['npm_identity_json']) === $this->json($plugin->npm)
-            && $this->jsonColumn($current['frontend_identity_json']) === $this->json($plugin->frontend);
+            && self::jsonColumn($current['composer_identity_json']) === self::json($plugin->composer)
+            && self::jsonColumn($current['npm_identity_json']) === self::json($plugin->npm)
+            && self::jsonColumn($current['frontend_identity_json']) === self::json($plugin->frontend);
     }
 
     /** @return array<string,mixed> */
@@ -850,13 +850,13 @@ final readonly class ModuleLifecycleService implements ModuleLifecycleCommands
         );
     }
 
-    private function jsonColumn(mixed $value): string
+    private static function jsonColumn(mixed $value): string
     {
         if (!is_string($value)) {
             return '';
         }
         try {
-            return $this->json(json_decode($value, true, 64, JSON_THROW_ON_ERROR));
+            return self::json(json_decode($value, true, 64, JSON_THROW_ON_ERROR));
         } catch (\JsonException) {
             return '';
         }

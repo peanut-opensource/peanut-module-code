@@ -37,6 +37,8 @@ final readonly class SessionAuthenticationRecord
         public int $currentMemberSecurityRevision,
         public int $authorizationRevision,
         public int $tenantAuthorizationRevision,
+        public int $tenantRevision = 0,
+        public string $profileRevision = '',
     ) {}
 
     public function validated(): \PeanutAdmin\Kernel\Auth\ValidatedTenantSession

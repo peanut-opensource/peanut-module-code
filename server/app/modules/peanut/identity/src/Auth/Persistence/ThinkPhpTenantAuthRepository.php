@@ -340,6 +340,9 @@ final class ThinkPhpTenantAuthRepository implements TenantAuthRepository
                 'tenant.authorization_revision' => 'tenant_authorization_revision',
                 'member.status' => 'member_status', 'member.security_revision' => 'current_member_security_revision',
                 'member.authorization_revision',
+                'tenant.revision' => 'tenant_revision',
+                'account.updated_at' => 'account_updated_at',
+                'member.updated_at' => 'member_updated_at',
             ]);
         if ($forUpdate) {
             $candidate = (clone $query)->find();
@@ -580,6 +583,8 @@ final class ThinkPhpTenantAuthRepository implements TenantAuthRepository
             (int) $row['current_member_security_revision'],
             (int) $row['authorization_revision'],
             (int) $row['tenant_authorization_revision'],
+            (int) $row['tenant_revision'],
+            hash('sha256', (string) $row['account_updated_at'] . "\0" . (string) $row['member_updated_at']),
         );
     }
 

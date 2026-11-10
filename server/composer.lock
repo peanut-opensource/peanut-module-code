@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "41bf2a3b893dbab8c92bf01b7016bc42",
+    "content-hash": "25cbaf0fa911c33b6db84ace68d438d6",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2436,11 +2436,11 @@
         },
         {
             "name": "peanut-business/peanut-file",
-            "version": "1.0.44",
+            "version": "1.0.45",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/file",
-                "reference": "0a5c0137dbb2e11d47c0a58f7e67d19409c4af7e"
+                "reference": "7782cd9084c82d92742f786a46e4a56d5115bc70"
             },
             "require": {
                 "aws/aws-sdk-php": "^3.0",
@@ -2474,11 +2474,11 @@
         },
         {
             "name": "peanut-business/peanut-identity",
-            "version": "4.0.0-rc.59",
+            "version": "4.0.0-rc.60",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/identity",
-                "reference": "70e4b94fc0e501409c64fc96cb62c61068a7fb55"
+                "reference": "6a82f726e54f2c19ae3cc0fcff9eb24517c87670"
             },
             "require": {
                 "peanut-admin/core": "^5.0.3-alpha.6",
@@ -2845,11 +2845,11 @@
         },
         {
             "name": "peanut-business/peanut-settings",
-            "version": "1.0.27",
+            "version": "1.0.28",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/settings",
-                "reference": "b62f437c2caa518f2481c5851dcd95da572fcb3f"
+                "reference": "4adce9af2ea20ad2c12b9d16c7dc7b9ec76f5947"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2882,11 +2882,11 @@
         },
         {
             "name": "peanut-business/peanut-task",
-            "version": "1.0.32",
+            "version": "1.0.34",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/task",
-                "reference": "5045eb6aba42b50c3eb8c8697a78541502b55870"
+                "reference": "c49cf0c92677dcbbe8ee3a7435f85972da915f88"
             },
             "require": {
                 "peanut-admin/core": "^5.0.3-alpha.5",

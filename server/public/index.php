@@ -32,7 +32,7 @@ try {
         exit;
     }
     if ($exception instanceof RuntimeException
-        && preg_match('/^(?:SERVER_DEPLOYMENT_|HTTP_(?:MOUNT_|IMAGE_|WORKER_|PROGRAM_|MUTABLE_|OWNER_))/', $exception->getMessage()) === 1) {
+        && preg_match('/^(?:SERVER_DEPLOYMENT_|HTTP_(?:MOUNT_|IMAGE_|WORKER_|PROGRAM_|MUTABLE_|OWNER_|SOURCE_INPUT_))/', $exception->getMessage()) === 1) {
         error_log('HTTP admission blocked: ' . $exception->getMessage());
         http_response_code(503);
         header('Content-Type: application/json');

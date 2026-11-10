@@ -1,0 +1,282 @@
+#!/usr/bin/env bash
+set -eu
+composer_main() {
+
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+ROOT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
+SERVER_DIR="$ROOT_DIR/server"
+LOCAL_COMPOSER_DIR="$ROOT_DIR/.local/composer-core"
+LOCAL_COMPOSER="$LOCAL_COMPOSER_DIR/composer.json"
+LOCAL_LOCK="$LOCAL_COMPOSER_DIR/composer.lock"
+CORE_DIR=""
+BACKEND_ENV=""
+ACTION="${1:-install}"
+[ $# -gt 0 ] && shift
+
+die() {
+    printf 'local-core-composer: %s\n' "$*" >&2
+    exit 1
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --core-dir) [[ $# -ge 2 ]] || die '--core-dir requires a value'; CORE_DIR="$2"; shift 2 ;;
+        --backend-env) [[ $# -ge 2 ]] || die '--backend-env requires a value'; BACKEND_ENV="$2"; shift 2 ;;
+        *) die "unsupported argument: $1" ;;
+    esac
+done
+[[ "$CORE_DIR" == /* ]] || die '--core-dir must be an absolute path'
+CORE_DIR="$(CDPATH= cd -- "$CORE_DIR" && pwd)"
+if [[ -f "$CORE_DIR/composer.json" ]]; then
+    CORE_PACKAGE_DIR="$CORE_DIR"
+elif [[ -f "$CORE_DIR/packages/php/composer.json" ]]; then
+    CORE_PACKAGE_DIR="$CORE_DIR/packages/php"
+else
+    die "core checkout not found: expected $CORE_DIR/composer.json or $CORE_DIR/packages/php/composer.json"
+fi
+[[ -f "$ROOT_DIR/.local/toolchain/cores/php/host.json" ]] \
+    || die 'PHP Core tool scope is missing; run peanut config for this checkout first'
+core_php() {
+    python3 "$ROOT_DIR/scripts/project-env" --root "$CORE_PACKAGE_DIR" --state-root "$ROOT_DIR" \
+        --host "$ROOT_DIR/.local/toolchain/cores/php/host.json" exec -- php "$@"
+}
+if [[ "$ACTION" != manifest ]]; then
+    [[ "$BACKEND_ENV" == /* && -f "$BACKEND_ENV" && ! -L "$BACKEND_ENV" ]] \
+        || die '--backend-env must be an absolute regular file'
+    # PHP is already required. lstat avoids incompatible BSD/GNU stat output
+    # while preserving the exact regular-file, mode and hard-link checks.
+    core_php -r '$s = lstat($argv[1]); exit(is_array($s) && ($s["mode"] & 0170000) === 0100000 && ($s["mode"] & 0777) === 0600 && $s["nlink"] === 1 ? 0 : 1);' "$BACKEND_ENV" \
+        || die '--backend-env must have mode 0600 and one hard link'
+    backend_directory=$(CDPATH= cd -- "$(dirname -- "$BACKEND_ENV")" && pwd -P)
+    [ "$backend_directory" = "$ROOT_DIR/server" ] || die 'backend environment must be inside server/'
+    backend_name=$(basename -- "$BACKEND_ENV")
+    case "$backend_name" in
+        .env) native_env_name= ;;
+        .env.example) die 'backend environment must not be the example file' ;;
+        .env.*) native_env_name=${backend_name#.env.} ;;
+        *) die 'backend environment must be .env or .env.<name>' ;;
+    esac
+fi
+if [[ "$ACTION" != services && "$ACTION" != services-check ]]; then
+    mkdir -p "$LOCAL_COMPOSER_DIR"
+fi
+
+core_name="$(core_php -r '$manifest = json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR); echo $manifest["name"] ?? "";' "$CORE_PACKAGE_DIR/composer.json")"
+[[ "$core_name" == peanut-admin/core ]] || die 'selected checkout is not peanut-admin/core'
+# Service-only actions must not reinstall dependencies or rewrite local manifests.
+if [[ "$ACTION" != services && "$ACTION" != services-check ]]; then
+required_version="$(core_php -r '$manifest = json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR); echo $manifest["require"]["peanut-admin/core"] ?? "";' "$SERVER_DIR/composer.json")"
+[[ -n "$required_version" ]] || die 'server/composer.json does not pin peanut-admin/core'
+# The development path package uses its actual Git branch identity. Do not
+# disguise an unpublished checkout as the production lock version or an alias.
+core_branch="$(git -C "$CORE_PACKAGE_DIR" symbolic-ref --quiet --short HEAD)" \
+    || die 'local development requires a named Core branch; use the locked package for detached candidates'
+core_requirement="dev-$core_branch"
+update_packages=(peanut-admin/core)
+
+local_package_names="$(core_php -r '
+$source = json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR);
+$source["require"]["peanut-admin/core"] = $argv[6];
+$serverRoot = dirname($argv[1]);
+$developmentRepositories = [
+    [
+        "type" => "path",
+        "url" => $argv[2],
+        "options" => ["symlink" => true],
+    ],
+];
+$localPackages = [];
+foreach ($source["repositories"] ?? [] as $repository) {
+    if (($repository["type"] ?? null) !== "path") {
+        continue;
+    }
+    $url = $repository["url"];
+    $path = realpath(str_starts_with($url, "/") ? $url : $serverRoot . "/" . $url);
+    if ($path === false || !is_file($path . "/composer.json")) {
+        throw new RuntimeException("Configured local package source is missing: " . $url);
+    }
+    $package = json_decode(file_get_contents($path . "/composer.json"), true, 512, JSON_THROW_ON_ERROR);
+    if (!isset($package["require"]["peanut-admin/core"])) {
+        continue;
+    }
+    if (!is_string($package["version"] ?? null) || $package["version"] === "") {
+        throw new RuntimeException("Local module must declare its real version: " . $package["name"]);
+    }
+    // Project only dependency metadata. Composer installs the original source
+    // through its native path downloader; no generated source tree or alias.
+    $package["require"]["peanut-admin/core"] = $argv[6];
+    $package["dist"] = [
+        "type" => "path",
+        "url" => $path,
+        "reference" => hash("sha1", json_encode($package, JSON_THROW_ON_ERROR) . $path),
+    ];
+    $package["transport-options"] = ["symlink" => true, "relative" => false];
+    $developmentRepositories[] = ["type" => "package", "package" => $package];
+    $localPackages[] = $package["name"];
+}
+$source["repositories"] = array_merge($developmentRepositories, $source["repositories"] ?? []);
+// The ignored manifest lives outside server/. Root every source/test path at
+// the selected application, including module-owned public namespaces.
+foreach (["autoload", "autoload-dev"] as $section) {
+    foreach (["psr-4", "psr-0"] as $kind) {
+        foreach ($source[$section][$kind] ?? [] as $namespace => $paths) {
+            $absolute = array_map(
+                static fn(string $path): string => $serverRoot . "/" . ltrim($path, "/"),
+                (array)$paths,
+            );
+            $source[$section][$kind][$namespace] = is_array($paths) ? $absolute : $absolute[0];
+        }
+    }
+    foreach (["classmap", "files", "exclude-from-classmap"] as $kind) {
+        if (isset($source[$section][$kind])) {
+            $source[$section][$kind] = array_map(
+                static fn(string $path): string => $serverRoot . "/" . ltrim($path, "/"),
+                $source[$section][$kind],
+            );
+        }
+    }
+}
+$source["config"]["vendor-dir"] = $argv[3];
+file_put_contents(
+    $argv[4],
+    json_encode($source, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL
+);
+echo implode(PHP_EOL, array_unique($localPackages));
+' "$SERVER_DIR/composer.json" "$CORE_PACKAGE_DIR" "$SERVER_DIR/vendor" "$LOCAL_COMPOSER" "$SERVER_DIR/app" "$core_requirement")"
+while IFS= read -r package; do
+    [[ -z "$package" ]] || update_packages+=("$package")
+done <<< "$local_package_names"
+fi
+
+run_composer() {
+    local tool_environment
+    tool_environment="$(mktemp "$LOCAL_COMPOSER_DIR/tool-environment.XXXXXX")"
+    chmod 600 "$tool_environment"
+    printf 'COMPOSER=%s\nPHP_ENV_NAME=%s\n' "$LOCAL_COMPOSER" "$native_env_name" > "$tool_environment"
+    local status=0
+    "$ROOT_DIR/scripts/run-with-environment-file" --env-file "$tool_environment" -- \
+        python3 "$ROOT_DIR/scripts/project-env" --root "$CORE_PACKAGE_DIR" --state-root "$ROOT_DIR" \
+        --host "$ROOT_DIR/.local/toolchain/cores/php/host.json" exec -- composer --working-dir="$SERVER_DIR" \
+        --no-interaction \
+        "$@" || status=$?
+    rm -f "$tool_environment"
+    return "$status"
+}
+
+# --no-scripts deliberately excludes vendor:publish and unrelated package hooks.
+# It does not replace ThinkPHP's installed-package service registration. In
+# particular, think-multi-app is loaded through vendor/services.php at HttpRun.
+service_registry_preflight() {
+    [[ -f "$SERVER_DIR/vendor/autoload.php" && -f "$SERVER_DIR/think" ]] \
+        || die 'service discovery requires the installed application autoloader and think entry'
+    local file
+    for file in "$SERVER_DIR/vendor/services.php" "$SERVER_DIR/vendor/composer/installed.json"; do
+        [[ ! -L "$file" && ( ! -e "$file" || -f "$file" ) ]] \
+            || die 'service discovery requires regular generated metadata paths'
+    done
+    [[ -f "$SERVER_DIR/vendor/composer/installed.json" ]] \
+        || die 'installed Composer package metadata is missing'
+}
+
+check_application_services() {
+    core_php -r '
+try {
+    $stage = "installed-metadata";
+    $root = $argv[1];
+    $installed = json_decode(file_get_contents($root . "/vendor/composer/installed.json"), true, 512, JSON_THROW_ON_ERROR);
+    $packages = $installed["packages"] ?? $installed;
+    if (!is_array($packages) || !array_is_list($packages)) {
+        throw new RuntimeException("invalid installed package metadata");
+    }
+    $expected = [];
+    foreach ($packages as $package) {
+        if (!is_array($package)) throw new RuntimeException("invalid package entry");
+        if (empty($package["extra"]["think"]["services"])) continue;
+        foreach ((array)$package["extra"]["think"]["services"] as $service) {
+            if (!is_string($service) || $service === "") throw new RuntimeException("invalid service declaration");
+            $expected[] = $service;
+        }
+    }
+    $stage = "multi-app-declaration";
+    if (!in_array("think\\app\\Service", $expected, true)) {
+        throw new RuntimeException("multi-app service is not declared by installed packages");
+    }
+    $stage = "missing-registry";
+    if (!is_file($root . "/vendor/services.php")) throw new RuntimeException("missing service registry");
+    $stage = "registry-mismatch";
+    $actual = require $root . "/vendor/services.php";
+    if ($actual !== $expected) throw new RuntimeException("service registry differs from installed packages");
+    $stage = "service-autoload";
+    require_once $root . "/vendor/autoload.php";
+    foreach ($actual as $service) {
+        if (!class_exists($service)) throw new RuntimeException("registered service class unavailable");
+    }
+    echo "local application services ready: " . count($actual) . " (multi-app included)\n";
+} catch (Throwable $exception) {
+    // Do not print arbitrary exception details or environment values.
+    fwrite(STDERR, "LOCAL_APPLICATION_SERVICE_REGISTRY_NOT_READY:" . $stage . "\n");
+    exit(1);
+}
+' "$SERVER_DIR"
+}
+
+refresh_application_services() {
+    # Run the framework's own command from the real application, not from the
+    # ignored Composer projection. Do not run vendor:publish or migrations.
+    (
+        cd -- "$SERVER_DIR"
+        PHP_ENV_NAME="$native_env_name" core_php think service:discover
+    ) || die 'ThinkPHP service discovery failed'
+    check_application_services || die 'ThinkPHP service discovery did not produce a usable registry'
+}
+
+case "$ACTION" in
+    install)
+        # Unlock only Core and local modules whose Core requirement was projected.
+        # Third-party versions remain fixed by the committed application lock.
+        cp "$SERVER_DIR/composer.lock" "$LOCAL_LOCK"
+        run_composer update "${update_packages[@]}" --no-scripts --no-progress --prefer-dist
+        ;;
+    update|refresh)
+        cp "$SERVER_DIR/composer.lock" "$LOCAL_LOCK"
+        run_composer update "${update_packages[@]}" --no-scripts --no-progress --prefer-dist
+        ;;
+    autoload)
+        run_composer dump-autoload --no-scripts
+        ;;
+    services|services-check)
+        # Reconcile/check existing vendor metadata without a Composer operation.
+        ;;
+    manifest)
+        printf '%s\n' "$LOCAL_COMPOSER"
+        exit 0
+        ;;
+    *)
+        die "usage: $0 {install|update|refresh|autoload|services|services-check|manifest} --core-dir /absolute/path [--backend-env /absolute/server/.env.name]"
+        ;;
+esac
+
+installed_core="$SERVER_DIR/vendor/peanut-admin/core"
+[[ -L "$installed_core" ]] || die "Composer did not install a symlinked local core package: $installed_core"
+resolved_core="$(realpath "$installed_core")"
+[[ "$resolved_core" == "$CORE_PACKAGE_DIR" ]] || die "core symlink resolves to $resolved_core, expected $CORE_PACKAGE_DIR"
+
+service_registry_preflight
+if [[ "$ACTION" == services-check ]]; then
+    check_application_services
+    exit 0
+fi
+refresh_application_services
+
+printf 'local core active: %s -> %s\n' "$installed_core" "$resolved_core"
+
+}
+link_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
+owned_command=$'set -Eeuo pipefail\n'
+owned_command+="$(declare -f composer_main)"
+owned_command+=$'\ncomposer_main "$@"'
+link_operation=php-composer
+[[ "${1:-install}" != services-check ]] || link_operation=php-read
+exec node "$link_root/scripts/local-core-links.mjs" "$link_root" php "$link_operation" -- bash -c "$owned_command" "$0" "$@"

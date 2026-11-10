@@ -1,12 +1,12 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { useUserStore } from '@/store';
+import { ElMessage } from 'element-plus';
 import { getSessionSnapshot, getToken } from '@/utils/auth';
 import i18n from '@/locale';
 import { isTenantAccessToken } from '@peanut-admin/vue';
 import {
   refreshTenantAccessToken,
+  invalidateTenantSession,
   type TenantSessionSnapshot,
 } from '@/api/tenant-session-refresh';
 
@@ -81,13 +81,13 @@ const handleResponse = async (response: AxiosResponse<HttpResponse>) => {
           snapshot,
           retryConfig.signal
         );
-        snapshot.token = refreshedToken;
+        retryConfig.tenantSession = { ...snapshot, token: refreshedToken };
         retryConfig.headers = retryConfig.headers || {};
         retryConfig.headers.Authorization = `Bearer ${refreshedToken}`;
         return axios.request(retryConfig);
       } catch (error) {
-        if (retryConfig.signal?.aborted) return Promise.reject(error);
-        // Continue to the existing re-login flow below.
+        // Core clears only definitive refresh rejection. Network failure preserves the session.
+        return Promise.reject(error);
       }
     }
     if (
@@ -98,43 +98,8 @@ const handleResponse = async (response: AxiosResponse<HttpResponse>) => {
         new Error(res.msg || 'The request session has changed.')
       );
     }
-    ElMessage.error({
-      message: res.msg || 'Error',
-      duration: 5 * 1000,
-    });
-    if (
-      [40100].includes(res.code) &&
-      response.config.url !== '/adminapi/user/info'
-    ) {
-      ElMessageBox.confirm(
-        'You have been logged out, you can cancel to stay on this page, or log in again',
-        'Confirm logout',
-        {
-          confirmButtonText: 'Re-Login',
-          cancelButtonText: 'Cancel',
-          type: 'error',
-        }
-      )
-        .then(async () => {
-          if (
-            snapshot.generation !== getSessionSnapshot().generation ||
-            snapshot.token !== getToken()
-          )
-            return;
-          const userStore = useUserStore();
-          try {
-            await userStore.logout(snapshot);
-          } catch {
-            // Local logout cleanup may finish before tenant-state disposal reports an error.
-          }
-          if (
-            getSessionSnapshot().generation === snapshot.generation + 2 &&
-            getToken() === null
-          )
-            window.location.reload();
-        })
-        .catch(() => undefined);
-    }
+    if (res.code === 40100) await invalidateTenantSession(snapshot);
+    else ElMessage.error({ message: res.msg || 'Error', duration: 5 * 1000 });
     return Promise.reject(new Error(res.msg || 'Error'));
   }
   return res;

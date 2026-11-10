@@ -8,7 +8,6 @@ use PeanutAdmin\Modules\Task\Service\CrontabTaskDefinition;
 use PeanutAdmin\Modules\Task\Service\TaskAuthorizationRouter;
 use PeanutAdmin\Modules\Task\Contract\TaskJobRuntime;
 use PeanutAdmin\Modules\Task\Contract\TaskWorkerDefinition;
-use app\common\infrastructure\async\ModuleAwareTaskHandler;
 use app\common\execution\CurrentExecutionContext;
 use app\common\execution\ExecutionContextStore;
 use app\common\infrastructure\module\ModuleExecutionBoundary;

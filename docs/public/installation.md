@@ -106,7 +106,7 @@ php think tenant:decoration-pages --tenant-id=123
 
 完整实例 SQL dump 属于独立恢复材料，可能包含身份、秘密和业务数据；它不是上述种子，不进入模板包，也不用于填充另一个新 APP。
 
-`server/database/installation/` 仅提供首次安装输入；普通 `migrate:run` 仍扫描 `server/database/migrations/`，不会把新 initial 当作已有实例的增量升级。已有实例的迁移执行情况以原生迁移表为准。APP manifest 的 `installation_migrations` 只记录安装来源路径和摘要：有安装完成或执行状态时，源码升级保留这些文件的原字节与身份，并转为应用持有的安装来源；不会删除旧 initial、改写历史来源或补造已执行版本。尚未安装的 APP 采用目标模板的安装来源快照。
+`server/database/installation/` 仅提供首次安装输入；普通 `migrate:run` 仍扫描 `server/database/migrations/`，不会把新 initial 当作已有实例的增量升级。已有实例的迁移执行情况以原生迁移表为准。APP manifest 的 `installation_migrations` 记录安装来源路径及其有效字节摘要：APP 自有且保留的来源使用 manifest 中受保护的 app-owned 文件摘要，managed 来源使用模板基线摘要；原生升级归并时保留每个路径唯一的有效文件身份。有安装完成或执行状态时，源码升级保留这些文件的原字节与身份，不删除旧 initial、不改写历史来源，也不补造已执行版本。尚未安装且没有 APP 自有来源的 APP 采用目标模板安装来源快照。对已采用的同一正式版本，只有 APP 记录的版本与源码身份完全匹配经 release-lock 校验的目标时，原生升级器才允许再次计划并写入元数据归并结果。
 
 需要工作台示例时，在创建应用时显式选择：
 

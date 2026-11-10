@@ -19,11 +19,31 @@
 
 多个已安装包需要联立更新原生依赖图时，原生 `reconcile` 调用可重复指定 `--selected-installed=<package_key>`，选择包含其必要依赖的已安装锁定图。该调用按真实 Module 节点准备一次 Composer／workspace 依赖和客户端输出，在同一依赖锁内按依赖顺序恢复选中包的 active／failed 安装状态；同批生命周期消费这次已经完成的准备结果，客户端各构建一次。
 
-产品 Git 更新已按锁准备 PHP 依赖并采用静态文件后，使用 `reconcile --release-locked --prepared-release`：复用运行依赖与客户端入口校验，通过原生生命周期采用已有 active 包，不调用依赖解析或客户端构建。该选项仅用于 release-locked；普通开发安装／升级仍使用其原生准备流程，未准备的发行输入不能靠该选项跳过校验。
+产品 Git 更新已按锁准备 PHP 依赖并采用静态文件后，使用 `reconcile --release-locked --prepared-release`：复用运行依赖与客户端入口校验，通过原生生命周期采用已有 active 包，不调用依赖解析或客户端构建。开发时已完成必要准备且只采用部分模块，可重复指定 `reconcile --selected-installed=<package_key> --prepared-release`；选中模块须全部已安装且 active，按依赖顺序采用，其他模块不进入生命周期操作。声明变化先走 `module lock --write` 刷新原生锁和编译目录，API metadata变化走原生生成，前端变化才运行对应客户端构建；普通PHP方法修改不要求反复执行这些步骤。未准备的依赖或静态入口仍明确拒绝，原生迁移、状态、租户及权限校验继续生效。
 
 同一 prepared 入口也支持曾成功激活、随后升级失败的已安装模块：先修复原失败原因，再由原生升级恢复；`reconcile --release-locked --prepared-release --plan-only` 使用相同选择范围，并复用实际升级的只读恢复判定，包括同版本内容变化，不套用首次安装的身份规则。首次安装失败、停用及卸载状态不会因此自动进入发行采用。锁更新后须先通过 API 生成入口刷新目录的来源摘要，再执行采用。
 
+完整调用是 `peanut module reconcile --release-locked --plan-only`，审阅后再按实际准备状态采用。该命令由 CLI 经 `server/module` 桥接，不登记为 `php think module:reconcile`；`ops-module:request` / `ops-module:task` 管理制品交付任务，不代替锁定源码采用。源码更新后须先按应用原生锁准备实际依赖，再编译声明并完成已安装模块采用；仅更新 Git 或运行 compile 不会更新数据库安装身份。具体 Git 更新顺序见[产品更新入口](application-release.md)。
+
 ## 可用的开发与交付入口
+
+日常开发先判断哪些输入发生变化，只执行对应行；同一原生入口已完成的准备不再手工重复。正式候选先固定实际模块组合、原生依赖和模块锁，再生成受影响的 API、inventory 等派生结果；核对最终版本及来源摘要，不在后续源码或锁变化后沿用旧结果。下表不授权自动测试、公开发行或生产部署。
+
+| 本次变化 | 最小必要动作 |
+| --- | --- |
+| 普通 PHP 方法、查询、缓存实现 | 受影响语法检查和实际业务路径；声明、依赖和前端未变时直接使用当前开发运行时 |
+| API metadata、路由或权限目录 | 原生 API 生成；同包同版本的目录变化使用 `module sync --module=<key>`，不重装模块 |
+| module.json/包版本/依赖或迁移 | `module lock --write`；仅准备变化的原生依赖，再 `reconcile --selected-installed=<key>` 采用受影响的已安装图。准备已完成时加 `--prepared-release` |
+| Web 或其他客户端源码/API 类型 | 只构建有实际变化的客户端；后端采用复用该次准备，不在每个模块生命周期重复构建 |
+| Core 源码联调 | 用既有 `core-dev` 选择并链接实际修改的 Core；开发修改直接生效，定版再冻结，不反复发行 Core |
+| 本地模板供其他应用升级 | 汇总通用修改后一次 `peanut release`；其内部已准备锁、依赖、API、inventory 和双 Edition，不先手工重跑相同步骤 |
+| 已有应用采用模板 | 完整保全已有 WIP；当前模块源码与锁有差异时，先用 `module lock --write` 固定实际源码，再 `peanut upgrade --plan` 审阅精确写集并决定真实冲突，最后 `--apply-plan`；CLI 已执行 verify。仅按采用后的实际变化补依赖、模块或客户端准备 |
+
+模块生产应用先采用脚手架升级，再检查、优化模块对当前 Core、宿主及公开合同的使用，收敛模块版本、依赖和派生结果后，按独立授权通过 `peanut module pack <module-key>` 等既有发行入口正式交付模块。消费应用先采用脚手架升级，再选择并升级实际采用的模块，更新对应模块锁及 Composer／workspace 原生依赖锁，最后按实际变化完成迁移、客户端构建和业务确认。脚手架升级不等于模块升级；升级前为保全当前源码而刷新旧模块锁，也不代表已采用目标模块。非业务能力优先引用 Core／脚手架标准实现及既有扩展点，保留应用真实业务定制；三方 baseline 冲突沿原计划审阅，不覆盖定制或伪造摘要。
+
+失败后保留原计划和恢复句柄，修复直接原因，只重做受影响步骤；已知问题集中闭合，不以每次修复重新制包试错。源码采用、运行可用和发行资格分别报告；fail-fast 未执行部分不算通过，环境失败与业务断言失败分记。版本或依赖身份真的变化时由原生入口重新准入，不能用关闭 HTTP 校验替代准备。
+
+正式版应用也可明确选择本地快照模板做开发升级：CLI与原生引擎核对原正式来源及目标快照、Edition、profile和Workflow后，按同一三方计划采用。采用后来源如实记录为development；不手改旧baseline、不伪造Git祖先、不先重建应用。目标版本不得降低，模板载荷、文件冲突和恢复校验保留。
 
 以下命令在完整产品 APP 根执行；先用 `peanut config` 选择已有本机工具，再通过 `scripts/project-env` 运行项目原生 Composer、pnpm/npm。源码生成不执行需要运行环境的 Composer hooks。`peanut module create` 是仅生成源码的入口，不要求 `.env`、数据库或已安装实例，也不启动运行服务。它使用 ThinkPHP 原生参数解析和同一个模块生成器，默认仅生成后端骨架；有管理端贡献时显式选择 `--client=admin-web`。`peanut module create --help` 可在配置运行环境前查看参数。检查、打包、安装等其他命令仍使用应用自己的运行环境和模块信任配置。命令存在不表示模块业务、迁移或客户端已验收。
 
@@ -36,7 +56,7 @@ peanut module pack <vendor.module> --output=<absolute-release-path>/<name>.tar
 
 迁移编号和迁移类名在同一应用组合内唯一。制包时检查待交付模块与作者工作区其他模块之间的冲突。安装和升级包在写入前还会对照目标应用的模块、宿主迁移和已执行账本；升级预案会提前报告冲突。已执行迁移保留原编号和类名，后续变化以新迁移交付。
 
-源码 HTTP 请求只读取已编译模块注册表，不逐请求校验插件目录、编译声明或扫描 PHP 源码边界。`peanut module compile` 在 CLI 中校验锁定声明和后端模块并写入 ThinkPHP 原生 File 缓存，不运行迁移或访问业务数据库；缓存只含模块声明，不含租户、用户或权限快照。`think run` 启动前自动生成，直接使用 `php -S` 的调用方须先执行该命令。`peanut module lock --write` 同步刷新编译结果；锁文件、依赖身份或编译配置改变后，其他采用入口须重新执行 `peanut module compile`。缺失或输入不匹配时 HTTP 返回 503，不在请求中自动重编译。编译结果位于 `runtime/module-registry`，普通业务缓存清理不删除它；清空整个 runtime 后须重新编译。正式部署继续使用既有 VerifiedServerDeployment 发布/读取流程。
+源码 HTTP 请求只读取已编译模块注册表，不逐请求校验插件目录、编译声明或扫描 PHP 源码边界。`peanut module compile` 在 CLI 中校验锁定声明和后端模块并写入 ThinkPHP 原生 File 缓存，不运行迁移或访问业务数据库；缓存只含模块声明，不含租户、用户或权限快照。`think run` 启动前自动生成，直接使用 `php -S` 的调用方须先执行该命令。`peanut module lock --write` 同步刷新编译结果；锁文件、依赖身份或编译配置改变后，其他采用入口须重新执行 `peanut module compile`。缺失或输入不匹配时 HTTP 返回 503，不在请求中自动重编译。使用原生 Docker 单文件只读挂载时，原子替换锁文件后须通过原生容器重启刷新挂载；仅重载 FPM 不更新挂载的文件身份，HTTP 会以 `INSTALL_RUNTIME_RELOADING` 拒绝旧输入。编译结果位于 `runtime/module-registry`，普通业务缓存清理不删除它；清空整个 runtime 后须重新编译。正式部署继续使用既有 VerifiedServerDeployment 发布/读取流程。
 
 Identity 升级若变更核心权限目录，升级完成后须在新的 CLI 进程执行 `peanut module sync --module=peanut.identity`，再执行 `peanut module compile`。PHP 已加载的类不能在同一进程内由新源码替换；升级进程中的目录同步可能仍读取旧权限目录。新进程同步通过原有目录生产链采用新定义；目录生成不授予成员或角色权限，已有租户权益仍由套餐/许可控制。
 
@@ -102,7 +122,7 @@ protected const CRUD_WRITABLE_FIELDS = [
 
 `peanut module pack <module-key>` 生成该 Module 的独立制品，制品 key/版本与 Module 相同。`peanut module make` 的底层作者入口、清单与锁也只接受一个对应 Module；多功能产品通过原有 Module 依赖和应用选择组合，不再有物理多 Module Bundle。Core 仍为外部技术依赖，Code 根目录不保存 Core ZIP/TGZ；最终 APP 安装所需固定归档由独立发行输入生成。
 
-发布前应先完成依赖准备，再使用既有 `reconcile --release-locked`：它读取**整个目标锁**，不仅初始基础模块；首次出现的业务 Module 进入正常安装，已有 Module 按版本和摘要保持或升级。已停用 Module 不会被发布自动启用；明确卸载后的记录在 `preserved_uninstalled` 返回，普通发布不会将其再次安装，需要恢复时显式执行原有 install。仍安装的 Module 若被直接从目标锁删除，发布会报错，开发者须先通过正常退役流程确认依赖、数据和在途工作，不能以删除源码代替卸载。
+发布前应先完成依赖准备，再使用既有 `reconcile --release-locked`：它以**已有 active 安装与目标锁的交集**选择采用范围，不限于初始基础模块；已有 Module 按版本和摘要保持或升级。目标锁中新出现或首装未选择、没有安装记录的 Module 不进入普通更新，也不进入 `--plan-only` 的安装计划；新增模块须显式使用原有 install，并先安装声明的必要依赖。已有 Module 更新所需的依赖若未安装或已停用，原依赖校验会拒绝，不能隐式补装或启用。已停用 Module 不会被发布自动启用；明确卸载后的记录在 `preserved_uninstalled` 返回，需要恢复时显式执行原有 install。仍安装的 Module 若被直接从目标锁删除，发布会报错，开发者须先通过正常退役流程确认依赖、数据和在途工作，不能以删除源码代替卸载。
 
 此处只定义正常操作合同，不把只读计划、源码采用或页面200当作真实首次安装、迁移恢复及业务验收。模块专用应用和具体业务APP各自按实际使用范围验证。
 

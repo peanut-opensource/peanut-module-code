@@ -182,9 +182,11 @@ final class ScaffoldUpgradeRunner
     private function previewSource(string $projectRoot, string $fromManifestPath, string $toManifestPath, ?array $sourceSelection, ?ScaffoldManifest &$verifiedTarget = null): array
     {
         $root = ScaffoldPathGuard::projectRoot($projectRoot);
-        [$application, $applicationDigest] = $this->applicationManifest($root);
+        [$application, $applicationDigest] = $this->applicationManifest($root, false);
         $from = ScaffoldManifest::load($fromManifestPath, true);
         $from->assertRecordedApplication($root, $application, $applicationDigest);
+        $application = $this->mergeProtectedInstallationSources($root, $application);
+        $this->installationSnapshot($application);
         $to = ScaffoldManifest::load($toManifestPath);
         if ($to->isRecordedBaseline()) { throw new RuntimeException('SCAFFOLD_TARGET_REQUIRES_RELEASE_MANIFEST'); }
         $sourceSelection = $this->validateUpgradeSourceSelection($root, $sourceSelection, $to);
@@ -201,11 +203,16 @@ final class ScaffoldUpgradeRunner
                 $application['application']['profile'] ?? '', $workflow['selection'], $from->version(), $workflow['paths']);
             $to = $to->withoutPaths($development['excluded_paths']);
         }
+        $sameReleaseRefresh = $from->isRecordedBaseline() && $from->version() === $to->version()
+            && isset($sourceSelection['template_package_path'])
+            && ($sourceSelection['channel'] ?? null) !== 'development'
+            && $this->matchesPublishedGeneration($application, $sourceSelection['repository'], $sourceSelection['channel'],
+                $to->version(), $to->sourceIdentity()['commit'], $to->sourceIdentity()['tree'], $to->release()['inventory_sha256']);
         $publishedAdoption = $from->isRecordedBaseline() && $from->version() === $to->version()
             && isset($sourceSelection['template_package_path'])
             && ($sourceSelection['channel'] ?? null) !== 'development'
             && ($application['generation_source']['channel'] ?? null) === 'development';
-        $this->assertReleaseChain($application, $from, $to, $publishedAdoption || $development !== null);
+        $this->assertReleaseChain($application, $from, $to, $publishedAdoption || $sameReleaseRefresh || $development !== null);
         [$versionContract, $versionContractDigest] = $this->versionContract($root, $application);
         $fromParameters = $this->parameters($application, (string) $application['application']['version']);
         $instanceVersion = $this->instanceVersion($versionContract);
@@ -293,7 +300,9 @@ final class ScaffoldUpgradeRunner
                 }
                 $create = json_decode($createBytes, true, 512, JSON_THROW_ON_ERROR);
                 if (array_key_exists('installation_migrations', $create['application_manifest'])) {
-                    $identity['target_installation_migrations'] = $this->installationSnapshot($create['application_manifest']);
+                    $identity['target_installation_migrations'] = $this->mergeInstallationSnapshot(
+                        $this->installationSnapshot($create['application_manifest']), $application,
+                    );
                 }
             }
         }
@@ -905,15 +914,19 @@ final class ScaffoldUpgradeRunner
                 throw new RuntimeException('SCAFFOLD_RELEASE_ADOPTION_ARTIFACT_CHANGED: ' . $path);
             }
         }
-        [$application, $applicationDigest] = $this->applicationManifest($root);
+        [$application, $applicationDigest] = $this->applicationManifest($root, false);
         $generation = $application['generation_source'] ?? null;
+        $developmentAdoption = is_array($generation)
+            && ($generation['channel'] ?? null) === 'development'
+            && ($generation['release_version'] ?? null) === null;
+        $sameReleaseRefresh = $this->matchesPublishedGeneration($application, $repository, $channel, $releaseVersion,
+            $sourceCommit, $sourceTree, $inventoryDigest);
         if (!is_array($generation)
             || ($generation['repository'] ?? null) !== $repository
             || !is_string($generation['requested_ref'] ?? null)
             || $generation['requested_ref'] === ''
             || !array_key_exists('release_version', $generation)
-            || $generation['release_version'] !== null
-            || ($generation['channel'] ?? null) !== 'development'
+            || (!$developmentAdoption && !$sameReleaseRefresh)
             || preg_match('/^[a-f0-9]{40}$/D', (string) ($generation['commit'] ?? '')) !== 1
             || ($generation['tree'] ?? null) !== $sourceTree
             || ($generation['inventory_sha256'] ?? null) !== $inventoryDigest
@@ -941,6 +954,8 @@ final class ScaffoldUpgradeRunner
                 throw new RuntimeException('SCAFFOLD_RELEASE_ADOPTION_BASELINE_METADATA_DIFFERS: ' . $path);
             }
         }
+        $application = $this->mergeProtectedInstallationSources($root, $application);
+        $this->installationSnapshot($application);
         $managed = $this->releaseManagedState($root, $application);
         $baseline = $this->releaseBaselineState($root, $application);
         $appOwned = $this->ownershipState($root, $application, 'app-owned');
@@ -1196,7 +1211,15 @@ final class ScaffoldUpgradeRunner
     {
         $baseIdentity = ScaffoldSourceIdentity::from($base, true);
         $targetIdentity = $to->sourceIdentity();
-        if (($base['channel'] ?? null) !== 'development' || !array_key_exists('release_version', $base) || $base['release_version'] !== null
+        $developmentBase = ($base['channel'] ?? null) === 'development'
+            && array_key_exists('release_version', $base) && $base['release_version'] === null;
+        $releaseBase = $baseIdentity['kind'] === 'git'
+            && ($base['repository'] ?? null) === 'peanut-business/peanut-admin-code'
+            && in_array($base['channel'] ?? null, ['stable', 'prerelease'], true)
+            && ($base['release_version'] ?? null) === $fromVersion
+            && ($base['requested_ref'] ?? null) === 'v' . $fromVersion
+            && (($base['channel'] === 'stable') === !str_contains($fromVersion, '-'));
+        if ((!$developmentBase && !$releaseBase)
             || ($selection['channel'] ?? null) !== 'development' || !isset($selection['template_package_path'])
             || !in_array($profile, ['minimal', 'standard', 'full'], true) || !in_array($workflow, ['none', 'runtime', 'full'], true)
             || Semver::compare($fromVersion, $to->version()) > 0) { throw new RuntimeException('SCAFFOLD_LOCAL_DEVELOPMENT_SOURCE_INVALID'); }
@@ -1322,17 +1345,19 @@ final class ScaffoldUpgradeRunner
             'paths' => $present ? null : $this->recordedWorkflowPaths($from)];
     }
 
-    /** Prove immutable development ancestry locally; caller JSON is never source authority. */
+    /** Validate the immutable development target and ancestry when the base is Git. */
     private function developmentSource(array $base, ScaffoldManifest $to, array $selection, string $profile, string $workflow, string $fromVersion, ?array $workflowPaths = null): array
     {
         if ($to->sourceIdentity()['kind'] === 'local') {
             return $this->localDevelopmentSource($base, $to, $selection, $profile, $workflow, $fromVersion, $workflowPaths);
         }
         $repository = 'peanut-business/peanut-admin-code';
+        $baseIdentity = ScaffoldSourceIdentity::from($base, true);
+        $localBase = $baseIdentity['kind'] === 'local';
         $checkout = $selection['source_checkout'] ?? null;
         if (!is_string($checkout) || !str_starts_with($checkout, '/') || realpath($checkout) !== $checkout
             || !is_dir($checkout) || is_link($checkout) || ($selection['channel'] ?? null) !== 'development'
-            || !isset($selection['template_package_path']) || ($base['repository'] ?? null) !== $repository
+            || !isset($selection['template_package_path']) || (!$localBase && ($base['repository'] ?? null) !== $repository)
             || ($base['channel'] ?? null) !== 'development' || !array_key_exists('release_version', $base)
             || $base['release_version'] !== null || Semver::compare($fromVersion, $to->version()) > 0
             || !in_array($profile, ['minimal', 'standard', 'full'], true)
@@ -1379,7 +1404,7 @@ final class ScaffoldUpgradeRunner
         $target = $metadata['source'] ?? [];
         $identities = [];
         $excluded = [];
-        foreach (['base' => $base, 'target' => $target] as $side => $source) {
+        foreach ($localBase ? ['target' => $target] : ['base' => $base, 'target' => $target] as $side => $source) {
             foreach (['commit', 'tree'] as $key) {
                 if (preg_match('/^[a-f0-9]{40}$/D', (string) ($source[$key] ?? '')) !== 1) {
                     throw new RuntimeException('SCAFFOLD_DEVELOPMENT_IDENTITY_INVALID');
@@ -1439,6 +1464,19 @@ final class ScaffoldUpgradeRunner
                 }
             }
             $identities[$side] = array_intersect_key($source, array_flip(['commit', 'tree', 'inventory_sha256']));
+        }
+        if ($localBase) {
+            if ($workflowPaths !== null) {
+                foreach ($workflowPaths as $path) {
+                    if ($this->workflowPathSelected($path, $workflow) !== true) {
+                        throw new RuntimeException('SCAFFOLD_DEVELOPMENT_WORKFLOW_BASELINE_MISMATCH');
+                    }
+                }
+            }
+            sort($excluded, SORT_STRING);
+            return ['relation' => ['kind' => 'local_snapshot', 'base' => $baseIdentity, 'target' => $to->sourceIdentity(),
+                'base_inventory_sha256' => $base['inventory_sha256'], 'target_inventory_sha256' => $target['inventory_sha256']],
+                'excluded_paths' => $excluded];
         }
         $git(['merge-base', '--is-ancestor', $base['commit'], $target['commit']], true);
         sort($excluded, SORT_STRING);
@@ -1544,6 +1582,27 @@ final class ScaffoldUpgradeRunner
                 && $fromEdition['tenant_bootstrap'] !== $expectedBootstrap)) {
             throw new RuntimeException('SCAFFOLD_EDITION_CHAIN_INVALID');
         }
+    }
+
+    private function matchesPublishedGeneration(
+        array $application,
+        string $repository,
+        string $channel,
+        string $version,
+        string $commit,
+        string $tree,
+        string $inventoryDigest,
+    ): bool {
+        $generation = $application['generation_source'] ?? null;
+        return is_array($generation)
+            && ($generation['repository'] ?? null) === $repository
+            && ($generation['channel'] ?? null) === $channel
+            && ($generation['release_version'] ?? null) === $version
+            && ($generation['inventory_sha256'] ?? null) === $inventoryDigest
+            && ($application['template']['version'] ?? null) === $version
+            && ($application['template']['inventory_sha256'] ?? null) === $inventoryDigest
+            && ScaffoldSourceIdentity::from($generation, true) === ['kind' => 'git', 'commit' => $commit, 'tree' => $tree]
+            && ScaffoldSourceIdentity::from($application['template'] ?? []) === ['kind' => 'git', 'commit' => $commit, 'tree' => $tree];
     }
 
     /** @param array<string,mixed> $prepared */
@@ -1701,13 +1760,21 @@ final class ScaffoldUpgradeRunner
             }
         }
         $installationSources = $this->hasRuntimeState($root) ? ($application['installation_migrations'] ?? []) : [];
-        foreach ($installationSources as $path => $digest) {
+        $retainedInstallationSources = [];
+        foreach ($application['installation_migrations'] ?? [] as $path => $digest) {
+            if (($applicationFiles[$path]['classification'] ?? null) !== 'app-owned') { continue; }
             $current = $this->regularFileState(ScaffoldPathGuard::projectPath($root, $path), $path);
             if (!$current['present'] || $current['sha256'] !== $digest) {
                 throw new RuntimeException('SCAFFOLD_INSTALLATION_SOURCE_CHANGED: ' . $path);
             }
-            if (($applicationFiles[$path]['classification'] ?? null) === 'app-owned') {
-                unset($old[$path], $new[$path]);
+            $retainedInstallationSources[$path] = true;
+            unset($old[$path], $new[$path]);
+        }
+        foreach ($installationSources as $path => $digest) {
+            if (isset($retainedInstallationSources[$path])) { continue; }
+            $current = $this->regularFileState(ScaffoldPathGuard::projectPath($root, $path), $path);
+            if (!$current['present'] || $current['sha256'] !== $digest) {
+                throw new RuntimeException('SCAFFOLD_INSTALLATION_SOURCE_CHANGED: ' . $path);
             }
         }
         $renamedFrom = [];
@@ -1793,7 +1860,7 @@ final class ScaffoldUpgradeRunner
             $projectPath = ScaffoldPathGuard::projectPath($root, $path);
             $current = $this->regularFileState($projectPath, $path);
             $instanceFile = $applicationFiles[$path] ?? null;
-            if (isset($installationSources[$path])) {
+            if (isset($installationSources[$path]) || isset($retainedInstallationSources[$path])) {
                 $actions[] = $this->action($path, $after ?? $before ?? [], 'omit', 'installation_source_retained', false, $current, null);
                 continue;
             }
@@ -1811,10 +1878,11 @@ final class ScaffoldUpgradeRunner
                 continue;
             }
             if ($after === null) {
-                // These Module sources moved to the independent Module application.
+                // These Module sources and their consumed host export adapter moved to the independent Module application.
                 // A template removal cannot consent to deleting an application's development source.
                 if (preg_match('#^server/app/modules/peanut/(?:chart|chart_examples|article|member|payment|oauth|document|rich_text|collaboration|workflow|import_export|notification|entitlement_quota|artifact_revision)/#D', $path) === 1
-                    || preg_match('#^(?:(?:web|platform|uniapp)/src/modules|pc/modules)/peanut-(?:chart|chart-examples|article|member|payment|oauth|document|rich-text|collaboration|workflow|import-export|notification|entitlement-quota|artifact-revision)/#D', $path) === 1) {
+                    || preg_match('#^(?:(?:web|platform|uniapp)/src/modules|pc/modules)/peanut-(?:chart|chart-examples|article|member|payment|oauth|document|rich-text|collaboration|workflow|import-export|notification|entitlement-quota|artifact-revision)/#D', $path) === 1
+                    || $path === 'server/app/common/infrastructure/export/OperationLogExportProvider.php') {
                     $actions[] = $this->action($path, $before ?? [], 'conflict', 'module_source_ownership_transition_required', true, $current, null);
                     continue;
                 }
@@ -3594,7 +3662,7 @@ final class ScaffoldUpgradeRunner
         }
     }
 
-    private function applicationManifest(string $root): array
+    private function applicationManifest(string $root, bool $mergeProtectedInstallationSources = true): array
     {
         $path = ScaffoldPathGuard::projectPath($root, '.peanut/application-manifest.json');
         if (!is_file($path) || is_link($path)) {
@@ -3617,8 +3685,80 @@ final class ScaffoldUpgradeRunner
         if (preg_match('/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:[-+][0-9A-Za-z.-]+)?$/D', (string) $version) !== 1) {
             throw new RuntimeException('SCAFFOLD_APPLICATION_VERSION_INVALID');
         }
-        $this->installationSnapshot($data);
+        if ($mergeProtectedInstallationSources) {
+            $data = $this->mergeProtectedInstallationSources($root, $data);
+            $this->installationSnapshot($data);
+        }
         return [$data, 'sha256:' . hash('sha256', (string) $raw)];
+    }
+
+    /** Reconcile only the known retained-source duplicate produced by older native applies. */
+    private function mergeProtectedInstallationSources(string $root, array $application): array
+    {
+        $snapshot = $application['installation_migrations'] ?? [];
+        if (!is_array($snapshot)) { throw new RuntimeException('SCAFFOLD_INSTALLATION_SNAPSHOT_INVALID'); }
+        $rowsByPath = [];
+        foreach ($application['files'] as $index => $file) {
+            if (is_array($file) && is_string($file['path'] ?? null)) {
+                $rowsByPath[$file['path']][] = [$index, $file];
+            }
+        }
+        $remove = [];
+        foreach ($snapshot as $path => $digest) {
+            $rows = $rowsByPath[$path] ?? [];
+            $owned = array_values(array_filter($rows, static fn(array $row): bool =>
+                ($row[1]['classification'] ?? null) === 'app-owned'));
+            if ($owned === []) { continue; }
+            if (count($owned) !== 1) { throw new RuntimeException('SCAFFOLD_INSTALLATION_SNAPSHOT_INVALID'); }
+            [$ownedIndex, $source] = $owned[0];
+            if (($source['owner'] ?? null) !== 'application' || ($source['source'] ?? null) !== $path
+                || !is_string($source['sha256'] ?? null) || preg_match('/^[a-f0-9]{64}$/D', $source['sha256']) !== 1) {
+                throw new RuntimeException('SCAFFOLD_INSTALLATION_SNAPSHOT_INVALID');
+            }
+            $current = $this->regularFileState(ScaffoldPathGuard::projectPath($root, $path), $path);
+            if (!$current['present'] || $current['sha256'] !== $source['sha256'] || $current['mode'] !== ($source['mode'] ?? null)) {
+                throw new RuntimeException('SCAFFOLD_INSTALLATION_SOURCE_CHANGED: ' . $path);
+            }
+            if (count($rows) > 1) {
+                if (count($rows) !== 2) { throw new RuntimeException('SCAFFOLD_INSTALLATION_SNAPSHOT_INVALID'); }
+                $managed = $rows[0][0] === $ownedIndex ? $rows[1] : $rows[0];
+                $record = $managed[1];
+                if (!in_array($record['classification'] ?? null, ['managed', 'generated-managed'], true)
+                    || ($record['owner'] ?? null) !== 'scaffold' || ($record['source'] ?? null) !== $path
+                    || ($record['sha256'] ?? null) !== $source['sha256'] || ($record['mode'] ?? null) !== $source['mode']
+                    || !in_array($digest, [$source['sha256'], $record['baseline_sha256'] ?? null], true)
+                    || ($record['baseline_path'] ?? null) !== '.peanut/scaffold-baseline/'
+                        . ($application['template']['version'] ?? '') . '/files/' . $path) {
+                    throw new RuntimeException('SCAFFOLD_INSTALLATION_SNAPSHOT_INVALID');
+                }
+                $remove[$managed[0]] = true;
+                $snapshot[$path] = $source['sha256'];
+            } elseif ($source['sha256'] !== $digest) {
+                throw new RuntimeException('SCAFFOLD_INSTALLATION_SNAPSHOT_INVALID');
+            }
+        }
+        if ($remove !== []) {
+            $application['files'] = array_values(array_filter($application['files'], static fn(array $file, int $index): bool => !isset($remove[$index]), ARRAY_FILTER_USE_BOTH));
+            $managed = array_values(array_filter($application['files'], static fn(array $file): bool =>
+                in_array($file['classification'] ?? null, ['managed', 'generated-managed'], true)));
+            $application['digests']['managed_tree_sha256'] = $this->manifestTreeDigest($managed);
+        }
+        ksort($snapshot, SORT_STRING);
+        $application['installation_migrations'] = $snapshot;
+        return $application;
+    }
+
+    /** Retained app-owned sources keep their identity when the target template snapshot is merged. */
+    private function mergeInstallationSnapshot(array $target, array $application): array
+    {
+        $files = array_column($application['files'], null, 'path');
+        foreach ($application['installation_migrations'] ?? [] as $path => $digest) {
+            if (($files[$path]['classification'] ?? null) === 'app-owned') {
+                $target[$path] = $digest;
+            }
+        }
+        ksort($target, SORT_STRING);
+        return $target;
     }
 
     /** Installation source bytes, never evidence that a database migration ran. */

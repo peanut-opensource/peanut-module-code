@@ -8,6 +8,11 @@ use app\common\execution\CurrentExecutionContext;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Tenant;
 use PeanutAdmin\Modules\Identity\Persistence\Model\TenantMember;
 use PeanutAdmin\Modules\Identity\Persistence\Model\MemberJob;
+use PeanutAdmin\Modules\Identity\Auth\TenantAuthService;
+use PeanutAdmin\Kernel\Auth\TenantContext;
+use think\facade\Cache;
+use think\facade\Db;
+use app\common\http\PageResult;
 
 /** Non-ORM read boundary for the native Account/TenantMember directory. */
 final readonly class AdminDirectoryQuery
@@ -15,6 +20,29 @@ final readonly class AdminDirectoryQuery
     public function __construct(
         private CurrentExecutionContext $execution,
     ) {}
+
+    /** Tenant-wide presentation settings; customer addresses/timezones belong to the business Module.
+     * @return array{id:int,code:string,name:string,display_name:string,locale:string,timezone:string}
+     */
+    public function tenantProfile(TenantContext $context): array
+    {
+        $read = static function () use ($context): array {
+            $row = Tenant::where('id', $context->tenantId)->where('status', 'active')
+                ->field('id,code,name,display_name,locale,timezone')->find();
+            if ($row === null) {
+                throw new \DomainException('TENANT_PROFILE_UNAVAILABLE');
+            }
+            $profile = $row->toArray();
+            $profile['id'] = (int) $profile['id'];
+            return $profile;
+        };
+        $admission = TenantAuthService::authenticatedRead($context);
+        if ($admission === null) {
+            return $read();
+        }
+        return Cache::remember('identity:tenant-profile:v1:' . $context->tenantId . ':'
+            . $admission['record']->tenantRevision, $read, 300);
+    }
 
     /**
      * Lifecycle projection for a bounded caller-selected set, not a grant of access.
@@ -91,14 +119,148 @@ final readonly class AdminDirectoryQuery
                 throw new \InvalidArgumentException('TENANT_MEMBER_ID_INVALID');
             }
         }
-        foreach (array_chunk(array_values(array_unique($memberIds)), 500) as $chunk) {
-            $rows = TenantMember::where('tenant_id', $context->tenantId)
-                ->whereIn('id', $chunk)->field('id,display_name')->select()->toArray();
-            foreach ($rows as $row) {
-                $names[(int) $row['id']] = (string) $row['display_name'];
+        $memberIds = array_values(array_unique($memberIds));
+        sort($memberIds, SORT_NUMERIC);
+        $admission = TenantAuthService::authenticatedRead($context);
+        foreach (array_chunk($memberIds, 500) as $chunk) {
+            $key = 'identity:member-names:v1:' . $context->tenantId . ':'
+                . $context->tenantAuthorizationRevision . ':' . hash('sha256', implode(',', $chunk));
+            $batch = $admission === null ? null : Cache::get($key);
+            if ($batch === null) {
+                $batch = [];
+                $rows = TenantMember::where('tenant_id', $context->tenantId)
+                    ->whereIn('id', $chunk)->field('id,display_name')->select()->toArray();
+                foreach ($rows as $row) {
+                    $batch[(int) $row['id']] = (string) $row['display_name'];
+                }
+                if ($admission !== null) {
+                    Cache::set($key, $batch, 300);
+                }
             }
+            $names += $batch;
         }
         return $names;
+    }
+
+    /**
+     * Presentation only, for an already admitted actor; never an operation grant.
+     * Null IDs select the email directory, explicit IDs resolve bounded references (including inactive members).
+     * directoryOnly retains that directory membership restriction for selected historical references.
+     * Active/name semantics match TenantMemberDirectory, without revalidating the actor per reference.
+     * @param null|list<int> $memberIds
+     * @param null|list<int> $departmentIds Null leaves departments unrestricted; explicit IDs are unioned below.
+     * @param list<int> $includeMemberIds Additional candidates such as self or historical goal holders.
+     * @return array<int,array{id:int,display_name:string,active_name:string,primary_department_id:?int,status:string,active:bool}>
+     */
+    public function memberSummaries(TenantContext $context, ?array $memberIds = null, string $name = '', bool $directoryOnly = false,
+        ?array $departmentIds = null, array $includeMemberIds = []): array
+    {
+        if ($this->execution->tenantAdmin() !== $context) {
+            throw new \DomainException('EXECUTION_TENANT_ADMIN_CONTEXT_REQUIRED');
+        }
+        if ($memberIds !== null) {
+            foreach ($memberIds as $id) {
+                if (!is_int($id) || $id < 1) throw new \InvalidArgumentException('TENANT_MEMBER_ID_INVALID');
+            }
+        }
+        $result = [];
+        $chunks = $memberIds === null ? [null] : array_chunk(array_values(array_unique($memberIds)), 500);
+        foreach ($chunks as $chunk) {
+            $query = TenantMember::alias('member')
+                ->join('tenant tenant', 'tenant.id=member.tenant_id')
+                ->join('account account', 'account.id=member.account_id')
+                ->where('member.tenant_id', $context->tenantId)
+                ->field('member.id,member.display_name,member.primary_department_id,member.status,account.display_name AS account_name,account.status AS account_status,tenant.status AS tenant_status');
+            if ($chunk !== null) $query->whereIn('member.id', $chunk);
+            if ($chunk === null || $directoryOnly) {
+                $credential = \think\facade\Db::name('credential')
+                    ->whereColumn('account_id', 'member.account_id')->where('identifier_type', 'email')->field('account_id')->buildSql();
+                $query->whereRaw('EXISTS ' . $credential);
+            }
+            if ($departmentIds !== null) {
+                $query->where(function ($scope) use ($departmentIds, $includeMemberIds) {
+                    $scope->whereIn('member.primary_department_id', $departmentIds);
+                    if ($includeMemberIds) $scope->whereOr('member.id', 'in', $includeMemberIds);
+                });
+            }
+            if (!empty($name)) $query->whereLike('member.display_name', '%' . $name . '%');
+            foreach ($query->order('member.id', 'desc')->select()->toArray() as $row) {
+                $activeName = trim((string) ($row['display_name'] ?: $row['account_name']));
+                $id = (int) $row['id'];
+                $result[$id] = ['id'=>$id, 'display_name'=>(string) $row['display_name'], 'active_name'=>$activeName,
+                    'primary_department_id'=>$row['primary_department_id'] === null ? null : (int) $row['primary_department_id'],
+                    'status'=>(string) $row['status'],
+                    'active'=>$row['status'] === 'active' && $row['account_status'] === 'active' && $row['tenant_status'] === 'active' && $activeName !== ''];
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Native pagination for self plus the caller's permitted departments and inactive historical references.
+     * The caller owns department/history authorization and supplies the admitted actor's display name.
+     * Historical IDs do not include active members who have moved outside the permitted departments.
+     * @param list<int> $departmentIds
+     * @param list<int> $historicalMemberIds
+     * @return array{lists:list<array{id:string,name:string}>,count:int,pageNo:int,pageSize:int}
+     */
+    public function memberOptionsPage(TenantContext $context, array $departmentIds, string $selfName, string $name,
+        int $page, int $pageSize, array $historicalMemberIds = [], string $inactiveSuffix = ''): array
+    {
+        if ($this->execution->tenantAdmin() !== $context) {
+            throw new \DomainException('EXECUTION_TENANT_ADMIN_CONTEXT_REQUIRED');
+        }
+        // PHP's ?: also falls back for the literal "0"; binary comparison avoids SQL padding rules.
+        $activeName = "CASE WHEN member.display_name IS NULL OR OCTET_LENGTH(member.display_name)=0
+            OR CAST(member.display_name AS BINARY)=CAST('0' AS BINARY)
+            THEN COALESCE(account.display_name, '') ELSE member.display_name END";
+        $nonBlank = $activeName;
+        // Only detect blank names here; trim the selected page in PHP with the original whitespace semantics.
+        foreach ([0, 9, 10, 11, 13, 32] as $char) $nonBlank = "REPLACE($nonBlank, CHAR($char), '')";
+        $active = "(member.status='active' AND account.status='active' AND tenant.status='active' AND OCTET_LENGTH($nonBlank)>0)";
+        $credential = Db::name('credential')->whereColumn('account_id', 'member.account_id')
+            ->where('identifier_type', 'email')->field('account_id')->buildSql();
+        $base = TenantMember::alias('member')
+            ->join('tenant tenant', 'tenant.id=member.tenant_id')->join('account account', 'account.id=member.account_id')
+            ->where('member.tenant_id', $context->tenantId)
+            ->where(function ($scope) use ($context, $departmentIds, $historicalMemberIds) {
+                $scope->whereIn('member.id', [$context->memberId, ...$historicalMemberIds]);
+                if ($departmentIds) $scope->whereOr('member.primary_department_id', 'in', $departmentIds);
+            })
+            ->where(function ($directory) use ($context, $credential) {
+                $directory->where('member.id', $context->memberId)->whereOrRaw('EXISTS ' . $credential);
+            })
+            ->field('member.id,member.display_name,member.primary_department_id')
+            ->fieldRaw("$activeName AS active_name, $active AS active");
+        if ($name !== '') {
+            if (mb_stripos($selfName, $name) === false) $base->where('member.id', '<>', $context->memberId);
+            if (!empty($name)) {
+                $base->where(function ($search) use ($context, $name) {
+                    $search->where('member.id', $context->memberId)->whereOr('member.display_name', 'like', '%' . $name . '%');
+                });
+            }
+        }
+        $choices = Db::table([$base->buildSql()=>'directory_member'])->pk('id')->field('id,active')
+            ->field(Db::raw('CASE WHEN id=' . $context->memberId . ' THEN ? WHEN active=1 THEN active_name ELSE CONCAT(display_name, ?) END AS option_name', [$selfName, $inactiveSuffix]))
+            ->where(function ($scope) use ($context, $departmentIds, $historicalMemberIds) {
+                $scope->where('id', $context->memberId);
+                if ($departmentIds) $scope->whereOr(function ($team) use ($departmentIds) {
+                    $team->where('active', 1)->whereIn('primary_department_id', $departmentIds);
+                });
+                if ($historicalMemberIds) $scope->whereOr(function ($history) use ($historicalMemberIds) {
+                    $history->where('active', 0)->whereIn('id', $historicalMemberIds);
+                });
+            });
+        $query = Db::table([$choices->buildSql()=>'member_options'])->pk('id');
+        if ($name !== '') $query->where(function ($search) use ($context, $name) {
+            // LIKE above preserves the directory search; LOCATE keeps the final literal, case-insensitive match.
+            $search->where('id', $context->memberId)
+                ->whereOrRaw('LOCATE(CAST(LOWER(?) AS BINARY), CAST(LOWER(option_name) AS BINARY)) > 0', [$name]);
+        });
+        $query->orderRaw('(id=' . $context->memberId . ') DESC')->order('id', 'desc');
+        return PageResult::fromPaginator($query->paginate(['list_rows'=>$pageSize, 'page'=>$page]), $page)
+            ->map(static fn(array $row): array => ['id'=>(string) $row['id'],
+                'name'=>$row['active'] ? trim((string) $row['option_name']) : (string) $row['option_name']])->responseData();
     }
 
     /** 受信初始化命令在事务内读取并锁定目标；返回稳定代码，不授予调用者权限。 */
@@ -128,6 +290,23 @@ final readonly class AdminDirectoryQuery
             ->where('member.tenant_id', $tenantId)->where('member.id', $memberId)
             ->where('member.account_id', $accountId)->where('member.status', 'active')
             ->where('role.id', $roleId)->value('member.id') !== null;
+    }
+
+    /** Active directory members in a selected tenant department set; no profiles, roles or jobs are loaded.
+     * @param list<int> $departmentIds @return list<int>
+     */
+    public function activeMemberIdsInDepartments(\PeanutAdmin\Kernel\Auth\TenantContext $context, array $departmentIds): array
+    {
+        if ($departmentIds === []) return [];
+        if ($this->execution->tenantAdmin() !== $context) {
+            throw new \DomainException('EXECUTION_TENANT_ADMIN_CONTEXT_REQUIRED');
+        }
+        return array_map('intval', TenantMember::alias('member')
+            ->join('account account', 'account.id = member.account_id')
+            ->join('credential credential', "credential.account_id = account.id AND credential.identifier_type = 'email'")
+            ->where('member.tenant_id', $context->tenantId)->where('member.status', 'active')
+            ->whereIn('member.primary_department_id', $departmentIds)
+            ->distinct(true)->column('member.id'));
     }
 
     /** @return list<array<string,mixed>> */

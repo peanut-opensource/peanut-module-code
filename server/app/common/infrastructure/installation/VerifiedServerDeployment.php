@@ -53,7 +53,7 @@ final readonly class VerifiedServerDeployment
             $store = self::store($app);
             $file = $store->getCacheKey($pointer['key']);
             self::assertProtectedPath($root, substr($file, strlen($root) + 1), $httpMount);
-            if (!hash_equals($pointer['sha256'], hash('sha256', self::bytes($file)))) {
+            if (!hash_equals($pointer['sha256'], self::digest(self::bytes($file)))) {
                 throw new RuntimeException('SERVER_DEPLOYMENT_ADMISSION_INVALID');
             }
             $record = $store->get($pointer['key']);
@@ -112,7 +112,7 @@ final readonly class VerifiedServerDeployment
         if ((fileperms($directory) & 07777) !== 0755) {
             throw new RuntimeException('SERVER_DEPLOYMENT_ADMISSION_UNAVAILABLE');
         }
-        $key = hash('sha256', json_encode($record, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+        $key = self::digest(json_encode($record, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
         $store = self::store($app);
         $path = $store->getCacheKey($key);
         if (!file_exists($path)) {
@@ -127,7 +127,7 @@ final readonly class VerifiedServerDeployment
             }
         }
         $pointer = json_encode(['format' => self::FORMAT, 'key' => $key,
-            'sha256' => hash('sha256', self::bytes($path))], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES) . "\n";
+            'sha256' => self::digest(self::bytes($path))], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES) . "\n";
         $temporary = $directory . '/current-' . bin2hex(random_bytes(8)) . '.tmp';
         $handle = fopen($temporary, 'xb');
         if (!is_resource($handle)) {
@@ -274,32 +274,32 @@ final readonly class VerifiedServerDeployment
             throw new RuntimeException('SERVER_DEPLOYMENT_ADMISSION_INVALID');
         }
         $config['module_lock'] = $expectedLock;
-        $binding = ['modules' => hash('sha256', json_encode($config, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES)),
+        $binding = ['modules' => self::digest(json_encode($config, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES)),
             'program_authority' => $httpMount !== null ? ['boundary' => 'native-readonly-http']
                 : ['boundary' => 'unix-dac', 'deployment_owner' => fileowner($root), 'root_mode' => fileperms($root) & 07777]];
         $inputs = $httpMount?->admissionInputs();
         if ($source) {
             ReadonlyHttpMount::assertSourceInputs($root, $httpMount);
             $binding['identity'] = $inputs !== null ? $inputs['identity'] : ApplicationSourceIdentity::sourceDigest($root);
-            $binding['lock'] = hash('sha256', self::bytes(dirname($root) . '/modules.lock'));
+            $binding['lock'] = self::digest(self::bytes(dirname($root) . '/modules.lock'));
         }
         foreach (['identity' => $source ? null : self::identityPath($root), 'lock' => $source ? null : 'modules.lock',
             'dependencies' => 'composer.lock', 'installed_dependencies' => 'vendor/composer/installed.json'] as $key => $path) {
             if ($path === null) { continue; }
             self::assertProtectedPath($root, $path, $httpMount);
             $binding[$key] = $key === 'identity' && $inputs !== null
-                ? $inputs['identity'] : hash('sha256', self::bytes($root . '/' . $path));
+                ? $inputs['identity'] : self::digest(self::bytes($root . '/' . $path));
         }
         if (ApplicationSourceIdentity::hasRuntime($root)) {
             self::assertProtectedPath($root, 'vendor/.peanut-complete.json', $httpMount);
-            $binding['vendor_seal'] = hash('sha256', self::bytes($root . '/vendor/.peanut-complete.json'));
+            $binding['vendor_seal'] = self::digest(self::bytes($root . '/vendor/.peanut-complete.json'));
         }
         foreach (['.env', 'private/resources/project-resources.json', 'private/resources/configuration.json'] as $file) {
             $path = $root . '/' . $file;
             if ($httpMount !== null && (file_exists($path) || is_link($path))) {
                 self::assertProtectedPath($root, $file, $httpMount);
             }
-            $binding[$file] = file_exists($path) || is_link($path) ? hash('sha256', self::bytes($path)) : null;
+            $binding[$file] = file_exists($path) || is_link($path) ? self::digest(self::bytes($path)) : null;
         }
         foreach (['installed' => 'installed.json', 'baseline' => 'baseline.json', 'deployment' => 'deployment.json'] as $key => $file) {
             foreach (['private', 'private/installation'] as $directory) {
@@ -316,7 +316,7 @@ final readonly class VerifiedServerDeployment
                 self::assertProtectedPath($root, 'private/installation/deployment.json');
             }
             $binding[$key] = $key === 'deployment' && $inputs !== null ? $inputs['deployment_sha256']
-                : ($bytes !== null ? hash('sha256', $bytes) : null);
+                : ($bytes !== null ? self::digest($bytes) : null);
         }
         return $binding;
     }
@@ -413,6 +413,16 @@ final readonly class VerifiedServerDeployment
                 throw new RuntimeException('SERVER_DEPLOYMENT_PROGRAM_WRITABLE: ' . $relative);
             }
         }
+    }
+
+    /** Preserve the SHA-256 wire format while using the required OpenSSL extension. */
+    private static function digest(string $bytes): string
+    {
+        $digest = openssl_digest($bytes, 'sha256');
+        if ($digest === false) {
+            throw new RuntimeException('SERVER_DEPLOYMENT_ADMISSION_UNAVAILABLE');
+        }
+        return $digest;
     }
 
     private static function bytes(string $path): string

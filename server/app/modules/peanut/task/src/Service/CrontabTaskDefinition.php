@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace PeanutAdmin\Modules\Task\Service;
 
-use app\common\enum\CrontabEnum;
+use PeanutAdmin\Modules\Task\Enum\CrontabEnum;
 use app\common\execution\CurrentExecutionContext;
 use app\common\execution\ExecutionContextStore;
 use app\common\execution\SystemExecutionContext;

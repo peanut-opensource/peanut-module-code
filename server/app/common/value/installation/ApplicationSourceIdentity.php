@@ -73,7 +73,17 @@ final readonly class ApplicationSourceIdentity
             if (!is_file($path) || is_link($path)) {
                 throw new RuntimeException('APPLICATION_SOURCE_MANIFEST_INVALID');
             }
-            $digests[] = hash_file('sha256', $path);
+            $bytes = file_get_contents($path);
+            if (!is_string($bytes)) {
+                throw new RuntimeException('APPLICATION_SOURCE_MANIFEST_INVALID');
+            }
+            // OpenSSL uses the platform's accelerated SHA-256 implementation.
+            // Keep hashing all current bytes; do not substitute mtime or a cached identity.
+            $digest = openssl_digest($bytes, 'sha256');
+            if ($digest === false) {
+                throw new RuntimeException('APPLICATION_SOURCE_MANIFEST_INVALID');
+            }
+            $digests[] = $digest;
         }
         return hash('sha256', implode(':', $digests));
     }

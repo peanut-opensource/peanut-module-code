@@ -33,7 +33,7 @@ final readonly class ModuleCatalogApplier
      * @param null|list<string> $moduleKeys Null applies the complete compiled registry; a list applies only that scope.
      * @return array{operation:string,modules:list<string>,catalog_revision:string,changes:array{menus:int,permissions:int,settings:int,reference_codes:int}}
      */
-    public function apply(CompiledModuleRegistry $registry, ?array $moduleKeys = null, bool $invalidate = true): array
+    public function apply(CompiledModuleRegistry $registry, ?array $moduleKeys = null, bool $invalidate = true, bool $refreshActiveIdentities = false): array
     {
         $manifests = [];
         foreach ($registry->modules as $manifest) {
@@ -52,7 +52,8 @@ final readonly class ModuleCatalogApplier
         $selected = array_intersect_key($manifests, array_fill_keys($selectedKeys, true));
         $compiledScope = $this->scope($registry, $selected);
         $before = $this->catalogRevision();
-        $after = Db::transaction(function () use ($compiledScope, $fullRegistry, $registry, $selected, $selectedKeys, $before, $invalidate): string {
+        $identityChanged = false;
+        $after = Db::transaction(function () use ($compiledScope, $fullRegistry, $registry, $selected, $selectedKeys, $before, $invalidate, $refreshActiveIdentities, &$identityChanged): string {
             $this->authorization->synchronize($compiledScope);
             (new \PeanutAdmin\Modules\Identity\Authorization\ApiPermissionCatalog())->synchronize(
                 \app\common\services\authorization\GeneratedApiCatalog::load(dirname(__DIR__, 4)), $selectedKeys, $fullRegistry,
@@ -83,15 +84,16 @@ final readonly class ModuleCatalogApplier
                     $this->retire($absent, false);
                 }
             }
+            $identityChanged = $refreshActiveIdentities && $this->identityLifecycle->refreshActiveCatalogIdentities($selected) > 0;
             $after = $this->catalogRevision();
-            if ($invalidate && !hash_equals($before, $after)) {
+            if ($invalidate && ($identityChanged || !hash_equals($before, $after))) {
                 $this->authorization->invalidateTenantAuthorization(['core', ...$selectedKeys]);
             }
             return $after;
         });
 
         return [
-            'operation' => hash_equals($before, $after) ? 'unchanged' : 'synced',
+            'operation' => !$identityChanged && hash_equals($before, $after) ? 'unchanged' : 'synced',
             'modules' => $selectedKeys,
             'catalog_revision' => $after,
             'changes' => $this->activeCounts($selectedKeys),

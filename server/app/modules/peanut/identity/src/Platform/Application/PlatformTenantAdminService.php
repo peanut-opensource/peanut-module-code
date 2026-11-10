@@ -126,7 +126,7 @@ final readonly class PlatformTenantAdminService
     ): array {
         $changeReason = $this->changeReason($changeReason);
 
-        return Db::transaction(function () use ($actor, $tenantId, $expectedRevision, $next, $changeReason): array {
+        $result = Db::transaction(function () use ($actor, $tenantId, $expectedRevision, $next, $changeReason): array {
             $this->requireOperator($actor);
             $before = $this->tenant($tenantId, true);
             $this->assertRevision($before, $expectedRevision);
@@ -173,6 +173,8 @@ final readonly class PlatformTenantAdminService
 
             return $after;
         });
+        \PeanutAdmin\Modules\Identity\Tenancy\Infrastructure\ThinkPhpTenantEntryBindingLookup::invalidate();
+        return $result;
     }
 
     /** @return array{0: string, 1: string, 2: string, 3: string} */

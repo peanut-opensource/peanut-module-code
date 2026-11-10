@@ -10,13 +10,13 @@ use PeanutAdmin\Modules\File\Model\Storage\FileDerivative;
 use PeanutAdmin\Modules\File\Model\Storage\FileImageAsset;
 use PeanutAdmin\Modules\File\Model\Storage\FileObject;
 use PeanutAdmin\Modules\File\Contract\FileAdministration;
-use app\common\enum\FileEnum;
+use PeanutAdmin\Modules\File\Enum\FileEnum;
 use app\common\exception\BusinessException;
 use app\common\execution\CurrentExecutionContext;
 use app\common\http\PageResult;
 use PeanutAdmin\Modules\File\Service\Storage\StorageService;
 use app\common\support\PaginationInput;
-use app\common\support\PositiveIds;
+use PeanutAdmin\Modules\File\Support\PositiveIds;
 use think\facade\Db;
 
 /** Application use cases for File media and categories. */

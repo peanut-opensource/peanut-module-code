@@ -1,0 +1,10 @@
+[
+  {"key":"peanut.integration.access","type":"api","name":"访问集成安全中心","risk_level":"normal"},
+  {"key":"peanut.integration.machine.read","type":"api","name":"查看机器身份","risk_level":"normal"},
+  {"key":"peanut.integration.machine.manage","type":"action","name":"管理机器身份凭据","risk_level":"critical"},
+  {"key":"peanut.integration.webhook.read","type":"api","name":"查看 Webhook","risk_level":"normal"},
+  {"key":"peanut.integration.webhook.manage","type":"action","name":"管理 Webhook 与签名密钥","risk_level":"critical"},
+  {"key":"peanut.integration.delivery.read","type":"api","name":"查看 Webhook 投递记录","risk_level":"sensitive"},
+  {"key":"peanut.integration.session.read","type":"api","name":"查看当前账号会话","risk_level":"sensitive"},
+  {"key":"peanut.integration.session.revoke","type":"action","name":"撤销当前账号会话","risk_level":"critical"}
+]

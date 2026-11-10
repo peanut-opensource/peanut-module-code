@@ -298,14 +298,7 @@ class AppService extends Service
             \PeanutAdmin\Modules\Identity\Authorization\Persistence\ThinkPhpAuthorizationCatalogRepository::class,
         );
         $this->app->bind(\PeanutAdmin\Kernel\Menu\MenuCatalogRepository::class, ThinkPhpMenuCatalogRepository::class);
-        $this->app->bind(AdminAuthorizationService::class, fn(): AdminAuthorizationService => new AdminAuthorizationService(
-            $this->app->make(CoreTenantModuleAdminBridge::class),
-            $this->app->make(AdminPermissionPolicy::class),
-            $this->app->make(AdminDirectoryQuery::class),
-            $this->app->make(TenantAuthorizationQuery::class),
-            $this->app->make(\app\common\services\authorization\EndpointPermissionGrant::class),
-        ));
-        $this->app->bind(AdminAuthorizationQuery::class, fn(): AdminAuthorizationQuery => $this->app->make(AdminAuthorizationService::class));
+        $this->app->bind(AdminAuthorizationQuery::class, AdminAuthorizationService::class);
         $this->app->bind(CoreTenantModuleAdminBridge::class, fn(): CoreTenantModuleAdminBridge => new CoreTenantModuleAdminBridge(
             $this->app->make(ThinkPhpModuleGovernanceProvider::class),
             $this->app->make(\PeanutAdmin\Kernel\Authorization\TenantAuthorizationRepository::class),

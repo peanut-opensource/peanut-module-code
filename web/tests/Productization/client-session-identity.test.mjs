@@ -5,6 +5,10 @@ import { resolve } from 'node:path';
 import { webcrypto } from 'node:crypto';
 import vm from 'node:vm';
 import test from 'node:test';
+import {
+  createSessionRecovery,
+  createSessionFetch,
+} from '../../node_modules/@peanut-admin/client/dist/index.js';
 
 const root = resolve(import.meta.dirname, '../../..');
 const require = createRequire(import.meta.url);
@@ -47,6 +51,7 @@ function load(
     localStorage,
     crypto: webcrypto,
     window,
+    URL,
     require: (name) => {
       assert.ok(Object.hasOwn(bindings, name), name);
       return bindings[name];
@@ -74,7 +79,15 @@ function platform(transport) {
   };
   controlledAxios.default = controlledAxios;
   const api = load('platform/src/api/platform.ts', localStorage, {
-    axios: controlledAxios,
+    'axios': controlledAxios,
+    './tenant-license': load(
+      'platform/src/api/tenant-license.ts',
+      localStorage
+    ),
+    './permission-bundles': load(
+      'platform/src/api/permission-bundles.ts',
+      localStorage
+    ),
   });
   return { ...api, localStorage };
 }
@@ -102,6 +115,180 @@ test('Web tabs preserve refresh identity and invalidate a login/tenant transitio
   a.advanceSessionGeneration();
   a.setToken('new-account-token');
   assert.ok(b.getSessionSnapshot().generation > before.generation);
+});
+
+function tenantHost({ refresh, status = 401, code = 40100 } = {}) {
+  const localStorage = storage();
+  const auth = load('web/src/utils/auth.ts', localStorage);
+  auth.setToken('pa_tat_old');
+  const client = axios.create();
+  client.isAxiosError = axios.isAxiosError;
+  client.isCancel = axios.isCancel;
+  client.default = client;
+  let cleanups = 0;
+  let redirects = 0;
+  const router = {
+    currentRoute: { value: { fullPath: '/customer?page=2', name: 'customer' } },
+    replace: async (to) => {
+      redirects++;
+      assert.equal(to.name, 'login');
+      assert.equal(to.query.redirect, '/customer?page=2');
+      router.currentRoute.value.name = 'login';
+    },
+  };
+  const isTenantAccessToken = (token) => token?.startsWith('pa_tat_') === true;
+  const recovery = load('web/src/api/tenant-session-refresh.ts', localStorage, {
+    'axios': client,
+    '@peanut-admin/client': { createSessionRecovery },
+    '@peanut-admin/vue': { isTenantAccessToken },
+    '@/utils/auth': auth,
+    '@/api/tenant-session': {
+      refreshTenantSession:
+        refresh ??
+        (async () => {
+          throw {
+            isAxiosError: true,
+            response: { status: 401, data: { code: 40100 } },
+          };
+        }),
+    },
+    '@/store': {
+      useUserStore: () => ({
+        logoutCallBack: async (generation, token) => {
+          const current = auth.getSessionSnapshot();
+          if (current.generation !== generation || current.token !== token)
+            return false;
+          cleanups++;
+          auth.clearToken();
+          return true;
+        },
+      }),
+    },
+    '@/router': { default: router },
+  });
+  const messages = [];
+  load('web/src/api/interceptor.ts', localStorage, {
+    'axios': client,
+    'element-plus': {
+      ElMessage: { error: (message) => messages.push(message) },
+    },
+    '@/utils/auth': auth,
+    '@/locale': { default: { global: { t: (key) => key } } },
+    '@peanut-admin/vue': { isTenantAccessToken },
+    '@/api/tenant-session-refresh': recovery,
+  });
+  client.defaults.adapter = async (config) => ({
+    data: envelope(null, code),
+    status,
+    statusText: 'rejected',
+    headers: {},
+    config,
+  });
+  const fetched = load(
+    'web/src/api/tenant-session-fetch.ts',
+    localStorage,
+    {
+      '@peanut-admin/client': {
+        createSessionFetch: (options) =>
+          createSessionFetch({
+            ...options,
+            fetch: async () =>
+              new Response(JSON.stringify(envelope(null, code)), { status }),
+          }),
+      },
+      '@/api/tenant-session-refresh': recovery,
+    },
+    { location: { href: 'https://example.test/admin/customer' } }
+  );
+  return {
+    client,
+    auth,
+    recovery,
+    fetched,
+    counts: () => ({ cleanups, redirects }),
+    messages,
+  };
+}
+
+test('Web profile read failures abort navigation without remote logout or local cleanup', async () => {
+  const shared = storage();
+  const auth = load('web/src/utils/auth.ts', shared);
+  auth.setToken('pa_tat_current');
+  let guard;
+  let logoutCalls = 0;
+  const { default: setup } = load(
+    'web/src/router/guard/userLoginInfo.ts',
+    shared,
+    {
+      'nprogress': { default: { start() {}, done() {} } },
+      '@/store': {
+        useUserStore: () => ({
+          role: null,
+          info: async () => {
+            throw new Error('network/forbidden');
+          },
+          logout: async () => {
+            logoutCalls++;
+          },
+        }),
+      },
+      '@/utils/auth': auth,
+      '../constants': { WHITE_LIST: [{ name: 'login' }] },
+    }
+  );
+  setup({
+    beforeEach: (callback) => {
+      guard = callback;
+    },
+  });
+  let outcome;
+  await guard(
+    { name: 'customer', fullPath: '/customer', query: {} },
+    {},
+    (value) => {
+      outcome = value;
+    }
+  );
+  assert.equal(outcome, false);
+  assert.equal(logoutCalls, 0);
+  assert.equal(auth.getToken(), 'pa_tat_current');
+});
+
+test('Web API expiry clears and navigates immediately without a confirmation or remote logout', async () => {
+  const h = tenantHost();
+  await assert.rejects(h.client.get('/adminapi/customer/lists'));
+  assert.equal(h.auth.getToken(), null);
+  assert.deepEqual(h.counts(), { cleanups: 1, redirects: 1 });
+});
+
+test('Axios and fetch share one local invalidation for the same failed session', async () => {
+  const h = tenantHost();
+  await Promise.allSettled([
+    h.client.get('/adminapi/customer/lists'),
+    h.fetched.tenantSessionFetch(
+      new Request('https://example.test/adminapi/api/v1/items')
+    ),
+  ]);
+  assert.deepEqual(h.counts(), { cleanups: 1, redirects: 1 });
+  assert.equal(typeof h.fetched.tenantSessionFetch, 'function');
+});
+
+test('Web refresh network failure and forbidden API response do not log out', async () => {
+  const h = tenantHost({
+    refresh: async () => {
+      throw new Error('network offline');
+    },
+  });
+  await assert.rejects(
+    h.client.get('/adminapi/customer/lists'),
+    /network offline/
+  );
+  assert.equal(h.auth.getToken(), 'pa_tat_old');
+  assert.deepEqual(h.counts(), { cleanups: 0, redirects: 0 });
+  const forbidden = tenantHost({ status: 403, code: 40300 });
+  await assert.rejects(forbidden.client.get('/adminapi/customer/lists'));
+  assert.equal(forbidden.auth.getToken(), 'pa_tat_old');
+  assert.deepEqual(forbidden.counts(), { cleanups: 0, redirects: 0 });
 });
 
 for (const identity of ['session-change', 'token-refresh'])

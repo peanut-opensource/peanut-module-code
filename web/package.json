@@ -3,7 +3,7 @@
     "description": "Peanut Module Code management client",
     "version": "1.0.0",
     "private": true,
-    "author": "花生科技",
+    "author": "\u82b1\u751f\u79d1\u6280",
     "license": "Apache-2.0",
     "homepage": "https://github.com/peanut-business/peanut-admin-code",
     "repository": {
@@ -13,10 +13,10 @@
     },
     "scripts": {
         "dev": "vite --configLoader runner",
-    "build": "node ../scripts/sync-brand-assets.mjs && vue-tsc --noEmit && vite build --configLoader runner",
+        "build": "node ../scripts/sync-brand-assets.mjs && vue-tsc --noEmit && vite build --configLoader runner",
         "report": "REPORT=true npm run build",
         "preview": "npm run build && vite preview --host",
-    "type:check": "node ../scripts/sync-brand-assets.mjs && vue-tsc --noEmit --skipLibCheck",
+        "type:check": "node ../scripts/sync-brand-assets.mjs && vue-tsc --noEmit --skipLibCheck",
         "lint-staged": "npx lint-staged",
         "hooks:install": "husky install"
     },
@@ -37,9 +37,10 @@
     },
     "dependencies": {
         "@element-plus/icons-vue": "2.3.2",
+        "@peanut-admin/client": "5.1.0",
         "@peanut-admin/peanut-chart": "workspace:^1.0.0",
-        "@peanut-admin/ui-vue": "5.0.5",
-        "@peanut-admin/vue": "5.0.5",
+        "@peanut-admin/ui-vue": "5.1.0",
+        "@peanut-admin/vue": "5.1.0",
         "@vueuse/core": "^9.3.0",
         "axios": "0.34.0",
         "dayjs": "^1.11.5",

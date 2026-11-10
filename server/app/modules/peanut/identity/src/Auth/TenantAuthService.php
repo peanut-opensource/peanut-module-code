@@ -450,10 +450,30 @@ final class TenantAuthService
         string $accessToken,
         string $requestId,
     ): \PeanutAdmin\Kernel\Auth\TenantContext {
-        return \PeanutAdmin\Kernel\Auth\TenantContext::fromValidatedSession(
-            $this->validatedAccessSession($accessToken, false),
-            $requestId,
+        $record = null;
+        $context = \PeanutAdmin\Kernel\Auth\TenantContext::fromValidatedSession(
+            $this->validatedAccessSession($accessToken, false, $record), $requestId,
         );
+        if ($record !== null && !app()->runningInConsole() && app()->request->isGet()) {
+            app()->request->withMiddleware([self::class => ['context' => $context, 'record' => $record]]);
+        }
+        return $context;
+    }
+
+    /** Only the live admission of this exact HTTP read may select cross-request cache versions.
+     * @return null|array{context:\PeanutAdmin\Kernel\Auth\TenantContext,record:SessionAuthenticationRecord}
+     */
+    public static function authenticatedRead(?\PeanutAdmin\Kernel\Auth\TenantContext $context = null): ?array
+    {
+        if (app()->runningInConsole() || !app()->request->isGet()) {
+            return null;
+        }
+        $pdo = Db::connect()->getPdo();
+        if ($pdo !== false && $pdo->inTransaction()) {
+            return null;
+        }
+        $read = app()->request->middleware(self::class);
+        return is_array($read) && ($context === null || $read['context'] === $context) ? $read : null;
     }
 
     public function logout(#[SensitiveParameter] string $accessToken, string $requestId): void
@@ -545,7 +565,7 @@ final class TenantAuthService
         return $result;
     }
 
-    private function validatedAccessSession(string $accessToken, bool $forUpdate = true): \PeanutAdmin\Kernel\Auth\ValidatedTenantSession
+    private function validatedAccessSession(string $accessToken, bool $forUpdate = true, ?SessionAuthenticationRecord &$readRecord = null): \PeanutAdmin\Kernel\Auth\ValidatedTenantSession
     {
         $this->assertTenantTokenPrefix($accessToken, \PeanutAdmin\Kernel\Auth\TokenIssuer::TENANT_ACCESS_PREFIX);
         // Normal HTTP context reads never lock authority rows. Existing write callers
@@ -562,6 +582,7 @@ final class TenantAuthService
                 throw $tokenFailure;
             }
             if ($this->sessionFailure($record, $now) === null) {
+                $readRecord = $record;
                 return $record->validated();
             }
         }

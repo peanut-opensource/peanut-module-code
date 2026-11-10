@@ -1,0 +1,1 @@
+import{E as c,x as l}from"./index-BnoKacfV.js";function i(){const s=l({});return{replace:(e={})=>{s.value={...e}},preview:e=>typeof e=="string"&&s.value[e]||"",select:(e,t,u="")=>{const r=t[0];return!(r!=null&&r.file_key)||r.access_type!=="public"?(c.error("请选择公开的图片素材"),u):(s.value[r.file_key]=e[0]||"",r.file_key)}}}export{i as u};

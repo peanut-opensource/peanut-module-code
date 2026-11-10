@@ -7,7 +7,7 @@ namespace PeanutAdmin\Modules\File\Controller;
 use app\adminapi\controller\BaseAdminController;
 use PeanutAdmin\Modules\File\Contract\FileUploads;
 use PeanutAdmin\Modules\File\Contract\Dto\UploadFile;
-use app\common\enum\FileEnum;
+use PeanutAdmin\Modules\File\Enum\FileEnum;
 use think\file\UploadedFile;
 use app\common\exception\BusinessException;
 

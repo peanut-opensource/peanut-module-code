@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Settings\Infrastructure;
 
 use PeanutAdmin\Modules\Settings\Contract\TenantSettingSnapshot;
+use PeanutAdmin\Modules\Settings\Model\TenantApplicationSetting;
 use think\facade\Db;
 
 /** Tenant settings use the tenant_id schema in both Editions. */
@@ -12,7 +13,8 @@ final class ThinkPhpTenantSettingsProvider
 {
     public function find(int $tenantId, string $namespace): ?TenantSettingSnapshot
     {
-        $query = Db::name('tenant_setting')->where('namespace', $namespace)
+        $model = new TenantApplicationSetting();
+        $query = Db::name('tenant_setting')->pk($model->getPk())->schema($model->getOption('schema'))->where('namespace', $namespace)
             ->where('tenant_id', $tenantId);
         $row = $query->find();
         return is_array($row) ? $this->snapshot($row, $tenantId) : null;

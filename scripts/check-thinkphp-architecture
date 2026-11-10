@@ -372,7 +372,7 @@ def hits_for(path: Path, text: str, public_types: set[str] | None = None) -> lis
         if (re.search(r"\bclass\s+[A-Za-z0-9_]+\s+extends\s+Command\b", line)
             and rel != "server/app/common/execution/ContextualCommand.php") or (re.search(
             r"\bclass\s+[A-Za-z0-9_]+\s+implements\s+TaskHandler\b", line
-        ) and rel != "server/app/common/infrastructure/async/ModuleAwareTaskHandler.php"):
+        ) and rel != "server/app/modules/peanut/task/src/Infrastructure/Runtime/ModuleAwareTaskHandler.php"):
             hits.append(("non_http_entry", number, line.strip()))
         if "Db::connect(" in line and rel not in DATABASE_COMPOSITION_ROOTS:
             hits.append(("database_connection_locator", number, line.strip()))

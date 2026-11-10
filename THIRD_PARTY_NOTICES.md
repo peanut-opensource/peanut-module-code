@@ -1,6 +1,6 @@
 # Peanut Module Code Third-Party Notices
 
-Generated for Peanut Module Code 5.1.4 on 2026-11-08.
+Generated for Peanut Module Code 5.1.8 on 2026-11-10.
 
 Peanut Module Code is licensed under Apache-2.0: Copyright 2026 application owner. Third-party components remain governed by their own licenses.
 
@@ -19,7 +19,7 @@ Peanut Module Code is licensed under Apache-2.0: Copyright 2026 application owne
 | LikeAdmin 1.9.4 | MIT | Used as the documented behavioral parity reference. This notice does not claim the application is a clean-room implementation. Source: https://github.com/likeadmin-likeshop/likeadmin_php |
 | ThinkPHP 8 | Apache-2.0 | Backend framework. Its upstream notice is also retained at `server/LICENSE.txt`. Source: https://github.com/top-think/framework |
 | `peanut-admin/core` | Apache-2.0 | Composer core package locked at v5.0.3 (f2b0435f577c5119f1dfc58d34c274ccb149c477). Source: https://github.com/peanut-business/peanut-admin-core-php |
-| Peanut Module Code Core Web | Apache-2.0 | npm core packages locked as @peanut-admin/client@5.0.5, @peanut-admin/vue@5.0.5, @peanut-admin/ui-vue@5.0.5, @peanut-admin/nuxt@5.0.5, @peanut-admin/uniapp@5.0.5, @peanut-admin/testing@5.0.5. Source: https://github.com/peanut-business/peanut-admin-core-web |
+| Peanut Module Code Core Web | Apache-2.0 | npm core packages locked as @peanut-admin/client@5.1.0, @peanut-admin/vue@5.1.0, @peanut-admin/ui-vue@5.1.0, @peanut-admin/nuxt@5.1.0, @peanut-admin/uniapp@5.1.0, @peanut-admin/testing@5.1.0. Source: https://github.com/peanut-business/peanut-admin-core-web |
 
 ## License handling
 
@@ -50,7 +50,7 @@ Peanut Module Code is licensed under Apache-2.0: Copyright 2026 application owne
 | pc | `MIT-0` | 3 |
 | pc | `MPL-2.0` | 12 |
 | pc | `MPL-2.0 OR Apache-2.0` | 1 |
-| platform | `Apache-2.0` | 4 |
+| platform | `Apache-2.0` | 5 |
 | platform | `BSD-2-Clause` | 1 |
 | platform | `BSD-3-Clause` | 2 |
 | platform | `ISC` | 3 |
@@ -75,7 +75,7 @@ Peanut Module Code is licensed under Apache-2.0: Copyright 2026 application owne
 | uniapp | `MIT AND Zlib` | 1 |
 | uniapp | `MIT OR CC0-1.0` | 1 |
 | web | `0BSD` | 2 |
-| web | `Apache-2.0` | 17 |
+| web | `Apache-2.0` | 18 |
 | web | `BlueOak-1.0.0` | 1 |
 | web | `BSD-2-Clause` | 23 |
 | web | `BSD-3-Clause` | 9 |
@@ -119,13 +119,13 @@ These 54 packages are installed with `composer install --no-dev` in the producti
 | `opis/uri` | `1.1.0` | `Apache-2.0` | https://github.com/opis/uri.git |
 | `peanut-admin/core` | `v5.0.3` | `Apache-2.0` | https://github.com/peanut-business/peanut-admin-core-php.git |
 | `peanut-business/peanut-content-tools` | `1.0.2` | `Apache-2.0` | app/modules/peanut/content_tools |
-| `peanut-business/peanut-file` | `1.0.44` | `Apache-2.0` | app/modules/peanut/file |
-| `peanut-business/peanut-identity` | `4.0.0-rc.59` | `Apache-2.0` | app/modules/peanut/identity |
+| `peanut-business/peanut-file` | `1.0.45` | `Apache-2.0` | app/modules/peanut/file |
+| `peanut-business/peanut-identity` | `4.0.0-rc.60` | `Apache-2.0` | app/modules/peanut/identity |
 | `peanut-business/peanut-integration` | `1.0.29` | `Apache-2.0` | app/modules/peanut/integration |
 | `peanut-business/peanut-ops` | `1.0.33` | `Apache-2.0` | app/modules/peanut/ops |
 | `peanut-business/peanut-reference-codes` | `1.0.26` | `Apache-2.0` | app/modules/peanut/reference_codes |
-| `peanut-business/peanut-settings` | `1.0.27` | `Apache-2.0` | app/modules/peanut/settings |
-| `peanut-business/peanut-task` | `1.0.32` | `Apache-2.0` | app/modules/peanut/task |
+| `peanut-business/peanut-settings` | `1.0.28` | `Apache-2.0` | app/modules/peanut/settings |
+| `peanut-business/peanut-task` | `1.0.34` | `Apache-2.0` | app/modules/peanut/task |
 | `psr/container` | `2.0.2` | `MIT` | https://github.com/php-fig/container.git |
 | `psr/http-client` | `1.0.3` | `MIT` | https://github.com/php-fig/http-client.git |
 | `psr/http-factory` | `1.1.0` | `MIT` | https://github.com/php-fig/http-factory.git |

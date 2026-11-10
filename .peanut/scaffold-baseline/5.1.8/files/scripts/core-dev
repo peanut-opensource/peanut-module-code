@@ -1,0 +1,149 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+core_dev_main() {
+set -Eeuo pipefail
+
+ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)"
+ACTION="${1:-status}"
+[[ $# -eq 0 ]] || shift
+PHP_CORE_DIR=""
+WEB_CORE_DIR=""
+BACKEND_ENV=""
+CLIENT="all"
+
+die() { printf 'core-dev: %s\n' "$*" >&2; exit 1; }
+usage() {
+  cat <<'USAGE'
+Usage: scripts/core-dev {select|install|status|link|link-status|php-status|php-path|web-path}
+  [--path /absolute/application-checkout]
+  --php-core-dir /absolute/peanut-admin-core-php
+  --web-core-dir /absolute/peanut-admin-core-web
+  [--backend-env /absolute/server/.env.development]
+  [--client web,platform|pc|uniapp|all]
+
+select persists this choice in the application's ignored .local/core-dev.json.
+Missing source paths reuse the saved choice, then host.json core.php/core.web on select.
+Following commands reuse that choice; command-line paths override it for that call.
+Development always uses both explicitly selected local Core checkouts.
+install/link activate source links; status/link-status verify those links.
+Local Web exports use dist/, compiled by the existing TypeScript toolchain.
+First select the checkouts and run install/link to prepare source dependencies.
+Use the prepared Core tool scope for the existing Web Core watch (see development docs).
+--client limits Web install/link/status to the listed clients; default: all.
+Start clients separately with native npm run dev / npm run dev:h5 commands;
+they consume the prepared links and do not start Core watchers or read this choice.
+Do not re-link or rebuild for each edit; stop affected clients and Core watch
+before switching source links or refreshing dependencies.
+An APP without a saved choice uses its normal fixed packages. Candidate delivery
+uses fixed Core packages and native locks, independently of these source links.
+USAGE
+}
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --path) [[ $# -ge 2 && "$2" == /* ]] || die '--path requires an absolute checkout'; ROOT_DIR="$2"; shift 2 ;;
+    --php-core-dir) [[ $# -ge 2 ]] || die 'missing PHP Core path'; PHP_CORE_DIR="$2"; shift 2 ;;
+    --web-core-dir) [[ $# -ge 2 ]] || die 'missing Web Core path'; WEB_CORE_DIR="$2"; shift 2 ;;
+    --backend-env) [[ $# -ge 2 ]] || die 'missing environment path'; BACKEND_ENV="$2"; shift 2 ;;
+    --client) [[ $# -ge 2 ]] || die 'missing client selection'; CLIENT="$2"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+done
+[[ "$CLIENT" == all || "$CLIENT" =~ ^(web|platform|pc|uniapp)(,(web|platform|pc|uniapp))*$ ]] || die 'unsupported client selection'
+ROOT_DIR="$(CDPATH= cd -- "$ROOT_DIR" && pwd -P)"
+[[ -f "$ROOT_DIR/server/composer.json" && -x "$ROOT_DIR/scripts/local-core-composer" ]] || die 'application checkout is invalid'
+selection_file="$ROOT_DIR/.local/core-dev.json"
+if [[ -e "$selection_file" || -L "$selection_file" ]]; then
+  selection="$(node - "$selection_file" "$ROOT_DIR" <<'NODE'
+const fs = require('node:fs');
+const [file, root] = process.argv.slice(2);
+const stat = fs.lstatSync(file);
+if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) throw new Error('Local Core selection must be a regular file');
+const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+if (data.schema_version !== 1 || data.application_root !== root) throw new Error('Local Core selection belongs to another checkout');
+for (const key of ['php_core_dir', 'web_core_dir', 'backend_env']) {
+  if (typeof data[key] !== 'string' || !data[key].startsWith('/') || /[\x00-\x1f\x7f]/.test(data[key])) throw new Error(`Invalid Core selection: ${key}`);
+  console.log(data[key]);
+}
+NODE
+)" || die 'saved local Core selection is invalid; no fixed-package fallback'
+  [[ -n "$PHP_CORE_DIR" ]] || PHP_CORE_DIR="$(printf '%s\n' "$selection" | sed -n '1p')"
+  [[ -n "$WEB_CORE_DIR" ]] || WEB_CORE_DIR="$(printf '%s\n' "$selection" | sed -n '2p')"
+  [[ -n "$BACKEND_ENV" ]] || BACKEND_ENV="$(printf '%s\n' "$selection" | sed -n '3p')"
+fi
+if [[ "$ACTION" == select && ( -z "$PHP_CORE_DIR" || -z "$WEB_CORE_DIR" ) && -f "$ROOT_DIR/.local/toolchain/host.json" ]]; then
+  configured="$(node - "$ROOT_DIR/.local/toolchain/host.json" <<'NODE'
+const fs = require('node:fs');
+const host = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+for (const key of ['php', 'web']) {
+  const value = host.core?.[key] ?? '';
+  if (typeof value !== 'string' || (value && !value.startsWith('/')) || /[\x00-\x1f\x7f]/.test(value)) throw new Error(`Invalid configured Core path: ${key}`);
+  console.log(value);
+}
+NODE
+)" || die 'configured Core paths are invalid; supply explicit source paths'
+  [[ -n "$PHP_CORE_DIR" ]] || PHP_CORE_DIR="$(printf '%s\n' "$configured" | sed -n '1p')"
+  [[ -n "$WEB_CORE_DIR" ]] || WEB_CORE_DIR="$(printf '%s\n' "$configured" | sed -n '2p')"
+fi
+[[ "$PHP_CORE_DIR" == /* && "$WEB_CORE_DIR" == /* ]] || die 'both absolute Core checkout paths are required'
+PHP_CORE_DIR="$(CDPATH= cd -- "$PHP_CORE_DIR" && pwd -P)"
+WEB_CORE_DIR="$(CDPATH= cd -- "$WEB_CORE_DIR" && pwd -P)"
+[[ -f "$PHP_CORE_DIR/composer.json" ]] || die 'PHP Core composer.json is missing'
+[[ -f "$WEB_CORE_DIR/pnpm-workspace.yaml" ]] || die 'Web Core workspace is missing'
+node -e 'if(require(process.argv[1]).name!=="peanut-admin/core"||require(process.argv[2]).name!=="@peanut-admin/web-workspace")process.exit(1)' \
+  "$PHP_CORE_DIR/composer.json" "$WEB_CORE_DIR/package.json" || die 'selected Core package identity is invalid'
+
+case "$ACTION" in
+  select)
+    [[ "$BACKEND_ENV" == /* && -f "$BACKEND_ENV" && ! -L "$BACKEND_ENV" ]] || die 'select requires an absolute regular --backend-env'
+    [[ ! -L "$ROOT_DIR/.local" && ! -L "$selection_file" ]] || die 'local Core selection may not use linked configuration paths'
+    mkdir -p "$ROOT_DIR/.local"
+    node - "$selection_file" "$ROOT_DIR" "$PHP_CORE_DIR" "$WEB_CORE_DIR" "$BACKEND_ENV" <<'NODE'
+const fs = require('node:fs');
+const [file, application_root, php_core_dir, web_core_dir, backend_env] = process.argv.slice(2);
+for (const value of [application_root, php_core_dir, web_core_dir, backend_env]) {
+  if (/[\x00-\x1f\x7f]/.test(value)) throw new Error('Control characters are not allowed in selection paths');
+}
+fs.writeFileSync(file, JSON.stringify({ schema_version: 1, application_root, php_core_dir, web_core_dir, backend_env }, null, 2) + '\n', { mode: 0o600 });
+fs.chmodSync(file, 0o600);
+NODE
+    printf 'core-dev: selected local PHP/Web source in %s; install/link is a separate dependency write\n' "$selection_file"
+    exit 0
+    ;;
+  php-path) printf '%s\n' "$PHP_CORE_DIR"; exit 0 ;;
+  web-path) printf '%s\n' "$WEB_CORE_DIR"; exit 0 ;;
+  install|link)
+    [[ "$BACKEND_ENV" == /* ]] || die 'install requires --backend-env'
+    "$ROOT_DIR/scripts/local-core-composer" install --core-dir "$PHP_CORE_DIR" --backend-env "$BACKEND_ENV"
+    "$ROOT_DIR/scripts/local-core-web" link --core-dir "$WEB_CORE_DIR" --client "$CLIENT"
+    ;;
+  status|link-status|php-status)
+    php_link="$ROOT_DIR/server/vendor/peanut-admin/core"
+    [[ -L "$php_link" && "$(realpath "$php_link")" == "$PHP_CORE_DIR" ]] \
+      || die 'installed PHP Core does not link to the selected checkout'
+    [[ "$ACTION" == php-status ]] || "$ROOT_DIR/scripts/local-core-web" link-status --core-dir "$WEB_CORE_DIR" --client "$CLIENT"
+    ;;
+  *) usage >&2; die "unsupported action: $ACTION" ;;
+esac
+printf 'core-dev: %s completed for explicit PHP and Web Core checkouts\n' "$ACTION"
+
+}
+if [[ "${1:-status}" == select ]]; then
+    source_root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)"
+    target_root="$source_root"
+    arguments=("$@")
+    for ((index=1; index<${#arguments[@]}; index++)); do
+        if [[ "${arguments[index]}" == --path ]]; then
+            ((index+=1))
+            [[ $index -lt ${#arguments[@]} && "${arguments[index]}" == /* ]] || exit 2
+            target_root="${arguments[index]}"
+        fi
+    done
+    target_root="$(CDPATH= cd -- "$target_root" && pwd -P)"
+    [[ -f "$target_root/server/composer.json" && -x "$target_root/scripts/local-core-composer" ]] || exit 1
+    owned_command=$'set -Eeuo pipefail\n'
+    owned_command+="$(declare -f core_dev_main)"
+    owned_command+=$'\ncore_dev_main "$@"'
+    exec node "$source_root/scripts/local-core-links.mjs" "$target_root" php,web,platform,pc,uniapp select -- bash -c "$owned_command" "$0" "$@"
+fi
+core_dev_main "$@"

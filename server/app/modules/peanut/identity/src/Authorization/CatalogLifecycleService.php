@@ -17,6 +17,25 @@ use think\facade\Db;
  */
 final readonly class CatalogLifecycleService
 {
+    /** Development catalog sync may adopt new contributions at the same active package version.
+     * It cannot install, upgrade, reactivate or change package ownership.
+     * @param array<string,ManifestDocument> $manifests
+     */
+    public function refreshActiveCatalogIdentities(array $manifests): int
+    {
+        $changed = 0;
+        foreach ($manifests as $manifest) {
+            $changed += Db::name('module_installation')
+                ->where('module_key', $manifest->data['key'])->where('status', 'active')
+                ->where('installed_version', $manifest->data['version'])
+                ->where('manifest_schema_version', $manifest->data['schema_version'])
+                ->where('manifest_digest', '<>', $manifest->digest)
+                ->update(['manifest_digest' => $manifest->digest, 'revision' => Db::raw('revision+1'),
+                    'updated_at' => $this->now()]);
+        }
+        return $changed;
+    }
+
     /** Owners reserved for the platform, host and instance, not Module lifecycle. */
     public const NON_MODULE_OWNERS = ['core', 'platform', 'peanut.admin', 'instance.tenant', 'instance.platform', 'member', 'installation'];
 

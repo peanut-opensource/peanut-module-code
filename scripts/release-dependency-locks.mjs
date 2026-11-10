@@ -258,7 +258,7 @@ export function verifyDependencyLocks(versions, read, parseYaml, internal = fals
         })) fail('Composer path dependency');
   }
   const required = {
-    web: ['vue', 'ui-vue'],
+    web: ['client', 'vue', 'ui-vue'],
     platform: ['vue', 'ui-vue'],
     pc: ['client', 'nuxt'],
     uniapp: ['client', 'uniapp'],

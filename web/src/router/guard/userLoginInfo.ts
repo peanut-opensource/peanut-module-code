@@ -37,22 +37,16 @@ export default function setupUserLoginInfoGuard(router: Router) {
           await userStore.info();
           next();
         } catch (error) {
-          try {
-            await userStore.logout(session);
-          } catch {
-            // A revoked token can make the remote logout request fail after local cleanup.
-          }
-          const afterLogout = getSessionSnapshot();
-          if (
-            afterLogout.generation === session.generation + 2 &&
-            afterLogout.token === null
-          ) {
+          // Definitive authentication failure is cleared by the shared recovery.
+          // A failed profile read alone (network/403/cancel) is not a logout.
+          if (getSessionSnapshot().token === null) {
             next({
               name: 'login',
               query: loginQuery(to),
             });
           } else {
-            next();
+            NProgress.done();
+            next(false);
           }
         }
       }

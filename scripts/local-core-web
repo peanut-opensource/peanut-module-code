@@ -27,7 +27,8 @@ node -e 'const [major,minor]=process.versions.node.split(".").map(Number); if(ma
 PACKAGES=(client vue ui-vue nuxt uniapp testing)
 packages_for_client() {
     case "$1" in
-        web|platform) printf '%s\n' 'vue ui-vue' ;;
+        web) printf '%s\n' 'client vue ui-vue' ;;
+        platform) printf '%s\n' 'vue ui-vue' ;;
         pc) printf '%s\n' 'client nuxt' ;;
         uniapp) printf '%s\n' 'client uniapp' ;;
     esac
@@ -182,7 +183,7 @@ import { dirname, join, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 const [core, repository, client, command] = process.argv.slice(2);
 const all = ['client', 'vue', 'ui-vue', 'nuxt', 'uniapp', 'testing'];
-const consumers = { web: ['vue', 'ui-vue'], platform: ['vue', 'ui-vue'], pc: ['client', 'nuxt'], uniapp: ['client', 'uniapp'] };
+const consumers = { web: ['client', 'vue', 'ui-vue'], platform: ['vue', 'ui-vue'], pc: ['client', 'nuxt'], uniapp: ['client', 'uniapp'] };
 const clients = client === 'all' ? Object.keys(consumers) : [...new Set(client.split(','))];
 const { acquireClientLinks } = await import(pathToFileURL(join(repository, 'scripts', 'local-core-links.mjs')));
 const linkLease = acquireClientLinks(repository, clients, 'install-build-link');

@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "key": "peanut.file",
+  "name": "File and Media",
+  "description": "Tenant-owned media library, uploads and private file metadata.",
+  "version": "1.0.45",
+  "kernel_constraint": "^1.0",
+  "license": "Apache-2.0",
+  "php_package": "peanut-business/peanut-file",
+  "web_package": "@peanut-admin/peanut-file",
+  "dependencies": [
+    {
+      "module_key": "peanut.identity",
+      "version": "^4.0.0-rc.32"
+    },
+    {
+      "module_key": "peanut.content-tools",
+      "version": "1.0.1 || 1.0.2"
+    }
+  ],
+  "lifecycle": {
+    "protected": true
+  },
+  "backend": {
+    "provider": "PeanutAdmin\\Modules\\File\\ModuleProvider",
+    "menus": "resources/menus.json",
+    "permissions": "resources/permissions.json",
+    "setting_definitions": "resources/setting-definitions.json",
+    "migrations": "database/migrations",
+    "seeds": "database/seeds"
+  },
+  "frontend": {
+    "entry": "web/src/modules/peanut-file/contribution.ts"
+  },
+  "database": {
+    "owned_tables": [
+      "pa_file",
+      "pa_file_cate",
+      "pa_storage_account",
+      "pa_storage_space",
+      "pa_storage_route",
+      "pa_file_object",
+      "pa_file_image_asset",
+      "pa_file_derivative",
+      "pa_file_delivery_nonce",
+      "pa_file_delivery_grant",
+      "pa_file_reference",
+      "pa_file_immutable_snapshot",
+      "pa_file_visibility_batch",
+      "pa_file_visibility_item"
+    ]
+  },
+  "contracts": {
+    "exports": [
+      "PeanutAdmin\\Modules\\File\\Contract\\FileVisibility",
+      "PeanutAdmin\\Modules\\File\\Contract\\StorageQualificationQueries",
+      "PeanutAdmin\\Modules\\File\\Contract\\FileAdministration",
+      "PeanutAdmin\\Modules\\File\\Contract\\FileUploads",
+      "PeanutAdmin\\Modules\\File\\Enum\\FileEnum",
+      "PeanutAdmin\\Modules\\File\\Contract\\FileReferences",
+      "PeanutAdmin\\Modules\\File\\Contract\\FileDerivatives",
+      "PeanutAdmin\\Modules\\File\\Contract\\FileStorage",
+      "PeanutAdmin\\Modules\\File\\Contract\\Dto\\UploadFile",
+      "PeanutAdmin\\Modules\\File\\Contract\\StorageConfiguration",
+      "PeanutAdmin\\Modules\\File\\Contract\\FileAccess",
+      "PeanutAdmin\\Modules\\File\\Contract\\FileReferenceCommands",
+      "PeanutAdmin\\Modules\\File\\Contract\\CollaborationReferenceInput",
+      "PeanutAdmin\\Modules\\File\\Contract\\AcceptedReferenceTransfer",
+      "PeanutAdmin\\Modules\\File\\Contract\\ReservationReleaseInput",
+      "PeanutAdmin\\Modules\\File\\Contract\\FileDocumentReferencePolicy",
+      "PeanutAdmin\\Modules\\File\\Contract\\FileDocumentReferenceContributor",
+      "PeanutAdmin\\Modules\\File\\Contract\\FileDocumentSnapshots",
+      "PeanutAdmin\\Modules\\File\\Service\\FileDocumentReferenceRegistry",
+      "PeanutAdmin\\Modules\\File\\Contract\\FileDocumentSourceChecks"
+    ],
+    "events": []
+  },
+  "tenant": {
+    "enableable": true,
+    "disable_behavior": "reject_new_operations",
+    "requires": ["peanut.identity", "peanut.content-tools"]
+  }
+}

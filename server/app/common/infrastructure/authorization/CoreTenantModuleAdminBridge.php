@@ -15,6 +15,8 @@ use PeanutAdmin\Modules\Identity\Authorization\CorePermissionCatalog;
 use PeanutAdmin\Modules\Identity\Contract\TenantAuthorizationQuery;
 use PeanutAdmin\Modules\Identity\Menu\MenuAdministrationService;
 use PeanutAdmin\Modules\Identity\Module\TenantEntitlementService;
+use PeanutAdmin\Modules\Identity\Auth\TenantAuthService;
+use think\facade\Cache;
 
 /**
  * Adapts the deployment catalog and tenant license to the Admin Shell menu payload.
@@ -223,13 +225,23 @@ final readonly class CoreTenantModuleAdminBridge
         return true;
     }
 
-    /** One live projection checks only the requested member grants and their license ceiling.
+    /** One admitted read shares its versioned effective grants across endpoint and business decisions.
      * @param list<string> $permissions
      * @return array{registered:list<string>,owned:list<string>}
      */
     public function permissionInputs(TenantContext $context, array $permissions): array
     {
-        $states = $this->identityAuthorization->permissionGrants($context, $permissions);
+        if (TenantAuthService::authenticatedRead($context) !== null) {
+            $license = $this->entitlements->license($context->tenantId, context: $context);
+            // Time passing can change the commercial ceiling without a database write.
+            $key = implode(':', ['identity:permission-snapshot:v1', $context->tenantId, $context->memberId,
+                $context->authorizationRevision, $context->tenantAuthorizationRevision, $license['state'] ?? 'missing']);
+            $snapshot = Cache::remember($key,
+                fn(): array => $this->identityAuthorization->permissionSnapshot($context), 300);
+            $states = array_intersect_key($snapshot, array_fill_keys($permissions, true));
+        } else {
+            $states = $this->identityAuthorization->permissionGrants($context, $permissions);
+        }
         $owned = array_keys($states);
         return [
             'registered' => $this->registeredLicensedSubset($owned, null, $states),
