@@ -15,10 +15,8 @@ if (($peanutRouteApplication ?? null) !== 'adminapi') {
 
 Route::group(function (): void {
     Route::get('api/v1/reference-code-sets', [ReferenceCodesController::class, 'sets'])
-        ->completeMatch()
         ->option(['peanut_permission' => 'peanut.reference-codes.read']);
     Route::get('api/v1/reference-code-sets/:moduleKey/:setKey/codes', [ReferenceCodesController::class, 'index'])
-        ->completeMatch()
         ->option(['peanut_permission' => 'peanut.reference-codes.read']);
     Route::post('api/v1/reference-code-sets/:moduleKey/:setKey/codes', [ReferenceCodesController::class, 'create'])
         ->option(['peanut_permission' => 'peanut.reference-codes.manage']);
@@ -28,7 +26,11 @@ Route::group(function (): void {
         ->option(['peanut_permission' => 'peanut.reference-codes.manage']);
     Route::delete('api/v1/reference-code-sets/:moduleKey/:setKey/codes/:code', [ReferenceCodesController::class, 'retire'])
         ->option(['peanut_permission' => 'peanut.reference-codes.manage']);
-})->middleware(LoginMiddleware::class)
+})->pattern([
+    'moduleKey' => '[a-z][a-z0-9]*(?:-[a-z0-9]+)*\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*',
+    'setKey' => '[a-z][a-z0-9]*(?:-[a-z0-9]+)*',
+    'code' => '[a-z][a-z0-9]*(?:-[a-z0-9]+)*',
+])->completeMatch()->middleware(LoginMiddleware::class)
     ->middleware(OfficialModuleMiddleware::class, 'peanut.reference-codes', 'http.admin')
     ->middleware(AuthMiddleware::class)
     ->middleware(OperationLogMiddleware::class);
