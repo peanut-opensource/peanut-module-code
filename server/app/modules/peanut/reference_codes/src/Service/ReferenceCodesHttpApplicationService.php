@@ -174,10 +174,11 @@ final readonly class ReferenceCodesHttpApplicationService
 
     private function definition(TenantContext $context, string $moduleKey, string $setKey): ReferenceCodeSetDefinition
     {
+        $definition = $this->definitions->require($moduleKey, $setKey);
         if (!$this->moduleEnabled($context, $moduleKey, new DateTimeImmutable('now'))) {
             throw ReferenceCodeException::setNotFound();
         }
-        return $this->definitions->require($moduleKey, $setKey);
+        return $definition;
     }
 
     private function moduleEnabled(TenantContext $context, string $moduleKey, DateTimeImmutable $now): bool
