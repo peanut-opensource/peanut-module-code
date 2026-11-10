@@ -43,8 +43,8 @@ function sourceModule(name) {
       module,
       exports: module.exports,
       require(specifier) {
-        if (specifier === './request-recovery')
-          return sourceModule('request-recovery');
+        if (['./request-recovery', './api-session', './text-draft-api'].includes(specifier))
+          return sourceModule(specifier.slice(2));
         if (specifier === 'axios')
           return { get: failTransport, post: failTransport };
         if (specifier === '@/utils/auth')
