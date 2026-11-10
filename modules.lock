@@ -7,7 +7,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "21c6e7f2e1b05a62075eb6f7670a9658d0987154f090736143d3000b41e2b224"
+                "sha256": "d103b2a83218fc6d428dc84934b3e3a5c139dc054796f8d59fe67d6c96bba207"
             },
             "trust": {
                 "channel": "bundled",
@@ -396,7 +396,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "21ddd772e48d6c9e42714a86e444aa43cfca1e15a4e099281047dc8545e0a651"
+                "sha256": "71c0910062fe77bd5f474a4e73d74c1852fbe842363ca5c304989a78700a4c9b"
             },
             "trust": {
                 "channel": "bundled",
@@ -988,7 +988,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "4c08cb5c8c71bd7f80989c779c753ce38f99a1bdc6f7faa3a1449cb1edc1b686"
+                "sha256": "413d54304e53527776b451ddebb262de64347246e40a890a021eb5dac93826ca"
             },
             "trust": {
                 "channel": "bundled",
@@ -1620,7 +1620,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "df9243fa9c24436daa4d395200885f6810bf863715268ae8327af92a85a1f188"
+                "sha256": "a1c02098d6443808c1e753c6e141ae7a11ea9030cbf01e20e54ff26a211ab495"
             },
             "trust": {
                 "channel": "bundled",
@@ -1756,7 +1756,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "f64e18e2653ddf037573ff9fd28be17220dcbbc3cf22b22afc53893bf91d9ce9"
+                "sha256": "21d171e1fbe22e6b13b2df8b921e2424ee7826fb78172877a9c8525666036ce0"
             },
             "trust": {
                 "channel": "bundled",

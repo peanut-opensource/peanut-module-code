@@ -2990,7 +2990,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description 每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。 */
+        /** @description 每次核真实租户/成员/对象范围及Document固定来源授权；仅当实际Document实现未提供DocumentSourceGrants合同时返回SOURCE_AUTHORIZATION_BRIDGE_REQUIRED。已接入合同仍须通过当前来源授权、有效配置和明确发送确认，不以概览状态代替发送前检查。 */
         get: operations["aiAssistantOverview"];
         put?: never;
         post?: never;
@@ -3007,7 +3007,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description 每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。 */
+        /** @description 每次核真实租户/成员/对象范围及Document固定来源授权；仅当实际Document实现未提供DocumentSourceGrants合同时返回SOURCE_AUTHORIZATION_BRIDGE_REQUIRED。已接入合同仍须通过当前来源授权、有效配置和明确发送确认，不以概览状态代替发送前检查。 */
         get: operations["aiAssistantList"];
         put?: never;
         post?: never;
@@ -3024,7 +3024,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description 每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。 */
+        /** @description 每次核真实租户/成员/对象范围及Document固定来源授权；仅当实际Document实现未提供DocumentSourceGrants合同时返回SOURCE_AUTHORIZATION_BRIDGE_REQUIRED。已接入合同仍须通过当前来源授权、有效配置和明确发送确认，不以概览状态代替发送前检查。 */
         get: operations["aiAssistantDetail"];
         put?: never;
         post?: never;
@@ -3041,7 +3041,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description 每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。 */
+        /** @description 每次核真实租户/成员/对象范围及Document固定来源授权；仅当实际Document实现未提供DocumentSourceGrants合同时返回SOURCE_AUTHORIZATION_BRIDGE_REQUIRED。已接入合同仍须通过当前来源授权、有效配置和明确发送确认，不以概览状态代替发送前检查。 */
         get: operations["aiAssistantHistory"];
         put?: never;
         post?: never;
@@ -3058,7 +3058,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description 每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。 */
+        /** @description 每次核真实租户/成员/对象范围及Document固定来源授权；仅当实际Document实现未提供DocumentSourceGrants合同时返回SOURCE_AUTHORIZATION_BRIDGE_REQUIRED。已接入合同仍须通过当前来源授权、有效配置和明确发送确认，不以概览状态代替发送前检查。 */
         get: operations["aiAssistantLookups"];
         put?: never;
         post?: never;
@@ -3077,7 +3077,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description 每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。 */
+        /** @description 每次核真实租户/成员/对象范围及Document固定来源授权；仅当实际Document实现未提供DocumentSourceGrants合同时返回SOURCE_AUTHORIZATION_BRIDGE_REQUIRED。已接入合同仍须通过当前来源授权、有效配置和明确发送确认，不以概览状态代替发送前检查。 */
         post: operations["aiAssistantSaveConfiguration"];
         delete?: never;
         options?: never;
@@ -3111,7 +3111,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description 每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。 */
+        /** @description 每次核真实租户/成员/对象范围及Document固定来源授权；仅当实际Document实现未提供DocumentSourceGrants合同时返回SOURCE_AUTHORIZATION_BRIDGE_REQUIRED。已接入合同仍须通过当前来源授权、有效配置和明确发送确认，不以概览状态代替发送前检查。 */
         post: operations["aiAssistantConfigurationState"];
         delete?: never;
         options?: never;
@@ -3143,7 +3143,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description 每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。 */
+        /** @description 每次核真实租户/成员/对象范围及Document固定来源授权；仅当实际Document实现未提供DocumentSourceGrants合同时返回SOURCE_AUTHORIZATION_BRIDGE_REQUIRED。已接入合同仍须通过当前来源授权、有效配置和明确发送确认，不以概览状态代替发送前检查。 */
         get: operations["aiAssistantTaskStatus"];
         put?: never;
         post?: never;
@@ -3230,7 +3230,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description 每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。 */
+        /** @description 每次核真实租户/成员/对象范围及Document固定来源授权；仅当实际Document实现未提供DocumentSourceGrants合同时返回SOURCE_AUTHORIZATION_BRIDGE_REQUIRED。已接入合同仍须通过当前来源授权、有效配置和明确发送确认，不以概览状态代替发送前检查。 */
         post: operations["aiAssistantResolve"];
         delete?: never;
         options?: never;
