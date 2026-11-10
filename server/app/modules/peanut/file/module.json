@@ -3,7 +3,7 @@
   "key": "peanut.file",
   "name": "File and Media",
   "description": "Tenant-owned media library, uploads and private file metadata.",
-  "version": "1.0.45",
+  "version": "1.0.46",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-file",
@@ -47,11 +47,17 @@
       "pa_file_reference",
       "pa_file_immutable_snapshot",
       "pa_file_visibility_batch",
-      "pa_file_visibility_item"
+      "pa_file_visibility_item",
+      "pa_file_evidence_command",
+      "pa_file_evidence_fact"
     ]
   },
   "contracts": {
     "exports": [
+      "PeanutAdmin\\Modules\\File\\Contract\\FileBusinessEvidence",
+      "PeanutAdmin\\Modules\\File\\Contract\\Dto\\BusinessEvidenceCommand",
+      "PeanutAdmin\\Modules\\File\\Contract\\Dto\\BusinessEvidenceFile",
+      "PeanutAdmin\\Modules\\File\\Contract\\Dto\\BusinessEvidenceFact",
       "PeanutAdmin\\Modules\\File\\Contract\\FileVisibility",
       "PeanutAdmin\\Modules\\File\\Contract\\StorageQualificationQueries",
       "PeanutAdmin\\Modules\\File\\Contract\\FileAdministration",

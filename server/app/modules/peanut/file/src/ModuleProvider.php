@@ -28,6 +28,7 @@ final class ModuleProvider implements ModuleProviderContract
     public function bindings(): array
     {
         return [
+            \PeanutAdmin\Modules\File\Contract\FileBusinessEvidence::class => StorageService::class,
             \PeanutAdmin\Modules\File\Contract\FileVisibility::class => \PeanutAdmin\Modules\File\Service\FileVisibilityService::class,
             \PeanutAdmin\Modules\File\Contract\FileDocumentSnapshots::class => StorageService::class,
             \PeanutAdmin\Modules\File\Contract\FileDocumentSourceChecks::class => StorageService::class,

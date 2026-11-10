@@ -1,5 +1,92 @@
 # File composition
 
+## Private business evidence
+
+`FileBusinessEvidence` is the public capability for private evidence whose owner is a
+real business command or immutable financial fact, rather than a Document. It is
+implemented by File's existing `StorageService` and exported/bound by this module.
+Existing File APIs retain their contracts. This capability does not restore the
+removed `FilePrivateEvidence` API; consumers must explicitly adopt the new contract.
+
+The concrete consumer is DCS settlement: supplier payment upload, report,
+verification, reversal and evidence amendment. DCS owns business purpose, accounting
+scope, target ownership, financial permission, command input/basis digests and its
+fact/outbox persistence. File owns inspected name/MIME/size/SHA-256, durable object
+identity, private storage, current session and independent File permissions, and
+reference protection. A callback is trusted application code, never an HTTP input or
+a substitute for authorizing a persisted business record. Module/owner/key strings
+alone confer no authority. Document and File cannot be impersonated as business owners.
+
+1. After its business precheck, the consumer calls `inspectEvidence(UploadFile)` and
+   incorporates the returned metadata into its command digest. HTTP size, MIME and
+   extension fields are not trusted. File applies the existing generic-file extension
+   allowlist and actual byte limit; DCS must impose any narrower evidence rules.
+2. DCS prepares its business command with that digest in its own transaction.
+   `storeEvidence(actor, command, file, authorize, bind, publish)` runs outside that
+   transaction and re-inspects the bytes. `authorize()` must lock/revalidate the
+   business command, digest, actor, purpose, target and current accounting scope.
+   It runs in each short reservation/publication transaction and before the PUT.
+3. File atomically reserves one random `file_key` and object path per
+   `(tenant, module, command)`, with the digest and initiating account/member/client.
+   `bind(reservedSnapshot)` must CAS the persisted business `prepared` record to
+   `reserved` with exactly that key/metadata. Reservation, binding, the protective
+   upload-root reference and audit succeed or roll back together, before provider I/O.
+4. Only the reservation creator attempts PUT, once. File verifies the original
+   stored bytes, size and content MIME. `publish(publishedSnapshot)` must CAS the
+   business reservation and persist its result/outbox on the default ThinkPHP
+   connection. Those writes and File's `ready` state commit in the same transaction.
+   Callbacks must throw on denial, stale revision or any failed CAS; returning false
+   is not cancellation. No provider I/O runs inside these business transactions.
+
+`observeEvidence(actor, command, authorize, publish)` uses the original reservation
+and current authority. A null result means no committed reservation; `reserved`
+means the result is still unknown; `published` means File and business publication
+committed together. A provider exception or missing object leaves the original key
+reserved, without deleting or rewriting it. Absence does not prove that an earlier
+writer cannot complete. Observation verifies the real original bytes and can finish
+publication after a lost acknowledgement or rolled-back publication. An already
+published result does not call `publish` again or require provider I/O. Repeated
+store calls cannot allocate another key or repeat PUT. A changed digest, actor,
+name or byte metadata is rejected. Native DB serialization/deadlock errors still
+propagate: after rollback, reconcile the same command with `observeEvidence`; do
+not invent a new command/key or blindly repeat the write. A reservation interrupted
+before PUT can remain unknown/absent; this contract adds no automatic retry,
+expiry, compensation, deletion or operator reconciliation workflow.
+
+`retainEvidence(actor, BusinessEvidenceFact, authorizeFact)` requires the caller's
+existing business transaction and nonempty, unique file keys. The callback receives
+File-produced snapshots, locks and authorizes the persisted financial fact, and
+must check its exact file metadata, basis digest, ownership and current scope.
+The callback takes business locks before File locks. File then locks the sorted
+objects, requires published private evidence uploaded by that same module, and
+independently checks preview and original-download permissions. The fact header
+uniquely binds `(tenant, module, owner type, owner key)` to its basis digest and exact
+snapshot set. Identical calls are idempotent; changing either digest or files is
+rejected. Any error must roll back the financial transaction. The existing File
+reference index protects uploads and retained facts against deletion; there is no
+public release/replacement operation. Amendments/reversals retain their own immutable
+fact identity. Business access does not grant File preview/original-download rights,
+and this contract introduces no contextual download inheritance or delivery URL.
+
+The module adds only `pa_file_evidence_command` and `pa_file_evidence_fact`; byte
+metadata and deletion protection reuse `pa_file_object` and `pa_file_reference`.
+The incremental module migration must be applied through the native application
+upgrade entry before adoption; changing module source does not apply it.
+
+Focused, isolated verification (no existing project database or service):
+
+```sh
+php server/vendor/bin/phpunit --no-configuration --bootstrap server/vendor/autoload.php \
+  --do-not-cache-result server/tests/Modules/PeanutFile/BusinessEvidenceTest.php
+```
+
+These tests exercise this source, real ThinkORM transactions, File authorization and
+LocalStorageDriver bytes with a temporary SQLite database. Identity/module/RBAC
+queries and audit persistence are synthetic boundaries; provider faults are injected
+around the native local driver. Forked workers cover competing reservation and
+observation during an active write. SQLite does not qualify MySQL row/gap locks,
+MySQL migration execution, cloud providers or DCS adoption/business acceptance.
+
 ## Original audio uploads
 
 The existing generic file type `30` accepts original `mp3`, `wav` and `ogg` files through `FileUploads::file` and the normal `peanut.file.upload.file` endpoint. `Contract/UploadExtensions::FILE` owns this allowlist; the host `FileEnum` delegates to it. The existing 50 MiB limit, tenant scope, upload permission, storage and verified media handling remain in force. This does not add transcoding, audio workflow rules or a new database file type.

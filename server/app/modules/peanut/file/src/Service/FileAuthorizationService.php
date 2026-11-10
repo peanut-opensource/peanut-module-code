@@ -68,6 +68,23 @@ final readonly class FileAuthorizationService
         $guard->assertTenant($current->tenantId, 'peanut.file', new DateTimeImmutable('now', new DateTimeZone('UTC')));
     }
 
+    /** Business upload authority does not replace File's independent live upload permission. */
+    public function requireEvidenceUploadPermission(TenantContext $context): void
+    {
+        $current = $this->sessions->revalidateSession($context->tenantId, $context->accountId, $context->memberId,
+            $context->sessionKey, $context->clientKey, $context->requestId);
+        if ($current->authorizationRevision !== $context->authorizationRevision
+            || $current->tenantAuthorizationRevision !== $context->tenantAuthorizationRevision) {
+            throw BusinessException::forbidden('FILE_AUTHORIZATION_STALE', '资源授权已改变');
+        }
+        $guard = new ModuleGuard($this->modules);
+        $guard->assertDeployment('peanut.file');
+        $guard->assertTenant($current->tenantId, 'peanut.file', new DateTimeImmutable('now', new DateTimeZone('UTC')));
+        if (!$this->authorization->decide($current, $this->authorization->principal($current), 'peanut.file.upload.file')->allowed) {
+            throw BusinessException::forbidden('FILE_ACCESS_DENIED', '无权上传私有凭证');
+        }
+    }
+
     /** Same current identity, Module and independent right used by final object authorization. */
     public function requireOriginalDownloadPermission(TenantContext $context): void
     {

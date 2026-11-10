@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\File\Service\Storage;
 
 use PeanutAdmin\Modules\File\Contract\FileStorage;
+use PeanutAdmin\Modules\File\Contract\FileBusinessEvidence;
+use PeanutAdmin\Modules\File\Contract\Dto\BusinessEvidenceCommand;
+use PeanutAdmin\Modules\File\Contract\Dto\BusinessEvidenceFile;
+use PeanutAdmin\Modules\File\Contract\Dto\BusinessEvidenceFact;
+use PeanutAdmin\Modules\File\Contract\Dto\UploadFile;
 use app\common\exception\BusinessException;
 use PeanutAdmin\Modules\File\Composition\Storage\StorageDriverFactory;
 use PeanutAdmin\Modules\File\Infrastructure\Storage\StorageAccess;
@@ -33,7 +38,7 @@ use PeanutAdmin\Modules\File\Service\FileAuthorizationService;
 use PeanutAdmin\Modules\File\Model\Storage\FileReference;
 use app\common\services\audit\AuditContractHost;
 
-final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules\File\Contract\FileDocumentSnapshots, \PeanutAdmin\Modules\File\Contract\FileDocumentSourceChecks
+final readonly class StorageService implements FileStorage, FileBusinessEvidence, \PeanutAdmin\Modules\File\Contract\FileDocumentSnapshots, \PeanutAdmin\Modules\File\Contract\FileDocumentSourceChecks
 {
     public const DELIVERY_URL_TTL = 600;
     private SignedDeliveryTokenService $deliveryTokens;
@@ -239,6 +244,270 @@ final readonly class StorageService implements FileStorage, \PeanutAdmin\Modules
             }
             throw $error;
         }
+    }
+
+    public function inspectEvidence(UploadFile $file): BusinessEvidenceFile
+    {
+        if (!is_file($file->path) || !is_readable($file->path)) {
+            throw new \InvalidArgumentException('待存储凭证无效');
+        }
+        $size = filesize($file->path);
+        $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($file->path);
+        $digest = hash_file('sha256', $file->path);
+        if (!is_int($size) || !is_string($mime) || !is_string($digest)) {
+            throw new \RuntimeException('凭证元数据读取失败');
+        }
+        $extension = strtolower((string) pathinfo($file->originalName, PATHINFO_EXTENSION));
+        if ($size > \PeanutAdmin\Modules\File\Enum\FileEnum::MAX_SIZE[\PeanutAdmin\Modules\File\Enum\FileEnum::FILE]
+            || !in_array($extension, \PeanutAdmin\Modules\File\Contract\UploadExtensions::FILE, true)) {
+            throw BusinessException::invalid('FILE_EVIDENCE_UPLOAD_INVALID', '凭证扩展名或实际大小不允许');
+        }
+        return new BusinessEvidenceFile(null, 'prepared', self::filename($file->originalName), $mime, $size, $digest);
+    }
+
+    public function storeEvidence(TenantContext $actor, BusinessEvidenceCommand $command, UploadFile $file, \Closure $authorize, \Closure $bind, \Closure $publish): BusinessEvidenceFile
+    {
+        $this->evidenceContext($actor);
+        $this->evidenceTransaction(false);
+        $metadata = $this->inspectEvidence($file);
+        try {
+            [$object, $created] = Db::transaction(function () use ($actor, $command, $metadata, $authorize, $bind): array {
+                $authorize(); // Business owner lock precedes every File lock.
+                $this->authorization->requireEvidenceUploadPermission($actor);
+                $existing = $this->evidenceCommand($actor, $command);
+                if ($existing !== null) {
+                    if ($this->evidenceMetadata($existing) !== $this->evidenceMetadata($metadata)) {
+                        throw BusinessException::conflict('FILE_EVIDENCE_COMMAND_CONFLICT', '原命令不能改变凭证字节或名称');
+                    }
+                    return [$existing, false];
+                }
+                $route = $this->route('attachment.sensitive', 'private');
+                if (!$this->drivers->make($route, $route)->capabilities()->objectInspection) {
+                    throw BusinessException::conflict('FILE_EVIDENCE_OBSERVATION_UNSUPPORTED', '存储驱动不能观察原凭证');
+                }
+                $key = 'file_' . bin2hex(random_bytes(16));
+                $this->reserveObject($actor->tenantId, [
+                    'file_key' => $key, 'purpose' => 'attachment.sensitive', 'access_type' => 'private',
+                    'storage_space_id' => (int) $route['space_id'],
+                    'object_key' => StoragePath::objectKey($actor->tenantId, 'attachment.sensitive', $key, (string) pathinfo($metadata->originalName, PATHINFO_EXTENSION)),
+                    'disposition' => 'attachment', 'original_name' => $metadata->originalName,
+                    'media_type' => $metadata->verifiedMimeType, 'size_bytes' => $metadata->sizeBytes, 'sha256' => $metadata->sha256,
+                    'created_by_member_id' => $actor->memberId,
+                ]);
+                $this->evidenceCommands($actor, $command)->insert([
+                    'tenant_id' => $actor->tenantId, 'module_key' => $command->moduleKey, 'command_key' => $command->commandKey,
+                    'input_digest' => $command->inputDigest, 'file_key' => $key,
+                    'account_id' => $actor->accountId, 'member_id' => $actor->memberId, 'client_key' => $actor->clientKey,
+                ]);
+                // This root also protects ready uploads before a financial fact is recorded.
+                FileReference::create(['tenant_id' => $actor->tenantId, 'file_key' => $key,
+                    'owner_module_key' => $command->moduleKey, 'owner_type' => 'evidence-upload', 'owner_id' => $command->commandKey,
+                    'reference_digest' => $command->inputDigest, 'updated_at' => new Raw('UTC_TIMESTAMP(3)')]);
+                $object = $this->evidenceCommand($actor, $command);
+                $bind($this->evidenceFile($object));
+                $this->audit->appendTenantMember($actor, 'file.evidence.reserved', 'file.evidence.upload', 'file', $key, null, null, 1, $metadata->sha256);
+                return [$object, true];
+            });
+        } catch (\think\db\exception\PDOException $error) {
+            // Only the unique command race is recoverable here; no provider write has started.
+            if (!$this->evidenceDuplicate($error, 'file_evidence_command')) {
+                throw $error;
+            }
+            Db::transaction(function () use ($actor, $command, $authorize, $metadata): void {
+                $authorize();
+                $this->authorization->requireEvidenceUploadPermission($actor);
+                $existing = $this->evidenceCommand($actor, $command);
+                if ($existing === null || $this->evidenceMetadata($existing) !== $this->evidenceMetadata($metadata)) {
+                    throw BusinessException::conflict('FILE_EVIDENCE_COMMAND_CONFLICT', '原命令不能改变凭证');
+                }
+            });
+            return $this->observeEvidence($actor, $command, $authorize, $publish);
+        }
+        if (!$created) {
+            return $this->observeEvidence($actor, $command, $authorize, $publish);
+        }
+        Db::transaction(function () use ($actor, $authorize): void {
+            $authorize();
+            $this->authorization->requireEvidenceUploadPermission($actor);
+        });
+        try {
+            $this->drivers->make($object, $object)->put($object['object_key'], $file->path);
+        } catch (\app\common\exception\storage\StorageProviderException) {
+            // A timeout can mean the bytes exist. Leave the durable original key reserved.
+            return $this->evidenceFile($object);
+        }
+        return $this->observeEvidence($actor, $command, $authorize, $publish);
+    }
+
+    public function observeEvidence(TenantContext $actor, BusinessEvidenceCommand $command, \Closure $authorize, \Closure $publish): ?BusinessEvidenceFile
+    {
+        $this->evidenceContext($actor);
+        $this->evidenceTransaction(false);
+        $object = Db::transaction(function () use ($actor, $command, $authorize): ?array {
+            $authorize();
+            $this->authorization->requireEvidenceUploadPermission($actor);
+            return $this->evidenceCommand($actor, $command);
+        });
+        if ($object === null || $object['status'] === 'ready') {
+            return $object === null ? null : $this->evidenceFile($object);
+        }
+        try {
+            $observation = $this->drivers->make($object, $object)->inspect($object['object_key']);
+            if (!$observation->exists) {
+                return $this->evidenceFile($object);
+            }
+            $opened = $this->materialize($object); // Always verifies SHA-256; never treats ETag as a digest.
+            try {
+                if (filesize($opened['path']) !== (int) $object['size_bytes']
+                    || (new \finfo(FILEINFO_MIME_TYPE))->file($opened['path']) !== $object['media_type']) {
+                    throw BusinessException::conflict('FILE_EVIDENCE_BYTES_CHANGED', '原凭证字节与登记不一致');
+                }
+            } finally {
+                if ($opened['temporary']) {
+                    unlink($opened['path']);
+                }
+            }
+        } catch (\app\common\exception\storage\StorageProviderException) {
+            return $this->evidenceFile($object);
+        }
+        return Db::transaction(function () use ($actor, $command, $authorize, $publish, $object): BusinessEvidenceFile {
+            $authorize();
+            $this->authorization->requireEvidenceUploadPermission($actor);
+            $locked = $this->evidenceCommand($actor, $command);
+            if ($locked['status'] === 'ready') {
+                return $this->evidenceFile($locked);
+            }
+            if ($locked['revision'] != $object['revision'] || $locked['storage_space_id'] != $object['storage_space_id']
+                || $locked['object_key'] !== $object['object_key']) {
+                throw BusinessException::conflict('FILE_EVIDENCE_OBJECT_CHANGED', '原凭证状态已改变');
+            }
+            $result = $this->evidenceFile([...$locked, 'status' => 'ready']);
+            $publish($result);
+            if (!$this->markObjectReady($actor->tenantId, $locked['file_key'])) {
+                throw BusinessException::conflict('FILE_EVIDENCE_OBJECT_CHANGED', '原凭证未能完成发布');
+            }
+            $this->audit->appendTenantMember($actor, 'file.evidence.published', 'file.evidence.upload', 'file', $locked['file_key'], null, null, 1, $locked['sha256']);
+            return $result;
+        });
+    }
+
+    public function retainEvidence(TenantContext $actor, BusinessEvidenceFact $fact, \Closure $authorizeFact): void
+    {
+        $this->evidenceContext($actor);
+        $this->evidenceTransaction(true);
+        Db::transaction(function () use ($actor, $fact, $authorizeFact): void {
+            $keys = $fact->fileKeys;
+            sort($keys, SORT_STRING);
+            $snapshots = [];
+            foreach ($keys as $key) {
+                $object = $this->objectForTenant($actor->tenantId, $key);
+                if ($object === null) {
+                    throw BusinessException::notFound('FILE_EVIDENCE_NOT_FOUND', '私有凭证不存在');
+                }
+                $snapshots[] = $this->evidenceFile($object);
+            }
+            $authorizeFact($snapshots); // Locks the persisted financial fact before File objects.
+            foreach ($keys as $index => $key) {
+                $object = $this->find($this->ownedObjects($actor->tenantId)->where('file_key', $key)->lock(true));
+                $command = Db::name('file_evidence_command')->where('tenant_id', $actor->tenantId)
+                    ->where('module_key', $fact->moduleKey)->where('file_key', $key)->find();
+                if ($object === null || $object['status'] !== 'ready' || $object['access_type'] !== 'private'
+                    || $object['purpose'] !== 'attachment.sensitive' || $command === null
+                    || $this->evidenceMetadata($object) !== $this->evidenceMetadata($snapshots[$index])) {
+                    throw BusinessException::conflict('FILE_EVIDENCE_OBJECT_CHANGED', '私有凭证来源或内容不一致');
+                }
+                $this->authorization->authorize($actor, $object, 'preview');
+                $this->authorization->authorize($actor, $object, 'download_original');
+            }
+            $query = fn(): BaseQuery => Db::name('file_evidence_fact')->where('tenant_id', $actor->tenantId)
+                ->where('module_key', $fact->moduleKey)->where('owner_type', $fact->ownerType)->where('owner_key', $fact->ownerKey);
+            $digest = hash('sha256', json_encode($snapshots, JSON_THROW_ON_ERROR));
+            $old = $query()->lock(true)->find();
+            if ($old !== null) {
+                if (!hash_equals($old['basis_digest'], $fact->basisDigest) || !hash_equals($old['files_digest'], $digest)) {
+                    throw BusinessException::conflict('FILE_EVIDENCE_FACT_IMMUTABLE', '财务事实不能改变依据或凭证集合');
+                }
+                return;
+            }
+            $query()->insert(['tenant_id' => $actor->tenantId, 'module_key' => $fact->moduleKey,
+                'owner_type' => $fact->ownerType, 'owner_key' => $fact->ownerKey,
+                'basis_digest' => $fact->basisDigest, 'files_digest' => $digest]);
+            foreach ($keys as $key) {
+                FileReference::create(['tenant_id' => $actor->tenantId, 'file_key' => $key,
+                    'owner_module_key' => $fact->moduleKey, 'owner_type' => 'evidence-fact:' . $fact->ownerType, 'owner_id' => $fact->ownerKey,
+                    'reference_digest' => $fact->basisDigest, 'updated_at' => new Raw('UTC_TIMESTAMP(3)')]);
+            }
+            $this->audit->appendTenantMember($actor, 'file.evidence.retained', 'file.evidence.retain', $fact->ownerType, $fact->ownerKey, null, null, count($keys), $fact->basisDigest);
+        });
+    }
+
+    private function evidenceContext(TenantContext $context): void
+    {
+        $current = $this->execution->tenantAdmin();
+        foreach (['tenantId','accountId','memberId','clientKey','sessionKey','authorizationRevision','tenantAuthorizationRevision'] as $field) {
+            if ($current->{$field} !== $context->{$field}) {
+                throw BusinessException::forbidden('FILE_EVIDENCE_CONTEXT_MISMATCH', '凭证与当前可信会话不一致');
+            }
+        }
+    }
+
+    private function evidenceTransaction(bool $required): void
+    {
+        $pdo = Db::connect()->getPdo();
+        if (!$pdo instanceof \PDO || $pdo->inTransaction() !== $required) {
+            throw BusinessException::conflict('FILE_EVIDENCE_TRANSACTION_INVALID', $required ? '凭证引用需要业务事务' : '凭证写入或观察不能占用外层事务');
+        }
+    }
+
+    private function evidenceCommands(TenantContext $actor, BusinessEvidenceCommand $command): BaseQuery
+    {
+        return Db::name('file_evidence_command')->where('tenant_id', $actor->tenantId)
+            ->where('module_key', $command->moduleKey)->where('command_key', $command->commandKey);
+    }
+
+    /** Requires a transaction. Locked fields override any older RR snapshot used for route enrichment. */
+    private function evidenceCommand(TenantContext $actor, BusinessEvidenceCommand $command): ?array
+    {
+        $row = $this->evidenceCommands($actor, $command)->lock(true)->find();
+        if ($row === null) {
+            return null;
+        }
+        if ((int) $row['account_id'] !== $actor->accountId || (int) $row['member_id'] !== $actor->memberId || $row['client_key'] !== $actor->clientKey) {
+            throw BusinessException::forbidden('FILE_EVIDENCE_OWNER_MISMATCH', '原命令不属于当前身份');
+        }
+        if (!hash_equals($row['input_digest'], $command->inputDigest)) {
+            throw BusinessException::conflict('FILE_EVIDENCE_COMMAND_CONFLICT', '原命令不能改变输入摘要');
+        }
+        $locked = $this->find($this->ownedObjects($actor->tenantId)->where('file_key', $row['file_key'])->lock(true));
+        $object = $this->objectForTenant($actor->tenantId, $row['file_key'], false);
+        if ($locked === null || $object === null || !in_array($locked['status'], ['pending_write','ready'], true)
+            || $locked['purpose'] !== 'attachment.sensitive' || $locked['access_type'] !== 'private'
+            || $object['space_status'] !== 'active' || $object['account_status'] !== 'active') {
+            throw BusinessException::conflict('FILE_EVIDENCE_OBJECT_CHANGED', '原凭证或存储不可用');
+        }
+        return array_replace($object, $locked);
+    }
+
+    private function evidenceFile(array $object): BusinessEvidenceFile
+    {
+        return new BusinessEvidenceFile($object['file_key'], $object['status'] === 'ready' ? 'published' : 'reserved',
+            $object['original_name'], $object['media_type'], (int) $object['size_bytes'], $object['sha256']);
+    }
+
+    /** @return array{string,string,int,string} */
+    private function evidenceMetadata(array|BusinessEvidenceFile $file): array
+    {
+        if ($file instanceof BusinessEvidenceFile) {
+            return [$file->originalName, $file->verifiedMimeType, $file->sizeBytes, $file->sha256];
+        }
+        return [$file['original_name'], $file['media_type'], (int) $file['size_bytes'], $file['sha256']];
+    }
+
+    private function evidenceDuplicate(\think\db\exception\PDOException $error, string $table): bool
+    {
+        $data = $error->getData()['PDO Error Info'] ?? [];
+        return in_array((int) ($data['Driver Error Code'] ?? 0), [19, 1062, 2067], true)
+            && str_contains($error->getMessage(), $table);
     }
 
     public function publicUrl(string $reference): string
