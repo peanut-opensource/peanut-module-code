@@ -296,7 +296,7 @@ $metadata = json_decode(<<<'JSON'
           "AI_UNKNOWN_NO_RESEND",
           "SOURCE_AUTHORIZATION_BRIDGE_REQUIRED"
         ],
-        "description": "每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。",
+        "description": "每次核真实租户/成员/对象范围及Document固定来源授权；仅当实际Document实现未提供DocumentSourceGrants合同时返回SOURCE_AUTHORIZATION_BRIDGE_REQUIRED。已接入合同仍须通过当前来源授权、有效配置和明确发送确认，不以概览状态代替发送前检查。",
         "responses": {
           "200": {
             "description": "成功",
@@ -346,7 +346,7 @@ $metadata = json_decode(<<<'JSON'
           "AI_UNKNOWN_NO_RESEND",
           "SOURCE_AUTHORIZATION_BRIDGE_REQUIRED"
         ],
-        "description": "每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。",
+        "description": "每次核真实租户/成员/对象范围及Document固定来源授权；仅当实际Document实现未提供DocumentSourceGrants合同时返回SOURCE_AUTHORIZATION_BRIDGE_REQUIRED。已接入合同仍须通过当前来源授权、有效配置和明确发送确认，不以概览状态代替发送前检查。",
         "responses": {
           "200": {
             "description": "成功",
@@ -465,7 +465,7 @@ $metadata = json_decode(<<<'JSON'
           "AI_UNKNOWN_NO_RESEND",
           "SOURCE_AUTHORIZATION_BRIDGE_REQUIRED"
         ],
-        "description": "每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。",
+        "description": "每次核真实租户/成员/对象范围及Document固定来源授权；仅当实际Document实现未提供DocumentSourceGrants合同时返回SOURCE_AUTHORIZATION_BRIDGE_REQUIRED。已接入合同仍须通过当前来源授权、有效配置和明确发送确认，不以概览状态代替发送前检查。",
         "responses": {
           "200": {
             "description": "成功",
@@ -541,7 +541,7 @@ $metadata = json_decode(<<<'JSON'
           "AI_UNKNOWN_NO_RESEND",
           "SOURCE_AUTHORIZATION_BRIDGE_REQUIRED"
         ],
-        "description": "每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。",
+        "description": "每次核真实租户/成员/对象范围及Document固定来源授权；仅当实际Document实现未提供DocumentSourceGrants合同时返回SOURCE_AUTHORIZATION_BRIDGE_REQUIRED。已接入合同仍须通过当前来源授权、有效配置和明确发送确认，不以概览状态代替发送前检查。",
         "responses": {
           "200": {
             "description": "成功",
@@ -636,7 +636,7 @@ $metadata = json_decode(<<<'JSON'
           "AI_UNKNOWN_NO_RESEND",
           "SOURCE_AUTHORIZATION_BRIDGE_REQUIRED"
         ],
-        "description": "每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。",
+        "description": "每次核真实租户/成员/对象范围及Document固定来源授权；仅当实际Document实现未提供DocumentSourceGrants合同时返回SOURCE_AUTHORIZATION_BRIDGE_REQUIRED。已接入合同仍须通过当前来源授权、有效配置和明确发送确认，不以概览状态代替发送前检查。",
         "responses": {
           "200": {
             "description": "成功",
@@ -731,7 +731,7 @@ $metadata = json_decode(<<<'JSON'
           "AI_UNKNOWN_NO_RESEND",
           "SOURCE_AUTHORIZATION_BRIDGE_REQUIRED"
         ],
-        "description": "每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。",
+        "description": "每次核真实租户/成员/对象范围及Document固定来源授权；仅当实际Document实现未提供DocumentSourceGrants合同时返回SOURCE_AUTHORIZATION_BRIDGE_REQUIRED。已接入合同仍须通过当前来源授权、有效配置和明确发送确认，不以概览状态代替发送前检查。",
         "responses": {
           "200": {
             "description": "成功",
@@ -1489,7 +1489,7 @@ $metadata = json_decode(<<<'JSON'
           "AI_UNKNOWN_NO_RESEND",
           "SOURCE_AUTHORIZATION_BRIDGE_REQUIRED"
         ],
-        "description": "每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。",
+        "description": "每次核真实租户/成员/对象范围及Document固定来源授权；仅当实际Document实现未提供DocumentSourceGrants合同时返回SOURCE_AUTHORIZATION_BRIDGE_REQUIRED。已接入合同仍须通过当前来源授权、有效配置和明确发送确认，不以概览状态代替发送前检查。",
         "responses": {
           "200": {
             "description": "成功",
@@ -1700,7 +1700,7 @@ $metadata = json_decode(<<<'JSON'
           "AI_UNKNOWN_NO_RESEND",
           "SOURCE_AUTHORIZATION_BRIDGE_REQUIRED"
         ],
-        "description": "每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。",
+        "description": "每次核真实租户/成员/对象范围及Document固定来源授权；仅当实际Document实现未提供DocumentSourceGrants合同时返回SOURCE_AUTHORIZATION_BRIDGE_REQUIRED。已接入合同仍须通过当前来源授权、有效配置和明确发送确认，不以概览状态代替发送前检查。",
         "responses": {
           "200": {
             "description": "成功",
@@ -2117,7 +2117,7 @@ $metadata = json_decode(<<<'JSON'
           "AI_UNKNOWN_NO_RESEND",
           "SOURCE_AUTHORIZATION_BRIDGE_REQUIRED"
         ],
-        "description": "每次核真实租户/成员/对象范围；无来源System公开授权桥时，在发送前SOURCE_AUTHORIZATION_BRIDGE_REQUIRED，不产生提供方调用或伪造产物。",
+        "description": "每次核真实租户/成员/对象范围及Document固定来源授权；仅当实际Document实现未提供DocumentSourceGrants合同时返回SOURCE_AUTHORIZATION_BRIDGE_REQUIRED。已接入合同仍须通过当前来源授权、有效配置和明确发送确认，不以概览状态代替发送前检查。",
         "responses": {
           "200": {
             "description": "成功",

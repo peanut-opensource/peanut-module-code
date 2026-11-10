@@ -116,7 +116,7 @@ export interface Overview {
   capabilities: string[];
   result_types: Record<string, string>;
   protocols: string[];
-  execution: { state: string; code: string; reason: string };
+  execution: { state: 'available' | 'blocked'; code: string | null; reason: string };
 }
 export interface Page {
   list: BusinessRecord[];
