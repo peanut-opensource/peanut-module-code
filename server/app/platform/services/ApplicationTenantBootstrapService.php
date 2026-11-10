@@ -71,7 +71,7 @@ final readonly class ApplicationTenantBootstrapService
             $selectedModules,
         ): void {
             $this->seedCrontab($execution->system, $selectedModules);
-            $this->seedNoticeScenes($execution);
+            $this->seedNoticeScenes($execution, $selectedModules);
             $this->seedDecoration();
             $this->seedSettings($execution->system);
             $this->seedExternalBindings($tenantId, $tenantCode, $selectedModules);
@@ -86,9 +86,6 @@ final readonly class ApplicationTenantBootstrapService
         }
         $available = array_fill_keys($connection->getTables(), true);
         $expected = self::REQUIRED_TABLES;
-        if ($this->notifications !== null) {
-            $expected[] = 'pa_notice_scene';
-        }
         $tables = array_values(array_filter(
             $expected,
             static fn(string $table): bool => isset($available[$table]),
@@ -137,9 +134,10 @@ final readonly class ApplicationTenantBootstrapService
         }
     }
 
-    private function seedNoticeScenes(SystemExecutionContext $execution): void
+    private function seedNoticeScenes(SystemExecutionContext $execution, array $selectedModules): void
     {
-        if ($this->notifications === null) {
+        // A declared optional service may be bound before its Module is installed.
+        if ($this->notifications === null || !in_array('peanut.notification', $selectedModules, true)) {
             return;
         }
         $notificationExecution = new SystemExecutionContext(new TenantSystemContext(
