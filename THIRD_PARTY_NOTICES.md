@@ -1,6 +1,6 @@
 # Peanut Module Code Third-Party Notices
 
-Generated for Peanut Module Code 5.1.8 on 2026-11-10.
+Generated for Peanut Module Code 5.1.9 on 2026-11-10.
 
 Peanut Module Code is licensed under Apache-2.0: Copyright 2026 application owner. Third-party components remain governed by their own licenses.
 

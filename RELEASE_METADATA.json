@@ -3,7 +3,7 @@
     "protocol": "peanut.release-metadata.v3",
     "product": "Peanut Module Code",
     "application_identity": "peanut-business/peanut-module-code",
-    "source_product_version": "5.1.8",
+    "source_product_version": "5.1.9",
     "instance_version": "1.0.0",
     "status": "generated-application-baseline",
     "release_policy": "replace this metadata from an immutable application release candidate before publishing",
