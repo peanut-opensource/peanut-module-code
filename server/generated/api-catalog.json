@@ -4,7 +4,7 @@
     "inputs": [
         {
             "path": "modules.lock",
-            "sha256": "159f505785e1244149819fe106732e2335540db4fca18663dcb2bd496cfff91e"
+            "sha256": "a30f2c03ead8bdc5fa515a58e76b3522c57cab9266c974aff2305b1a01bb1e6a"
         },
         {
             "path": "release-versions.json",
@@ -77,6 +77,14 @@
         {
             "path": "server/app/modules/peanut/file/route/app.php",
             "sha256": "d7c7eac22bff275513725aef9c3a2c2ea9523ea2bf872455d2f3a6a5ec9051ca"
+        },
+        {
+            "path": "server/app/modules/peanut/identity/api/metadata/openapi.php",
+            "sha256": "8d22c11193197bb8f1783b2da897728fae8c8abc88df9299b5b0babd85b8a4b4"
+        },
+        {
+            "path": "server/app/modules/peanut/identity/route/app.php",
+            "sha256": "57ee8eaf9501489439e96dbd853d4a17f07aef353b5e954c07f972e4a7b0af1e"
         },
         {
             "path": "server/app/modules/peanut/import_export/api/metadata/openapi.php",
@@ -200,27 +208,27 @@
         ]
     },
     "summary": {
-        "route_count": 469,
-        "generated_api_operations": 443,
+        "route_count": 471,
+        "generated_api_operations": 445,
         "route_only_operations": 26,
-        "complete_operations": 443,
+        "complete_operations": 445,
         "partial_operations": 0,
-        "runtime_routes": 469,
-        "documented_operations": 443,
+        "runtime_routes": 471,
+        "documented_operations": 445,
         "undocumented_routes": 26,
-        "automatic_route_metadata": 469,
+        "automatic_route_metadata": 471,
         "requires_owner_contract": 26,
-        "owners": 19,
+        "owners": 20,
         "runtime_inventory": {
-            "total": 469,
+            "total": 471,
             "methods": {
                 "DELETE": 4,
                 "GET": 209,
-                "POST": 245,
+                "POST": 247,
                 "PUT": 11
             },
             "applications": {
-                "adminapi": 332,
+                "adminapi": 334,
                 "api": 47,
                 "installation": 9,
                 "platform": 81
@@ -235,6 +243,7 @@
                 "module:peanut.collaboration": 11,
                 "module:peanut.document": 18,
                 "module:peanut.file": 31,
+                "module:peanut.identity": 2,
                 "module:peanut.import-export": 11,
                 "module:peanut.integration": 12,
                 "module:peanut.member": 24,
@@ -259,6 +268,7 @@
         "module:peanut.collaboration": 11,
         "module:peanut.document": 18,
         "module:peanut.file": 31,
+        "module:peanut.identity": 2,
         "module:peanut.import-export": 11,
         "module:peanut.integration": 12,
         "module:peanut.member": 24,
@@ -16883,6 +16893,174 @@
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts",
                 "web/src/modules/peanut-file/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "cf7ccf2d7b1d87a0752d6b5a5e755425134b0ec979c52a1c7a56e8fc0e997109",
+            "method": "POST",
+            "path": "/adminapi/api/v1/identity/device-credentials",
+            "runtime_path": "/adminapi/api/v1/identity/device-credentials",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.identity"
+            },
+            "controller": "PeanutAdmin\\Modules\\Identity\\Controller\\DeviceCredentialController",
+            "action": "enroll",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "peanut.identity.device-credential.enroll"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.identity"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "peanut.identity.device-credential.enroll"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409,
+                422
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.identity",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/identity/route/app.php",
+                "line": 15
+            },
+            "documented": true,
+            "openapi_operation_id": "identityEnrollDeviceCredential",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "d89b2c8a71589cdfb7ce4b516e3bfe19df8c2fd7d20c2fe3f7fb4fff3a1e2e94",
+            "method": "POST",
+            "path": "/adminapi/api/v1/identity/device-credentials/{key}/revoke",
+            "runtime_path": "/adminapi/api/v1/identity/device-credentials/:key/revoke",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.identity"
+            },
+            "controller": "PeanutAdmin\\Modules\\Identity\\Controller\\DeviceCredentialController",
+            "action": "revoke",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "peanut.identity.device-credential.revoke"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.identity"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "peanut.identity.device-credential.revoke"
+                }
+            ],
+            "errors": [
+                400,
+                401,
+                403,
+                404,
+                409,
+                422
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.identity",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/identity/route/app.php",
+                "line": 17
+            },
+            "documented": true,
+            "openapi_operation_id": "identityRevokeDeviceCredential",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts"
             ],
             "documentation": {
                 "status": "documented",

@@ -138,6 +138,9 @@
             "name": "Storage"
         },
         {
+            "name": "Identity"
+        },
+        {
             "name": "Integration"
         },
         {
@@ -31691,6 +31694,284 @@
                 ]
             }
         },
+        "/adminapi/api/v1/identity/device-credentials": {
+            "x-peanut-required-modules": [
+                "peanut.identity"
+            ],
+            "post": {
+                "tags": [
+                    "Identity"
+                ],
+                "operationId": "identityEnrollDeviceCredential",
+                "summary": "登记设备公钥凭据",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/IdentityEnrollDeviceCredentialRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "设备凭据登记结果。",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IdentityEnrollDeviceCredentialResponse"
+                                }
+                            }
+                        }
+                    },
+                    "202": {
+                        "description": "设备凭据登记结果。",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IdentityEnrollDeviceCredentialResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "设备凭据登记结果。",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IdentityEnrollDeviceCredentialResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "设备凭据登记结果。",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IdentityEnrollDeviceCredentialResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "设备凭据登记结果。",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IdentityEnrollDeviceCredentialResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "设备凭据登记结果。",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IdentityEnrollDeviceCredentialResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "description": "当前办理身份或设备凭据登记权限不可用。",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/ErrorEnvelope"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/IdentityEnrollDeviceCredentialResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.identity"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Identity\\Controller\\DeviceCredentialController",
+                    "action": "enroll",
+                    "permission": "peanut.identity.device-credential.enroll",
+                    "source": {
+                        "file": "server/app/modules/peanut/identity/route/app.php",
+                        "line": 15
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.identity"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "peanut.identity.device-credential.enroll"
+                    }
+                ]
+            }
+        },
+        "/adminapi/api/v1/identity/device-credentials/{key}/revoke": {
+            "x-peanut-required-modules": [
+                "peanut.identity"
+            ],
+            "post": {
+                "tags": [
+                    "Identity"
+                ],
+                "operationId": "identityRevokeDeviceCredential",
+                "summary": "撤销设备凭据",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/IdentityRevokeDeviceCredentialRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "设备凭据撤销结果。",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IdentityRevokeDeviceCredentialResponse"
+                                }
+                            }
+                        }
+                    },
+                    "202": {
+                        "description": "设备凭据撤销结果。",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IdentityRevokeDeviceCredentialResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "设备凭据撤销结果。",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IdentityRevokeDeviceCredentialResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "设备凭据撤销结果。",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IdentityRevokeDeviceCredentialResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "设备凭据撤销结果。",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IdentityRevokeDeviceCredentialResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "设备凭据撤销结果。",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IdentityRevokeDeviceCredentialResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "description": "当前办理身份或设备凭据撤销权限不可用。",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/ErrorEnvelope"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/IdentityRevokeDeviceCredentialResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.identity"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Identity\\Controller\\DeviceCredentialController",
+                    "action": "revoke",
+                    "permission": "peanut.identity.device-credential.revoke",
+                    "source": {
+                        "file": "server/app/modules/peanut/identity/route/app.php",
+                        "line": 17
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.identity"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "peanut.identity.device-credential.revoke"
+                    }
+                ]
+            }
+        },
         "/adminapi/peanut.import-export.operation-log.export": {
             "post": {
                 "tags": [
@@ -58264,6 +58545,424 @@
                         }
                     }
                 }
+            },
+            "IdentityEnrollDeviceCredentialRequest": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "client_key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9-]{0,63}$"
+                    },
+                    "device_fingerprint_hash": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "credential_public_key": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "credential_signature": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{128}$"
+                    },
+                    "command_key": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+                    }
+                },
+                "required": [
+                    "client_key",
+                    "device_fingerprint_hash",
+                    "credential_public_key",
+                    "credential_signature",
+                    "command_key"
+                ]
+            },
+            "IdentityEnrollDeviceCredentialResponse": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "outcome": {
+                        "enum": [
+                            "accepted",
+                            "pending",
+                            "rejected",
+                            "repair_required"
+                        ]
+                    },
+                    "correlation_id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 96
+                    },
+                    "resource_key": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid",
+                                "pattern": "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+                            },
+                            {
+                                "type": "object",
+                                "nullable": true,
+                                "enum": [
+                                    null
+                                ]
+                            }
+                        ]
+                    },
+                    "resource_revision": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "pattern": "^[1-9][0-9]*$",
+                                "maxLength": 20
+                            },
+                            {
+                                "type": "object",
+                                "nullable": true,
+                                "enum": [
+                                    null
+                                ]
+                            }
+                        ]
+                    },
+                    "data": {
+                        "anyOf": [
+                            {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "status_code": {
+                                        "enum": [
+                                            "enrolled"
+                                        ]
+                                    },
+                                    "changed_refs": {
+                                        "type": "array",
+                                        "minItems": 1,
+                                        "maxItems": 1,
+                                        "items": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "module": {
+                                                    "enum": [
+                                                        "peanut.identity"
+                                                    ]
+                                                },
+                                                "resource_type": {
+                                                    "enum": [
+                                                        "device_credential"
+                                                    ]
+                                                },
+                                                "key": {
+                                                    "type": "string",
+                                                    "format": "uuid",
+                                                    "pattern": "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+                                                },
+                                                "revision": {
+                                                    "enum": [
+                                                        "1"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "module",
+                                                "resource_type",
+                                                "key",
+                                                "revision"
+                                            ]
+                                        }
+                                    },
+                                    "next_actions": {
+                                        "type": "array",
+                                        "maxItems": 0,
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "status_code",
+                                    "changed_refs",
+                                    "next_actions"
+                                ]
+                            },
+                            {
+                                "type": "object",
+                                "nullable": true,
+                                "enum": [
+                                    null
+                                ]
+                            }
+                        ]
+                    },
+                    "problem": {
+                        "anyOf": [
+                            {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "code": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 96
+                                    },
+                                    "message_zh": {
+                                        "type": "string"
+                                    },
+                                    "retryable": {
+                                        "type": "boolean"
+                                    },
+                                    "recovery_action": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "code",
+                                    "message_zh",
+                                    "retryable",
+                                    "recovery_action"
+                                ]
+                            },
+                            {
+                                "type": "object",
+                                "nullable": true,
+                                "enum": [
+                                    null
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "outcome",
+                    "correlation_id",
+                    "resource_key",
+                    "resource_revision",
+                    "data",
+                    "problem"
+                ]
+            },
+            "IdentityRevokeDeviceCredentialRequest": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "reason_note": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000,
+                        "pattern": "^[^\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]*[^\\s\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f][^\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]*$"
+                    },
+                    "command_key": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+                    },
+                    "expected_revision": {
+                        "type": "string",
+                        "pattern": "^[1-9][0-9]*$",
+                        "maxLength": 20
+                    }
+                },
+                "required": [
+                    "reason_note",
+                    "command_key",
+                    "expected_revision"
+                ]
+            },
+            "IdentityRevokeDeviceCredentialResponse": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "outcome": {
+                        "enum": [
+                            "accepted",
+                            "pending",
+                            "rejected",
+                            "repair_required"
+                        ]
+                    },
+                    "correlation_id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 96
+                    },
+                    "resource_key": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "uuid",
+                                "pattern": "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+                            },
+                            {
+                                "type": "object",
+                                "nullable": true,
+                                "enum": [
+                                    null
+                                ]
+                            }
+                        ]
+                    },
+                    "resource_revision": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "pattern": "^[1-9][0-9]*$",
+                                "maxLength": 20
+                            },
+                            {
+                                "type": "object",
+                                "nullable": true,
+                                "enum": [
+                                    null
+                                ]
+                            }
+                        ]
+                    },
+                    "data": {
+                        "anyOf": [
+                            {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "status_code": {
+                                        "enum": [
+                                            "revoked"
+                                        ]
+                                    },
+                                    "changed_refs": {
+                                        "type": "array",
+                                        "minItems": 1,
+                                        "maxItems": 1,
+                                        "items": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "module": {
+                                                    "enum": [
+                                                        "peanut.identity"
+                                                    ]
+                                                },
+                                                "resource_type": {
+                                                    "enum": [
+                                                        "device_credential"
+                                                    ]
+                                                },
+                                                "key": {
+                                                    "type": "string",
+                                                    "format": "uuid",
+                                                    "pattern": "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+                                                },
+                                                "revision": {
+                                                    "type": "string",
+                                                    "pattern": "^[1-9][0-9]*$",
+                                                    "maxLength": 20
+                                                }
+                                            },
+                                            "required": [
+                                                "module",
+                                                "resource_type",
+                                                "key",
+                                                "revision"
+                                            ]
+                                        }
+                                    },
+                                    "next_actions": {
+                                        "type": "array",
+                                        "maxItems": 0,
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "revocation_epoch": {
+                                        "enum": [
+                                            "1"
+                                        ]
+                                    },
+                                    "installation_key": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "format": "uuid",
+                                                "pattern": "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+                                            },
+                                            {
+                                                "type": "object",
+                                                "nullable": true,
+                                                "enum": [
+                                                    null
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "status_code",
+                                    "changed_refs",
+                                    "next_actions",
+                                    "revocation_epoch",
+                                    "installation_key"
+                                ]
+                            },
+                            {
+                                "type": "object",
+                                "nullable": true,
+                                "enum": [
+                                    null
+                                ]
+                            }
+                        ]
+                    },
+                    "problem": {
+                        "anyOf": [
+                            {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "code": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 96
+                                    },
+                                    "message_zh": {
+                                        "type": "string"
+                                    },
+                                    "retryable": {
+                                        "type": "boolean"
+                                    },
+                                    "recovery_action": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "code",
+                                    "message_zh",
+                                    "retryable",
+                                    "recovery_action"
+                                ]
+                            },
+                            {
+                                "type": "object",
+                                "nullable": true,
+                                "enum": [
+                                    null
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "outcome",
+                    "correlation_id",
+                    "resource_key",
+                    "resource_revision",
+                    "data",
+                    "problem"
+                ]
             },
             "ImportExportOperation": {
                 "type": "object",

@@ -4842,6 +4842,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/adminapi/api/v1/identity/device-credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 登记设备公钥凭据 */
+        post: operations["identityEnrollDeviceCredential"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/identity/device-credentials/{key}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 撤销设备凭据 */
+        post: operations["identityRevokeDeviceCredential"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/adminapi/peanut.import-export.operation-log.export": {
         parameters: {
             query?: never;
@@ -10442,6 +10476,78 @@ export interface components {
             code: 20000;
             msg: string;
             data: components["schemas"]["FileCategoryRecord"][];
+        };
+        IdentityEnrollDeviceCredentialRequest: {
+            client_key: string;
+            device_fingerprint_hash: string;
+            credential_public_key: string;
+            credential_signature: string;
+            /** Format: uuid */
+            command_key: string;
+        };
+        IdentityEnrollDeviceCredentialResponse: {
+            /** @enum {unknown} */
+            outcome: "accepted" | "pending" | "rejected" | "repair_required";
+            correlation_id: string;
+            resource_key: string | (never | null);
+            resource_revision: string | (never | null);
+            data: {
+                /** @enum {unknown} */
+                status_code: "enrolled";
+                changed_refs: {
+                    /** @enum {unknown} */
+                    module: "peanut.identity";
+                    /** @enum {unknown} */
+                    resource_type: "device_credential";
+                    /** Format: uuid */
+                    key: string;
+                    /** @enum {unknown} */
+                    revision: "1";
+                }[];
+                next_actions: string[];
+            } | (never | null);
+            problem: {
+                code: string;
+                message_zh: string;
+                retryable: boolean;
+                recovery_action: string;
+            } | (never | null);
+        };
+        IdentityRevokeDeviceCredentialRequest: {
+            reason_note: string;
+            /** Format: uuid */
+            command_key: string;
+            expected_revision: string;
+        };
+        IdentityRevokeDeviceCredentialResponse: {
+            /** @enum {unknown} */
+            outcome: "accepted" | "pending" | "rejected" | "repair_required";
+            correlation_id: string;
+            resource_key: string | (never | null);
+            resource_revision: string | (never | null);
+            data: {
+                /** @enum {unknown} */
+                status_code: "revoked";
+                changed_refs: {
+                    /** @enum {unknown} */
+                    module: "peanut.identity";
+                    /** @enum {unknown} */
+                    resource_type: "device_credential";
+                    /** Format: uuid */
+                    key: string;
+                    revision: string;
+                }[];
+                next_actions: string[];
+                /** @enum {unknown} */
+                revocation_epoch: "1";
+                installation_key: string | (never | null);
+            } | (never | null);
+            problem: {
+                code: string;
+                message_zh: string;
+                retryable: boolean;
+                recovery_action: string;
+            } | (never | null);
         };
         ImportExportOperation: {
             operation_key: string;
@@ -22903,6 +23009,166 @@ export interface operations {
             400: components["responses"]["ErrorResponse"];
             401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
+        };
+    };
+    identityEnrollDeviceCredential: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IdentityEnrollDeviceCredentialRequest"];
+            };
+        };
+        responses: {
+            /** @description 设备凭据登记结果。 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityEnrollDeviceCredentialResponse"];
+                };
+            };
+            /** @description 设备凭据登记结果。 */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityEnrollDeviceCredentialResponse"];
+                };
+            };
+            /** @description 设备凭据登记结果。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityEnrollDeviceCredentialResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            /** @description 当前办理身份或设备凭据登记权限不可用。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"] | components["schemas"]["IdentityEnrollDeviceCredentialResponse"];
+                };
+            };
+            /** @description 设备凭据登记结果。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityEnrollDeviceCredentialResponse"];
+                };
+            };
+            /** @description 设备凭据登记结果。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityEnrollDeviceCredentialResponse"];
+                };
+            };
+            /** @description 设备凭据登记结果。 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityEnrollDeviceCredentialResponse"];
+                };
+            };
+        };
+    };
+    identityRevokeDeviceCredential: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IdentityRevokeDeviceCredentialRequest"];
+            };
+        };
+        responses: {
+            /** @description 设备凭据撤销结果。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityRevokeDeviceCredentialResponse"];
+                };
+            };
+            /** @description 设备凭据撤销结果。 */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityRevokeDeviceCredentialResponse"];
+                };
+            };
+            /** @description 设备凭据撤销结果。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityRevokeDeviceCredentialResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            /** @description 当前办理身份或设备凭据撤销权限不可用。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"] | components["schemas"]["IdentityRevokeDeviceCredentialResponse"];
+                };
+            };
+            /** @description 设备凭据撤销结果。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityRevokeDeviceCredentialResponse"];
+                };
+            };
+            /** @description 设备凭据撤销结果。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityRevokeDeviceCredentialResponse"];
+                };
+            };
+            /** @description 设备凭据撤销结果。 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityRevokeDeviceCredentialResponse"];
+                };
+            };
         };
     };
     submitOperationLogExport: {
