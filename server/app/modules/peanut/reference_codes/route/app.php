@@ -15,8 +15,10 @@ if (($peanutRouteApplication ?? null) !== 'adminapi') {
 
 Route::group(function (): void {
     Route::get('api/v1/reference-code-sets', [ReferenceCodesController::class, 'sets'])
+        ->completeMatch()
         ->option(['peanut_permission' => 'peanut.reference-codes.read']);
     Route::get('api/v1/reference-code-sets/:moduleKey/:setKey/codes', [ReferenceCodesController::class, 'index'])
+        ->completeMatch()
         ->option(['peanut_permission' => 'peanut.reference-codes.read']);
     Route::post('api/v1/reference-code-sets/:moduleKey/:setKey/codes', [ReferenceCodesController::class, 'create'])
         ->option(['peanut_permission' => 'peanut.reference-codes.manage']);
