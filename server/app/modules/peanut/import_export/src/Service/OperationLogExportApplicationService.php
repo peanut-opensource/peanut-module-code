@@ -40,7 +40,7 @@ final readonly class OperationLogExportApplicationService
         AdminPrincipal $principal,
         string $operationKey,
     ): AsyncExportOperation {
-        return $this->runtime->queries()->operation(
+        return $this->runtime->operation(
             $this->authorized($context, $principal),
             $operationKey,
         );
