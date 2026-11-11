@@ -1,0 +1,185 @@
+name: Official module release
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_commit:
+        description: Exact 40-hex commit; must equal the selected workflow ref
+        required: true
+        type: string
+      tag:
+        description: Catalog vX.Y.Z or vX.Y.Z-rc.N (independent of module versions)
+        required: true
+        type: string
+      channel:
+        type: choice
+        options: [prerelease, stable]
+        default: prerelease
+        required: true
+      publish:
+        description: Publish existing CI originals from main and an approved annotated tag
+        type: boolean
+        default: false
+      qualification_run_id:
+        description: Successful build run for the same exact commit; required for publication
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  # Catalogs share independent module version identities, so serialize all releases.
+  group: official-module-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.repository == 'peanut-opensource/peanut-module-code' && !inputs.publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      SOURCE_COMMIT: ${{ inputs.source_commit }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_CHANNEL: ${{ inputs.channel }}
+      # ThinkPHP's process-environment fallback reads PHP_<NAME>.
+      PHP_DEPLOYMENT_MODE: multi-tenant
+      PHP_APP_ENV: development
+      PHP_APP_DEBUG: 'true'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Bind source and channel before dependency preparation
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          [[ "$SOURCE_COMMIT" =~ ^[a-f0-9]{40}$ && "$SOURCE_COMMIT" == "$GITHUB_SHA" ]]
+          [[ "$(git rev-parse HEAD)" == "$SOURCE_COMMIT" ]]
+          [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-rc\.(0|[1-9][0-9]*))?$ ]]
+          if [[ "$RELEASE_TAG" == *-rc.* ]]; then
+            [[ "$RELEASE_CHANNEL" == prerelease ]]
+          else
+            [[ "$RELEASE_CHANNEL" == stable ]]
+          fi
+          test -z "$(git status --porcelain)"
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: bcmath, ctype, curl, dom, fileinfo, filter, hash, iconv, json, libxml, mbstring, openssl, pcre, pdo, pdo_mysql, simplexml, sodium, tokenizer, zip
+          coverage: none
+          tools: none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # The index builder invokes `peanut module check/pack`. A clean GitHub runner
+      # does not inherit the developer machine's globally installed CLI.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install fixed public Peanut CLI for native module commands
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm install --global --ignore-scripts --no-audit --no-fund @peanut-admin/cli@0.3.4
+          peanut --version
+      - name: Install exact native Composer lock without application or test hooks
+        shell: bash
+        env:
+          COMPOSER_NO_INTERACTION: '1'
+        run: |
+          set -Eeuo pipefail
+          scripts/project-composer prepare
+          scripts/project-composer --working-dir=server validate --check-lock --no-check-publish
+          scripts/project-composer --working-dir=server install --no-dev --no-interaction --prefer-dist --no-scripts --no-plugins
+          scripts/project-composer --working-dir=tools/quality validate --check-lock --no-check-publish
+          scripts/project-composer --working-dir=tools/quality install --no-dev --no-interaction --prefer-dist --no-scripts --no-plugins
+          php --version
+          scripts/project-composer --version
+          python3 --version
+      - name: Native pack, check supplied packages, license and closed catalog
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/build-module-release-index --source-root "$GITHUB_WORKSPACE" \
+            --output "$RUNNER_TEMP/module-release" --source-commit "$SOURCE_COMMIT" \
+            --tag "$RELEASE_TAG" --channel "$RELEASE_CHANNEL"
+      - name: Audit all previous public and draft version identities
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/publish-module-release --directory "$RUNNER_TEMP/module-release" --mode audit
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib
+          directory = pathlib.Path(os.environ['RUNNER_TEMP']) / 'module-release'
+          data = (directory / 'module-release-index.json').read_bytes()
+          index = json.loads(data)
+          receipt = dict(run_id=int(os.environ['GITHUB_RUN_ID']), commit=index['commit'], tag=index['tag'],
+                         index_sha256=hashlib.sha256(data).hexdigest(), native_checks=len(index['modules']))
+          (directory / 'build-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write(f"Native check/pack PASS: {len(index['modules'])} modules; source {index['commit']}.\n")
+              summary.write('Business/DB/E2E tests NOT_RUN; public Release NOT_PUBLISHED.\n')
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: official-modules-${{ github.run_id }}
+          path: ${{ runner.temp }}/module-release/
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    if: github.repository == 'peanut-opensource/peanut-module-code' && inputs.publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: read
+    env:
+      SOURCE_COMMIT: ${{ inputs.source_commit }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_CHANNEL: ${{ inputs.channel }}
+      QUALIFICATION_RUN_ID: ${{ inputs.qualification_run_id }}
+      MODULE_RELEASE_IMMUTABLE: ${{ vars.MODULE_RELEASE_IMMUTABLE }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require main, fixed source, existing run and repository immutability approval
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          [[ "$GITHUB_REF" == refs/heads/main && "$SOURCE_COMMIT" =~ ^[a-f0-9]{40}$ && "$SOURCE_COMMIT" == "$GITHUB_SHA" ]]
+          [[ "$QUALIFICATION_RUN_ID" =~ ^[1-9][0-9]*$ && "$MODULE_RELEASE_IMMUTABLE" == true ]]
+          python3 - <<'PY'
+          import os, re
+          tag = os.environ['RELEASE_TAG']
+          assert re.fullmatch(r'v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-rc\.(0|[1-9]\d*))?', tag)
+          assert os.environ['RELEASE_CHANNEL'] == ('prerelease' if '-rc.' in tag else 'stable')
+          PY
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: official-modules-${{ inputs.qualification_run_id }}
+          run-id: ${{ inputs.qualification_run_id }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/module-release
+      - name: Publish qualified originals and verify every GitHub API digest and download
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib
+          index = json.loads((pathlib.Path(os.environ['RUNNER_TEMP']) / 'module-release/module-release-index.json').read_bytes())
+          assert index['commit'] == os.environ['SOURCE_COMMIT'] and index['tag'] == os.environ['RELEASE_TAG']
+          PY
+          python3 scripts/publish-module-release --directory "$RUNNER_TEMP/module-release" \
+            --mode publish --run-id "$QUALIFICATION_RUN_ID"
+          echo "Published immutable $RELEASE_TAG from $SOURCE_COMMIT; all public attachment bytes and API digests verified." >> "$GITHUB_STEP_SUMMARY"

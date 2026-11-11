@@ -1,0 +1,198 @@
+#!/usr/bin/env python3
+"""Audit immutable module identities, publish CI originals, and read back GitHub digests."""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import runpy
+import subprocess
+import sys
+from urllib.parse import quote
+
+PRODUCER = runpy.run_path(str(Path(__file__).with_name("build-module-release-index")))
+REPO = PRODUCER["REPO"]
+INDEX = "module-release-index.json"
+API = f"repos/{REPO}"
+
+
+def gh(*arguments):
+    result = subprocess.run(["gh", *arguments], capture_output=True, check=False)
+    if result.returncode:
+        raise RuntimeError(f"MODULE_RELEASE_GITHUB_FAILED ({result.returncode}): "
+                           + result.stderr.decode("utf8", errors="replace")[-1500:])
+    return result.stdout
+
+
+def api(path):
+    return json.loads(gh("api", path))
+
+
+def pages(path):
+    page = 1
+    while True:
+        rows = api(f"{path}?per_page=100&page={page}")
+        if not isinstance(rows, list):
+            raise RuntimeError("MODULE_RELEASE_GITHUB_RESPONSE_INVALID")
+        yield from rows
+        if len(rows) < 100:
+            return
+        page += 1
+
+
+def index_read(data, tag):
+    index = json.loads(data)
+    if (type(index.get("schema_version")) is not int or index["schema_version"] != 1
+            or index.get("protocol") != "peanut.module-release-index.v1"
+            or index.get("repository") != REPO or index.get("tag") != tag
+            or not PRODUCER["TAG"].fullmatch(tag) or not re.fullmatch(r"[0-9a-f]{40}", index.get("commit", ""))
+            or not isinstance(index.get("modules"), list) or not 0 < len(index["modules"]) <= 100):
+        raise RuntimeError("MODULE_RELEASE_INDEX_INVALID")
+    seen = set()
+    for row in index["modules"]:
+        if (not PRODUCER["KEY"].fullmatch(row.get("key", "")) or row["key"] in seen
+                or not PRODUCER["SEMVER"].fullmatch(row.get("version", ""))
+                or row.get("asset") != f"{row['key']}-{row['version']}.tar"
+                or not re.fullmatch(r"[0-9a-f]{64}", row.get("sha256", ""))
+                or type(row.get("bytes")) is not int or not 0 < row["bytes"] <= 67108864
+                or row.get("license") != "Apache-2.0" or not isinstance(row.get("editions"), list)
+                or not row["editions"] or len(row["editions"]) != len(set(row["editions"]))
+                or not set(row["editions"]) <= {"standalone", "multi-tenant"}
+                or not isinstance(row.get("kernel_constraint"), str) or not row["kernel_constraint"]
+                or not isinstance(row.get("dependencies"), list)
+                or ("-rc." not in tag and "-" in row["version"].split("+")[0])):
+            raise RuntimeError("MODULE_RELEASE_INDEX_ROW_INVALID")
+        seen.add(row["key"])
+    for row in index["modules"]:
+        for dep in row["dependencies"]:
+            if dep.get("module_key") not in seen or not isinstance(dep.get("version"), str) or not dep["version"]:
+                raise RuntimeError("MODULE_RELEASE_DEPENDENCY_MISSING")
+    return index
+
+
+def asset_read(release, asset):
+    name = asset["name"]
+    expected_url = f"https://github.com/{REPO}/releases/download/{quote(release['tag_name'], safe='')}/{quote(name, safe='')}"
+    if (asset.get("browser_download_url") != expected_url
+            or asset.get("url") != f"https://api.github.com/{API}/releases/assets/{asset['id']}"
+            or not re.fullmatch(r"sha256:[0-9a-f]{64}", asset.get("digest") or "")):
+        raise RuntimeError("MODULE_RELEASE_ASSET_IDENTITY_INVALID: " + name)
+    data = gh("api", f"{API}/releases/assets/{asset['id']}", "-H", "Accept: application/octet-stream")
+    if asset["digest"] != "sha256:" + hashlib.sha256(data).hexdigest() or len(data) != asset["size"]:
+        raise RuntimeError("MODULE_RELEASE_API_DIGEST_MISMATCH: " + name)
+    return data
+
+
+def local_catalog(directory):
+    data = (directory / INDEX).read_bytes()
+    index = index_read(data, json.loads(data)["tag"])
+    files = {INDEX: data}
+    for row in index["modules"]:
+        path = directory / row["asset"]
+        data = path.read_bytes()
+        if row["sha256"] != hashlib.sha256(data).hexdigest() or row["bytes"] != len(data):
+            raise RuntimeError("MODULE_RELEASE_LOCAL_DIGEST_MISMATCH: " + row["key"])
+        manifest = PRODUCER["archive_check"](path, "server/app/modules/peanut/" + row["key"][7:].replace("-", "_"))
+        if any(manifest.get(field) != row[field] for field in ("key", "version", "license", "kernel_constraint", "dependencies")):
+            raise RuntimeError("MODULE_RELEASE_INDEX_MANIFEST_MISMATCH: " + row["key"])
+        files[row["asset"]] = data
+    return index, files
+
+
+def history_check(index):
+    current = {(row["key"], row["version"]): row for row in index["modules"]}
+    for release in pages(f"{API}/releases"):
+        if release["tag_name"] == index["tag"]:
+            raise RuntimeError("MODULE_RELEASE_TAG_ALREADY_EXISTS: " + index["tag"])
+        assets = list(pages(f"{API}/releases/{release['id']}/assets"))
+        matches = [a for a in assets if a["name"] == INDEX]
+        if len(matches) != 1:
+            raise RuntimeError("MODULE_RELEASE_HISTORY_INDEX_MISSING: " + release["tag_name"])
+        previous = index_read(asset_read(release, matches[0]), release["tag_name"])
+        for row in previous["modules"]:
+            prior_assets = [a for a in assets if a["name"] == row["asset"]]
+            if (len(prior_assets) != 1 or prior_assets[0].get("digest") != "sha256:" + row["sha256"]
+                    or prior_assets[0].get("size") != row["bytes"]):
+                raise RuntimeError("MODULE_RELEASE_HISTORY_ASSET_INVALID")
+            candidate = current.get((row["key"], row["version"]))
+            if candidate is not None and candidate != row:
+                raise RuntimeError("MODULE_RELEASE_VERSION_IMMUTABLE: " + row["key"] + "@" + row["version"])
+
+
+def verify_remote(release, index, files, draft):
+    if (release.get("draft") is not draft or release.get("prerelease") != ("-rc." in index["tag"])
+            or release.get("tag_name") != index["tag"]
+            or (not draft and (release.get("immutable") is not True or not release.get("published_at")))):
+        raise RuntimeError("MODULE_RELEASE_PUBLICATION_STATE_INVALID")
+    assets = list(pages(f"{API}/releases/{release['id']}/assets"))
+    if len(assets) != len(files) or {a["name"] for a in assets} != set(files):
+        raise RuntimeError("MODULE_RELEASE_ASSET_SET_INVALID")
+    for asset in assets:
+        if asset_read(release, asset) != files[asset["name"]]:
+            raise RuntimeError("MODULE_RELEASE_READBACK_MISMATCH: " + asset["name"])
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--directory", type=Path, required=True)
+    parser.add_argument("--mode", choices=["audit", "publish", "verify"], required=True)
+    parser.add_argument("--run-id", type=int)
+    args = parser.parse_args()
+    directory = args.directory.resolve(strict=True)
+    index, files = local_catalog(directory)
+    if args.mode == "verify":
+        release = api(f"{API}/releases/tags/{quote(index['tag'], safe='')}")
+        verify_remote(release, index, files, False)
+        print(f"PUBLIC_RELEASE_VERIFIED {index['tag']} assets={len(files)} commit={index['commit']}")
+        return
+    history_check(index)
+    if args.mode == "audit":
+        print(f"RELEASE_HISTORY_AUDITED {index['tag']} modules={len(index['modules'])}")
+        return
+    # Publishing consumes the successful build's originals; it never packs again.
+    if (os.environ.get("GITHUB_REPOSITORY") != REPO or os.environ.get("GITHUB_REF") != "refs/heads/main"
+            or os.environ.get("GITHUB_SHA") != index["commit"] or not args.run_id
+            or os.environ.get("MODULE_RELEASE_IMMUTABLE") != "true"):
+        raise RuntimeError("MODULE_RELEASE_PUBLISH_GATE_REQUIRED")
+    run = api(f"{API}/actions/runs/{args.run_id}")
+    receipt = json.loads((directory / "build-receipt.json").read_bytes())
+    if (run.get("conclusion") != "success" or run.get("event") != "workflow_dispatch"
+            or run.get("path") != ".github/workflows/module-release.yml"
+            or run.get("head_sha") != index["commit"] or run.get("repository", {}).get("full_name") != REPO
+            or receipt != {"run_id": args.run_id, "commit": index["commit"], "tag": index["tag"],
+                           "index_sha256": hashlib.sha256(files[INDEX]).hexdigest(), "native_checks": len(index["modules"])}):
+        raise RuntimeError("MODULE_RELEASE_CI_ORIGINALS_REQUIRED")
+    git = lambda *a: subprocess.check_output(["git", *a], text=True).strip()
+    tag_ref = "refs/tags/" + index["tag"]
+    remote_tag = api(f"{API}/git/ref/tags/{quote(index['tag'], safe='')}")["object"]
+    if (git("rev-parse", "HEAD") != index["commit"] or git("cat-file", "-t", tag_ref) != "tag"
+            or git("rev-parse", tag_ref + "^{commit}") != index["commit"]
+            or git("rev-parse", "refs/remotes/origin/main") != index["commit"]
+            or api(f"{API}/commits/main")["sha"] != index["commit"]
+            or remote_tag["type"] != "tag" or remote_tag["sha"] != git("rev-parse", tag_ref)):
+        raise RuntimeError("MODULE_RELEASE_ANNOTATED_MAIN_TAG_REQUIRED")
+    flags = ["--prerelease"] if "-rc." in index["tag"] else []
+    gh("release", "create", index["tag"], "--repo", REPO, "--verify-tag", "--draft", *flags,
+       "--title", "Official modules " + index["tag"], "--notes",
+       f"Fixed source {index['commit']}; native check/pack CI run {args.run_id}. "
+       "Module versions are independent. This release does not assert business E2E qualification.",
+       *[str(directory / name) for name in files])
+    release = api(f"{API}/releases/tags/{quote(index['tag'], safe='')}")
+    # A failure leaves the exact draft/run handle for reconciliation. No clobber,
+    # delete, implicit retry, or replacement of an existing tag/release is allowed.
+    verify_remote(release, index, files, True)
+    gh("release", "edit", index["tag"], "--repo", REPO, "--draft=false", *flags)
+    release = api(f"{API}/releases/{release['id']}")
+    verify_remote(release, index, files, False)
+    print(f"PUBLIC_RELEASE_VERIFIED {index['tag']} assets={len(files)} commit={index['commit']}")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as exc:
+        print(f"MODULE_RELEASE_PUBLISH_FAILED: {exc}", file=sys.stderr)
+        raise SystemExit(1)

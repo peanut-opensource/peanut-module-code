@@ -11,15 +11,56 @@ import sys
 import tarfile
 
 REPO = "peanut-opensource/peanut-module-code"
-SEMVER = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$")
-TAG = re.compile(r"^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-rc\.(0|[1-9]\d*))?$")
+# Same strict SemVer grammar as the CLI's protocol.js (numeric identifiers
+# cannot have leading zeroes).
+SEMVER = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
+                    r"(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"
+                    r"(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?"
+                    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$")
+TAG = re.compile(r"^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-rc\.(0|[1-9][0-9]*))?$")
 SECRET_MARKERS = (".env", ".pem", ".key", "id_rsa", "secrets.json", "credentials.json")
+KEY = re.compile(r"^peanut\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
 
-def run(args, cwd):
-    result = subprocess.run(args, cwd=cwd, capture_output=True, text=True, check=False)
+def run(args, cwd, data=None):
+    result = subprocess.run(args, cwd=cwd, input=data, capture_output=True, text=True, check=False)
     if result.returncode:
-        raise RuntimeError(f"{args[0]} failed ({result.returncode}): {result.stderr[-1000:]}")
+        raise RuntimeError(f"{args[0]} failed ({result.returncode}): {(result.stderr + result.stdout)[-3000:]}")
     return result.stdout
+
+def native(root, operation, arguments):
+    # This is the existing bridge invoked by `peanut module`, without installing
+    # an unrelated Node/CLI/frontend toolchain in a PHP-only release runner.
+    return json.loads(run(["php", str(root / "server/module")], root,
+                          json.dumps({"operation": operation, "arguments": arguments})))
+
+def dependency_check(root, records):
+    selected = {row["key"]: row for row in records}
+    for row in records:
+        for dep in row["dependencies"]:
+            target = selected.get(dep["module_key"])
+            if target is None:
+                raise RuntimeError(f"MODULE_RELEASE_DEPENDENCY_MISSING: {row['key']} -> {dep['module_key']}")
+            if not set(row["editions"]) <= set(target["editions"]):
+                raise RuntimeError(f"MODULE_RELEASE_DEPENDENCY_EDITION: {row['key']} -> {dep['module_key']}")
+    # Reuse the native strict constraint matcher and cycle detection. No outside
+    # source-tree modules can satisfy a dependency omitted from this catalog.
+    run(["php", "-r", """
+require $argv[1] . '/server/vendor/autoload.php';
+$modules = json_decode(stream_get_contents(STDIN), true, 512, JSON_THROW_ON_ERROR);
+(new \\app\\common\\module\\PackageCheck($argv[1]))->dependencyOrder($modules, []);
+""", str(root)], root, json.dumps(selected))
+
+def public_contract_check(root, records):
+    report = json.loads(run(["php", "-r", """
+require $argv[1] . '/scripts/check-module-boundaries.php';
+$selected = array_fill_keys(json_decode(stream_get_contents(STDIN), true, 512, JSON_THROW_ON_ERROR), true);
+$report = moduleBoundaryInventory($argv[1]);
+$findings = array_values(array_filter($report['findings'], fn($row) => isset($selected[$row['owner']])));
+echo json_encode(['modules' => count($selected), 'findings' => $findings], JSON_THROW_ON_ERROR);
+""", str(root)], root, json.dumps([row["key"] for row in records])))
+    if report["findings"]:
+        raise RuntimeError("MODULE_RELEASE_PUBLIC_CONTRACT_INVALID: " + json.dumps(report["findings"]))
+    print(f"PUBLIC_CONTRACTS_READY modules={report['modules']}", flush=True)
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
@@ -38,7 +79,7 @@ def source_ready(root, commit):
         if not path.startswith(".peanut/scaffold-baseline/"):
             raise RuntimeError("MODULE_RELEASE_SOURCE_DIRTY: " + path)
 
-def archive_check(archive, module_root):
+def archive_check(archive, module_root, manifest=None):
     with tarfile.open(archive, "r") as package:
         seen, proof, actual = set(), None, {}
         for member in package.getmembers():
@@ -56,8 +97,21 @@ def archive_check(archive, module_root):
                 continue
             if not path.startswith(("server/app/modules/peanut/", "web/src/modules/", "platform/src/modules/", "pc/modules/", "uniapp/")):
                 raise RuntimeError("MODULE_RELEASE_OUT_OF_SCOPE_PATH: " + path)
-            if any(path.endswith("/" + word) or "/" + word + "/" in path for word in SECRET_MARKERS):
+            if any(part == word or part.startswith(word + ".") or part.endswith(word)
+                   for part in path.split("/") for word in SECRET_MARKERS):
                 raise RuntimeError("MODULE_RELEASE_SECRET_FILE: " + path)
+            if path.endswith(("/composer.json", "/package.json")):
+                if json.loads(data).get("license") != "Apache-2.0":
+                    raise RuntimeError("MODULE_RELEASE_LICENSE_UNREVIEWED: " + path)
+            filename = path.rsplit("/", 1)[-1].lower()
+            if filename in ("license", "copying") or filename.startswith(("license.", "license-", "copying.", "copying-")):
+                text = data.decode("utf8")
+                if "Apache License" not in text or "Version 2.0" not in text:
+                    raise RuntimeError("MODULE_RELEASE_LICENSE_UNREVIEWED: " + path)
+            if path == module_root + "/module.json":
+                archive_manifest = json.loads(data)
+                if manifest is not None and archive_manifest != manifest:
+                    raise RuntimeError("MODULE_RELEASE_ARCHIVE_MANIFEST_CHANGED")
             actual[path] = digest(data)
         if module_root + "/module.json" not in actual or proof is None:
             raise RuntimeError("MODULE_RELEASE_MANIFEST_MISSING")
@@ -74,47 +128,62 @@ def archive_check(archive, module_root):
         roots = {"/".join(x.split("/")[:5]) for x in actual if x.startswith("server/app/modules/")}
         if roots != {module_root}:
             raise RuntimeError("MODULE_RELEASE_MULTI_MODULE_ARCHIVE")
+        return archive_manifest
 
 def build(root, output, tag, channel, commit):
     if not TAG.fullmatch(tag) or channel not in ("stable", "prerelease") or (("-rc." in tag) != (channel == "prerelease")):
         raise RuntimeError("MODULE_RELEASE_TAG_CHANNEL_INVALID")
     source_ready(root, commit)
+    if output.is_relative_to(root) and not output.is_relative_to(root / "release"):
+        raise RuntimeError("MODULE_RELEASE_OUTPUT_MUST_BE_OUTSIDE_SOURCE_OR_IN_RELEASE")
     if output.exists():
         raise RuntimeError("MODULE_RELEASE_OUTPUT_EXISTS")
-    output.mkdir(parents=True, mode=0o700)
     manifests = sorted((root / "server/app/modules/peanut").glob("*/module.json"))
     records = []
     for manifest_path in manifests:
         manifest = json.loads(manifest_path.read_text())
         key, version = manifest["key"], manifest["version"]
-        if not re.fullmatch(r"peanut\.[a-z][a-z0-9-]*", key) or not SEMVER.fullmatch(version):
+        if not KEY.fullmatch(key) or not SEMVER.fullmatch(version) or key in {r["key"] for r in records}:
             raise RuntimeError("MODULE_RELEASE_INVALID_MODULE: " + key)
-        if channel == "stable" and "-" in version:
+        if channel == "stable" and "-" in version.split("+")[0]:
             continue
         module_root = "server/app/modules/peanut/" + manifest_path.parent.name
         composer = json.loads((manifest_path.parent / "composer.json").read_text())
         editions = composer.get("extra", {}).get("peanut", {}).get("editions", [])
-        if not editions or not set(editions) <= {"standalone", "multi-tenant"}:
+        if not isinstance(editions, list) or not editions or len(set(editions)) != len(editions) or not set(editions) <= {"standalone", "multi-tenant"}:
             raise RuntimeError("MODULE_RELEASE_EDITION_MISSING: " + key)
-        if manifest.get("license") != "Apache-2.0":
+        if manifest.get("license") != "Apache-2.0" or composer.get("license") != "Apache-2.0":
             raise RuntimeError("MODULE_RELEASE_LICENSE_UNREVIEWED: " + key)
-        check = json.loads(run(["peanut", "module", "check", key, "--root", str(root)], root))
-        if check.get("status") != "ready" or check.get("module", {}).get("version") != version:
-            raise RuntimeError("MODULE_RELEASE_AUTHOR_CHECK_FAILED: " + key)
         name = f"{key}-{version}.tar"
-        result = json.loads(run(["peanut", "module", "pack", key, "--output", str(output / name), "--root", str(root)], root))
+        records.append({
+            "key": key, "version": version, "asset": name,
+            "license": manifest["license"], "editions": sorted(editions),
+            "kernel_constraint": manifest["kernel_constraint"], "dependencies": manifest.get("dependencies", []),
+        })
+    if not 0 < len(records) <= 100:
+        raise RuntimeError("MODULE_RELEASE_EMPTY")
+    dependency_check(root, records)
+    public_contract_check(root, records)
+    output.mkdir(parents=True, mode=0o700)
+    for record in records:
+        key, version, name = record["key"], record["version"], record["asset"]
+        module_root = "server/app/modules/peanut/" + key[7:].replace("-", "_")
+        manifest = json.loads((root / module_root / "module.json").read_text())
+        result = native(root, "pack", [key, "--output", str(output / name)])
         data = (output / name).read_bytes()
         if result.get("sha256") != digest(data) or result.get("package_key") != key or result.get("version") != version:
             raise RuntimeError("MODULE_RELEASE_PACKAGE_PROOF_INVALID: " + key)
-        archive_check(output / name, module_root)
-        records.append({
-            "key": key, "version": version, "asset": name, "sha256": digest(data),
-            "bytes": len(data), "license": manifest["license"], "editions": sorted(editions),
-            "kernel_constraint": manifest["kernel_constraint"], "dependencies": manifest.get("dependencies", []),
-        })
+        if not 0 < len(data) <= 67108864:
+            raise RuntimeError("MODULE_RELEASE_PACKAGE_SIZE_INVALID: " + key)
+        archive_check(output / name, module_root, manifest)
+        check = native(root, "check", [key, "--package", str(output / name), "--sha256", digest(data)])
+        if (check.get("status") != "ready" or check.get("module", {}).get("version") != version
+                or {row["id"] for row in check.get("checks", []) if row.get("status") == "passed"}
+                != {"manifest", "version", "dependencies", "permissions", "menus", "frontend", "package"}):
+            raise RuntimeError("MODULE_RELEASE_AUTHOR_CHECK_FAILED: " + key + " " + json.dumps(check))
+        record.update(sha256=digest(data), bytes=len(data))
         print(f"PACKAGED {key} {version} {digest(data)[:16]}", flush=True)
-    if not records:
-        raise RuntimeError("MODULE_RELEASE_EMPTY")
+    source_ready(root, commit)
     index = {
         "schema_version": 1, "protocol": "peanut.module-release-index.v1",
         "repository": REPO, "tag": tag, "commit": commit, "modules": records,
