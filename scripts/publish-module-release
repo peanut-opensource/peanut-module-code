@@ -75,8 +75,16 @@ def index_read(data, tag):
 
 def asset_read(release, asset):
     name = asset["name"]
-    expected_url = f"https://github.com/{REPO}/releases/download/{quote(release['tag_name'], safe='')}/{quote(name, safe='')}"
-    if (asset.get("browser_download_url") != expected_url
+    public_url = f"https://github.com/{REPO}/releases/download/{quote(release['tag_name'], safe='')}/{quote(name, safe='')}"
+    # GitHub assigns draft assets an untagged-* URL until the release is published.
+    # Draft is already pinned by REST ID, tag, CI source and immutable archive digests;
+    # do not weaken the final published URL identity check.
+    draft_url = re.fullmatch(
+        rf"https://github\.com/{re.escape(REPO)}/releases/download/untagged-[a-f0-9]+/{re.escape(quote(name, safe=''))}",
+        asset.get("browser_download_url") or "",
+    )
+    url_valid = bool(draft_url) if release.get("draft") is True else asset.get("browser_download_url") == public_url
+    if (not url_valid or asset.get("state") != "uploaded"
             or asset.get("url") != f"https://api.github.com/{API}/releases/assets/{asset['id']}"
             or not re.fullmatch(r"sha256:[0-9a-f]{64}", asset.get("digest") or "")):
         raise RuntimeError("MODULE_RELEASE_ASSET_IDENTITY_INVALID: " + name)
@@ -102,11 +110,15 @@ def local_catalog(directory):
     return index, files
 
 
-def history_check(index):
+def history_check(index, resume_draft=False):
     current = {(row["key"], row["version"]): row for row in index["modules"]}
+    existing_draft = None
     for release in pages(f"{API}/releases"):
         if release["tag_name"] == index["tag"]:
-            raise RuntimeError("MODULE_RELEASE_TAG_ALREADY_EXISTS: " + index["tag"])
+            if not resume_draft or release.get("draft") is not True or existing_draft is not None:
+                raise RuntimeError("MODULE_RELEASE_TAG_ALREADY_EXISTS: " + index["tag"])
+            existing_draft = api(f"{API}/releases/{release['id']}")
+            continue
         assets = list(pages(f"{API}/releases/{release['id']}/assets"))
         matches = [a for a in assets if a["name"] == INDEX]
         if len(matches) != 1:
@@ -120,6 +132,7 @@ def history_check(index):
             candidate = current.get((row["key"], row["version"]))
             if candidate is not None and candidate != row:
                 raise RuntimeError("MODULE_RELEASE_VERSION_IMMUTABLE: " + row["key"] + "@" + row["version"])
+    return existing_draft
 
 
 def verify_remote(release, index, files, draft):
@@ -148,7 +161,7 @@ def main():
         verify_remote(release, index, files, False)
         print(f"PUBLIC_RELEASE_VERIFIED {index['tag']} assets={len(files)} commit={index['commit']}")
         return
-    history_check(index)
+    existing_draft = history_check(index, resume_draft=args.mode == "publish")
     if args.mode == "audit":
         print(f"RELEASE_HISTORY_AUDITED {index['tag']} modules={len(index['modules'])}")
         return
@@ -175,16 +188,24 @@ def main():
             or remote_tag["type"] != "tag" or remote_tag["sha"] != git("rev-parse", tag_ref)):
         raise RuntimeError("MODULE_RELEASE_ANNOTATED_MAIN_TAG_REQUIRED")
     flags = ["--prerelease"] if "-rc." in index["tag"] else []
-    gh("release", "create", index["tag"], "--repo", REPO, "--verify-tag", "--draft", *flags,
-       "--title", "Official modules " + index["tag"], "--notes",
-       f"Fixed source {index['commit']}; native check/pack CI run {args.run_id}. "
-       "Module versions are independent. This release does not assert business E2E qualification.",
-       *[str(directory / name) for name in files])
-    release = api(f"{API}/releases/tags/{quote(index['tag'], safe='')}")
-    # A failure leaves the exact draft/run handle for reconciliation. No clobber,
-    # delete, implicit retry, or replacement of an existing tag/release is allowed.
+    if existing_draft is None:
+        gh("release", "create", index["tag"], "--repo", REPO, "--verify-tag", "--draft", *flags,
+           "--title", "Official modules " + index["tag"], "--notes",
+           f"Fixed source {index['commit']}; native check/pack CI run {args.run_id}. "
+           "Module versions are independent. This release does not assert business E2E qualification.",
+           *[str(directory / name) for name in files])
+        # GET releases/tags/{tag} returns 404 for drafts. Resolve the real release ID.
+        same_tag = [r for r in pages(f"{API}/releases") if r.get("tag_name") == index["tag"]]
+        if len(same_tag) != 1 or same_tag[0].get("draft") is not True:
+            raise RuntimeError("MODULE_RELEASE_DRAFT_ID_UNAVAILABLE")
+        release = api(f"{API}/releases/{same_tag[0]['id']}")
+    else:
+        # Resume only the identical, fully verified draft and fixed CI originals.
+        release = existing_draft
+    # A failure leaves the exact draft/run handle; never delete, clobber or repackage.
     verify_remote(release, index, files, True)
-    gh("release", "edit", index["tag"], "--repo", REPO, "--draft=false", *flags)
+    gh("api", "--method", "PATCH", f"{API}/releases/{release['id']}",
+       "-F", "draft=false", "-F", f"prerelease={'true' if flags else 'false'}")
     release = api(f"{API}/releases/{release['id']}")
     verify_remote(release, index, files, False)
     print(f"PUBLIC_RELEASE_VERIFIED {index['tag']} assets={len(files)} commit={index['commit']}")
