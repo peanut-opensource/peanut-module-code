@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+"""Compose published module release index from fixed-source native Module package outputs."""
+from __future__ import annotations
+import argparse
+import hashlib
+import json
+import pathlib
+import re
+import subprocess
+import sys
+import tarfile
+
+REPO = "peanut-opensource/peanut-module-code"
+SEMVER = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$")
+TAG = re.compile(r"^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-rc\.(0|[1-9]\d*))?$")
+SECRET_MARKERS = (".env", ".pem", ".key", "id_rsa", "secrets.json", "credentials.json")
+
+def run(args, cwd):
+    result = subprocess.run(args, cwd=cwd, capture_output=True, text=True, check=False)
+    if result.returncode:
+        raise RuntimeError(f"{args[0]} failed ({result.returncode}): {result.stderr[-1000:]}")
+    return result.stdout
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+def source_ready(root, commit):
+    if run(["git", "rev-parse", "HEAD"], root).strip() != commit:
+        raise RuntimeError("MODULE_RELEASE_SOURCE_COMMIT_CHANGED")
+    if run(["git", "rev-parse", "--is-shallow-repository"], root).strip() != "false":
+        raise RuntimeError("MODULE_RELEASE_SHALLOW_SOURCE")
+    status = subprocess.run(["git", "status", "--porcelain=v1", "-z", "--untracked-files=all"],
+                            cwd=root, capture_output=True, check=True).stdout
+    for change in status.split(b"\0"):
+        if not change:
+            continue
+        path = change[3:].decode("utf8")
+        if not path.startswith(".peanut/scaffold-baseline/"):
+            raise RuntimeError("MODULE_RELEASE_SOURCE_DIRTY: " + path)
+
+def archive_check(archive, module_root):
+    with tarfile.open(archive, "r") as package:
+        seen, proof, actual = set(), None, {}
+        for member in package.getmembers():
+            path = member.name
+            if not member.isfile() or member.issym() or member.islnk():
+                raise RuntimeError("MODULE_RELEASE_UNSAFE_TAR_TYPE")
+            if path in seen or path.startswith("/") or "\\" in path or any(
+                segment in ("", ".", "..") for segment in path.split("/")
+            ):
+                raise RuntimeError("MODULE_RELEASE_UNSAFE_TAR_PATH")
+            seen.add(path)
+            data = package.extractfile(member).read()
+            if path == "META-INF/files.sha256":
+                proof = data
+                continue
+            if not path.startswith(("server/app/modules/peanut/", "web/src/modules/", "platform/src/modules/", "pc/modules/", "uniapp/")):
+                raise RuntimeError("MODULE_RELEASE_OUT_OF_SCOPE_PATH: " + path)
+            if any(path.endswith("/" + word) or "/" + word + "/" in path for word in SECRET_MARKERS):
+                raise RuntimeError("MODULE_RELEASE_SECRET_FILE: " + path)
+            actual[path] = digest(data)
+        if module_root + "/module.json" not in actual or proof is None:
+            raise RuntimeError("MODULE_RELEASE_MANIFEST_MISSING")
+        expected = {}
+        for row in proof.decode("utf8").splitlines():
+            if not row:
+                continue
+            fields = row.split("\0", 1)
+            if len(fields) != 2 or not re.fullmatch("[0-9a-f]{64}", fields[1]) or fields[0] in expected:
+                raise RuntimeError("MODULE_RELEASE_INVALID_FILE_PROOF")
+            expected[fields[0]] = fields[1]
+        if expected != actual:
+            raise RuntimeError("MODULE_RELEASE_ARCHIVE_HASH_MISMATCH")
+        roots = {"/".join(x.split("/")[:5]) for x in actual if x.startswith("server/app/modules/")}
+        if roots != {module_root}:
+            raise RuntimeError("MODULE_RELEASE_MULTI_MODULE_ARCHIVE")
+
+def build(root, output, tag, channel, commit):
+    if not TAG.fullmatch(tag) or channel not in ("stable", "prerelease") or (("-rc." in tag) != (channel == "prerelease")):
+        raise RuntimeError("MODULE_RELEASE_TAG_CHANNEL_INVALID")
+    source_ready(root, commit)
+    if output.exists():
+        raise RuntimeError("MODULE_RELEASE_OUTPUT_EXISTS")
+    output.mkdir(parents=True, mode=0o700)
+    manifests = sorted((root / "server/app/modules/peanut").glob("*/module.json"))
+    records = []
+    for manifest_path in manifests:
+        manifest = json.loads(manifest_path.read_text())
+        key, version = manifest["key"], manifest["version"]
+        if not re.fullmatch(r"peanut\.[a-z][a-z0-9-]*", key) or not SEMVER.fullmatch(version):
+            raise RuntimeError("MODULE_RELEASE_INVALID_MODULE: " + key)
+        if channel == "stable" and "-" in version:
+            continue
+        module_root = "server/app/modules/peanut/" + manifest_path.parent.name
+        composer = json.loads((manifest_path.parent / "composer.json").read_text())
+        editions = composer.get("extra", {}).get("peanut", {}).get("editions", [])
+        if not editions or not set(editions) <= {"standalone", "multi-tenant"}:
+            raise RuntimeError("MODULE_RELEASE_EDITION_MISSING: " + key)
+        if manifest.get("license") != "Apache-2.0":
+            raise RuntimeError("MODULE_RELEASE_LICENSE_UNREVIEWED: " + key)
+        check = json.loads(run(["peanut", "module", "check", key, "--root", str(root)], root))
+        if check.get("status") != "ready" or check.get("module", {}).get("version") != version:
+            raise RuntimeError("MODULE_RELEASE_AUTHOR_CHECK_FAILED: " + key)
+        name = f"{key}-{version}.tar"
+        result = json.loads(run(["peanut", "module", "pack", key, "--output", str(output / name), "--root", str(root)], root))
+        data = (output / name).read_bytes()
+        if result.get("sha256") != digest(data) or result.get("package_key") != key or result.get("version") != version:
+            raise RuntimeError("MODULE_RELEASE_PACKAGE_PROOF_INVALID: " + key)
+        archive_check(output / name, module_root)
+        records.append({
+            "key": key, "version": version, "asset": name, "sha256": digest(data),
+            "bytes": len(data), "license": manifest["license"], "editions": sorted(editions),
+            "kernel_constraint": manifest["kernel_constraint"], "dependencies": manifest.get("dependencies", []),
+        })
+        print(f"PACKAGED {key} {version} {digest(data)[:16]}", flush=True)
+    if not records:
+        raise RuntimeError("MODULE_RELEASE_EMPTY")
+    index = {
+        "schema_version": 1, "protocol": "peanut.module-release-index.v1",
+        "repository": REPO, "tag": tag, "commit": commit, "modules": records,
+    }
+    (output / "module-release-index.json").write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n")
+    print(f"INDEX_READY {channel} count={len(records)} sha256={digest((output / 'module-release-index.json').read_bytes())}")
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--source-root", type=pathlib.Path, required=True)
+    parser.add_argument("--output", type=pathlib.Path, required=True)
+    parser.add_argument("--tag", required=True)
+    parser.add_argument("--channel", choices=["stable", "prerelease"], required=True)
+    parser.add_argument("--source-commit", required=True)
+    args = parser.parse_args()
+    root = args.source_root.resolve(strict=True)
+    if not re.fullmatch(r"[0-9a-f]{40}", args.source_commit):
+        parser.error("Source commit must be a fixed 40-character git SHA")
+    build(root, args.output, args.tag, args.channel, args.source_commit)
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as exc:
+        print(f"MODULE_RELEASE_BUILD_FAILED: {exc}", file=sys.stderr)
+        raise SystemExit(1)
