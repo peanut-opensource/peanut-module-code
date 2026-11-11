@@ -5,7 +5,7 @@
     "name": "Peanut Module Code 1.0.0 generated dependency SBOM",
     "documentNamespace": "https://example.invalid/peanut-module-code/sbom/1.0.0",
     "creationInfo": {
-        "created": "2026-11-10T00:00:00Z",
+        "created": "2026-11-11T00:00:00Z",
         "creators": [
             "Organization: application owner",
             "Tool: scripts/generate-release-legal.mjs"
@@ -38,7 +38,7 @@
                 {
                     "referenceCategory": "PACKAGE-MANAGER",
                     "referenceType": "purl",
-                    "referenceLocator": "pkg:github/peanut-business/peanut-admin-code@5.1.9"
+                    "referenceLocator": "pkg:github/peanut-business/peanut-admin-code@5.1.10-rc.1"
                 }
             ]
         },

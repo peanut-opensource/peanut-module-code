@@ -6,7 +6,7 @@
     },
     "info": {
         "title": "Peanut Module Code HTTP API",
-        "version": "5.1.9",
+        "version": "5.1.10-rc.1",
         "description": "Application HTTP contract for the identity, Tenant, article, file and notification entry points. Runtime authorization and Tenant binding remain enforced by the server middleware.",
         "x-peanut-contract-generator": {
             "name": "scripts/generate-api-contracts.php",

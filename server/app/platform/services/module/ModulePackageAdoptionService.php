@@ -8,7 +8,7 @@ use app\platform\exception\module\ModulePackageException;
 use app\platform\infrastructure\module\ModuleLockResolver;
 use app\platform\infrastructure\module\ModulePackageSourcePromoter;
 
-/** Adopts a reviewed digest-pinned private package into development source for the next complete Application Release. */
+/** Adopts a reviewed digest-pinned Module package into development source for subsequent Runtime reconciliation. */
 final readonly class ModulePackageAdoptionService
 {
     /** @param array<string,string> $trustedPublicKeys raw Ed25519 keys from the application's trust configuration */
@@ -23,7 +23,7 @@ final readonly class ModulePackageAdoptionService
     }
 
     /** Verify the transport digest and any explicitly selected signature before a source-only transaction. */
-    public function adopt(string $archivePath, ?string $expectedSha256, ?string $signatureKeyId): array
+    public function adopt(string $archivePath, ?string $expectedSha256, ?string $signatureKeyId, ?string $expectedOfficialKey = null): array
     {
         $this->development();
         if (!is_string($expectedSha256) || preg_match('/^[a-f0-9]{64}$/D', $expectedSha256) !== 1) {
@@ -33,8 +33,11 @@ final readonly class ModulePackageAdoptionService
             && ($signatureKeyId === '' || !isset($this->trustedPublicKeys[$signatureKeyId]))) {
             throw new ModulePackageException('MODULE_PACKAGE_SOURCE_UNTRUSTED', 'The explicitly selected signature key must be trusted.');
         }
+        if ($expectedOfficialKey !== null && preg_match('/^(?:peanut|official)\.[a-z][a-z0-9-]*$/D', $expectedOfficialKey) !== 1) {
+            throw new ModulePackageException('MODULE_PACKAGE_OFFICIAL_SOURCE_UNTRUSTED', 'Official adoption requires an exact namespaced Module identity.');
+        }
         $promoter = new ModulePackageSourcePromoter($this->serverRoot);
-        return $promoter->run(function () use ($promoter, $archivePath, $expectedSha256, $signatureKeyId): array {
+        return $promoter->run(function () use ($promoter, $archivePath, $expectedSha256, $signatureKeyId, $expectedOfficialKey): array {
             $recovery = $promoter->recover();
             $lockPath = dirname($this->serverRoot) . '/modules.lock';
             $current = is_file($lockPath) ? (new ModuleLockResolver($this->serverRoot, $lockPath))->all() : [];
@@ -50,10 +53,17 @@ final readonly class ModulePackageAdoptionService
                 foreach ($package->modules as $module) {
                     \app\common\module\PackageCheck::assertEdition($module['manifest']->root, (string) \think\facade\Config::get('deployment.mode', ''));
                 }
-                foreach ([$package->packageKey, ...array_keys($package->modules)] as $key) {
-                    if (str_starts_with($key, 'peanut.') || str_starts_with($key, 'official.')) {
-                        throw new ModulePackageException('MODULE_PACKAGE_PRIVATE_REQUIRED', 'Adoption accepts private packages and Modules only.');
-                    }
+                $official = str_starts_with($package->packageKey, 'peanut.') || str_starts_with($package->packageKey, 'official.');
+                if ($official && $expectedOfficialKey === null) {
+                    throw new ModulePackageException('MODULE_PACKAGE_PRIVATE_REQUIRED', 'Official source adoption requires a reviewed official Module identity.');
+                }
+                if ($expectedOfficialKey !== null && (!$official || !hash_equals($expectedOfficialKey, $package->packageKey))) {
+                    throw new ModulePackageException('MODULE_PACKAGE_OFFICIAL_SOURCE_MISMATCH', 'The reviewed official Module identity differs from the package.');
+                }
+                if ($official && (($package->descriptor->source['type'] ?? null) !== 'canonical-contents'
+                    || ($package->descriptor->trust['origin']['type'] ?? null) !== 'repository-contents'
+                    || ($package->descriptor->trust['origin']['reference'] ?? null) !== 'canonical-plugin-contents-v1')) {
+                    throw new ModulePackageException('MODULE_PACKAGE_OFFICIAL_SOURCE_UNTRUSTED', 'Official package source identity is not canonical.');
                 }
                 foreach ($current as $key => $descriptor) {
                     if ($key !== $package->packageKey && array_intersect(array_keys($descriptor->moduleRoots), array_keys($package->modules)) !== []) {
@@ -76,6 +86,12 @@ final readonly class ModulePackageAdoptionService
                     if ($comparison === 0 && (!hash_equals($previous->manifestDigest, $package->descriptor->manifestDigest)
                         || !hash_equals($previous->source['sha256'], $package->descriptor->source['sha256']))) {
                         throw new ModulePackageException('PACKAGE_VERSION_IDENTITY_CONFLICT', 'Same-version package identity changed.');
+                    }
+                    if ($official && $comparison === 0) {
+                        $pinnedArchive = $promoter->pinnedArchiveSha($package->packageKey, $package->packageVersion, $previous->source['sha256']);
+                        if ($pinnedArchive === null || !hash_equals($pinnedArchive, $package->archiveSha256)) {
+                            throw new ModulePackageException('PACKAGE_VERSION_IDENTITY_CONFLICT', 'Same-version official archive identity cannot be verified.');
+                        }
                     }
                 }
                 $routes = [];
@@ -120,6 +136,7 @@ final readonly class ModulePackageAdoptionService
                 return ['status' => 'development-adopted', 'operation' => $unchanged ? 'unchanged' : 'adopted',
                     'package_key' => $package->packageKey, 'version' => $package->packageVersion,
                     'archive_sha256' => $package->archiveSha256, 'signature_key_id' => $signatureKeyId,
+                    'adoption_scope' => $official ? 'official' : 'private', 'runtime_activation' => 'not-verified', 'reconciliation_status' => 'pending',
                     'route_contributions' => $routes, 'application_route_registration_required' => $routes !== [],
                     'dependencies_installed' => false,
                     'source_declarations' => $declarations,

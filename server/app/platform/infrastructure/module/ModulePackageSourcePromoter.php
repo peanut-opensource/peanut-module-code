@@ -66,6 +66,45 @@ final class ModulePackageSourcePromoter
         }
     }
 
+    /** The existing durable promotion receipts pin an adopted official archive without changing modules.lock. */
+    public function pinnedArchiveSha(string $packageKey, string $version, string $sourceSha256): ?string
+    {
+        $pinned = null;
+        foreach (glob($this->state . '/*/transaction.json') ?: [] as $receiptPath) {
+            if (preg_match('#/[a-f0-9]{32}/transaction\.json$#D', $receiptPath) !== 1) {
+                continue;
+            }
+            $this->assertPath($receiptPath);
+            $receipt = json_decode((string) file_get_contents($receiptPath), true);
+            if (!is_array($receipt) || ($receipt['package_key'] ?? null) !== $packageKey) {
+                continue;
+            }
+            $lockPath = dirname($receiptPath) . '/next.lock';
+            $this->assertPath($lockPath);
+            $lock = is_file($lockPath) ? file_get_contents($lockPath) : false;
+            if (!is_string($lock) || !hash_equals((string) ($receipt['lock_after'] ?? ''), hash('sha256', $lock))) {
+                throw new ModulePackageException('MODULE_PACKAGE_RECOVERY_REQUIRED', 'Adoption receipt lock evidence is incomplete.');
+            }
+            $document = json_decode($lock, true);
+            foreach (($document['modules'] ?? []) as $module) {
+                if (($module['key'] ?? null) !== $packageKey || ($module['version'] ?? null) !== $version) {
+                    continue;
+                }
+                if (($module['source']['sha256'] ?? null) !== $sourceSha256) {
+                    throw new ModulePackageException('PACKAGE_VERSION_IDENTITY_CONFLICT', 'Previous same-version source identity differs.');
+                }
+                $sha = $receipt['archive_sha256'] ?? null;
+                if (!is_string($sha) || preg_match('/^[a-f0-9]{64}$/D', $sha) !== 1
+                    || ($pinned !== null && !hash_equals($pinned, $sha))) {
+                    throw new ModulePackageException('PACKAGE_VERSION_IDENTITY_CONFLICT', 'Previous same-version archive identity is inconsistent.');
+                }
+                $pinned = $sha;
+            }
+        }
+
+        return $pinned;
+    }
+
     /** Prepare all recovery inputs before exposing a journal; after that point recovery always rolls forward. */
     public function promote(VerifiedModulePackage $package, string $nextLock, bool $replace): void
     {

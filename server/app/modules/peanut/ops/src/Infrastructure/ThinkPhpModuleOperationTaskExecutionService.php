@@ -10,6 +10,7 @@ use PeanutAdmin\Modules\Ops\Domain\Application\PlatformPermissionChecker;
 use app\platform\exception\module\ModulePackageException;
 use app\platform\exception\module\ModuleLifecycleException;
 use PeanutAdmin\Modules\Identity\Contract\PlatformOperatorIdentityQuery;
+use PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries;
 use PeanutAdmin\Modules\Ops\Service\DeploymentModuleRequestService;
 use PeanutAdmin\Modules\Ops\Service\PlatformModuleOperationExecutionService;
 use app\common\services\audit\AuditContractHost;
@@ -576,8 +577,7 @@ final readonly class ThinkPhpModuleOperationTaskExecutionService implements Modu
         if (!hash_equals($payload['package_key'], (string) ($result['package_key'] ?? ''))) {
             return false;
         }
-        $row = Db::name('module_installation')->where('module_key', $payload['package_key'])
-            ->field('status,installed_version,artifact_sha256,lock_digest,last_error_code,manifest_digest')->find();
+        $row = app(TenantModuleStateQueries::class)->operationInstallationReceipt($payload['package_key']);
         if (in_array($payload['operation'], ['install', 'update'], true)) {
             return is_array($row)
                 && (string) $row['status'] === 'active'

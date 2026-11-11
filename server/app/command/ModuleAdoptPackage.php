@@ -14,14 +14,15 @@ use think\console\input\Argument;
 use think\console\input\Option;
 use think\facade\Config;
 
-/** Development-only, database-free adoption and recovery of a verified private Module package. */
+/** Development-only, database-free adoption and recovery of a verified Module package. */
 final class ModuleAdoptPackage extends ContextualCommand
 {
     protected function configure()
     {
-        $this->setName('module:adopt-package')->setDescription('Adopt a reviewed digest-pinned private package into development source')
+        $this->setName('module:adopt-package')->setDescription('Adopt a reviewed digest-pinned Module package into development source')
             ->addArgument('package', Argument::OPTIONAL, 'Tar package path')
             ->addOption('sha256', null, Option::VALUE_REQUIRED, 'Required archive SHA-256')
+            ->addOption('official-key', null, Option::VALUE_REQUIRED, 'Exact official Module key bound to a reviewed upstream archive digest')
             ->addOption('signature-key-id', null, Option::VALUE_REQUIRED, 'Optional trusted signature key id when explicitly selected')
             ->addOption('recover', null, Option::VALUE_NONE, 'Resume the pending source/lock transaction only');
     }
@@ -46,6 +47,7 @@ final class ModuleAdoptPackage extends ContextualCommand
                 (string) $input->getArgument('package'),
                 $input->getOption('sha256'),
                 $input->getOption('signature-key-id'),
+                $input->getOption('official-key'),
             );
             $output->writeln(json_encode($result, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
             return 0;

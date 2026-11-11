@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+"""Read one shipped development topic; no private maintainer repository is required."""
+import argparse
+from pathlib import Path
+
+root = Path(__file__).resolve().parent.parent / 'docs' / 'development'
+topics = {path.stem: path for path in root.glob('*.md') if path.is_file() and not path.is_symlink()}
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('topic', nargs='?', choices=sorted(topics))
+args = parser.parse_args()
+if args.topic is None:
+    print('\n'.join(sorted(topics)))
+else:
+    print(topics[args.topic].read_text(encoding='utf-8'), end='')

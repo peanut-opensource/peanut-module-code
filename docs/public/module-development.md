@@ -66,7 +66,9 @@ Identity 升级若变更核心权限目录，升级完成后须在新的 CLI 进
 
 普通平台、租户 access token 认证从主库无锁读取当前会话及身份状态，不为正常读取锁住租户、账号和会话行。失效会话的撤销先在事务中加锁复核；刷新、登出、切换租户等写操作及既有事务内的认证继续使用加锁路径。租户后台 Login 与 Auth 中间件通过 ThinkPHP Request 内部存储传递一次已装载的身份，权限中间件消费后清除；身份不进入跨请求缓存。业务用例的 `decide()` 和授权操作仍重新核对当前身份，不复用这一中间件传递记录。
 
-包作者通过可信渠道交付archive和SHA-256，不能把未知包旁自行计算的摘要当作可信来源。`peanut module install <archive> --sha256=<trusted-64-hex>`是已知Standalone / multi-tenant实例的本地开发或调试Runtime安装入口；它不创建租户、开通TenantModule或授予RBAC。确需签名时，打包同时提供`--signing-key-id`和`--signing-secret-key-file`，安装可显式要求`--signature-key-id`；既有签名不被无条件忽略。生产模块交付仍走该版本支持的受控入口，不允许普通租户自行上传和运行PHP。
+包作者通过可信渠道交付archive和SHA-256，不能把未知包旁自行计算的摘要当作可信来源。当消费者业务代码已经引用新版官方模块接口、旧版模块装配无法启动时，可先由应用部署 owner 使用 `peanut module adopt <archive> --sha256=<从官方可信渠道独立核实的SHA-256> --official-key=peanut.identity`（按真实模块 key 替换示例）执行无数据库源码采用。该显式身份绑定只接受 `peanut.*`／`official.*` 的 canonical repository-contents 制品；不能以包内自报的摘要、随意计算的摘要或 `--official-key` 本身证明官方发行来源。对于同版官方制品，原生采用器同时核对已有源码事务回执固定的发行包 SHA；即使源码内容相同，重新签名导致归档 SHA 不同仍拒绝。既有源码来自脚手架但尚无官方归档回执时，不将同版本归档标为已采用，应等正式下一版本或按官方生命周期选择正确路径。私有模块保留原 `adopt` 用法，官方来源必须由操作员另行核对发行渠道与固定SHA。采用只更新经过验证的模块源码与 `modules.lock`，保留事务恢复句柄，返回 `runtime_activation=not-verified`、`reconciliation_status=pending`，不声称数据库已迁移、已激活或租户获得授权。后续按原生 `module lock --write`（仅在声明确实需要重新派生时）、依赖准备、API生成／编译及 `reconcile --selected-installed=<key>` 的现行步骤完成生命周期；错误恢复使用原生 `peanut module adopt --recover`，不能重新下载并重放不明事务。
+
+`peanut module install <archive> --sha256=<trusted-64-hex>`是已知Standalone / multi-tenant实例的本地开发或调试Runtime安装入口；它不创建租户、开通TenantModule或授予RBAC。确需签名时，打包同时提供`--signing-key-id`和`--signing-secret-key-file`，安装可显式要求`--signature-key-id`；既有签名不被无条件忽略。生产模块交付仍走该版本支持的受控入口，不允许普通租户自行上传和运行PHP。
 
 租户开通使用套餐与许可证：套餐包含已安装模块及明确权限组合，租户的唯一当前许可证引用套餐并记录期限和状态。平台通过 plans 和 tenants/license 管理，逐租户模块 enable/disable 接口与命令已退出。安装包不会自动改已有套餐或授予成员权限；升级许可证只改变可用上限。成员权限沿应用的角色、成员管理入口办理，并核对实际权限键及租户 Scope；平台 operators/roles/replace 是平台操作员角色入口，不等同租户成员授权。
 
