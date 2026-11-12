@@ -17,9 +17,19 @@ on:
         default: prerelease
         required: true
       publish:
-        description: Publish existing CI originals from main and an approved annotated tag
+        description: Publish CI originals from main; qualified source tag is checked or created automatically
         type: boolean
         default: false
+      plan_only:
+        description: Read-only plan; no dependencies, packaging, tags or publication
+        type: boolean
+        default: false
+      baseline_release:
+        description: Optional immutable baseline catalog tag; empty selects latest in this channel
+        type: string
+      resume_run_id:
+        description: Optional prior completed build to resume without repacking completed archives
+        type: string
       qualification_run_id:
         description: Successful build run for the same exact commit; required for publication
         type: string
@@ -42,6 +52,8 @@ jobs:
       RELEASE_TAG: ${{ inputs.tag }}
       RELEASE_CHANNEL: ${{ inputs.channel }}
       # ThinkPHP's process-environment fallback reads PHP_<NAME>.
+      BASELINE_RELEASE: ${{ inputs.baseline_release }}
+      RESUME_RUN: ${{ inputs.resume_run_id }}
       PHP_DEPLOYMENT_MODE: multi-tenant
       PHP_APP_ENV: development
       PHP_APP_DEBUG: 'true'
@@ -63,27 +75,87 @@ jobs:
             [[ "$RELEASE_CHANNEL" == stable ]]
           fi
           test -z "$(git status --porcelain)"
+      - name: Check incremental and recovery decisions without application dependencies
+        run: python3 -m unittest discover -s scripts/tests -p test_module_release_automation.py -v
+      - name: Restore the original frozen plan and partial artifacts when explicitly resuming
+        if: inputs.resume_run_id != '' || github.run_attempt > 1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+          current, attempt = int(os.environ['GITHUB_RUN_ID']), int(os.environ['GITHUB_RUN_ATTEMPT'])
+          selected = os.environ.get('RESUME_RUN') or str(current)
+          if not re.fullmatch(r'[1-9][0-9]*', selected):
+              raise SystemExit('Invalid resume run')
+          repo = os.environ['GITHUB_REPOSITORY']
+          run = json.loads(subprocess.check_output(['gh', 'api', f'repos/{repo}/actions/runs/{selected}']))
+          if (run['head_sha'] != os.environ['SOURCE_COMMIT'] or run['event'] != 'workflow_dispatch'
+              or run['path'] != '.github/workflows/module-release.yml'
+              or run.get('head_repository', {}).get('full_name') != repo
+              or (int(selected) != current and run['status'] != 'completed')):
+              raise SystemExit('Resume source/execution identity differs or is still running')
+          old_attempt = attempt - 1 if int(selected) == current else run['run_attempt']
+          root = Path(os.environ['RUNNER_TEMP'])
+          # The plan is saved before dependencies, so even an early failure has a stable baseline.
+          subprocess.run(['gh', 'run', 'download', selected, '--repo', repo,
+                          '--name', f'official-module-plan-{selected}-{old_attempt}',
+                          '--dir', str(root / 'resume-plan')], check=True)
+          artifact_name = f'official-modules-{selected}-{old_attempt}'
+          listing = json.loads(subprocess.check_output(['gh', 'api', '--paginate', '--slurp',
+              f'repos/{repo}/actions/runs/{selected}/artifacts?per_page=100']))
+          matches = [a for page in listing for a in page['artifacts'] if a['name'] == artifact_name]
+          if len(matches) > 1 or any(a['expired'] for a in matches):
+              raise SystemExit('Original partial artifact is ambiguous or expired')
+          if matches:
+              subprocess.run(['gh', 'run', 'download', selected, '--repo', repo, '--name', artifact_name,
+                              '--dir', str(root / 'module-release')], check=True)
+          elif os.environ.get('RESUME_RUN'):
+              raise SystemExit('Requested build has no recoverable archive; inspect the original run, do not repackage')
+          PY
+      - name: Detect changed module payloads before any dependency installation
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          args=()
+          if [[ -f "$RUNNER_TEMP/resume-plan/module-release-plan.json" ]]; then
+            pin="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["plan_sha256"])' "$RUNNER_TEMP/resume-plan/module-release-plan.json")"
+            args+=(--plan-file "$RUNNER_TEMP/resume-plan/module-release-plan.json" --plan-sha256 "$pin")
+          elif [[ -n "$BASELINE_RELEASE" ]]; then args+=(--baseline-release "$BASELINE_RELEASE"); fi
+          python3 scripts/build-module-release-index --plan-only --source-root "$GITHUB_WORKSPACE" \
+            --source-commit "$SOURCE_COMMIT" --channel "$RELEASE_CHANNEL" "${args[@]}" \
+            --report "$RUNNER_TEMP/module-release-plan.json" --github-output "$GITHUB_OUTPUT" > "$RUNNER_TEMP/module-plan-output.json"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          plan = json.loads((Path(os.environ['RUNNER_TEMP']) / 'module-release-plan.json').read_text())
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
+              out.write('## Module change plan\n\n' + json.dumps(plan['summary']) + '\n\n')
+              out.write('Status: ' + plan['status'] + '. Unchanged archives are referenced, not repackaged or reuploaded.\n')
+              out.write('Business/database/browser acceptance: NOT_RUN. No-change is not a runtime PASS.\n')
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: official-module-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/module-release-plan.json
+          if-no-files-found: error
+          retention-days: 30
       - uses: shivammathur/setup-php@v2
+        if: steps.plan.outputs.release_required == 'true' && !inputs.plan_only
         with:
           php-version: '8.3'
           extensions: bcmath, ctype, curl, dom, fileinfo, filter, hash, iconv, json, libxml, mbstring, openssl, pcre, pdo, pdo_mysql, simplexml, sodium, tokenizer, zip
           coverage: none
           tools: none
       - uses: actions/setup-python@v5
+        if: steps.plan.outputs.release_required == 'true' && !inputs.plan_only
         with:
           python-version: '3.12'
-      # The index builder invokes `peanut module check/pack`. A clean GitHub runner
-      # does not inherit the developer machine's globally installed CLI.
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Install fixed public Peanut CLI for native module commands
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          npm install --global --ignore-scripts --no-audit --no-fund @peanut-admin/cli@0.3.4
-          peanut --version
       - name: Install exact native Composer lock without application or test hooks
+        if: steps.plan.outputs.release_required == 'true' && !inputs.plan_only
         shell: bash
         env:
           COMPOSER_NO_INTERACTION: '1'
@@ -97,14 +169,22 @@ jobs:
           php --version
           scripts/project-composer --version
           python3 --version
-      - name: Native pack, check supplied packages, license and closed catalog
+      - name: Native incremental pack, check changed packages and dependency closure
+        if: steps.plan.outputs.release_required == 'true' && !inputs.plan_only
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PLAN_SHA256: ${{ steps.plan.outputs.plan_sha256 }}
         run: |
           set -Eeuo pipefail
+          args=()
+          if [[ -f "$RUNNER_TEMP/module-release/build-state.json" ]]; then args+=(--resume); fi
           python3 scripts/build-module-release-index --source-root "$GITHUB_WORKSPACE" \
             --output "$RUNNER_TEMP/module-release" --source-commit "$SOURCE_COMMIT" \
-            --tag "$RELEASE_TAG" --channel "$RELEASE_CHANNEL"
+            --tag "$RELEASE_TAG" --channel "$RELEASE_CHANNEL" \
+            --plan-file "$RUNNER_TEMP/module-release-plan.json" --plan-sha256 "$PLAN_SHA256" "${args[@]}"
       - name: Audit all previous public and draft version identities
+        if: steps.plan.outputs.release_required == 'true' && !inputs.plan_only
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -116,22 +196,26 @@ jobs:
           directory = pathlib.Path(os.environ['RUNNER_TEMP']) / 'module-release'
           data = (directory / 'module-release-index.json').read_bytes()
           index = json.loads(data)
+          state = json.loads((directory / 'build-state.json').read_bytes())
           receipt = dict(run_id=int(os.environ['GITHUB_RUN_ID']), commit=index['commit'], tag=index['tag'],
-                         index_sha256=hashlib.sha256(data).hexdigest(), native_checks=len(index['modules']))
+                         index_sha256=hashlib.sha256(data).hexdigest(), plan_sha256=state['identity']['plan_sha256'],
+                         built_modules=sorted(r['key'] for r in index['modules'] if r['artifact_tag'] == index['tag']),
+                         reused_modules=sorted(r['key'] for r in index['modules'] if r['artifact_tag'] != index['tag']))
           (directory / 'build-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
-              summary.write(f"Native check/pack PASS: {len(index['modules'])} modules; source {index['commit']}.\n")
+              summary.write(f"Native build PASS: {len(receipt['built_modules'])} new archives, {len(receipt['reused_modules'])} original references; source {index['commit']}.\n")
               summary.write('Business/DB/E2E tests NOT_RUN; public Release NOT_PUBLISHED.\n')
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always() && steps.plan.outputs.release_required == 'true' && !inputs.plan_only
         with:
-          name: official-modules-${{ github.run_id }}
+          name: official-modules-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/module-release/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
 
   publish:
-    if: github.repository == 'peanut-opensource/peanut-module-code' && inputs.publish
+    if: github.repository == 'peanut-opensource/peanut-module-code' && inputs.publish && !inputs.plan_only
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -152,7 +236,7 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          [[ "$GITHUB_REF" == refs/heads/main && "$SOURCE_COMMIT" =~ ^[a-f0-9]{40}$ && "$SOURCE_COMMIT" == "$GITHUB_SHA" ]]
+          [[ "$GITHUB_REF" == refs/heads/main && "$SOURCE_COMMIT" =~ ^[a-f0-9]{40}$ ]]
           [[ "$QUALIFICATION_RUN_ID" =~ ^[1-9][0-9]*$ && "$MODULE_RELEASE_IMMUTABLE" == true ]]
           python3 - <<'PY'
           import os, re
@@ -163,12 +247,23 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - uses: actions/download-artifact@v4
-        with:
-          name: official-modules-${{ inputs.qualification_run_id }}
-          run-id: ${{ inputs.qualification_run_id }}
-          github-token: ${{ github.token }}
-          path: ${{ runner.temp }}/module-release
+      - name: Download the exact successful build attempt without rebuilding
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          repo, run_id = os.environ['GITHUB_REPOSITORY'], os.environ['QUALIFICATION_RUN_ID']
+          run = json.loads(subprocess.check_output(['gh', 'api', f'repos/{repo}/actions/runs/{run_id}']))
+          if (run['head_sha'] != os.environ['SOURCE_COMMIT'] or run['status'] != 'completed'
+              or run['conclusion'] != 'success' or run['event'] != 'workflow_dispatch'
+              or run['path'] != '.github/workflows/module-release.yml'
+              or run.get('head_repository', {}).get('full_name') != repo):
+              raise SystemExit('Exact successful original build is required')
+          name = f"official-modules-{run_id}-{run['run_attempt']}"
+          subprocess.run(['gh', 'run', 'download', run_id, '--repo', repo, '--name', name,
+                          '--dir', os.path.join(os.environ['RUNNER_TEMP'], 'module-release')], check=True)
+          PY
       - name: Publish qualified originals and verify every GitHub API digest and download
         shell: bash
         env:
