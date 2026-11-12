@@ -1,5 +1,6 @@
 """No-PHP/DB release change planning against fixed module source commits."""
 import json
+import hashlib
 import pathlib
 import runpy
 import subprocess
@@ -51,25 +52,28 @@ class ModuleReleasePlanTest(unittest.TestCase):
                 "commit": baseline, "tag": "v1.0.0-rc.1",
                 "modules": [{"key": "peanut.file", "version": "1.0.1", "sha256": "a" * 64}],
             }), encoding="utf8")
-            self.assertEqual(PLAN(root, baseline, index)["status"], "no_module_release_needed")
+            index_sha = hashlib.sha256(index.read_bytes()).hexdigest()
+            self.assertEqual(PLAN(root, baseline, index, index_sha)["status"], "no_module_release_needed")
+            with self.assertRaisesRegex(RuntimeError, "MODULE_RELEASE_BASELINE_DIGEST_MISMATCH"):
+                PLAN(root, baseline, index, "0" * 64)
 
             write(module + "/service.php", "<?php return 'second';\n")
             changed = commit("change module without version")
-            result = PLAN(root, changed, index)
+            result = PLAN(root, changed, index, index_sha)
             self.assertEqual(result["status"], "blocked")
             self.assertEqual(result["modules"][0]["status"], "version_bump_required")
             self.assertEqual(result["modules"][0]["changed_path_count"], 1)
 
             write(module + "/module.json", manifest("1.0.2"))
             bumped = commit("bump module version")
-            result = PLAN(root, bumped, index)
+            result = PLAN(root, bumped, index, index_sha)
             self.assertEqual(result["status"], "changes")
             self.assertEqual(result["modules"][0]["to"], "1.0.2")
             self.assertEqual(result["modules"][0]["changed_path_count"], 2)
 
             write("web/src/modules/peanut-file/contribution.ts", "export const feature = 'two'\n")
             frontend = commit("change frontend")
-            result = PLAN(root, frontend, index)
+            result = PLAN(root, frontend, index, index_sha)
             self.assertEqual(result["modules"][0]["status"], "changed")
             self.assertIn("web/src/modules/peanut-file/contribution.ts", result["modules"][0]["changed_paths"])
 

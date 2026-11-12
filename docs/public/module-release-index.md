@@ -17,10 +17,13 @@ database or machine-specific resource registry:
 python3 scripts/build-module-release-index --plan-only \
   --source-root /absolute/peanut-module-code \
   --source-commit FULL_40_HEX_HEAD \
-  --baseline-index /absolute/verified-module-release-index.json
+  --baseline-index /absolute/verified-module-release-index.json \
+  --baseline-sha256 GITHUB_API_INDEX_ASSET_SHA256
 ```
 
-Supply the official index previously verified against the GitHub asset digest.
+Supply the official index and independent SHA-256 reported by the GitHub
+Release API for that exact index asset. The planner checks its bytes before
+comparing any source and rejects a mismatched local copy.
 The planner diffs every official Module backend and declared client contribution
 root against the catalog's exact Git source. `unchanged` means there is no reason
 to publish that Module again. A changed source at the same version blocks until

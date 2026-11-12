@@ -149,14 +149,19 @@ def source_paths_at(root, commit, key):
         paths.add(str(pathlib.PurePosixPath(entry).parent))
     return manifest, sorted(paths)
 
-def plan_source_changes(root, commit, baseline_index):
+def plan_source_changes(root, commit, baseline_index, baseline_sha256):
     """No toolchain, database, or packaging. Exact TAR SHA remains the packer's final proof.
 
     This is a conservative fixed-Git-source change map, not a replacement for
     native checks, dependency admission, or the immutable historical SHA audit.
     """
     source_ready(root, commit)
-    index = json.loads(baseline_index.read_text(encoding="utf8"))
+    if not re.fullmatch(r"[a-f0-9]{64}", baseline_sha256):
+        raise RuntimeError("MODULE_RELEASE_BASELINE_SHA256_REQUIRED")
+    baseline_bytes = baseline_index.read_bytes()
+    if digest(baseline_bytes) != baseline_sha256:
+        raise RuntimeError("MODULE_RELEASE_BASELINE_DIGEST_MISMATCH")
+    index = json.loads(baseline_bytes)
     baseline = index.get("commit", "")
     if (index.get("protocol") != "peanut.module-release-index.v1" or index.get("repository") != REPO
             or not TAG.fullmatch(index.get("tag", "")) or not re.fullmatch(r"[a-f0-9]{40}", baseline)
@@ -276,20 +281,21 @@ def main():
     parser.add_argument("--channel", choices=["stable", "prerelease"])
     parser.add_argument("--plan-only", action="store_true")
     parser.add_argument("--baseline-index", type=pathlib.Path)
+    parser.add_argument("--baseline-sha256")
     parser.add_argument("--source-commit", required=True)
     args = parser.parse_args()
     root = args.source_root.resolve(strict=True)
     if not re.fullmatch(r"[0-9a-f]{40}", args.source_commit):
         parser.error("Source commit must be a fixed 40-character git SHA")
     if args.plan_only:
-        if args.output or args.tag or args.channel or not args.baseline_index:
-            parser.error("--plan-only requires --baseline-index and a fixed source; no build arguments")
-        report = plan_source_changes(root, args.source_commit, args.baseline_index.resolve(strict=True))
+        if args.output or args.tag or args.channel or not args.baseline_index or not args.baseline_sha256:
+            parser.error("--plan-only requires --baseline-index, --baseline-sha256 and a fixed source; no build arguments")
+        report = plan_source_changes(root, args.source_commit, args.baseline_index.resolve(strict=True), args.baseline_sha256)
         print(json.dumps(report, indent=2, ensure_ascii=False))
         if report["status"] == "blocked":
             raise SystemExit(2)
         return
-    if args.baseline_index or not args.output or not args.tag or not args.channel:
+    if args.baseline_index or args.baseline_sha256 or not args.output or not args.tag or not args.channel:
         parser.error("build requires --output --tag --channel; baseline index is only for --plan-only")
     build(root, args.output, args.tag, args.channel, args.source_commit)
 
