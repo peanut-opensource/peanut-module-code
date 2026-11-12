@@ -1366,7 +1366,7 @@ final class ScaffoldUpgradeRunner
         }
         $git = function (array $args, bool $ancestry = false) use ($checkout): string {
             // Explicit environment prevents inherited Git object/config overrides.
-            $environment = ['PATH' => (string) getenv('PATH'), 'LC_ALL' => 'C',
+            $environment = ['PATH' => (string) getenv('PATH'), 'TMPDIR' => sys_get_temp_dir(), 'LC_ALL' => 'C',
                 'GIT_CONFIG_NOSYSTEM' => '1', 'GIT_CONFIG_GLOBAL' => '/dev/null', 'GIT_NO_REPLACE_OBJECTS' => '1', 'GIT_NO_LAZY_FETCH' => '1'];
             $pipes = [];
             $process = proc_open(array_merge(['git', '--no-replace-objects', '-C', $checkout], $args),
@@ -2494,7 +2494,12 @@ final class ScaffoldUpgradeRunner
                 }
                 $comparison = version_compare((string) $plugin['version'], (string) $installed['version']);
                 if ($comparison < 0) {
-                    throw new RuntimeException('SCAFFOLD_OFFICIAL_VERSION_IDENTITY_CONFLICT: ' . $key);
+                    // A scaffold carries defaults, not the authoritative version
+                    // of a module independently advanced by this application.
+                    // Its contents have passed native source/lock verification.
+                    // Retain the newer module and validate the resulting graph
+                    // and target host compatibility below.
+                    continue;
                 }
             }
             foreach ($current['modules'] as $owner => $existing) {
@@ -2508,8 +2513,25 @@ final class ScaffoldUpgradeRunner
             $keys[] = $key;
         }
         if ($keys === [] && ($current['legacy_artifacts'] ?? []) === []) {
+            // No upstream Module source needs replacement, but keeping every
+            // installed Module must not skip graph or target compatibility.
+            $modules = [];
+            foreach ($current['modules'] as $plugin) {
+                foreach ($plugin['module_keys'] as $index => $moduleKey) {
+                    $manifest = (new \PeanutAdmin\Kernel\Module\ManifestLoader())->load(
+                        ScaffoldPathGuard::projectPath($root, $plugin['module_roots'][$index]),
+                    );
+                    $modules[$moduleKey] = ['version' => $manifest->data['version'],
+                        'dependencies' => $manifest->data['dependencies'] ?? []];
+                }
+            }
+            (new PackageCheck($root))->dependencyOrder($modules, []);
             return ['keys' => [], 'lock_contents' => (string) file_get_contents($root . '/modules.lock'),
-                'projection' => $current, 'host_requirements' => $this->moduleHostRequirements($root, $current)];
+                'projection' => $current,
+                'compatibility' => $this->customerModuleCompatibility(
+                    $root, $current, [], $release, $parameters, $versionContract,
+                ),
+                'host_requirements' => $this->moduleHostRequirements($root, $current)];
         }
 
         $stage = ScaffoldPathGuard::projectPath($root, '.peanut/upgrades/plugin-projection-' . bin2hex(random_bytes(16)));

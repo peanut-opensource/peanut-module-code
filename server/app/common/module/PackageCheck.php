@@ -14,6 +14,9 @@ use PeanutAdmin\Kernel\Module\ManifestLoader;
 use PeanutAdmin\Kernel\Module\ManifestSchemaValidator;
 use PeanutAdmin\Kernel\Module\ModuleHostLayout;
 use PeanutAdmin\Kernel\Module\ModuleKey;
+use Composer\InstalledVersions;
+use Composer\Semver\Semver;
+use Composer\Semver\VersionParser;
 
 /** Validates package Module identity and all values derived from module.json. */
 final readonly class PackageCheck
@@ -250,6 +253,23 @@ final readonly class PackageCheck
         }
     }
 
+    /** Native Composer metadata owns runtime requirement matching. @param array<string,string> $requirements */
+    public static function assertComposerRequirements(array $requirements): void
+    {
+        $parser = new VersionParser();
+        foreach ($requirements as $name => $range) {
+            $satisfied = match (true) {
+                $name === 'php' => Semver::satisfies(PHP_VERSION, $range),
+                str_starts_with($name, 'ext-') => extension_loaded(substr($name, 4)) && is_string(phpversion(substr($name, 4)))
+                    && Semver::satisfies(phpversion(substr($name, 4)), $range),
+                default => InstalledVersions::isInstalled($name) && InstalledVersions::satisfies($parser, $name, $range),
+            };
+            if (!$satisfied) {
+                throw new ModulePackageException('MODULE_RELEASE_PREPARATION_REQUIRED', "{$name} {$range} requires native dependency preparation through the deployment CLI.");
+            }
+        }
+    }
+
     /**
      * @param array<string,array{version:string,dependencies:list<array{module_key:string,version:string}>}> $modules
      * @param array<string,string> $availableVersions
@@ -298,6 +318,32 @@ final readonly class PackageCheck
             $visit($key);
         }
         return $ordered;
+    }
+
+    /** Collect edge failures together, then check the remaining graph for cycles using the same admission rules. */
+    public function dependencyDiagnostics(array $modules): array
+    {
+        $versions = array_map(static fn(array $module): string => $module['version'], $modules);
+        $valid = $modules;
+        $diagnostics = [];
+        foreach ($modules as $key => $module) {
+            $valid[$key]['dependencies'] = [];
+            foreach ($module['dependencies'] as $dependency) {
+                try {
+                    $this->dependencyOrder([$key => ['version' => $module['version'], 'dependencies' => [$dependency]]], $versions);
+                    $valid[$key]['dependencies'][] = $dependency;
+                } catch (ModulePackageException $exception) {
+                    $diagnostics[] = ['code' => $exception->errorCode, 'module_key' => $key,
+                        'dependency' => $dependency, 'message' => $exception->getMessage()];
+                }
+            }
+        }
+        try {
+            $this->dependencyOrder($valid, []);
+        } catch (ModulePackageException $exception) {
+            $diagnostics[] = ['code' => $exception->errorCode, 'message' => $exception->getMessage()];
+        }
+        return $diagnostics;
     }
 
     private function moduleSchema(): string

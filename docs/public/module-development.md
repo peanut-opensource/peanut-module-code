@@ -13,7 +13,7 @@
 打包收集模块后端及已声明客户端的完整源码与资源，包括生成的 API 声明；递归前跳过 `vendor`、`node_modules`、`.cache`、`.vite`、`.nuxt`、`.output`、`.next`、`.turbo`、`.parcel-cache`、`coverage`、`tmp`、`temp` 和 `unpackage` 目录。普通 `build`、`dist` 目录可能被源码、包入口或资源引用，因此保留。作者无需为打包删除本地依赖；路径越界、符号链接、环境配置和凭据仍拒绝交付。
 
 
-模块适用 Edition 声明在已有 `composer.json` 的 `extra.peanut.editions`，值为 `multi-tenant` 或 `standalone` 的非空列表，不新增另一份清单。八个默认初始模块声明支持 `multi-tenant` 与 `standalone`，两种 Edition 均使用真实租户身份和原有权限隔离；检查、采用、安装及运行按宿主 Edition 拒绝不匹配或缺声明。平台入口仍受宿主 Edition 约束，模块声明不开放平台能力。模块版本与 Composer 版本保持同一来源，模块各自独立升版。
+模块适用 Edition 声明在已有 `composer.json` 的 `extra.peanut.editions`，值为 `multi-tenant` 或 `standalone` 的非空列表，不新增另一份清单。默认组合由[应用默认模块组合](../architecture/module-composition.md)的唯一清单和 Module 依赖闭包确定；当前闭包八模块声明支持 `multi-tenant` 与 `standalone`，两种 Edition 均使用真实租户身份和原有权限隔离；检查、采用、安装及运行按宿主 Edition 拒绝不匹配或缺声明。平台入口仍受宿主 Edition 约束，模块声明不开放平台能力。模块版本与 Composer 版本保持同一来源，模块各自独立升版。
 
 存在 Web／Platform 贡献时，模块安装、升级、卸载及发版准备在原生依赖完成后、受影响客户端构建前，调用同一 `scripts/generate-api-contracts.php` 刷新宿主 API 类型和输出。CLI 模板 source apply 只采用源码，不代表已完成这些运行准备；更新后须让生成的 API 目录匹配应用最终的品牌化声明、锁和源码。仅 PHP/API 输入改变且客户端未变时，可在 APP 根通过原生 project-env 执行 `php scripts/generate-api-contracts.php --check --catalog-output="$PWD/server/generated/api-catalog.json"`，只刷新目录，无须重建客户端；有客户端/API 类型变化时仍按受影响客户端完成原生准备。纯后端模块没有前端消费者时不因此要求 Node。
 
@@ -69,6 +69,16 @@ Identity 升级若变更核心权限目录，升级完成后须在新的 CLI 进
 包作者通过可信渠道交付archive和SHA-256，不能把未知包旁自行计算的摘要当作可信来源。当消费者业务代码已经引用新版官方模块接口、旧版模块装配无法启动时，可先由应用部署 owner 使用 `peanut module adopt <archive> --sha256=<从官方可信渠道独立核实的SHA-256> --official-key=peanut.identity`（按真实模块 key 替换示例）执行无数据库源码采用。该显式身份绑定只接受 `peanut.*`／`official.*` 的 canonical repository-contents 制品；不能以包内自报的摘要、随意计算的摘要或 `--official-key` 本身证明官方发行来源。对于同版官方制品，原生采用器同时核对已有源码事务回执固定的发行包 SHA；即使源码内容相同，重新签名导致归档 SHA 不同仍拒绝。既有源码来自脚手架但尚无官方归档回执时，不将同版本归档标为已采用，应等正式下一版本或按官方生命周期选择正确路径。私有模块保留原 `adopt` 用法，官方来源必须由操作员另行核对发行渠道与固定SHA。采用只更新经过验证的模块源码与 `modules.lock`，保留事务恢复句柄，返回 `runtime_activation=not-verified`、`reconciliation_status=pending`，不声称数据库已迁移、已激活或租户获得授权。后续按原生 `module lock --write`（仅在声明确实需要重新派生时）、依赖准备、API生成／编译及 `reconcile --selected-installed=<key>` 的现行步骤完成生命周期；错误恢复使用原生 `peanut module adopt --recover`，不能重新下载并重放不明事务。
 
 `peanut module install <archive> --sha256=<trusted-64-hex>`是已知Standalone / multi-tenant实例的本地开发或调试Runtime安装入口；它不创建租户、开通TenantModule或授予RBAC。确需签名时，打包同时提供`--signing-key-id`和`--signing-secret-key-file`，安装可显式要求`--signature-key-id`；既有签名不被无条件忽略。生产模块交付仍走该版本支持的受控入口，不允许普通租户自行上传和运行PHP。
+
+首次安装前可在应用的 `server` 目录执行原生只读预检：
+
+```sh
+php think module:install-package /absolute/module.tar --sha256=<trusted-64-hex> --dry-run
+```
+
+此入口沿用本地开发维护权限和实际安装器的归档、摘要、manifest、Edition、依赖图及源码校验，不要求应用数据库已经安装。解包使用进程临时目录并在成功或拒绝后清理，不创建模块源码、`modules.lock`、源码写锁、恢复 journal、运行目录或数据库记录，不同步目录、不执行 Provider、依赖安装或迁移。输出 JSON 固定归档/源码 SHA、模块版本与依赖顺序、目标文件清单、源码路径动作、锁当前摘要、迁移身份及 Kernel/Core 要求。缺依赖、错误 Edition、Kernel/Core/宿主能力不兼容、迁移来源冲突和未归属的不同目标内容均在产品状态写入前拒绝。安装执行在原有锁内重新使用相同源码预检规则，继续执行原生 Runtime 检查。
+
+`source-preflight-ready` 只证明源码预检：`runtime.status=not-checked` 明确保留安装表、依赖 active/disabled 状态、迁移账本和备份的执行期检查。已锁源码不等于已安装或 active；需要替换旧源码的安装恢复返回 `runtime-recovery-check-required`，仅既有 failed/installing 恢复规则可在执行时批准。普通已安装模块应使用原生升级入口。首次应用建库、准备依赖/前端/API、执行迁移、激活和租户授权仍由各原生入口分别承担。CLI 对该新预检参数的转发与线上模块选择需由相应 CLI 版本提供，不能用旧版 CLI 的升级失败替代安装计划。
 
 租户开通使用套餐与许可证：套餐包含已安装模块及明确权限组合，租户的唯一当前许可证引用套餐并记录期限和状态。平台通过 plans 和 tenants/license 管理，逐租户模块 enable/disable 接口与命令已退出。安装包不会自动改已有套餐或授予成员权限；升级许可证只改变可用上限。成员权限沿应用的角色、成员管理入口办理，并核对实际权限键及租户 Scope；平台 operators/roles/replace 是平台操作员角色入口，不等同租户成员授权。
 

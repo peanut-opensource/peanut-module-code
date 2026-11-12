@@ -147,6 +147,27 @@ class AppService extends Service
 {
     public function register(): void
     {
+        // First-run admission precedes eager bindings to required Module types.
+        // Source-only create/adopt uses server/module without this Service.
+        $serverRoot = dirname(__DIR__);
+        if (!file_exists($serverRoot . '/private/installation/installed.json')
+            && !is_link($serverRoot . '/private/installation/installed.json')) {
+            require_once $serverRoot . '/database/InitialInstallationSource.php';
+            try {
+                \InitialInstallationSource::modules($serverRoot);
+            } catch (\RuntimeException $exception) {
+                if (!str_starts_with($exception->getMessage(), 'INSTALL_MODULE_SOURCE_MISSING: ')) {
+                    throw $exception;
+                }
+                throw new \app\common\exception\installation\InstallationExecutionException(
+                    'INSTALL_MODULE_SOURCE_MISSING',
+                    '必选模块源码尚未准备，请通过 CLI create 的发行组合计划完成源码采用。',
+                    503,
+                    $exception,
+                    ['state' => 'uninstalled', 'module' => substr($exception->getMessage(), strlen('INSTALL_MODULE_SOURCE_MISSING: '))],
+                );
+            }
+        }
         $this->registerHttpSqlTiming();
         $this->registerExecutionContext();
         $this->registerAuthentication();
@@ -291,7 +312,7 @@ class AppService extends Service
     {
         // Cross-Tenant read capabilities are server registrations supplied by source Modules.
         // The base product intentionally starts empty, so unknown/wide scopes fail closed.
-        $this->app->instance(SourceReadCapabilityRegistry::class, new SourceReadCapabilityRegistry([]));
+        $this->app->bind(SourceReadCapabilityRegistry::class, fn(): SourceReadCapabilityRegistry => new SourceReadCapabilityRegistry([]));
         $this->app->bind(\PeanutAdmin\Kernel\Authorization\TenantAuthorizationRepository::class, ThinkPhpTenantAuthorizationRepository::class);
         $this->app->bind(
             \PeanutAdmin\Kernel\Authorization\Persistence\AuthorizationCatalogRepository::class,
@@ -580,6 +601,11 @@ class AppService extends Service
 
     private function registerApplicationServices(): void
     {
+        $this->app->bind(
+            \app\platform\services\module\OfficialModuleReleaseService::class,
+            fn(): \app\platform\services\module\OfficialModuleReleaseService =>
+                new \app\platform\services\module\OfficialModuleReleaseService(dirname(__DIR__, 2), new \GuzzleHttp\Client()),
+        );
         $this->app->bind(
             \app\platform\services\developer\DeveloperCenterCatalogService::class,
             fn(): \app\platform\services\developer\DeveloperCenterCatalogService =>

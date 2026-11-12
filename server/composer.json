@@ -193,7 +193,7 @@
         "aws/aws-sdk-php": "^3.0",
         "aliyuncs/oss-sdk-php": "^2.4",
         "qcloud/cos-sdk-v5": "^2.5",
-        "peanut-admin/core": "5.0.3",
+        "peanut-admin/core": "5.1.0",
         "symfony/html-sanitizer": "^7.3",
         "composer/semver": "^3.4",
         "opis/json-schema": "^2.6",

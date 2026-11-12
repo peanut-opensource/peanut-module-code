@@ -1,0 +1,15 @@
+# Container-network PHP API only; no host management-port publication.
+server {
+    listen 8080;
+    server_name ${COLLABORATION_PHP_TLS_HOST};
+    client_max_body_size 32m;
+    location ~ ^/adminapi/internal/collaboration/v1/(?:authorize|check|load|store|receipt|references|target(?:/prepare)?|recovery|revoke)$ {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME /server/public/index.php;
+        fastcgi_param QUERY_STRING s=$uri;
+        fastcgi_param HTTP_PROXY "";
+        fastcgi_read_timeout 45s;
+        fastcgi_pass php:9000;
+    }
+    location / { return 404; }
+}

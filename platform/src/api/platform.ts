@@ -34,6 +34,49 @@ export interface Page<T> {
   count: number;
 }
 
+export interface OfficialModuleUpdate {
+  key: string;
+  source_version: string;
+  available_version: string | null;
+  sha256: string | null;
+  catalog_tag: string | null;
+  status:
+    | 'update_available'
+    | 'current'
+    | 'source_newer'
+    | 'no_published_candidate';
+  compatibility: 'native_preflight_required';
+}
+
+export interface OfficialModuleSelection {
+  module_key: string;
+  version: string;
+  sha256: string;
+  catalog_tag: string;
+  channel: 'stable' | 'prerelease';
+}
+
+export interface OfficialUpdateSnapshot {
+  schema_version: 1;
+  channel: 'stable' | 'prerelease';
+  edition: 'standalone' | 'multi-tenant';
+  modules: OfficialModuleUpdate[];
+  scaffold: {
+    current_version: string;
+    available_version: string | null;
+    status: string;
+    upgrade_method: 'native_cli_plan';
+  };
+  changed: false;
+  scope: string;
+}
+
+export interface OfficialUpdatePreview {
+  dry_run: true;
+  plan: Record<string, unknown>;
+  selection_sha256: string;
+}
+
 export interface RuntimeModuleStatus {
   module_key: string;
   version: string;
@@ -1217,6 +1260,35 @@ export const api = {
       client.get('/platformapi/developer-center/catalog', {
         params: moduleKey ? { module_key: moduleKey } : {},
       })
+    ),
+  officialModuleUpdates: (channel: 'stable' | 'prerelease') =>
+    unwrap<OfficialUpdateSnapshot>(
+      client.get('/platformapi/instance-tools/modules/updates', {
+        params: { channel },
+      })
+    ),
+  previewOfficialModule: (selection: OfficialModuleSelection) =>
+    unwrap<OfficialUpdatePreview>(
+      client.post('/platformapi/instance-tools/modules/official-update', {
+        ...selection,
+        dry_run: true,
+      })
+    ),
+  applyOfficialModule: (
+    selection: OfficialModuleSelection,
+    selectionSha: string,
+    idempotencyKey: string
+  ) =>
+    unwrap<ModuleOperationTask>(
+      client.post(
+        '/platformapi/instance-tools/modules/official-update',
+        {
+          ...selection,
+          dry_run: false,
+          confirm_selection_sha256: selectionSha,
+        },
+        { headers: { 'Idempotency-Key': idempotencyKey } }
+      )
     ),
   submitModulePackage: (
     operation: 'install' | 'update',

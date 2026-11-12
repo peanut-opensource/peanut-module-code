@@ -3,18 +3,18 @@
     "protocol": "peanut.release-metadata.v3",
     "product": "Peanut Module Code",
     "application_identity": "peanut-business/peanut-module-code",
-    "source_product_version": "5.1.10-rc.1",
+    "source_product_version": "5.1.12",
     "instance_version": "1.0.0",
     "status": "generated-application-baseline",
     "release_policy": "replace this metadata from an immutable application release candidate before publishing",
     "public_runtime_dependencies": {
         "composer": {
             "package": "peanut-admin/core",
-            "constraint": "5.0.3",
-            "resolved_version": "v5.0.3",
+            "constraint": "5.1.0",
+            "resolved_version": "v5.1.0",
             "source_type": "git",
             "source_url": "https://github.com/peanut-business/peanut-admin-core-php.git",
-            "source_reference": "f2b0435f577c5119f1dfc58d34c274ccb149c477"
+            "source_reference": "e785b1bcf42dab5d7548ceb3f7e6682d213399fb"
         },
         "npm": {
             "source_type": "git",

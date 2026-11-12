@@ -55,7 +55,7 @@ const api = createModuleClient({
 | PC | [useRequest](../../pc/composables/useRequest.ts) | 每次 composable 创建 Client 与 Nuxt transport；SSR 使用可信 Host 转发，当前不转发 cookie；浏览器读取自身用户态；`cancel()` 和 scope dispose 仅中止该实例自有请求 |
 | UniApp | [request/http](../../uniapp/src/utils/request.ts) | 使用 UniApp transport，适配器返回原生 `uni.request` 的 RequestTask，公开 http 方法返回 Promise；可选 signal 触发 abort，结束后移除 abort 监听；用户 store 的 generation/token 约束过期会话清理 |
 
-File 的 [visibilityRequest](../../web/src/modules/peanut-file/api.ts) 继续调用共享 `axios.request`，只通过 `transformResponse` 保留最终 4xx 拒绝体中的 `error_code`。HTTP 401 不记录为最终可见性拒绝，仍交给共享刷新与重派发；网络错误和取消原样传播。自定义文件呈现不需要另建 Axios 实例来绕过这个合同。
+File 的 [visibilityRequest](https://github.com/peanut-opensource/peanut-module-code/blob/v1.0.0-rc.2/web/src/modules/peanut-file/api.ts) 继续调用共享 `axios.request`，只通过 `transformResponse` 保留最终 4xx 拒绝体中的 `error_code`。HTTP 401 不记录为最终可见性拒绝，仍交给共享刷新与重派发；网络错误和取消原样传播。自定义文件呈现不需要另建 Axios 实例来绕过这个合同。
 
 ### 1.2 开始、完成、错误、取消与退出
 

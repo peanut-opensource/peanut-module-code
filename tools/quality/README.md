@@ -16,9 +16,9 @@ JavaScript 检查工具复用与 Web Core 相同的 TypeScript 5.9.3、Vitest 4.
 
 ## PHP 单元、真实数据库与安装资格
 
-`php scripts/run-php-test --env-file=<server下的绝对环境文件> <测试路径>` 按实际类型运行 PHPUnit 或原生 PHP 脚本；脚本主入口、退出码和参数保持原生语义。需要脚本参数时使用 `-- --mysql`，分隔符由运行器消费。`--fail-on-skipped` 使 PHPUnit 的未执行数据库用例失败；脚本还须给出其真实成功标记或断言数，进程退出 0 本身不代表断言运行。
+`php scripts/run-php-test --application-root=<已准备消费应用的绝对路径> --env-file=<该应用server下的绝对环境文件> <测试路径>` 按实际类型运行 PHPUnit 或原生 PHP 脚本；脚本主入口、退出码和参数保持原生语义。Code宿主检查使用本候选生成并通过原生Module制品采用入口装配的应用，测试工具/Support仍来自Code；模块业务测试在Module作者应用运行。消费应用须已按其真实Composer锁安装依赖，并完成所选模块的原生采用/锁/编译，不能借旧Code vendor或Module作者应用的Host代替。需要脚本参数时使用 `-- --mysql`，分隔符由运行器消费。`--fail-on-skipped` 使 PHPUnit 的未执行数据库用例失败；脚本还须给出其真实成功标记或断言数，进程退出 0 本身不代表断言运行。
 
-`scripts/ci-server-check.sh --broad --env-file <绝对路径>` 执行完整 Unit 和适用的非数据库合同。真实 MySQL 用例统一由 `scripts/tests/run-registered-mysql-tests` 内的目标清单归属，通过 `--integration` 入口调用；每组前后都核对独立登记库的空基线、身份、版本和原生租约，失败或未实际执行不能记为通过。不得把已安装应用、开发库或其他项目的库作为空库夹具。
+`scripts/ci-server-check.sh --broad --application-root=<已准备消费应用的绝对路径> --env-file <该应用server下的绝对路径>` 执行完整 Unit 和适用的非数据库合同；权限/API生成与比较、测试bootstrap均使用同一显式应用。调用方负责通过既有创建/Module采用入口提供固定来源的消费应用，本入口不生产或发行制品；缺输入应明确停止。真实 MySQL 用例统一由 `scripts/tests/run-registered-mysql-tests --registered --application-root=<同一消费应用> --env-file <绝对路径>` 内的目标清单归属，通过 `--integration` 入口调用；每组前后都核对独立登记库的空基线、身份、版本和原生租约，失败或未实际执行不能记为通过。不得把已安装应用、开发库或其他项目的库作为空库夹具。
 
 `ModuleLifecycleMySqlTest`、`ModuleFailureRecoveryMySqlTest` 和 `ModuleRuntimeGovernanceTest` 需要已准备并准入的独立应用及其明确的 fresh、resume 或 installed 状态，归原生 P0-E 安装资格消费，不在静态 broad 或空库组中无参数调用。八个选中模块以外的业务断言由实际装配它们的模块应用执行。
 

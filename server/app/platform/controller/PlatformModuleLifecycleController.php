@@ -6,14 +6,85 @@ namespace app\platform\controller;
 
 use app\common\http\PageResult;
 use app\platform\services\module\PlatformModuleRuntimeService;
+use app\platform\services\module\OfficialModuleReleaseService;
 use app\platform\infrastructure\module\DeterministicTarArchive;
 use app\platform\exception\module\ModuleLifecycleException;
 use app\platform\exception\module\ModulePackageException;
 
-/** @property-read PlatformModuleRuntimeService $moduleRuntime 当前 App 中声明式解析的控制器依赖。 */
+/**
+ * @property-read PlatformModuleRuntimeService $moduleRuntime 当前 App 中声明式解析的控制器依赖。
+ * @property-read OfficialModuleReleaseService $officialReleases
+ */
 final class PlatformModuleLifecycleController extends BasePlatformController
 {
     protected string $moduleRuntimeClass = PlatformModuleRuntimeService::class;
+    protected string $officialReleasesClass = OfficialModuleReleaseService::class;
+
+    public function updates()
+    {
+        $channel = $this->request->get('channel', 'stable');
+        if (!is_string($channel)) {
+            throw new ModulePackageException('MODULE_RELEASE_CHANNEL_INVALID', 'Select stable or prerelease.');
+        }
+        return $this->data($this->officialReleases->updates($channel));
+    }
+
+    /** The same developer gate and native worker apply to local and official packages. */
+    public function officialUpdate()
+    {
+        if ($this->platformContext === null) {
+            throw new ModuleLifecycleException('MODULE_CONTEXT_INVALID', 'A validated Platform session is required.');
+        }
+        $input = $this->request->post();
+        if (array_diff(array_keys($input), ['module_key', 'version', 'sha256', 'catalog_tag', 'channel', 'dry_run', 'confirm_selection_sha256']) !== []
+            || !is_bool($input['dry_run'] ?? null)) {
+            throw new ModulePackageException('MODULE_RELEASE_SELECTION_INVALID', 'Provide an exact official package and explicit dry_run.');
+        }
+        $selection = [];
+        foreach (['module_key', 'version', 'sha256', 'catalog_tag', 'channel'] as $key) {
+            $selection[$key] = $input[$key] ?? ($key === 'channel' ? 'stable' : null);
+        }
+        $idempotency = trim((string) $this->request->header('Idempotency-Key', ''));
+        if (!$input['dry_run'] && (strlen($idempotency) < 8 || strlen($idempotency) > 200
+            || preg_match('/^[\x21-\x7e]+$/D', $idempotency) !== 1
+            || !is_string($input['confirm_selection_sha256'] ?? null)
+            || preg_match('/^[a-f0-9]{64}$/D', $input['confirm_selection_sha256']) !== 1)) {
+            throw new ModulePackageException('MODULE_RELEASE_CONFIRMATION_REQUIRED', 'Confirm the reviewed native plan with an Idempotency-Key.');
+        }
+        $digest = hash('sha256', json_encode($selection, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+        if (!$input['dry_run'] && !hash_equals($digest, $input['confirm_selection_sha256'])) {
+            throw new ModulePackageException('MODULE_RELEASE_SELECTION_CHANGED', 'The reviewed target changed; request a fresh preview.');
+        }
+        $package = $this->officialReleases->package($selection);
+        $file = tmpfile();
+        if ($file === false) {
+            throw new ModulePackageException('MODULE_PACKAGE_WRITE_FAILED', 'Unable to stage the verified package.');
+        }
+        try {
+            if (fwrite($file, $package['bytes']) !== strlen($package['bytes']) || !fflush($file)) {
+                throw new ModulePackageException('MODULE_PACKAGE_WRITE_FAILED', 'Unable to stage the verified package.');
+            }
+            $path = realpath(stream_get_meta_data($file)['uri']);
+            unset($package['bytes']);
+            if ($input['dry_run']) {
+                $plan = $this->moduleRuntime->update($path, $package['sha256'], null, true, $this->platformContext->core);
+                return $this->data(['dry_run' => true, 'plan' => $plan, 'selection_sha256' => $digest]);
+            }
+            // The original idempotent queue owns retries. Do not repeat source preflight here:
+            // a previous request may already be running after its HTTP response was lost.
+            // The worker rechecks current version, permissions, dependencies and migration state.
+            return $this->data($this->moduleRuntime->update(
+                $path,
+                $package['sha256'],
+                null,
+                false,
+                $this->platformContext->core,
+                $idempotency,
+            ));
+        } finally {
+            fclose($file);
+        }
+    }
 
     public function lists()
     {
@@ -103,8 +174,14 @@ final class PlatformModuleLifecycleController extends BasePlatformController
         if ($this->platformContext === null) {
             throw new ModuleLifecycleException('MODULE_CONTEXT_INVALID', 'A validated Platform session is required.');
         }
-        return $this->data($this->moduleRuntime->uninstall($moduleKey, $purge, $plan, $digest,
-            $this->platformContext->core, trim((string) $this->request->header('Idempotency-Key', ''))));
+        return $this->data($this->moduleRuntime->uninstall(
+            $moduleKey,
+            $purge,
+            $plan,
+            $digest,
+            $this->platformContext->core,
+            trim((string) $this->request->header('Idempotency-Key', '')),
+        ));
     }
 
     public function disable()

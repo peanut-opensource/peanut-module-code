@@ -32,10 +32,10 @@ final class ModuleLockResolver
     }
 
     /** Resolve an extracted package using the same full-source identity checks. */
-    public static function forPackageArchive(string $serverRoot, string $stageRoot, string $pluginKey): ModuleDescriptor
+    public static function forPackageArchive(string $serverRoot, string $stageRoot, string $pluginKey, ?string $stagingBase = null): ModuleDescriptor
     {
         $stage = realpath($stageRoot);
-        $staging = realpath(dirname($serverRoot) . '/.local/module-staging');
+        $staging = realpath($stagingBase ?? dirname($serverRoot) . '/.local/module-staging');
         if ($stage === false || $staging === false || dirname($stage) !== $staging || is_link($stageRoot)) {
             throw new ModuleLifecycleException('PLUGIN_PATH_UNAVAILABLE', 'Package staging path is invalid.');
         }

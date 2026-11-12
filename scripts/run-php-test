@@ -78,6 +78,7 @@ function peanutRunTest(array $arguments): int
     $root = dirname(__DIR__);
     $target = null;
     $environment = null;
+    $applicationRoot = null;
     $failOnSkipped = false;
     $scriptArguments = [];
     $forwardArguments = false;
@@ -88,6 +89,14 @@ function peanutRunTest(array $arguments): int
             $forwardArguments = true;
         } elseif ($argument === '--fail-on-skipped' && !$failOnSkipped) {
             $failOnSkipped = true;
+        } elseif (str_starts_with($argument, '--application-root=')) {
+            if ($applicationRoot !== null) {
+                throw new InvalidArgumentException('Duplicate --application-root');
+            }
+            $applicationRoot = realpath(substr($argument, strlen('--application-root=')));
+            if ($applicationRoot === false || !is_file($applicationRoot . '/server/vendor/autoload.php')) {
+                throw new InvalidArgumentException('Prepared application root is unavailable');
+            }
         } elseif (str_starts_with($argument, '--env-file=')) {
             if ($environment !== null) {
                 throw new InvalidArgumentException('Duplicate --env-file');
@@ -96,7 +105,7 @@ function peanutRunTest(array $arguments): int
         } elseif ($target === null && !str_starts_with($argument, '-')) {
             $target = $argument;
         } else {
-            throw new InvalidArgumentException('Usage: php scripts/run-php-test [--env-file=/absolute/path] [--fail-on-skipped] server/tests/SomeTest.php [-- script-arguments]');
+            throw new InvalidArgumentException('Usage: php scripts/run-php-test [--application-root=/absolute/path] [--env-file=/absolute/path] [--fail-on-skipped] server/tests/SomeTest.php [-- script-arguments]');
         }
     }
     $base = realpath($root . '/server/tests');
@@ -111,6 +120,9 @@ function peanutRunTest(array $arguments): int
         }
         putenv('PEANUT_SERVER_ENV_FILE=' . $environment);
     }
+    if ($applicationRoot !== null) {
+        putenv('PEANUT_TEST_APPLICATION_ROOT=' . $applicationRoot);
+    }
     $source = file_get_contents($path);
     if (!is_string($source)) {
         throw new RuntimeException('Cannot read test source');
@@ -123,14 +135,14 @@ function peanutRunTest(array $arguments): int
             throw new InvalidArgumentException('PHPUnit targets do not accept executable-script arguments');
         }
         // Isolated tests own their application bootstrap in each child process.
-        $bootstrap = peanutTestRunsInSeparateProcess($source)
+        $bootstrap = $applicationRoot === null && peanutTestRunsInSeparateProcess($source)
             ? $root . '/server/vendor/autoload.php'
             : $root . '/server/tests/Support/CiBootstrap.php';
         $command = [PHP_BINARY, $root . '/server/vendor/bin/phpunit', '--no-configuration',
             '--bootstrap', $bootstrap,
             '--fail-on-empty-test-suite', '--fail-on-risky', ...($failOnSkipped ? ['--fail-on-skipped'] : []), $path];
     } else {
-        $bootstrap = getenv('PEANUT_SERVER_ENV_FILE') !== false && getenv('PEANUT_SERVER_ENV_FILE') !== ''
+        $bootstrap = $applicationRoot !== null || (getenv('PEANUT_SERVER_ENV_FILE') !== false && getenv('PEANUT_SERVER_ENV_FILE') !== '')
             ? $root . '/server/tests/Support/CiBootstrap.php' : '';
         $command = [PHP_BINARY, ...($bootstrap === '' ? [] : ['-d', 'auto_prepend_file=' . $bootstrap]),
             $path, ...$scriptArguments];

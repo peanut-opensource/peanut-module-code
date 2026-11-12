@@ -2,6 +2,7 @@
 set -Eeuo pipefail
 
 ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)"
+APPLICATION_ROOT="$ROOT_DIR"
 PROJECT_ROOT=""
 PROJECT_ROOT_SPECIFIED=0
 if [[ -n "${PEANUT_ADMIN_PROJECT_ROOT+x}" ]]; then
@@ -10,6 +11,9 @@ if [[ -n "${PEANUT_ADMIN_PROJECT_ROOT+x}" ]]; then
 fi
 for argument in "$@"; do
   case "$argument" in
+    --application-root=*)
+      APPLICATION_ROOT="${argument#--application-root=}"
+      ;;
     --project-root=*)
       [[ "$PROJECT_ROOT_SPECIFIED" -eq 0 ]] \
         || { printf 'check-openapi: Project root was specified more than once\n' >&2; exit 2; }
@@ -22,6 +26,9 @@ for argument in "$@"; do
       ;;
   esac
 done
+[[ "$APPLICATION_ROOT" == /* && -d "$APPLICATION_ROOT/server" ]] \
+  || { printf 'check-openapi: application root must be an absolute application directory\n' >&2; exit 2; }
+APPLICATION_ROOT="$(CDPATH= cd -- "$APPLICATION_ROOT" && pwd -P)"
 
 if [[ "$PROJECT_ROOT_SPECIFIED" -eq 1 ]]; then
   [[ "$PROJECT_ROOT" == /* && -d "$PROJECT_ROOT" ]] \
@@ -40,7 +47,7 @@ fi
 TMP_DIR="$(mktemp -d "${TMP_BASE%/}/peanut-openapi-check.XXXXXX")"
 trap 'rm -rf -- "$TMP_DIR"' EXIT
 
-php "$ROOT_DIR/scripts/generate-api-contracts.php" "--output-root=$TMP_DIR" >/dev/null
+php "$ROOT_DIR/scripts/generate-api-contracts.php" "--application-root=$APPLICATION_ROOT" "--output-root=$TMP_DIR" >/dev/null
 
 EXPECTED_LIST="$TMP_DIR/.expected-artifacts"
 ACTUAL_LIST="$TMP_DIR/.actual-artifacts"
@@ -59,16 +66,16 @@ ACTUAL_LIST="$TMP_DIR/.actual-artifacts"
     'server/generated/openapi.json' \
     'server/generated/api-catalog.json' \
     'web/src/generated/openapi.d.ts'
-  if [[ -d "$ROOT_DIR/web/src/modules" ]]; then
-    find "$ROOT_DIR/web/src/modules" -path '*/generated/openapi.ts' -print \
-      | sed "s#^$ROOT_DIR/##"
+  if [[ -d "$APPLICATION_ROOT/web/src/modules" ]]; then
+    find "$APPLICATION_ROOT/web/src/modules" -path '*/generated/openapi.ts' -print \
+      | sed "s#^$APPLICATION_ROOT/##"
   fi
 } | LC_ALL=C sort -u >"$ACTUAL_LIST"
 
 status=0
 while IFS= read -r relative_path; do
   expected="$TMP_DIR/$relative_path"
-  actual="$ROOT_DIR/$relative_path"
+  actual="$APPLICATION_ROOT/$relative_path"
   if [[ ! -e "$actual" && ! -L "$actual" ]]; then
     printf 'check-openapi: missing generated artifact: %s\n' "$actual" >&2
     status=1
@@ -83,7 +90,7 @@ done <"$EXPECTED_LIST"
 
 while IFS= read -r relative_path; do
   [[ -z "$relative_path" ]] && continue
-  printf 'check-openapi: unexpected generated artifact: %s\n' "$ROOT_DIR/$relative_path" >&2
+  printf 'check-openapi: unexpected generated artifact: %s\n' "$APPLICATION_ROOT/$relative_path" >&2
   status=1
 done < <(comm -13 "$EXPECTED_LIST" "$ACTUAL_LIST")
 

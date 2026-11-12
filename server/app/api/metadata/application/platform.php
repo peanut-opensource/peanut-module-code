@@ -331,6 +331,38 @@ $schemas = [
     ],
 ];
 
+$schemas['PlatformOfficialModuleUpdate'] = [
+    'type' => 'object', 'additionalProperties' => false,
+    'required' => ['key', 'source_version', 'available_version', 'sha256', 'catalog_tag', 'status', 'compatibility'],
+    'properties' => [
+        'key' => ['type' => 'string'], 'source_version' => ['type' => 'string'],
+        'available_version' => $nullableString, 'sha256' => $nullableString, 'catalog_tag' => $nullableString,
+        'status' => ['type' => 'string', 'enum' => ['update_available', 'current', 'source_newer', 'no_published_candidate']],
+        'compatibility' => ['type' => 'string', 'enum' => ['native_preflight_required']],
+    ],
+];
+$schemas['PlatformOfficialUpdateSnapshot'] = [
+    'type' => 'object', 'additionalProperties' => false,
+    'required' => ['schema_version', 'channel', 'edition', 'modules', 'scaffold', 'changed', 'scope'],
+    'properties' => [
+        'schema_version' => ['type' => 'integer', 'enum' => [1]],
+        'channel' => ['type' => 'string', 'enum' => ['stable', 'prerelease']],
+        'edition' => ['type' => 'string', 'enum' => ['standalone', 'multi-tenant']],
+        'modules' => ['type' => 'array', 'items' => $ref('PlatformOfficialModuleUpdate')],
+        'changed' => ['type' => 'boolean', 'enum' => [false]], 'scope' => ['type' => 'string'],
+        'scaffold' => ['type' => 'object', 'additionalProperties' => false,
+            'required' => ['current_version', 'available_version', 'status', 'upgrade_method'],
+            'properties' => ['current_version' => ['type' => 'string'], 'available_version' => $nullableString,
+                'status' => ['type' => 'string'], 'upgrade_method' => ['type' => 'string', 'enum' => ['native_cli_plan']]]],
+    ],
+];
+$schemas['PlatformOfficialUpdatePreview'] = [
+    'type' => 'object', 'additionalProperties' => false, 'required' => ['dry_run', 'plan', 'selection_sha256'],
+    'properties' => ['dry_run' => ['type' => 'boolean', 'enum' => [true]], 'plan' => $dynamicMap,
+        'selection_sha256' => ['type' => 'string', 'pattern' => '^[a-f0-9]{64}$']],
+];
+$schemas['PlatformOfficialUpdateResult'] = ['oneOf' => [$ref('PlatformOfficialUpdatePreview'), $ref('PlatformOpsTask')]];
+
 $pageData = static fn(string $item): array => [
     'type' => 'object', 'additionalProperties' => false, 'required' => ['lists', 'count', 'pageNo', 'pageSize'],
     'properties' => ['lists' => ['type' => 'array', 'items' => $ref($item)], 'count' => ['type' => 'integer', 'minimum' => 0], 'pageNo' => ['type' => 'integer', 'minimum' => 1], 'pageSize' => ['type' => 'integer', 'minimum' => 1]],
@@ -527,7 +559,31 @@ $add($paths, 'POST', '/platformapi/tenant-entry-bindings/disable', $operation(
     errors: ['TENANT_ENTRY_INPUT_INVALID', 'TENANT_ENTRY_BINDING_NOT_FOUND'],
 ));
 
-// 实例级 Module 工具；安装是 multipart tar，不是 JSON。
+// Local package upload remains multipart; official updates use a fixed catalog identity, never a URL.
+$add($paths, 'GET', '/platformapi/instance-tools/modules/updates', $operation(
+    'checkOfficialModuleUpdates',
+    'PlatformModules',
+    $responses('PlatformOfficialUpdateSnapshot'),
+    [$query('channel', ['type' => 'string', 'enum' => ['stable', 'prerelease'], 'default' => 'stable'])],
+    errors: ['MODULE_RUNTIME_MUTATION_DISABLED', 'MODULE_RELEASE_CHANNEL_INVALID', 'MODULE_RELEASE_ASSET_DIGEST_MISMATCH'],
+));
+$add($paths, 'POST', '/platformapi/instance-tools/modules/official-update', $operation(
+    'updateOfficialInstanceModule',
+    'PlatformModules',
+    $responses('PlatformOfficialUpdateResult'),
+    [$header('Idempotency-Key', ['type' => 'string', 'minLength' => 8, 'maxLength' => 200, 'description' => 'Required for confirmed submission; preserved across retries.'])],
+    requestBody: $jsonBody(['type' => 'object', 'additionalProperties' => false,
+        'required' => ['module_key', 'version', 'sha256', 'catalog_tag', 'channel', 'dry_run'],
+        'properties' => ['module_key' => ['type' => 'string', 'pattern' => '^peanut\\.[a-z][a-z0-9-]*$'],
+            'version' => ['type' => 'string'], 'sha256' => ['type' => 'string', 'pattern' => '^[a-f0-9]{64}$'],
+            'catalog_tag' => ['type' => 'string'], 'channel' => ['type' => 'string', 'enum' => ['stable', 'prerelease']],
+            'dry_run' => ['type' => 'boolean'], 'confirm_selection_sha256' => ['type' => 'string', 'pattern' => '^[a-f0-9]{64}$',
+                'description' => 'Required on apply; exact reviewed target selection. Worker revalidates current source, dependencies and permissions.']]]),
+    errors: ['MODULE_RUNTIME_MUTATION_DISABLED', 'MODULE_RELEASE_SELECTION_INVALID', 'MODULE_RELEASE_SELECTION_CHANGED',
+        'MODULE_RELEASE_CONFIRMATION_REQUIRED', 'MODULE_RELEASE_ASSET_DIGEST_MISMATCH', 'OPS_MODULE_REQUEST_INVALID'],
+));
+
+// 实例级 Module 工具；本地安装是 multipart tar。
 $add($paths, 'GET', '/platformapi/instance-tools/modules', $operation(
     'listInstanceModules',
     'PlatformModules',
@@ -646,7 +702,9 @@ foreach ([
         ? [$query('page', ['type' => 'integer', 'minimum' => 1, 'maximum' => 999999, 'default' => 1]),
             $query('page_size', ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 20])] : [];
     $responses = $opsOk($schema);
-    if ($pagination !== []) { $responses['400'] = $error; }
+    if ($pagination !== []) {
+        $responses['400'] = $error;
+    }
     $setOverride($overrides, 'GET', $pathName, $operation($operationId, 'PlatformOps', $responses, $pagination));
 }
 $setOverride($overrides, 'GET', '/platformapi/v1/ops/tasks/{task_key}', $operation(

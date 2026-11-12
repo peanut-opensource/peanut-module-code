@@ -2475,6 +2475,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platformapi/instance-tools/modules/updates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["checkOfficialModuleUpdates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platformapi/instance-tools/modules/official-update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["updateOfficialInstanceModule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platformapi/instance-tools/modules": {
         parameters: {
             query?: never;
@@ -8525,6 +8557,45 @@ export interface components {
         } & {
             [key: string]: components["schemas"]["ApplicationDynamicValue"];
         };
+        PlatformOfficialModuleUpdate: {
+            key: string;
+            source_version: string;
+            available_version: string | null;
+            sha256: string | null;
+            catalog_tag: string | null;
+            /** @enum {string} */
+            status: "update_available" | "current" | "source_newer" | "no_published_candidate";
+            /** @enum {string} */
+            compatibility: "native_preflight_required";
+        };
+        PlatformOfficialUpdateSnapshot: {
+            /** @enum {integer} */
+            schema_version: 1;
+            /** @enum {string} */
+            channel: "stable" | "prerelease";
+            /** @enum {string} */
+            edition: "standalone" | "multi-tenant";
+            modules: components["schemas"]["PlatformOfficialModuleUpdate"][];
+            /** @enum {boolean} */
+            changed: false;
+            scope: string;
+            scaffold: {
+                current_version: string;
+                available_version: string | null;
+                status: string;
+                /** @enum {string} */
+                upgrade_method: "native_cli_plan";
+            };
+        };
+        PlatformOfficialUpdatePreview: {
+            /** @enum {boolean} */
+            dry_run: true;
+            plan: {
+                [key: string]: components["schemas"]["ApplicationDynamicValue"];
+            };
+            selection_sha256: string;
+        };
+        PlatformOfficialUpdateResult: components["schemas"]["PlatformOfficialUpdatePreview"] | components["schemas"]["PlatformOpsTask"];
         TenantPlan: {
             id: number;
             code: string;
@@ -17836,6 +17907,80 @@ export interface operations {
                         code: 20000;
                         msg: string;
                         data: components["schemas"]["PlatformEntryBindingDisabled"];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    checkOfficialModuleUpdates: {
+        parameters: {
+            query?: {
+                channel?: "stable" | "prerelease";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["PlatformOfficialUpdateSnapshot"];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    updateOfficialInstanceModule: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    module_key: string;
+                    version: string;
+                    sha256: string;
+                    catalog_tag: string;
+                    /** @enum {string} */
+                    channel: "stable" | "prerelease";
+                    dry_run: boolean;
+                    /** @description Required on apply; exact reviewed target selection. Worker revalidates current source, dependencies and permissions. */
+                    confirm_selection_sha256?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["PlatformOfficialUpdateResult"];
                     };
                 };
             };

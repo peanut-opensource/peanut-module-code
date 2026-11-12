@@ -72,7 +72,7 @@ try {
     $routes = indexRoutes($inventory['endpoints']);
     // Types retain each selected Module's complete declaration, including optional
     // integrations. Runtime documentation still describes only selected routes.
-    $modulePaths = array_column(array_merge(...array_values($declarations['module_operations'])), 'path');
+    $modulePaths = array_column(array_merge([], ...array_values($declarations['module_operations'])), 'path');
     $typeContract = applyRouteMetadata(selectContractModules($declarations['contract'], array_keys($inventory['modules']), $modulePaths), $routes);
     $contract = selectContractModules($typeContract, array_keys($inventory['modules']));
     validateContract($contract, $routes);

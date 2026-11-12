@@ -95,15 +95,18 @@ final class ModuleReconcile extends ModuleContextualCommand
                     throw new ModuleLifecycleException('PLUGIN_LOCK_INVALID', 'Plugin lock path is not configured.');
                 }
                 $resolver = ModuleLockResolver::forRuntime(dirname(__DIR__, 2), $lockPath);
-                $officialKeys = array_keys(array_filter(
-                    $resolver->all(),
-                    static fn(ModuleDescriptor $plugin): bool => array_intersect(
-                        array_keys($plugin->moduleRoots), \InitialInstallationSource::MODULES,
-                    ) !== [],
-                ));
-                $selection = $releaseLocked
-                    ? $this->releaseModuleSelection($resolver->all(), $preparedRelease)
-                    : ['reconcile' => $officialKeys, 'preserved_disabled' => [], 'preserved_uninstalled' => []];
+                if ($releaseLocked) {
+                    $selection = $this->releaseModuleSelection($resolver->all(), $preparedRelease);
+                } else {
+                    $defaults = \InitialInstallationSource::modules(dirname(__DIR__, 2));
+                    $officialKeys = array_keys(array_filter(
+                        $resolver->all(),
+                        static fn(ModuleDescriptor $plugin): bool => array_intersect(
+                            array_keys($plugin->moduleRoots), $defaults,
+                        ) !== [],
+                    ));
+                    $selection = ['reconcile' => $officialKeys, 'preserved_disabled' => [], 'preserved_uninstalled' => []];
+                }
                 $keys = $this->dependencyOrderedPlugins($resolver, $selection['reconcile'], $config);
                 if ($keys === [] && !$releaseLocked) {
                     throw new ModuleLifecycleException(

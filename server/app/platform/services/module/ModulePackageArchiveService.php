@@ -93,6 +93,7 @@ final class ModulePackageArchiveService
         array $trustedPublicKeys,
         ?string $signatureKeyId,
         array $availableVersions = [],
+        bool $readOnly = false,
     ): VerifiedModulePackage {
         $archiveDigest = hash_file('sha256', $archivePath);
         if (!is_string($archiveDigest)) {
@@ -124,7 +125,11 @@ final class ModulePackageArchiveService
             throw new ModulePackageException('MODULE_PACKAGE_SOURCE_UNTRUSTED', 'Package has no trusted source proof.');
         }
 
-        $stageRoot = $this->projectRoot() . '/.local/module-staging/' . bin2hex(random_bytes(16));
+        // Read-only planning uses disposable process scratch, without creating
+        // the application's package staging or source-writer state.
+        // The parser, inventory and canonical lock verification stay identical.
+        $stageBase = $readOnly ? sys_get_temp_dir() : $this->projectRoot() . '/.local/module-staging';
+        $stageRoot = $stageBase . '/' . bin2hex(random_bytes(16));
         try {
             $this->tar->extract($archivePath, $entries, $stageRoot);
             $inventory = $this->verifyInventory($stageRoot, $entries, $inventoryBytes);
@@ -205,7 +210,7 @@ final class ModulePackageArchiveService
                 json_encode(['schema_version' => 1, 'modules' => [$lockEntry]], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n",
                 LOCK_EX,
             );
-            $descriptor = ModuleLockResolver::forPackageArchive($this->serverRoot, $stageRoot, $packageKey);
+            $descriptor = ModuleLockResolver::forPackageArchive($this->serverRoot, $stageRoot, $packageKey, $stageBase);
             unlink($temporaryLock);
 
             return new VerifiedModulePackage(

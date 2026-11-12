@@ -84,6 +84,7 @@
   "inventory_omissions": {
     "paths": [
       "scaffold/application-template-inventory.json",
+      "scripts/ensure-qualified-release-tag",
       "SECURITY.md",
       "AGENTS.md",
       "server/modules.lock",
@@ -92,7 +93,9 @@
       "server/docker/scripts/product-upgrade-host",
       "server/docker/scripts/scaffold-runtime/ScaffoldPathGuard.php",
       "server/docker/scripts/ops-backup-worker",
-      "server/docker/scripts/ops-restore-worker"
+      "server/docker/scripts/ops-restore-worker",
+      "server/composer.json",
+      "server/composer.lock"
     ],
     "prefixes": [
       "scaffold/",
@@ -163,9 +166,7 @@
         "server/app/common/value/installation/ApplicationReleaseVersions.php",
         "scripts/deploy-update.sh"
       ],
-      "prefixes": [
-        "server/app/modules/peanut/"
-      ]
+      "prefixes": []
     },
     "retained_paths": [
       "scripts/scaffold-upgrade",
@@ -222,7 +223,8 @@
       "docs/public/application-release.md",
       "docs/public/support.md",
       "scripts/scaffold-runtime/scaffold.conf.json",
-      "scripts/scaffold-runtime/ScaffoldConfiguration.php"
+      "scripts/scaffold-runtime/ScaffoldConfiguration.php",
+      "docs/architecture/module-composition.md"
     ],
     "excluded": {
       "paths": [
@@ -244,7 +246,6 @@
         "scripts/export-release-database",
         "scripts/package-scaffold-template.py",
         "scripts/check-test-integrity",
-        "scripts/generate-all-modules-packaging-evidence",
         "scripts/core-qualification-runner",
         "scripts/core-upgrade-compatibility",
         "scripts/combined-upgrade-qualification",
@@ -329,7 +330,13 @@
         "plugins/fixture.workflow-business/",
         "web/tests/fixtures/",
         "server/fixtures/module-lifecycle/",
-        "scaffold/"
+        "scaffold/",
+        "server/app/modules/peanut/",
+        "web/src/modules/peanut-",
+        "platform/src/modules/peanut-",
+        "pc/modules/peanut-",
+        "uniapp/src/modules/peanut-",
+        "plugins/peanut."
       ]
     },
     "generated_managed_paths": [
@@ -438,6 +445,26 @@
       "target": "docs/project-rules.md",
       "classification": "app-owned",
       "transform": "docs-page",
+      "profiles": [
+        "minimal",
+        "standard",
+        "full"
+      ]
+    },
+    "server/resources/scaffold-application/composer.json": {
+      "target": "server/composer.json",
+      "classification": "managed",
+      "transform": "package",
+      "profiles": [
+        "minimal",
+        "standard",
+        "full"
+      ]
+    },
+    "server/resources/scaffold-application/composer.lock": {
+      "target": "server/composer.lock",
+      "classification": "managed",
+      "transform": "composer-lock",
       "profiles": [
         "minimal",
         "standard",
@@ -607,36 +634,6 @@
         "密码：admin123456": "密码必须由安装器注入",
         "known password expression must not reach the database": "placeholder password expression must not reach the database",
         "installer must only replace the executable seed": "installer must preserve the neutral seed comment"
-      },
-      "scripts/check-local-runtime-contract": {
-        "peanut-admin-php:contract": {
-          "variable": "SLUG",
-          "suffix": "-php:contract"
-        },
-        "peanut-admin-nginx:contract": {
-          "variable": "SLUG",
-          "suffix": "-nginx:contract"
-        },
-        "peanut-admin-mysql84-development-host-direct": {
-          "variable": "SLUG",
-          "suffix": "-mysql84-contract-host"
-        },
-        "peanut-admin-mysql84-development": {
-          "variable": "SLUG",
-          "suffix": "-mysql84-contract"
-        },
-        "DB_HOST=192.168.192.2": "DB_HOST=127.0.0.1",
-        "DB_PORT=20183": "DB_PORT=3306",
-        "DB_NAME=peanut_admin_development": {
-          "variable": "SLUG",
-          "prefix": "DB_NAME=",
-          "suffix": "-contract"
-        },
-        "DB_USER=peanut_admin_development": {
-          "variable": "SLUG",
-          "prefix": "DB_USER=",
-          "suffix": "-contract"
-        }
       }
     }
   }

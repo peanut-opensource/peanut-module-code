@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\platform\infrastructure\module;
 
 use app\platform\exception\module\ModulePackageException;
+use app\platform\value\module\ModuleDescriptor;
 
 /** Serializes development source adoption and durably rolls an interrupted source/lock pair forward. */
 final class ModulePackageSourcePromoter
@@ -14,12 +15,19 @@ final class ModulePackageSourcePromoter
 
     public function __construct(string $serverRoot)
     {
-        $this->root = rtrim(dirname($serverRoot), '/');
-        if (!is_dir($serverRoot) || realpath($this->root) !== $this->root) {
-            throw new ModulePackageException('MODULE_PACKAGE_PATH_INVALID', 'Use the canonical application root.');
+        // Resolve the application's location, not the caller's spelling
+        // of it: macOS can expose the same tree as /var and /private/var.
+        $root = realpath(dirname($serverRoot));
+        $canonicalServer = realpath($serverRoot);
+        if ($root === false || $canonicalServer === false || !is_dir($canonicalServer)
+            || basename(rtrim($serverRoot, '/')) !== 'server'
+            || $canonicalServer !== rtrim($root, '/') . '/server' || is_link($serverRoot)
+            || is_link(dirname($serverRoot))) {
+            throw new ModulePackageException('MODULE_PACKAGE_PATH_INVALID', 'Use an existing application server directory.');
         }
+        $this->root = rtrim($root, '/');
         $this->assertPath($this->root);
-        $this->assertPath($serverRoot);
+        $this->assertPath($canonicalServer);
         $this->state = $this->root . '/.local/module-source-adoption';
         $this->assertPath($this->state);
         $this->assertPath($this->root . '/.local/module-staging');
@@ -76,7 +84,8 @@ final class ModulePackageSourcePromoter
             }
             $this->assertPath($receiptPath);
             $receipt = json_decode((string) file_get_contents($receiptPath), true);
-            if (!is_array($receipt) || ($receipt['package_key'] ?? null) !== $packageKey) {
+            if (!is_array($receipt) || (($receipt['package_key'] ?? null) !== $packageKey
+                && !isset($receipt['archives'][$packageKey]))) {
                 continue;
             }
             $lockPath = dirname($receiptPath) . '/next.lock';
@@ -93,7 +102,7 @@ final class ModulePackageSourcePromoter
                 if (($module['source']['sha256'] ?? null) !== $sourceSha256) {
                     throw new ModulePackageException('PACKAGE_VERSION_IDENTITY_CONFLICT', 'Previous same-version source identity differs.');
                 }
-                $sha = $receipt['archive_sha256'] ?? null;
+                $sha = $receipt['archives'][$packageKey] ?? $receipt['archive_sha256'] ?? null;
                 if (!is_string($sha) || preg_match('/^[a-f0-9]{64}$/D', $sha) !== 1
                     || ($pinned !== null && !hash_equals($pinned, $sha))) {
                     throw new ModulePackageException('PACKAGE_VERSION_IDENTITY_CONFLICT', 'Previous same-version archive identity is inconsistent.');
@@ -106,65 +115,142 @@ final class ModulePackageSourcePromoter
     }
 
     /** Prepare all recovery inputs before exposing a journal; after that point recovery always rolls forward. */
-    public function promote(VerifiedModulePackage $package, string $nextLock, bool $replace): void
+    public function promote(VerifiedModulePackage $package, string $nextLock, ?ModuleDescriptor $previous): void
+    {
+        $this->promoteMany([['package' => $package, 'previous' => $previous]], $nextLock);
+    }
+
+    /** One durable journal covers the complete admitted graph and its final lock. */
+    public function promoteMany(array $packages, string $nextLock, ?string $planSha256 = null): array
     {
         if (file_exists($this->state . '/journal.json')) {
             throw new ModulePackageException('MODULE_PACKAGE_RECOVERY_REQUIRED', 'Recover the pending source adoption first.');
         }
-        $scopes = [dirname($package->manifestRelative)];
-        foreach ($package->modules as $module) {
-            $scopes[] = $module['backend_relative'];
-            foreach ($module['frontend_contributions'] as $contribution) {
-                $scopes[] = $contribution['root'];
-            }
+        $planned = $this->planSources($packages);
+        if ($planned === []) {
+            throw new ModulePackageException('MODULE_PACKAGE_PROMOTION_FAILED', 'Source transaction is empty.');
         }
-        $scopes = array_values(array_unique($scopes));
-        sort($scopes, SORT_STRING);
         $transaction = bin2hex(random_bytes(16));
         $base = $this->state . '/' . $transaction;
         $this->directory($base);
         $entries = [];
-        foreach ($scopes as $scope) {
-            $target = $this->target($scope);
-            $before = $this->tree($target);
-            if ($before !== null && !$replace) {
-                throw new ModulePackageException('MODULE_PACKAGE_TARGET_CONFLICT', 'Unowned package target already exists.');
-            }
-            $after = $this->tree($package->stageRoot . '/' . $scope);
-            if ($after === null) {
-                throw new ModulePackageException('MODULE_PACKAGE_PROMOTION_FAILED', 'Verified source is missing.');
-            }
-            $expected = [];
-            foreach ($package->inventory as $path => $digest) {
-                if (str_starts_with($path, $scope . '/')) {
-                    $expected[substr($path, strlen($scope) + 1)] = $digest;
+        $archives = [];
+        foreach ($packages as $item) {
+            $package = $item['package'];
+            $archives[$package->packageKey] = $package->archiveSha256;
+            foreach ($planned[$package->packageKey] as $entry) {
+                $scope = $entry['scope'];
+                $payload = $base . '/payload/' . $scope;
+                $this->directory($payload);
+                foreach ($entry['after'] as $relative => $digest) {
+                    $this->directory(dirname($payload . '/' . $relative));
+                    $bytes = file_get_contents($package->stageRoot . '/' . $scope . '/' . $relative);
+                    if (!is_string($bytes) || !hash_equals($digest, hash('sha256', $bytes))) {
+                        throw new ModulePackageException('MODULE_PACKAGE_FILE_DIGEST_MISMATCH', 'Verified source changed before adoption.');
+                    }
+                    $this->write($payload . '/' . $relative, $bytes);
                 }
+                $entries[] = $entry;
             }
-            ksort($expected, SORT_STRING);
-            if ($after !== $expected) {
-                throw new ModulePackageException('MODULE_PACKAGE_FILE_DIGEST_MISMATCH', 'Verified source identity changed.');
-            }
-            $payload = $base . '/payload/' . $scope;
-            $this->directory($payload);
-            foreach ($after as $relative => $digest) {
-                $this->directory(dirname($payload . '/' . $relative));
-                $bytes = file_get_contents($package->stageRoot . '/' . $scope . '/' . $relative);
-                if (!is_string($bytes) || !hash_equals($digest, hash('sha256', $bytes))) {
-                    throw new ModulePackageException('MODULE_PACKAGE_FILE_DIGEST_MISMATCH', 'Verified source changed before adoption.');
-                }
-                $this->write($payload . '/' . $relative, $bytes);
-            }
-            $entries[] = ['scope' => $scope, 'before' => $before, 'after' => $after];
         }
         $this->write($base . '/next.lock', $nextLock);
         $lock = is_file($this->root . '/modules.lock') ? file_get_contents($this->root . '/modules.lock') : null;
         $journal = ['schema_version' => 1, 'transaction' => $transaction, 'package_key' => $package->packageKey,
             'archive_sha256' => $package->archiveSha256, 'lock_before' => is_string($lock) ? hash('sha256', $lock) : null,
             'lock_after' => hash('sha256', $nextLock), 'entries' => $entries];
+        $journal['archives'] = $archives;
+        $journal['plan_sha256'] = $planSha256;
         $bytes = json_encode($journal, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
         $this->write($base . '/transaction.json', $bytes);
         $this->write($this->state . '/journal.json', $bytes);
-        $this->recover();
+        return $this->recover();
+    }
+
+    /** Source ownership and before/after bytes are part of the reviewed plan, without application writes. */
+    public function planSources(array $packages): array
+    {
+        $planned = [];
+        $seen = [];
+        foreach ($packages as $item) {
+            $package = $item['package'];
+            $owned = [];
+            foreach ($item['previous']?->moduleRoots ?? [] as $directory) {
+                $owned[] = substr($directory, strlen($this->root) + 1);
+            }
+            foreach ($item['previous']?->frontend ?? [] as $contribution) {
+                $owned[] = dirname($contribution['entry']);
+            }
+            $scopes = [dirname($package->manifestRelative)];
+            foreach ($package->modules as $module) {
+                $scopes[] = $module['backend_relative'];
+                foreach ($module['frontend_contributions'] as $contribution) { $scopes[] = $contribution['root']; }
+            }
+            $scopes = array_values(array_unique($scopes));
+            sort($scopes, SORT_STRING);
+            foreach ($scopes as $scope) {
+                if (isset($seen[$scope])) {
+                    throw new ModulePackageException('PLUGIN_MODULE_CONFLICT', 'Package source scopes overlap.');
+                }
+                $seen[$scope] = true;
+                $before = $this->tree($this->target($scope));
+                if ($before !== null && !in_array($scope, $owned, true)) {
+                    throw new ModulePackageException('MODULE_PACKAGE_TARGET_CONFLICT', 'Unowned package target already exists.');
+                }
+                $expected = [];
+                foreach ($package->inventory as $path => $digest) {
+                    if (str_starts_with($path, $scope . '/')) { $expected[substr($path, strlen($scope) + 1)] = $digest; }
+                }
+                ksort($expected, SORT_STRING);
+                if ($expected === []) {
+                    throw new ModulePackageException('MODULE_PACKAGE_FILE_DIGEST_MISMATCH', 'Verified source identity changed.');
+                }
+                // Only verified inventory bytes are copied from disposable archive scratch.
+                // Destination inspection remains restricted to the canonical application root.
+                $planned[$package->packageKey][] = ['scope' => $scope, 'before' => $before, 'after' => $expected];
+            }
+        }
+        return $planned;
+    }
+
+    /** Read-only handle inspection is safe after an unknown or failed composition response. */
+    public function recoveryState(): array
+    {
+        $path = $this->state . '/journal.json';
+        $this->assertPath($path);
+        if (!is_file($path)) {
+            return ['status' => 'clean', 'completed_writes' => []];
+        }
+        $journal = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+        // A malformed journal is evidence of a blocked recovery, not a usable
+        // transaction handle. Never inspect arbitrary scopes or claim --recover
+        // can resume it.
+        $invalid = ['status' => 'invalid', 'transaction' => null,
+            'journal' => '.local/module-source-adoption/journal.json', 'completed_writes' => []];
+        if (!is_array($journal) || ($journal['schema_version'] ?? null) !== 1
+            || preg_match('/^[a-f0-9]{32}$/D', (string) ($journal['transaction'] ?? '')) !== 1
+            || !is_array($journal['entries'] ?? null) || !array_is_list($journal['entries'])
+            || $journal['entries'] === []
+            || preg_match('/^[a-f0-9]{64}$/D', (string) ($journal['lock_after'] ?? '')) !== 1) {
+            return $invalid;
+        }
+        foreach ($journal['entries'] as $entry) {
+            if (!is_array($entry) || !is_string($entry['scope'] ?? null)
+                || !is_array($entry['after'] ?? null)) {
+                return $invalid;
+            }
+        }
+        $completed = [];
+        foreach ($journal['entries'] as $entry) {
+            if ($this->tree($this->target($entry['scope'])) === $entry['after']) {
+                $completed[] = $entry['scope'];
+            }
+        }
+        if (is_file($this->root . '/modules.lock') && hash_file('sha256', $this->root . '/modules.lock') === ($journal['lock_after'] ?? null)) {
+            $completed[] = 'modules.lock';
+        }
+        return ['status' => 'pending', 'transaction' => $journal['transaction'],
+            'journal' => '.local/module-source-adoption/journal.json',
+            'completed_writes' => $completed, 'resume' => ['operation' => 'adopt', 'arguments' => ['--recover']]];
     }
 
     /** Idempotently resume root renames then the lock rename; unexpected edits stop without overwriting them. */
@@ -230,7 +316,10 @@ final class ModulePackageSourcePromoter
             throw new ModulePackageException('MODULE_PACKAGE_RECOVERY_REQUIRED', 'Cannot finish source adoption.');
         }
         // Preserve before/next.lock as owner-readable recovery evidence; no automatic destructive cleanup.
-        return ['status' => 'recovered', 'package_key' => $journal['package_key'], 'transaction' => $journal['transaction']];
+        return ['status' => 'recovered', 'package_key' => $journal['package_key'], 'transaction' => $journal['transaction'],
+            'receipt' => '.local/module-source-adoption/' . $journal['transaction'] . '/transaction.json',
+            'plan_sha256' => $journal['plan_sha256'] ?? null, 'archives' => $journal['archives'] ?? [],
+            'completed_writes' => [...array_column($journal['entries'], 'scope'), 'modules.lock']];
     }
 
     /** Prove the canonical root, then inspect only owned paths within that root. */

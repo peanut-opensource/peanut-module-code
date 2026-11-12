@@ -2,6 +2,8 @@
 
 ## Execution discipline
 
+- MT templates contain Host source and a bootstrap Composer lock. Use CLI create's fixed release composition and reviewed staged adopt before running the native `scripts/deploy-update.sh --prepare-release` for final Module dependencies, API, clients and registry. Missing required Module source is an uninstalled prerequisite; do not copy author trees or vendor from another application. Database installation and runtime acceptance remain separate.
+
 - Start or resume from the current requested result, unfinished work, valid evidence and running handles. Keep one owner for dependent implementation through delivery; delegate only independent work with clear write boundaries. Do not reassign stages, create extra reviewers or replay completed work merely to report progress.
 - Before an expensive or mutating command, inspect its actual producer, consumers and recovery entry, registered tools, required edition/configuration, source/lock consistency and exact write set. Distinguish missing capability from unused capability or environment failure; do not discover known prerequisites by repeatedly building or installing.
 - Before generation, build, upgrade or cleanup can overwrite existing work, preserve the affected tracked diff, index state, untracked file contents and base revision in a recoverable location. Hashes and path lists alone are not backups. Protect application customizations and never replace current assets with guessed reconstructions.

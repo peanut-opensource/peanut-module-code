@@ -6,6 +6,8 @@
 
 产品源码首次创建按[产品开发流程](README.md#产品开发与定版)执行：目标源码目录和产品数据库必须是新建空对象，使用 Peanut CLI `create` 生成项目。它不安装依赖、不建库、不启动服务，也不初始化产品 Git。随后按锁准备依赖、开发环境及必要构建，启动并通过安装页面向导安装，确认访问后同步自己的产品仓库，在 `dev` 继续开发。既有产品在原目录和专库上继续，不默认重建。
 
+MT 薄模板不携带官方模块作者源码。使用支持组合的 CLI，以明确的模块渠道和固定索引运行 `create --plan`，在返回的 staged consumer 内配置工具，按自身 `server/composer.lock` 安装起始依赖；然后复用同一 `--composition-stage` 取得原生计划，以审阅后的 `--plan-sha256` 采用完整源码。CLI 返回 `source-created` 后，在新应用初始化自己的 Git 开发目录，复核工具登记的根路径，再通过下文 `scripts/deploy-update.sh --prepare-release` 准备最终依赖、API、Admin/Platform 和 registry。全过程不连接数据库；缺少必选源码时 HTTP 明确返回 `INSTALL_MODULE_SOURCE_MISSING`，不能直接执行数据库安装。详细协议见[默认模块组合](../architecture/module-composition.md)。
+
 生产首次安装从产品已定版 `main` 的固定提交取得程序和已受管的后台静态文件，在全新空目录、空库准备 PHP 锁定依赖和生产配置，启动后走同一安装页面向导。前端在开发／发行机器的定版环节构建并随 Git 提交；生产不需要 Node、npm、pnpm 或前端压缩包。正式准备／更新命令见[交付合同](application-release.md#1-产品定版与前端准备)。
 
 生成 APP 的网页首次配置支持 `development` 与 `production`，使用有效 Setup Token；来源身份由 `.peanut/application-manifest.json` 与 `release-versions.json` 校验，Edition、版本及两份声明的摘要绑定到私有配置回执。Docker 中网页只提交 pending 输入，原生入口关闭流量并停止 PHP 后重新核对身份和 token，再由 owner 发布配置。非 Docker 部署由同一 PHP 用户写入和读取首配私有文件，源码目录可以由独立部署用户持有。已有配置、安装身份和部分失败继续阻止重复首次配置。带 `development-runtime.json` 的开发运行布局与内部候选仍只允许 `development`，不能用于生产。

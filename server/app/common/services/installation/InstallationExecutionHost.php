@@ -168,7 +168,7 @@ final class InstallationExecutionHost
             'deployment_mode' => $this->deploymentMode(),
             'tenant_bootstrap' => $tenantBootstrap,
             'preflight' => $preflight,
-            'official_modules' => $this->officialModules(),
+            'official_modules' => $this->officialModules(!$this->completionLockPresent() && !is_file($this->progressMarker())),
         ];
         $complete = $this->completionLockPresent();
         if (($preflight['status'] ?? null) !== 'ready') {
@@ -356,7 +356,7 @@ final class InstallationExecutionHost
             if ($resuming && !array_key_exists('official_modules', $input)) {
                 $input['official_modules'] = $status['official_module_selection'];
             }
-            [$credentials, $moduleKeys] = $this->normalizeInput($input);
+            [$credentials, $moduleKeys] = $this->normalizeInput($input, !$resuming);
             if ($resuming && $moduleKeys !== $status['official_module_selection']) {
                 throw new InstallationExecutionException('INSTALL_RESUME_SELECTION_MISMATCH', '继续安装须保留原模块选择。', 409);
             }
@@ -499,7 +499,7 @@ SQL);
      * @param array<string,mixed> $input
      * @return array{0:array<string,mixed>,1:list<string>}
      */
-    private function normalizeInput(array $input): array
+    private function normalizeInput(array $input, bool $applyComposition = true): array
     {
         $allowed = [
             'admin_email',
@@ -515,20 +515,20 @@ SQL);
                 422,
             );
         }
-        $modules = $input['official_modules'] ?? array_column(array_filter($this->officialModules(), static fn(array $module): bool => $module['default']), 'key');
+        $options = $this->officialModules($applyComposition);
+        $modules = $input['official_modules'] ?? array_column(array_filter($options, static fn(array $module): bool => $module['default']), 'key');
         if (!is_array($modules)
             || !array_is_list($modules)
             || array_filter($modules, static fn(mixed $key): bool => !is_string($key)) !== []) {
             throw new InstallationExecutionException('INSTALL_MODULE_SELECTION_INVALID', 'Module 选择无效。', 422);
         }
         $modules = array_values(array_unique($modules));
-        $options = $this->officialModules();
         $available = array_column($options, 'key');
         if (array_diff($modules, $available) !== []) {
             throw new InstallationExecutionException('INSTALL_MODULE_SELECTION_INVALID', 'Module 选择无效。', 422);
         }
         foreach ($options as $option) {
-            if ($option['required']) {
+            if ($applyComposition && $option['required']) {
                 $modules[] = $option['key'];
             }
         }
@@ -577,20 +577,22 @@ SQL);
     }
 
     /** @return list<array{key:string,label:string,description:string,required:bool,default:bool}> */
-    private function officialModules(): array
+    private function officialModules(bool $applyComposition = true): array
     {
         $modules = [];
         $registry = $this->definitionRegistry();
+        $requiredModules = $applyComposition ? \InitialInstallationSource::modules($this->serverRoot, false) : [];
+        $defaultModules = $applyComposition ? \InitialInstallationSource::modules($this->serverRoot) : [];
         foreach ($registry->modules as $manifest) {
             $key = $manifest->data['key'] ?? null;
             if (is_string($key) && str_starts_with($key, 'peanut.')) {
-                $required = $registry->isRequiredTenantFoundation($key);
+                $required = $registry->isRequiredTenantFoundation($key) || in_array($key, $requiredModules, true);
                 $modules[] = [
                     'key' => $key,
                     'label' => (string) ($manifest->data['name'] ?? substr($key, strlen('official.'))),
                     'description' => (string) ($manifest->data['description'] ?? ''),
                     'required' => $required,
-                    'default' => in_array($key, \InitialInstallationSource::MODULES, true),
+                    'default' => in_array($key, $defaultModules, true),
                 ];
             }
         }
@@ -748,7 +750,7 @@ SQL);
             || $progress['official_modules'] === []
             || array_filter($progress['official_modules'], static fn(mixed $key): bool => !is_string($key)) !== []
             || count(array_unique($progress['official_modules'])) !== count($progress['official_modules'])
-            || array_diff($progress['official_modules'], array_column($this->officialModules(), 'key')) !== []) {
+            || array_diff($progress['official_modules'], array_column($this->officialModules(false), 'key')) !== []) {
             throw new RuntimeException('INSTALL_PROGRESS_INVALID');
         }
         $modules = $progress['official_modules'];

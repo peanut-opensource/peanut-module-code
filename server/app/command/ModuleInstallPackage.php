@@ -19,7 +19,8 @@ final class ModuleInstallPackage extends ModuleContextualCommand
         $this->setName('module:install-package')->setDescription('Verify and install one self-contained Module package')
             ->addArgument('package', Argument::REQUIRED, 'Tar package path')
             ->addOption('sha256', null, Option::VALUE_REQUIRED, 'Expected archive SHA-256', '')
-            ->addOption('signature-key-id', null, Option::VALUE_REQUIRED, 'Required trusted signature key id', '');
+            ->addOption('signature-key-id', null, Option::VALUE_REQUIRED, 'Required trusted signature key id', '')
+            ->addOption('dry-run', null, Option::VALUE_NONE, 'Verify and plan without changing application files or database state');
     }
 
     protected function handle(Input $input, Output $output): int
@@ -30,6 +31,7 @@ final class ModuleInstallPackage extends ModuleContextualCommand
                 (string) $input->getArgument('package'),
                 ($pin = trim((string) $input->getOption('sha256'))) === '' ? null : $pin,
                 ($keyId = trim((string) $input->getOption('signature-key-id'))) === '' ? null : $keyId,
+                dryRun: (bool) $input->getOption('dry-run'),
             );
             $output->writeln((string) json_encode($result, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
             return 0;

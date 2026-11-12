@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "key": ${MODULE_KEY_JSON},
+  "name": ${NAME_JSON},
+  "description": ${DESCRIPTION_JSON},
+  "version": "1.0.0",
+  "kernel_constraint": "^1.0",
+  "license": "Apache-2.0",
+  "php_package": ${PHP_PACKAGE_JSON},
+  ${WEB_PACKAGE_FIELD}
+  "dependencies": [],
+  "lifecycle": {
+    "protected": false
+  },
+  "backend": {
+    "provider": ${BACKEND_PROVIDER_JSON},
+    "menus": "resources/menus.json",
+    "permissions": "resources/permissions.json",
+    "setting_definitions": "resources/setting-definitions.json"
+  },
+  "frontend": ${FRONTEND_DECLARATION_JSON},
+  "database": {
+    "owned_tables": []
+  },
+  "contracts": {
+    "exports": [],
+    "events": []
+  },
+  "tenant": {
+    "enableable": true,
+    "disable_behavior": "reject_new_operations",
+    "requires": []
+  }
+}

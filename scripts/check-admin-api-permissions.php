@@ -3,35 +3,31 @@
 
 declare(strict_types=1);
 
-$repositoryRoot = dirname(__DIR__);
-require_once $repositoryRoot . '/server/route/registry_source.php';
-require_once $repositoryRoot . '/server/app/modules/peanut/identity/src/Authorization/CorePermissionCatalog.php';
-$inventory = peanut_route_endpoint_inventory($repositoryRoot . '/server');
-$accessConfig = require $repositoryRoot . '/server/config/admin_api_access.php';
+use app\common\infrastructure\module\ModuleHostLayoutFactory;
+use app\platform\infrastructure\module\ModuleLockResolver;
+use PeanutAdmin\Kernel\Module\ManifestLoader;
+use PeanutAdmin\Modules\Identity\Authorization\CorePermissionCatalog;
+
+$rootOption = '--application-root=';
+$roots = array_values(array_filter(array_slice($argv, 1), static fn(string $argument): bool => str_starts_with($argument, $rootOption)));
 $markdown = in_array('--markdown', $argv, true);
 $inventoryJson = in_array('--inventory-json', $argv, true);
 
 /** @return list<array{method:string,path:string,permission:string,access:string}> */
-function adminApiMatrix(string $repositoryRoot, array $inventory, array $accessConfig): array
+function adminApiMatrix(array $moduleRoots, array $inventory, array $accessConfig): array
 {
     // Runtime API admission uses permission bundles, independently of menu paths.
-    $permissionKeys = array_fill_keys(
-        PeanutAdmin\Modules\Identity\Authorization\CorePermissionCatalog::TENANT,
-        true,
-    );
-    $lock = json_decode((string) file_get_contents($repositoryRoot . '/modules.lock'), true, 512, JSON_THROW_ON_ERROR);
-    foreach ($lock['modules'] as $selection) {
-        foreach ($selection['modules'] as $module) {
-            $moduleRoot = $repositoryRoot . '/' . $module['root'];
-            $manifest = json_decode((string) file_get_contents($moduleRoot . '/module.json'), true, 512, JSON_THROW_ON_ERROR);
-            $permissionPath = $manifest['backend']['permissions'] ?? null;
-            if ($permissionPath === null) {
-                continue;
-            }
-            $permissions = json_decode((string) file_get_contents($moduleRoot . '/' . $permissionPath), true, 512, JSON_THROW_ON_ERROR);
-            foreach ($permissions as $permission) {
-                $permissionKeys[$permission['key']] = true;
-            }
+    $permissionKeys = array_fill_keys(CorePermissionCatalog::TENANT, true);
+    $loader = new ManifestLoader();
+    foreach ($moduleRoots as $moduleRoot) {
+        $manifest = $loader->load($moduleRoot)->data;
+        $permissionPath = $manifest['backend']['permissions'] ?? null;
+        if ($permissionPath === null) {
+            continue;
+        }
+        $permissions = json_decode((string) file_get_contents($moduleRoot . '/' . $permissionPath), true, 512, JSON_THROW_ON_ERROR);
+        foreach ($permissions as $permission) {
+            $permissionKeys[$permission['key']] = true;
         }
     }
 
@@ -81,6 +77,24 @@ function normalizedExceptionRoutes(mixed $routes): array
 }
 
 try {
+    $selectedRoot = isset($roots[0]) ? substr($roots[0], strlen($rootOption)) : dirname(__DIR__);
+    $repositoryRoot = count($roots) <= 1 && $selectedRoot !== '' ? realpath($selectedRoot) : false;
+    if ($repositoryRoot === false || !is_file($repositoryRoot . '/server/vendor/autoload.php')) {
+        throw new RuntimeException('Use one application root with its own installed Composer lock.');
+    }
+    $serverRoot = $repositoryRoot . '/server';
+    require_once $serverRoot . '/vendor/autoload.php';
+    require_once $serverRoot . '/route/registry_source.php';
+    $moduleRoots = [];
+    foreach ((new ModuleLockResolver($serverRoot, '../modules.lock'))->all() as $module) {
+        $moduleRoots += $module->moduleRoots;
+    }
+    if (!isset($moduleRoots['peanut.identity'])) {
+        throw new RuntimeException('The application must adopt and lock the Identity module before permission checking.');
+    }
+    ModuleHostLayoutFactory::registerRuntimeAutoload($moduleRoots, $serverRoot);
+    $inventory = peanut_route_endpoint_inventory($serverRoot);
+    $accessConfig = require $serverRoot . '/config/admin_api_access.php';
     if ($markdown && $inventoryJson) {
         throw new RuntimeException('--markdown and --inventory-json cannot be combined');
     }
@@ -127,7 +141,7 @@ try {
         }
     }
 
-    $matrix = adminApiMatrix($repositoryRoot, $inventory, $accessConfig);
+    $matrix = adminApiMatrix($moduleRoots, $inventory, $accessConfig);
     $known = [];
     foreach ($inventory['endpoints'] as $endpoint) {
         $known[strtoupper((string) $endpoint['method']) . ' ' . strtolower(trim((string) $endpoint['path'], '/'))] = true;

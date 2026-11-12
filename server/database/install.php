@@ -676,7 +676,7 @@ function installFreshDatabase(string $serverDir, array $input, ?array $moduleKey
         if (installationStateBlocksFreshDatabase($serverDir)) {
             throw new RuntimeException('INSTALL_STATE_PRESENT: 安装身份状态已存在，拒绝再次初始化数据库');
         }
-        $initial = InitialInstallationSource::project($serverDir, $moduleKeys ?? InitialInstallationSource::MODULES);
+        $initial = InitialInstallationSource::project($serverDir, $moduleKeys ?? InitialInstallationSource::modules($serverDir));
         $initialRoot = $serverDir . '/runtime/temp/installation-database';
         foreach (['schema', 'migrations'] as $directory) {
             if (!is_dir($initialRoot . '/' . $directory) && !mkdir($initialRoot . '/' . $directory, 0775, true)) {
@@ -704,7 +704,7 @@ function installFreshDatabase(string $serverDir, array $input, ?array $moduleKey
             }
             $sources[] = ['file' => $target];
         }
-        $selectedKeys = $moduleKeys ?? InitialInstallationSource::MODULES;
+        $selectedKeys = $moduleKeys ?? InitialInstallationSource::modules($serverDir);
         $expected = InitialInstallationSource::tables($serverDir, $selectedKeys);
         $expected[] = (string) $connection->getConfig('prefix') . \think\facade\Config::get('database.migration_table', 'migrations');
         $tableCount = (int) $pdo->query(
