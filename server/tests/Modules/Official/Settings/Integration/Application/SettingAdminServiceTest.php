@@ -730,6 +730,7 @@ $app = new \think\App($argv[1]);
 require_once $app->getThinkPath() . 'helper.php';
 $app->env->load($environment);
 require_once $argv[1] . '/tests/Support/RegisteredMysqlTestResource.php';
+require_once $argv[1] . '/tests/Support/ThinkPhpTestConnection.php';
 $pdo = new \PDO(
     sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', env('DB_HOST'), env('DB_PORT'), RegisteredMysqlTestResource::configuredDatabaseName()),
     env('DB_USER'),
