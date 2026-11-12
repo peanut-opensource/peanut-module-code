@@ -255,6 +255,7 @@
     },
     "autoload-dev": {
         "psr-4": {
+            "Tests\\": "tests/",
             "PeanutAdmin\\Testing\\": [
                 "tests/CoreIntegration/testing/src/",
                 "vendor/peanut-admin/core/testing/src/"
