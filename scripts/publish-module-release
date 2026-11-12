@@ -17,6 +17,10 @@ PRODUCER = runpy.run_path(str(Path(__file__).with_name("build-module-release-ind
 REPO = PRODUCER["REPO"]
 INDEX = "module-release-index.json"
 API = f"repos/{REPO}"
+CATALOG = PRODUCER['CATALOG']
+STORE = CATALOG['ReleaseStore'](lambda *arguments: gh(*arguments))
+artifact_tag = CATALOG['artifact_tag']
+module_identity = CATALOG['module_identity']
 
 
 def gh(*arguments):
@@ -32,45 +36,11 @@ def api(path):
 
 
 def pages(path):
-    page = 1
-    while True:
-        rows = api(f"{path}?per_page=100&page={page}")
-        if not isinstance(rows, list):
-            raise RuntimeError("MODULE_RELEASE_GITHUB_RESPONSE_INVALID")
-        yield from rows
-        if len(rows) < 100:
-            return
-        page += 1
+    yield from STORE.pages(path)
 
 
 def index_read(data, tag):
-    index = json.loads(data)
-    if (type(index.get("schema_version")) is not int or index["schema_version"] != 1
-            or index.get("protocol") != "peanut.module-release-index.v1"
-            or index.get("repository") != REPO or index.get("tag") != tag
-            or not PRODUCER["TAG"].fullmatch(tag) or not re.fullmatch(r"[0-9a-f]{40}", index.get("commit", ""))
-            or not isinstance(index.get("modules"), list) or not 0 < len(index["modules"]) <= 100):
-        raise RuntimeError("MODULE_RELEASE_INDEX_INVALID")
-    seen = set()
-    for row in index["modules"]:
-        if (not PRODUCER["KEY"].fullmatch(row.get("key", "")) or row["key"] in seen
-                or not PRODUCER["SEMVER"].fullmatch(row.get("version", ""))
-                or row.get("asset") != f"{row['key']}-{row['version']}.tar"
-                or not re.fullmatch(r"[0-9a-f]{64}", row.get("sha256", ""))
-                or type(row.get("bytes")) is not int or not 0 < row["bytes"] <= 67108864
-                or row.get("license") != "Apache-2.0" or not isinstance(row.get("editions"), list)
-                or not row["editions"] or len(row["editions"]) != len(set(row["editions"]))
-                or not set(row["editions"]) <= {"standalone", "multi-tenant"}
-                or not isinstance(row.get("kernel_constraint"), str) or not row["kernel_constraint"]
-                or not isinstance(row.get("dependencies"), list)
-                or ("-rc." not in tag and "-" in row["version"].split("+")[0])):
-            raise RuntimeError("MODULE_RELEASE_INDEX_ROW_INVALID")
-        seen.add(row["key"])
-    for row in index["modules"]:
-        for dep in row["dependencies"]:
-            if dep.get("module_key") not in seen or not isinstance(dep.get("version"), str) or not dep["version"]:
-                raise RuntimeError("MODULE_RELEASE_DEPENDENCY_MISSING")
-    return index
+    return CATALOG['read_index'](data, tag)
 
 
 def asset_read(release, asset):
@@ -99,7 +69,12 @@ def local_catalog(directory):
     index = index_read(data, json.loads(data)["tag"])
     files = {INDEX: data}
     for row in index["modules"]:
+        if artifact_tag(index, row) != index['tag']:
+            STORE.reference(index, row)
+            continue
         path = directory / row["asset"]
+        if path.is_symlink() or not path.is_file():
+            raise RuntimeError('MODULE_RELEASE_LOCAL_ARTIFACT_INVALID: ' + row['key'])
         data = path.read_bytes()
         if row["sha256"] != hashlib.sha256(data).hexdigest() or row["bytes"] != len(data):
             raise RuntimeError("MODULE_RELEASE_LOCAL_DIGEST_MISMATCH: " + row["key"])
@@ -115,7 +90,7 @@ def history_check(index, resume_draft=False):
     existing_draft = None
     for release in pages(f"{API}/releases"):
         if release["tag_name"] == index["tag"]:
-            if not resume_draft or release.get("draft") is not True or existing_draft is not None:
+            if not resume_draft or existing_draft is not None:
                 raise RuntimeError("MODULE_RELEASE_TAG_ALREADY_EXISTS: " + index["tag"])
             existing_draft = api(f"{API}/releases/{release['id']}")
             continue
@@ -125,12 +100,16 @@ def history_check(index, resume_draft=False):
             raise RuntimeError("MODULE_RELEASE_HISTORY_INDEX_MISSING: " + release["tag_name"])
         previous = index_read(asset_read(release, matches[0]), release["tag_name"])
         for row in previous["modules"]:
-            prior_assets = [a for a in assets if a["name"] == row["asset"]]
+            if artifact_tag(previous, row) != previous['tag']:
+                origin = STORE.reference(previous, row)
+                prior_assets = [STORE.asset(origin, row['asset'])]
+            else:
+                prior_assets = [a for a in assets if a["name"] == row["asset"]]
             if (len(prior_assets) != 1 or prior_assets[0].get("digest") != "sha256:" + row["sha256"]
                     or prior_assets[0].get("size") != row["bytes"]):
                 raise RuntimeError("MODULE_RELEASE_HISTORY_ASSET_INVALID")
             candidate = current.get((row["key"], row["version"]))
-            if candidate is not None and candidate != row:
+            if candidate is not None and module_identity(candidate) != module_identity(row):
                 raise RuntimeError("MODULE_RELEASE_VERSION_IMMUTABLE: " + row["key"] + "@" + row["version"])
     return existing_draft
 
@@ -146,6 +125,79 @@ def verify_remote(release, index, files, draft):
     for asset in assets:
         if asset_read(release, asset) != files[asset["name"]]:
             raise RuntimeError("MODULE_RELEASE_READBACK_MISMATCH: " + asset["name"])
+    for row in index['modules']:
+        if artifact_tag(index, row) != index['tag']:
+            STORE.reference(index, row)
+
+
+def verify_partial_draft(release, files):
+    """Resume uploads by exact original bytes, never --clobber or a new draft."""
+    if release.get('draft') is not True:
+        raise RuntimeError('MODULE_RELEASE_NOT_A_DRAFT')
+    assets = list(pages(f"{API}/releases/{release['id']}/assets"))
+    names = [asset['name'] for asset in assets]
+    if len(names) != len(set(names)) or set(names) - set(files):
+        raise RuntimeError('MODULE_RELEASE_DRAFT_UNKNOWN_ASSET')
+    for asset in assets:
+        if asset_read(release, asset) != files[asset['name']]:
+            raise RuntimeError('MODULE_RELEASE_DRAFT_BYTES_CHANGED: ' + asset['name'])
+    return sorted(set(files) - set(names))
+
+
+def verify_main_source(source):
+    """A protected PR merge M can publish the already-qualified source S."""
+    git = lambda *args: subprocess.check_output(['git', *args], text=True).strip()
+    if git('remote', 'get-url', 'origin') not in (f'https://github.com/{REPO}', f'https://github.com/{REPO}.git', f'git@github.com:{REPO}.git'):
+        raise RuntimeError('MODULE_RELEASE_ORIGIN_INVALID')
+    main = api(f'{API}/commits/main')['sha']
+    if git('rev-parse', 'HEAD') != main or os.environ.get('GITHUB_SHA') != main:
+        raise RuntimeError('MODULE_RELEASE_MAIN_MOVED')
+    if main == source:
+        return main
+    prs = api(f'{API}/commits/{source}/pulls')
+    matches = [pr for pr in prs if pr.get('head', {}).get('sha') == source and pr.get('merge_commit_sha')]
+    if len(matches) != 1:
+        raise RuntimeError('MODULE_RELEASE_MERGED_SOURCE_PR_REQUIRED')
+    pr = api(f"{API}/pulls/{matches[0]['number']}")
+    merge = pr.get('merge_commit_sha')
+    if (pr.get('merged') is not True or pr.get('state') != 'closed'
+            or pr.get('head', {}).get('sha') != source or pr.get('head', {}).get('ref') != 'dev'
+            or pr.get('base', {}).get('ref') != 'main'
+            or pr.get('head', {}).get('repo', {}).get('full_name') != REPO
+            or pr.get('base', {}).get('repo', {}).get('full_name') != REPO
+            or not isinstance(merge, str) or not re.fullmatch(r'[a-f0-9]{40}', merge)):
+        raise RuntimeError('MODULE_RELEASE_MERGED_SOURCE_PR_INVALID')
+    parents = git('show', '-s', '--format=%P', merge).split()
+    if len(parents) != 2 or parents[1] != source or git('rev-parse', merge + '^{tree}') != git('rev-parse', source + '^{tree}'):
+        raise RuntimeError('MODULE_RELEASE_MERGE_SOURCE_TREE_MISMATCH')
+    git('merge-base', '--is-ancestor', merge, main)
+    return main
+
+
+def ensure_source_tag(index, main):
+    tag, source = index['tag'], index['commit']
+    git = lambda *args: subprocess.check_output(['git', *args], text=True).strip()
+    live = git('ls-remote', 'origin', 'refs/tags/' + tag)
+    if not live:
+        created = json.loads(gh('api', '--method', 'POST', f'{API}/git/tags', '-f', 'tag=' + tag,
+                                '-f', 'message=Qualified official Module catalog ' + tag + ' source ' + source,
+                                '-f', 'object=' + source, '-f', 'type=commit'))
+        if not re.fullmatch(r'[a-f0-9]{40}', created.get('sha', '')):
+            raise RuntimeError('MODULE_RELEASE_TAG_OBJECT_INVALID')
+        if api(f'{API}/commits/main')['sha'] != main:
+            raise RuntimeError('MODULE_RELEASE_MAIN_MOVED')
+        gh('api', '--method', 'POST', f'{API}/git/refs', '-f', 'ref=refs/tags/' + tag, '-f', 'sha=' + created['sha'])
+    remote = api(f"{API}/git/ref/tags/{quote(tag, safe='')}")['object']
+    if remote.get('type') != 'tag':
+        raise RuntimeError('MODULE_RELEASE_ANNOTATED_TAG_REQUIRED')
+    annotated = api(f"{API}/git/tags/{remote['sha']}")
+    if (annotated.get('tag') != tag or annotated.get('object', {}).get('type') != 'commit'
+            or annotated.get('object', {}).get('sha') != source):
+        raise RuntimeError('MODULE_RELEASE_TAG_SOURCE_MISMATCH')
+    git('fetch', '--no-tags', 'origin', f'refs/tags/{tag}:refs/tags/{tag}')
+    if git('rev-parse', tag + '^{commit}') != source or api(f'{API}/commits/main')['sha'] != main:
+        raise RuntimeError('MODULE_RELEASE_PUBLICATION_REFS_CHANGED')
+    return remote['sha']
 
 
 def main():
@@ -166,44 +218,50 @@ def main():
         print(f"RELEASE_HISTORY_AUDITED {index['tag']} modules={len(index['modules'])}")
         return
     # Publishing consumes the successful build's originals; it never packs again.
-    if (os.environ.get("GITHUB_REPOSITORY") != REPO or os.environ.get("GITHUB_REF") != "refs/heads/main"
-            or os.environ.get("GITHUB_SHA") != index["commit"] or not args.run_id
+    if (os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('GITHUB_EVENT_NAME') != 'workflow_dispatch'
+            or os.environ.get("GITHUB_REPOSITORY") != REPO or os.environ.get("GITHUB_REF") != "refs/heads/main" or not args.run_id
             or os.environ.get("MODULE_RELEASE_IMMUTABLE") != "true"):
         raise RuntimeError("MODULE_RELEASE_PUBLISH_GATE_REQUIRED")
     run = api(f"{API}/actions/runs/{args.run_id}")
     receipt = json.loads((directory / "build-receipt.json").read_bytes())
-    if (run.get("conclusion") != "success" or run.get("event") != "workflow_dispatch"
+    built = sorted(row['key'] for row in index['modules'] if artifact_tag(index, row) == index['tag'])
+    reused = sorted(row['key'] for row in index['modules'] if artifact_tag(index, row) != index['tag'])
+    if (run.get('status') != 'completed' or run.get("conclusion") != "success" or run.get("event") != "workflow_dispatch"
             or run.get("path") != ".github/workflows/module-release.yml"
             or run.get("head_sha") != index["commit"] or run.get("repository", {}).get("full_name") != REPO
-            or receipt != {"run_id": args.run_id, "commit": index["commit"], "tag": index["tag"],
-                           "index_sha256": hashlib.sha256(files[INDEX]).hexdigest(), "native_checks": len(index["modules"])}):
+            or receipt.get('run_id') != args.run_id or receipt.get('commit') != index['commit']
+            or receipt.get('tag') != index['tag'] or receipt.get('index_sha256') != hashlib.sha256(files[INDEX]).hexdigest()
+            or receipt.get('built_modules') != built or receipt.get('reused_modules') != reused
+            or not re.fullmatch(r'[a-f0-9]{64}', receipt.get('plan_sha256', ''))):
         raise RuntimeError("MODULE_RELEASE_CI_ORIGINALS_REQUIRED")
-    git = lambda *a: subprocess.check_output(["git", *a], text=True).strip()
-    tag_ref = "refs/tags/" + index["tag"]
-    remote_tag = api(f"{API}/git/ref/tags/{quote(index['tag'], safe='')}")["object"]
-    if (git("rev-parse", "HEAD") != index["commit"] or git("cat-file", "-t", tag_ref) != "tag"
-            or git("rev-parse", tag_ref + "^{commit}") != index["commit"]
-            or git("rev-parse", "refs/remotes/origin/main") != index["commit"]
-            or api(f"{API}/commits/main")["sha"] != index["commit"]
-            or remote_tag["type"] != "tag" or remote_tag["sha"] != git("rev-parse", tag_ref)):
-        raise RuntimeError("MODULE_RELEASE_ANNOTATED_MAIN_TAG_REQUIRED")
+    main = verify_main_source(index['commit'])
+    ensure_source_tag(index, main)
+    if existing_draft is not None and existing_draft.get('draft') is False:
+        verify_remote(existing_draft, index, files, False)
+        print(f"PUBLIC_RELEASE_ALREADY_VERIFIED {index['tag']} assets={len(files)} commit={index['commit']}")
+        return
     flags = ["--prerelease"] if "-rc." in index["tag"] else []
     if existing_draft is None:
         gh("release", "create", index["tag"], "--repo", REPO, "--verify-tag", "--draft", *flags,
            "--title", "Official modules " + index["tag"], "--notes",
            f"Fixed source {index['commit']}; native check/pack CI run {args.run_id}. "
-           "Module versions are independent. This release does not assert business E2E qualification.",
-           *[str(directory / name) for name in files])
+           "Module versions are independent. Unchanged archives reference their immutable original release. "
+           "This release does not assert business E2E qualification.")
         # GET releases/tags/{tag} returns 404 for drafts. Resolve the real release ID.
         same_tag = [r for r in pages(f"{API}/releases") if r.get("tag_name") == index["tag"]]
         if len(same_tag) != 1 or same_tag[0].get("draft") is not True:
             raise RuntimeError("MODULE_RELEASE_DRAFT_ID_UNAVAILABLE")
         release = api(f"{API}/releases/{same_tag[0]['id']}")
     else:
-        # Resume only the identical, fully verified draft and fixed CI originals.
+        # Missing uploads are resumed only after checking every already-visible byte.
         release = existing_draft
+    missing = verify_partial_draft(release, files)
+    if missing:
+        gh('release', 'upload', index['tag'], '--repo', REPO, *[str(directory / name) for name in missing])
     # A failure leaves the exact draft/run handle; never delete, clobber or repackage.
     verify_remote(release, index, files, True)
+    if verify_main_source(index['commit']) != main:
+        raise RuntimeError('MODULE_RELEASE_MAIN_MOVED')
     gh("api", "--method", "PATCH", f"{API}/releases/{release['id']}",
        "-F", "draft=false", "-F", f"prerelease={'true' if flags else 'false'}")
     release = api(f"{API}/releases/{release['id']}")
