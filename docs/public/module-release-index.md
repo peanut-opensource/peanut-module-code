@@ -7,6 +7,36 @@ All peanut.* modules have independently versioned TAR artifacts containing PHP, 
 
 Every catalog snapshot is a GitHub Release with a fixed tag: v1.0.0 for stable, v1.0.0-rc.1 for prerelease. It contains module-release-index.json and a separately versioned TAR for each module. The index protocol is peanut.module-release-index.v1. It binds the fixed source commit, repository and tag, plus independent module key, version, asset, SHA-256, size, Edition, Kernel constraint and dependencies. An unchanged module need not change its own version when the catalog snapshot changes.
 
+### Check before packaging
+
+The producer supports a read-only comparison with a previously published immutable
+catalog index. It requires only Git and Python; no PHP/Node dependency installation,
+database or machine-specific resource registry:
+
+```sh
+python3 scripts/build-module-release-index --plan-only \
+  --source-root /absolute/peanut-module-code \
+  --source-commit FULL_40_HEX_HEAD \
+  --baseline-index /absolute/verified-module-release-index.json \
+  --baseline-sha256 GITHUB_API_INDEX_ASSET_SHA256
+```
+
+Supply the official index and independent SHA-256 reported by the GitHub
+Release API for that exact index asset. The planner checks its bytes before
+comparing any source and rejects a mismatched local copy.
+The planner diffs every official Module backend and declared client contribution
+root against the catalog's exact Git source. `unchanged` means there is no reason
+to publish that Module again. A changed source at the same version blocks until
+the Module version is incremented; removals and unexplained version-only changes
+also block. When the result is `no_module_release_needed`, skip catalog build
+and publish entirely. Never treat this source-only report as a runtime test pass.
+
+The native packer already writes deterministic TAR members and
+`META-INF/files.sha256` with path-to-content digests. Full TAR SHA-256, index
+digests and the immutable historical `key@version` comparison remain mandatory
+for changed releases. A newly generated archive must not be modified merely to
+make its SHA match a published one.
+
 The index alone is NOT a trust anchor. CLI must verify the index attachment bytes and each TAR bytes against the matching official GitHub API Release assets[].digest (sha256), and verify the expected exact official download URLs. The index SHA is an additional consistency check. Draft, mismatched channel, unknown publisher, missing digest, unsafe names/paths, incompatible Edition or install downgrade are rejected. A local TAR remains available with separately trusted SHA-256.
 
 Default selection uses the latest compatible published stable module. Explicit prerelease channel or version is needed for RC modules. The default application module composition is separate from the scaffold source; it is a proposal for the existing native module installer, not an automatic permission grant. Installed modules are governed by the application's lock and database lifecycle, not by the scaffold's default module versions.

@@ -130,6 +130,88 @@ def archive_check(archive, module_root, manifest=None):
             raise RuntimeError("MODULE_RELEASE_MULTI_MODULE_ARCHIVE")
         return archive_manifest
 
+def source_paths_at(root, commit, key):
+    """Exact module root plus each declared frontend contribution root at a fixed Git source."""
+    backend = "server/app/modules/peanut/" + key[7:].replace("-", "_")
+    manifest = json.loads(run(["git", "show", f"{commit}:{backend}/module.json"], root))
+    if manifest.get("key") != key:
+        raise RuntimeError("MODULE_RELEASE_SOURCE_IDENTITY_INVALID: " + key)
+    paths = {backend}
+    frontend = manifest.get("frontend") or {}
+    entries = [frontend.get("entry")]
+    entries += [client.get("entry") for client in (frontend.get("clients") or {}).values()]
+    for entry in entries:
+        if not entry:
+            continue
+        if not isinstance(entry, str) or not any(entry.startswith(prefix) for prefix in
+                ("web/src/modules/", "platform/src/modules/", "pc/modules/", "uniapp/src/modules/")):
+            raise RuntimeError("MODULE_RELEASE_FRONTEND_SOURCE_INVALID: " + key)
+        paths.add(str(pathlib.PurePosixPath(entry).parent))
+    return manifest, sorted(paths)
+
+def plan_source_changes(root, commit, baseline_index, baseline_sha256):
+    """No toolchain, database, or packaging. Exact TAR SHA remains the packer's final proof.
+
+    This is a conservative fixed-Git-source change map, not a replacement for
+    native checks, dependency admission, or the immutable historical SHA audit.
+    """
+    source_ready(root, commit)
+    if not re.fullmatch(r"[a-f0-9]{64}", baseline_sha256):
+        raise RuntimeError("MODULE_RELEASE_BASELINE_SHA256_REQUIRED")
+    baseline_bytes = baseline_index.read_bytes()
+    if digest(baseline_bytes) != baseline_sha256:
+        raise RuntimeError("MODULE_RELEASE_BASELINE_DIGEST_MISMATCH")
+    index = json.loads(baseline_bytes)
+    baseline = index.get("commit", "")
+    if (index.get("protocol") != "peanut.module-release-index.v1" or index.get("repository") != REPO
+            or not TAG.fullmatch(index.get("tag", "")) or not re.fullmatch(r"[a-f0-9]{40}", baseline)
+            or not isinstance(index.get("modules"), list)):
+        raise RuntimeError("MODULE_RELEASE_BASELINE_INDEX_INVALID")
+    # Refuse unrelated refs: they cannot prove which package files changed.
+    if run(["git", "rev-parse", f"{baseline}^{{commit}}"], root).strip() != baseline:
+        raise RuntimeError("MODULE_RELEASE_BASELINE_COMMIT_MISSING")
+    run(["git", "merge-base", "--is-ancestor", baseline, commit], root)
+    previous = {}
+    for item in index["modules"]:
+        if (not isinstance(item, dict) or not KEY.fullmatch(item.get("key", "")) or item["key"] in previous
+                or not SEMVER.fullmatch(item.get("version", "")) or not re.fullmatch(r"[a-f0-9]{64}", item.get("sha256", ""))):
+            raise RuntimeError("MODULE_RELEASE_BASELINE_ROW_INVALID")
+        previous[item["key"]] = item
+    current = {}
+    for path in sorted((root / "server/app/modules/peanut").glob("*/module.json")):
+        manifest = json.loads(run(["git", "show", f"{commit}:{path.relative_to(root).as_posix()}"], root))
+        key = manifest.get("key", "")
+        if not KEY.fullmatch(key) or key in current or not SEMVER.fullmatch(manifest.get("version", "")):
+            raise RuntimeError("MODULE_RELEASE_CURRENT_MODULE_INVALID")
+        current[key] = manifest
+    changes = []
+    for key in sorted(set(previous) | set(current)):
+        if key not in current:
+            changes.append({"key": key, "from": previous[key]["version"], "to": None, "status": "removed_requires_review"})
+            continue
+        manifest, paths = source_paths_at(root, commit, key)
+        older = previous.get(key)
+        if older:
+            _, old_paths = source_paths_at(root, baseline, key)
+            paths = sorted(set(paths) | set(old_paths))
+            files = run(["git", "diff", "--name-only", "--no-renames", baseline, commit, "--", *paths], root).splitlines()
+            status = ("version_bump_required" if files and manifest["version"] == older["version"]
+                      else "changed" if files else "unchanged")
+            if not files and manifest["version"] != older["version"]:
+                status = "version_identity_invalid"
+        else:
+            files, status = paths, "new"
+        changes.append({"key": key, "from": older["version"] if older else None,
+                        "to": manifest["version"], "status": status,
+                        "changed_paths": files[:30], "changed_path_count": len(files)})
+    pending = [x for x in changes if x["status"] != "unchanged"]
+    blocked = [x for x in changes if x["status"] in ("version_bump_required", "version_identity_invalid", "removed_requires_review")]
+    return {"schema_version": 1, "protocol": "peanut.module-release-plan.v1",
+            "source_commit": commit, "baseline_commit": baseline, "baseline_tag": index["tag"],
+            "summary": {"unchanged": len(changes)-len(pending), "changed": len(pending), "blocked": len(blocked)},
+            "status": "blocked" if blocked else "changes" if pending else "no_module_release_needed",
+            "modules": changes, "verification": "git package-source delta only; final native TAR SHA and historical release audit remain mandatory"}
+
 def build(root, output, tag, channel, commit):
     if not TAG.fullmatch(tag) or channel not in ("stable", "prerelease") or (("-rc." in tag) != (channel == "prerelease")):
         raise RuntimeError("MODULE_RELEASE_TAG_CHANNEL_INVALID")
@@ -194,14 +276,27 @@ def build(root, output, tag, channel, commit):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", type=pathlib.Path, required=True)
-    parser.add_argument("--output", type=pathlib.Path, required=True)
-    parser.add_argument("--tag", required=True)
-    parser.add_argument("--channel", choices=["stable", "prerelease"], required=True)
+    parser.add_argument("--output", type=pathlib.Path)
+    parser.add_argument("--tag")
+    parser.add_argument("--channel", choices=["stable", "prerelease"])
+    parser.add_argument("--plan-only", action="store_true")
+    parser.add_argument("--baseline-index", type=pathlib.Path)
+    parser.add_argument("--baseline-sha256")
     parser.add_argument("--source-commit", required=True)
     args = parser.parse_args()
     root = args.source_root.resolve(strict=True)
     if not re.fullmatch(r"[0-9a-f]{40}", args.source_commit):
         parser.error("Source commit must be a fixed 40-character git SHA")
+    if args.plan_only:
+        if args.output or args.tag or args.channel or not args.baseline_index or not args.baseline_sha256:
+            parser.error("--plan-only requires --baseline-index, --baseline-sha256 and a fixed source; no build arguments")
+        report = plan_source_changes(root, args.source_commit, args.baseline_index.resolve(strict=True), args.baseline_sha256)
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+        if report["status"] == "blocked":
+            raise SystemExit(2)
+        return
+    if args.baseline_index or args.baseline_sha256 or not args.output or not args.tag or not args.channel:
+        parser.error("build requires --output --tag --channel; baseline index is only for --plan-only")
     build(root, args.output, args.tag, args.channel, args.source_commit)
 
 if __name__ == "__main__":
