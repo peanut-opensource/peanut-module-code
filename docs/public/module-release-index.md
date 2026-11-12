@@ -1,77 +1,67 @@
-# Official GitHub Module releases
+# 官方模块增量发行
 
-The public module author repository is peanut-opensource/peanut-module-code:
-https://github.com/peanut-opensource/peanut-module-code.
+官方作者仓为 `peanut-opensource/peanut-module-code`。只有 `peanut.*` 纳入官方目录，应用自有 `custom.*` 不参与官方发行。模块源码、模块版本、目录 Tag、宿主脚手架和 CLI 版本分别管理；不因宿主升级就给所有模块增加版本号。
 
-All peanut.* modules have independently versioned TAR artifacts containing PHP, migrations, permissions, menus, API contracts and any declared client source. Custom.* application-specific modules are excluded. npm/Packagist resolve dependencies of a verified module, not the mixed PHP/Vue module package itself.
+## 单一入口及执行顺序
 
-Every catalog snapshot is a GitHub Release with a fixed tag: v1.0.0 for stable, v1.0.0-rc.1 for prerelease. It contains module-release-index.json and a separately versioned TAR for each module. The index protocol is peanut.module-release-index.v1. It binds the fixed source commit, repository and tag, plus independent module key, version, asset, SHA-256, size, Edition, Kernel constraint and dependencies. An unchanged module need not change its own version when the catalog snapshot changes.
+现有 `.github/workflows/module-release.yml` 是正式流程：固定来源 → 自动比较公开目录 → 冻结变更计划 → 按需准备工具 → 只打包变化模块 → 验证受影响依赖 → 审计历史不可变身份 → 保存原件 → 经明确批准发布原件。它不安装或升级业务应用，也不声称已经完成数据库/E2E 验收。
 
-### Check before packaging
+普通构建不必先人工运行另一份检查脚本。工作流在 PHP/Composer 准备之前自动调用同一原生生产者进行比较；`plan_only=true` 只生成计划。零变化返回 `no_module_release_needed`，依赖安装、模块打包、Tag 和发布均跳过。计划中的目录 Tag 不是模块版本。
 
-The producer supports a read-only comparison with a previously published immutable
-catalog index. It requires only Git and Python; no PHP/Node dependency installation,
-database or machine-specific resource registry:
+本地只读计划仅需 Python、Git 和已授权的官方目录读取，不要求 PHP、Node、数据库或开发机资源登记：
 
 ```sh
 python3 scripts/build-module-release-index --plan-only \
-  --source-root /absolute/peanut-module-code \
-  --source-commit FULL_40_HEX_HEAD \
-  --baseline-index /absolute/verified-module-release-index.json \
-  --baseline-sha256 GITHUB_API_INDEX_ASSET_SHA256
+  --source-root "$PWD" --source-commit "$(git rev-parse HEAD)" \
+  --channel prerelease --report "$PWD/.local/module-release-plan.json"
 ```
 
-Supply the official index and independent SHA-256 reported by the GitHub
-Release API for that exact index asset. The planner checks its bytes before
-comparing any source and rejects a mismatched local copy.
-The planner diffs every official Module backend and declared client contribution
-root against the catalog's exact Git source. `unchanged` means there is no reason
-to publish that Module again. A changed source at the same version blocks until
-the Module version is incremented; removals and unexplained version-only changes
-also block. When the result is `no_module_release_needed`, skip catalog build
-and publish entirely. Never treat this source-only report as a runtime test pass.
+默认从指定渠道的公开目录自动发现一次基线，也可提供 `--baseline-release vX.Y.Z-rc.N`。离线基线必须同时提供 `--baseline-index` 与从独立可信来源取得的 `--baseline-sha256`；本地重新计算一个值不能证明来源可信。共享的 `module-release-catalog.py` 负责目录格式、官方来源、原始附件和不可变身份验证，不是第二套安装器。
 
-The native packer already writes deterministic TAR members and
-`META-INF/files.sha256` with path-to-content digests. Full TAR SHA-256, index
-digests and the immutable historical `key@version` comparison remain mandatory
-for changed releases. A newly generated archive must not be modified merely to
-make its SHA match a published one.
+## 比较与版本规则
 
-The index alone is NOT a trust anchor. CLI must verify the index attachment bytes and each TAR bytes against the matching official GitHub API Release assets[].digest (sha256), and verify the expected exact official download URLs. The index SHA is an additional consistency check. Draft, mismatched channel, unknown publisher, missing digest, unsafe names/paths, incompatible Edition or install downgrade are rejected. A local TAR remains available with separately trusted SHA-256.
+生产者对固定 Git 提交中的模块后端及声明的全部前端贡献根，按排序后的路径、模式和 blob 身份生成 `source_sha256`。不含绝对工作目录和时间，因此同一源码换目录不会被误判变更。链接、不安全路径、脏源码及来源漂移拒绝；历史应用 baseline 文件保留其既有例外，不进入模块载荷。
 
-Default selection uses the latest compatible published stable module. Explicit prerelease channel or version is needed for RC modules. The default application module composition is separate from the scaffold source; it is a proposal for the existing native module installer, not an automatic permission grant. Installed modules are governed by the application's lock and database lifecycle, not by the scaffold's default module versions.
+计划区分 `unchanged`、`new`、`changed`、`version_bump_required`、移除待审及降级。已经发布的同一 `key@version` 不允许源码、内容或元数据变化。只提高目录 Tag 不会绕过这一规则。版本比较按严格 SemVer，不按文件时间或 Release 的创建顺序。
 
-Release preparation at the fixed source commit uses the existing native check and pack commands. The producer invokes `server/module`, the same JSON bridge used by `peanut module`; it does not boot a separate authoring implementation or install the CLI from an unpinned online source. Run with the selected application's Edition (the author repository is multi-tenant):
+变化模块及其反向依赖闭包进入验证范围。未变化的依赖模块只在必要时下载原包并执行原生 check，不重打包。契约、Edition 和依赖约束仍由原 `PackageCheck`、模块边界检查及原生装配负责，不在发行器另写业务依赖求解器。
 
-    PHP_DEPLOYMENT_MODE=multi-tenant PHP_APP_ENV=development PHP_APP_DEBUG=true \
-      python3 scripts/build-module-release-index --source-root /absolute/peanut-module-code --output /absolute/new-release-dir --tag v1.0.0-rc.1 --channel prerelease --source-commit YOUR_FIXED_40HEX_COMMIT
+## v2 目录与两种摘要
 
-The producer requires a full Git checkout at that SHA, checks it again after packaging, and refuses source drift (historical recorded-baseline metadata is allowed). It checks the selected catalog's dependency closure with native `PackageCheck::dependencyOrder`, including version constraints and cycles; a dependency must also cover every Edition declared by its consumer. The existing module boundary checker audits the selected official modules' public exports and foreign table access. Custom modules are available only as source ownership information, never selected or packaged for the official catalog.
+新目录使用 `schema_version=2` / `peanut.module-release-index.v2`，保留 v1 的读取与不可变身份规则。每条记录仍包含 key、独立版本、资产名、包 SHA-256、大小、许可、Edition、Kernel 约束和依赖，并增加：
 
-Each module is packed once, then native check verifies that supplied archive and its independent SHA, including all seven author checks. The producer audits canonical manifests, single-module paths, TAR types, native inventory, size, secret filenames and Apache-2.0 declarations in module.json, Composer and every packaged frontend package.json. Existing packaged LICENSE/COPYING files must identify Apache 2.0. This is a check of the shipped declarations and files, not a grant of rights to undeclared third-party content. Neither the host application's LICENSE nor custom.* content is included or treated as an official-module license. Bundled third-party license changes require review before admission; this producer does not silently approve another license.
+| 字段 | 含义 |
+| --- | --- |
+| `source_sha256` | 固定源码的规范化模块输入指纹，用于决定是否需要打包 |
+| `artifact_tag` | 该 TAR 原件实际所在的不可变官方 Release，不是当前目录 Tag 的别名 |
+| `payload_sha256` | 可用时记录 TAR 内规范化文件内容清单摘要 |
+| `sha256` | 实际 TAR 的整包字节摘要，用于下载校验与不可变版本对账 |
 
-`.github/workflows/module-release.yml` has two explicit operations, with all module releases serialized:
+变化模块只生产一次确定性 TAR，并保留原 `META-INF/files.sha256`。未变化模块直接引用其原始不可变 Release，当前 Release 只上传新 TAR 与完整新目录，不上传旧包的副本。引用必须直接指向拥有原件的 Release；不接受引用链、可变 Release、丢失附件或目录与原件元数据不一致。
 
-- **Build (`publish=false`)**: the 40-hex `source_commit` must equal the selected workflow ref's SHA. Ubuntu 24.04 prepares PHP 8.3 with all locked runtime extensions (including bcmath), Python 3.12, and the SHA-verified Composer 2.10.2 from `scripts/project-composer`. Both `server/composer.lock` and `tools/quality/composer.lock` are validated and installed with no dev packages, plugins or application/test hooks. Missing or incompatible dependencies fail; platform requirements are never ignored. Native check/pack, public contracts and history audit must all succeed before uploading the TARs, index and `build-receipt.json`. Node/pnpm and frontend compilation are not used: these are source Module packages; the existing PHP bridge owns check/pack. The broad application toolchain's suggested Node/Python versions are not additional release dependencies. No DB, cache or application service is started.
-- **Publish (`publish=true`)**: run on main with its exact current SHA, an approved existing annotated tag pointing to that SHA, and `qualification_run_id` for a successful build of the same SHA and workflow. The job downloads those CI originals and checks the receipt and run identity. It does not install dependencies or rebuild packages. Only this job gets `contents:write`; the short-lived GitHub token is passed only to GitHub steps, never to the packer or archives. The repository owner must first enable GitHub immutable releases and confirm it with repository variable `MODULE_RELEASE_IMMUTABLE=true`. The variable records that administrative approval; public `immutable:true` is independently required on readback.
+目录自身和 TAR 都必须匹配 GitHub Release API 的独立 `assets[].digest`、官方 URL 和长度。目录里自述的 SHA 不是唯一信任依据。原有稳定/RC opt-in、单模块 TAR、普通文件类型、路径隔离、大小上限、秘密文件拒绝及 Apache-2.0 许可检查保持不变；重新压缩或改写旧包来“对齐摘要”被禁止。
 
-`scripts/publish-module-release` audits every prior public and draft catalog with paginated GitHub APIs. The index's independent API digest and corresponding TAR asset metadata must agree. Any changed metadata or bytes for an existing key+version are rejected, even under a new catalog tag. Existing release tags are never overwritten; there is no clobber or automatic deletion. An API error is a failure, not an empty history. The publisher creates a draft, reads back every asset's exact official URL, size, API digest and bytes, then publishes and repeats the checks with `immutable:true`. A partial failure retains its original draft/tag/run for reconciliation; inspect that handle before taking any further publication action. Repeating a publish dispatch cannot replace it.
+v2 是消费者协议变化：CLI、脚手架原生 source-adoption 和开发者后台均须采用支持 v2 的实现。正式发布 v2 目录前应先交付相应消费者版本；未发行 dev 源码不能写成已安装的公共 CLI 能力。旧 v1 已发布目录和原件无需重发。
 
-After the workflow is admitted on the default branch and a fixed source is selected, build without publishing:
+## 固定计划执行与续接
+
+实际构建使用已保存的计划和摘要，不再查询“最新基线”：
 
 ```sh
-gh workflow run module-release.yml --repo peanut-opensource/peanut-module-code --ref main \
-  -f source_commit="$SOURCE_COMMIT" -f tag=v1.0.0-rc.1 -f channel=prerelease -f publish=false
-gh run list --repo peanut-opensource/peanut-module-code --workflow module-release.yml --limit 5
-gh run watch "$BUILD_RUN_ID" --repo peanut-opensource/peanut-module-code --exit-status
+python3 scripts/build-module-release-index \
+  --source-root "$PWD" --source-commit FULL_40_HEX_SOURCE \
+  --tag vX.Y.Z-rc.N --channel prerelease --output /absolute/module-release \
+  --plan-file /absolute/module-release-plan.json --plan-sha256 EXACT_PLAN_SHA256
 ```
 
-Only after the source/main/tag and public-release approvals, and the immutable-release setting, are satisfied:
+同一原目录已知失败时增加 `--resume`。状态绑定源码、计划、生产者、实际工具/依赖身份及输出摘要。已完成 pack 但 check 失败时保留 TAR，再次执行只补 check；环境变化只重新验证，不能把旧环境 PASS 当成新环境 PASS。已完成包损坏、同版本不同字节、未知在途 pack 或并发 writer 均停止并保留原现场，不重开任务或静默覆盖。
 
-```sh
-gh workflow run module-release.yml --repo peanut-opensource/peanut-module-code --ref main \
-  -f source_commit="$SOURCE_COMMIT" -f tag=v1.0.0-rc.1 -f channel=prerelease \
-  -f publish=true -f qualification_run_id="$BUILD_RUN_ID"
-```
+GitHub 工作流使用 `resume_run_id` 恢复先前已结束 run 的固定计划与部分原件；重试原 run 时按原 attempt 查找。不能恢复仍在执行或来源不一致的 run。每次保留的 artifact 名包含 run ID 和 attempt，避免错误拼接。默认生产流程不再安装未使用的全局 CLI/Node。
 
-The workflow must exist on the default branch before GitHub accepts its first workflow_dispatch. A dev push or a local artifact is not a CI/public-release result. Current source has 22 official modules in RC with a closed dependency graph. Filtering out prerelease module versions leaves 18 stable modules with 15 direct dependencies on the absent Identity; stable must fail before emitting an index. Do not relabel Identity or silently mix RC into stable. RC artifact checks do not assert full business, consumer installation, database or production E2E qualification.
+## 正式发布与故障恢复
+
+`scripts/publish-module-release` 是唯一发布器，`--mode audit` 只审计，正式 `--mode publish` 仅允许注册的 main workflow、原成功构建 run、原完整目录摘要和仓库不可变发布批准。受保护 PR 合并可形成 M；脚本按实际 PR、来源 S 和同树关系核验，自动创建或复用指向 S 的注释 Tag，不移动错误或已发布 Tag。
+
+发布始终消费原 CI 资产。已存在草稿逐个核对已有资产，只上传缺失原件；已有正式 Release 完全一致则只回读验证，不重复发布。外部状态未知先对账原 run、draft、Tag，不默认重发。最终检查完整附件集合、官方 URL、大小、GitHub API digest、实际下载字节和 `immutable=true`。
+
+输出明确记录 packaged/reused/checked 模块、计划与目录摘要、源码以及发布状态；源码检查/打包成功不能冒充安装、权限、租户隔离或业务验证。模块作者应用升级和后续 ST/MT 消费者验收是独立的下一阶段。

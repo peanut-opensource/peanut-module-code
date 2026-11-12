@@ -6,9 +6,20 @@ import hashlib
 import json
 import pathlib
 import re
+import os
+import runpy
 import subprocess
 import sys
 import tarfile
+import tempfile
+
+CATALOG = runpy.run_path(str(pathlib.Path(__file__).with_name('module-release-catalog.py')))
+ReleaseStore = CATALOG['ReleaseStore']
+read_index = CATALOG['read_index']
+artifact_tag = CATALOG['artifact_tag']
+module_identity = CATALOG['module_identity']
+canonical = CATALOG['canonical']
+compare_versions = CATALOG['compare_versions']
 
 REPO = "peanut-opensource/peanut-module-code"
 # Same strict SemVer grammar as the CLI's protocol.js (numeric identifiers
@@ -149,129 +160,331 @@ def source_paths_at(root, commit, key):
         paths.add(str(pathlib.PurePosixPath(entry).parent))
     return manifest, sorted(paths)
 
-def plan_source_changes(root, commit, baseline_index, baseline_sha256):
-    """No toolchain, database, or packaging. Exact TAR SHA remains the packer's final proof.
+def source_fingerprint(root, commit, paths):
+    """Portable source identity: Git paths/modes/blobs, not machine paths or timestamps."""
+    data = subprocess.check_output(['git', 'ls-tree', '-r', '-z', commit, '--', *paths], cwd=root)
+    entries = []
+    for item in data.split(b'\0'):
+        if not item:
+            continue
+        metadata, name = item.split(b'\t', 1)
+        mode, kind, blob = metadata.decode('ascii').split()
+        if kind != 'blob' or mode not in ('100644', '100755'):
+            raise RuntimeError('MODULE_RELEASE_LINK_OR_SUBMODULE_SOURCE')
+        entries.append([name.decode('utf8'), mode, blob])
+    return digest(canonical(sorted(entries)))
 
-    This is a conservative fixed-Git-source change map, not a replacement for
-    native checks, dependency admission, or the immutable historical SHA audit.
-    """
+
+def selected_records(root, commit, channel):
+    records = []
+    for path in sorted((root / 'server/app/modules/peanut').glob('*/module.json')):
+        relative = path.relative_to(root).as_posix()
+        manifest = json.loads(run(['git', 'show', f'{commit}:{relative}'], root))
+        key, version = manifest.get('key', ''), manifest.get('version', '')
+        if not KEY.fullmatch(key) or not SEMVER.fullmatch(version) or key in {r['key'] for r in records}:
+            raise RuntimeError('MODULE_RELEASE_CURRENT_MODULE_INVALID')
+        if channel == 'stable' and '-' in version.split('+')[0]:
+            continue
+        composer = json.loads(run(['git', 'show', f'{commit}:{path.parent.relative_to(root).as_posix()}/composer.json'], root))
+        editions = composer.get('extra', {}).get('peanut', {}).get('editions', [])
+        if (not isinstance(editions, list) or not editions or len(editions) != len(set(editions))
+                or not set(editions) <= {'standalone', 'multi-tenant'}):
+            raise RuntimeError('MODULE_RELEASE_EDITION_MISSING: ' + key)
+        if manifest.get('license') != 'Apache-2.0' or composer.get('license') != 'Apache-2.0':
+            raise RuntimeError('MODULE_RELEASE_LICENSE_UNREVIEWED: ' + key)
+        _, paths = source_paths_at(root, commit, key)
+        records.append({'key': key, 'version': version, 'asset': f'{key}-{version}.tar',
+                        'license': manifest['license'], 'editions': sorted(editions),
+                        'kernel_constraint': manifest['kernel_constraint'],
+                        'dependencies': manifest.get('dependencies', []),
+                        'source_sha256': source_fingerprint(root, commit, paths)})
+    if not 0 < len(records) <= 100:
+        raise RuntimeError('MODULE_RELEASE_EMPTY')
+    return records
+
+
+def make_plan(root, commit, baseline_bytes, channel='prerelease'):
     source_ready(root, commit)
-    if not re.fullmatch(r"[a-f0-9]{64}", baseline_sha256):
-        raise RuntimeError("MODULE_RELEASE_BASELINE_SHA256_REQUIRED")
-    baseline_bytes = baseline_index.read_bytes()
-    if digest(baseline_bytes) != baseline_sha256:
-        raise RuntimeError("MODULE_RELEASE_BASELINE_DIGEST_MISMATCH")
-    index = json.loads(baseline_bytes)
-    baseline = index.get("commit", "")
-    if (index.get("protocol") != "peanut.module-release-index.v1" or index.get("repository") != REPO
-            or not TAG.fullmatch(index.get("tag", "")) or not re.fullmatch(r"[a-f0-9]{40}", baseline)
-            or not isinstance(index.get("modules"), list)):
-        raise RuntimeError("MODULE_RELEASE_BASELINE_INDEX_INVALID")
-    # Refuse unrelated refs: they cannot prove which package files changed.
-    if run(["git", "rev-parse", f"{baseline}^{{commit}}"], root).strip() != baseline:
-        raise RuntimeError("MODULE_RELEASE_BASELINE_COMMIT_MISSING")
-    run(["git", "merge-base", "--is-ancestor", baseline, commit], root)
-    previous = {}
-    for item in index["modules"]:
-        if (not isinstance(item, dict) or not KEY.fullmatch(item.get("key", "")) or item["key"] in previous
-                or not SEMVER.fullmatch(item.get("version", "")) or not re.fullmatch(r"[a-f0-9]{64}", item.get("sha256", ""))):
-            raise RuntimeError("MODULE_RELEASE_BASELINE_ROW_INVALID")
-        previous[item["key"]] = item
-    current = {}
-    for path in sorted((root / "server/app/modules/peanut").glob("*/module.json")):
-        manifest = json.loads(run(["git", "show", f"{commit}:{path.relative_to(root).as_posix()}"], root))
-        key = manifest.get("key", "")
-        if not KEY.fullmatch(key) or key in current or not SEMVER.fullmatch(manifest.get("version", "")):
-            raise RuntimeError("MODULE_RELEASE_CURRENT_MODULE_INVALID")
-        current[key] = manifest
+    index = read_index(baseline_bytes, json.loads(baseline_bytes)['tag']) if baseline_bytes else None
+    baseline = index['commit'] if index else None
+    if baseline:
+        run(['git', 'merge-base', '--is-ancestor', baseline, commit], root)
+    previous = {row['key']: row for row in index['modules']} if index else {}
+    records = selected_records(root, commit, channel)
+    current = {row['key']: row for row in records}
     changes = []
     for key in sorted(set(previous) | set(current)):
-        if key not in current:
-            changes.append({"key": key, "from": previous[key]["version"], "to": None, "status": "removed_requires_review"})
-            continue
-        manifest, paths = source_paths_at(root, commit, key)
         older = previous.get(key)
+        if key not in current:
+            # A stable catalog cannot silently omit a previously stable Module.
+            changes.append({'key': key, 'from': older['version'], 'to': None, 'status': 'removed_requires_review'})
+            continue
+        row = current[key]
+        _, paths = source_paths_at(root, commit, key)
         if older:
-            _, old_paths = source_paths_at(root, baseline, key)
-            paths = sorted(set(paths) | set(old_paths))
-            files = run(["git", "diff", "--name-only", "--no-renames", baseline, commit, "--", *paths], root).splitlines()
-            status = ("version_bump_required" if files and manifest["version"] == older["version"]
-                      else "changed" if files else "unchanged")
-            if not files and manifest["version"] != older["version"]:
-                status = "version_identity_invalid"
+            old_manifest, old_paths = source_paths_at(root, baseline, key)
+            if old_manifest['version'] != older['version']:
+                raise RuntimeError('MODULE_RELEASE_BASELINE_SOURCE_MISMATCH: ' + key)
+            old_fingerprint = source_fingerprint(root, baseline, old_paths)
+            if 'source_sha256' in older and older['source_sha256'] != old_fingerprint:
+                raise RuntimeError('MODULE_RELEASE_BASELINE_SOURCE_DIGEST_MISMATCH: ' + key)
+            files = run(['git', 'diff', '--name-only', '--no-renames', baseline, commit, '--', *sorted(set(paths) | set(old_paths))], root).splitlines()
+            comparison = compare_versions(row['version'], older['version'])
+            status = ('version_downgrade' if comparison < 0 else
+                      'version_bump_required' if files and comparison == 0 else 'changed' if files else 'unchanged')
         else:
-            files, status = paths, "new"
-        changes.append({"key": key, "from": older["version"] if older else None,
-                        "to": manifest["version"], "status": status,
-                        "changed_paths": files[:30], "changed_path_count": len(files)})
-    pending = [x for x in changes if x["status"] != "unchanged"]
-    blocked = [x for x in changes if x["status"] in ("version_bump_required", "version_identity_invalid", "removed_requires_review")]
-    return {"schema_version": 1, "protocol": "peanut.module-release-plan.v1",
-            "source_commit": commit, "baseline_commit": baseline, "baseline_tag": index["tag"],
-            "summary": {"unchanged": len(changes)-len(pending), "changed": len(pending), "blocked": len(blocked)},
-            "status": "blocked" if blocked else "changes" if pending else "no_module_release_needed",
-            "modules": changes, "verification": "git package-source delta only; final native TAR SHA and historical release audit remain mandatory"}
+            files, status = paths, 'new'
+        changes.append({'key': key, 'from': older['version'] if older else None,
+                        'to': row['version'], 'status': status,
+                        'source_sha256': row['source_sha256'],
+                        'changed_paths': files, 'changed_path_count': len(files)})
+    changed = {x['key'] for x in changes if x['status'] in ('new', 'changed')}
+    affected = set(changed)
+    while True:
+        next_affected = affected | {r['key'] for r in records if any(d['module_key'] in affected for d in r['dependencies'])}
+        if next_affected == affected:
+            break
+        affected = next_affected
+    blocked = [x for x in changes if x['status'] in ('version_bump_required', 'version_downgrade', 'removed_requires_review')]
+    keys = set(current)
+    for record in records:
+        for dep in record['dependencies']:
+            if dep.get('module_key') not in keys:
+                blocked.append({'key': record['key'], 'status': 'dependency_missing', 'dependency': dep.get('module_key')})
+    producer_paths = ['scripts/build-module-release-index', 'scripts/module-release-catalog.py',
+                      'server/app/platform/services/module/ModulePackageArchiveService.php',
+                      'server/app/platform/infrastructure/module/DeterministicTarArchive.php',
+                      'server/app/common/module', 'server/composer.json', 'server/composer.lock']
+    report = {'schema_version': 2, 'protocol': 'peanut.module-release-plan.v2',
+              'source_commit': commit, 'source_tree': run(['git', 'rev-parse', commit + '^{tree}'], root).strip(),
+              'channel': channel, 'baseline_commit': baseline, 'baseline_tag': index['tag'] if index else None,
+              'baseline_index_json': baseline_bytes.decode('utf8') if baseline_bytes else None,
+              'baseline_index_sha256': digest(baseline_bytes) if baseline_bytes else None,
+              'producer_sha256': source_fingerprint(root, commit, producer_paths),
+              'summary': {'unchanged': sum(r['status'] == 'unchanged' for r in changes),
+                          'changed': len(changed), 'blocked': len(blocked)},
+              'status': 'blocked' if blocked else 'changes' if changed else 'no_module_release_needed',
+              'modules': changes, 'records': records, 'blockers': blocked,
+              'validation_modules': sorted(affected),
+              'verification': 'source delta only; native package checks and consumer runtime evidence are distinct'}
+    report['plan_sha256'] = digest(canonical(report))
+    return report
 
-def build(root, output, tag, channel, commit):
+
+def plan_source_changes(root, commit, baseline_index, baseline_sha256):
+    if not isinstance(baseline_sha256, str) or not re.fullmatch(r'[a-f0-9]{64}', baseline_sha256):
+        raise RuntimeError('MODULE_RELEASE_BASELINE_SHA256_REQUIRED')
+    data = baseline_index.read_bytes()
+    if digest(data) != baseline_sha256:
+        raise RuntimeError('MODULE_RELEASE_BASELINE_DIGEST_MISMATCH')
+    return make_plan(root, commit, data)
+
+
+def write_json(path, value):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(mode='w', dir=path.parent, prefix='.' + path.name, delete=False, encoding='utf8') as stream:
+        temporary = pathlib.Path(stream.name)
+        try:
+            json.dump(value, stream, indent=2, ensure_ascii=False)
+            stream.write('\n')
+            stream.flush()
+            os.fsync(stream.fileno())
+            os.chmod(temporary, 0o600)
+            os.replace(temporary, path)
+        finally:
+            temporary.unlink(missing_ok=True)
+
+
+def load_plan(root, commit, file, expected):
+    data = file.read_bytes()
+    plan = json.loads(data)
+    check = dict(plan)
+    claimed = check.pop('plan_sha256', None)
+    if claimed != expected or digest(canonical(check)) != claimed or plan.get('source_commit') != commit:
+        raise RuntimeError('MODULE_RELEASE_PLAN_IDENTITY_CHANGED')
+    baseline = plan.get('baseline_index_json')
+    raw = baseline.encode('utf8') if baseline is not None else None
+    if raw is not None and digest(raw) != plan.get('baseline_index_sha256'):
+        raise RuntimeError('MODULE_RELEASE_BASELINE_DIGEST_MISMATCH')
+    if make_plan(root, commit, raw, plan['channel']) != plan:
+        raise RuntimeError('MODULE_RELEASE_PLAN_INPUTS_CHANGED')
+    return plan
+
+
+def validation_environment(root):
+    observed = json.loads(run(['php', '-r', '''
+$extensions = get_loaded_extensions(); sort($extensions, SORT_STRING);
+echo json_encode(['php' => PHP_VERSION, 'os' => PHP_OS_FAMILY, 'int_size' => PHP_INT_SIZE,
+    'extensions' => $extensions, 'pcre' => PCRE_VERSION,
+    'ini' => hash('sha256', json_encode(ini_get_all(null, false), JSON_THROW_ON_ERROR))], JSON_THROW_ON_ERROR);
+'''], root))
+    # Values are hashed, not emitted; mode/debug can affect native admission.
+    observed['execution'] = digest(canonical({name: os.environ.get(name) for name in
+        ('PHP_DEPLOYMENT_MODE', 'PHP_APP_ENV', 'PHP_APP_DEBUG', 'PHP_ENV_NAME', 'PHPRC', 'PHP_INI_SCAN_DIR')}))
+    return digest(canonical(observed))
+
+
+def check_archive(root, key, version, archive, expected):
+    check = native(root, 'check', [key, '--package', str(archive), '--sha256', expected])
+    if (check.get('status') != 'ready' or check.get('module', {}).get('version') != version
+            or {row['id'] for row in check.get('checks', []) if row.get('status') == 'passed'}
+            != {'manifest', 'version', 'dependencies', 'permissions', 'menus', 'frontend', 'package'}):
+        raise RuntimeError('MODULE_RELEASE_AUTHOR_CHECK_FAILED: ' + key)
+    return check
+
+def build(root, output, tag, channel, commit, plan=None, resume=False, store=None):
     if not TAG.fullmatch(tag) or channel not in ("stable", "prerelease") or (("-rc." in tag) != (channel == "prerelease")):
         raise RuntimeError("MODULE_RELEASE_TAG_CHANNEL_INVALID")
     source_ready(root, commit)
     if output.is_relative_to(root) and not output.is_relative_to(root / "release"):
         raise RuntimeError("MODULE_RELEASE_OUTPUT_MUST_BE_OUTSIDE_SOURCE_OR_IN_RELEASE")
-    if output.exists():
+    if output.exists() and not resume:
         raise RuntimeError("MODULE_RELEASE_OUTPUT_EXISTS")
-    manifests = sorted((root / "server/app/modules/peanut").glob("*/module.json"))
-    records = []
-    for manifest_path in manifests:
-        manifest = json.loads(manifest_path.read_text())
-        key, version = manifest["key"], manifest["version"]
-        if not KEY.fullmatch(key) or not SEMVER.fullmatch(version) or key in {r["key"] for r in records}:
-            raise RuntimeError("MODULE_RELEASE_INVALID_MODULE: " + key)
-        if channel == "stable" and "-" in version.split("+")[0]:
-            continue
-        module_root = "server/app/modules/peanut/" + manifest_path.parent.name
-        composer = json.loads((manifest_path.parent / "composer.json").read_text())
-        editions = composer.get("extra", {}).get("peanut", {}).get("editions", [])
-        if not isinstance(editions, list) or not editions or len(set(editions)) != len(editions) or not set(editions) <= {"standalone", "multi-tenant"}:
-            raise RuntimeError("MODULE_RELEASE_EDITION_MISSING: " + key)
-        if manifest.get("license") != "Apache-2.0" or composer.get("license") != "Apache-2.0":
-            raise RuntimeError("MODULE_RELEASE_LICENSE_UNREVIEWED: " + key)
-        name = f"{key}-{version}.tar"
-        records.append({
-            "key": key, "version": version, "asset": name,
-            "license": manifest["license"], "editions": sorted(editions),
-            "kernel_constraint": manifest["kernel_constraint"], "dependencies": manifest.get("dependencies", []),
-        })
-    if not 0 < len(records) <= 100:
-        raise RuntimeError("MODULE_RELEASE_EMPTY")
+    store = store or ReleaseStore()
+    if plan is None:
+        _, baseline = store.baseline(channel)
+        plan = make_plan(root, commit, baseline, channel)
+    if plan['source_commit'] != commit or plan['channel'] != channel or plan['status'] == 'blocked':
+        raise RuntimeError('MODULE_RELEASE_PLAN_BLOCKED_OR_MISMATCH')
+    if plan['status'] == 'no_module_release_needed':
+        print(json.dumps({'status': 'no_module_release_needed', 'summary': plan['summary'], 'plan_sha256': plan['plan_sha256'], 'published': False}))
+        return None
+    records = [dict(row) for row in plan['records']]
     dependency_check(root, records)
     public_contract_check(root, records)
-    output.mkdir(parents=True, mode=0o700)
-    for record in records:
-        key, version, name = record["key"], record["version"], record["asset"]
-        module_root = "server/app/modules/peanut/" + key[7:].replace("-", "_")
-        manifest = json.loads((root / module_root / "module.json").read_text())
-        result = native(root, "pack", [key, "--output", str(output / name)])
-        data = (output / name).read_bytes()
-        if result.get("sha256") != digest(data) or result.get("package_key") != key or result.get("version") != version:
-            raise RuntimeError("MODULE_RELEASE_PACKAGE_PROOF_INVALID: " + key)
-        if not 0 < len(data) <= 67108864:
-            raise RuntimeError("MODULE_RELEASE_PACKAGE_SIZE_INVALID: " + key)
-        archive_check(output / name, module_root, manifest)
-        check = native(root, "check", [key, "--package", str(output / name), "--sha256", digest(data)])
-        if (check.get("status") != "ready" or check.get("module", {}).get("version") != version
-                or {row["id"] for row in check.get("checks", []) if row.get("status") == "passed"}
-                != {"manifest", "version", "dependencies", "permissions", "menus", "frontend", "package"}):
-            raise RuntimeError("MODULE_RELEASE_AUTHOR_CHECK_FAILED: " + key + " " + json.dumps(check))
-        record.update(sha256=digest(data), bytes=len(data))
-        print(f"PACKAGED {key} {version} {digest(data)[:16]}", flush=True)
-    source_ready(root, commit)
-    index = {
-        "schema_version": 1, "protocol": "peanut.module-release-index.v1",
-        "repository": REPO, "tag": tag, "commit": commit, "modules": records,
-    }
-    (output / "module-release-index.json").write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n")
-    print(f"INDEX_READY {channel} count={len(records)} sha256={digest((output / 'module-release-index.json').read_bytes())}")
+    output.mkdir(parents=True, exist_ok=resume, mode=0o700)
+    import fcntl
+    lock = (output / '.build.lock').open('a')
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        lock.close()
+        raise RuntimeError('MODULE_RELEASE_BUILD_ALREADY_RUNNING')
+    state_path = output / 'build-state.json'
+    identity = {'source_commit': commit, 'plan_sha256': plan['plan_sha256'], 'tag': tag, 'channel': channel}
+    if state_path.exists():
+        state = json.loads(state_path.read_bytes())
+        if state.get('identity') != identity or state.get('protocol') != 'peanut.module-release-build.v1':
+            raise RuntimeError('MODULE_RELEASE_RESUME_INPUTS_CHANGED')
+    else:
+        if any(p.name != '.build.lock' for p in output.iterdir()):
+            raise RuntimeError('MODULE_RELEASE_OUTPUT_UNOWNED')
+        state = {'protocol': 'peanut.module-release-build.v1', 'identity': identity, 'modules': {}, 'status': 'building'}
+        write_json(state_path, state)
+        write_json(output / 'release-plan.json', plan)
+    decisions = {row['key']: row for row in plan['modules']}
+    baseline = json.loads(plan['baseline_index_json']) if plan['baseline_index_json'] else None
+    previous = {row['key']: row for row in baseline['modules']} if baseline else {}
+    # Validation receipts bind effective tools/config as well as frozen source.
+    validation = validation_environment(root)
+    state.setdefault('revalidated', {})
+    counters = {'pack_commands': 0, 'check_commands': 0, 'reused_build_results': 0}
+    completed = []
+    try:
+        for record in records:
+            key, version, name = record['key'], record['version'], record['asset']
+            if decisions[key]['status'] == 'unchanged':
+                old = previous[key]
+                origin = store.reference(baseline, old)
+                record.update(sha256=old['sha256'], bytes=old['bytes'], artifact_tag=artifact_tag(baseline, old))
+                if 'payload_sha256' in old:
+                    record['payload_sha256'] = old['payload_sha256']
+                if key in plan['validation_modules'] and state['revalidated'].get(key) != validation:
+                    # Changed dependency contracts invalidate native admission, not archive bytes.
+                    # Use an isolated cache only for the affected reverse dependency.
+                    cache = output / '.validation-cache'
+                    cache.mkdir(exist_ok=True, mode=0o700)
+                    cached = cache / record['asset']
+                    if not cached.exists():
+                        data = store.bytes(origin, record['asset'])
+                        if digest(data) != old['sha256'] or len(data) != old['bytes']:
+                            raise RuntimeError('MODULE_RELEASE_REUSED_ARCHIVE_MISMATCH: ' + key)
+                        cached.write_bytes(data)
+                    if cached.is_symlink() or digest(cached.read_bytes()) != old['sha256']:
+                        raise RuntimeError('MODULE_RELEASE_REUSED_CACHE_CHANGED: ' + key)
+                    archive_check(cached, 'server/app/modules/peanut/' + key[7:].replace('-', '_'))
+                    check_archive(root, key, version, cached, old['sha256'])
+                    counters['check_commands'] += 1
+                    state['revalidated'][key] = validation
+                    write_json(state_path, state)
+                completed.append(record)
+                print(f"REUSED {key} {version} {record['artifact_tag']} {record['sha256'][:16]}", flush=True)
+                continue
+            module_root = 'server/app/modules/peanut/' + key[7:].replace('-', '_')
+            manifest = json.loads((root / module_root / 'module.json').read_text())
+            saved = state['modules'].get(key)
+            archive = output / name
+            if saved and saved.get('source_sha256') != record['source_sha256']:
+                raise RuntimeError('MODULE_RELEASE_RESUME_SOURCE_CHANGED: ' + key)
+            if saved and saved.get('status') == 'packing':
+                raise RuntimeError('MODULE_RELEASE_PACK_OUTCOME_UNKNOWN: inspect original output before retrying ' + key)
+            if saved and saved.get('sha256'):
+                if not archive.is_file() or archive.is_symlink() or digest(archive.read_bytes()) != saved['sha256']:
+                    raise RuntimeError('MODULE_RELEASE_RESUME_ARTIFACT_CHANGED: ' + key)
+            else:
+                if archive.exists():
+                    raise RuntimeError('MODULE_RELEASE_UNBOUND_ARTIFACT: ' + key)
+                state['modules'][key] = {'source_sha256': record['source_sha256'], 'status': 'packing'}
+                write_json(state_path, state)
+                try:
+                    result = native(root, 'pack', [key, '--output', str(archive)])
+                    counters['pack_commands'] += 1
+                    data = archive.read_bytes()
+                    if result.get('sha256') != digest(data) or result.get('package_key') != key or result.get('version') != version:
+                        raise RuntimeError('MODULE_RELEASE_PACKAGE_PROOF_INVALID: ' + key)
+                    saved = {'source_sha256': record['source_sha256'], 'sha256': digest(data), 'status': 'packed'}
+                    state['modules'][key] = saved
+                    write_json(state_path, state)
+                except Exception as error:
+                    state['status'] = 'failed'
+                    state['error'] = str(error)
+                    # Uncertain partial archive is never deleted or silently rebuilt.
+                    if not archive.exists():
+                        state['modules'][key]['status'] = 'pack_failed_without_output'
+                    write_json(state_path, state)
+                    raise
+            data = archive.read_bytes()
+            if not 0 < len(data) <= 67108864:
+                raise RuntimeError('MODULE_RELEASE_PACKAGE_SIZE_INVALID: ' + key)
+            archive_check(archive, module_root, manifest)
+            if saved.get('status') != 'checked' or saved.get('validation_environment') != validation:
+                check_archive(root, key, version, archive, digest(data))
+                counters['check_commands'] += 1
+                saved['status'] = 'checked'
+                saved['validation_environment'] = validation
+                state['modules'][key] = saved
+                write_json(state_path, state)
+            else:
+                counters['reused_build_results'] += 1
+            with tarfile.open(archive, 'r') as package:
+                payload = package.extractfile('META-INF/files.sha256').read()
+            record.update(sha256=digest(data), bytes=len(data), artifact_tag=tag, payload_sha256=digest(payload))
+            completed.append(record)
+            print(f"PACKAGED {key} {version} {digest(data)[:16]}", flush=True)
+        source_ready(root, commit)
+        index = {'schema_version': 2, 'protocol': 'peanut.module-release-index.v2',
+                 'repository': REPO, 'tag': tag, 'commit': commit, 'modules': completed}
+        raw = json.dumps(index, indent=2, ensure_ascii=False).encode() + b'\n'
+        read_index(raw, tag)
+        target = output / 'module-release-index.json'
+        if target.exists() and target.read_bytes() != raw:
+            raise RuntimeError('MODULE_RELEASE_RESUME_INDEX_CHANGED')
+        write_json(target, index)
+        state['status'] = 'complete'
+        state.pop('error', None)
+        state['index_sha256'] = digest(target.read_bytes())
+        state['summary'] = {'packaged': len(state['modules']), 'reused': len(completed) - len(state['modules'])}
+        write_json(state_path, state)
+        print(json.dumps({'status': 'built', 'plan_sha256': plan['plan_sha256'], **state['summary'], **counters,
+                          'index_sha256': state['index_sha256'], 'published': False}))
+        return index
+    except Exception as error:
+        state['status'] = 'failed'
+        state['error'] = str(error)
+        write_json(state_path, state)
+        raise
+    finally:
+        lock.close()
 
 def main():
     parser = argparse.ArgumentParser()
@@ -282,22 +495,55 @@ def main():
     parser.add_argument("--plan-only", action="store_true")
     parser.add_argument("--baseline-index", type=pathlib.Path)
     parser.add_argument("--baseline-sha256")
+    parser.add_argument('--baseline-release', help='Exact published catalog tag; default discovers the latest appropriate catalog once')
+    parser.add_argument('--plan-file', type=pathlib.Path)
+    parser.add_argument('--plan-sha256')
+    parser.add_argument('--report', type=pathlib.Path)
+    parser.add_argument('--github-output', type=pathlib.Path)
+    parser.add_argument('--resume', action='store_true')
     parser.add_argument("--source-commit", required=True)
     args = parser.parse_args()
     root = args.source_root.resolve(strict=True)
     if not re.fullmatch(r"[0-9a-f]{40}", args.source_commit):
         parser.error("Source commit must be a fixed 40-character git SHA")
-    if args.plan_only:
-        if args.output or args.tag or args.channel or not args.baseline_index or not args.baseline_sha256:
-            parser.error("--plan-only requires --baseline-index, --baseline-sha256 and a fixed source; no build arguments")
-        report = plan_source_changes(root, args.source_commit, args.baseline_index.resolve(strict=True), args.baseline_sha256)
-        print(json.dumps(report, indent=2, ensure_ascii=False))
-        if report["status"] == "blocked":
+    if args.plan_file:
+        if not args.plan_sha256 or args.baseline_index or args.baseline_release or args.baseline_sha256:
+            parser.error('--plan-file requires its exact --plan-sha256 and no mutable baseline selection')
+        plan = load_plan(root, args.source_commit, args.plan_file.resolve(strict=True), args.plan_sha256)
+        if args.channel and args.channel != plan['channel']:
+            parser.error('channel differs from frozen plan')
+        channel = plan['channel']
+    else:
+        channel = args.channel or 'prerelease'
+        if args.baseline_index:
+            if not args.baseline_sha256 or args.baseline_release:
+                parser.error('offline baseline requires its independent SHA-256, not a remote selector')
+            data = args.baseline_index.resolve(strict=True).read_bytes()
+            if digest(data) != args.baseline_sha256:
+                raise RuntimeError('MODULE_RELEASE_BASELINE_DIGEST_MISMATCH')
+        else:
+            if args.baseline_sha256:
+                parser.error('--baseline-sha256 requires --baseline-index')
+            _, data = ReleaseStore().baseline(channel, args.baseline_release)
+        plan = make_plan(root, args.source_commit, data, channel)
+    if args.report:
+        if not args.report.is_absolute():
+            parser.error('--report must be an absolute output path')
+        write_json(args.report, plan)
+    if args.github_output:
+        with args.github_output.open('a', encoding='utf8') as output:
+            output.write('release_required=' + ('true' if plan['status'] == 'changes' else 'false') + '\n')
+            output.write('plan_sha256=' + plan['plan_sha256'] + '\n')
+            output.write('changed=' + str(plan['summary']['changed']) + '\n')
+            output.write('reused=' + str(plan['summary']['unchanged']) + '\n')
+    if args.plan_only or plan['status'] != 'changes':
+        print(json.dumps(plan, indent=2, ensure_ascii=False))
+        if plan['status'] == 'blocked':
             raise SystemExit(2)
         return
-    if args.baseline_index or args.baseline_sha256 or not args.output or not args.tag or not args.channel:
-        parser.error("build requires --output --tag --channel; baseline index is only for --plan-only")
-    build(root, args.output, args.tag, args.channel, args.source_commit)
+    if not args.output or not args.output.is_absolute() or not args.tag:
+        parser.error('build requires absolute --output and --tag')
+    build(root, args.output, args.tag, channel, args.source_commit, plan, args.resume)
 
 if __name__ == "__main__":
     try:
