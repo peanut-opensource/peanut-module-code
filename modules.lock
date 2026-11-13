@@ -919,7 +919,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "77ddff32cde1a00c53f71799dabb843a04f048a6356c9959aab98bddc9c3ac58"
+                "sha256": "0b0d073b023cabd7d9eacb04cf96d266c648552cefdd38c6aecc3c28a59d3568"
             },
             "trust": {
                 "channel": "bundled",

@@ -87,6 +87,8 @@ final class FakeCatalogModel
 foreach ([
     \PeanutAdmin\Modules\Identity\Persistence\Model\Permission::class,
     \PeanutAdmin\Modules\Identity\Authorization\Model\DataConditionDefinitionRecord::class,
+    \PeanutAdmin\Modules\Identity\Authorization\Model\TargetTypeRecord::class,
+    \PeanutAdmin\Modules\Identity\Authorization\Model\ProtectedResourceRecord::class,
 ] as $model) {
     if (class_exists($model, false) || !class_alias(FakeCatalogModel::class, $model)) {
         throw new RuntimeException('Isolated catalog fixture was not installed');
@@ -114,5 +116,44 @@ try {
         throw $exception;
     }
 }
+FakeCatalogModel::$rows['core.menu.read']['module_key'] = 'core';
+$manifest = \PeanutAdmin\Kernel\Module\ManifestDocument::fromObject('/virtual/identity', json_decode(json_encode([
+    'key' => 'peanut.identity',
+    'version' => '4.0.0-rc.63',
+    'catalog' => [
+        'permissions' => [],
+        'target_types' => [[
+            'key' => 'peanut.identity.target',
+            'name' => 'Synthetic target',
+            'resolver' => 'test-resolver',
+            'catalog_provider' => 'test-provider',
+            'id_format' => 'string',
+        ]],
+        'data_conditions' => [],
+        'protected_resources' => [],
+    ],
+], JSON_THROW_ON_ERROR), false, 512, JSON_THROW_ON_ERROR));
+$registry = new \PeanutAdmin\Kernel\Module\CompiledModuleRegistry([$manifest], [], [], [], 'synthetic-registry');
+$syncModules = new \PeanutAdmin\Modules\Identity\Authorization\ModuleAuthorizationCatalogSynchronizer($repository);
+$priorReads = FakeCatalogModel::$keyReadCount;
+$syncModules->synchronize($registry);
+if (($row = FakeCatalogModel::$rows['peanut.identity.target'] ?? null) === null
+    || $row['module_key'] !== 'peanut.identity' || FakeCatalogModel::$keyReadCount !== $priorReads) {
+    throw new RuntimeException('TargetType real module synchronization did not use prefetched ownership');
+}
+$syncModules->synchronize($registry);
+if (FakeCatalogModel::$keyReadCount !== $priorReads) {
+    throw new RuntimeException('TargetType repeat synchronization made an unexpected point read');
+}
+FakeCatalogModel::$rows['peanut.identity.target']['module_key'] = 'other.module';
+try {
+    $syncModules->synchronize($registry);
+    throw new RuntimeException('TargetType ownership conflict was accepted');
+} catch (DomainException $exception) {
+    if ($exception->getMessage() !== 'Catalog key is already owned by another module.') {
+        throw $exception;
+    }
+}
 echo 'AUTHORIZATION-CATALOG-BATCH-001 passed: rows=' . $firstCount
-    . ' prefetches=' . FakeCatalogModel::$prefetchCount . ' per-key-reads=0 owner-conflict=blocked' . PHP_EOL;
+    . ' prefetches=' . FakeCatalogModel::$prefetchCount
+    . ' per-key-reads=0 owner-conflict=blocked target-type=verified' . PHP_EOL;

@@ -15,7 +15,7 @@ use PeanutAdmin\Kernel\Module\ManifestDocument;
 use PeanutAdmin\Kernel\Module\ModuleException;
 use PeanutAdmin\Modules\Identity\Authorization\Model\DataConditionDefinitionRecord;
 use PeanutAdmin\Modules\Identity\Authorization\Model\ProtectedResourceRecord;
-use PeanutAdmin\Modules\Identity\Authorization\Model\TargetTypeDefinitionRecord;
+use PeanutAdmin\Modules\Identity\Authorization\Model\TargetTypeRecord;
 use PeanutAdmin\Modules\Identity\Authorization\Persistence\ThinkPhpAuthorizationCatalogRepository;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Permission;
 use think\facade\Db;
@@ -50,7 +50,7 @@ final readonly class ModuleAuthorizationCatalogSynchronizer
                     }
                 }
                 $this->catalog->prefetchKeys(Permission::class, $permissions);
-                $this->catalog->prefetchKeys(TargetTypeDefinitionRecord::class, $targets);
+                $this->catalog->prefetchKeys(TargetTypeRecord::class, $targets);
                 $this->catalog->prefetchKeys(DataConditionDefinitionRecord::class, $conditions);
                 $this->catalog->prefetchKeys(ProtectedResourceRecord::class, $resources);
             }
