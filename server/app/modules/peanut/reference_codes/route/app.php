@@ -6,11 +6,27 @@ use app\adminapi\http\middleware\AuthMiddleware;
 use app\adminapi\http\middleware\LoginMiddleware;
 use app\adminapi\http\middleware\OperationLogMiddleware;
 use app\common\infrastructure\module\OfficialModuleMiddleware;
-use PeanutAdmin\Modules\ReferenceCodes\Controller\ReferenceCodesController;
+use app\platform\http\middleware\PlatformLoginMiddleware;
+use app\platform\http\middleware\PlatformPermissionMiddleware;
 use PeanutAdmin\Modules\ReferenceCodes\Controller\DictionaryCatalogController;
+use PeanutAdmin\Modules\ReferenceCodes\Controller\PlatformDictionaryController;
+use PeanutAdmin\Modules\ReferenceCodes\Controller\ReferenceCodesController;
 use think\facade\Route;
 
-if (($peanutRouteApplication ?? null) !== 'adminapi') {
+$application = $peanutRouteApplication ?? null;
+if ($application === 'platform') {
+    Route::get('api/v1/dictionary-catalog', [PlatformDictionaryController::class, 'types'])
+        ->completeMatch()
+        ->middleware(PlatformLoginMiddleware::class)
+        ->middleware(PlatformPermissionMiddleware::class, 'platform.tenant.read');
+    Route::post('api/v1/dictionary-catalog/:type/tenant-mode', [PlatformDictionaryController::class, 'tenantMode'])
+        ->pattern(['type' => '[A-Za-z0-9_-]{1,100}'])
+        ->completeMatch()
+        ->middleware(PlatformLoginMiddleware::class)
+        ->middleware(PlatformPermissionMiddleware::class, 'platform.ops.maintenance.manage');
+    return;
+}
+if ($application !== 'adminapi') {
     return;
 }
 

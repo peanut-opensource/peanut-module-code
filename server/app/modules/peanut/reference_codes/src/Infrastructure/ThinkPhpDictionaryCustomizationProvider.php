@@ -39,6 +39,31 @@ final class ThinkPhpDictionaryCustomizationProvider implements DictionaryCustomi
     }
 
     /** @return list<array<string,mixed>> */
+    public function platformTypes(): array
+    {
+        return Db::name('system_dict_type')
+            ->field('code,name,is_disable,remark,tenant_mode,update_time')
+            ->order('code')
+            ->select()
+            ->toArray();
+    }
+
+    public function savePlatformTenantMode(string $type, string $tenantMode): void
+    {
+        if (!in_array($tenantMode, ['system', 'extend', 'tenant'], true)) {
+            throw BusinessException::conflict('DICTIONARY_MODE_INVALID', '字典使用模式无效');
+        }
+        $definition = $this->systemType($type);
+        if ($definition === null) {
+            throw BusinessException::notFound('SYSTEM_DICTIONARY_TYPE_NOT_FOUND', '平台字典类型不存在');
+        }
+        Db::name('system_dict_type')->where('code', $type)->update([
+            'tenant_mode' => $tenantMode,
+            'update_time' => time(),
+        ]);
+    }
+
+    /** @return list<array<string,mixed>> */
     public function systemTypes(TenantContext $context): array
     {
         $types = Db::name('system_dict_type')

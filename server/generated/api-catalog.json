@@ -4,7 +4,7 @@
     "inputs": [
         {
             "path": "modules.lock",
-            "sha256": "4255a6f9f4d646b752ddcee75becf29b358a757084b7fbee4ed5f50d244abd38"
+            "sha256": "9b2d66ca077a2deecf314b8dae34c34034a8b82601d57b55e624e4976f0a00e9"
         },
         {
             "path": "release-versions.json",
@@ -136,11 +136,11 @@
         },
         {
             "path": "server/app/modules/peanut/reference_codes/api/metadata/openapi.php",
-            "sha256": "917568579bbb0d8099cf6ea188747f9049fd7c51e5d44a35555f95c5eda0f953"
+            "sha256": "47d6ede6c111f76965f49ee9ffc1953f6ec834d6736a20d43d43d0a0b6cef6ce"
         },
         {
             "path": "server/app/modules/peanut/reference_codes/route/app.php",
-            "sha256": "2b7dff3e9818645c81f65d3baaf8abb029573fa9afa47444ea9928c4fe60e42f"
+            "sha256": "2056a2547cf6ca7db10a3d4a0dc1a68d171b5b89f5f86069692f7e3d18d21c21"
         },
         {
             "path": "server/app/modules/peanut/settings/api/metadata/openapi.php",
@@ -208,30 +208,30 @@
         ]
     },
     "summary": {
-        "route_count": 473,
-        "generated_api_operations": 447,
+        "route_count": 480,
+        "generated_api_operations": 454,
         "route_only_operations": 26,
-        "complete_operations": 447,
+        "complete_operations": 454,
         "partial_operations": 0,
-        "runtime_routes": 473,
-        "documented_operations": 447,
+        "runtime_routes": 480,
+        "documented_operations": 454,
         "undocumented_routes": 26,
-        "automatic_route_metadata": 473,
+        "automatic_route_metadata": 480,
         "requires_owner_contract": 26,
         "owners": 20,
         "runtime_inventory": {
-            "total": 473,
+            "total": 480,
             "methods": {
                 "DELETE": 4,
-                "GET": 210,
-                "POST": 248,
+                "GET": 213,
+                "POST": 252,
                 "PUT": 11
             },
             "applications": {
-                "adminapi": 334,
+                "adminapi": 339,
                 "api": 47,
                 "installation": 9,
-                "platform": 83
+                "platform": 85
             },
             "owners": {
                 "application:adminapi": 99,
@@ -250,7 +250,7 @@
                 "module:peanut.notification": 10,
                 "module:peanut.oauth": 26,
                 "module:peanut.payment": 17,
-                "module:peanut.reference-codes": 20,
+                "module:peanut.reference-codes": 27,
                 "module:peanut.settings": 3,
                 "module:peanut.task": 10,
                 "module:peanut.workflow": 30
@@ -275,7 +275,7 @@
         "module:peanut.notification": 10,
         "module:peanut.oauth": 26,
         "module:peanut.payment": 17,
-        "module:peanut.reference-codes": 20,
+        "module:peanut.reference-codes": 27,
         "module:peanut.settings": 3,
         "module:peanut.task": 10,
         "module:peanut.workflow": 30
@@ -879,7 +879,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                "line": 27
+                "line": 54
             },
             "documented": true,
             "openapi_operation_id": "retireReferenceCode",
@@ -1174,6 +1174,169 @@
             "contract_quality": "complete",
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "3b898f9f929f62325b3850d85a6c3bb90454399f04faa9da6133aae5c1ce8282",
+            "method": "GET",
+            "path": "/adminapi/api/v1/dictionary-catalog",
+            "runtime_path": "/adminapi/api/v1/dictionary-catalog",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.reference-codes"
+            },
+            "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\DictionaryCatalogController",
+            "action": "types",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "peanut.reference-codes.read"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.reference-codes"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "peanut.reference-codes.read"
+                }
+            ],
+            "errors": [
+                401,
+                403
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.reference-codes",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/reference_codes/route/app.php",
+                "line": 34
+            },
+            "documented": true,
+            "openapi_operation_id": "listPlatformDictionaryTypes",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-reference-codes/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "9aaab4275e7560cf29fb23028215dd397ed0dab3a0b69180e9492c7b609a38ef",
+            "method": "GET",
+            "path": "/adminapi/api/v1/dictionary-catalog/{type}",
+            "runtime_path": "/adminapi/api/v1/dictionary-catalog/:type",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.reference-codes"
+            },
+            "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\DictionaryCatalogController",
+            "action": "detail",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "peanut.reference-codes.read"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.reference-codes"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "peanut.reference-codes.read"
+                }
+            ],
+            "errors": [
+                401,
+                403,
+                404
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.reference-codes",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/reference_codes/route/app.php",
+                "line": 36
+            },
+            "documented": true,
+            "openapi_operation_id": "getPlatformDictionaryType",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-reference-codes/generated/openapi.ts"
             ],
             "documentation": {
                 "status": "documented",
@@ -2154,7 +2317,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                "line": 17
+                "line": 44
             },
             "documented": true,
             "openapi_operation_id": "listReferenceCodeSets",
@@ -2237,7 +2400,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                "line": 19
+                "line": 46
             },
             "documented": true,
             "openapi_operation_id": "listReferenceCodes",
@@ -2320,7 +2483,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                "line": 23
+                "line": 50
             },
             "documented": true,
             "openapi_operation_id": "getReferenceCode",
@@ -13808,6 +13971,74 @@
             }
         },
         {
+            "api_id": "5d02f1c22185df250e513fc8dd26dd8236fd6b33a802c7f1ed620dece1eb4516",
+            "method": "GET",
+            "path": "/platformapi/api/v1/dictionary-catalog",
+            "runtime_path": "/platformapi/api/v1/dictionary-catalog",
+            "application": "platform",
+            "audience": "platform",
+            "owner": {
+                "type": "module",
+                "key": "peanut.reference-codes"
+            },
+            "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\PlatformDictionaryController",
+            "action": "types",
+            "auth": {
+                "mode": "platform_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "platform.tenant.read"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "platform_action",
+                    "key": "platform.tenant.read"
+                }
+            ],
+            "errors": [
+                401,
+                403
+            ],
+            "middleware": [
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformLoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
+                    "arguments": [
+                        "platform.tenant.read"
+                    ]
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/reference_codes/route/app.php",
+                "line": 18
+            },
+            "documented": true,
+            "openapi_operation_id": "listPlatformManagedDictionaryTypes",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-reference-codes/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
             "api_id": "1a3eae6de1d15151b9c8033ed585b20717ec664cf93ccbc8d8033f603faf4369",
             "method": "GET",
             "path": "/platformapi/audit",
@@ -16651,6 +16882,252 @@
             }
         },
         {
+            "api_id": "cbba04905bc173f5a3efd8daddcfe34ccf58597367baaebb758176ca77e5e15c",
+            "method": "POST",
+            "path": "/adminapi/api/v1/dictionary-catalog/{type}/mode",
+            "runtime_path": "/adminapi/api/v1/dictionary-catalog/:type/mode",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.reference-codes"
+            },
+            "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\DictionaryCatalogController",
+            "action": "mode",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "peanut.reference-codes.manage"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.reference-codes"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "peanut.reference-codes.manage"
+                }
+            ],
+            "errors": [
+                401,
+                403,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.reference-codes",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/reference_codes/route/app.php",
+                "line": 38
+            },
+            "documented": true,
+            "openapi_operation_id": "setTenantDictionaryMode",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-reference-codes/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "209442b2e7230adf8e719703b50a142bd7444dbe1b642e24cf697559c2bd46a0",
+            "method": "POST",
+            "path": "/adminapi/api/v1/dictionary-catalog/{type}/override",
+            "runtime_path": "/adminapi/api/v1/dictionary-catalog/:type/override",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.reference-codes"
+            },
+            "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\DictionaryCatalogController",
+            "action": "override",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "peanut.reference-codes.manage"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.reference-codes"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "peanut.reference-codes.manage"
+                }
+            ],
+            "errors": [
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.reference-codes",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/reference_codes/route/app.php",
+                "line": 40
+            },
+            "documented": true,
+            "openapi_operation_id": "setTenantDictionaryOverride",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-reference-codes/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "bc4536cde494e194d010fcb77876f85bd302e04fd8bf3f2750c1b855b724cc1b",
+            "method": "POST",
+            "path": "/adminapi/api/v1/dictionary-catalog/{type}/override/clear",
+            "runtime_path": "/adminapi/api/v1/dictionary-catalog/:type/override/clear",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.reference-codes"
+            },
+            "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\DictionaryCatalogController",
+            "action": "clearOverride",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "peanut.reference-codes.manage"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.reference-codes"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "peanut.reference-codes.manage"
+                }
+            ],
+            "errors": [
+                401,
+                403
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.reference-codes",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/reference_codes/route/app.php",
+                "line": 42
+            },
+            "documented": true,
+            "openapi_operation_id": "clearTenantDictionaryOverride",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-reference-codes/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
             "api_id": "d1a8d901f0a22a215e0c950e54ca9d6d53ef7a20b2349fa278d9eb688ed79a2a",
             "method": "POST",
             "path": "/adminapi/api/v1/files/resolve",
@@ -18052,7 +18529,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                "line": 21
+                "line": 48
             },
             "documented": true,
             "openapi_operation_id": "createReferenceCode",
@@ -31858,6 +32335,76 @@
             }
         },
         {
+            "api_id": "feeba4c07c472036f1b4ae58faa8c3dedec0aaff0db0c780e7c4d4cb8874aae1",
+            "method": "POST",
+            "path": "/platformapi/api/v1/dictionary-catalog/{type}/tenant-mode",
+            "runtime_path": "/platformapi/api/v1/dictionary-catalog/:type/tenant-mode",
+            "application": "platform",
+            "audience": "platform",
+            "owner": {
+                "type": "module",
+                "key": "peanut.reference-codes"
+            },
+            "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\PlatformDictionaryController",
+            "action": "tenantMode",
+            "auth": {
+                "mode": "platform_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "platform.ops.maintenance.manage"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "platform_action",
+                    "key": "platform.ops.maintenance.manage"
+                }
+            ],
+            "errors": [
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformLoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
+                    "arguments": [
+                        "platform.ops.maintenance.manage"
+                    ]
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/reference_codes/route/app.php",
+                "line": 22
+            },
+            "documented": true,
+            "openapi_operation_id": "setPlatformDictionaryTenantMode",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-reference-codes/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
             "api_id": "1ad9494e3093508cc69d95429f3bf9d1bcf0e18b8324fdb42b7c3a51e3f9b826",
             "method": "POST",
             "path": "/platformapi/infrastructure/storage/account",
@@ -34744,7 +35291,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                "line": 25
+                "line": 52
             },
             "documented": true,
             "openapi_operation_id": "replaceReferenceCode",

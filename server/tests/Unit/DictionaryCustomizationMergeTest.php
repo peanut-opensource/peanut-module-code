@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use app\common\exception\BusinessException;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Auth\ValidatedTenantSession;
 use PeanutAdmin\Modules\ReferenceCodes\Application\DictionaryService;
@@ -10,6 +11,7 @@ use PeanutAdmin\Modules\ReferenceCodes\Contract\SystemDictionaryProvider;
 use PeanutAdmin\Modules\ReferenceCodes\Contract\TenantDictionaryCommandProvider;
 use PeanutAdmin\Modules\ReferenceCodes\Contract\TenantDictionaryQueryProvider;
 use PeanutAdmin\Modules\ReferenceCodes\DictionaryEntry;
+use PeanutAdmin\Modules\ReferenceCodes\Infrastructure\ThinkPhpDictionaryCustomizationProvider;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -88,5 +90,13 @@ final class DictionaryCustomizationMergeTest extends TestCase
             'tenant only' => ['tenant', 0, 1, ['租户']],
             'disabled platform type' => ['disabled', 0, 0, []],
         ];
+    }
+
+    public function testPlatformTenantModeRejectsInvalidMode(): void
+    {
+        $provider = new ThinkPhpDictionaryCustomizationProvider();
+        $this->expectException(BusinessException::class);
+        $this->expectExceptionMessage('字典使用模式无效');
+        $provider->savePlatformTenantMode('status', 'invalid_mode');
     }
 }

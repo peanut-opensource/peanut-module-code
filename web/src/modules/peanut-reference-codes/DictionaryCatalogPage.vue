@@ -152,7 +152,7 @@
                 detail.type.tenant_mode === 'system' ||
                 detail.type.is_disable !== 0
               "
-              @change="(mode) => setMode(mode as Mode)"
+              @change="setMode($event as Mode)"
             >
               <el-radio
                 v-for="option in modeOptions"

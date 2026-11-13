@@ -39,6 +39,16 @@ $legacyPage = [
 
 return [
     'paths' => [
+        '/platformapi/api/v1/dictionary-catalog' => ['get' => [
+            'tags' => ['ReferenceCodes'], 'operationId' => 'listPlatformManagedDictionaryTypes',
+            'responses' => ['200' => $legacySuccess('ReferenceCodePlatformDictionaryTypesResponse', '平台系统字典类型与租户默认策略。'), '401' => $error, '403' => $error],
+        ]],
+        '/platformapi/api/v1/dictionary-catalog/{type}/tenant-mode' => ['post' => [
+            'tags' => ['ReferenceCodes'], 'operationId' => 'setPlatformDictionaryTenantMode',
+            'parameters' => [$dictionaryType],
+            'requestBody' => $legacyBody('ReferenceCodePlatformTenantModeRequest'),
+            'responses' => ['200' => $legacySuccess('ReferenceCodeLegacyMutationResponse', '平台系统字典租户策略已保存。'), '401' => $error, '403' => $error, '404' => $error, '409' => $error],
+        ]],
         '/adminapi/api/v1/dictionary-catalog' => ['get' => [
             'tags' => ['ReferenceCodes'], 'operationId' => 'listPlatformDictionaryTypes',
             'responses' => ['200' => $legacySuccess('ReferenceCodePlatformDictionaryTypesResponse', '平台字典类型与当前租户使用方式。'), '401' => $error, '403' => $error],
@@ -191,6 +201,10 @@ return [
         'ReferenceCodeDictionaryModeRequest' => [
             'type' => 'object', 'additionalProperties' => false, 'required' => ['mode'],
             'properties' => ['mode' => ['type' => 'string', 'enum' => ['system', 'extend', 'tenant']]],
+        ],
+        'ReferenceCodePlatformTenantModeRequest' => [
+            'type' => 'object', 'additionalProperties' => false, 'required' => ['tenant_mode'],
+            'properties' => ['tenant_mode' => ['type' => 'string', 'enum' => ['system', 'extend', 'tenant']]],
         ],
         'ReferenceCodeDictionaryOverrideRequest' => [
             'type' => 'object', 'additionalProperties' => false, 'required' => ['value', 'action', 'name'],

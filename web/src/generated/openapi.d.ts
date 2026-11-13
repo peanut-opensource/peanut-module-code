@@ -6489,6 +6489,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platformapi/api/v1/dictionary-catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listPlatformManagedDictionaryTypes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platformapi/api/v1/dictionary-catalog/{type}/tenant-mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["setPlatformDictionaryTenantMode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/dictionary-catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listPlatformDictionaryTypes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/dictionary-catalog/{type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPlatformDictionaryType"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/dictionary-catalog/{type}/mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["setTenantDictionaryMode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/dictionary-catalog/{type}/override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["setTenantDictionaryOverride"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/dictionary-catalog/{type}/override/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["clearTenantDictionaryOverride"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/adminapi/dict/type/lists": {
         parameters: {
             query?: never;
@@ -12218,6 +12330,62 @@ export interface components {
         PaymentIgnoredInput: (string | number | boolean | components["schemas"]["PaymentIgnoredInput"][] | {
             [key: string]: components["schemas"]["PaymentIgnoredInput"];
         }) | null;
+        ReferenceCodeDictionaryModeRequest: {
+            /** @enum {string} */
+            mode: "system" | "extend" | "tenant";
+        };
+        ReferenceCodePlatformTenantModeRequest: {
+            /** @enum {string} */
+            tenant_mode: "system" | "extend" | "tenant";
+        };
+        ReferenceCodeDictionaryOverrideRequest: {
+            value: string;
+            /** @enum {string} */
+            action: "hide" | "rename";
+            name: string | null;
+        };
+        ReferenceCodeDictionaryOverrideClearRequest: {
+            value: string;
+        };
+        ReferenceCodePlatformDictionaryType: {
+            code: string;
+            name: string;
+            /** @enum {integer} */
+            is_disable: 0 | 1;
+            remark: string;
+            /** @enum {string} */
+            tenant_mode: "system" | "extend" | "tenant";
+            /** @enum {string} */
+            mode: "system" | "extend" | "tenant" | "disabled";
+        };
+        ReferenceCodePlatformDictionaryEntry: {
+            name: string;
+            value: string;
+            sort: number;
+            /** @enum {integer} */
+            is_disable: 0 | 1;
+            remark: string;
+            override: {
+                /** @enum {string} */
+                action?: "hide" | "rename";
+                name?: string | null;
+            } | null;
+        };
+        ReferenceCodePlatformDictionaryTypesResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: components["schemas"]["ReferenceCodePlatformDictionaryType"][];
+        };
+        ReferenceCodePlatformDictionaryDetailResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                type: components["schemas"]["ReferenceCodePlatformDictionaryType"];
+                items: components["schemas"]["ReferenceCodePlatformDictionaryEntry"][];
+            };
+        };
         /** @description 仅接受列出的标识字段；未声明字段会被拒绝。 */
         ReferenceCodeLegacyIdentifierRequest: {
             id: number;
@@ -26080,6 +26248,192 @@ export interface operations {
             401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
             422: components["responses"]["ErrorResponse"];
+        };
+    };
+    listPlatformManagedDictionaryTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 平台系统字典类型与租户默认策略。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferenceCodePlatformDictionaryTypesResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    setPlatformDictionaryTenantMode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferenceCodePlatformTenantModeRequest"];
+            };
+        };
+        responses: {
+            /** @description 平台系统字典租户策略已保存。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferenceCodeLegacyMutationResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    listPlatformDictionaryTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 平台字典类型与当前租户使用方式。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferenceCodePlatformDictionaryTypesResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+        };
+    };
+    getPlatformDictionaryType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 平台字典选项与租户覆盖。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferenceCodePlatformDictionaryDetailResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+        };
+    };
+    setTenantDictionaryMode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferenceCodeDictionaryModeRequest"];
+            };
+        };
+        responses: {
+            /** @description 租户字典使用方式已保存。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferenceCodeLegacyMutationResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    setTenantDictionaryOverride: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferenceCodeDictionaryOverrideRequest"];
+            };
+        };
+        responses: {
+            /** @description 租户字典选项覆盖已保存。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferenceCodeLegacyMutationResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+        };
+    };
+    clearTenantDictionaryOverride: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferenceCodeDictionaryOverrideClearRequest"];
+            };
+        };
+        responses: {
+            /** @description 租户恢复平台默认选项。 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferenceCodeLegacyMutationResponse"];
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
         };
     };
     listLegacyDictionaryTypes: {
