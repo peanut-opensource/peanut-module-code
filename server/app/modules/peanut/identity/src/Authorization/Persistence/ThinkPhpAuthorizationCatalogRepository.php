@@ -18,6 +18,33 @@ use think\Model;
 
 final class ThinkPhpAuthorizationCatalogRepository implements \PeanutAdmin\Kernel\Authorization\Persistence\AuthorizationCatalogRepository
 {
+    /** @var array<class-string<Model>,array<string,?array{id:int,module_key:string}>> */
+    private array $prefetched = [];
+
+    /** Load only the keys owned by this exact catalog synchronization, not all tenant/catalog rows.
+     * @param class-string<Model> $model
+     * @param list<string> $keys
+     */
+    public function prefetchKeys(string $model, array $keys): void
+    {
+        $keys = array_values(array_unique($keys));
+        if ($keys === []) {
+            return;
+        }
+        $rows = array_fill_keys($keys, null);
+        foreach ($model::whereIn('key', $keys)->field('id,key,module_key')->select()->toArray() as $row) {
+            $key = (string) $row['key'];
+            if (array_key_exists($key, $rows)) {
+                $rows[$key] = ['id' => (int) $row['id'], 'module_key' => (string) $row['module_key']];
+            }
+        }
+        $this->prefetched[$model] = array_replace($this->prefetched[$model] ?? [], $rows);
+    }
+
+    public function clearPrefetchedKeys(): void
+    {
+        $this->prefetched = [];
+    }
     public function syncPermission(\PeanutAdmin\Kernel\Authorization\Persistence\PermissionDefinition $definition): int
     {
         // Module synchronizers supply compiled, namespaced definitions; instance bundles retain their own owner.
@@ -212,19 +239,25 @@ final class ThinkPhpAuthorizationCatalogRepository implements \PeanutAdmin\Kerne
      */
     private function syncByKey(string $model, string $key, string $moduleKey, array $data): int
     {
-        $row = $model::where('key', $key)->field('id,module_key')->find()?->toArray();
+        $cached = array_key_exists($key, $this->prefetched[$model] ?? []);
+        $row = $cached ? $this->prefetched[$model][$key]
+            : $model::where('key', $key)->field('id,module_key')->find()?->toArray();
         if ($row !== null && (string) $row['module_key'] !== $moduleKey) {
             throw new DomainException('Catalog key is already owned by another module.');
         }
         $now = $this->now();
         if ($row === null) {
-            return (int) $model::insertGetId([
+            $id = (int) $model::insertGetId([
                 'key' => $key,
                 'module_key' => $moduleKey,
                 ...$data,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
+            if ($cached) {
+                $this->prefetched[$model][$key] = ['id' => $id, 'module_key' => $moduleKey];
+            }
+            return $id;
         }
         $model::where('id', (int) $row['id'])->update([...$data, 'updated_at' => $now]);
 
@@ -234,7 +267,8 @@ final class ThinkPhpAuthorizationCatalogRepository implements \PeanutAdmin\Kerne
     /** @param class-string<Model> $model */
     private function idByKey(string $model, string $key): int
     {
-        $id = $model::where('key', $key)->value('id');
+        $row = $this->prefetched[$model][$key] ?? null;
+        $id = $row === null ? $model::where('key', $key)->value('id') : $row['id'];
 
         return $id === null ? throw new DomainException('Catalog entry was not found.') : (int) $id;
     }

@@ -13,6 +13,11 @@ use PeanutAdmin\Kernel\Authorization\Persistence\TargetTypeDefinition;
 use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
 use PeanutAdmin\Kernel\Module\ManifestDocument;
 use PeanutAdmin\Kernel\Module\ModuleException;
+use PeanutAdmin\Modules\Identity\Authorization\Model\DataConditionDefinitionRecord;
+use PeanutAdmin\Modules\Identity\Authorization\Model\ProtectedResourceRecord;
+use PeanutAdmin\Modules\Identity\Authorization\Model\TargetTypeDefinitionRecord;
+use PeanutAdmin\Modules\Identity\Authorization\Persistence\ThinkPhpAuthorizationCatalogRepository;
+use PeanutAdmin\Modules\Identity\Persistence\Model\Permission;
 use think\facade\Db;
 
 final readonly class ModuleAuthorizationCatalogSynchronizer
@@ -23,13 +28,44 @@ final readonly class ModuleAuthorizationCatalogSynchronizer
     {
         (new CorePermissionCatalogSynchronizer($this->catalog))->synchronize();
 
-        foreach ($registry->modules as $module) {
-            $this->synchronizePermissions($module);
-            $this->synchronizeTargetTypes($module);
-            $this->synchronizeDataConditions($module);
-        }
-        foreach ($registry->modules as $module) {
-            $this->synchronizeProtectedResources($module);
+        try {
+            if ($this->catalog instanceof ThinkPhpAuthorizationCatalogRepository) {
+                $permissions = [...CorePermissionCatalog::TENANT, ...CorePermissionCatalog::PLATFORM];
+                $targets = [];
+                $conditions = [];
+                $resources = [];
+                foreach ($registry->modules as $module) {
+                    $moduleKey = $this->moduleString($module, 'key');
+                    foreach ($this->catalogEntries($module, 'permissions') as $row) {
+                        $permissions[] = $this->string($row, 'key', $moduleKey);
+                    }
+                    foreach ($this->catalogEntries($module, 'target_types') as $row) {
+                        $targets[] = $this->string($row, 'key', $moduleKey);
+                    }
+                    foreach ($this->catalogEntries($module, 'data_conditions') as $row) {
+                        $conditions[] = $this->string($row, 'key', $moduleKey);
+                    }
+                    foreach ($this->catalogEntries($module, 'protected_resources') as $row) {
+                        $resources[] = $this->string($row, 'key', $moduleKey);
+                    }
+                }
+                $this->catalog->prefetchKeys(Permission::class, $permissions);
+                $this->catalog->prefetchKeys(TargetTypeDefinitionRecord::class, $targets);
+                $this->catalog->prefetchKeys(DataConditionDefinitionRecord::class, $conditions);
+                $this->catalog->prefetchKeys(ProtectedResourceRecord::class, $resources);
+            }
+            foreach ($registry->modules as $module) {
+                $this->synchronizePermissions($module);
+                $this->synchronizeTargetTypes($module);
+                $this->synchronizeDataConditions($module);
+            }
+            foreach ($registry->modules as $module) {
+                $this->synchronizeProtectedResources($module);
+            }
+        } finally {
+            if ($this->catalog instanceof ThinkPhpAuthorizationCatalogRepository) {
+                $this->catalog->clearPrefetchedKeys();
+            }
         }
     }
 
