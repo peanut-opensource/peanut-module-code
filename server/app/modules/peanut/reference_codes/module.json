@@ -30,6 +30,8 @@
       "pa_dict_data",
       "pa_system_dict_type",
       "pa_system_dict_data",
+      "pa_dict_type_policy",
+      "pa_dict_entry_override",
       "pa_reference_code_set",
       "pa_reference_code_entry",
       "pa_reference_code_entry_version"

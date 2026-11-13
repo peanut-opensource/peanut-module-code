@@ -79,6 +79,10 @@ final class ThinkPhpTenantDictionaryProvider implements TenantDictionaryQueryPro
     /** @return list<DictionaryEntry> */
     public function enabledEntriesByType(TenantContext $context, string $type): array
     {
+        // Disabled types must not expose their individual entries.
+        if ($this->typesQuery()->where('type', $type)->where('is_disable', 0)->findOrEmpty()->isEmpty()) {
+            return [];
+        }
         $rows = $this->entriesQuery()->where('type_value', $type)->where('is_disable', 0)
             ->field('id,name,value,sort')->order(['sort' => 'desc', 'id' => 'desc'])->select()->toArray();
         return array_map(static fn(array $row): DictionaryEntry => DictionaryEntry::fromArray($row + ['source' => 'tenant']), $rows);
@@ -149,6 +153,9 @@ final class ThinkPhpTenantDictionaryProvider implements TenantDictionaryQueryPro
         if ($type->isEmpty()) {
             throw BusinessException::notFound('DICTIONARY_TYPE_NOT_FOUND', '字典类型不存在');
         }
+        if ($this->entryValueExists((int) $type->id, (string) ($values['value'] ?? ''))) {
+            throw BusinessException::conflict('DICTIONARY_VALUE_EXISTS', '当前字典类型下数据值已存在');
+        }
         $values['type_value'] = (string) $type->type;
         $model = DictData::create($values);
         return DictionaryEntry::fromArray($model->toArray());
@@ -161,6 +168,9 @@ final class ThinkPhpTenantDictionaryProvider implements TenantDictionaryQueryPro
         $model = $this->entriesQuery()->where('id', $id)->findOrEmpty();
         if ($model->isEmpty()) {
             throw BusinessException::notFound('DICTIONARY_ENTRY_NOT_FOUND', '字典数据不存在');
+        }
+        if ($this->entryValueExists((int) $model->type_id, (string) ($values['value'] ?? ''), $id)) {
+            throw BusinessException::conflict('DICTIONARY_VALUE_EXISTS', '当前字典类型下数据值已存在');
         }
         $model->name = (string) ($values['name'] ?? '');
         $model->value = (string) ($values['value'] ?? '');
@@ -203,6 +213,15 @@ final class ThinkPhpTenantDictionaryProvider implements TenantDictionaryQueryPro
     private function typeExists(string $type, int $exceptId = 0): bool
     {
         $query = $this->typesQuery()->where('type', $type);
+        if ($exceptId > 0) {
+            $query->where('id', '<>', $exceptId);
+        }
+        return $query->count() > 0;
+    }
+
+    private function entryValueExists(int $typeId, string $value, int $exceptId = 0): bool
+    {
+        $query = $this->entriesQuery()->where('type_id', $typeId)->where('value', $value);
         if ($exceptId > 0) {
             $query->where('id', '<>', $exceptId);
         }

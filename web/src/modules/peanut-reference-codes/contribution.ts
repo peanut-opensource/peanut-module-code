@@ -15,6 +15,17 @@ const contribution: ModuleFrontendContribution = {
       },
       children: [
         {
+          path: 'dictionary-catalog',
+          name: 'OfficialDictionaryCatalog',
+          component: () => import('./DictionaryCatalogPage.vue'),
+          meta: {
+            locale: 'officialReferenceCodes.catalog.title',
+            requiresAuth: true,
+            tenantModuleKey: 'peanut.reference-codes',
+            requiredPermissions: 'peanut.reference-codes.read',
+          },
+        },
+        {
           path: 'reference-codes',
           name: 'OfficialReferenceCodes',
           component: () => import('./RuntimePage.vue'),

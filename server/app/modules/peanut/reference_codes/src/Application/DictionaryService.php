@@ -6,6 +6,7 @@ namespace PeanutAdmin\Modules\ReferenceCodes\Application;
 
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Modules\ReferenceCodes\Contract\SystemDictionaryProvider;
+use PeanutAdmin\Modules\ReferenceCodes\Contract\DictionaryCustomizationQuery;
 use PeanutAdmin\Modules\ReferenceCodes\Contract\TenantDictionaryCommandProvider;
 use PeanutAdmin\Modules\ReferenceCodes\Contract\TenantDictionaryQueryProvider;
 use PeanutAdmin\Modules\ReferenceCodes\DictionaryEntry;
@@ -18,6 +19,7 @@ final readonly class DictionaryService
         private TenantDictionaryQueryProvider $query,
         private TenantDictionaryCommandProvider $command,
         private SystemDictionaryProvider $system,
+        private DictionaryCustomizationQuery $customizations,
     ) {}
 
     /** @param array<string,mixed> $filters */
@@ -85,11 +87,41 @@ final readonly class DictionaryService
     /** @return list<DictionaryEntry> */
     public function enabledByType(TenantContext $context, string $type): array
     {
-        $system = $this->system->enabledEntriesByType($type);
-        $tenant = $this->query->enabledEntriesByType($context, $type);
+        $mode = $this->customizations->mode($context, $type);
+        if ($mode === 'disabled') {
+            return [];
+        }
+        $system = $mode === 'tenant' ? [] : $this->system->enabledEntriesByType($type);
+        $tenant = $mode === 'system' ? [] : $this->query->enabledEntriesByType($context, $type);
+        $overrides = $mode === 'extend' ? $this->customizations->overrides($context, $type) : [];
         $seen = [];
         $result = [];
-        foreach ([...$system, ...$tenant] as $entry) {
+        foreach ($system as $entry) {
+            $override = $overrides[$entry->value] ?? null;
+            if ($override !== null && $override['action'] === 'hide') {
+                $seen[$entry->value] = true;
+                continue;
+            }
+            if (isset($seen[$entry->value])) {
+                continue;
+            }
+            $seen[$entry->value] = true;
+            if ($override !== null && $override['action'] === 'rename' && $override['name'] !== null) {
+                $entry = new DictionaryEntry(
+                    $entry->id,
+                    $override['name'],
+                    $entry->value,
+                    $entry->typeId,
+                    $entry->type,
+                    $entry->sort,
+                    $entry->disabled,
+                    $entry->remark,
+                    'tenant-override',
+                );
+            }
+            $result[] = $entry;
+        }
+        foreach ($tenant as $entry) {
             if (isset($seen[$entry->value])) {
                 continue;
             }
