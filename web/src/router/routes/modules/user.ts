@@ -19,7 +19,6 @@ const USER: AppRouteRecordRaw = {
       meta: {
         locale: 'menu.user.setting',
         requiresAuth: true,
-        requiredPermissions: ['user:setting'],
         roles: ['*'],
       },
     },
