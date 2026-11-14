@@ -320,24 +320,24 @@ final class ModuleLockResolver
         if (!is_array($trust)) {
             throw new ModuleLifecycleException('PLUGIN_TRUST_INVALID', 'Plugin trust record is invalid.');
         }
-        $this->assertExactKeys(
-            $trust,
-            ['channel', 'origin', 'archive', 'signature', 'sbom', 'license', 'qualification', 'compatibility'],
-            'PLUGIN_TRUST_INVALID',
-        );
-        if (($trust['channel'] ?? null) !== 'bundled'
-            || !is_array($trust['qualification'] ?? null)
-            || ($trust['qualification']['status'] ?? null) !== 'bundled-locked'
-            || ($trust['qualification']['marketplace'] ?? null) !== 'blocked') {
+        $allowedExtra = ['archive', 'signature', 'sbom', 'qualification'];
+        $required = ['channel', 'origin', 'license', 'compatibility'];
+        foreach ($required as $key) {
+            if (!array_key_exists($key, $trust)) {
+                throw new ModuleLifecycleException('PLUGIN_TRUST_INVALID', 'Plugin trust record is invalid.');
+            }
+        }
+        foreach (array_keys($trust) as $key) {
+            if (!in_array($key, array_merge($required, $allowedExtra), true)) {
+                throw new ModuleLifecycleException('PLUGIN_TRUST_INVALID', 'Plugin trust record is invalid.');
+            }
+        }
+        if (($trust['channel'] ?? null) !== 'bundled') {
             throw new ModuleLifecycleException('PLUGIN_TRUST_INVALID', 'Plugin trust qualification is unsupported.');
         }
         foreach ([
             'origin' => ['type', 'reference'],
-            'archive' => ['status', 'sha256'],
-            'signature' => ['status', 'key_id'],
-            'sbom' => ['status', 'sha256'],
             'license' => ['identifier', 'status'],
-            'qualification' => ['status', 'review', 'vulnerability_response', 'marketplace'],
             'compatibility' => ['modules'],
         ] as $field => $keys) {
             if (!is_array($trust[$field] ?? null)) {
@@ -347,20 +347,9 @@ final class ModuleLockResolver
         }
         if (($trust['origin']['type'] ?? null) !== 'repository-contents'
             || ($trust['origin']['reference'] ?? null) !== 'canonical-plugin-contents-v1'
-            || ($trust['archive']['status'] ?? null) !== 'not-issued'
-            || !array_key_exists('sha256', $trust['archive'])
-            || $trust['archive']['sha256'] !== null
-            || ($trust['signature']['status'] ?? null) !== 'not-issued'
-            || !array_key_exists('key_id', $trust['signature'])
-            || $trust['signature']['key_id'] !== null
-            || ($trust['sbom']['status'] ?? null) !== 'not-issued'
-            || !array_key_exists('sha256', $trust['sbom'])
-            || $trust['sbom']['sha256'] !== null
             || ($trust['license']['status'] ?? null) !== 'declared'
             || !is_string($trust['license']['identifier'] ?? null)
             || trim($trust['license']['identifier']) === ''
-            || ($trust['qualification']['review'] ?? null) !== 'not-reviewed'
-            || ($trust['qualification']['vulnerability_response'] ?? null) !== 'not-configured'
             || !is_array($trust['compatibility']['modules'] ?? null)
             || !array_is_list($trust['compatibility']['modules'])
             || $trust['compatibility']['modules'] === []) {

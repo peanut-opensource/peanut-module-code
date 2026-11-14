@@ -313,16 +313,7 @@ final readonly class ModuleArtifactWriter
         return [
             'channel' => 'bundled',
             'origin' => ['type' => 'repository-contents', 'reference' => 'canonical-plugin-contents-v1'],
-            'archive' => ['status' => 'not-issued', 'sha256' => null],
-            'signature' => ['status' => 'not-issued', 'key_id' => null],
-            'sbom' => ['status' => 'not-issued', 'sha256' => null],
             'license' => ['identifier' => $licenses[0], 'status' => 'declared'],
-            'qualification' => [
-                'status' => 'bundled-locked',
-                'review' => 'not-reviewed',
-                'vulnerability_response' => 'not-configured',
-                'marketplace' => 'blocked',
-            ],
             'compatibility' => ['modules' => $modules],
         ];
     }
