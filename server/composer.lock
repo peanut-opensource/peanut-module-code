@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2b89c9acd41499cd1d68d59cdb06d5c0",
+    "content-hash": "71f22005b4e425bbda33dde04d1041b4",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2240,11 +2240,11 @@
         },
         {
             "name": "peanut-business/peanut-article",
-            "version": "1.0.18",
+            "version": "1.0.19",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/article",
-                "reference": "1ce8c0c5cb3115e84aa4e95888e0231f4c7d5d2d"
+                "reference": "a10530666d686950bd9f8a8ed329108215c41fd3"
             },
             "require": {
                 "peanut-business/peanut-document": "^1.0.16",
@@ -2401,11 +2401,11 @@
         },
         {
             "name": "peanut-business/peanut-document",
-            "version": "1.0.21",
+            "version": "1.0.22",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/document",
-                "reference": "6fd37e406ac34e5ba3d22fdf7c026e8339cc024b"
+                "reference": "85f82d51c54e9b0774eb73645f4eb390275de63f"
             },
             "require": {
                 "peanut-business/peanut-file": "^1.0.44",
@@ -2474,11 +2474,11 @@
         },
         {
             "name": "peanut-business/peanut-identity",
-            "version": "4.0.0-rc.63",
+            "version": "4.0.0-rc.64",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/identity",
-                "reference": "4171d682eb76ea5a450e6f904970efc7ede843ee"
+                "reference": "423b24b13bd251031ff6e4f27a02618d2b8952b5"
             },
             "require": {
                 "ext-bcmath": "*",
@@ -2589,11 +2589,11 @@
         },
         {
             "name": "peanut-business/peanut-member",
-            "version": "1.0.26",
+            "version": "1.0.27",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/member",
-                "reference": "b90eda380fca13753bab0a07e5e5b37892a2bb19"
+                "reference": "b590289da71331fa54aec07c7f2ef13bb2592538"
             },
             "require": {
                 "firebase/php-jwt": "^7.1",
