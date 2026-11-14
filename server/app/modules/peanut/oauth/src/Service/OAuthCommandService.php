@@ -148,8 +148,54 @@ final class OAuthCommandService implements OAuthCommands
             throw BusinessException::invalid('OAUTH_COMPLETION_TICKET_REQUIRED', '登录补全票据缺失');
         }
 
-        return Db::transaction(function () use ($context, $params, $rawTicket, $ip): OAuthLoginResult {
-            $ticket = $this->persistence->completionForUpdate($context, hash('sha256', $rawTicket));
+        $tokenHash = hash('sha256', $rawTicket);
+        $precheckTicket = $this->persistence->completionForUpdate($context, $tokenHash);
+        if ($precheckTicket === null || $precheckTicket->usedAt !== null || $precheckTicket->expiresAt < time()) {
+            throw BusinessException::invalid('OAUTH_COMPLETION_TICKET_INVALID', '登录补全票据无效或已过期');
+        }
+        $precheckMember = $this->members->identity($context, $precheckTicket->memberId);
+        if ($precheckMember === null || !$precheckMember->status) {
+            throw BusinessException::forbidden('MEMBER_UNAVAILABLE', '用户不存在或已禁用');
+        }
+
+        $nickname = null;
+        $avatar = null;
+        if ($precheckTicket->needProfile) {
+            $nickname = trim((string) ($params['nickname'] ?? ''));
+            if ($nickname === '' || mb_strlen($nickname) > 50) {
+                throw BusinessException::invalid('MEMBER_NICKNAME_INVALID', '请填写有效昵称');
+            }
+            if (trim((string) ($params['avatar'] ?? '')) !== '') {
+                // Storage URL ownership remains outside OAuth; Member persists the opaque value.
+                $avatar = (string) $params['avatar'];
+            }
+        }
+
+        $mobile = null;
+        if ($precheckTicket->needMobile) {
+            $mobile = trim((string) ($params['mobile'] ?? ''));
+            if (!preg_match('/^1[3-9]\d{9}$/', $mobile)) {
+                throw BusinessException::invalid('MEMBER_MOBILE_INVALID', '手机号格式错误');
+            }
+            $this->memberIdentities->assertMobileAvailable(
+                $context,
+                $precheckMember->id,
+                $mobile,
+            );
+            // 验证码核验必须在可回滚的外层事务之外执行，避免核验失败时回滚失败次数计数。
+            $result = $this->verificationCodes->verifyCode(
+                $context,
+                NoticeSceneEnum::BIND_MOBILE,
+                $mobile,
+                (string) ($params['code'] ?? ''),
+            );
+            if (!$result->accepted) {
+                throw BusinessException::invalid('MEMBER_VERIFICATION_REJECTED', $result->error);
+            }
+        }
+
+        return Db::transaction(function () use ($context, $tokenHash, $nickname, $avatar, $mobile, $ip): OAuthLoginResult {
+            $ticket = $this->persistence->completionForUpdate($context, $tokenHash);
             if ($ticket === null || $ticket->usedAt !== null || $ticket->expiresAt < time()) {
                 throw BusinessException::invalid('OAUTH_COMPLETION_TICKET_INVALID', '登录补全票据无效或已过期');
             }
@@ -161,22 +207,8 @@ final class OAuthCommandService implements OAuthCommands
                 throw BusinessException::forbidden('MEMBER_UNAVAILABLE', '用户不存在或已禁用');
             }
 
-            $nickname = null;
-            $avatar = null;
-            if ($ticket->needProfile) {
-                $nickname = trim((string) ($params['nickname'] ?? ''));
-                if ($nickname === '' || mb_strlen($nickname) > 50) {
-                    throw BusinessException::invalid('MEMBER_NICKNAME_INVALID', '请填写有效昵称');
-                }
-                if (trim((string) ($params['avatar'] ?? '')) !== '') {
-                    // Storage URL ownership remains outside OAuth; Member persists the opaque value.
-                    $avatar = (string) $params['avatar'];
-                }
-            }
-
             if ($ticket->needMobile) {
-                $mobile = trim((string) ($params['mobile'] ?? ''));
-                if (!preg_match('/^1[3-9]\d{9}$/', $mobile)) {
+                if ($mobile === null) {
                     throw BusinessException::invalid('MEMBER_MOBILE_INVALID', '手机号格式错误');
                 }
                 $this->memberIdentities->assertMobileAvailable(
@@ -184,15 +216,6 @@ final class OAuthCommandService implements OAuthCommands
                     $member->id,
                     $mobile,
                 );
-                $result = $this->verificationCodes->verifyCode(
-                    $context,
-                    NoticeSceneEnum::BIND_MOBILE,
-                    $mobile,
-                    (string) ($params['code'] ?? ''),
-                );
-                if (!$result->accepted) {
-                    throw BusinessException::invalid('MEMBER_VERIFICATION_REJECTED', $result->error);
-                }
                 $this->memberIdentities->bindVerifiedMobile(
                     $context,
                     $member->id,

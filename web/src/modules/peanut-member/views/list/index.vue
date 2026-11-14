@@ -826,6 +826,10 @@
     balanceForm.remark = '';
     balanceModalVisible.value = true;
   };
+  let balanceSubmitAttempt: {
+    signature: string;
+    key: ReturnType<typeof crypto.randomUUID>;
+  } | null = null;
   const handleBalanceSubmit = async () => {
     const valid = await balanceFormRef.value?.validate().catch(() => false);
     if (!valid) return false;
@@ -833,14 +837,20 @@
       ElMessage.warning(t('member.field.amount.positive'));
       return false;
     }
+    const payload = {
+      user_id: detail.id,
+      action: balanceForm.action,
+      num: balanceForm.num,
+      remark: balanceForm.remark,
+    };
+    const signature = JSON.stringify(payload);
+    if (balanceSubmitAttempt?.signature !== signature) {
+      balanceSubmitAttempt = { signature, key: crypto.randomUUID() };
+    }
     balanceLoading.value = true;
     try {
-      await adjustMemberMoney({
-        user_id: detail.id,
-        action: balanceForm.action,
-        num: balanceForm.num,
-        remark: balanceForm.remark,
-      });
+      await adjustMemberMoney(payload, balanceSubmitAttempt.key);
+      balanceSubmitAttempt = null;
       ElMessage.success(t('member.tip.success'));
       balanceModalVisible.value = false;
       await Promise.all([refreshDetail(), fetchData(pagination.current)]);

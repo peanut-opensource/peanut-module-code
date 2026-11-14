@@ -332,6 +332,10 @@
   };
 
   const refundingId = ref(0);
+  let refundAttempt: {
+    signature: string;
+    key: ReturnType<typeof crypto.randomUUID>;
+  } | null = null;
   const handleRefund = async (row: RechargeRecord) => {
     const remaining = Number(row.refundable_amount || 0);
     if (remaining <= 0) return;
@@ -358,9 +362,14 @@
       return;
     }
 
+    const signature = JSON.stringify([row.id, amount]);
+    if (refundAttempt?.signature !== signature) {
+      refundAttempt = { signature, key: crypto.randomUUID() };
+    }
     refundingId.value = row.id;
     try {
-      await refundRecharge(row.id, amount);
+      await refundRecharge(row.id, amount, refundAttempt.key);
+      refundAttempt = null;
       ElMessage.success(t('recharge.refund.success'));
       await fetchData(pagination.current);
     } finally {

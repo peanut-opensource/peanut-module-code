@@ -617,8 +617,6 @@ final class ReferenceCodeStore
         $sqlState = (string) ($error['SQLSTATE'] ?? $exception->getCode());
         $driverCode = (int) ($error['Driver Error Code'] ?? 0);
 
-        return ($sqlState === '23000' && $driverCode === 1062)
-            || ($sqlState === '40001' && $driverCode === 1213)
-            || ($sqlState === 'HY000' && $driverCode === 1205);
+        return $sqlState === '23000' && $driverCode === 1062;
     }
 }

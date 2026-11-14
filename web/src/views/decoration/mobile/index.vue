@@ -742,24 +742,28 @@
       : {};
   };
 
+  let loadRequestId = 0;
   const loadPageByType = async (type: number) => {
+    const requestId = ++loadRequestId;
     activeType.value = type;
     loading.value = true;
     try {
       const { data: list } = await getMobileDecorationLists();
+      if (requestId !== loadRequestId) return;
       const summary = list.find((item) => item.type === type) || list[0];
       if (!summary) {
         page.id = 0;
         return;
       }
       const { data } = await getMobileDecorationDetail(summary.id);
+      if (requestId !== loadRequestId) return;
       Object.assign(page, data);
       images.replace(data.resource_urls);
       ensureQueries();
       if (type === 5 && !Array.isArray(data.data))
         Object.assign(theme, data.data);
     } finally {
-      loading.value = false;
+      if (requestId === loadRequestId) loading.value = false;
     }
   };
   const loadArticleOptions = async () => {

@@ -317,7 +317,7 @@
     loading.value = false;
     saveState.value = 'idle';
   };
-  const failed = (code: string) => {
+  const failed = (code: string, preserveSoloState = false) => {
     if (collaboration && binding.value) {
       frozen.value = true;
       frozenContext = sessionKey.value;
@@ -327,7 +327,11 @@
         writable: false,
         frozen: true,
       };
-    } else clear();
+    } else if (!preserveSoloState) {
+      clear();
+    } else {
+      soloDirty.value = true;
+    }
     message.value = code;
     setSaveState('error');
     emit('error', code);
@@ -679,7 +683,8 @@
     } catch (error) {
       if (valid(current, key))
         failed(
-          error instanceof Error ? error.message : 'DOCUMENT_SAVE_UNCONFIRMED'
+          error instanceof Error ? error.message : 'DOCUMENT_SAVE_UNCONFIRMED',
+          true
         );
     } finally {
       if (saving === current) {

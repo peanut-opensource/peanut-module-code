@@ -2804,7 +2804,6 @@ final class ScaffoldUpgradeRunner
         $upstream = array_fill_keys($upstreamModuleKeys, true);
         $modules = [];
         $blockers = [];
-        $checkedPhpFiles = 0;
         foreach (($projection['modules'] ?? []) as $pluginKey => $plugin) {
             if (!is_string($pluginKey) || !is_array($plugin)) {
                 throw new RuntimeException('SCAFFOLD_PLUGIN_PROJECTION_INVALID');
@@ -2842,18 +2841,10 @@ final class ScaffoldUpgradeRunner
                         'detail' => "Target Module Kernel {$kernelVersion} does not satisfy {$constraint}.",
                     ];
                 }
-                [$referenceBlockers, $phpFiles] = $this->scanCustomerModuleKernelReferences(
-                    $stage,
-                    $moduleKey,
-                    $moduleRoot,
-                );
-                array_push($moduleBlockers, ...$referenceBlockers);
                 array_push($blockers, ...$moduleBlockers);
-                $checkedPhpFiles += $phpFiles;
                 $modules[] = [
                     'key' => $moduleKey,
                     'kernel_constraint' => $constraint,
-                    'checked_php_files' => $phpFiles,
                     'status' => $moduleBlockers === [] ? 'ready' : 'blocked',
                 ];
             }
@@ -2873,109 +2864,10 @@ final class ScaffoldUpgradeRunner
             'status' => $blockers === [] ? 'ready' : 'blocked',
             'kernel_version' => $kernelVersion,
             'customer_module_count' => count($modules),
-            'checked_php_files' => $checkedPhpFiles,
             'modules' => $modules,
             'blockers' => $blockers,
-            'scope' => 'kernel_constraint, explicit PeanutAdmin\\Kernel imports, and direct static calls; no automatic rewrite',
+            'scope' => 'kernel_constraint; no automatic rewrite',
         ];
-    }
-
-    /** @return array{0:list<array<string,mixed>>,1:int} */
-    private function scanCustomerModuleKernelReferences(string $stage, string $moduleKey, string $moduleRoot): array
-    {
-        $root = ScaffoldPathGuard::projectPath($stage, $moduleRoot);
-        if (!is_dir($root) || is_link($root)) {
-            throw new RuntimeException('SCAFFOLD_PLUGIN_PROJECTION_INVALID');
-        }
-        $files = [];
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
-        );
-        foreach ($iterator as $entry) {
-            if ($entry->isLink()) {
-                throw new RuntimeException('SCAFFOLD_PLUGIN_PROJECTION_PATH_INVALID');
-            }
-            if ($entry->isFile() && strtolower($entry->getExtension()) === 'php') {
-                $files[] = $entry->getPathname();
-            }
-        }
-        sort($files, SORT_STRING);
-        $blockers = [];
-        foreach ($files as $file) {
-            $source = (string) file_get_contents($file);
-            $scan = '';
-            foreach (token_get_all($source) as $token) {
-                if (is_array($token) && in_array($token[0], [
-                    T_COMMENT, T_DOC_COMMENT, T_CONSTANT_ENCAPSED_STRING, T_ENCAPSED_AND_WHITESPACE,
-                ], true)) {
-                    $scan .= preg_replace('/[^\r\n]/', ' ', $token[1]) ?? '';
-                } else {
-                    $scan .= is_array($token) ? $token[1] : $token;
-                }
-            }
-            $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($file, strlen($stage) + 1));
-            preg_match_all(
-                '/^\s*use\s+(PeanutAdmin\\\\Kernel\\\\[A-Za-z_][A-Za-z0-9_\\\\]*)(?:\s+as\s+([A-Za-z_][A-Za-z0-9_]*))?\s*;/mi',
-                $scan,
-                $imports,
-                PREG_SET_ORDER | PREG_OFFSET_CAPTURE,
-            );
-            foreach ($imports as $import) {
-                $symbol = $import[1][0];
-                $segments = explode('\\', $symbol);
-                $alias = ($import[2][0] ?? '') !== '' ? $import[2][0] : end($segments);
-                $importLine = substr_count(substr($scan, 0, $import[1][1]), "\n") + 1;
-                if (!$this->kernelSymbolExists($symbol)) {
-                    $blockers[] = [
-                        'code' => 'MODULE_CORE_CLASS_MISSING', 'module_key' => $moduleKey,
-                        'path' => $relative, 'line' => $importLine, 'symbol' => $symbol, 'method' => null,
-                        'detail' => 'Imported Peanut Module Kernel symbol is unavailable in the target Core.',
-                    ];
-                    continue;
-                }
-                preg_match_all(
-                    '/\b' . preg_quote((string) $alias, '/') . '::([A-Za-z_][A-Za-z0-9_]*)\s*\(/',
-                    $scan,
-                    $calls,
-                    PREG_SET_ORDER | PREG_OFFSET_CAPTURE,
-                );
-                foreach ($calls as $call) {
-                    $method = $call[1][0];
-                    try {
-                        $reflection = new \ReflectionMethod($symbol, $method);
-                        $compatible = $reflection->isPublic() && $reflection->isStatic();
-                    } catch (\ReflectionException) {
-                        $compatible = false;
-                    }
-                    if (!$compatible) {
-                        $blockers[] = [
-                            'code' => method_exists($symbol, $method)
-                                ? 'MODULE_CORE_METHOD_INCOMPATIBLE'
-                                : 'MODULE_CORE_METHOD_MISSING',
-                            'module_key' => $moduleKey,
-                            'path' => $relative,
-                            'line' => substr_count(substr($scan, 0, $call[0][1]), "\n") + 1,
-                            'symbol' => $symbol,
-                            'method' => $method,
-                            'detail' => 'Direct static Kernel call is unavailable or no longer public/static in the target Core.',
-                        ];
-                    }
-                }
-            }
-        }
-        return [$blockers, count($files)];
-    }
-
-    private function kernelSymbolExists(string $symbol): bool
-    {
-        try {
-            return class_exists($symbol)
-                || interface_exists($symbol)
-                || trait_exists($symbol)
-                || (function_exists('enum_exists') && enum_exists($symbol));
-        } catch (Throwable) {
-            return false;
-        }
     }
 
     /** @param array<string,string> $parameters @param array<string,mixed> $versionContract */
