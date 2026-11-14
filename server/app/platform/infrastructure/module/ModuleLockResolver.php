@@ -66,20 +66,13 @@ final class ModuleLockResolver
         return self::sourceUpgradeResolver($root)->resolve(true);
     }
 
-    /** One-time source conversion, invoked only by the scaffold upgrade planner, never by Runtime. */
-    public static function forLegacySourceUpgrade(string $projectRoot): array
-    {
-        $root = self::sourceUpgradeRoot($projectRoot, true);
-        return (new self($root . '/server', '../plugins.lock'))->resolve(true, false, true);
-    }
-
-    private static function sourceUpgradeRoot(string $projectRoot, bool $legacy = false): string
+    private static function sourceUpgradeRoot(string $projectRoot): string
     {
         if (PHP_SAPI !== 'cli') {
             throw new ModuleLifecycleException('PLUGIN_SOURCE_UPGRADE_CLI_REQUIRED', 'Full source resolution requires the CLI source-upgrade entry.');
         }
         $root = ScaffoldPathGuard::projectRoot($projectRoot);
-        foreach (['server/composer.json', 'web/package.json', '.peanut/application-manifest.json', $legacy ? 'plugins.lock' : 'modules.lock'] as $path) {
+        foreach (['server/composer.json', 'web/package.json', '.peanut/application-manifest.json', 'modules.lock'] as $path) {
             ScaffoldPathGuard::existingFileWithin(
                 $root,
                 ScaffoldPathGuard::projectPath($root, $path),
@@ -109,7 +102,7 @@ final class ModuleLockResolver
     }
 
     /** @return array<string,ModuleDescriptor> */
-    private function resolve(bool $sourceUpgrade, bool $packageArchive = false, bool $legacy = false): array
+    private function resolve(bool $sourceUpgrade, bool $packageArchive = false): array
     {
         $journal = dirname($this->serverRoot) . '/.local/module-source-adoption/journal.json';
         if (file_exists($journal) || is_link($journal)) {
@@ -137,11 +130,6 @@ final class ModuleLockResolver
         }
         $lockPath = $this->absolutePath($this->lockPath, $this->serverRoot);
         $lock = $this->readJson($lockPath, 'PLUGIN_LOCK_INVALID');
-        if ($legacy) {
-            $this->assertExactKeys($lock, ['schema_version', 'plugins'], 'MODULE_LEGACY_LOCK_INVALID');
-            $lock['modules'] = $lock['plugins'];
-            unset($lock['plugins']);
-        }
         $serverProjection = ($lock['protocol'] ?? null) === 'peanut.server-module-lock.v1';
         if ($sourceUpgrade && $serverProjection) {
             throw new ModuleLifecycleException('PLUGIN_LOCK_INVALID', 'Source upgrade requires the full application Plugin lock.');
@@ -218,16 +206,8 @@ final class ModuleLockResolver
             if (count($moduleRoots) !== 1 || !array_key_exists($key, $moduleRoots)) {
                 throw new ModuleLifecycleException('MODULE_PACKAGE_IDENTITY_MISMATCH', 'A locked artifact must belong to exactly its named Module.');
             }
-            if (!$legacy && realpath($manifestPath) !== realpath($moduleRoots[$key] . '/module.json')) {
+            if (realpath($manifestPath) !== realpath($moduleRoots[$key] . '/module.json')) {
                 throw new ModuleLifecycleException('MODULE_MANIFEST_PATH_INVALID', 'Lock must refer to its Module source declaration.');
-            }
-            if ($legacy) {
-                foreach (['source', 'trust', 'composer', 'npm', 'frontend', 'modules'] as $field) {
-                    if (!$this->sameJson($manifest[$field] ?? null, $entry[$field] ?? null)) {
-                        throw new ModuleLifecycleException('MODULE_LEGACY_MANIFEST_MISMATCH', 'Legacy declaration differs from its lock.');
-                    }
-                }
-                $manifestDigest = (string) hash_file('sha256', $moduleRoots[$key] . '/module.json');
             }
             $moduleIdentity = $this->readJson($moduleRoots[$key] . '/module.json', 'PLUGIN_MANIFEST_INVALID');
             if (($moduleIdentity['key'] ?? null) !== $key || ($moduleIdentity['version'] ?? null) !== $version) {
