@@ -55,8 +55,27 @@ ROOT_DIR="$(CDPATH= cd -- "$ROOT_DIR" && pwd -P)"
 [[ -f "$ROOT_DIR/server/composer.json" && -x "$ROOT_DIR/scripts/local-core-composer" ]] || die 'application checkout is invalid'
 if [[ "$ACTION" == reset || "$ACTION" == unlink ]]; then
   rm -rf "$ROOT_DIR/.local/core-dev.json" "$ROOT_DIR/.local/composer-core" "$ROOT_DIR/.local/core-links"
+  needs_composer_restore=0
   if [[ -L "$ROOT_DIR/server/vendor/peanut-admin/core" ]]; then
     rm -f "$ROOT_DIR/server/vendor/peanut-admin/core"
+    needs_composer_restore=1
+  elif [[ -f "$ROOT_DIR/server/vendor/autoload.php" && -f "$ROOT_DIR/server/composer.lock" ]]; then
+    if ! node - "$ROOT_DIR/server/composer.lock" "$ROOT_DIR/server/vendor/composer/installed.json" <<'NODE'
+const fs = require('node:fs');
+const [lockFile, installedFile] = process.argv.slice(2);
+if (!fs.existsSync(installedFile)) process.exit(1);
+const lock = JSON.parse(fs.readFileSync(lockFile, 'utf8'));
+const installed = JSON.parse(fs.readFileSync(installedFile, 'utf8'));
+const lockPkg = (lock.packages || []).find((p) => p.name === 'peanut-admin/core');
+const instPkgs = Array.isArray(installed) ? installed : (installed.packages || []);
+const instPkg = instPkgs.find((p) => p.name === 'peanut-admin/core');
+if (!lockPkg || !instPkg || lockPkg.version !== instPkg.version) process.exit(1);
+NODE
+    then
+      needs_composer_restore=1
+    fi
+  fi
+  if [[ "$needs_composer_restore" == 1 ]]; then
     (cd "$ROOT_DIR/server" && composer install --no-scripts --no-interaction && php think service:discover)
   fi
   selected_reset_clients=()
@@ -67,13 +86,30 @@ if [[ "$ACTION" == reset || "$ACTION" == unlink ]]; then
   fi
   for reset_client in "${selected_reset_clients[@]}"; do
     has_link=0
-    for pkg_dir in "$ROOT_DIR/$reset_client/node_modules/@peanut-admin"/*; do
+    for pkg_name in client vue ui-vue nuxt uniapp testing; do
+      pkg_dir="$ROOT_DIR/$reset_client/node_modules/@peanut-admin/$pkg_name"
+      [[ -e "$pkg_dir" || -L "$pkg_dir" ]] || continue
       if [[ -L "$pkg_dir" ]]; then
         target="$(realpath "$pkg_dir" 2>/dev/null || true)"
         case "$target" in
           "$ROOT_DIR/$reset_client/node_modules/"*) ;;
           *) has_link=1 ;;
         esac
+      fi
+      if [[ "$has_link" == 0 && -f "$pkg_dir/package.json" && -f "$ROOT_DIR/$reset_client/package.json" ]]; then
+        if ! node - "$ROOT_DIR/$reset_client/package.json" "$pkg_dir/package.json" "@peanut-admin/$pkg_name" <<'NODE'
+const fs = require('node:fs');
+const [manifestFile, installedFile, fullName] = process.argv.slice(2);
+const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
+const expected = manifest.dependencies?.[fullName] ?? manifest.devDependencies?.[fullName];
+if (expected && !/^(workspace:|file:|link:|[~^])/.test(expected)) {
+  const installed = JSON.parse(fs.readFileSync(installedFile, 'utf8'));
+  if (installed.version !== expected) process.exit(1);
+}
+NODE
+        then
+          has_link=1
+        fi
       fi
     done
     if [[ "$has_link" == 1 ]]; then
@@ -106,7 +142,7 @@ NODE
   [[ -n "$WEB_CORE_DIR" ]] || WEB_CORE_DIR="$(printf '%s\n' "$selection" | sed -n '2p')"
   [[ -n "$BACKEND_ENV" ]] || BACKEND_ENV="$(printf '%s\n' "$selection" | sed -n '3p')"
 fi
-if [[ "$ACTION" == select && ( -z "$PHP_CORE_DIR" || -z "$WEB_CORE_DIR" ) && -f "$ROOT_DIR/.local/toolchain/host.json" ]]; then
+if [[ ( -z "$PHP_CORE_DIR" || -z "$WEB_CORE_DIR" ) && -f "$ROOT_DIR/.local/toolchain/host.json" ]]; then
   configured="$(node - "$ROOT_DIR/.local/toolchain/host.json" <<'NODE'
 const fs = require('node:fs');
 const host = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
@@ -120,11 +156,9 @@ NODE
   [[ -n "$PHP_CORE_DIR" ]] || PHP_CORE_DIR="$(printf '%s\n' "$configured" | sed -n '1p')"
   [[ -n "$WEB_CORE_DIR" ]] || WEB_CORE_DIR="$(printf '%s\n' "$configured" | sed -n '2p')"
 fi
-if [[ "$ACTION" == select ]]; then
-  [[ -n "$PHP_CORE_DIR" || ! -f "$ROOT_DIR/../peanut-admin-core-php/composer.json" ]] || PHP_CORE_DIR="$(CDPATH= cd -- "$ROOT_DIR/../peanut-admin-core-php" && pwd -P)"
-  [[ -n "$WEB_CORE_DIR" || ! -f "$ROOT_DIR/../peanut-admin-core-web/pnpm-workspace.yaml" ]] || WEB_CORE_DIR="$(CDPATH= cd -- "$ROOT_DIR/../peanut-admin-core-web" && pwd -P)"
-  [[ -n "$BACKEND_ENV" || ! -f "$ROOT_DIR/server/.env" || -L "$ROOT_DIR/server/.env" ]] || BACKEND_ENV="$ROOT_DIR/server/.env"
-fi
+[[ -n "$PHP_CORE_DIR" || ! -f "$ROOT_DIR/../peanut-admin-core-php/composer.json" ]] || PHP_CORE_DIR="$(CDPATH= cd -- "$ROOT_DIR/../peanut-admin-core-php" && pwd -P)"
+[[ -n "$WEB_CORE_DIR" || ! -f "$ROOT_DIR/../peanut-admin-core-web/pnpm-workspace.yaml" ]] || WEB_CORE_DIR="$(CDPATH= cd -- "$ROOT_DIR/../peanut-admin-core-web" && pwd -P)"
+[[ -n "$BACKEND_ENV" || ! -f "$ROOT_DIR/server/.env" || -L "$ROOT_DIR/server/.env" ]] || BACKEND_ENV="$ROOT_DIR/server/.env"
 [[ "$PHP_CORE_DIR" == /* && "$WEB_CORE_DIR" == /* ]] || die 'both absolute Core checkout paths are required'
 PHP_CORE_DIR="$(CDPATH= cd -- "$PHP_CORE_DIR" && pwd -P)"
 WEB_CORE_DIR="$(CDPATH= cd -- "$WEB_CORE_DIR" && pwd -P)"
@@ -133,12 +167,11 @@ WEB_CORE_DIR="$(CDPATH= cd -- "$WEB_CORE_DIR" && pwd -P)"
 node -e 'if(require(process.argv[1]).name!=="peanut-admin/core"||require(process.argv[2]).name!=="@peanut-admin/web-workspace")process.exit(1)' \
   "$PHP_CORE_DIR/composer.json" "$WEB_CORE_DIR/package.json" || die 'selected Core package identity is invalid'
 
-case "$ACTION" in
-  select)
-    [[ "$BACKEND_ENV" == /* && -f "$BACKEND_ENV" && ! -L "$BACKEND_ENV" ]] || die 'select requires an absolute regular --backend-env'
-    [[ ! -L "$ROOT_DIR/.local" && ! -L "$selection_file" ]] || die 'local Core selection may not use linked configuration paths'
-    mkdir -p "$ROOT_DIR/.local"
-    node - "$selection_file" "$ROOT_DIR" "$PHP_CORE_DIR" "$WEB_CORE_DIR" "$BACKEND_ENV" <<'NODE'
+write_selection_file() {
+  local target_env="$1"
+  [[ ! -L "$ROOT_DIR/.local" && ! -L "$selection_file" ]] || die 'local Core selection may not use linked configuration paths'
+  mkdir -p "$ROOT_DIR/.local"
+  node - "$selection_file" "$ROOT_DIR" "$PHP_CORE_DIR" "$WEB_CORE_DIR" "$target_env" <<'NODE'
 const fs = require('node:fs');
 const [file, application_root, php_core_dir, web_core_dir, backend_env] = process.argv.slice(2);
 for (const value of [application_root, php_core_dir, web_core_dir, backend_env]) {
@@ -147,6 +180,12 @@ for (const value of [application_root, php_core_dir, web_core_dir, backend_env])
 fs.writeFileSync(file, JSON.stringify({ schema_version: 1, application_root, php_core_dir, web_core_dir, backend_env }, null, 2) + '\n', { mode: 0o600 });
 fs.chmodSync(file, 0o600);
 NODE
+}
+
+case "$ACTION" in
+  select)
+    [[ "$BACKEND_ENV" == /* && -f "$BACKEND_ENV" && ! -L "$BACKEND_ENV" ]] || die 'select requires an absolute regular --backend-env'
+    write_selection_file "$BACKEND_ENV"
     printf 'core-dev: selected local PHP/Web source in %s; install/link is a separate dependency write\n' "$selection_file"
     exit 0
     ;;
@@ -156,6 +195,11 @@ NODE
     [[ "$BACKEND_ENV" == /* ]] || die 'install requires --backend-env'
     "$ROOT_DIR/scripts/local-core-composer" install --core-dir "$PHP_CORE_DIR" --backend-env "$BACKEND_ENV"
     "$ROOT_DIR/scripts/local-core-web" link --core-dir "$WEB_CORE_DIR" --client "$CLIENT"
+    canonical_backend_env="$(CDPATH= cd -- "$(dirname -- "$BACKEND_ENV")" 2>/dev/null && pwd -P)/$(basename -- "$BACKEND_ENV")"
+    if [[ "$canonical_backend_env" == "$ROOT_DIR/server/"* && -f "$canonical_backend_env" && ! -L "$canonical_backend_env" \
+          && ! -L "$ROOT_DIR/.local" && ! -L "$selection_file" ]]; then
+      write_selection_file "$canonical_backend_env"
+    fi
     ;;
   status|link-status|php-status)
     php_link="$ROOT_DIR/server/vendor/peanut-admin/core"

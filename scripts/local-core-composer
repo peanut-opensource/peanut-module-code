@@ -39,7 +39,10 @@ fi
 core_php() {
     if [[ -f "$ROOT_DIR/.local/toolchain/cores/php/host.json" ]]; then
         python3 "$ROOT_DIR/scripts/project-env" --root "$CORE_PACKAGE_DIR" --state-root "$ROOT_DIR" \
-            --host "$ROOT_DIR/.local/toolchain/cores/php/host.json" exec -- php "$@"
+            --host "$ROOT_DIR/.local/toolchain/cores/php/host.json" run -- php "$@"
+    elif [[ -z "${PEANUT_PROJECT_ENV_ACTIVE:-}" && -f "$ROOT_DIR/tools/toolchain.json" && -f "$ROOT_DIR/scripts/project-env" ]]; then
+        python3 "$ROOT_DIR/scripts/project-env" --root "$ROOT_DIR" --state-root "$ROOT_DIR" \
+            --tools php run -- php "$@"
     else
         php "$@"
     fi
@@ -105,6 +108,9 @@ foreach ($source["repositories"] ?? [] as $repository) {
     // Project only dependency metadata. Composer installs the original source
     // through its native path downloader; no generated source tree or alias.
     $package["require"]["peanut-admin/core"] = $argv[6];
+    if (isset($source["require"][$package["name"]])) {
+        $source["require"][$package["name"]] = $package["version"];
+    }
     $package["dist"] = [
         "type" => "path",
         "url" => $path,
@@ -157,11 +163,15 @@ run_composer() {
         local status=0
         "$ROOT_DIR/scripts/run-with-environment-file" --env-file "$tool_environment" -- \
             python3 "$ROOT_DIR/scripts/project-env" --root "$CORE_PACKAGE_DIR" --state-root "$ROOT_DIR" \
-            --host "$ROOT_DIR/.local/toolchain/cores/php/host.json" exec -- composer --working-dir="$SERVER_DIR" \
+            --host "$ROOT_DIR/.local/toolchain/cores/php/host.json" run -- composer --working-dir="$SERVER_DIR" \
             --no-interaction \
             "$@" || status=$?
         rm -f "$tool_environment"
         return "$status"
+    elif [[ -z "${PEANUT_PROJECT_ENV_ACTIVE:-}" && -f "$ROOT_DIR/tools/toolchain.json" && -f "$ROOT_DIR/scripts/project-env" ]]; then
+        COMPOSER="$LOCAL_COMPOSER" PHP_ENV_NAME="$native_env_name" \
+            python3 "$ROOT_DIR/scripts/project-env" --root "$ROOT_DIR" --state-root "$ROOT_DIR" \
+            --tools php,composer run -- composer --working-dir="$SERVER_DIR" --no-interaction "$@"
     else
         COMPOSER="$LOCAL_COMPOSER" PHP_ENV_NAME="$native_env_name" composer --working-dir="$SERVER_DIR" --no-interaction "$@"
     fi

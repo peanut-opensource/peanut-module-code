@@ -213,8 +213,11 @@ link_sources_owned() {
     before="$(metadata_digest)"
     if [[ -f "$ROOT_DIR/.local/toolchain/cores/web/host.json" ]]; then
         (cd "$CORE_DIR" && python3 "$ROOT_DIR/scripts/project-env" --root "$CORE_DIR" --state-root "$ROOT_DIR" \
-            --host "$ROOT_DIR/.local/toolchain/cores/web/host.json" exec -- \
+            --host "$ROOT_DIR/.local/toolchain/cores/web/host.json" run -- \
             sh -c 'pnpm install --frozen-lockfile --prod=false && pnpm run build')
+    elif [[ -z "${PEANUT_PROJECT_ENV_ACTIVE:-}" && -f "$ROOT_DIR/tools/toolchain.json" && -f "$ROOT_DIR/scripts/project-env" ]]; then
+        (cd "$CORE_DIR" && python3 "$ROOT_DIR/scripts/project-env" --root "$ROOT_DIR" --state-root "$ROOT_DIR" \
+            --tools node,pnpm run -- sh -c 'pnpm install --frozen-lockfile --prod=false && pnpm run build')
     else
         (cd "$CORE_DIR" && pnpm install --frozen-lockfile --prod=false && pnpm run build)
     fi

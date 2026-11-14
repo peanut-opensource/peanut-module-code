@@ -376,9 +376,25 @@ def discover_host(root: Path, required: dict) -> dict:
     if missing:
         fail('missing tools: ' + ', '.join(sorted(set(missing)))
              + '; install them explicitly or select existing PEANUT_TOOL_<NAME> paths')
+    home = Path.home()
+    global_cache_candidates = {
+        'npm': [os.environ.get('npm_config_cache'), home / '.npm'],
+        'pnpm': [os.environ.get('npm_config_store_dir'), home / 'Library/pnpm/store', home / '.local/share/pnpm/store'],
+        'composer': [os.environ.get('COMPOSER_CACHE_DIR'), home / 'Library/Caches/composer', home / '.cache/composer'],
+    }
+
+    def default_cache(name: str) -> str:
+        for candidate in global_cache_candidates.get(name, []):
+            if not candidate:
+                continue
+            path = Path(candidate)
+            if path.is_dir() and os.access(path, os.W_OK):
+                return str(path.resolve())
+        return '.local/toolchain/cache/' + name
+
     return {'schema_version': 1, 'path_base': str(root), 'commands': commands,
             'selected_tools': selected_tools,
-            'caches': {name: '.local/toolchain/cache/' + name for name in CACHE_ENV if name in required},
+            'caches': {name: default_cache(name) for name in CACHE_ENV if name in required},
             'extra_path': [p for p in os.environ.get('PATH', '').split(os.pathsep) if p and Path(p).is_dir()],
             'watch_paths': []}
 
@@ -516,6 +532,7 @@ def environment(root: Path, host: dict, bin_path: Path, temporary_directory: Pat
     env["COREPACK_ENABLE_NETWORK"] = "0"
     env["COREPACK_ENABLE_AUTO_PIN"] = "0"
     env["TMPDIR"] = str(temporary_directory)
+    env["PEANUT_PROJECT_ENV_ACTIVE"] = "1"
     return env
 
 
