@@ -678,6 +678,7 @@
         };
       attempt = undefined;
       soloDirty.value = !caughtUp;
+      message.value = '';
       emit('load', detail.value);
       setSaveState(caughtUp ? 'saved' : 'idle');
     } catch (error) {
