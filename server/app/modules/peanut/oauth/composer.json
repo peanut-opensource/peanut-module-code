@@ -2,7 +2,7 @@
   "name": "peanut-business/peanut-oauth",
   "description": "Official Tenant OAuth and channel module",
   "type": "library",
-    "version": "1.0.11",
+  "version": "1.0.12",
   "license": "Apache-2.0",
   "require": {
     "php": "^8.3",

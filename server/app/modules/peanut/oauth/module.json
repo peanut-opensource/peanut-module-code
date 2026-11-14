@@ -3,7 +3,7 @@
   "key": "peanut.oauth",
   "name": "OAuth and Channels",
   "description": "Tenant-owned OAuth identities and WeChat channel bindings.",
-    "version": "1.0.11",
+  "version": "1.0.12",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-oauth",
