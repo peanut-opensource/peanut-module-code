@@ -1756,7 +1756,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "d4df8772b19b3536a42d084dd45dd0e3978f4c4723643a9ff7f89ac56b7ddbed"
+                "sha256": "c06c5b9f83cf28e68793a0db8711795fd431f6cd107bead84ddb88a56ed479f6"
             },
             "trust": {
                 "channel": "bundled",
@@ -1826,7 +1826,7 @@
                     "package": "@peanut-admin/peanut-reference-codes",
                     "version": "1.0.7",
                     "entry": "web/src/modules/peanut-reference-codes/contribution.ts",
-                    "sha256": "01087d139374cb66c20226507bf2f8043c1d0e035695f6ee3b270b3e6bf56998"
+                    "sha256": "4b33fe79ce913c132250ccbc974685645c076ff16c1b386284afad0db6484451"
                 }
             ],
             "modules": [
@@ -1836,7 +1836,7 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/reference_codes/module.json",
-            "manifest_sha256": "339adfcce2f5de8be28ca5c51b00b6341e4e93a5fbb00c7cccad63a2f50215cf"
+            "manifest_sha256": "f27ee452233cae992739b25704a5a8fe755997058bf46038b6d8cf221f1b7616"
         },
         {
             "key": "peanut.rich-text",
