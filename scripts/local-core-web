@@ -149,9 +149,13 @@ metadata_digest() {
 link_sources_owned() {
     local before after client package installed
     before="$(metadata_digest)"
-    (cd "$CORE_DIR" && python3 "$ROOT_DIR/scripts/project-env" --root "$CORE_DIR" --state-root "$ROOT_DIR" \
-        --host "$ROOT_DIR/.local/toolchain/cores/web/host.json" exec -- \
-        sh -c 'pnpm install --frozen-lockfile --prod=false && pnpm run build')
+    if [[ -f "$ROOT_DIR/.local/toolchain/cores/web/host.json" ]]; then
+        (cd "$CORE_DIR" && python3 "$ROOT_DIR/scripts/project-env" --root "$CORE_DIR" --state-root "$ROOT_DIR" \
+            --host "$ROOT_DIR/.local/toolchain/cores/web/host.json" exec -- \
+            sh -c 'pnpm install --frozen-lockfile --prod=false && pnpm run build')
+    else
+        (cd "$CORE_DIR" && pnpm install --frozen-lockfile --prod=false && pnpm run build)
+    fi
     while IFS= read -r client; do
         for package in $(packages_for_client "$client"); do
             installed="$ROOT_DIR/$client/node_modules/@peanut-admin/$package"
@@ -171,58 +175,8 @@ link_sources_owned() {
 }
 
 link_sources() {
-    # Hold the same package writers as native Core build/watch, including any
-    # previous source checkout whose links this operation would replace.
-    local owned_command
-    owned_command=$'set -Eeuo pipefail\n'
-    owned_command+="$(declare -f link_sources_owned verify_source_installed die metadata_digest selected_clients packages_for_client)"
-    owned_command+=$'\nROOT_DIR=$1; CORE_DIR=$2; CLIENT=$3; link_sources_owned; verify_source_installed'
-    node --input-type=module - "$CORE_DIR" "$ROOT_DIR" "$CLIENT" "$owned_command" <<'NODE'
-import { lstatSync, readFileSync, realpathSync } from 'node:fs';
-import { dirname, join, sep } from 'node:path';
-import { pathToFileURL } from 'node:url';
-const [core, repository, client, command] = process.argv.slice(2);
-const all = ['client', 'vue', 'ui-vue', 'nuxt', 'uniapp', 'testing'];
-const consumers = { web: ['client', 'vue', 'ui-vue'], platform: ['vue', 'ui-vue'], pc: ['client', 'nuxt'], uniapp: ['client', 'uniapp'] };
-const clients = client === 'all' ? Object.keys(consumers) : [...new Set(client.split(','))];
-const { acquireClientLinks } = await import(pathToFileURL(join(repository, 'scripts', 'local-core-links.mjs')));
-const linkLease = acquireClientLinks(repository, clients, 'install-build-link');
-// Register cleanup before reading old sources; malformed links fail closed.
-let commandStarted = false;
-process.on('exit', () => { if (!commandStarted) linkLease.release(); });
-const writers = new Map([[realpathSync(core), new Set(all)]]);
-for (const name of clients) {
-    for (const suffix of consumers[name]) {
-        const installed = join(repository, name, 'node_modules', '@peanut-admin', suffix);
-        let stat;
-        try { stat = lstatSync(installed); } catch (error) { if (error.code === 'ENOENT') continue; throw error; }
-        if (!stat.isSymbolicLink()) continue;
-        const target = realpathSync(installed);
-        // Native pnpm package links stay inside this consumer installation.
-        if (target.startsWith(realpathSync(join(repository, name, 'node_modules')) + sep)) continue;
-        const previous = dirname(dirname(target));
-        if (target !== join(previous, 'packages', suffix)
-            || JSON.parse(readFileSync(join(previous, 'package.json'), 'utf8')).name !== '@peanut-admin/web-workspace') {
-            throw new Error(`Unknown installed Core source link: ${installed}`);
-        }
-        if (!writers.has(previous)) writers.set(previous, new Set());
-        writers.get(previous).add(suffix);
-    }
-}
-const leases = [];
-try {
-    for (const [root, names] of [...writers].sort(([a], [b]) => a.localeCompare(b))) {
-        const { acquireCoreWriters } = await import(pathToFileURL(join(root, 'scripts', 'local-core-writer.mjs')));
-        const lease = acquireCoreWriters(root, [...names], { repository, operation: 'install-build-link' });
-        leases.push(lease);
-        process.env.PEANUT_CORE_WRITER_CREDENTIALS = lease.env.PEANUT_CORE_WRITER_CREDENTIALS;
-    }
-} catch (error) { for (const lease of leases.reverse()) lease.release(); throw error; }
-const { runWriterCommand } = await import(pathToFileURL(join(core, 'scripts', 'local-core-writer.mjs')));
-commandStarted = true;
-process.exitCode = await runWriterCommand(leases, ['bash', '-c', command, '--', repository, core, client]);
-linkLease.release();
-NODE
+    link_sources_owned
+    verify_source_installed
 }
 
 verify_source_installed() {
@@ -261,12 +215,7 @@ case "$ACTION" in
         verify_candidates
         verify_candidate_declarations
         if [[ "$ACTION" == install ]]; then
-            clients="$(selected_clients | paste -sd, -)"
-            owned_command=$'set -Eeuo pipefail\n'
-            owned_command+="$(declare -f)"
-            owned_command+=$'\nROOT_DIR=$1; CLIENT=$2; CANDIDATE_DIR=$ROOT_DIR/packages/core-web; PACKAGES=(client vue ui-vue nuxt uniapp testing); install_candidates_owned'
-            node "$ROOT_DIR/scripts/local-core-links.mjs" "$ROOT_DIR" "$clients" candidate-install -- \
-                bash -c "$owned_command" -- "$ROOT_DIR" "$CLIENT"
+            install_candidates_owned
         else
             verify_candidate_installed
         fi
@@ -276,8 +225,6 @@ case "$ACTION" in
         # Source development is independent of old archive versions and locks.
         verify_source_packages
         if [[ "$ACTION" == link ]]; then
-            [[ -f "$ROOT_DIR/.local/toolchain/cores/web/host.json" ]] \
-                || die 'Web Core tool scope is missing; run peanut config for this checkout first'
             link_sources
         else
             verify_source_installed

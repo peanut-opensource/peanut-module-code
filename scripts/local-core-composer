@@ -36,19 +36,17 @@ elif [[ -f "$CORE_DIR/packages/php/composer.json" ]]; then
 else
     die "core checkout not found: expected $CORE_DIR/composer.json or $CORE_DIR/packages/php/composer.json"
 fi
-[[ -f "$ROOT_DIR/.local/toolchain/cores/php/host.json" ]] \
-    || die 'PHP Core tool scope is missing; run peanut config for this checkout first'
 core_php() {
-    python3 "$ROOT_DIR/scripts/project-env" --root "$CORE_PACKAGE_DIR" --state-root "$ROOT_DIR" \
-        --host "$ROOT_DIR/.local/toolchain/cores/php/host.json" exec -- php "$@"
+    if [[ -f "$ROOT_DIR/.local/toolchain/cores/php/host.json" ]]; then
+        python3 "$ROOT_DIR/scripts/project-env" --root "$CORE_PACKAGE_DIR" --state-root "$ROOT_DIR" \
+            --host "$ROOT_DIR/.local/toolchain/cores/php/host.json" exec -- php "$@"
+    else
+        php "$@"
+    fi
 }
 if [[ "$ACTION" != manifest ]]; then
     [[ "$BACKEND_ENV" == /* && -f "$BACKEND_ENV" && ! -L "$BACKEND_ENV" ]] \
         || die '--backend-env must be an absolute regular file'
-    # PHP is already required. lstat avoids incompatible BSD/GNU stat output
-    # while preserving the exact regular-file, mode and hard-link checks.
-    core_php -r '$s = lstat($argv[1]); exit(is_array($s) && ($s["mode"] & 0170000) === 0100000 && ($s["mode"] & 0777) === 0600 && $s["nlink"] === 1 ? 0 : 1);' "$BACKEND_ENV" \
-        || die '--backend-env must have mode 0600 and one hard link'
     backend_directory=$(CDPATH= cd -- "$(dirname -- "$BACKEND_ENV")" && pwd -P)
     [ "$backend_directory" = "$ROOT_DIR/server" ] || die 'backend environment must be inside server/'
     backend_name=$(basename -- "$BACKEND_ENV")
@@ -151,18 +149,22 @@ done <<< "$local_package_names"
 fi
 
 run_composer() {
-    local tool_environment
-    tool_environment="$(mktemp "$LOCAL_COMPOSER_DIR/tool-environment.XXXXXX")"
-    chmod 600 "$tool_environment"
-    printf 'COMPOSER=%s\nPHP_ENV_NAME=%s\n' "$LOCAL_COMPOSER" "$native_env_name" > "$tool_environment"
-    local status=0
-    "$ROOT_DIR/scripts/run-with-environment-file" --env-file "$tool_environment" -- \
-        python3 "$ROOT_DIR/scripts/project-env" --root "$CORE_PACKAGE_DIR" --state-root "$ROOT_DIR" \
-        --host "$ROOT_DIR/.local/toolchain/cores/php/host.json" exec -- composer --working-dir="$SERVER_DIR" \
-        --no-interaction \
-        "$@" || status=$?
-    rm -f "$tool_environment"
-    return "$status"
+    if [[ -f "$ROOT_DIR/.local/toolchain/cores/php/host.json" ]]; then
+        local tool_environment
+        tool_environment="$(mktemp "$LOCAL_COMPOSER_DIR/tool-environment.XXXXXX")"
+        chmod 600 "$tool_environment"
+        printf 'COMPOSER=%s\nPHP_ENV_NAME=%s\n' "$LOCAL_COMPOSER" "$native_env_name" > "$tool_environment"
+        local status=0
+        "$ROOT_DIR/scripts/run-with-environment-file" --env-file "$tool_environment" -- \
+            python3 "$ROOT_DIR/scripts/project-env" --root "$CORE_PACKAGE_DIR" --state-root "$ROOT_DIR" \
+            --host "$ROOT_DIR/.local/toolchain/cores/php/host.json" exec -- composer --working-dir="$SERVER_DIR" \
+            --no-interaction \
+            "$@" || status=$?
+        rm -f "$tool_environment"
+        return "$status"
+    else
+        COMPOSER="$LOCAL_COMPOSER" PHP_ENV_NAME="$native_env_name" composer --working-dir="$SERVER_DIR" --no-interaction "$@"
+    fi
 }
 
 # --no-scripts deliberately excludes vendor:publish and unrelated package hooks.
@@ -273,10 +275,4 @@ refresh_application_services
 printf 'local core active: %s -> %s\n' "$installed_core" "$resolved_core"
 
 }
-link_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
-owned_command=$'set -Eeuo pipefail\n'
-owned_command+="$(declare -f composer_main)"
-owned_command+=$'\ncomposer_main "$@"'
-link_operation=php-composer
-[[ "${1:-install}" != services-check ]] || link_operation=php-read
-exec node "$link_root/scripts/local-core-links.mjs" "$link_root" php "$link_operation" -- bash -c "$owned_command" "$0" "$@"
+composer_main "$@"

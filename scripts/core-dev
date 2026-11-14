@@ -14,7 +14,7 @@ CLIENT="all"
 die() { printf 'core-dev: %s\n' "$*" >&2; exit 1; }
 usage() {
   cat <<'USAGE'
-Usage: scripts/core-dev {select|install|status|link|link-status|php-status|php-path|web-path}
+Usage: scripts/core-dev {select|install|status|link|link-status|php-status|php-path|web-path|reset|unlink}
   [--path /absolute/application-checkout]
   --php-core-dir /absolute/peanut-admin-core-php
   --web-core-dir /absolute/peanut-admin-core-web
@@ -22,18 +22,19 @@ Usage: scripts/core-dev {select|install|status|link|link-status|php-status|php-p
   [--client web,platform|pc|uniapp|all]
 
 select persists this choice in the application's ignored .local/core-dev.json.
-Missing source paths reuse the saved choice, then host.json core.php/core.web on select.
+Missing source paths reuse the saved choice, then host.json core.php/core.web,
+then adjacent ../peanut-admin-core-php and ../peanut-admin-core-web on select.
 Following commands reuse that choice; command-line paths override it for that call.
 Development always uses both explicitly selected local Core checkouts.
 install/link activate source links; status/link-status verify those links.
+reset/unlink removes .local/core-dev.json and restores fixed packages.
 Local Web exports use dist/, compiled by the existing TypeScript toolchain.
 First select the checkouts and run install/link to prepare source dependencies.
 Use the prepared Core tool scope for the existing Web Core watch (see development docs).
---client limits Web install/link/status to the listed clients; default: all.
+--client limits Web install/link/status/reset to the listed clients; default: all.
 Start clients separately with native npm run dev / npm run dev:h5 commands;
 they consume the prepared links and do not start Core watchers or read this choice.
-Do not re-link or rebuild for each edit; stop affected clients and Core watch
-before switching source links or refreshing dependencies.
+Do not re-link or rebuild for each edit.
 An APP without a saved choice uses its normal fixed packages. Candidate delivery
 uses fixed Core packages and native locks, independently of these source links.
 USAGE
@@ -52,6 +53,40 @@ done
 [[ "$CLIENT" == all || "$CLIENT" =~ ^(web|platform|pc|uniapp)(,(web|platform|pc|uniapp))*$ ]] || die 'unsupported client selection'
 ROOT_DIR="$(CDPATH= cd -- "$ROOT_DIR" && pwd -P)"
 [[ -f "$ROOT_DIR/server/composer.json" && -x "$ROOT_DIR/scripts/local-core-composer" ]] || die 'application checkout is invalid'
+if [[ "$ACTION" == reset || "$ACTION" == unlink ]]; then
+  rm -rf "$ROOT_DIR/.local/core-dev.json" "$ROOT_DIR/.local/composer-core" "$ROOT_DIR/.local/core-links"
+  if [[ -L "$ROOT_DIR/server/vendor/peanut-admin/core" ]]; then
+    rm -f "$ROOT_DIR/server/vendor/peanut-admin/core"
+    (cd "$ROOT_DIR/server" && composer install --no-scripts --no-interaction && php think service:discover)
+  fi
+  selected_reset_clients=()
+  if [[ "$CLIENT" == all ]]; then
+    selected_reset_clients=(web platform pc uniapp)
+  else
+    IFS=',' read -r -a selected_reset_clients <<< "$CLIENT"
+  fi
+  for reset_client in "${selected_reset_clients[@]}"; do
+    has_link=0
+    for pkg_dir in "$ROOT_DIR/$reset_client/node_modules/@peanut-admin"/*; do
+      if [[ -L "$pkg_dir" ]]; then
+        target="$(realpath "$pkg_dir" 2>/dev/null || true)"
+        case "$target" in
+          "$ROOT_DIR/$reset_client/node_modules/"*) ;;
+          *) has_link=1 ;;
+        esac
+      fi
+    done
+    if [[ "$has_link" == 1 ]]; then
+      if [[ "$reset_client" == web ]]; then
+        (cd "$ROOT_DIR/web" && pnpm install --frozen-lockfile --ignore-scripts)
+      else
+        (cd "$ROOT_DIR/$reset_client" && npm ci --ignore-scripts)
+      fi
+    fi
+  done
+  printf 'core-dev: reset to fixed packages completed\n'
+  exit 0
+fi
 selection_file="$ROOT_DIR/.local/core-dev.json"
 if [[ -e "$selection_file" || -L "$selection_file" ]]; then
   selection="$(node - "$selection_file" "$ROOT_DIR" <<'NODE'
@@ -84,6 +119,11 @@ NODE
 )" || die 'configured Core paths are invalid; supply explicit source paths'
   [[ -n "$PHP_CORE_DIR" ]] || PHP_CORE_DIR="$(printf '%s\n' "$configured" | sed -n '1p')"
   [[ -n "$WEB_CORE_DIR" ]] || WEB_CORE_DIR="$(printf '%s\n' "$configured" | sed -n '2p')"
+fi
+if [[ "$ACTION" == select ]]; then
+  [[ -n "$PHP_CORE_DIR" || ! -f "$ROOT_DIR/../peanut-admin-core-php/composer.json" ]] || PHP_CORE_DIR="$(CDPATH= cd -- "$ROOT_DIR/../peanut-admin-core-php" && pwd -P)"
+  [[ -n "$WEB_CORE_DIR" || ! -f "$ROOT_DIR/../peanut-admin-core-web/pnpm-workspace.yaml" ]] || WEB_CORE_DIR="$(CDPATH= cd -- "$ROOT_DIR/../peanut-admin-core-web" && pwd -P)"
+  [[ -n "$BACKEND_ENV" || ! -f "$ROOT_DIR/server/.env" || -L "$ROOT_DIR/server/.env" ]] || BACKEND_ENV="$ROOT_DIR/server/.env"
 fi
 [[ "$PHP_CORE_DIR" == /* && "$WEB_CORE_DIR" == /* ]] || die 'both absolute Core checkout paths are required'
 PHP_CORE_DIR="$(CDPATH= cd -- "$PHP_CORE_DIR" && pwd -P)"
@@ -128,22 +168,4 @@ esac
 printf 'core-dev: %s completed for explicit PHP and Web Core checkouts\n' "$ACTION"
 
 }
-if [[ "${1:-status}" == select ]]; then
-    source_root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)"
-    target_root="$source_root"
-    arguments=("$@")
-    for ((index=1; index<${#arguments[@]}; index++)); do
-        if [[ "${arguments[index]}" == --path ]]; then
-            ((index+=1))
-            [[ $index -lt ${#arguments[@]} && "${arguments[index]}" == /* ]] || exit 2
-            target_root="${arguments[index]}"
-        fi
-    done
-    target_root="$(CDPATH= cd -- "$target_root" && pwd -P)"
-    [[ -f "$target_root/server/composer.json" && -x "$target_root/scripts/local-core-composer" ]] || exit 1
-    owned_command=$'set -Eeuo pipefail\n'
-    owned_command+="$(declare -f core_dev_main)"
-    owned_command+=$'\ncore_dev_main "$@"'
-    exec node "$source_root/scripts/local-core-links.mjs" "$target_root" php,web,platform,pc,uniapp select -- bash -c "$owned_command" "$0" "$@"
-fi
 core_dev_main "$@"
