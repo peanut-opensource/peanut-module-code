@@ -72,10 +72,13 @@ final class ModuleReconcile extends ModuleContextualCommand
                     return $service->reconcileInstalled($ordered);
                 }
                 // Prepared adoption must not turn an absent/disabled selection into an installation.
-                $states = Db::name('module_installation')->whereIn('module_key', $ordered)->column('status', 'module_key');
+                $states = Db::name('module_installation')->whereIn('module_key', $ordered)
+                    ->column('status,activated_at', 'module_key');
                 foreach ($ordered as $key) {
-                    if (($states[$key] ?? null) !== 'active') {
-                        throw new ModuleLifecycleException('PLUGIN_STATE_INVALID', 'Prepared selected adoption requires active installed packages.');
+                    $state = $states[$key] ?? [];
+                    if (($state['status'] ?? null) !== 'active'
+                        && !(($state['status'] ?? null) === 'failed' && ($state['activated_at'] ?? null) !== null)) {
+                        throw new ModuleLifecycleException('PLUGIN_STATE_INVALID', 'Prepared selected adoption requires active packages or previously activated failed upgrades.');
                     }
                 }
                 $results = [];
