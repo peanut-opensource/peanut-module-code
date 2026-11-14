@@ -108,9 +108,6 @@ foreach ($source["repositories"] ?? [] as $repository) {
     // Project only dependency metadata. Composer installs the original source
     // through its native path downloader; no generated source tree or alias.
     $package["require"]["peanut-admin/core"] = $argv[6];
-    if (isset($source["require"][$package["name"]])) {
-        $source["require"][$package["name"]] = $package["version"];
-    }
     $package["dist"] = [
         "type" => "path",
         "url" => $path,
@@ -245,15 +242,15 @@ refresh_application_services() {
 }
 
 case "$ACTION" in
-    install)
+    install|update|refresh)
         # Unlock only Core and local modules whose Core requirement was projected.
-        # Third-party versions remain fixed by the committed application lock.
         cp "$SERVER_DIR/composer.lock" "$LOCAL_LOCK"
-        run_composer update "${update_packages[@]}" --no-scripts --no-progress --prefer-dist
-        ;;
-    update|refresh)
-        cp "$SERVER_DIR/composer.lock" "$LOCAL_LOCK"
-        run_composer update "${update_packages[@]}" --no-scripts --no-progress --prefer-dist
+        run_composer update "${update_packages[@]}" --no-autoloader --no-scripts --no-progress --prefer-dist
+        installed_core="$SERVER_DIR/vendor/peanut-admin/core"
+        if [[ ! -L "$installed_core" || "$(realpath "$installed_core" 2>/dev/null)" != "$CORE_PACKAGE_DIR" ]]; then
+            run_composer reinstall peanut-admin/core --no-autoloader --no-scripts --no-progress
+        fi
+        run_composer dump-autoload --no-scripts
         ;;
     autoload)
         run_composer dump-autoload --no-scripts

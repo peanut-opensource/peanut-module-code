@@ -53,76 +53,6 @@ done
 [[ "$CLIENT" == all || "$CLIENT" =~ ^(web|platform|pc|uniapp)(,(web|platform|pc|uniapp))*$ ]] || die 'unsupported client selection'
 ROOT_DIR="$(CDPATH= cd -- "$ROOT_DIR" && pwd -P)"
 [[ -f "$ROOT_DIR/server/composer.json" && -x "$ROOT_DIR/scripts/local-core-composer" ]] || die 'application checkout is invalid'
-if [[ "$ACTION" == reset || "$ACTION" == unlink ]]; then
-  rm -rf "$ROOT_DIR/.local/core-dev.json" "$ROOT_DIR/.local/composer-core" "$ROOT_DIR/.local/core-links"
-  needs_composer_restore=0
-  if [[ -L "$ROOT_DIR/server/vendor/peanut-admin/core" ]]; then
-    rm -f "$ROOT_DIR/server/vendor/peanut-admin/core"
-    needs_composer_restore=1
-  elif [[ -f "$ROOT_DIR/server/vendor/autoload.php" && -f "$ROOT_DIR/server/composer.lock" ]]; then
-    if ! node - "$ROOT_DIR/server/composer.lock" "$ROOT_DIR/server/vendor/composer/installed.json" <<'NODE'
-const fs = require('node:fs');
-const [lockFile, installedFile] = process.argv.slice(2);
-if (!fs.existsSync(installedFile)) process.exit(1);
-const lock = JSON.parse(fs.readFileSync(lockFile, 'utf8'));
-const installed = JSON.parse(fs.readFileSync(installedFile, 'utf8'));
-const lockPkg = (lock.packages || []).find((p) => p.name === 'peanut-admin/core');
-const instPkgs = Array.isArray(installed) ? installed : (installed.packages || []);
-const instPkg = instPkgs.find((p) => p.name === 'peanut-admin/core');
-if (!lockPkg || !instPkg || lockPkg.version !== instPkg.version) process.exit(1);
-NODE
-    then
-      needs_composer_restore=1
-    fi
-  fi
-  if [[ "$needs_composer_restore" == 1 ]]; then
-    (cd "$ROOT_DIR/server" && composer install --no-scripts --no-interaction && php think service:discover)
-  fi
-  selected_reset_clients=()
-  if [[ "$CLIENT" == all ]]; then
-    selected_reset_clients=(web platform pc uniapp)
-  else
-    IFS=',' read -r -a selected_reset_clients <<< "$CLIENT"
-  fi
-  for reset_client in "${selected_reset_clients[@]}"; do
-    has_link=0
-    for pkg_name in client vue ui-vue nuxt uniapp testing; do
-      pkg_dir="$ROOT_DIR/$reset_client/node_modules/@peanut-admin/$pkg_name"
-      [[ -e "$pkg_dir" || -L "$pkg_dir" ]] || continue
-      if [[ -L "$pkg_dir" ]]; then
-        target="$(realpath "$pkg_dir" 2>/dev/null || true)"
-        case "$target" in
-          "$ROOT_DIR/$reset_client/node_modules/"*) ;;
-          *) has_link=1 ;;
-        esac
-      fi
-      if [[ "$has_link" == 0 && -f "$pkg_dir/package.json" && -f "$ROOT_DIR/$reset_client/package.json" ]]; then
-        if ! node - "$ROOT_DIR/$reset_client/package.json" "$pkg_dir/package.json" "@peanut-admin/$pkg_name" <<'NODE'
-const fs = require('node:fs');
-const [manifestFile, installedFile, fullName] = process.argv.slice(2);
-const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
-const expected = manifest.dependencies?.[fullName] ?? manifest.devDependencies?.[fullName];
-if (expected && !/^(workspace:|file:|link:|[~^])/.test(expected)) {
-  const installed = JSON.parse(fs.readFileSync(installedFile, 'utf8'));
-  if (installed.version !== expected) process.exit(1);
-}
-NODE
-        then
-          has_link=1
-        fi
-      fi
-    done
-    if [[ "$has_link" == 1 ]]; then
-      if [[ "$reset_client" == web ]]; then
-        (cd "$ROOT_DIR/web" && pnpm install --frozen-lockfile --ignore-scripts)
-      else
-        (cd "$ROOT_DIR/$reset_client" && npm ci --ignore-scripts)
-      fi
-    fi
-  done
-  printf 'core-dev: reset to fixed packages completed\n'
-  exit 0
-fi
 selection_file="$ROOT_DIR/.local/core-dev.json"
 if [[ -e "$selection_file" || -L "$selection_file" ]]; then
   selection="$(node - "$selection_file" "$ROOT_DIR" <<'NODE'
@@ -141,6 +71,77 @@ NODE
   [[ -n "$PHP_CORE_DIR" ]] || PHP_CORE_DIR="$(printf '%s\n' "$selection" | sed -n '1p')"
   [[ -n "$WEB_CORE_DIR" ]] || WEB_CORE_DIR="$(printf '%s\n' "$selection" | sed -n '2p')"
   [[ -n "$BACKEND_ENV" ]] || BACKEND_ENV="$(printf '%s\n' "$selection" | sed -n '3p')"
+fi
+if [[ "$ACTION" == reset || "$ACTION" == unlink ]]; then
+  [[ ! -L "$ROOT_DIR/.local" ]] || die 'local Core selection directory may not be a link'
+  (
+    cd -- "$ROOT_DIR/server"
+    export COMPOSER=composer.json
+    [[ -f composer.lock ]] || die 'release requires server/composer.lock'
+    locked_core="$(node - <<'NODE'
+const fs = require('node:fs');
+const pkg = JSON.parse(fs.readFileSync('composer.lock')).packages.find(p => p.name === 'peanut-admin/core');
+if (!pkg?.version || !(pkg.dist?.reference || pkg.source?.reference || pkg.dist?.shasum) || pkg.dist?.type === 'path') {
+  throw new Error('server/composer.lock must pin a fixed peanut-admin/core package');
+}
+console.log(JSON.stringify(pkg));
+NODE
+)"
+    core_metadata_matches() {
+      node - "$locked_core" <<'NODE'
+const fs = require('node:fs');
+const lock = JSON.parse(process.argv[2]);
+const file = 'vendor/composer/installed.json';
+if (!fs.existsSync(file)) process.exit(1);
+const installed = JSON.parse(fs.readFileSync(file));
+const pkg = (installed.packages ?? installed).find(p => p.name === lock.name);
+if (!pkg || pkg.version !== lock.version) process.exit(1);
+for (const key of ['source', 'dist']) {
+  for (const field of ['type', 'url', 'reference', 'shasum']) {
+    if (pkg[key]?.[field] !== lock[key]?.[field]) process.exit(1);
+  }
+}
+NODE
+    }
+    core_dir=vendor/peanut-admin/core
+    core_files_ready() {
+      [[ ! -L "$core_dir" && -f "$core_dir/kernel/src/Module/ModuleProvider.php" && -f "$core_dir/composer.json" ]] &&
+        node -e 'if (require("./vendor/peanut-admin/core/composer.json").name !== "peanut-admin/core") process.exit(1)'
+    }
+    if ! core_metadata_matches || ! core_files_ready || [[ ! -f vendor/autoload.php || ! -f vendor/composer/installed.php ]]; then
+      # Detach the entry, never let an archive installer write into the source checkout.
+      if [[ -L "$core_dir" ]]; then rm -- "$core_dir"; fi
+      composer install --no-autoloader --no-scripts --no-interaction
+      core_metadata_matches || die 'installed PHP Core metadata differs from server/composer.lock after install'
+      if ! core_files_ready; then
+        # Composer may have reported nothing to install based on installed.json alone.
+        composer reinstall peanut-admin/core --no-autoloader --no-scripts --no-interaction
+        core_metadata_matches && core_files_ready || die 'locked PHP Core package was not restored'
+      fi
+      composer dump-autoload --no-scripts --no-interaction
+      php think service:discover
+    elif [[ ! -f vendor/services.php ]]; then
+      php think service:discover
+    fi
+    [[ -f vendor/autoload.php && -f vendor/composer/installed.php && -f vendor/services.php ]] || die 'PHP release metadata is incomplete'
+  )
+  if [[ "$CLIENT" == all ]]; then
+    selected_reset_clients=(web platform pc uniapp)
+  else
+    IFS=',' read -r -a selected_reset_clients <<< "$CLIENT"
+  fi
+  for reset_client in "${selected_reset_clients[@]}"; do
+    if ! "$ROOT_DIR/scripts/local-core-web" status --client "$reset_client"; then
+      if [[ "$reset_client" == web ]]; then
+        npm_config_force=true "$ROOT_DIR/scripts/local-core-web" install --client web
+      else
+        "$ROOT_DIR/scripts/local-core-web" install --client "$reset_client"
+      fi
+    fi
+  done
+  rm -f -- "$ROOT_DIR/.local/core-dev.json"
+  printf 'core-dev: reset to fixed packages completed\n'
+  exit 0
 fi
 if [[ ( -z "$PHP_CORE_DIR" || -z "$WEB_CORE_DIR" ) && -f "$ROOT_DIR/.local/toolchain/host.json" ]]; then
   configured="$(node - "$ROOT_DIR/.local/toolchain/host.json" <<'NODE'
