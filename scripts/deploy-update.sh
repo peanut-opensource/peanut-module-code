@@ -58,8 +58,12 @@ PHP
 <?php
 try {
     require 'server/vendor/autoload.php';
-    require_once 'server/database/install.php';
-    $application = ensureThinkPhpApplication(getcwd() . '/server');
+    // Dependency preparation must precede AppService and Module providers:
+    // a newly adopted composition is not in Composer's autoloader yet.
+    $application = new \think\App(getcwd() . '/server');
+    $application->loadEnv($application->env->get('env_name', ''));
+    require_once 'server/vendor/topthink/framework/src/helper.php';
+    $application->config->set(require 'server/config/deployment.php', 'deployment');
     $clients = $application->config->get('deployment.mode') === 'multi-tenant' ? ['web', 'platform'] : ['web'];
     $result = (new app\common\module\Dependencies(getcwd() . '/server'))->prepareRelease(
         new app\platform\infrastructure\module\ModuleLockResolver(getcwd() . '/server', '../modules.lock'),

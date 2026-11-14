@@ -170,7 +170,7 @@ def declared_runtime_constraints(required: dict, host: dict) -> tuple[list[tuple
     return constraints, manager_constraints
 
 
-def requirements(root: Path) -> tuple:
+def requirements(root: Path, selection: str | None = None) -> tuple:
     candidate = root / "tools/toolchain.json"
     inputs = {}
 
@@ -221,6 +221,7 @@ def requirements(root: Path) -> tuple:
             add_package_manager_constraint(data, tools, "package")
         if not tools:
             fail("project has no recognized composer.json or package.json tool requirements")
+    tools = tool_scope(tools, selection)
     resolved = {}
     for name, spec in tools.items():
         if not isinstance(spec, dict):
@@ -291,12 +292,117 @@ def requirements(root: Path) -> tuple:
                         constraints.append(("web.devEngines.runtime.version", runtime["version"]))
                 resolved[name]["manifest_constraints"] = constraints
                 add_package_manager_constraint(document, resolved, "web")
-    return resolved, inputs
+    return tool_scope(resolved, selection), inputs
 
 
-def configuration(root: Path, host_path: Path, scope_identity: str) -> tuple:
-    required, inputs = requirements(root)
-    host = read_json(host_path)
+def tool_scope(required: dict, selection: str | None) -> dict:
+    if selection is None:
+        return required
+    names = set(selection.split(','))
+    if not names or '' in names or names - set(required):
+        fail('tool scope must select declared tools')
+    if names & {'npm', 'pnpm'}:
+        names.add('node')
+    if 'composer' in names:
+        names.add('php')
+    return {name: spec for name, spec in required.items() if name in names}
+
+
+def discover_host(root: Path, required: dict) -> dict:
+    """Resolve existing tools only; no package installation or workstation registry."""
+    commands, missing = {}, []
+    for name in ('node', 'php', 'python3'):
+        if name not in required:
+            continue
+        requested = os.environ.get('PEANUT_TOOL_' + name.upper())
+        selected = shutil.which(requested or name)
+        if selected is None and name == 'python3' and not requested:
+            selected = sys.executable
+        if not selected:
+            missing.append(name)
+        else:
+            commands[name] = [str(Path(selected).resolve())]
+    selected_tools = {}
+    for name, interpreter in (('npm', 'node'), ('pnpm', 'node'), ('composer', 'php')):
+        if name not in required:
+            continue
+        requested = os.environ.get('PEANUT_TOOL_' + name.upper())
+        selected = shutil.which(requested or name)
+        options = [Path(selected).resolve()] if selected else []
+        if name in ('npm', 'pnpm') and 'node' in commands and not requested:
+            node = Path(commands['node'][0])
+            package_cli = 'bin/npm-cli.js' if name == 'npm' else 'bin/pnpm.cjs'
+            options += [node.parent.parent / 'lib/node_modules' / name / package_cli]
+            if name == 'pnpm':
+                home = Path(os.environ.get('COREPACK_HOME', str(Path.home() / '.cache/node/corepack')))
+                recommended = required[name].get('version', '')
+                if re.fullmatch(r'\d+\.\d+\.\d+', recommended):
+                    options += [home / 'v1/pnpm' / recommended / 'bin/pnpm.cjs']
+                if os.environ.get('PNPM_HOME'):
+                    options += [Path(os.environ['PNPM_HOME']) / 'pnpm']
+        if name == 'composer' and not requested:
+            fixed = required[name].get('fixed_phar')
+            if fixed:
+                options.insert(0, root / fixed)
+        selected_cli = None
+        for candidate in options:
+            if not candidate.is_file():
+                continue
+            if name != 'composer':
+                try:
+                    _, package = package_manifest_for_cli(candidate, name)
+                    if package.get('name') != name or candidate.suffix not in ('.js', '.cjs', '.mjs'):
+                        continue
+                except (OSError, ValueError, json.JSONDecodeError):
+                    continue
+            else:
+                if b'<?php' not in candidate.open('rb').read(256):
+                    continue
+            selected_cli = candidate.resolve()
+            break
+        if selected_cli is None or interpreter not in commands:
+            missing.append(name)
+            continue
+        commands[name] = [commands[interpreter][0], str(selected_cli)]
+        if name == 'composer':
+            version = subprocess.run([*commands[name], '--no-plugins', '--no-scripts', '--version'],
+                                     cwd=root, capture_output=True, text=True, timeout=10)
+            found = re.search(r'(?<![\d.])(\d+\.\d+\.\d+)(?![\d.])', version.stdout + version.stderr)
+            if version.returncode or found is None:
+                missing.append(name)
+            else:
+                selected_tools[name] = {'path': str(selected_cli), 'version': found.group(1),
+                                        'sha256': hashlib.sha256(selected_cli.read_bytes()).hexdigest()}
+    if missing:
+        fail('missing tools: ' + ', '.join(sorted(set(missing)))
+             + '; install them explicitly or select existing PEANUT_TOOL_<NAME> paths')
+    home = Path.home()
+    global_cache_candidates = {
+        'npm': [os.environ.get('npm_config_cache'), home / '.npm'],
+        'pnpm': [os.environ.get('npm_config_store_dir'), home / 'Library/pnpm/store', home / '.local/share/pnpm/store'],
+        'composer': [os.environ.get('COMPOSER_CACHE_DIR'), home / 'Library/Caches/composer', home / '.cache/composer'],
+    }
+
+    def default_cache(name: str) -> str:
+        for candidate in global_cache_candidates.get(name, []):
+            if not candidate:
+                continue
+            path = Path(candidate)
+            if path.is_dir() and os.access(path, os.W_OK):
+                return str(path.resolve())
+        return '.local/toolchain/cache/' + name
+
+    return {'schema_version': 1, 'path_base': str(root), 'commands': commands,
+            'selected_tools': selected_tools,
+            'caches': {name: default_cache(name) for name in CACHE_ENV if name in required},
+            'extra_path': [p for p in os.environ.get('PATH', '').split(os.pathsep) if p and Path(p).is_dir()],
+            'watch_paths': []}
+
+
+def configuration(root: Path, host_path: Path, scope_identity: str, *, host_document=None,
+                  selection=None, require_cache_dirs=True) -> tuple:
+    required, inputs = requirements(root, selection)
+    host = json.loads(json.dumps(host_document)) if host_document is not None else read_json(host_path)
     path_base = configured_path(root, host.get("path_base", str(root))).resolve(strict=True)
     if not path_base.is_dir():
         fail("path_base must name an existing project root")
@@ -307,6 +413,9 @@ def configuration(root: Path, host_path: Path, scope_identity: str) -> tuple:
     if "composer" in required and isinstance(selected_composer, dict):
         required["composer"]["version"] = selected_composer.get("version")
     commands = host.get("commands", {})
+    if selection is not None and isinstance(commands, dict):
+        commands = {name: argv for name, argv in commands.items() if name in required}
+        host['commands'] = commands
     if not isinstance(commands, dict) or set(commands) != set(required):
         fail("host commands must match the declared tools exactly")
     watched = []
@@ -348,13 +457,17 @@ def configuration(root: Path, host_path: Path, scope_identity: str) -> tuple:
         fail("extra_path must contain existing project-relative or absolute directories")
     host["extra_path"] = [str(configured_path(path_base, value).resolve()) for value in extra]
     caches = host.get("caches", {})
+    if selection is not None and isinstance(caches, dict):
+        caches = {name: value for name, value in caches.items() if name in required}
     expected_caches = set(CACHE_ENV) & set(required)
     if not isinstance(caches, dict) or set(caches) != expected_caches:
         fail("register cache directories required by selected package managers")
     for name, value in caches.items():
         path = configured_path(path_base, value) if isinstance(value, str) else Path("/")
-        if not isinstance(value, str) or not path.is_dir() or not os.access(path, os.W_OK):
+        if not isinstance(value, str) or (require_cache_dirs and (not path.is_dir() or not os.access(path, os.W_OK))):
             fail(f"cache must already exist and be writable: {name}")
+        if path.exists() and not path.is_dir():
+            fail(f'cache path is not a directory: {name}')
         caches[name] = str(path.resolve())
     watch_paths = host.get("watch_paths", [])
     if not isinstance(watch_paths, list) or any(not isinstance(value, str) for value in watch_paths):
@@ -419,6 +532,7 @@ def environment(root: Path, host: dict, bin_path: Path, temporary_directory: Pat
     env["COREPACK_ENABLE_NETWORK"] = "0"
     env["COREPACK_ENABLE_AUTO_PIN"] = "0"
     env["TMPDIR"] = str(temporary_directory)
+    env["PEANUT_PROJECT_ENV_ACTIVE"] = "1"
     return env
 
 
@@ -499,25 +613,31 @@ def main() -> None:
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parent.parent)
     parser.add_argument("--host", type=Path)
     parser.add_argument("--state-root", type=Path)
-    parser.add_argument("action", choices=("requirements", "doctor", "prepare", "exec"))
+    parser.add_argument('--tools', help='Comma-separated declared tool scope; package-manager interpreters are included')
+    parser.add_argument("action", choices=("requirements", "doctor", "prepare", "ensure", "exec", "run"))
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args()
     root = args.root.resolve(strict=True)
     state_root = configured_path(root, str(args.state_root)).resolve(strict=True) if args.state_root else root
-    if args.action != "exec" and args.command:
+    if args.action not in ("exec", "run") and args.command:
         fail("only exec accepts a child command")
     if args.action == "requirements":
-        print(json.dumps(requirements(root)[0], indent=2))
+        print(json.dumps(requirements(root, args.tools)[0], indent=2))
         return
     if os.name != "posix":
         fail("this first implementation requires a POSIX host; no Windows support has been validated")
-    host_path = configured_path(root, str(args.host)).resolve(strict=True) if args.host else within(root, ".local/toolchain/host.json")
+    local_host = within(root, '.local/toolchain/host.json')
+    profile = args.host or (None if local_host.exists() else os.environ.get('PEANUT_TOOLCHAIN_PROFILE'))
+    host_path = configured_path(root, str(profile)).resolve(strict=True) if profile else local_host
+    automatic = not host_path.exists() and not profile
+    host_document = discover_host(state_root, requirements(root, args.tools)[0]) if automatic else None
     try:
         host_scope = host_path.relative_to(state_root).as_posix()
     except ValueError:
         host_scope = host_path.as_posix()
-    scope_identity = f"{state_root.as_posix()}::{host_scope}"
-    required, host, fingerprint = configuration(root, host_path, scope_identity)
+    scope_identity = f"{state_root.as_posix()}::{host_scope}::{args.tools or 'all'}"
+    required, host, fingerprint = configuration(root, host_path, scope_identity, host_document=host_document,
+        selection=args.tools, require_cache_dirs=args.action not in ('doctor', 'ensure', 'run') and not automatic)
     try:
         host_relative = host_path.relative_to(state_root).as_posix()
     except ValueError:
@@ -533,11 +653,17 @@ def main() -> None:
     directory = parent / fingerprint
     env = environment(root, host, directory / "bin", temporary_directory)
     if args.action == "doctor":
-        if not Path(env["TMPDIR"]).is_dir():
-            fail("project temporary directory missing; run prepare explicitly (doctor never creates it)")
-        print(json.dumps({"status": "ok", "fingerprint": fingerprint, "tools": probe(root, required, host, env), "caches": host["caches"], "writes": False}, indent=2))
+        # A fresh project is diagnosable before any local registration/directory writes.
+        if not Path(env['TMPDIR']).is_dir():
+            env['TMPDIR'] = tempfile.gettempdir()
+        print(json.dumps({"status": "ok", "fingerprint": fingerprint, "tools": probe(root, required, host, env),
+                          "caches": host["caches"], "writes": False,
+                          'selection': 'auto-discovered' if automatic else 'explicit-profile',
+                          'prepared': directory.exists()}, indent=2))
         return
-    if args.action == "prepare":
+    if args.action in ("prepare", 'ensure', 'run'):
+        for cache in host['caches'].values():
+            Path(cache).mkdir(parents=True, exist_ok=True, mode=0o700)
         # Version probes such as pnpm resolve TMPDIR before printing a version.
         # Creating this directory belongs to explicit prepare, never doctor.
         temporary_directory.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -563,15 +689,17 @@ def main() -> None:
             finally:
                 if staging.exists():
                     shutil.rmtree(staging)
-        print(json.dumps({"status": "prepared", "path": str(directory), **state}, indent=2))
-        return
+        if args.action != 'run':
+            print(json.dumps({"status": "prepared", "path": str(directory), **state,
+                              'selection': 'auto-discovered' if automatic else 'explicit-profile'}, indent=2))
+            return
     check_prepared(directory, fingerprint, host)
     if not Path(env["TMPDIR"]).is_dir():
         fail("project temporary directory missing; run prepare explicitly")
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
     if not command:
         fail("exec requires a command after --")
-    print("project-env: using registered environment " + fingerprint[:12], file=sys.stderr, flush=True)
+    print("project-env: using validated environment " + fingerprint[:12], file=sys.stderr, flush=True)
     os.execvpe(command[0], command, env)
 
 
@@ -579,5 +707,5 @@ if __name__ == "__main__":
     try:
         main()
     except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
-        print(f"project-env: {error}; correct the registration and run prepare explicitly", file=sys.stderr)
+        print(f"project-env: {error}; check declared requirements and selected tool paths; no tools were installed", file=sys.stderr)
         raise SystemExit(2)

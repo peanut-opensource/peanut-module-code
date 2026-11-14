@@ -1,0 +1,246 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use app\common\infrastructure\scaffold\ScaffoldUpgradeRunner;
+use app\common\infrastructure\scaffold\EditionUpgradePackage;
+
+$root = dirname(__DIR__);
+require $root . '/scripts/scaffold-runtime/ScaffoldPathGuard.php';
+require $root . '/scripts/scaffold-runtime/ScaffoldManifest.php';
+require $root . '/scripts/scaffold-runtime/ScaffoldUpgradeLedger.php';
+require $root . '/scripts/scaffold-runtime/Semver.php';
+
+function usage(): never
+{
+    fwrite(STDERR, "Local template packages use --source-snapshot-sha256=<64-hex>; --source-checkout is optional for an additional snapshot check.\n");
+    fwrite(STDERR, "Usage:\n"
+        . "  php scripts/scaffold-upgrade preflight --project-root=<path> --from-manifest=<path> --to-manifest=<path>\n"
+        . "  php scripts/scaffold-upgrade template-plan --project-root=<path> --template-manifest=<path> [--baseline-mode-manifest=<exact-old-release-manifest>] [--source-checkout=<absolute-official-git-checkout> (development local archive selection only)]\n"
+        . "  php scripts/scaffold-upgrade preflight --project-root=<path> --package=<extracted-package> [--source-repository=<owner/repo> --source-ref=<ref> --source-channel=prerelease|stable --source-commit=<published-commit> --source-tree=<published-tree> --release-lock=<downloaded-lock> --release-lock-sha256=<sha256:...>]\n"
+        . "  php scripts/scaffold-upgrade resolve --project-root=<path> --plan=<path> --confirm-plan-sha256=<sha256:...> --preserve-paths=<comma-separated-paths|-> --replace-paths=<comma-separated-paths|->\n"
+        . "  php scripts/scaffold-upgrade adoption-plan --project-root=<path> --package=<extracted-package>\n"
+        . "  php scripts/scaffold-upgrade adoption-apply --project-root=<path> --plan=<path> --confirm-plan-sha256=<sha256:...> --confirm-paths=<comma-separated-exact-paths>\n"
+        . "  php scripts/scaffold-upgrade adoption-recover --project-root=<path> --plan=<path>\n"
+        . "  php scripts/scaffold-upgrade release-adoption-plan --project-root=<path> --release-manifest=<published-scaffold-manifest> --source-repository=<owner/repo> --source-ref=<ref> --source-channel=prerelease|stable --release-version=<semver> --source-commit=<published-commit> --source-tree=<published-tree> --release-lock=<downloaded-lock> --release-lock-sha256=<sha256:...>\n"
+        . "  php scripts/scaffold-upgrade release-adoption-apply|release-adoption-verify|release-adoption-recover --project-root=<path> --plan=<path>\n"
+        . "  php scripts/scaffold-upgrade apply|verify|recover|rollback --project-root=<path> --plan=<path>\n");
+    exit(64);
+}
+
+/** @return list<string> */
+function upgradePathList(string $value): array
+{
+    if ($value === '-') {
+        return [];
+    }
+    $paths = explode(',', $value);
+    if ($paths === [] || array_filter($paths, static fn(string $path): bool => $path === '') !== []
+        || count(array_unique($paths)) !== count($paths)) {
+        throw new RuntimeException('SCAFFOLD_RESOLUTION_PATHS_INVALID');
+    }
+    return $paths;
+}
+
+$command = $argv[1] ?? null;
+if (!in_array($command, ['template-plan', 'preflight', 'resolve', 'adoption-plan', 'adoption-apply', 'adoption-recover', 'release-adoption-plan', 'release-adoption-apply', 'release-adoption-verify', 'release-adoption-recover', 'apply', 'verify', 'recover', 'rollback'], true)) {
+    usage();
+}
+$options = [];
+foreach (array_slice($argv, 2) as $argument) {
+    if (preg_match('/^--(project-root|from-manifest|to-manifest|template-manifest|baseline-mode-manifest|tooling-autoload|template-package-manifest|template-package-sha256|package|plan|confirm-plan-sha256|confirm-paths|preserve-paths|replace-paths|release-manifest|source-checkout|source-repository|source-ref|source-channel|release-version|source-commit|source-tree|source-snapshot-sha256|release-lock|release-lock-sha256)=(.+)$/D', $argument, $matches) !== 1 || isset($options[$matches[1]])) {
+        usage();
+    }
+    $options[$matches[1]] = $matches[2];
+}
+$packagePreflight = $command === 'preflight' && isset($options['package']);
+$requiredOptions = match ($command) {
+    'template-plan' => ['project-root', 'template-manifest'],
+    'preflight' => $packagePreflight ? ['project-root', 'package'] : ['project-root', 'from-manifest', 'to-manifest'],
+    'resolve' => ['project-root', 'plan', 'confirm-plan-sha256', 'preserve-paths', 'replace-paths'],
+    'adoption-plan' => ['project-root', 'package'],
+    'adoption-apply' => ['project-root', 'plan', 'confirm-plan-sha256', 'confirm-paths'],
+    'release-adoption-plan' => ['project-root', 'release-manifest', 'source-repository', 'source-ref', 'source-channel', 'release-version', 'source-commit', 'source-tree', 'release-lock', 'release-lock-sha256'],
+    default => ['project-root', 'plan'],
+};
+$sourceSelectionFlags = ['source-repository', 'source-ref', 'source-channel', 'source-commit', 'source-tree', 'release-lock', 'release-lock-sha256'];
+$sourceSelection = null;
+if ($command === 'template-plan' && isset($options['template-package-manifest'])) {
+    $local = isset($options['source-snapshot-sha256']);
+    $sourceSelectionFlags = array_merge(['source-repository', 'source-ref', 'source-channel'],
+        $local ? ['source-snapshot-sha256'] : ['source-commit', 'source-tree'],
+        ['template-package-manifest', 'template-package-sha256']);
+    foreach ($sourceSelectionFlags as $flag) { if (!isset($options[$flag])) { usage(); } }
+    $sourceSelection = ['repository' => $local && $options['source-repository'] === '-' ? null : $options['source-repository'], 'requested_ref' => $options['source-ref'],
+        'channel' => $options['source-channel'],
+        ...($local ? ['source_identity' => ['kind' => 'local', 'snapshot_sha256' => $options['source-snapshot-sha256']]]
+            : ['commit' => $options['source-commit'], 'tree' => $options['source-tree']]),
+        'template_package_path' => $options['template-package-manifest'], 'template_package_sha256' => $options['template-package-sha256']];
+    if (isset($options['source-checkout'])) {
+        $sourceSelection['source_checkout'] = $options['source-checkout'];
+        $sourceSelectionFlags[] = 'source-checkout';
+    }
+}
+if ($packagePreflight && array_intersect($sourceSelectionFlags, array_keys($options)) !== []) {
+    foreach ($sourceSelectionFlags as $flag) {
+        if (!isset($options[$flag])) {
+            usage();
+        }
+    }
+    $sourceSelection = [
+        'repository' => $options['source-repository'],
+        'requested_ref' => $options['source-ref'],
+        'channel' => $options['source-channel'],
+        'commit' => $options['source-commit'],
+        'tree' => $options['source-tree'],
+        'release_lock_path' => $options['release-lock'],
+        'release_lock_sha256' => $options['release-lock-sha256'],
+    ];
+}
+foreach ($requiredOptions as $required) {
+    if (!isset($options[$required]) || !is_string($options[$required]) || $options[$required] === '') {
+        usage();
+    }
+}
+$allowedOptions = $requiredOptions;
+if (isset($options['tooling-autoload'])) { $allowedOptions[] = 'tooling-autoload'; }
+if (($command === 'template-plan' || $packagePreflight) && isset($options['baseline-mode-manifest'])) { $allowedOptions[] = 'baseline-mode-manifest'; }
+if ($sourceSelection !== null) {
+    $allowedOptions = array_merge($allowedOptions, $sourceSelectionFlags);
+}
+sort($allowedOptions, SORT_STRING);
+$actualOptions = array_keys($options);
+sort($actualOptions, SORT_STRING);
+if ($actualOptions !== $allowedOptions) {
+    usage();
+}
+
+$projectRoot = \app\common\validation\scaffold\ScaffoldPathGuard::projectRoot($options['project-root']);
+$installedAutoload = $root . '/server/vendor/autoload.php';
+if (isset($options['tooling-autoload'])) {
+    $packageRoot = dirname($root);
+    $guard = \app\common\validation\scaffold\ScaffoldPathGuard::class;
+    $metadataPath = $guard::existingFileWithin($packageRoot, $guard::projectPath($packageRoot, 'template-package.json'), 'SCAFFOLD_TOOLING_METADATA_INVALID');
+    $metadata = json_decode((string) file_get_contents($metadataPath), true, 512, JSON_THROW_ON_ERROR);
+    $manifestPath = $guard::existingFileWithin($packageRoot, $guard::projectPath($packageRoot, 'upgrade-tooling.json'), 'SCAFFOLD_TOOLING_MANIFEST_INVALID');
+    if (hash_file('sha256', $manifestPath) !== ($metadata['upgrade_tooling_sha256'] ?? null)) { throw new RuntimeException('SCAFFOLD_TOOLING_MANIFEST_CHANGED'); }
+    $tooling = json_decode((string) file_get_contents($manifestPath), true, 512, JSON_THROW_ON_ERROR);
+    if (($tooling['protocol'] ?? null) !== 'peanut.scaffold-upgrade-tooling.v1'
+        || ($tooling['autoload'] ?? null) !== 'tooling/vendor/autoload.php'
+        || $options['tooling-autoload'] !== $packageRoot . '/tooling/vendor/autoload.php'
+        || !is_array($tooling['files'] ?? null)) { throw new RuntimeException('SCAFFOLD_TOOLING_AUTOLOAD_INVALID'); }
+    $seen = [];
+    foreach ($tooling['files'] as $file) {
+        $path = $file['path'] ?? '';
+        if (!is_string($path) || isset($seen[$path])
+            || !(str_starts_with($path, 'tooling/vendor/') || in_array($path, ['tooling/composer.json', 'tooling/composer.lock'], true))) { throw new RuntimeException('SCAFFOLD_TOOLING_FILE_INVALID'); }
+        $seen[$path] = true;
+        $absolute = $guard::existingFileWithin($packageRoot, $guard::projectPath($packageRoot, $path), 'SCAFFOLD_TOOLING_FILE_INVALID');
+        if (hash_file('sha256', $absolute) !== ($file['sha256'] ?? null)
+            || (fileperms($absolute) & 0777) !== ($file['mode'] ?? null)) { throw new RuntimeException('SCAFFOLD_TOOLING_FILE_CHANGED'); }
+    }
+    foreach (['tooling/vendor/autoload.php', 'tooling/composer.lock', 'tooling/vendor/composer/installed.json'] as $required) {
+        if (!isset($seen[$required])) { throw new RuntimeException('SCAFFOLD_TOOLING_FILE_MISSING'); }
+    }
+    $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($packageRoot . '/tooling', FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST);
+    foreach ($iterator as $item) {
+        $relative = substr($item->getPathname(), strlen($packageRoot) + 1);
+        if ($item->isLink() || (!$item->isDir() && (!$item->isFile() || !isset($seen[$relative])))) {
+            throw new RuntimeException('SCAFFOLD_TOOLING_UNDECLARED_FILE');
+        }
+    }
+    $lock = json_decode((string) file_get_contents($packageRoot . '/tooling/composer.lock'), true, 512, JSON_THROW_ON_ERROR);
+    $installed = json_decode((string) file_get_contents($packageRoot . '/tooling/vendor/composer/installed.json'), true, 512, JSON_THROW_ON_ERROR);
+    $identity = static fn(array $item): array => ['name' => $item['name'], 'version' => $item['version'], 'source' => $item['source'] ?? null, 'dist' => $item['dist'] ?? null];
+    $normalize = static function (array $items) use ($identity): array {
+        $result = array_map($identity, $items); usort($result, static fn(array $a, array $b): int => strcmp($a['name'], $b['name'])); return $result;
+    };
+    if (($installed['dev'] ?? null) !== false || !is_array($installed['packages'] ?? null)
+        || hash_file('sha256', $packageRoot . '/tooling/composer.lock') !== ($tooling['composer_lock_sha256'] ?? null)
+        || $normalize($lock['packages']) !== $normalize($installed['packages'])
+        || $normalize($lock['packages']) !== $normalize($tooling['packages'])) { throw new RuntimeException('SCAFFOLD_TOOLING_LOCK_MISMATCH'); }
+    $installedAutoload = $packageRoot . '/tooling/vendor/autoload.php';
+}
+if (!is_file($installedAutoload)) {
+    throw new RuntimeException('SCAFFOLD_UPGRADE_DEPENDENCIES_MISSING');
+}
+$loader = require $installedAutoload;
+if (isset($options['tooling-autoload'])) {
+    // Composer's root namespace/classmap paths move with tooling. Bind every
+    // root mapping to this same verified template, never the mutable target APP.
+    $remap = static function (string $path) use ($packageRoot, $root): string {
+        $base = $packageRoot . '/tooling/';
+        return str_starts_with($path, $base) && !str_starts_with($path, $base . 'vendor/')
+            ? $root . '/server/' . substr($path, strlen($base)) : $path;
+    };
+    foreach ($loader->getPrefixesPsr4() as $prefix => $paths) { $loader->setPsr4($prefix, array_map($remap, $paths)); }
+    $loader->addClassMap(array_map($remap, $loader->getClassMap()));
+    $loader->setPsr4('app\\', $root . '/server/app');
+}
+foreach ([
+    '/server/app/platform/exception/module/ModuleLifecycleException.php',
+    '/server/app/platform/value/module/ModuleDescriptor.php',
+    '/server/app/platform/infrastructure/module/ModuleLockResolver.php',
+    '/server/app/platform/exception/module/ModuleArtifactToolException.php',
+    '/server/app/platform/exception/module/ModulePackageException.php',
+    '/server/app/platform/value/module/ModuleFrontendLayout.php',
+    '/server/app/platform/infrastructure/module/ModuleArtifactWriter.php',
+    '/server/app/platform/validation/module/ModulePublicSurfacePolicy.php',
+    '/server/app/platform/validation/module/OpisManifestSchemaValidator.php',
+    '/server/app/common/module/PackageCheck.php',
+] as $source) {
+    require_once $root . $source;
+}
+require $root . '/scripts/scaffold-runtime/ScaffoldUpgradeRunner.php';
+require $root . '/scripts/scaffold-runtime/EditionUpgradePackage.php';
+
+try {
+    $runner = new ScaffoldUpgradeRunner();
+    $manifests = $packagePreflight
+        ? (new EditionUpgradePackage())->prepare($options['project-root'], $options['package'], $options['baseline-mode-manifest'] ?? null)
+        : null;
+    $result = match ($command) {
+        'template-plan' => $runner->templatePreflight($options['project-root'], $options['template-manifest'], $options['baseline-mode-manifest'] ?? null, $sourceSelection),
+        'preflight' => $runner->preflight(
+            $options['project-root'],
+            $manifests['from_manifest'] ?? $options['from-manifest'],
+            $manifests['to_manifest'] ?? $options['to-manifest'],
+            $sourceSelection,
+        ),
+        'resolve' => $runner->resolve(
+            $options['project-root'],
+            $options['plan'],
+            $options['confirm-plan-sha256'],
+            upgradePathList($options['preserve-paths']),
+            upgradePathList($options['replace-paths']),
+        ),
+        'adoption-plan' => $runner->adoptionPlan($options['project-root'], $options['package']),
+        'adoption-apply' => $runner->adoptionApply(
+            $options['project-root'],
+            $options['plan'],
+            $options['confirm-plan-sha256'],
+            explode(',', $options['confirm-paths']),
+        ),
+        'adoption-recover' => $runner->adoptionRecover($options['project-root'], $options['plan']),
+        'release-adoption-plan' => $runner->releaseAdoptionPlan(
+            $options['project-root'], $options['release-manifest'], $options['source-repository'],
+            $options['source-ref'], $options['source-channel'], $options['release-version'],
+            $options['source-commit'], $options['source-tree'], $options['release-lock'], $options['release-lock-sha256'],
+        ),
+        'release-adoption-apply' => $runner->releaseAdoptionApply($options['project-root'], $options['plan']),
+        'release-adoption-verify' => $runner->releaseAdoptionVerify($options['project-root'], $options['plan']),
+        'release-adoption-recover' => $runner->releaseAdoptionRecover($options['project-root'], $options['plan']),
+        'apply' => $runner->apply($options['project-root'], $options['plan']),
+        'verify' => $runner->verify($options['project-root'], $options['plan']),
+        'recover', 'rollback' => $runner->recover($options['project-root'], $options['plan']),
+    };
+    fwrite(STDOUT, json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
+    exit(($result['status'] ?? null) === 'blocked' ? 2 : 0);
+} catch (Throwable $exception) {
+    fwrite(STDERR, json_encode([
+        'status' => 'error',
+        'error' => $exception->getMessage(),
+    ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
+    exit(1);
+}

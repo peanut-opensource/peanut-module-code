@@ -53,7 +53,7 @@ final readonly class AppFileMediaGateway implements FileMediaGateway
         ?\Closure $assertAuthority = null,
         ?\Closure $publish = null,
     ): string {
-        if (!is_resource($stream) || $purpose !== 'result' || preg_match('/^iox_[0-9a-f]{32}$/D', $operationKey) !== 1) {
+        if (!is_resource($stream) || !in_array($purpose, ['result', 'errors'], true) || preg_match('/^iox_[0-9a-f]{32}$/D', $operationKey) !== 1) {
             throw ImportExportException::fileUnavailable();
         }
         $temporary = tempnam(sys_get_temp_dir(), 'pa-csv-');

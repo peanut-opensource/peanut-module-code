@@ -1,0 +1,56 @@
+{
+    "name": "peanut-business/peanut-module-code",
+    "description": "Peanut Module Code application backend",
+    "type": "project",
+    "keywords": [
+        "admin",
+        "scaffold",
+        "thinkphp",
+        "vue"
+    ],
+    "homepage": "https://github.com/peanut-business/peanut-admin-code",
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "application owner"
+        }
+    ],
+    "provide": {
+        "peanut-admin/module-composition-host": "1.0.0"
+    },
+    "require": {
+        "php": "^8.3",
+        "topthink/framework": "^8.0",
+        "topthink/think-multi-app": "^1.1.1",
+        "topthink/think-orm": "^3.0|^4.0",
+        "topthink/think-filesystem": "^2.0|^3.0",
+        "firebase/php-jwt": "^7.1",
+        "dragonmantank/cron-expression": "^3.3",
+        "qiniu/php-sdk": "^7.4",
+        "aws/aws-sdk-php": "^3.0",
+        "aliyuncs/oss-sdk-php": "^2.4",
+        "qcloud/cos-sdk-v5": "^2.5",
+        "peanut-admin/core": "5.1.0",
+        "symfony/html-sanitizer": "^7.3",
+        "composer/semver": "^3.4",
+        "opis/json-schema": "^2.6",
+        "topthink/think-migration": "3.1.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "app\\": "app"
+        },
+        "exclude-from-classmap": [
+            "app/modules/*/*/database/migrations/",
+            "app/modules/*/*/*/database/migrations/"
+        ]
+    },
+    "config": {
+        "preferred-install": "dist"
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "@php docker/scripts/prepare-vendor.php"
+        ]
+    }
+}

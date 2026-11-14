@@ -75,7 +75,7 @@ final class ThinkPhpModuleGovernanceProvider implements ModuleGovernanceProvider
         if ($lockPath === '') {
             throw new ModuleLifecycleException('PLUGIN_LOCK_INVALID', 'Plugin lock path is not configured.');
         }
-        return $this->lockResolver ??= new ModuleLockResolver($this->serverRoot, $lockPath);
+        return $this->lockResolver ??= ModuleLockResolver::forRuntime($this->serverRoot, $lockPath);
     }
 
     private function lockFile(string $lockPath): string

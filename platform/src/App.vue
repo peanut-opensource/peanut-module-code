@@ -134,8 +134,7 @@
             labels[item]
           }}</el-menu-item>
         </component>
-        </el-menu
-      ></el-aside
+      </el-menu></el-aside
     ><el-container
       ><el-header
         ><el-button
@@ -1326,6 +1325,15 @@
         ></template>
         <template v-else-if="view === 'developer'"
           ><developer-center-page
+            :can-read-updates="
+              canApi('GET', '/platformapi/instance-tools/modules/updates')
+            "
+            :can-update-official="
+              canApi(
+                'POST',
+                '/platformapi/instance-tools/modules/official-update'
+              )
+            "
             :can-read-runtime="
               canApi('GET', '/platformapi/instance-tools/modules')
             "

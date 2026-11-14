@@ -4,11 +4,11 @@
     "inputs": [
         {
             "path": "modules.lock",
-            "sha256": "4255a6f9f4d646b752ddcee75becf29b358a757084b7fbee4ed5f50d244abd38"
+            "sha256": "56ce65da44794355cb3ac12ea75b21d42229dbbfe98b2956c43b9559f0c15982"
         },
         {
             "path": "release-versions.json",
-            "sha256": "e8e3a64bbe3b3030786c6de3b6674edcecbac35153e0d3f28dcf39c4fe508fef"
+            "sha256": "bb72c39fce0c67d8bab89776eb45b0cdd376e8e4f2d3755e78932457c812e0f0"
         },
         {
             "path": "server/app/api/metadata/application/adminapi.php",
@@ -28,7 +28,7 @@
         },
         {
             "path": "server/app/api/metadata/application/platform.php",
-            "sha256": "0d76507c2a1deb5724afa7c173dd5faa2065f1fa09c827e2db6acbb18b0508f9"
+            "sha256": "fc8945d970e0b827d4c7055114448ba084e79a07017a74042e9a48a9a4343d5e"
         },
         {
             "path": "server/app/api/metadata/application/shared.php",
@@ -36,7 +36,7 @@
         },
         {
             "path": "server/app/api/metadata/contracts/openapi.json",
-            "sha256": "09ce51a7fa7b7f7cb2c64eba119ffae1ee16f1db4e32188847b85a6c2e44f529"
+            "sha256": "59f4b51475c160c781cf69f5721ab11fbbd1af76de07c17c4276f4160cb220b8"
         },
         {
             "path": "server/app/modules/custom/ai_assistant/api/metadata/openapi.php",
@@ -136,11 +136,11 @@
         },
         {
             "path": "server/app/modules/peanut/reference_codes/api/metadata/openapi.php",
-            "sha256": "917568579bbb0d8099cf6ea188747f9049fd7c51e5d44a35555f95c5eda0f953"
+            "sha256": "47d6ede6c111f76965f49ee9ffc1953f6ec834d6736a20d43d43d0a0b6cef6ce"
         },
         {
             "path": "server/app/modules/peanut/reference_codes/route/app.php",
-            "sha256": "2b7dff3e9818645c81f65d3baaf8abb029573fa9afa47444ea9928c4fe60e42f"
+            "sha256": "2056a2547cf6ca7db10a3d4a0dc1a68d171b5b89f5f86069692f7e3d18d21c21"
         },
         {
             "path": "server/app/modules/peanut/settings/api/metadata/openapi.php",
@@ -184,7 +184,7 @@
         },
         {
             "path": "server/route/platform.php",
-            "sha256": "e31a44e5fbd0423fa7895dffe30b92ca70c440e9f5a31543282b7e0d5cde890e"
+            "sha256": "7d8f6af4bd4b030fdd067c1930b6d00d1bc95a547d04452acd260644c5085eba"
         },
         {
             "path": "server/route/public_api.php",
@@ -208,36 +208,36 @@
         ]
     },
     "summary": {
-        "route_count": 471,
-        "generated_api_operations": 445,
+        "route_count": 480,
+        "generated_api_operations": 454,
         "route_only_operations": 26,
-        "complete_operations": 445,
+        "complete_operations": 454,
         "partial_operations": 0,
-        "runtime_routes": 471,
-        "documented_operations": 445,
+        "runtime_routes": 480,
+        "documented_operations": 454,
         "undocumented_routes": 26,
-        "automatic_route_metadata": 471,
+        "automatic_route_metadata": 480,
         "requires_owner_contract": 26,
         "owners": 20,
         "runtime_inventory": {
-            "total": 471,
+            "total": 480,
             "methods": {
                 "DELETE": 4,
-                "GET": 209,
-                "POST": 247,
+                "GET": 213,
+                "POST": 252,
                 "PUT": 11
             },
             "applications": {
-                "adminapi": 334,
+                "adminapi": 339,
                 "api": 47,
                 "installation": 9,
-                "platform": 81
+                "platform": 85
             },
             "owners": {
                 "application:adminapi": 99,
                 "application:api": 7,
                 "application:installation": 9,
-                "application:platform": 72,
+                "application:platform": 74,
                 "module:custom.ai-assistant": 20,
                 "module:peanut.article": 39,
                 "module:peanut.collaboration": 11,
@@ -250,7 +250,7 @@
                 "module:peanut.notification": 10,
                 "module:peanut.oauth": 26,
                 "module:peanut.payment": 17,
-                "module:peanut.reference-codes": 20,
+                "module:peanut.reference-codes": 27,
                 "module:peanut.settings": 3,
                 "module:peanut.task": 10,
                 "module:peanut.workflow": 30
@@ -262,7 +262,7 @@
         "application:adminapi": 99,
         "application:api": 7,
         "application:installation": 9,
-        "application:platform": 72,
+        "application:platform": 74,
         "module:custom.ai-assistant": 20,
         "module:peanut.article": 39,
         "module:peanut.collaboration": 11,
@@ -275,7 +275,7 @@
         "module:peanut.notification": 10,
         "module:peanut.oauth": 26,
         "module:peanut.payment": 17,
-        "module:peanut.reference-codes": 20,
+        "module:peanut.reference-codes": 27,
         "module:peanut.settings": 3,
         "module:peanut.task": 10,
         "module:peanut.workflow": 30
@@ -879,7 +879,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                "line": 27
+                "line": 54
             },
             "documented": true,
             "openapi_operation_id": "retireReferenceCode",
@@ -1174,6 +1174,169 @@
             "contract_quality": "complete",
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "3b898f9f929f62325b3850d85a6c3bb90454399f04faa9da6133aae5c1ce8282",
+            "method": "GET",
+            "path": "/adminapi/api/v1/dictionary-catalog",
+            "runtime_path": "/adminapi/api/v1/dictionary-catalog",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.reference-codes"
+            },
+            "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\DictionaryCatalogController",
+            "action": "types",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "peanut.reference-codes.read"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.reference-codes"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "peanut.reference-codes.read"
+                }
+            ],
+            "errors": [
+                401,
+                403
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.reference-codes",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/reference_codes/route/app.php",
+                "line": 34
+            },
+            "documented": true,
+            "openapi_operation_id": "listPlatformDictionaryTypes",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-reference-codes/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "9aaab4275e7560cf29fb23028215dd397ed0dab3a0b69180e9492c7b609a38ef",
+            "method": "GET",
+            "path": "/adminapi/api/v1/dictionary-catalog/{type}",
+            "runtime_path": "/adminapi/api/v1/dictionary-catalog/:type",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.reference-codes"
+            },
+            "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\DictionaryCatalogController",
+            "action": "detail",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "peanut.reference-codes.read"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.reference-codes"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "peanut.reference-codes.read"
+                }
+            ],
+            "errors": [
+                401,
+                403,
+                404
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.reference-codes",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/reference_codes/route/app.php",
+                "line": 36
+            },
+            "documented": true,
+            "openapi_operation_id": "getPlatformDictionaryType",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-reference-codes/generated/openapi.ts"
             ],
             "documentation": {
                 "status": "documented",
@@ -2154,7 +2317,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                "line": 17
+                "line": 44
             },
             "documented": true,
             "openapi_operation_id": "listReferenceCodeSets",
@@ -2237,7 +2400,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                "line": 19
+                "line": 46
             },
             "documented": true,
             "openapi_operation_id": "listReferenceCodes",
@@ -2320,7 +2483,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                "line": 23
+                "line": 50
             },
             "documented": true,
             "openapi_operation_id": "getReferenceCode",
@@ -13808,6 +13971,74 @@
             }
         },
         {
+            "api_id": "5d02f1c22185df250e513fc8dd26dd8236fd6b33a802c7f1ed620dece1eb4516",
+            "method": "GET",
+            "path": "/platformapi/api/v1/dictionary-catalog",
+            "runtime_path": "/platformapi/api/v1/dictionary-catalog",
+            "application": "platform",
+            "audience": "platform",
+            "owner": {
+                "type": "module",
+                "key": "peanut.reference-codes"
+            },
+            "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\PlatformDictionaryController",
+            "action": "types",
+            "auth": {
+                "mode": "platform_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "platform.tenant.read"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "platform_action",
+                    "key": "platform.tenant.read"
+                }
+            ],
+            "errors": [
+                401,
+                403
+            ],
+            "middleware": [
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformLoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
+                    "arguments": [
+                        "platform.tenant.read"
+                    ]
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/reference_codes/route/app.php",
+                "line": 18
+            },
+            "documented": true,
+            "openapi_operation_id": "listPlatformManagedDictionaryTypes",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-reference-codes/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
             "api_id": "1a3eae6de1d15151b9c8033ed585b20717ec664cf93ccbc8d8033f603faf4369",
             "method": "GET",
             "path": "/platformapi/audit",
@@ -14342,10 +14573,82 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 119
+                "line": 127
             },
             "documented": true,
             "openapi_operation_id": "getInstanceModuleTask",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "a8fcd62c67bd80b93e412ec8724291e7b1d7531370f0bba5221db9bda3857c3d",
+            "method": "GET",
+            "path": "/platformapi/instance-tools/modules/updates",
+            "runtime_path": "/platformapi/instance-tools/modules/updates",
+            "application": "platform",
+            "audience": "platform",
+            "owner": {
+                "type": "application",
+                "key": "platform"
+            },
+            "controller": "app\\platform\\controller\\PlatformModuleLifecycleController",
+            "action": "updates",
+            "auth": {
+                "mode": "platform_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "platform.module.read"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "platform_action",
+                    "key": "platform.module.read"
+                }
+            ],
+            "errors": [
+                401,
+                403,
+                422
+            ],
+            "middleware": [
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformLoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
+                    "arguments": [
+                        "platform.module.read"
+                    ]
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformInstanceToolMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/route/platform.php",
+                "line": 107
+            },
+            "documented": true,
+            "openapi_operation_id": "checkOfficialModuleUpdates",
             "contract_quality": "complete",
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts"
@@ -14822,7 +15125,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 209
+                "line": 217
             },
             "documented": true,
             "openapi_operation_id": "listTenantPlans",
@@ -15013,7 +15316,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 134
+                "line": 142
             },
             "documented": true,
             "openapi_operation_id": "listPlatformTenantEntryBindings",
@@ -15081,7 +15384,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 224
+                "line": 232
             },
             "documented": true,
             "openapi_operation_id": "listPlatformTenants",
@@ -15355,7 +15658,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 218
+                "line": 226
             },
             "documented": true,
             "openapi_operation_id": "getTenantLicense",
@@ -15561,7 +15864,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 190
+                "line": 198
             },
             "documented": true,
             "openapi_operation_id": "listPlatformBackups",
@@ -15641,7 +15944,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 163
+                "line": 171
             },
             "documented": true,
             "openapi_operation_id": "downloadPlatformDiagnostics",
@@ -15722,7 +16025,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 152
+                "line": 160
             },
             "documented": true,
             "openapi_operation_id": "listPlatformOpsLogs",
@@ -15791,7 +16094,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 149
+                "line": 157
             },
             "documented": true,
             "openapi_operation_id": "getPlatformMaintenance",
@@ -15860,7 +16163,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 184
+                "line": 192
             },
             "documented": true,
             "openapi_operation_id": "listPlatformModuleOperations",
@@ -15930,7 +16233,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 146
+                "line": 154
             },
             "documented": true,
             "openapi_operation_id": "getPlatformOpsProviders",
@@ -15999,7 +16302,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 140
+                "line": 148
             },
             "documented": true,
             "openapi_operation_id": "getPlatformOpsStatus",
@@ -16068,7 +16371,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 193
+                "line": 201
             },
             "documented": true,
             "openapi_operation_id": "getPlatformOpsTask",
@@ -16137,7 +16440,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 143
+                "line": 151
             },
             "documented": true,
             "openapi_operation_id": "getPlatformUpgradeReadiness",
@@ -16206,7 +16509,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 187
+                "line": 195
             },
             "documented": true,
             "openapi_operation_id": "listPlatformUpgrades",
@@ -16563,6 +16866,252 @@
             "contract_quality": "complete",
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "cbba04905bc173f5a3efd8daddcfe34ccf58597367baaebb758176ca77e5e15c",
+            "method": "POST",
+            "path": "/adminapi/api/v1/dictionary-catalog/{type}/mode",
+            "runtime_path": "/adminapi/api/v1/dictionary-catalog/:type/mode",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.reference-codes"
+            },
+            "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\DictionaryCatalogController",
+            "action": "mode",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "peanut.reference-codes.manage"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.reference-codes"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "peanut.reference-codes.manage"
+                }
+            ],
+            "errors": [
+                401,
+                403,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.reference-codes",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/reference_codes/route/app.php",
+                "line": 38
+            },
+            "documented": true,
+            "openapi_operation_id": "setTenantDictionaryMode",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-reference-codes/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "209442b2e7230adf8e719703b50a142bd7444dbe1b642e24cf697559c2bd46a0",
+            "method": "POST",
+            "path": "/adminapi/api/v1/dictionary-catalog/{type}/override",
+            "runtime_path": "/adminapi/api/v1/dictionary-catalog/:type/override",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.reference-codes"
+            },
+            "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\DictionaryCatalogController",
+            "action": "override",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "peanut.reference-codes.manage"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.reference-codes"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "peanut.reference-codes.manage"
+                }
+            ],
+            "errors": [
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.reference-codes",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/reference_codes/route/app.php",
+                "line": 40
+            },
+            "documented": true,
+            "openapi_operation_id": "setTenantDictionaryOverride",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-reference-codes/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "bc4536cde494e194d010fcb77876f85bd302e04fd8bf3f2750c1b855b724cc1b",
+            "method": "POST",
+            "path": "/adminapi/api/v1/dictionary-catalog/{type}/override/clear",
+            "runtime_path": "/adminapi/api/v1/dictionary-catalog/:type/override/clear",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "peanut.reference-codes"
+            },
+            "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\DictionaryCatalogController",
+            "action": "clearOverride",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "peanut.reference-codes.manage"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "peanut.reference-codes"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "peanut.reference-codes.manage"
+                }
+            ],
+            "errors": [
+                401,
+                403
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "peanut.reference-codes",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\OperationLogMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/reference_codes/route/app.php",
+                "line": 42
+            },
+            "documented": true,
+            "openapi_operation_id": "clearTenantDictionaryOverride",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-reference-codes/generated/openapi.ts"
             ],
             "documentation": {
                 "status": "documented",
@@ -17980,7 +18529,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                "line": 21
+                "line": 48
             },
             "documented": true,
             "openapi_operation_id": "createReferenceCode",
@@ -31786,6 +32335,76 @@
             }
         },
         {
+            "api_id": "feeba4c07c472036f1b4ae58faa8c3dedec0aaff0db0c780e7c4d4cb8874aae1",
+            "method": "POST",
+            "path": "/platformapi/api/v1/dictionary-catalog/{type}/tenant-mode",
+            "runtime_path": "/platformapi/api/v1/dictionary-catalog/:type/tenant-mode",
+            "application": "platform",
+            "audience": "platform",
+            "owner": {
+                "type": "module",
+                "key": "peanut.reference-codes"
+            },
+            "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\PlatformDictionaryController",
+            "action": "tenantMode",
+            "auth": {
+                "mode": "platform_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "platform.ops.maintenance.manage"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "platform_action",
+                    "key": "platform.ops.maintenance.manage"
+                }
+            ],
+            "errors": [
+                401,
+                403,
+                404,
+                409
+            ],
+            "middleware": [
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformLoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
+                    "arguments": [
+                        "platform.ops.maintenance.manage"
+                    ]
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/peanut/reference_codes/route/app.php",
+                "line": 22
+            },
+            "documented": true,
+            "openapi_operation_id": "setPlatformDictionaryTenantMode",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-reference-codes/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
             "api_id": "1ad9494e3093508cc69d95429f3bf9d1bcf0e18b8324fdb42b7c3a51e3f9b826",
             "method": "POST",
             "path": "/platformapi/infrastructure/storage/account",
@@ -32190,7 +32809,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 107
+                "line": 115
             },
             "documented": true,
             "openapi_operation_id": "createInstanceModule",
@@ -32262,7 +32881,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 126
+                "line": 134
             },
             "documented": true,
             "openapi_operation_id": "disableInstanceModule",
@@ -32334,10 +32953,82 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 111
+                "line": 119
             },
             "documented": true,
             "openapi_operation_id": "installInstanceModule",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "efcdae101e9e1be69d2cc025efdd4219b5efdaaaf81efff2a20f3e80d5b6376c",
+            "method": "POST",
+            "path": "/platformapi/instance-tools/modules/official-update",
+            "runtime_path": "/platformapi/instance-tools/modules/official-update",
+            "application": "platform",
+            "audience": "platform",
+            "owner": {
+                "type": "application",
+                "key": "platform"
+            },
+            "controller": "app\\platform\\controller\\PlatformModuleLifecycleController",
+            "action": "officialUpdate",
+            "auth": {
+                "mode": "platform_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "platform.module.update"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "platform_action",
+                    "key": "platform.module.update"
+                }
+            ],
+            "errors": [
+                401,
+                403,
+                422
+            ],
+            "middleware": [
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformLoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
+                    "arguments": [
+                        "platform.module.update"
+                    ]
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformInstanceToolMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/route/platform.php",
+                "line": 111
+            },
+            "documented": true,
+            "openapi_operation_id": "updateOfficialInstanceModule",
             "contract_quality": "complete",
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts"
@@ -32406,7 +33097,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 130
+                "line": 138
             },
             "documented": true,
             "openapi_operation_id": "syncInstanceModuleCatalog",
@@ -32478,7 +33169,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 122
+                "line": 130
             },
             "documented": true,
             "openapi_operation_id": "uninstallInstanceModule",
@@ -32550,7 +33241,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 115
+                "line": 123
             },
             "documented": true,
             "openapi_operation_id": "updateInstanceModule",
@@ -32618,7 +33309,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 236
+                "line": 244
             },
             "documented": true,
             "openapi_operation_id": "activatePlatformOperator",
@@ -32686,7 +33377,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 242
+                "line": 250
             },
             "documented": true,
             "openapi_operation_id": "closePlatformOperator",
@@ -32754,7 +33445,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 227
+                "line": 235
             },
             "documented": true,
             "openapi_operation_id": "createPlatformOperator",
@@ -32822,7 +33513,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 233
+                "line": 241
             },
             "documented": true,
             "openapi_operation_id": "replacePlatformOperatorRoles",
@@ -32890,7 +33581,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 239
+                "line": 247
             },
             "documented": true,
             "openapi_operation_id": "suspendPlatformOperator",
@@ -32958,7 +33649,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 230
+                "line": 238
             },
             "documented": true,
             "openapi_operation_id": "updatePlatformOperator",
@@ -33098,7 +33789,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 212
+                "line": 220
             },
             "documented": true,
             "openapi_operation_id": "createTenantPlan",
@@ -33166,7 +33857,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 251
+                "line": 259
             },
             "documented": true,
             "openapi_operation_id": "archivePlatformRole",
@@ -33234,7 +33925,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 245
+                "line": 253
             },
             "documented": true,
             "openapi_operation_id": "createPlatformRole",
@@ -33302,7 +33993,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 254
+                "line": 262
             },
             "documented": true,
             "openapi_operation_id": "replacePlatformRolePermissions",
@@ -33370,7 +34061,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 248
+                "line": 256
             },
             "documented": true,
             "openapi_operation_id": "updatePlatformRole",
@@ -33601,7 +34292,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 196
+                "line": 204
             },
             "documented": true,
             "openapi_operation_id": "disablePlatformTenantEntryBinding",
@@ -33669,7 +34360,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 137
+                "line": 145
             },
             "documented": true,
             "openapi_operation_id": "enablePlatformTenantEntryBinding",
@@ -33737,7 +34428,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 199
+                "line": 207
             },
             "documented": true,
             "openapi_operation_id": "activatePlatformTenant",
@@ -33805,7 +34496,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 205
+                "line": 213
             },
             "documented": true,
             "openapi_operation_id": "closePlatformTenant",
@@ -34145,7 +34836,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 202
+                "line": 210
             },
             "documented": true,
             "openapi_operation_id": "suspendPlatformTenant",
@@ -34214,7 +34905,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 160
+                "line": 168
             },
             "documented": true,
             "openapi_operation_id": "closePlatformMaintenance",
@@ -34283,7 +34974,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 168
+                "line": 176
             },
             "documented": true,
             "openapi_operation_id": "submitPlatformBackup",
@@ -34364,7 +35055,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 179
+                "line": 187
             },
             "documented": true,
             "openapi_operation_id": "submitPlatformModuleOperation",
@@ -34433,7 +35124,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 171
+                "line": 179
             },
             "documented": true,
             "openapi_operation_id": "submitPlatformRestore",
@@ -34514,7 +35205,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 174
+                "line": 182
             },
             "documented": true,
             "openapi_operation_id": "submitPlatformUpgrade",
@@ -34600,7 +35291,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                "line": 25
+                "line": 52
             },
             "documented": true,
             "openapi_operation_id": "replaceReferenceCode",
@@ -35205,7 +35896,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 215
+                "line": 223
             },
             "documented": true,
             "openapi_operation_id": "updateTenantPlan",
@@ -35275,7 +35966,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 221
+                "line": 229
             },
             "documented": true,
             "openapi_operation_id": "updateTenantLicense",
@@ -35344,7 +36035,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 157
+                "line": 165
             },
             "documented": true,
             "openapi_operation_id": "schedulePlatformMaintenance",

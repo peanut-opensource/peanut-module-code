@@ -30,6 +30,7 @@
 - [能力地图](architecture/overview.md)、[默认交付与职责](architecture/default-delivery-and-ownership.md)。
 - [Core与应用覆盖](architecture/core-capabilities-and-application-overrides.md)、[框架扩展生命周期](architecture/framework-extension-and-lifecycle.md)、[CLI与可选Recipes](architecture/cli-and-recipes.md)。
 - [身份与组织](architecture/identity-organization-access.md)、[租户模块与Scope](architecture/tenant-modules-and-data-scopes.md)、[模块开发](architecture/module-development-delivery.md)。
+- [应用默认模块组合](architecture/module-composition.md)：宿主必选根、Module 依赖闭包及 CLI 薄模板接入边界。
 - [业务文档与协同](architecture/document-collaboration-standard.md)、[内容工具与格式适配](architecture/content-surface-and-format-adapters.md)、[文件可见性与受控源站](architecture/file-visibility-sources.md)。
 - [平台服务绑定](architecture/service-bindings.md)、[事件任务](architecture/events-and-tasks.md)。
 

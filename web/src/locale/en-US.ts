@@ -10,16 +10,11 @@ import localeSystemAdmin from '@/views/system/admin/locale/en-US';
 import localeSystemDept from '@/views/system/dept/locale/en-US';
 import localeSystemJobs from '@/views/system/jobs/locale/en-US';
 import localeSystemDict from '@/views/system/dict/locale/en-US';
-import localeSystemFile from '@/modules/peanut-file/views/locale/en-US';
-import localeSystemCrontab from '@/modules/peanut-task/views/locale/en-US';
 import localeSystemMaintenance from '@/views/system/maintenance/locale/en-US';
 import localeSystemLog from '@/views/system/log/locale/en-US';
 import localeSystemConfig from '@/views/system/config/locale/en-US';
 import localeAppHotSearch from '@/views/app-setting/hot-search/locale/en-US';
 import localeAppReadiness from '@/views/app-setting/readiness/locale/en-US';
-import localeOfficialSettings from '@/modules/peanut-settings/locale/en-US';
-import localeReferenceCodes from '@/modules/peanut-reference-codes/locale/en-US';
-import localeIntegrationSecurity from '@/modules/peanut-integration/runtime/locale/en-US';
 import localeSettings from './en-US/settings';
 
 export default {
@@ -65,14 +60,9 @@ export default {
   ...localeSystemDept,
   ...localeSystemJobs,
   ...localeSystemDict,
-  ...localeSystemFile,
-  ...localeSystemCrontab,
   ...localeSystemMaintenance,
   ...localeSystemLog,
   ...localeSystemConfig,
   ...localeAppHotSearch,
   ...localeAppReadiness,
-  ...localeOfficialSettings,
-  ...localeReferenceCodes,
-  ...localeIntegrationSecurity,
 };

@@ -27,6 +27,9 @@ $legacyBody = static fn(string $schema): array => [
     'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/' . $schema]]],
 ];
 $legacyId = ['name' => 'id', 'in' => 'query', 'required' => true, 'schema' => ['type' => 'integer', 'minimum' => 1]];
+$dictionaryType = ['name' => 'type', 'in' => 'path', 'required' => true, 'schema' => [
+    'type' => 'string', 'maxLength' => 100, 'pattern' => '^[A-Za-z0-9_-]+$',
+]];
 $legacyPage = [
     ['name' => 'page_no', 'in' => 'query', 'schema' => ['type' => 'integer', 'minimum' => 1]],
     ['name' => 'page_size', 'in' => 'query', 'schema' => ['type' => 'integer', 'minimum' => 1]],
@@ -36,6 +39,43 @@ $legacyPage = [
 
 return [
     'paths' => [
+        '/platformapi/api/v1/dictionary-catalog' => ['get' => [
+            'tags' => ['ReferenceCodes'], 'operationId' => 'listPlatformManagedDictionaryTypes',
+            'responses' => ['200' => $legacySuccess('ReferenceCodePlatformDictionaryTypesResponse', '平台系统字典类型与租户默认策略。'), '401' => $error, '403' => $error],
+        ]],
+        '/platformapi/api/v1/dictionary-catalog/{type}/tenant-mode' => ['post' => [
+            'tags' => ['ReferenceCodes'], 'operationId' => 'setPlatformDictionaryTenantMode',
+            'parameters' => [$dictionaryType],
+            'requestBody' => $legacyBody('ReferenceCodePlatformTenantModeRequest'),
+            'responses' => ['200' => $legacySuccess('ReferenceCodeLegacyMutationResponse', '平台系统字典租户策略已保存。'), '401' => $error, '403' => $error, '404' => $error, '409' => $error],
+        ]],
+        '/adminapi/api/v1/dictionary-catalog' => ['get' => [
+            'tags' => ['ReferenceCodes'], 'operationId' => 'listPlatformDictionaryTypes',
+            'responses' => ['200' => $legacySuccess('ReferenceCodePlatformDictionaryTypesResponse', '平台字典类型与当前租户使用方式。'), '401' => $error, '403' => $error],
+        ]],
+        '/adminapi/api/v1/dictionary-catalog/{type}' => ['get' => [
+            'tags' => ['ReferenceCodes'], 'operationId' => 'getPlatformDictionaryType',
+            'parameters' => [$dictionaryType],
+            'responses' => ['200' => $legacySuccess('ReferenceCodePlatformDictionaryDetailResponse', '平台字典选项与租户覆盖。'), '401' => $error, '403' => $error, '404' => $error],
+        ]],
+        '/adminapi/api/v1/dictionary-catalog/{type}/mode' => ['post' => [
+            'tags' => ['ReferenceCodes'], 'operationId' => 'setTenantDictionaryMode',
+            'parameters' => [$dictionaryType],
+            'requestBody' => $legacyBody('ReferenceCodeDictionaryModeRequest'),
+            'responses' => ['200' => $legacySuccess('ReferenceCodeLegacyMutationResponse', '租户字典使用方式已保存。'), '401' => $error, '403' => $error, '409' => $error],
+        ]],
+        '/adminapi/api/v1/dictionary-catalog/{type}/override' => ['post' => [
+            'tags' => ['ReferenceCodes'], 'operationId' => 'setTenantDictionaryOverride',
+            'parameters' => [$dictionaryType],
+            'requestBody' => $legacyBody('ReferenceCodeDictionaryOverrideRequest'),
+            'responses' => ['200' => $legacySuccess('ReferenceCodeLegacyMutationResponse', '租户字典选项覆盖已保存。'), '401' => $error, '403' => $error, '404' => $error, '409' => $error],
+        ]],
+        '/adminapi/api/v1/dictionary-catalog/{type}/override/clear' => ['post' => [
+            'tags' => ['ReferenceCodes'], 'operationId' => 'clearTenantDictionaryOverride',
+            'parameters' => [$dictionaryType],
+            'requestBody' => $legacyBody('ReferenceCodeDictionaryOverrideClearRequest'),
+            'responses' => ['200' => $legacySuccess('ReferenceCodeLegacyMutationResponse', '租户恢复平台默认选项。'), '401' => $error, '403' => $error],
+        ]],
         '/adminapi/dict/type/lists' => ['get' => [
             'tags' => ['ReferenceCodes'], 'operationId' => 'listLegacyDictionaryTypes',
             'parameters' => [
@@ -158,6 +198,72 @@ return [
         ],
     ],
     'components' => ['schemas' => [
+        'ReferenceCodeDictionaryModeRequest' => [
+            'type' => 'object', 'additionalProperties' => false, 'required' => ['mode'],
+            'properties' => ['mode' => ['type' => 'string', 'enum' => ['system', 'extend', 'tenant']]],
+        ],
+        'ReferenceCodePlatformTenantModeRequest' => [
+            'type' => 'object', 'additionalProperties' => false, 'required' => ['tenant_mode'],
+            'properties' => ['tenant_mode' => ['type' => 'string', 'enum' => ['system', 'extend', 'tenant']]],
+        ],
+        'ReferenceCodeDictionaryOverrideRequest' => [
+            'type' => 'object', 'additionalProperties' => false, 'required' => ['value', 'action', 'name'],
+            'properties' => [
+                'value' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255],
+                'action' => ['type' => 'string', 'enum' => ['hide', 'rename']],
+                'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 100, 'nullable' => true],
+            ],
+        ],
+        'ReferenceCodeDictionaryOverrideClearRequest' => [
+            'type' => 'object', 'additionalProperties' => false, 'required' => ['value'],
+            'properties' => ['value' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 255]],
+        ],
+        'ReferenceCodePlatformDictionaryType' => [
+            'type' => 'object', 'additionalProperties' => false,
+            'required' => ['code', 'name', 'is_disable', 'remark', 'tenant_mode', 'mode'],
+            'properties' => [
+                'code' => ['type' => 'string'], 'name' => ['type' => 'string'],
+                'is_disable' => ['type' => 'integer', 'enum' => [0, 1]],
+                'remark' => ['type' => 'string'],
+                'tenant_mode' => ['type' => 'string', 'enum' => ['system', 'extend', 'tenant']],
+                'mode' => ['type' => 'string', 'enum' => ['system', 'extend', 'tenant', 'disabled']],
+            ],
+        ],
+        'ReferenceCodePlatformDictionaryEntry' => [
+            'type' => 'object', 'additionalProperties' => false,
+            'required' => ['name', 'value', 'sort', 'is_disable', 'remark', 'override'],
+            'properties' => [
+                'name' => ['type' => 'string'], 'value' => ['type' => 'string'],
+                'sort' => ['type' => 'integer'], 'is_disable' => ['type' => 'integer', 'enum' => [0, 1]],
+                'remark' => ['type' => 'string'],
+                'override' => [
+                    'type' => 'object', 'nullable' => true, 'additionalProperties' => false,
+                    'properties' => [
+                        'action' => ['type' => 'string', 'enum' => ['hide', 'rename']],
+                        'name' => ['type' => 'string', 'nullable' => true],
+                    ],
+                ],
+            ],
+        ],
+        'ReferenceCodePlatformDictionaryTypesResponse' => [
+            'type' => 'object', 'additionalProperties' => false, 'required' => ['code', 'msg', 'data'],
+            'properties' => [
+                'code' => ['type' => 'integer', 'enum' => [20000]], 'msg' => ['type' => 'string'],
+                'data' => ['type' => 'array', 'items' => ['$ref' => '#/components/schemas/ReferenceCodePlatformDictionaryType']],
+            ],
+        ],
+        'ReferenceCodePlatformDictionaryDetailResponse' => [
+            'type' => 'object', 'additionalProperties' => false, 'required' => ['code', 'msg', 'data'],
+            'properties' => [
+                'code' => ['type' => 'integer', 'enum' => [20000]], 'msg' => ['type' => 'string'],
+                'data' => ['type' => 'object', 'additionalProperties' => false,
+                    'required' => ['type', 'items'],
+                    'properties' => [
+                        'type' => ['$ref' => '#/components/schemas/ReferenceCodePlatformDictionaryType'],
+                        'items' => ['type' => 'array', 'items' => ['$ref' => '#/components/schemas/ReferenceCodePlatformDictionaryEntry']],
+                    ]],
+            ],
+        ],
         'ReferenceCodeLegacyIdentifierRequest' => [
             'type' => 'object', 'additionalProperties' => false, 'description' => '仅接受列出的标识字段；未声明字段会被拒绝。',
             'required' => ['id'], 'properties' => ['id' => ['type' => 'integer', 'minimum' => 1]],

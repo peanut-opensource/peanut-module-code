@@ -104,6 +104,14 @@ Route::get('instance-tools/modules', [PlatformModuleLifecycleController::class, 
 Route::get('developer-center/catalog', [PlatformDeveloperCenterController::class, 'catalog'])
     ->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.module.read');
+Route::get('instance-tools/modules/updates', [PlatformModuleLifecycleController::class, 'updates'])
+    ->middleware(PlatformLoginMiddleware::class)
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.module.read')
+    ->middleware(PlatformInstanceToolMiddleware::class);
+Route::post('instance-tools/modules/official-update', [PlatformModuleLifecycleController::class, 'officialUpdate'])
+    ->middleware(PlatformLoginMiddleware::class)
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.module.update')
+    ->middleware(PlatformInstanceToolMiddleware::class);
 Route::post('instance-tools/modules/create', [PlatformModuleLifecycleController::class, 'create'])
     ->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.module.create')

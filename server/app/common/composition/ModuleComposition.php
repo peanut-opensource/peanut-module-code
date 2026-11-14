@@ -181,14 +181,16 @@ final readonly class ModuleComposition
                 }
             }
         }
-        $taskRegistry = new TaskWorkerDefinitionRegistry($taskWorkers);
+        $taskRegistry = $taskSelected ? new TaskWorkerDefinitionRegistry($taskWorkers) : null;
         foreach ($bindings as $abstract => $concrete) {
             $this->app->bind($abstract, $concrete);
         }
         foreach ($providerClasses as $providerClass => $moduleKey) {
             $this->app->instance($providerClass, $providers[$moduleKey]);
         }
-        $this->app->instance(TaskWorkerDefinitionRegistry::class, $taskRegistry);
+        if ($taskRegistry !== null) {
+            $this->app->instance(TaskWorkerDefinitionRegistry::class, $taskRegistry);
+        }
         if ($contentRegistry !== null) {
             $this->app->instance(ContentToolRegistry::class, $contentRegistry);
         }

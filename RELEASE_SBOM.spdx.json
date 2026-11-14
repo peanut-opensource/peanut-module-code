@@ -5,7 +5,7 @@
     "name": "Peanut Module Code 1.0.0 generated dependency SBOM",
     "documentNamespace": "https://example.invalid/peanut-module-code/sbom/1.0.0",
     "creationInfo": {
-        "created": "2026-11-11T00:00:00Z",
+        "created": "2026-11-12T00:00:00Z",
         "creators": [
             "Organization: application owner",
             "Tool: scripts/generate-release-legal.mjs"
@@ -38,7 +38,7 @@
                 {
                     "referenceCategory": "PACKAGE-MANAGER",
                     "referenceType": "purl",
-                    "referenceLocator": "pkg:github/peanut-business/peanut-admin-code@5.1.10-rc.1"
+                    "referenceLocator": "pkg:github/peanut-business/peanut-admin-code@5.1.11"
                 }
             ]
         },
@@ -500,8 +500,8 @@
         },
         {
             "name": "peanut-admin/core",
-            "SPDXID": "SPDXRef-Package-composer-dc9ec64ab8cd0caf90cd",
-            "versionInfo": "v5.0.3",
+            "SPDXID": "SPDXRef-Package-composer-f9636720575c518780c1",
+            "versionInfo": "v5.1.0",
             "downloadLocation": "https://github.com/peanut-business/peanut-admin-core-php.git",
             "filesAnalyzed": false,
             "licenseConcluded": "NOASSERTION",
@@ -513,159 +513,7 @@
                 {
                     "referenceCategory": "PACKAGE-MANAGER",
                     "referenceType": "purl",
-                    "referenceLocator": "pkg:composer/peanut-admin/core@v5.0.3"
-                }
-            ]
-        },
-        {
-            "name": "peanut-business/peanut-content-tools",
-            "SPDXID": "SPDXRef-Package-composer-fdbbf452a166bd7105c3",
-            "versionInfo": "1.0.2",
-            "downloadLocation": "app/modules/peanut/content_tools",
-            "filesAnalyzed": false,
-            "licenseConcluded": "NOASSERTION",
-            "licenseDeclared": "Apache-2.0",
-            "copyrightText": "NOASSERTION",
-            "primaryPackagePurpose": "LIBRARY",
-            "packageComment": "Peanut Module Code composer locked dependency; release scope: runtime.",
-            "externalRefs": [
-                {
-                    "referenceCategory": "PACKAGE-MANAGER",
-                    "referenceType": "purl",
-                    "referenceLocator": "pkg:composer/peanut-business/peanut-content-tools@1.0.2"
-                }
-            ]
-        },
-        {
-            "name": "peanut-business/peanut-file",
-            "SPDXID": "SPDXRef-Package-composer-35b03e92a8bbb11e5b71",
-            "versionInfo": "1.0.45",
-            "downloadLocation": "app/modules/peanut/file",
-            "filesAnalyzed": false,
-            "licenseConcluded": "NOASSERTION",
-            "licenseDeclared": "Apache-2.0",
-            "copyrightText": "NOASSERTION",
-            "primaryPackagePurpose": "LIBRARY",
-            "packageComment": "Peanut Module Code composer locked dependency; release scope: runtime.",
-            "externalRefs": [
-                {
-                    "referenceCategory": "PACKAGE-MANAGER",
-                    "referenceType": "purl",
-                    "referenceLocator": "pkg:composer/peanut-business/peanut-file@1.0.45"
-                }
-            ]
-        },
-        {
-            "name": "peanut-business/peanut-identity",
-            "SPDXID": "SPDXRef-Package-composer-bc01aaa4b53f06570af1",
-            "versionInfo": "4.0.0-rc.60",
-            "downloadLocation": "app/modules/peanut/identity",
-            "filesAnalyzed": false,
-            "licenseConcluded": "NOASSERTION",
-            "licenseDeclared": "Apache-2.0",
-            "copyrightText": "NOASSERTION",
-            "primaryPackagePurpose": "LIBRARY",
-            "packageComment": "Peanut Module Code composer locked dependency; release scope: runtime.",
-            "externalRefs": [
-                {
-                    "referenceCategory": "PACKAGE-MANAGER",
-                    "referenceType": "purl",
-                    "referenceLocator": "pkg:composer/peanut-business/peanut-identity@4.0.0-rc.60"
-                }
-            ]
-        },
-        {
-            "name": "peanut-business/peanut-integration",
-            "SPDXID": "SPDXRef-Package-composer-75239cef07da8589a022",
-            "versionInfo": "1.0.29",
-            "downloadLocation": "app/modules/peanut/integration",
-            "filesAnalyzed": false,
-            "licenseConcluded": "NOASSERTION",
-            "licenseDeclared": "Apache-2.0",
-            "copyrightText": "NOASSERTION",
-            "primaryPackagePurpose": "LIBRARY",
-            "packageComment": "Peanut Module Code composer locked dependency; release scope: runtime.",
-            "externalRefs": [
-                {
-                    "referenceCategory": "PACKAGE-MANAGER",
-                    "referenceType": "purl",
-                    "referenceLocator": "pkg:composer/peanut-business/peanut-integration@1.0.29"
-                }
-            ]
-        },
-        {
-            "name": "peanut-business/peanut-ops",
-            "SPDXID": "SPDXRef-Package-composer-6cb51d6d2c0016aea5e8",
-            "versionInfo": "1.0.33",
-            "downloadLocation": "app/modules/peanut/ops",
-            "filesAnalyzed": false,
-            "licenseConcluded": "NOASSERTION",
-            "licenseDeclared": "Apache-2.0",
-            "copyrightText": "NOASSERTION",
-            "primaryPackagePurpose": "LIBRARY",
-            "packageComment": "Peanut Module Code composer locked dependency; release scope: runtime.",
-            "externalRefs": [
-                {
-                    "referenceCategory": "PACKAGE-MANAGER",
-                    "referenceType": "purl",
-                    "referenceLocator": "pkg:composer/peanut-business/peanut-ops@1.0.33"
-                }
-            ]
-        },
-        {
-            "name": "peanut-business/peanut-reference-codes",
-            "SPDXID": "SPDXRef-Package-composer-0e9d614796f6db0f4caa",
-            "versionInfo": "1.0.26",
-            "downloadLocation": "app/modules/peanut/reference_codes",
-            "filesAnalyzed": false,
-            "licenseConcluded": "NOASSERTION",
-            "licenseDeclared": "Apache-2.0",
-            "copyrightText": "NOASSERTION",
-            "primaryPackagePurpose": "LIBRARY",
-            "packageComment": "Peanut Module Code composer locked dependency; release scope: runtime.",
-            "externalRefs": [
-                {
-                    "referenceCategory": "PACKAGE-MANAGER",
-                    "referenceType": "purl",
-                    "referenceLocator": "pkg:composer/peanut-business/peanut-reference-codes@1.0.26"
-                }
-            ]
-        },
-        {
-            "name": "peanut-business/peanut-settings",
-            "SPDXID": "SPDXRef-Package-composer-b445a36ddfce13b383ed",
-            "versionInfo": "1.0.28",
-            "downloadLocation": "app/modules/peanut/settings",
-            "filesAnalyzed": false,
-            "licenseConcluded": "NOASSERTION",
-            "licenseDeclared": "Apache-2.0",
-            "copyrightText": "NOASSERTION",
-            "primaryPackagePurpose": "LIBRARY",
-            "packageComment": "Peanut Module Code composer locked dependency; release scope: runtime.",
-            "externalRefs": [
-                {
-                    "referenceCategory": "PACKAGE-MANAGER",
-                    "referenceType": "purl",
-                    "referenceLocator": "pkg:composer/peanut-business/peanut-settings@1.0.28"
-                }
-            ]
-        },
-        {
-            "name": "peanut-business/peanut-task",
-            "SPDXID": "SPDXRef-Package-composer-76b9434ed99e6939fbbc",
-            "versionInfo": "1.0.34",
-            "downloadLocation": "app/modules/peanut/task",
-            "filesAnalyzed": false,
-            "licenseConcluded": "NOASSERTION",
-            "licenseDeclared": "Apache-2.0",
-            "copyrightText": "NOASSERTION",
-            "primaryPackagePurpose": "LIBRARY",
-            "packageComment": "Peanut Module Code composer locked dependency; release scope: runtime.",
-            "externalRefs": [
-                {
-                    "referenceCategory": "PACKAGE-MANAGER",
-                    "referenceType": "purl",
-                    "referenceLocator": "pkg:composer/peanut-business/peanut-task@1.0.34"
+                    "referenceLocator": "pkg:composer/peanut-admin/core@v5.1.0"
                 }
             ]
         },
@@ -59889,55 +59737,7 @@
         {
             "spdxElementId": "SPDXRef-Package-Peanut-Admin",
             "relationshipType": "DEPENDS_ON",
-            "relatedSpdxElement": "SPDXRef-Package-composer-dc9ec64ab8cd0caf90cd",
-            "comment": "composer; runtime"
-        },
-        {
-            "spdxElementId": "SPDXRef-Package-Peanut-Admin",
-            "relationshipType": "DEPENDS_ON",
-            "relatedSpdxElement": "SPDXRef-Package-composer-fdbbf452a166bd7105c3",
-            "comment": "composer; runtime"
-        },
-        {
-            "spdxElementId": "SPDXRef-Package-Peanut-Admin",
-            "relationshipType": "DEPENDS_ON",
-            "relatedSpdxElement": "SPDXRef-Package-composer-35b03e92a8bbb11e5b71",
-            "comment": "composer; runtime"
-        },
-        {
-            "spdxElementId": "SPDXRef-Package-Peanut-Admin",
-            "relationshipType": "DEPENDS_ON",
-            "relatedSpdxElement": "SPDXRef-Package-composer-bc01aaa4b53f06570af1",
-            "comment": "composer; runtime"
-        },
-        {
-            "spdxElementId": "SPDXRef-Package-Peanut-Admin",
-            "relationshipType": "DEPENDS_ON",
-            "relatedSpdxElement": "SPDXRef-Package-composer-75239cef07da8589a022",
-            "comment": "composer; runtime"
-        },
-        {
-            "spdxElementId": "SPDXRef-Package-Peanut-Admin",
-            "relationshipType": "DEPENDS_ON",
-            "relatedSpdxElement": "SPDXRef-Package-composer-6cb51d6d2c0016aea5e8",
-            "comment": "composer; runtime"
-        },
-        {
-            "spdxElementId": "SPDXRef-Package-Peanut-Admin",
-            "relationshipType": "DEPENDS_ON",
-            "relatedSpdxElement": "SPDXRef-Package-composer-0e9d614796f6db0f4caa",
-            "comment": "composer; runtime"
-        },
-        {
-            "spdxElementId": "SPDXRef-Package-Peanut-Admin",
-            "relationshipType": "DEPENDS_ON",
-            "relatedSpdxElement": "SPDXRef-Package-composer-b445a36ddfce13b383ed",
-            "comment": "composer; runtime"
-        },
-        {
-            "spdxElementId": "SPDXRef-Package-Peanut-Admin",
-            "relationshipType": "DEPENDS_ON",
-            "relatedSpdxElement": "SPDXRef-Package-composer-76b9434ed99e6939fbbc",
+            "relatedSpdxElement": "SPDXRef-Package-composer-f9636720575c518780c1",
             "comment": "composer; runtime"
         },
         {

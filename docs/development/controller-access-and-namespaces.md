@@ -65,4 +65,4 @@ Module key 和 vendor 是小写标识，PHP 厂商/类型前缀与测试目录�
 
 ## 8. 当前回归入口
 
-`server/tests/scripts/CheckModuleNamespaceMigration.php` 对照当前 `modules.lock`、宿主和模块 Composer 映射，逐个反射已选模块 `src/` 类型的加载位置，再用 `server/tests/fixtures/module-namespace-migration-map.json` 核查历史旧名均不可加载。一次性迁移执行器已退役，不能从旧起点再次应用。
+历史 18 Module 的一次性命名空间迁移脚本及旧名映射夹具已退出当前门禁；它们无法代表薄宿主与消费者当前的模块选择。现行验证分别由 `ModuleSourceCompositionTest.php`、`ModulePackageArchiveTest.php`、`ModuleArtifactContractTest.php` 和 `ModuleScaffoldLayoutTest.php` 检查真实作者源码、Composer/Provider 装配、公开导出、包校验和路径；执行时必须使用对应的已准备消费者及源码输入。历史迁移的具体映射仅保留在 Git 历史中，不按旧版 18 模块清单阻止当前发行。

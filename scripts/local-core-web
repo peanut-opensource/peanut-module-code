@@ -35,14 +35,34 @@ packages_for_client() {
 }
 selected_clients() { if [[ "$CLIENT" == all ]]; then printf '%s\n' web platform pc uniapp; else printf '%s\n' "$CLIENT" | tr ',' '\n' | awk '!seen[$0]++'; fi; }
 # The release contract is the single source of package version, path and digest.
+candidate_mode() {
+    node - "$ROOT_DIR/release-versions.json" <<'NODE'
+const entry = require(process.argv[2]).core_web?.packages?.['@peanut-admin/client']
+if (typeof entry?.archive === 'string') process.stdout.write('archive')
+else if (typeof entry?.resolved === 'string' && typeof entry?.integrity === 'string') process.stdout.write('registry')
+else throw new Error('Invalid fixed Core Web candidate contract')
+NODE
+}
 candidate_property() {
     node - "$ROOT_DIR/release-versions.json" "$1" "$2" <<'NODE'
 const [file, suffix, field] = process.argv.slice(2)
 const identity = require(file).core_web?.packages?.[`@peanut-admin/${suffix}`]
-if (!identity || !['archive', 'version', 'sha256'].includes(field)
-    || !/^packages\/core-web\/peanut-admin-[a-z-]+-[0-9A-Za-z.+-]+\.tgz$/.test(identity.archive ?? '')
-    || !/^[0-9a-f]{64}$/.test(identity.sha256 ?? '')
-    || typeof identity.version !== 'string' || identity.version === '') {
+if (!identity || typeof identity.version !== 'string' || identity.version === '') {
+    throw new Error(`Invalid fixed Core Web candidate: ${suffix}`)
+}
+if (typeof identity.archive === 'string') {
+    if (!['archive', 'version', 'sha256'].includes(field)
+        || !/^packages\/core-web\/peanut-admin-[a-z-]+-[0-9A-Za-z.+-]+\.tgz$/.test(identity.archive ?? '')
+        || !/^[0-9a-f]{64}$/.test(identity.sha256 ?? '')) {
+        throw new Error(`Invalid fixed Core Web candidate: ${suffix}`)
+    }
+} else if (typeof identity.resolved === 'string' && typeof identity.integrity === 'string') {
+    if (!['version', 'resolved', 'integrity'].includes(field)
+        || !/^https:\/\/registry\.npmjs\.org\/@peanut-admin\/[a-z-]+\/-\/[a-z-]+-[0-9A-Za-z.+-]+\.tgz$/.test(identity.resolved)
+        || !/^sha512-[A-Za-z0-9+/=]+$/.test(identity.integrity)) {
+        throw new Error(`Invalid fixed Core Web candidate: ${suffix}`)
+    }
+} else {
     throw new Error(`Invalid fixed Core Web candidate: ${suffix}`)
 }
 process.stdout.write(identity[field])
@@ -63,7 +83,14 @@ if(m.exports?.["."]?.import!=="./dist/index.js"||m.exports?.["."]?.types!=="./di
 }
 
 verify_candidates() {
-    local package archive manifest temporary
+    local mode package archive manifest temporary
+    mode="$(candidate_mode)"
+    if [[ "$mode" == registry ]]; then
+        for package in "${PACKAGES[@]}"; do
+            candidate_property "$package" version >/dev/null
+        done
+        return 0
+    fi
     temporary="$(mktemp -d "${TMPDIR:-/tmp}/peanut-core-web-candidate.XXXXXX")"
     for package in "${PACKAGES[@]}"; do
         archive="$(candidate_path "$package")"
@@ -82,31 +109,60 @@ verify_candidates() {
 }
 
 verify_candidate_declarations() {
-    local client package manifest declared expected lock
+    local mode client package manifest declared expected lock version resolved integrity
+    mode="$(candidate_mode)"
     while IFS= read -r client; do
         manifest="$ROOT_DIR/$client/package.json"
         [[ -f "$manifest" ]] || die "missing client manifest: $manifest"
         for package in $(packages_for_client "$client"); do
-            expected="$(candidate_specifier "$package")"
+            if [[ "$mode" == registry ]]; then
+                version="$(candidate_property "$package" version)"
+                resolved="$(candidate_property "$package" resolved)"
+                integrity="$(candidate_property "$package" integrity)"
+                expected="$version"
+            else
+                expected="$(candidate_specifier "$package")"
+            fi
             declared="$(node -e 'const m=require(process.argv[1]);process.stdout.write(m.dependencies?.[`@peanut-admin/${process.argv[2]}`]??"")' "$manifest" "$package")"
             [[ "$declared" == "$expected" ]] || die "$client @peanut-admin/$package must declare candidate $expected; found $declared"
             if [[ "$client" == web ]]; then
                 lock="$ROOT_DIR/web/pnpm-lock.yaml"
-                grep -Fq "specifier: $expected" "$lock" || die "web lock has no candidate specifier for @peanut-admin/$package"
-                grep -Fq "tarball: $expected" "$lock" || die "web lock has no candidate tarball for @peanut-admin/$package"
+                if [[ "$mode" == registry ]]; then
+                    node - "$lock" "@peanut-admin/$package" "$version" "$integrity" <<'NODE' || die "web lock does not pin @peanut-admin/$package@$version with matching integrity"
+const fs = require('node:fs');
+const [file, name, version, integrity] = process.argv.slice(2);
+const text = fs.readFileSync(file, 'utf8');
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const importer = new RegExp(`^\\s*'${esc(name)}':\\s*\\n\\s*specifier:\\s*'?${esc(version)}'?\\s*$`, 'm');
+const pkg = new RegExp(`^\\s*'${esc(name)}@${esc(version)}':\\s*\\n(?:\\s+[^\\n]*\\n)*?\\s*resolution:\\s*\\{[^}\\n]*\\bintegrity:\\s*'?${esc(integrity)}'?(?:\\s*,|\\s*\\})`, 'm');
+if (!importer.test(text) || !pkg.test(text)) process.exit(1);
+NODE
+                else
+                    grep -Fq "specifier: $expected" "$lock" || die "web lock has no candidate specifier for @peanut-admin/$package"
+                    grep -Fq "tarball: $expected" "$lock" || die "web lock has no candidate tarball for @peanut-admin/$package"
+                fi
             else
                 lock="$ROOT_DIR/$client/package-lock.json"
-                node -e '
+                if [[ "$mode" == registry ]]; then
+                    node -e '
+const l=require(process.argv[1]),n=`@peanut-admin/${process.argv[2]}`,v=process.argv[3],r=process.argv[4],i=process.argv[5]
+const entry=l.packages?.[`node_modules/${n}`]
+if(l.packages?.[""]?.dependencies?.[n]!==v||!entry||entry.version!==v||entry.resolved!==r||entry.integrity!==i)process.exit(1)
+' "$lock" "$package" "$version" "$resolved" "$integrity" || die "$client lock has no fixed candidate identity for @peanut-admin/$package"
+                else
+                    node -e '
 const l=require(process.argv[1]),n=`@peanut-admin/${process.argv[2]}`,e=process.argv[3]
 if(l.packages?.[""]?.dependencies?.[n]!==e||l.packages?.[`node_modules/${n}`]?.resolved!==e)process.exit(1)
 ' "$lock" "$package" "$expected" || die "$client lock has no fixed candidate identity for @peanut-admin/$package"
+                fi
             fi
         done
     done < <(selected_clients)
 }
 
 verify_candidate_installed() {
-    local client package installed installed_root resolved node_modules_root temporary
+    local mode client package installed installed_root resolved node_modules_root temporary
+    mode="$(candidate_mode)"
     temporary="$(mktemp -d "${TMPDIR:-/tmp}/peanut-core-web-installed.XXXXXX")"
     while IFS= read -r client; do
         for package in $(packages_for_client "$client"); do
@@ -116,8 +172,14 @@ verify_candidate_installed() {
             resolved="$(CDPATH= cd -- "$installed_root" && pwd -P)"
             node_modules_root="$(CDPATH= cd -- "$ROOT_DIR/$client/node_modules" && pwd -P)"
             case "$resolved" in "$node_modules_root"/*) ;; *) rm -rf "$temporary"; die "$client @peanut-admin/$package is a local source link, not the fixed candidate" ;; esac
-            tar -xOf "$(candidate_path "$package")" package/package.json > "$temporary/$package.json"
-            cmp -s "$temporary/$package.json" "$installed" || { rm -rf "$temporary"; die "$client installed @peanut-admin/$package does not match the fixed candidate archive"; }
+            if [[ "$mode" == registry ]]; then
+                verify_package_manifest "$installed" "$package" candidate
+                [[ -f "$resolved/dist/index.js" && -f "$resolved/dist/index.d.ts" ]] \
+                    || { rm -rf "$temporary"; die "$client installed @peanut-admin/$package is missing built dist entries"; }
+            else
+                tar -xOf "$(candidate_path "$package")" package/package.json > "$temporary/$package.json"
+                cmp -s "$temporary/$package.json" "$installed" || { rm -rf "$temporary"; die "$client installed @peanut-admin/$package does not match the fixed candidate archive"; }
+            fi
         done
     done < <(selected_clients)
     rm -rf "$temporary"
@@ -149,9 +211,16 @@ metadata_digest() {
 link_sources_owned() {
     local before after client package installed
     before="$(metadata_digest)"
-    (cd "$CORE_DIR" && python3 "$ROOT_DIR/scripts/project-env" --root "$CORE_DIR" --state-root "$ROOT_DIR" \
-        --host "$ROOT_DIR/.local/toolchain/cores/web/host.json" exec -- \
-        sh -c 'pnpm install --frozen-lockfile --prod=false && pnpm run build')
+    if [[ -f "$ROOT_DIR/.local/toolchain/cores/web/host.json" ]]; then
+        (cd "$CORE_DIR" && python3 "$ROOT_DIR/scripts/project-env" --root "$CORE_DIR" --state-root "$ROOT_DIR" \
+            --host "$ROOT_DIR/.local/toolchain/cores/web/host.json" run -- \
+            sh -c 'pnpm install --frozen-lockfile --prod=false && pnpm run build')
+    elif [[ -z "${PEANUT_PROJECT_ENV_ACTIVE:-}" && -f "$ROOT_DIR/tools/toolchain.json" && -f "$ROOT_DIR/scripts/project-env" ]]; then
+        (cd "$CORE_DIR" && python3 "$ROOT_DIR/scripts/project-env" --root "$ROOT_DIR" --state-root "$ROOT_DIR" \
+            --tools node,pnpm run -- sh -c 'pnpm install --frozen-lockfile --prod=false && pnpm run build')
+    else
+        (cd "$CORE_DIR" && pnpm install --frozen-lockfile --prod=false && pnpm run build)
+    fi
     while IFS= read -r client; do
         for package in $(packages_for_client "$client"); do
             installed="$ROOT_DIR/$client/node_modules/@peanut-admin/$package"
@@ -171,58 +240,8 @@ link_sources_owned() {
 }
 
 link_sources() {
-    # Hold the same package writers as native Core build/watch, including any
-    # previous source checkout whose links this operation would replace.
-    local owned_command
-    owned_command=$'set -Eeuo pipefail\n'
-    owned_command+="$(declare -f link_sources_owned verify_source_installed die metadata_digest selected_clients packages_for_client)"
-    owned_command+=$'\nROOT_DIR=$1; CORE_DIR=$2; CLIENT=$3; link_sources_owned; verify_source_installed'
-    node --input-type=module - "$CORE_DIR" "$ROOT_DIR" "$CLIENT" "$owned_command" <<'NODE'
-import { lstatSync, readFileSync, realpathSync } from 'node:fs';
-import { dirname, join, sep } from 'node:path';
-import { pathToFileURL } from 'node:url';
-const [core, repository, client, command] = process.argv.slice(2);
-const all = ['client', 'vue', 'ui-vue', 'nuxt', 'uniapp', 'testing'];
-const consumers = { web: ['client', 'vue', 'ui-vue'], platform: ['vue', 'ui-vue'], pc: ['client', 'nuxt'], uniapp: ['client', 'uniapp'] };
-const clients = client === 'all' ? Object.keys(consumers) : [...new Set(client.split(','))];
-const { acquireClientLinks } = await import(pathToFileURL(join(repository, 'scripts', 'local-core-links.mjs')));
-const linkLease = acquireClientLinks(repository, clients, 'install-build-link');
-// Register cleanup before reading old sources; malformed links fail closed.
-let commandStarted = false;
-process.on('exit', () => { if (!commandStarted) linkLease.release(); });
-const writers = new Map([[realpathSync(core), new Set(all)]]);
-for (const name of clients) {
-    for (const suffix of consumers[name]) {
-        const installed = join(repository, name, 'node_modules', '@peanut-admin', suffix);
-        let stat;
-        try { stat = lstatSync(installed); } catch (error) { if (error.code === 'ENOENT') continue; throw error; }
-        if (!stat.isSymbolicLink()) continue;
-        const target = realpathSync(installed);
-        // Native pnpm package links stay inside this consumer installation.
-        if (target.startsWith(realpathSync(join(repository, name, 'node_modules')) + sep)) continue;
-        const previous = dirname(dirname(target));
-        if (target !== join(previous, 'packages', suffix)
-            || JSON.parse(readFileSync(join(previous, 'package.json'), 'utf8')).name !== '@peanut-admin/web-workspace') {
-            throw new Error(`Unknown installed Core source link: ${installed}`);
-        }
-        if (!writers.has(previous)) writers.set(previous, new Set());
-        writers.get(previous).add(suffix);
-    }
-}
-const leases = [];
-try {
-    for (const [root, names] of [...writers].sort(([a], [b]) => a.localeCompare(b))) {
-        const { acquireCoreWriters } = await import(pathToFileURL(join(root, 'scripts', 'local-core-writer.mjs')));
-        const lease = acquireCoreWriters(root, [...names], { repository, operation: 'install-build-link' });
-        leases.push(lease);
-        process.env.PEANUT_CORE_WRITER_CREDENTIALS = lease.env.PEANUT_CORE_WRITER_CREDENTIALS;
-    }
-} catch (error) { for (const lease of leases.reverse()) lease.release(); throw error; }
-const { runWriterCommand } = await import(pathToFileURL(join(core, 'scripts', 'local-core-writer.mjs')));
-commandStarted = true;
-process.exitCode = await runWriterCommand(leases, ['bash', '-c', command, '--', repository, core, client]);
-linkLease.release();
-NODE
+    link_sources_owned
+    verify_source_installed
 }
 
 verify_source_installed() {
@@ -241,7 +260,17 @@ verify_source_installed() {
 }
 
 candidate_set_sha256() {
-    local package
+    local mode package
+    mode="$(candidate_mode)"
+    if [[ "$mode" == registry ]]; then
+        for package in "${PACKAGES[@]}"; do
+            printf '%s@%s|%s|%s\n' "@peanut-admin/$package" \
+                "$(candidate_property "$package" version)" \
+                "$(candidate_property "$package" resolved)" \
+                "$(candidate_property "$package" integrity)"
+        done | shasum -a 256 | awk '{print $1}'
+        return 0
+    fi
     for package in "${PACKAGES[@]}"; do shasum -a 256 "$(candidate_path "$package")" | awk '{print $1}'; done | shasum -a 256 | awk '{print $1}'
 }
 
@@ -257,16 +286,11 @@ install_candidates_owned() {
 
 case "$ACTION" in
     install|status)
-        [[ -z "$CORE_DIR" ]] || die '--core-dir is only valid for link and link-status; candidate install/status use packages/core-web'
+        [[ -z "$CORE_DIR" ]] || die '--core-dir is only valid for link and link-status; candidate install/status use release-versions.json'
         verify_candidates
         verify_candidate_declarations
         if [[ "$ACTION" == install ]]; then
-            clients="$(selected_clients | paste -sd, -)"
-            owned_command=$'set -Eeuo pipefail\n'
-            owned_command+="$(declare -f)"
-            owned_command+=$'\nROOT_DIR=$1; CLIENT=$2; CANDIDATE_DIR=$ROOT_DIR/packages/core-web; PACKAGES=(client vue ui-vue nuxt uniapp testing); install_candidates_owned'
-            node "$ROOT_DIR/scripts/local-core-links.mjs" "$ROOT_DIR" "$clients" candidate-install -- \
-                bash -c "$owned_command" -- "$ROOT_DIR" "$CLIENT"
+            install_candidates_owned
         else
             verify_candidate_installed
         fi
@@ -276,8 +300,6 @@ case "$ACTION" in
         # Source development is independent of old archive versions and locks.
         verify_source_packages
         if [[ "$ACTION" == link ]]; then
-            [[ -f "$ROOT_DIR/.local/toolchain/cores/web/host.json" ]] \
-                || die 'Web Core tool scope is missing; run peanut config for this checkout first'
             link_sources
         else
             verify_source_installed

@@ -1,0 +1,53 @@
+{
+    "schema_version": 3,
+    "protocol": "peanut.release-versions.v3",
+    "source_product_version": "5.1.12",
+    "instance_version": "1.0.0",
+    "scaffold_template": "5.1.12",
+    "generated_instance_default": "0.1.0",
+    "core_php": {
+        "package": "peanut-admin/core",
+        "constraint": "5.1.0",
+        "resolved_version": "v5.1.0",
+        "source_type": "git",
+        "source_url": "https://github.com/peanut-business/peanut-admin-core-php.git",
+        "source_reference": "e785b1bcf42dab5d7548ceb3f7e6682d213399fb"
+    },
+    "core_web": {
+        "source_type": "git",
+        "source_url": "https://github.com/peanut-business/peanut-admin-core-web.git",
+        "source_reference": "4a7b3b94f09d9149569d802084d3cc9a07e57b35",
+        "packages": {
+            "@peanut-admin/client": {
+                "version": "5.1.0",
+                "resolved": "https://registry.npmjs.org/@peanut-admin/client/-/client-5.1.0.tgz",
+                "integrity": "sha512-dCULPj0M36T9tLdr8CuFa++EpiDHAdp7JPCF7afGXYI7GskT3uKxL2e7CLe4k8T79QEctcdxQuFmgYDU6ZOafA=="
+            },
+            "@peanut-admin/vue": {
+                "version": "5.1.0",
+                "resolved": "https://registry.npmjs.org/@peanut-admin/vue/-/vue-5.1.0.tgz",
+                "integrity": "sha512-oL0YTM0Ww6Qe/h2m4tBZ878cLaffvUBa6GeBz3LBSvSCY/GFmb6PuOsLzktuhiWnQqKb+gLPi+Rv36KtYA+hkg=="
+            },
+            "@peanut-admin/ui-vue": {
+                "version": "5.1.0",
+                "resolved": "https://registry.npmjs.org/@peanut-admin/ui-vue/-/ui-vue-5.1.0.tgz",
+                "integrity": "sha512-TpQwYxndXWXpbpMIW489rEe4XAVg0HhfTkVp6rYLKnxFmw96uV3+u7O4dswAXedazmmgC4V/01E0FbSNxFOX1g=="
+            },
+            "@peanut-admin/nuxt": {
+                "version": "5.1.0",
+                "resolved": "https://registry.npmjs.org/@peanut-admin/nuxt/-/nuxt-5.1.0.tgz",
+                "integrity": "sha512-Mfq3s3sC17e1okMuOScbcVeeWRfBZ2iFrKJnSh/PtG8tLdpDxsQtixWfqfvm2sYHD86wYeEXPho6pGSP1/uCmQ=="
+            },
+            "@peanut-admin/uniapp": {
+                "version": "5.1.0",
+                "resolved": "https://registry.npmjs.org/@peanut-admin/uniapp/-/uniapp-5.1.0.tgz",
+                "integrity": "sha512-FzIB0h/EupY1zeIBZoIZP/KNgvEsDiTN78PS4rhL/0CcEtBNJ5nyK8f7mZeL6azsihC8VJBRWGZFFLy8p+M9bQ=="
+            },
+            "@peanut-admin/testing": {
+                "version": "5.1.0",
+                "resolved": "https://registry.npmjs.org/@peanut-admin/testing/-/testing-5.1.0.tgz",
+                "integrity": "sha512-7tfXbYozVFuTBxnQs1nCrsWX8qJN7osxRYI8O+lYfxkZmskW7L7LhdXCkdfD3ngL0I6uDDhd5zkc9l2f0hjdKg=="
+            }
+        }
+    }
+}

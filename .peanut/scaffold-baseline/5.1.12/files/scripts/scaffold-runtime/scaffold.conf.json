@@ -1,0 +1,640 @@
+{
+  "protocol": "peanut.scaffold-configuration.v1",
+  "source_snapshot": {
+    "excluded_names": [
+      ".git",
+      ".local",
+      ".ops",
+      ".claude",
+      ".codex",
+      ".codegraph",
+      ".workspace",
+      ".worktrees",
+      ".worktree",
+      ".webcodex-worktrees",
+      ".webcodex-managed-worktrees",
+      ".playwright-cli",
+      ".playwright-mcp",
+      ".nuxt",
+      ".output",
+      ".cache",
+      "__pycache__",
+      ".pnpm-store",
+      "vendor",
+      "node_modules",
+      "coverage",
+      "dist",
+      ".DS_Store",
+      "Thumbs.db"
+    ],
+    "excluded_paths": [
+      "likeadmin-dept-list.png",
+      "peanut-dept-list.png",
+      "backups",
+      "release",
+      "releases",
+      "output",
+      "evidence",
+      "updates",
+      ".peanut",
+      "scaffold/releases",
+      "server/runtime",
+      "server/.peanut",
+      "server/plugins",
+      "server/modules.lock",
+      "server/resources/project-resources.json",
+      "server/docker/scripts/upgrade",
+      "server/docker/scripts/product-upgrade-host",
+      "server/docker/scripts/scaffold-runtime/ScaffoldPathGuard.php",
+      "server/docker/scripts/ops-backup-worker",
+      "server/docker/scripts/ops-restore-worker",
+      "server/private/installation",
+      "server/private/resources",
+      "server/private/credential-maintenance",
+      "server/private/credentials",
+      "server/private/storage",
+      "server/private/collaboration",
+      "server/public/uploads",
+      "server/public/storage",
+      "server/public/admin",
+      "server/public/platform",
+      "server/public/pc",
+      "server/public/mobile",
+      "server/docker/mysql",
+      "server/docker/secrets",
+      "server/docker/tls",
+      "server/docker/collaboration.env"
+    ],
+    "retained_name_patterns": [
+      "^\\.env\\.example$",
+      "^\\.env\\.[A-Za-z0-9_-]+\\.example$"
+    ],
+    "retained_paths": [
+      "settings/src/Secret/SecretProtectionException.php",
+      "settings/src/Secret/SecretProtector.php",
+      "settings/src/Secret/SecretStorageContext.php",
+      "settings/src/Secret/SodiumSecretProtector.php"
+    ],
+    "excluded_name_patterns": [
+      "^\\.env(?:\\.|$)",
+      "(?:^|\\.)secret(?:\\.|$)",
+      "\\.(?:sqlite3?|db|log|py[co])$"
+    ]
+  },
+  "inventory_omissions": {
+    "paths": [
+      "scaffold/application-template-inventory.json",
+      "scripts/ensure-qualified-release-tag",
+      "SECURITY.md",
+      "AGENTS.md",
+      "server/modules.lock",
+      "server/resources/project-resources.json",
+      "server/docker/scripts/upgrade",
+      "server/docker/scripts/product-upgrade-host",
+      "server/docker/scripts/scaffold-runtime/ScaffoldPathGuard.php",
+      "server/docker/scripts/ops-backup-worker",
+      "server/docker/scripts/ops-restore-worker",
+      "server/composer.json",
+      "server/composer.lock"
+    ],
+    "prefixes": [
+      "scaffold/",
+      "output/",
+      "server/.peanut/",
+      "server/plugins/"
+    ]
+  },
+  "delivery": {
+    "managed": {
+      "paths": [
+        "server/app/AppService.php",
+        "server/app/BaseController.php",
+        "server/app/middleware.php",
+        "server/app/adminapi/middleware.php",
+        "server/app/api/middleware.php",
+        "server/app/installation/middleware.php",
+        "server/app/platform/middleware.php",
+        "server/app/adminapi/http/middleware/AuthMiddleware.php",
+        "server/app/adminapi/http/middleware/LoginMiddleware.php",
+        "server/app/adminapi/http/middleware/OperationLogMiddleware.php",
+        "server/app/api/middleware/CheckTokenMiddleware.php",
+        "server/app/api/middleware/PublicTenantModuleMiddleware.php",
+        "server/app/common/http/middleware/InstallationStateMiddleware.php",
+        "server/app/common/http/middleware/MaintenanceWriteGateMiddleware.php",
+        "server/app/common/traits/ApiResponseTrait.php",
+        "server/app/common/traits/CrudTrait.php",
+        "server/app/common/validate/InputValidator.php",
+        "server/app/common/validate/ListsValidate.php",
+        "server/app/common/validate/PageSizeRule.php",
+        "server/app/common/validate/TenantContextValidate.php",
+        "server/app/common/validate/ValidatedInput.php",
+        "server/app/installation/http/middleware/InstallationExecutionMiddleware.php",
+        "server/app/platform/http/middleware/PlatformHostMiddleware.php",
+        "server/app/platform/http/middleware/PlatformInstanceToolMiddleware.php",
+        "server/app/platform/http/middleware/PlatformLoginMiddleware.php",
+        "server/app/platform/http/middleware/PlatformPermissionMiddleware.php",
+        "server/app/common/contract/module/ModuleGovernanceProvider.php",
+        "server/app/common/contract/module/ModuleLifecycleCommands.php",
+        "server/app/common/contract/module/ModuleQualificationQuery.php",
+        "server/app/common/contract/module/ModuleQualification.php",
+        "server/app/common/contract/module/TenantModuleState.php",
+        "server/app/common/persistence/AdvisoryLockExecution.php",
+        "server/app/common/persistence/AdvisoryLockUnavailable.php",
+        "server/app/common/infrastructure/module/ModuleHostLayoutFactory.php",
+        "server/app/common/value/module/ModulePhpNamespace.php",
+        "server/app/platform/infrastructure/module/ThinkPhpModuleGovernanceProvider.php",
+        "server/app/platform/infrastructure/module/DeployedTenantModuleRegistry.php",
+        "server/app/platform/services/module/ModuleQualificationQueryService.php",
+        "server/app/platform/validation/module/ModulePublicSurfacePolicy.php",
+        "server/app/platform/validation/module/OpisManifestSchemaValidator.php",
+        "server/app/platform/services/module/ModuleLifecycleService.php",
+        "server/app/platform/exception/module/ModuleLifecycleException.php",
+        "server/app/platform/value/module/ModuleDescriptor.php",
+        "server/app/platform/infrastructure/module/ModuleLockResolver.php",
+        "server/app/platform/exception/module/ModuleArtifactToolException.php",
+        "server/app/platform/exception/module/ModulePackageException.php",
+        "server/app/platform/value/module/ModuleFrontendLayout.php",
+        "server/app/platform/infrastructure/module/ModuleArtifactWriter.php",
+        "server/app/common/module/PackageCheck.php",
+        "server/app/platform/composition/module/ModuleModuleRegistryFactory.php",
+        "server/app/platform/composition/module/ModuleDefinitionRegistryFactory.php",
+        "server/app/platform/policy/module/ModuleLifecyclePolicy.php",
+        "server/app/platform/infrastructure/module/ModuleCatalogApplier.php",
+        "server/app/platform/infrastructure/module/ScopedMenuCatalogRepository.php",
+        "server/app/platform/infrastructure/module/ModuleCatalogMutationRepository.php",
+        "server/database/seed-demo-data.php",
+        "server/app/common/value/installation/ApplicationReleaseVersions.php",
+        "scripts/deploy-update.sh"
+      ],
+      "prefixes": []
+    },
+    "retained_paths": [
+      "scripts/scaffold-upgrade",
+      "scripts/scaffold-runtime/ScaffoldPathGuard.php",
+      "scripts/scaffold-runtime/ScaffoldManifest.php",
+      "scripts/scaffold-runtime/ScaffoldSourceIdentity.php",
+      "scripts/scaffold-runtime/ScaffoldUpgradeLedger.php",
+      "scripts/scaffold-runtime/ScaffoldUpgradeRunner.php",
+      "scripts/scaffold-runtime/EditionUpgradePackage.php",
+      "scripts/scaffold-runtime/Semver.php",
+      "server/app/common/infrastructure/scaffold/ReleaseDependencyIdentity.php",
+      "scripts/ops-backup-worker",
+      "scripts/ops-restore-worker",
+      "server/app/common/infrastructure/scaffold/DeterministicEditionArchive.php",
+      "server/tests/Multitenancy/NativeAdminIdentityRuntimeContractTest.php",
+      "server/tests/Multitenancy/OfficialCapabilityTenantQualificationTest.php",
+      "server/tests/Productization/FreshSchemaBaselineTest.php",
+      "docs/peanut-admin-development-guide.md",
+      "docs/peanut-admin-release-deployment.md",
+      "docs/peanut-admin-user-manual.md",
+      "docs/plugin-module-development.md",
+      "docs/module-layout.md",
+      "docs/development/standard.md",
+      "docs/development/agent-project-rules.md",
+      "docs/development/request-cache-contract.md",
+      "docs/development/ui-guidelines.md",
+      "docs/development/charts.md",
+      "docs/README.md",
+      "docs/development/application-conventions.md",
+      "docs/development/controller-access-and-namespaces.md",
+      "docs/development/developer-center-and-documentation.md",
+      "docs/development/php-thinkphp-guidelines.md",
+      "docs/development/current-code-lifecycle.md",
+      "docs/development/project-toolchain.md",
+      "docs/architecture/overview.md",
+      "docs/architecture/cli-and-recipes.md",
+      "docs/architecture/default-delivery-and-ownership.md",
+      "docs/architecture/core-capabilities-and-application-overrides.md",
+      "docs/architecture/framework-extension-and-lifecycle.md",
+      "docs/architecture/document-collaboration-standard.md",
+      "docs/architecture/file-visibility-sources.md",
+      "docs/architecture/content-surface-and-format-adapters.md",
+      "docs/development/menu-navigation.md",
+      "docs/architecture/identity-organization-access.md",
+      "docs/architecture/tenant-modules-and-data-scopes.md",
+      "docs/architecture/module-development-delivery.md",
+      "docs/architecture/service-bindings.md",
+      "docs/architecture/events-and-tasks.md",
+      "docs/public/README.md",
+      "docs/public/release-channels.md",
+      "docs/public/installation.md",
+      "docs/public/api-and-sdk.md",
+      "docs/public/module-development.md",
+      "docs/public/application-release.md",
+      "docs/public/support.md",
+      "scripts/scaffold-runtime/scaffold.conf.json",
+      "scripts/scaffold-runtime/ScaffoldConfiguration.php",
+      "docs/architecture/module-composition.md"
+    ],
+    "excluded": {
+      "paths": [
+        "AGENTS.md",
+        "AGENT_EXECUTION_RULES.md",
+        "SECURITY.md",
+        "resources/codegraph-registry.json",
+        "resources/service-registry.json",
+        "resources/consumer-ready-control.json",
+        "scripts/project-codegraph",
+        "scripts/ci-change-classifier",
+        "scripts/ci-checkpoint",
+        "scripts/ci-server-check.sh",
+        "scripts/ci-summary",
+        "scripts/freeze-core-release",
+        "scripts/create-app",
+        "scripts/build-application-template-inventory",
+        "scripts/build-scaffold-release",
+        "scripts/export-release-database",
+        "scripts/package-scaffold-template.py",
+        "scripts/check-test-integrity",
+        "scripts/core-qualification-runner",
+        "scripts/core-upgrade-compatibility",
+        "scripts/combined-upgrade-qualification",
+        "scripts/consumer-module-reference-chain",
+        "scripts/consumer-ready-control",
+        "scripts/select-legacy-pre-alpha5-fixture",
+        "scripts/test-core-upgrade-public-entry-gate",
+        "scripts/check-product-capability-ledger",
+        "scripts/check-release-consistency",
+        "scripts/generate-release-legal.mjs",
+        "scripts/publish-github-release",
+        "scripts/release-template-artifacts.mjs",
+        "scripts/release-asset-verification.mjs",
+        "scripts/verify-qualified-release-transport.py",
+        "scripts/release-metadata-version.cjs",
+        "scripts/continue-product-release",
+        "scripts/tests/continue_product_release_test.py",
+        "scripts/tests/publish_github_release_channel_test.py",
+        "scripts/tests/release-template-artifacts-test.mjs",
+        "scripts/tests/p0e_template_stage_test.py",
+        "scripts/tests/public-doc-delivery-test.py",
+        "scripts/check-public-docs",
+        "scripts/tests/release_metadata_version_test.py",
+        "scripts/tests/scaffold-recipe-ownership-transition-test.py",
+        "scripts/tests/project_resource_lease_parent_test.py",
+        "scripts/prepare-product-release-candidate",
+        "scripts/tests/prepare_product_release_candidate_test.py",
+        "scripts/ops-backup-worker",
+        "scripts/ops-restore-worker",
+        "scripts/ops-upgrade-worker",
+        "scripts/ops-module-worker",
+        "server/database/seed-multi-tenant-demo.php",
+        "docs-site/.vitepress/theme/ProductStatus.vue",
+        "server/tests/Productization/CreateApplicationTest.php",
+        "server/tests/Productization/CombinedUpgradePolicyTest.php",
+        ".github/workflows/core-upgrade-compatibility.yml",
+        ".github/workflows/product-capability-ledger.yml",
+        ".github/workflows/docs-site.yml",
+        ".github/workflows/repository-policy.yml",
+        ".github/workflows/resource-registry.yml",
+        ".github/pull_request_template.md",
+        "server/tests/Productization/ScaffoldUpgradeRunnerTest.php",
+        "server/docker/collaboration.env",
+        "server/.env.collaboration.lock",
+        "scripts/ci-producer",
+        "scripts/consumer-upgrade-qualification",
+        "resources/p0e-runtime-qualification.json",
+        "server/tests/Productization/P0eRuntimeQualificationTest.php",
+        "web/tests/Productization/module-contribution.test.ts",
+        "deploy/docker-compose.remote-development.yml",
+        "scripts/project-development-database.sh",
+        "server/tests/Productization/DatabaseResourceRegistryTest.php",
+        "deploy/docker-compose.dev.yml",
+        "deploy/docker/php-development.Dockerfile",
+        "deploy/nginx/development.conf",
+        "deploy/local-stack.env.example"
+      ],
+      "prefixes": [
+        "server/runtime/installation/",
+        "server/private/installation/",
+        "server/private/collaboration/",
+        "server/docker/tls/",
+        "tools/ci-producer/",
+        ".github/",
+        ".githooks/",
+        ".vscode/",
+        ".peanut/recipes/",
+        "evidence/",
+        "deploy/tests/",
+        "server/tests/",
+        "scripts/p0e-",
+        "scripts/project-resource-",
+        "scripts/consumers/",
+        "scripts/tests/",
+        "output/",
+        "docs/",
+        "server/app/common/infrastructure/scaffold/",
+        "scripts/scaffold-runtime/",
+        "web/.claude/",
+        "plugins/fixture.delivery-record/",
+        "server/fixtures/modules/",
+        "plugins/fixture.workflow-business/",
+        "web/tests/fixtures/",
+        "server/fixtures/module-lifecycle/",
+        "scaffold/",
+        "server/app/modules/peanut/",
+        "web/src/modules/peanut-",
+        "platform/src/modules/peanut-",
+        "pc/modules/peanut-",
+        "uniapp/src/modules/peanut-",
+        "plugins/peanut."
+      ]
+    },
+    "generated_managed_paths": [
+      "README.md",
+      "LICENSE",
+      "NOTICE",
+      "THIRD_PARTY_NOTICES.md",
+      "RELEASE_SBOM.spdx.json",
+      "CHANGELOG.md",
+      "RELEASE_METADATA.json",
+      "server/config/brand.json",
+      "web/src/generated/brand.json",
+      "pc/generated/brand.json",
+      "uniapp/src/generated/brand.json",
+      "docs-site/generated/brand.json"
+    ],
+    "application_owned": {
+      "paths": [
+        "scripts/seed-demo-data",
+        "SECURITY.md",
+        "server/config/peanut.php",
+        "web/src/peanut.overrides.ts",
+        "platform/src/peanut.overrides.ts",
+        "resources/project-resources.json"
+      ],
+      "prefixes": [
+        "server/app/modules/custom/",
+        "web/src/modules/custom/",
+        "platform/src/modules/custom/",
+        "pc/modules/custom/",
+        "uniapp/src/modules/custom/"
+      ]
+    },
+    "owner_by_classification": {
+      "managed": "scaffold",
+      "generated-managed": "scaffold",
+      "app-owned": "application",
+      "excluded": "template-source-only"
+    },
+    "default_profiles": [
+      "minimal",
+      "standard",
+      "full"
+    ],
+    "profile_overrides": {
+      "docs-site/": [
+        "full"
+      ],
+      "pc/": [
+        "standard",
+        "full"
+      ],
+      "uniapp/": [
+        "standard",
+        "full"
+      ]
+    },
+    "adapters": {
+      "framework-adapter": [
+        "server/app/common/policy/permission/RegisteredAdminPermissionPolicy.php",
+        "server/app/modules/peanut/reference_codes/src/Infrastructure/ThinkPhpTenantDictionaryProvider.php",
+        "server/app/modules/peanut/reference_codes/src/Infrastructure/ThinkPhpSystemDictionaryProvider.php",
+        "server/app/modules/peanut/task/src/Service/CrontabSchedulerService.php",
+        "server/app/modules/peanut/settings/src/Infrastructure/TenantSettingWebsiteStore.php",
+        "server/app/modules/peanut/import_export/src/Infrastructure/File/AppFileMediaGateway.php",
+        "server/app/common/infrastructure/notice/ApplicationNoticeSmsSender.php",
+        "server/app/common/services/notice/NoticeChannelService.php",
+        "server/app/common/context/notice/NoticeTenantContext.php",
+        "server/app/modules/peanut/notification/src/Service/VerificationCodeService.php"
+      ],
+      "application-provider": [
+        "server/app/modules/peanut/settings/src/Infrastructure/BrandDefaults.php",
+        "server/app/modules/peanut/settings/src/Service/WebsiteConfigService.php",
+        "server/app/common/contract/notice/sms/SmsDriver.php",
+        "server/app/common/infrastructure/notice/sms/AliyunSms.php",
+        "server/app/common/infrastructure/notice/sms/TencentSms.php",
+        "server/app/modules/peanut/oauth/src/Service/OAuthBrowserCallbackService.php",
+        "server/app/common/infrastructure/oauth/WechatOAuthTransport.php",
+        "web/src/core/tenant-session.ts",
+        "web/src/core/runtime.ts"
+      ]
+    }
+  },
+  "file_mappings": {
+    "server/resources/scaffold-application/AGENTS.md.stub": {
+      "target": "AGENTS.md",
+      "classification": "generated-managed",
+      "transform": "docs-page",
+      "profiles": [
+        "minimal",
+        "standard",
+        "full"
+      ]
+    },
+    "server/resources/scaffold-application/SECURITY.md.stub": {
+      "target": "SECURITY.md",
+      "classification": "app-owned",
+      "transform": "docs-page",
+      "profiles": [
+        "minimal",
+        "standard",
+        "full"
+      ]
+    },
+    "server/resources/scaffold-application/project-rules.md.stub": {
+      "target": "docs/project-rules.md",
+      "classification": "app-owned",
+      "transform": "docs-page",
+      "profiles": [
+        "minimal",
+        "standard",
+        "full"
+      ]
+    },
+    "server/resources/scaffold-application/composer.json": {
+      "target": "server/composer.json",
+      "classification": "managed",
+      "transform": "package",
+      "profiles": [
+        "minimal",
+        "standard",
+        "full"
+      ]
+    },
+    "server/resources/scaffold-application/composer.lock": {
+      "target": "server/composer.lock",
+      "classification": "managed",
+      "transform": "composer-lock",
+      "profiles": [
+        "minimal",
+        "standard",
+        "full"
+      ]
+    }
+  },
+  "transforms": [
+    {
+      "paths": [
+        "scripts/scaffold-runtime/scaffold.conf.json"
+      ],
+      "transform": "copy"
+    },
+    {
+      "paths": [
+        "README.md"
+      ],
+      "transform": "readme"
+    },
+    {
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ],
+      "transform": "license"
+    },
+    {
+      "paths": [
+        "CHANGELOG.md"
+      ],
+      "transform": "changelog"
+    },
+    {
+      "paths": [
+        "THIRD_PARTY_NOTICES.md"
+      ],
+      "transform": "third-party-notices"
+    },
+    {
+      "paths": [
+        "RELEASE_SBOM.spdx.json"
+      ],
+      "transform": "sbom"
+    },
+    {
+      "paths": [
+        "RELEASE_METADATA.json"
+      ],
+      "transform": "release-metadata"
+    },
+    {
+      "paths": [
+        "resources/project-resources.json"
+      ],
+      "transform": "resources"
+    },
+    {
+      "paths": [
+        "modules.lock"
+      ],
+      "transform": "modules-lock"
+    },
+    {
+      "paths": [
+        "server/composer.lock"
+      ],
+      "transform": "composer-lock"
+    },
+    {
+      "paths": [
+        "release-versions.json"
+      ],
+      "transform": "version-contract"
+    },
+    {
+      "paths": [
+        "server/config/modules.php"
+      ],
+      "transform": "modules-config"
+    },
+    {
+      "paths": [
+        "server/database/environment-guard.php"
+      ],
+      "transform": "environment-guard"
+    },
+    {
+      "patterns": [
+        "^server/app/modules/.+/composer\\.json$",
+        "^(web|platform|pc|uniapp)/(?:src/)?modules/.+/package\\.json$"
+      ],
+      "transform": "text"
+    },
+    {
+      "prefixes": [
+        "docs/public/",
+        "docs/development/",
+        "docs/architecture/"
+      ],
+      "paths": [
+        "docs/README.md",
+        "docs/module-layout.md"
+      ],
+      "transform": "text"
+    },
+    {
+      "paths": [
+        "SECURITY.md"
+      ],
+      "patterns": [
+        "^(docs-site/|docs/).*\\.md$"
+      ],
+      "transform": "docs-page"
+    },
+    {
+      "patterns": [
+        "(^|/)(config/brand|generated/brand)\\.json$"
+      ],
+      "transform": "brand"
+    },
+    {
+      "patterns": [
+        "/brand/(logo|favicon)\\.svg$"
+      ],
+      "transform": "brand-asset"
+    },
+    {
+      "patterns": [
+        "(^|/)(composer\\.json|package\\.json|package-lock\\.json|pnpm-lock\\.yaml)$"
+      ],
+      "transform": "package"
+    },
+    {
+      "patterns": [
+        "\\.(?i:php|json|md|sql|stub|ts|tsx|js|mjs|cjs|sh|lock|vue|css|less|scss|html|xml|yaml|yml|toml|txt|svg|conf|ini|env|example|dockerfile)$",
+        "(^|/)(compose\\.yaml|think|\\.gitignore|\\.dockerignore|\\.env\\.example|\\.htaccess)$",
+        "(^|/)[^/]*Dockerfile[^/]*$"
+      ],
+      "prefixes": [
+        "scripts/"
+      ],
+      "transform": "text"
+    }
+  ],
+  "variables": [
+    "APPLICATION_VERSION",
+    "PACKAGE_IDENTITY",
+    "PRODUCT_NAME",
+    "SLUG"
+  ],
+  "text_replacements": {
+    "all": {
+      "Peanut Admin": {
+        "variable": "PRODUCT_NAME"
+      },
+      "https://peanut-admin.007345.xyz": "https://example.invalid",
+      "https://peanut-admin-doc.007345.xyz": "https://docs.example.invalid",
+      "花生科技": "application owner"
+    },
+    "files": {
+      "server/database/install.php": {
+        "MD5(CONCAT(MD5('admin123456'),'abcd1234'))": "MD5(CONCAT(MD5('__INSTALLER_MUST_REPLACE__'),'abcd1234'))"
+      },
+      "server/tests/Productization/InstallerBootstrapTest.php": {
+        "MD5(CONCAT(MD5('admin123456')": "MD5(CONCAT(MD5('__INSTALLER_MUST_REPLACE__')",
+        "密码：admin123456": "密码必须由安装器注入",
+        "known password expression must not reach the database": "placeholder password expression must not reach the database",
+        "installer must only replace the executable seed": "installer must preserve the neutral seed comment"
+      }
+    }
+  }
+}

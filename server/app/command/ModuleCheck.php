@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace app\command;
 
-use app\platform\services\module\ModuleAuthorCheckHost;
 use app\common\execution\ModuleContextualCommand;
+use app\common\infrastructure\module\ModuleHostLayoutFactory;
+use app\platform\services\module\ModuleAuthorCheckHost;
+use PeanutAdmin\Kernel\Module\ModuleKey;
 use think\console\Input;
 use think\console\input\Argument;
 use think\console\input\Option;
@@ -202,17 +204,25 @@ final class ModuleCheck extends ModuleContextualCommand
                 if (!is_resource($process)) { throw new \RuntimeException('PRESERVATION_DETAIL_SOURCE_UNKNOWN'); }
                 $head = trim((string) stream_get_contents($pipes[1])); fclose($pipes[1]);
                 if (proc_close($process) !== 0 || $head !== $candidate) { throw new \RuntimeException('PRESERVATION_DETAIL_SOURCE_UNKNOWN'); }
+                $layout = ModuleHostLayoutFactory::pathLayout();
+                $backend = static fn(string $key): string => rtrim(substr(
+                    $layout->backendRelativePath(ModuleKey::fromString($key)), strlen('server/'),
+                ), '/');
+                $workflow = $backend('peanut.workflow');
+                $identity = $backend('peanut.identity');
                 $files = [];
-                foreach (['app/command/ModuleCheck.php', 'app/modules/peanut/workflow/src/Application/WorkflowUpgradePreflight.php',
-                    'app/modules/peanut/workflow/src/Definition/WorkflowGraph.php', 'app/modules/peanut/identity/src/Contract/WorkflowLegacyOrganizationQuery.php',
+                foreach (['app/command/ModuleCheck.php', $workflow . '/src/Application/WorkflowUpgradePreflight.php',
+                    $workflow . '/src/Definition/WorkflowGraph.php', $identity . '/src/Contract/WorkflowLegacyOrganizationQuery.php',
                     'composer.lock', '../modules.lock'] as $relative) {
                     $path = $root . '/' . $relative;
                     if (!is_file($path) || is_link($path)) { throw new \RuntimeException('PRESERVATION_DETAIL_SOURCE_UNKNOWN'); }
                     $files[$relative] = hash_file('sha256', $path);
                 }
                 if ($includeDocFile) {
-                    foreach (['app/modules/peanut/document/src/Contract/DocumentUpgradePreservationQuery.php', 'app/modules/peanut/document/module.json',
-                        'app/modules/peanut/file/src/Contract/StorageQualificationQueries.php', 'app/modules/peanut/file/module.json'] as $relative) {
+                    $document = $backend('peanut.document');
+                    $file = $backend('peanut.file');
+                    foreach ([$document . '/src/Contract/DocumentUpgradePreservationQuery.php', $document . '/module.json',
+                        $file . '/src/Contract/StorageQualificationQueries.php', $file . '/module.json'] as $relative) {
                         $path = $root . '/' . $relative;
                         if (is_link($path)) { throw new \RuntimeException('PRESERVATION_DETAIL_SOURCE_UNKNOWN'); }
                         $files[$relative] = is_file($path) ? hash_file('sha256', $path) : 'absent';

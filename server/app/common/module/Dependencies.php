@@ -12,7 +12,6 @@ use app\platform\value\module\ModuleDescriptor;
 use Composer\Semver\Semver;
 use Composer\Autoload\ClassLoader;
 use Composer\InstalledVersions;
-use Composer\Semver\VersionParser;
 use PeanutAdmin\Kernel\Module\ManifestLoader;
 use PeanutAdmin\Kernel\Module\ModuleKey;
 
@@ -316,19 +315,8 @@ final readonly class Dependencies
             }
         }
         if (PHP_SAPI !== 'cli' || $verifyOnly) {
-            $parser = new VersionParser();
             foreach ($runtimeRequirements as $requirements) {
-                foreach ($requirements as $name => $range) {
-                    $satisfied = match (true) {
-                        $name === 'php' => Semver::satisfies(PHP_VERSION, $range),
-                        str_starts_with($name, 'ext-') => extension_loaded(substr($name, 4)) && is_string(phpversion(substr($name, 4)))
-                            && Semver::satisfies(phpversion(substr($name, 4)), $range),
-                        default => InstalledVersions::isInstalled($name) && InstalledVersions::satisfies($parser, $name, $range),
-                    };
-                    if (!$satisfied) {
-                        throw new ModulePackageException('MODULE_RELEASE_PREPARATION_REQUIRED', "{$name} {$range} requires native dependency preparation through the deployment CLI.");
-                    }
-                }
+                PackageCheck::assertComposerRequirements($requirements);
             }
             $frontend = [];
             foreach (array_keys($clients) as $client) {

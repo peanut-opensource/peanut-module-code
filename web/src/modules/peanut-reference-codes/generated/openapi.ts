@@ -4,6 +4,13 @@ import type { Client, ClientOptions } from 'openapi-fetch';
 import type { paths } from '@/generated/openapi';
 
 export interface ModuleApiOperations {
+  listPlatformManagedDictionaryTypes: paths['/platformapi/api/v1/dictionary-catalog']['get'];
+  setPlatformDictionaryTenantMode: paths['/platformapi/api/v1/dictionary-catalog/{type}/tenant-mode']['post'];
+  listPlatformDictionaryTypes: paths['/adminapi/api/v1/dictionary-catalog']['get'];
+  getPlatformDictionaryType: paths['/adminapi/api/v1/dictionary-catalog/{type}']['get'];
+  setTenantDictionaryMode: paths['/adminapi/api/v1/dictionary-catalog/{type}/mode']['post'];
+  setTenantDictionaryOverride: paths['/adminapi/api/v1/dictionary-catalog/{type}/override']['post'];
+  clearTenantDictionaryOverride: paths['/adminapi/api/v1/dictionary-catalog/{type}/override/clear']['post'];
   listLegacyDictionaryTypes: paths['/adminapi/dict/type/lists']['get'];
   listEnabledLegacyDictionaryTypes: paths['/adminapi/dict/type/all']['get'];
   getLegacyDictionaryType: paths['/adminapi/dict/type/detail']['get'];
@@ -29,6 +36,13 @@ export interface ModuleApiOperations {
 export function createModuleApi(client: Client<paths>) {
   const pathClient = wrapAsPathBasedClient(client);
   return {
+    listPlatformManagedDictionaryTypes: pathClient['/platformapi/api/v1/dictionary-catalog'].GET,
+    setPlatformDictionaryTenantMode: pathClient['/platformapi/api/v1/dictionary-catalog/{type}/tenant-mode'].POST,
+    listPlatformDictionaryTypes: pathClient['/adminapi/api/v1/dictionary-catalog'].GET,
+    getPlatformDictionaryType: pathClient['/adminapi/api/v1/dictionary-catalog/{type}'].GET,
+    setTenantDictionaryMode: pathClient['/adminapi/api/v1/dictionary-catalog/{type}/mode'].POST,
+    setTenantDictionaryOverride: pathClient['/adminapi/api/v1/dictionary-catalog/{type}/override'].POST,
+    clearTenantDictionaryOverride: pathClient['/adminapi/api/v1/dictionary-catalog/{type}/override/clear'].POST,
     listLegacyDictionaryTypes: pathClient['/adminapi/dict/type/lists'].GET,
     listEnabledLegacyDictionaryTypes: pathClient['/adminapi/dict/type/all'].GET,
     getLegacyDictionaryType: pathClient['/adminapi/dict/type/detail'].GET,

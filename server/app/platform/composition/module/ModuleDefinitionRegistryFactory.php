@@ -14,6 +14,7 @@ use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
 use PeanutAdmin\Kernel\Module\ManifestLoader;
 use PeanutAdmin\Kernel\Module\ModuleBoundaryChecker;
 use PeanutAdmin\Kernel\Module\ModuleException;
+use PeanutAdmin\Kernel\Module\ModuleKey;
 use PeanutAdmin\Kernel\Module\ModuleProvider;
 use PeanutAdmin\Kernel\Module\ModuleRegistryCompiler;
 use think\cache\driver\File;
@@ -229,10 +230,12 @@ final readonly class ModuleDefinitionRegistryFactory
             'peanut.identity' => ['pa_menu_definition', 'pa_module_installation'],
         ];
         $owners = [];
-        foreach (['peanut.identity' => 'identity', 'peanut.ops' => 'ops'] as $key => $directory) {
-            $path = $this->serverRoot . '/app/modules/peanut/' . $directory . '/module.json';
-            $manifest = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
-            if (!is_array($manifest) || ($manifest['key'] ?? null) !== $key
+        $layout = ModuleHostLayoutFactory::pathLayout();
+        $loader = new ManifestLoader();
+        foreach (['peanut.identity', 'peanut.ops'] as $key) {
+            $root = dirname($this->serverRoot) . '/' . $layout->backendRelativePath(ModuleKey::fromString($key));
+            $manifest = $loader->load($root)->data;
+            if (($manifest['key'] ?? null) !== $key
                 || ($manifest['lifecycle']['protected'] ?? false) !== true) {
                 throw new ModuleException('MODULE_MANIFEST_INVALID', "The protected {$key} manifest is unavailable.");
             }

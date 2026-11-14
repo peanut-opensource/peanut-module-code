@@ -1,8 +1,14 @@
-import type { ModuleFrontendContribution } from '@peanut-admin/vue';
+import type { ModuleFrontendContribution } from '@/module-contributions';
 import { DEFAULT_LAYOUT } from '@/router/routes/base';
+import localeEn from './views/locale/en-US';
+import localeCn from './views/locale/zh-CN';
 
 const contribution: ModuleFrontendContribution = {
   moduleKey: 'peanut.task',
+  locales: {
+    'en-US': localeEn,
+    'zh-CN': localeCn,
+  },
   routes: [
     {
       path: '/system',

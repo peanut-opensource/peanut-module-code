@@ -32,10 +32,10 @@ final class ModuleLockResolver
     }
 
     /** Resolve an extracted package using the same full-source identity checks. */
-    public static function forPackageArchive(string $serverRoot, string $stageRoot, string $pluginKey): ModuleDescriptor
+    public static function forPackageArchive(string $serverRoot, string $stageRoot, string $pluginKey, ?string $stagingBase = null): ModuleDescriptor
     {
         $stage = realpath($stageRoot);
-        $staging = realpath(dirname($serverRoot) . '/.local/module-staging');
+        $staging = realpath($stagingBase ?? dirname($serverRoot) . '/.local/module-staging');
         if ($stage === false || $staging === false || dirname($stage) !== $staging || is_link($stageRoot)) {
             throw new ModuleLifecycleException('PLUGIN_PATH_UNAVAILABLE', 'Package staging path is invalid.');
         }
@@ -66,20 +66,13 @@ final class ModuleLockResolver
         return self::sourceUpgradeResolver($root)->resolve(true);
     }
 
-    /** One-time source conversion, invoked only by the scaffold upgrade planner, never by Runtime. */
-    public static function forLegacySourceUpgrade(string $projectRoot): array
-    {
-        $root = self::sourceUpgradeRoot($projectRoot, true);
-        return (new self($root . '/server', '../plugins.lock'))->resolve(true, false, true);
-    }
-
-    private static function sourceUpgradeRoot(string $projectRoot, bool $legacy = false): string
+    private static function sourceUpgradeRoot(string $projectRoot): string
     {
         if (PHP_SAPI !== 'cli') {
             throw new ModuleLifecycleException('PLUGIN_SOURCE_UPGRADE_CLI_REQUIRED', 'Full source resolution requires the CLI source-upgrade entry.');
         }
         $root = ScaffoldPathGuard::projectRoot($projectRoot);
-        foreach (['server/composer.json', 'web/package.json', '.peanut/application-manifest.json', $legacy ? 'plugins.lock' : 'modules.lock'] as $path) {
+        foreach (['server/composer.json', 'web/package.json', '.peanut/application-manifest.json', 'modules.lock'] as $path) {
             ScaffoldPathGuard::existingFileWithin(
                 $root,
                 ScaffoldPathGuard::projectPath($root, $path),
@@ -109,7 +102,7 @@ final class ModuleLockResolver
     }
 
     /** @return array<string,ModuleDescriptor> */
-    private function resolve(bool $sourceUpgrade, bool $packageArchive = false, bool $legacy = false): array
+    private function resolve(bool $sourceUpgrade, bool $packageArchive = false): array
     {
         $journal = dirname($this->serverRoot) . '/.local/module-source-adoption/journal.json';
         if (file_exists($journal) || is_link($journal)) {
@@ -137,11 +130,6 @@ final class ModuleLockResolver
         }
         $lockPath = $this->absolutePath($this->lockPath, $this->serverRoot);
         $lock = $this->readJson($lockPath, 'PLUGIN_LOCK_INVALID');
-        if ($legacy) {
-            $this->assertExactKeys($lock, ['schema_version', 'plugins'], 'MODULE_LEGACY_LOCK_INVALID');
-            $lock['modules'] = $lock['plugins'];
-            unset($lock['plugins']);
-        }
         $serverProjection = ($lock['protocol'] ?? null) === 'peanut.server-module-lock.v1';
         if ($sourceUpgrade && $serverProjection) {
             throw new ModuleLifecycleException('PLUGIN_LOCK_INVALID', 'Source upgrade requires the full application Plugin lock.');
@@ -218,16 +206,8 @@ final class ModuleLockResolver
             if (count($moduleRoots) !== 1 || !array_key_exists($key, $moduleRoots)) {
                 throw new ModuleLifecycleException('MODULE_PACKAGE_IDENTITY_MISMATCH', 'A locked artifact must belong to exactly its named Module.');
             }
-            if (!$legacy && realpath($manifestPath) !== realpath($moduleRoots[$key] . '/module.json')) {
+            if (realpath($manifestPath) !== realpath($moduleRoots[$key] . '/module.json')) {
                 throw new ModuleLifecycleException('MODULE_MANIFEST_PATH_INVALID', 'Lock must refer to its Module source declaration.');
-            }
-            if ($legacy) {
-                foreach (['source', 'trust', 'composer', 'npm', 'frontend', 'modules'] as $field) {
-                    if (!$this->sameJson($manifest[$field] ?? null, $entry[$field] ?? null)) {
-                        throw new ModuleLifecycleException('MODULE_LEGACY_MANIFEST_MISMATCH', 'Legacy declaration differs from its lock.');
-                    }
-                }
-                $manifestDigest = (string) hash_file('sha256', $moduleRoots[$key] . '/module.json');
             }
             $moduleIdentity = $this->readJson($moduleRoots[$key] . '/module.json', 'PLUGIN_MANIFEST_INVALID');
             if (($moduleIdentity['key'] ?? null) !== $key || ($moduleIdentity['version'] ?? null) !== $version) {
@@ -320,24 +300,24 @@ final class ModuleLockResolver
         if (!is_array($trust)) {
             throw new ModuleLifecycleException('PLUGIN_TRUST_INVALID', 'Plugin trust record is invalid.');
         }
-        $this->assertExactKeys(
-            $trust,
-            ['channel', 'origin', 'archive', 'signature', 'sbom', 'license', 'qualification', 'compatibility'],
-            'PLUGIN_TRUST_INVALID',
-        );
-        if (($trust['channel'] ?? null) !== 'bundled'
-            || !is_array($trust['qualification'] ?? null)
-            || ($trust['qualification']['status'] ?? null) !== 'bundled-locked'
-            || ($trust['qualification']['marketplace'] ?? null) !== 'blocked') {
+        $allowedExtra = ['archive', 'signature', 'sbom', 'qualification'];
+        $required = ['channel', 'origin', 'license', 'compatibility'];
+        foreach ($required as $key) {
+            if (!array_key_exists($key, $trust)) {
+                throw new ModuleLifecycleException('PLUGIN_TRUST_INVALID', 'Plugin trust record is invalid.');
+            }
+        }
+        foreach (array_keys($trust) as $key) {
+            if (!in_array($key, array_merge($required, $allowedExtra), true)) {
+                throw new ModuleLifecycleException('PLUGIN_TRUST_INVALID', 'Plugin trust record is invalid.');
+            }
+        }
+        if (($trust['channel'] ?? null) !== 'bundled') {
             throw new ModuleLifecycleException('PLUGIN_TRUST_INVALID', 'Plugin trust qualification is unsupported.');
         }
         foreach ([
             'origin' => ['type', 'reference'],
-            'archive' => ['status', 'sha256'],
-            'signature' => ['status', 'key_id'],
-            'sbom' => ['status', 'sha256'],
             'license' => ['identifier', 'status'],
-            'qualification' => ['status', 'review', 'vulnerability_response', 'marketplace'],
             'compatibility' => ['modules'],
         ] as $field => $keys) {
             if (!is_array($trust[$field] ?? null)) {
@@ -347,20 +327,9 @@ final class ModuleLockResolver
         }
         if (($trust['origin']['type'] ?? null) !== 'repository-contents'
             || ($trust['origin']['reference'] ?? null) !== 'canonical-plugin-contents-v1'
-            || ($trust['archive']['status'] ?? null) !== 'not-issued'
-            || !array_key_exists('sha256', $trust['archive'])
-            || $trust['archive']['sha256'] !== null
-            || ($trust['signature']['status'] ?? null) !== 'not-issued'
-            || !array_key_exists('key_id', $trust['signature'])
-            || $trust['signature']['key_id'] !== null
-            || ($trust['sbom']['status'] ?? null) !== 'not-issued'
-            || !array_key_exists('sha256', $trust['sbom'])
-            || $trust['sbom']['sha256'] !== null
             || ($trust['license']['status'] ?? null) !== 'declared'
             || !is_string($trust['license']['identifier'] ?? null)
             || trim($trust['license']['identifier']) === ''
-            || ($trust['qualification']['review'] ?? null) !== 'not-reviewed'
-            || ($trust['qualification']['vulnerability_response'] ?? null) !== 'not-configured'
             || !is_array($trust['compatibility']['modules'] ?? null)
             || !array_is_list($trust['compatibility']['modules'])
             || $trust['compatibility']['modules'] === []) {

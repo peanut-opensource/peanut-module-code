@@ -1,4 +1,30 @@
 export default {
+  'officialReferenceCodes.catalog.title': 'Platform and tenant dictionaries',
+  'officialReferenceCodes.catalog.description':
+    'Platform values are read-only. Tenants may choose a mode, hide or rename extensible defaults.',
+  'officialReferenceCodes.catalog.manageCustom': 'Manage tenant dictionaries',
+  'officialReferenceCodes.catalog.noDefaults':
+    'No platform defaults are deployed. Tenants can still create their own dictionaries.',
+  'officialReferenceCodes.catalog.type': 'Platform dictionary type',
+  'officialReferenceCodes.catalog.mode': 'Tenant selection mode',
+  'officialReferenceCodes.catalog.system': 'Platform values only',
+  'officialReferenceCodes.catalog.extend': 'Platform values + tenant additions',
+  'officialReferenceCodes.catalog.tenant': 'Tenant values only',
+  'officialReferenceCodes.catalog.modeSaved': 'Selection mode saved',
+  'officialReferenceCodes.catalog.overrideSaved': 'Tenant preference updated',
+  'officialReferenceCodes.catalog.locked':
+    'The platform has locked this type. Tenant overrides are unavailable.',
+  'officialReferenceCodes.catalog.value': 'Stable value',
+  'officialReferenceCodes.catalog.platformName': 'Platform name',
+  'officialReferenceCodes.catalog.tenantName': 'Tenant display name',
+  'officialReferenceCodes.catalog.hidden': 'Hidden',
+  'officialReferenceCodes.catalog.inherited': 'Inherit platform',
+  'officialReferenceCodes.catalog.actions': 'Actions',
+  'officialReferenceCodes.catalog.rename': 'Rename',
+  'officialReferenceCodes.catalog.save': 'Save name',
+  'officialReferenceCodes.catalog.hide': 'Hide',
+  'officialReferenceCodes.catalog.restore': 'Restore default',
+  'officialReferenceCodes.catalog.readonly': 'Read-only',
   'officialReferenceCodes.title': 'Reference codes',
   'officialReferenceCodes.controls': 'Reference-code controls',
   'officialReferenceCodes.invalidAsOf':

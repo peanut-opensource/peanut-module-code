@@ -9,7 +9,8 @@ function freshSchemaExpect(bool $condition, string $message): void
     }
 }
 
-$serverRoot = dirname(__DIR__, 2);
+$serverRoot = ((getenv('PEANUT_TEST_APPLICATION_ROOT') ?: dirname(__DIR__, 3)) . '/server');
+require_once $serverRoot . '/vendor/autoload.php';
 $schema = (string) file_get_contents($serverRoot . '/database/schema/baseline-schema.sql');
 $data = (string) file_get_contents($serverRoot . '/database/schema/baseline-data.sql');
 $installer = (string) file_get_contents($serverRoot . '/database/install.php');
@@ -62,7 +63,14 @@ foreach (['information_schema', 'ALTER TABLE', 'PREPARE ', 'EXECUTE ', 'DEALLOCA
 
 freshSchemaExpect(!in_array('pa_schema_migration', $applicationTables, true) && !in_array('pa_module_migration', $applicationTables, true), 'retired custom migration ledgers remain in the canonical schema');
 require_once $serverRoot . '/database/InitialInstallationSource.php';
-$selectedTables = InitialInstallationSource::tables($serverRoot, InitialInstallationSource::MODULES);
+$composition = InitialInstallationSource::composition($serverRoot);
+$mandatory = InitialInstallationSource::modules($serverRoot, false);
+freshSchemaExpect(!in_array('peanut.task', $composition['mandatory'], true)
+    && !in_array('peanut.content-tools', $composition['mandatory'], true), 'transitive Modules must not become duplicate composition roots');
+freshSchemaExpect(in_array('peanut.task', $mandatory, true)
+    && in_array('peanut.content-tools', $mandatory, true), 'mandatory composition must include its transitive dependencies');
+freshSchemaExpect(!in_array('peanut.article', $mandatory, true), 'optional business Modules must not enter the bootstrap composition');
+$selectedTables = InitialInstallationSource::tables($serverRoot, InitialInstallationSource::modules($serverRoot));
 $owners = [
     'identity' => ['pa_jobs', 'pa_module_installation', 'pa_tenant_entry_binding', 'pa_tenant_owner_invitation'],
     'task' => ['pa_task_job'],
@@ -86,7 +94,7 @@ foreach (['uk_tenant_setting_namespace', 'uk_tenant_entry_binding', 'uk_owner_in
     'uk_system_dict_type_code', 'uk_system_dict_data_type_value'] as $index) {
     freshSchemaExpect(str_contains($moduleSql, '`' . $index . '`'), "module index missing: {$index}");
 }
-$projected = InitialInstallationSource::project($serverRoot, InitialInstallationSource::MODULES);
+$projected = InitialInstallationSource::project($serverRoot, InitialInstallationSource::modules($serverRoot));
 freshSchemaExpect(str_contains($projected['schema/baseline-data.sql'], "JSON_OBJECT('user_avatar'")
     && !str_contains($data, "'payment_status'") && !str_contains($data, "'refund_status'"),
     'fresh scaffold must include brand defaults and leave optional Payment data to its owner');

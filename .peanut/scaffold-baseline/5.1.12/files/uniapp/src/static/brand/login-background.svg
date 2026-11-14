@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+  <title id="title">Peanut Module Code login background</title>
+  <desc id="desc">Blue gradient with soft abstract shapes.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1440" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B1F4B"/>
+      <stop offset="0.55" stop-color="#1649A8"/>
+      <stop offset="1" stop-color="#0F766E"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(1040 220) rotate(140) scale(620 480)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#60A5FA" stop-opacity=".72"/>
+      <stop offset="1" stop-color="#60A5FA" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1440" height="900" fill="url(#background)"/>
+  <rect width="1440" height="900" fill="url(#glow)"/>
+  <circle cx="1220" cy="90" r="250" fill="#34D399" opacity=".12"/>
+  <circle cx="180" cy="820" r="330" fill="#93C5FD" opacity=".1"/>
+  <path d="M810 710c160-190 340-210 550-90" fill="none" stroke="#fff" stroke-opacity=".11" stroke-width="72" stroke-linecap="round"/>
+</svg>

@@ -7,11 +7,13 @@ namespace PeanutAdmin\Modules\ReferenceCodes;
 use PeanutAdmin\Modules\ReferenceCodes\Contract\SystemDictionaryProvider;
 use PeanutAdmin\Modules\ReferenceCodes\Contract\TenantDictionaryCommandProvider;
 use PeanutAdmin\Modules\ReferenceCodes\Contract\TenantDictionaryQueryProvider;
+use PeanutAdmin\Modules\ReferenceCodes\Contract\DictionaryCustomizationQuery;
 use PeanutAdmin\Modules\ReferenceCodes\Contract\DictionaryQuery;
 use PeanutAdmin\Modules\ReferenceCodes\Contract\SystemReferenceCodeQuery;
 use PeanutAdmin\Modules\ReferenceCodes\Contract\TenantDictionaryCommands;
 use PeanutAdmin\Modules\ReferenceCodes\Infrastructure\ThinkPhpSystemDictionaryProvider;
 use PeanutAdmin\Modules\ReferenceCodes\Infrastructure\ThinkPhpTenantDictionaryProvider;
+use PeanutAdmin\Modules\ReferenceCodes\Infrastructure\ThinkPhpDictionaryCustomizationProvider;
 use PeanutAdmin\Modules\ReferenceCodes\Service\DictionaryRuntime;
 use PeanutAdmin\Modules\ReferenceCodes\Versioned\Definition\DeployedReferenceCodeSetRegistry;
 use PeanutAdmin\Modules\ReferenceCodes\Versioned\Definition\ReferenceCodeSetRegistry;
@@ -31,6 +33,7 @@ final class ModuleProvider implements ModuleProviderContract
             TenantDictionaryQueryProvider::class => ThinkPhpTenantDictionaryProvider::class,
             TenantDictionaryCommandProvider::class => ThinkPhpTenantDictionaryProvider::class,
             SystemDictionaryProvider::class => ThinkPhpSystemDictionaryProvider::class,
+            DictionaryCustomizationQuery::class => ThinkPhpDictionaryCustomizationProvider::class,
             DictionaryQuery::class => DictionaryRuntime::class,
             TenantDictionaryCommands::class => DictionaryRuntime::class,
             SystemReferenceCodeQuery::class => DictionaryRuntime::class,

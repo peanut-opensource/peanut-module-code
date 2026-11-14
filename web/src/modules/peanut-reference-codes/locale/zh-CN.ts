@@ -1,4 +1,30 @@
 export default {
+  'officialReferenceCodes.catalog.title': '平台字典与租户自定义',
+  'officialReferenceCodes.catalog.description':
+    '平台数据只读；租户可选择使用方式，隐藏或重命名可扩展的默认选项。',
+  'officialReferenceCodes.catalog.manageCustom': '管理租户自定义字典',
+  'officialReferenceCodes.catalog.noDefaults':
+    '当前部署没有平台预置类型；租户仍可创建自己的字典。',
+  'officialReferenceCodes.catalog.type': '平台字典类型',
+  'officialReferenceCodes.catalog.mode': '租户使用方式',
+  'officialReferenceCodes.catalog.system': '仅使用平台选项',
+  'officialReferenceCodes.catalog.extend': '平台选项 + 租户扩展',
+  'officialReferenceCodes.catalog.tenant': '仅使用租户自定义项',
+  'officialReferenceCodes.catalog.modeSaved': '使用方式已保存',
+  'officialReferenceCodes.catalog.overrideSaved': '租户设置已更新',
+  'officialReferenceCodes.catalog.locked':
+    '该类型由平台锁定，租户不能覆盖系统选项。',
+  'officialReferenceCodes.catalog.value': '稳定值',
+  'officialReferenceCodes.catalog.platformName': '平台名称',
+  'officialReferenceCodes.catalog.tenantName': '租户显示名称',
+  'officialReferenceCodes.catalog.hidden': '已隐藏',
+  'officialReferenceCodes.catalog.inherited': '继承平台',
+  'officialReferenceCodes.catalog.actions': '操作',
+  'officialReferenceCodes.catalog.rename': '重命名',
+  'officialReferenceCodes.catalog.save': '保存名称',
+  'officialReferenceCodes.catalog.hide': '隐藏',
+  'officialReferenceCodes.catalog.restore': '恢复默认',
+  'officialReferenceCodes.catalog.readonly': '只读',
   'officialReferenceCodes.title': '参考代码',
   'officialReferenceCodes.controls': '参考代码筛选',
   'officialReferenceCodes.invalidAsOf':

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "740f4913ac8dfd47f42274aaa6df9261",
+    "content-hash": "71f22005b4e425bbda33dde04d1041b4",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2116,16 +2116,16 @@
         },
         {
             "name": "peanut-admin/core",
-            "version": "v5.0.3",
+            "version": "v5.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/peanut-business/peanut-admin-core-php.git",
-                "reference": "f2b0435f577c5119f1dfc58d34c274ccb149c477"
+                "reference": "e785b1bcf42dab5d7548ceb3f7e6682d213399fb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/peanut-business/peanut-admin-core-php/zipball/f2b0435f577c5119f1dfc58d34c274ccb149c477",
-                "reference": "f2b0435f577c5119f1dfc58d34c274ccb149c477",
+                "url": "https://api.github.com/repos/peanut-business/peanut-admin-core-php/zipball/e785b1bcf42dab5d7548ceb3f7e6682d213399fb",
+                "reference": "e785b1bcf42dab5d7548ceb3f7e6682d213399fb",
                 "shasum": ""
             },
             "require": {
@@ -2166,7 +2166,7 @@
                 "issues": "https://github.com/peanut-business/peanut-admin-core-php/issues",
                 "source": "https://github.com/peanut-business/peanut-admin-core-php"
             },
-            "time": "2026-11-04T22:40:53+00:00"
+            "time": "2026-11-11T04:39:30+00:00"
         },
         {
             "name": "peanut-business/artifact-revision",
@@ -2240,11 +2240,11 @@
         },
         {
             "name": "peanut-business/peanut-article",
-            "version": "1.0.18",
+            "version": "1.0.19",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/article",
-                "reference": "1ce8c0c5cb3115e84aa4e95888e0231f4c7d5d2d"
+                "reference": "a10530666d686950bd9f8a8ed329108215c41fd3"
             },
             "require": {
                 "peanut-business/peanut-document": "^1.0.16",
@@ -2401,11 +2401,11 @@
         },
         {
             "name": "peanut-business/peanut-document",
-            "version": "1.0.20",
+            "version": "1.0.22",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/document",
-                "reference": "9df706a83803eb8bbd9a08658e587da11108b783"
+                "reference": "85f82d51c54e9b0774eb73645f4eb390275de63f"
             },
             "require": {
                 "peanut-business/peanut-file": "^1.0.44",
@@ -2436,11 +2436,11 @@
         },
         {
             "name": "peanut-business/peanut-file",
-            "version": "1.0.47",
+            "version": "1.0.48",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/file",
-                "reference": "d3dcbebd20e1d1377052b50e9e4d0042521888a1"
+                "reference": "eea4b592750e380f2db473b7011efcd2dc9782be"
             },
             "require": {
                 "aws/aws-sdk-php": "^3.0",
@@ -2474,11 +2474,11 @@
         },
         {
             "name": "peanut-business/peanut-identity",
-            "version": "4.0.0-rc.62",
+            "version": "4.0.0-rc.64",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/identity",
-                "reference": "bf3aaccdfc712105d5415c9969cfd62d02c5bff4"
+                "reference": "423b24b13bd251031ff6e4f27a02618d2b8952b5"
             },
             "require": {
                 "ext-bcmath": "*",
@@ -2513,11 +2513,11 @@
         },
         {
             "name": "peanut-business/peanut-import-export",
-            "version": "1.0.34",
+            "version": "1.0.35",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/import_export",
-                "reference": "6f0448ba582d679f9babeefaa1cf5e24fd423498"
+                "reference": "8dcb239692db80e6c3cab6e22390790ef6267003"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2553,11 +2553,11 @@
         },
         {
             "name": "peanut-business/peanut-integration",
-            "version": "1.0.29",
+            "version": "1.0.30",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/integration",
-                "reference": "613be2f39f3b2667537f50911c87e54a9510c49c"
+                "reference": "9d9b5e19c8f7d7e6feb80a3baefd91a52a8f4daa"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2589,11 +2589,11 @@
         },
         {
             "name": "peanut-business/peanut-member",
-            "version": "1.0.25",
+            "version": "1.0.27",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/member",
-                "reference": "babb194b8cd2aa247b10db7ee008671fc3ed06bd"
+                "reference": "b590289da71331fa54aec07c7f2ef13bb2592538"
             },
             "require": {
                 "firebase/php-jwt": "^7.1",
@@ -2664,11 +2664,11 @@
         },
         {
             "name": "peanut-business/peanut-oauth",
-            "version": "1.0.11",
+            "version": "1.0.12",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/oauth",
-                "reference": "5ca509266930f9872ddbd158baa9b4a1a4ab114c"
+                "reference": "521f6ce87afe6511cd7bdd7702798a09f14b2000"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2738,11 +2738,11 @@
         },
         {
             "name": "peanut-business/peanut-payment",
-            "version": "1.0.28",
+            "version": "1.0.29",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/payment",
-                "reference": "75beb6745dc509b633394abf9e61e374cee802e7"
+                "reference": "c4a37b8a6a930f433e91a902bbc04dc1a54a7461"
             },
             "require": {
                 "hyperf/pimple": "^2.2",
@@ -2780,11 +2780,11 @@
         },
         {
             "name": "peanut-business/peanut-reference-codes",
-            "version": "1.0.27",
+            "version": "1.0.28",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/reference_codes",
-                "reference": "f7539666271830e124bf0b8c06b539b08b64efd6"
+                "reference": "0dd40e2e95453a0215a369a2975d165653338705"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2849,11 +2849,11 @@
         },
         {
             "name": "peanut-business/peanut-settings",
-            "version": "1.0.28",
+            "version": "1.0.29",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/settings",
-                "reference": "4adce9af2ea20ad2c12b9d16c7dc7b9ec76f5947"
+                "reference": "52a2c109e1485a0fde5710230794ee28d7ee91e5"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2886,11 +2886,11 @@
         },
         {
             "name": "peanut-business/peanut-task",
-            "version": "1.0.34",
+            "version": "1.0.35",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/task",
-                "reference": "c49cf0c92677dcbbe8ee3a7435f85972da915f88"
+                "reference": "30c13bbff509edf024e1e0bbf10d7a2509bf00bf"
             },
             "require": {
                 "peanut-admin/core": "^5.0.3-alpha.5",

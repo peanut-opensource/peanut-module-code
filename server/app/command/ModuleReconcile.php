@@ -72,10 +72,13 @@ final class ModuleReconcile extends ModuleContextualCommand
                     return $service->reconcileInstalled($ordered);
                 }
                 // Prepared adoption must not turn an absent/disabled selection into an installation.
-                $states = Db::name('module_installation')->whereIn('module_key', $ordered)->column('status', 'module_key');
+                $states = Db::name('module_installation')->whereIn('module_key', $ordered)
+                    ->column('status,activated_at', 'module_key');
                 foreach ($ordered as $key) {
-                    if (($states[$key] ?? null) !== 'active') {
-                        throw new ModuleLifecycleException('PLUGIN_STATE_INVALID', 'Prepared selected adoption requires active installed packages.');
+                    $state = $states[$key] ?? [];
+                    if (($state['status'] ?? null) !== 'active'
+                        && !(($state['status'] ?? null) === 'failed' && ($state['activated_at'] ?? null) !== null)) {
+                        throw new ModuleLifecycleException('PLUGIN_STATE_INVALID', 'Prepared selected adoption requires active packages or previously activated failed upgrades.');
                     }
                 }
                 $results = [];
@@ -95,15 +98,18 @@ final class ModuleReconcile extends ModuleContextualCommand
                     throw new ModuleLifecycleException('PLUGIN_LOCK_INVALID', 'Plugin lock path is not configured.');
                 }
                 $resolver = ModuleLockResolver::forRuntime(dirname(__DIR__, 2), $lockPath);
-                $officialKeys = array_keys(array_filter(
-                    $resolver->all(),
-                    static fn(ModuleDescriptor $plugin): bool => array_intersect(
-                        array_keys($plugin->moduleRoots), \InitialInstallationSource::MODULES,
-                    ) !== [],
-                ));
-                $selection = $releaseLocked
-                    ? $this->releaseModuleSelection($resolver->all(), $preparedRelease)
-                    : ['reconcile' => $officialKeys, 'preserved_disabled' => [], 'preserved_uninstalled' => []];
+                if ($releaseLocked) {
+                    $selection = $this->releaseModuleSelection($resolver->all(), $preparedRelease);
+                } else {
+                    $defaults = \InitialInstallationSource::modules(dirname(__DIR__, 2));
+                    $officialKeys = array_keys(array_filter(
+                        $resolver->all(),
+                        static fn(ModuleDescriptor $plugin): bool => array_intersect(
+                            array_keys($plugin->moduleRoots), $defaults,
+                        ) !== [],
+                    ));
+                    $selection = ['reconcile' => $officialKeys, 'preserved_disabled' => [], 'preserved_uninstalled' => []];
+                }
                 $keys = $this->dependencyOrderedPlugins($resolver, $selection['reconcile'], $config);
                 if ($keys === [] && !$releaseLocked) {
                     throw new ModuleLifecycleException(

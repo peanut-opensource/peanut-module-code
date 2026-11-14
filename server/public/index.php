@@ -21,6 +21,15 @@ try {
     $http = (new App())->http;
     $response = $http->run();
 } catch (Throwable $exception) {
+    if ($exception instanceof \app\common\exception\installation\InstallationExecutionException
+        && $exception->errorCode === 'INSTALL_MODULE_SOURCE_MISSING') {
+        http_response_code($exception->httpStatus);
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        echo json_encode(['code' => 50300, 'msg' => $exception->getMessage(),
+            'data' => ['error_code' => $exception->errorCode] + $exception->details()], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
     if ($exception instanceof \PeanutAdmin\Kernel\Module\ModuleException
         && $exception->errorCode === 'MODULE_REGISTRY_NOT_COMPILED') {
         error_log('HTTP Module registry unavailable: run peanut module compile');

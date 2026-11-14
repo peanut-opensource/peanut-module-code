@@ -57,11 +57,11 @@ require __DIR__ . '/vendor/autoload.php';
 
 try {
     $app = new App(__DIR__);
-    // Source creation and exact journal-only recovery must boot even when
-    // current Module composition is broken. All other operations use the
-    // ordinary application bootstrap and keep its fail-closed admission.
+    // Source creation/adoption precedes runtime composition. The verified,
+    // development-only source transaction must also work before its first
+    // required Module exists; installed operations retain normal admission.
     $minimalSourceBoot = $request['operation'] === 'create'
-        || ($request['operation'] === 'adopt' && $request['arguments'] === ['--recover']);
+        || $request['operation'] === 'adopt';
     if ($request['operation'] === 'adopt' && $minimalSourceBoot) {
         // Load the same server-local environment as the native application, without
         // booting a broken Module graph. Recovery requires an explicit development file.
@@ -78,6 +78,7 @@ try {
         require_once __DIR__ . '/vendor/topthink/framework/src/helper.php';
         $app->config->set(require __DIR__ . '/config/peanut.php', 'peanut');
         $app->config->set(require __DIR__ . '/config/module_packages.php', 'module_packages');
+        $app->config->set(require __DIR__ . '/config/deployment.php', 'deployment');
     }
     $console = new class ($app, $class, $minimalSourceBoot) extends Console {
         public function __construct(App $app, private string $commandClass, private bool $sourceOnly)
@@ -96,8 +97,8 @@ try {
         protected function loadCommands(): void
         {
             if ($this->sourceOnly && $this->commandClass === \app\command\ModuleAdoptPackage::class) {
-                // Recovering a source transaction still owns one CLI context,
-                // without performing the broken module composition bootstrap.
+                // Source transactions keep the ordinary CLI execution context
+                // without constructing runtime Module or database services.
                 $store = new \app\common\execution\ExecutionContextStore();
                 $this->app->instance(\app\common\execution\ExecutionContextStore::class, $store);
                 $this->app->instance(

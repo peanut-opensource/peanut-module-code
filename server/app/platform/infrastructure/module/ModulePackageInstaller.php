@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\platform\infrastructure\module;
 
 use app\common\module\ModuleMigrationRun;
+use app\common\module\PackageCheck;
 use app\platform\exception\module\ModuleLifecycleException;
 use app\platform\exception\module\ModulePackageException;
 use app\platform\services\module\ModuleLifecycleService;
@@ -38,8 +39,13 @@ final class ModulePackageInstaller
         string $archivePath,
         ?string $expectedSha256,
         ?string $signatureKeyId,
+        bool $dryRun = false,
     ): array {
-        return (new ModulePackageSourcePromoter($this->serverRoot))->run(
+        $promoter = new ModulePackageSourcePromoter($this->serverRoot);
+        if ($dryRun) {
+            return $this->promote('install', $archivePath, $expectedSha256, $signatureKeyId, true);
+        }
+        return $promoter->run(
             fn(): array => $this->promote('install', $archivePath, $expectedSha256, $signatureKeyId, false),
         );
     }
@@ -79,11 +85,17 @@ final class ModulePackageInstaller
                 $this->trustedPublicKeys,
                 $signatureKeyId,
                 $availableVersions,
+                $dryRun,
             );
             foreach ($package->modules as $module) {
                 \app\common\module\PackageCheck::assertEdition($module['manifest']->root, (string) Config::get('deployment.mode', ''));
             }
-            // Verify the untrusted archive first, but do not mutate source/lock until the application schema exists.
+            $plan = $operation === 'install' ? $this->installPlan($package, $current) : null;
+            if ($operation === 'install' && $dryRun) {
+                return $plan + ['operation' => 'install', 'dry_run' => true];
+            }
+            // Runtime checks remain authoritative at execution time. Planning
+            // does not require or create the application schema.
             $this->assertApplicationInstalled();
             if ($dryRun) {
                 $plan = $this->updatePlan($package, $current);
@@ -112,7 +124,7 @@ final class ModulePackageInstaller
                 ): array {
                     try {
                         $current = $this->currentDescriptors();
-                        $plan = $operation === 'update' ? $this->updatePlan($package, $current) : null;
+                        $plan = $operation === 'update' ? $this->updatePlan($package, $current) : $this->installPlan($package, $current);
                         $this->assertMigrationIdentity($package, $current);
                         foreach ($current as $pluginKey => $descriptor) {
                             foreach (array_keys($descriptor->moduleRoots) as $moduleKey) {
@@ -123,19 +135,7 @@ final class ModulePackageInstaller
                         }
                         $recoverableReplacement = $operation === 'update'
                             || $this->recoverableReplacement($package, $current);
-                        $scopes = [$package->manifestRelative => dirname($package->manifestRelative)];
-                        foreach ($package->modules as $module) {
-                            $scopes[$module['backend_relative']] = $module['backend_relative'];
-                            foreach ($module['frontend_contributions'] as $contribution) {
-                                $scopes[$contribution['root']] = $contribution['root'];
-                            }
-                        }
-                        $scopeRoots = array_values(array_unique(array_map(
-                            static fn(string $scope): string => str_ends_with($scope, 'module.json') ? dirname($scope) : $scope,
-                            array_keys($scopes),
-                        )));
-                        usort($scopeRoots, static fn(string $left, string $right): int => strlen($right) <=> strlen($left));
-                        foreach ($scopeRoots as $relative) {
+                        foreach ($this->packageScopes($package) as $relative) {
                             $source = $package->stageRoot . '/' . $relative;
                             $target = $this->projectRoot() . '/' . $relative;
                             if (file_exists($target)) {
@@ -307,6 +307,119 @@ final class ModulePackageInstaller
             }
         }
         ModuleMigrationRun::assertCompatibleComposition($incoming, $composition, $this->serverRoot, true);
+    }
+
+    /** Source preflight shared by first-install planning and execution; no Runtime state is read.
+     * @param array<string,ModuleDescriptor> $current @return array<string,mixed>
+     */
+    private function installPlan(VerifiedModulePackage $package, array $current): array
+    {
+        $incoming = array_map(static fn(array $module) => $module['manifest'], $package->modules);
+        $composition = $incoming;
+        $loader = new \PeanutAdmin\Kernel\Module\ManifestLoader();
+        foreach ($current as $owner => $descriptor) {
+            foreach ($descriptor->moduleRoots as $key => $root) {
+                if (isset($incoming[$key]) && $owner !== $package->packageKey) {
+                    throw new ModulePackageException('PLUGIN_MODULE_CONFLICT', 'Module is owned by another package.');
+                }
+                $composition[$key] ??= $loader->load($root);
+            }
+        }
+        $graph = [];
+        foreach ($composition as $key => $manifest) {
+            $graph[$key] = ['version' => $manifest->data['version'], 'dependencies' => $manifest->data['dependencies'] ?? []];
+        }
+        $dependencyOrder = (new PackageCheck($package->stageRoot))->dependencyOrder($graph, []);
+        $kernelVersion = (string) ($this->moduleConfig['kernel_version'] ?? '');
+        $matcher = new \PeanutAdmin\Kernel\Module\StrictVersionConstraintMatcher();
+        $modules = [];
+        foreach ($package->modules as $key => $module) {
+            $constraint = $module['manifest']->data['kernel_constraint'];
+            if (!$matcher->matches($kernelVersion, $constraint)) {
+                throw new ModulePackageException('MODULE_KERNEL_INCOMPATIBLE', "Module {$key} requires Kernel {$constraint}; host provides {$kernelVersion}.");
+            }
+            $composer = json_decode((string) file_get_contents($module['manifest']->root . '/composer.json'), true, 512, JSON_THROW_ON_ERROR);
+            $requirements = $composer['require'] ?? [];
+            PackageCheck::assertComposerRequirements(array_filter($requirements,
+                static fn(string $name): bool => in_array($name, ['php', 'peanut-admin/core'], true) || str_starts_with($name, 'ext-'),
+                ARRAY_FILTER_USE_KEY,
+            ));
+            foreach (array_diff_key($composition, $incoming) as $otherKey => $other) {
+                if (array_intersect($module['owned_tables'], $other->data['database']['owned_tables'] ?? []) !== []) {
+                    throw new ModulePackageException('MODULE_PACKAGE_TABLE_OWNERSHIP_CONFLICT', "Module {$key} conflicts with locked table owner {$otherKey}.");
+                }
+            }
+            $modules[] = ['module_key' => $key, 'version' => $module['version'],
+                'kernel_constraint' => $constraint, 'dependencies' => $module['dependencies'],
+                'composer_requirements' => $requirements, 'frontend_contributions' => $module['frontend_contributions']];
+        }
+        $sources = ModuleMigrationRun::sources($incoming, $this->serverRoot);
+        if ($sources !== []) {
+            ModuleMigrationRun::assertCompatibleComposition($incoming, $composition, $this->serverRoot, true);
+        }
+        $migrations = array_map(static fn(array $source): array => array_intersect_key($source,
+            array_flip(['migration_key', 'name', 'sha256', 'module_key'])),
+            $sources,
+        );
+        $descriptor = $current[$package->packageKey] ?? null;
+        $scopes = [];
+        $recoveryRequired = false;
+        foreach ($this->packageScopes($package) as $relative) {
+            $target = $this->projectRoot() . '/' . $relative;
+            $action = 'create';
+            if (file_exists($target)) {
+                $action = 'preserve';
+                if (!$this->scopeMatches($relative, $target, $package->inventory)) {
+                    if (!$descriptor instanceof ModuleDescriptor
+                        || version_compare($package->packageVersion, $descriptor->version, '<=')) {
+                        throw new ModulePackageException('MODULE_PACKAGE_TARGET_CONFLICT', 'Package target contains a different identity.');
+                    }
+                    // Only the existing failed/installing recovery path can
+                    // approve replacement; the plan cannot infer that from files.
+                    $action = 'requires_runtime_recovery';
+                    $recoveryRequired = true;
+                }
+            }
+            $scopes[] = ['path' => $relative, 'action' => $action];
+        }
+        $files = [];
+        foreach ($package->inventory as $path => $sha256) {
+            $files[] = ['path' => $path, 'sha256' => $sha256];
+        }
+        return ['schema_version' => 1, 'package_key' => $package->packageKey,
+            'status' => $recoveryRequired ? 'runtime-recovery-check-required' : 'source-preflight-ready',
+            'source' => $descriptor === null ? null : ['version' => $descriptor->version,
+                'artifact_sha256' => $descriptor->source['sha256'], 'lock_digest' => $descriptor->lockDigest, 'status' => 'not-checked'],
+            'target' => ['version' => $package->packageVersion, 'archive_sha256' => $package->archiveSha256,
+                'artifact_sha256' => $package->descriptor->source['sha256'], 'modules' => array_keys($package->modules)],
+            'module_details' => $modules,
+            'dependency_order' => $dependencyOrder, 'kernel_version' => $kernelVersion,
+            'edition' => (string) Config::get('deployment.mode', ''),
+            'core_version' => \Composer\InstalledVersions::getPrettyVersion('peanut-admin/core'),
+            'files' => $files, 'source_scopes' => $scopes,
+            'lock' => ['path' => 'modules.lock', 'action' => 'rebuild',
+                'before_sha256' => is_file($this->projectRoot() . '/modules.lock') ? hash_file('sha256', $this->projectRoot() . '/modules.lock') : null],
+            'migrations' => $migrations,
+            'runtime' => ['status' => 'not-checked', 'installation' => 'not-checked',
+                'dependencies_active' => 'not-checked', 'migration_ledger' => 'not-checked',
+                'backup' => 'required-before-runtime-migrations', 'native_dependency_preparation' => 'required-at-execution',
+                'activation' => 'not-performed'],
+        ];
+    }
+
+    /** @return list<string> */
+    private function packageScopes(VerifiedModulePackage $package): array
+    {
+        $scopes = [dirname($package->manifestRelative)];
+        foreach ($package->modules as $module) {
+            $scopes[] = $module['backend_relative'];
+            foreach ($module['frontend_contributions'] as $contribution) {
+                $scopes[] = $contribution['root'];
+            }
+        }
+        $scopes = array_values(array_unique($scopes));
+        usort($scopes, static fn(string $left, string $right): int => strlen($right) <=> strlen($left) ?: strcmp($left, $right));
+        return $scopes;
     }
 
     /** @param array<string,ModuleDescriptor> $current @return array<string,mixed> */

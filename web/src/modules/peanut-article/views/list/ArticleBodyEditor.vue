@@ -1,6 +1,6 @@
 <template>
   <section :aria-busy="busy">
-    <p role="status">{{ message }}</p>
+    <p role="status">{{ saveState === 'error' ? '正文编辑不可用，请检查当前授权和服务状态。' : message }}</p>
     <p v-if="saveState" role="status"
       >正文草稿：{{ saveState }}（{{ saveStateText[saveState] }}）</p
     >
@@ -36,7 +36,6 @@
         @load="onDocumentLoad"
         @save-state="saveState = $event"
         @operation-state="onDocumentOperation"
-        @error="onEditorError"
       />
     </fieldset>
     <ArticleBodyHistory
@@ -885,10 +884,6 @@
       message.value =
         '正文恢复尚未确认，业务保存和开启多人协作已暂停；请查询或继续原操作。';
     }
-  };
-  const onEditorError = () => {
-    saveState.value = 'error';
-    message.value = '正文编辑不可用，请检查当前授权和服务状态。';
   };
   watch(
     context,

@@ -84,7 +84,11 @@ export default function usePermission() {
       return false;
     if (appStore.menuFromServer) {
       const routeName = String(route.name || '');
-      if (routeName === REDIRECT_ROUTE_NAME || routeName === 'redirectWrapper')
+      if (
+        routeName === REDIRECT_ROUTE_NAME ||
+        routeName === 'redirectWrapper' ||
+        routeName === 'Setting'
+      )
         return true;
       const active = route.meta.activeMenu;
       const authorizedName =

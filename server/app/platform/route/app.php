@@ -3,6 +3,20 @@
 declare(strict_types=1);
 
 $peanutRouteApplication = 'platform';
-require dirname(__DIR__, 3) . '/route/platform.php';
-require dirname(__DIR__, 3) . '/app/modules/peanut/file/route/app.php';
-unset($peanutRouteApplication);
+$serverRoot = dirname(__DIR__, 3);
+if (!isset($peanutRouteModules)) {
+    $peanutRouteModules = [];
+    foreach (app(\PeanutAdmin\Kernel\Module\CompiledModuleRegistry::class)->modules as $manifest) {
+        $peanutRouteModules[$manifest->data['key']] = $manifest->root;
+    }
+}
+
+require $serverRoot . '/route/platform.php';
+foreach ($peanutRouteModules as $moduleRoot) {
+    $moduleRoute = $moduleRoot . '/route/app.php';
+    if (is_file($moduleRoute)) {
+        require $moduleRoute;
+    }
+}
+
+unset($peanutRouteApplication, $serverRoot, $moduleRoute, $moduleRoot, $manifest);

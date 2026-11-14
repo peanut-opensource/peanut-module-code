@@ -33,6 +33,8 @@ final class InstanceToolAccessGuard
         }
         return match ($context->operation()) {
             'http.platform.get.instance-tools/modules' => 'platform.module.read',
+            'http.platform.get.instance-tools/modules/updates' => 'platform.module.read',
+            'http.platform.post.instance-tools/modules/official-update' => 'platform.module.update',
             'http.platform.post.instance-tools/modules/create' => 'platform.module.create',
             'http.platform.post.instance-tools/modules/install' => 'platform.module.install',
             'http.platform.post.instance-tools/modules/update' => 'platform.module.update',

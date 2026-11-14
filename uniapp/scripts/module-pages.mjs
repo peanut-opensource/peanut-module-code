@@ -9,7 +9,6 @@ import {
 } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadConfigFromFile } from 'vite';
 import { moduleFrontendEntries } from '../../scripts/module-frontend-entries.mjs';
 
 const defaultRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -61,6 +60,8 @@ export async function prepareModulePages(configEnv, targetRoot = defaultRoot) {
   );
   const contributions = [];
   for (const entry of entries) {
+    // A thin template has no Module contributions to transpile.
+    const { loadConfigFromFile } = await import('vite');
     const loaded = await loadConfigFromFile(configEnv, entry, root);
     if (!loaded)
       throw new Error(`Module contribution cannot be loaded: ${entry}`);

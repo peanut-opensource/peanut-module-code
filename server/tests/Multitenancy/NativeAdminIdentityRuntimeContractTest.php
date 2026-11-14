@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-$serverDir = dirname(__DIR__, 2);
+$serverDir = ((getenv('PEANUT_TEST_APPLICATION_ROOT') ?: dirname(__DIR__, 3)) . '/server');
 $runtimeFiles = [
     'app/adminapi',
     'app/common/services/authorization',
