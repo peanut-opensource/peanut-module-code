@@ -12,7 +12,6 @@ use PeanutAdmin\Modules\Member\Contract\MemberProfileCommands;
 use PeanutAdmin\Modules\Member\Contract\MemberSessions;
 use PeanutAdmin\Modules\Member\Validation\MemberProfileSelfFieldValidate;
 use PeanutAdmin\Kernel\Context\AuthenticatedMemberContext;
-use app\common\support\PositiveIds;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Context\TenantSystemContext;
 use think\facade\Db;
@@ -136,7 +135,13 @@ final class MemberProfileContractService implements MemberProfileCommands
     private function replaceTags(TenantContext $context, int $memberId, array $tagIds): void
     {
         $member = $this->member($context, $memberId);
-        $tagIds = PositiveIds::normalize($tagIds, [PositiveIds::REJECT_INVALID], '包含不存在的会员标签');
+        foreach ($tagIds as $key => $id) {
+            if ((!is_int($id) && !(is_string($id) && ctype_digit($id))) || (int) $id <= 0) {
+                throw BusinessException::invalid('MEMBER_TAG_SELECTION_INVALID', '包含不存在的会员标签');
+            }
+            $tagIds[$key] = (int) $id;
+        }
+        $tagIds = array_values(array_unique($tagIds));
         if ($tagIds !== [] && MemberTag::where([])->whereIn('id', $tagIds)->count() !== count($tagIds)) {
             throw BusinessException::invalid('MEMBER_TAG_SELECTION_INVALID', '包含不存在的会员标签');
         }
