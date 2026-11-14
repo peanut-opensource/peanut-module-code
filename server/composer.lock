@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "71f22005b4e425bbda33dde04d1041b4",
+    "content-hash": "bf39919a5fbff746e89bc13d406a2593",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2170,11 +2170,11 @@
         },
         {
             "name": "peanut-business/artifact-revision",
-            "version": "4.0.0-rc.39",
+            "version": "4.0.0",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/artifact_revision",
-                "reference": "69a4beb3978e5811d8394ff323c1a78d178d8938"
+                "reference": "7c408787056f7bf163fc7dba9228e96d823b2695"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2205,11 +2205,11 @@
         },
         {
             "name": "peanut-business/entitlement-quota",
-            "version": "4.0.0-rc.38",
+            "version": "4.0.0",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/entitlement_quota",
-                "reference": "a5d45e0cbb548a33795e6caa74e0411422f80480"
+                "reference": "c0b92560b37bb0b32acfb5b767bc4d8be889d1fe"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2474,11 +2474,11 @@
         },
         {
             "name": "peanut-business/peanut-identity",
-            "version": "4.0.0-rc.64",
+            "version": "4.0.0",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/identity",
-                "reference": "423b24b13bd251031ff6e4f27a02618d2b8952b5"
+                "reference": "d9d0e71e75e84844f3fcbb4e84c080c72714025c"
             },
             "require": {
                 "ext-bcmath": "*",
@@ -2922,11 +2922,11 @@
         },
         {
             "name": "peanut-business/workflow",
-            "version": "4.0.0-rc.48",
+            "version": "4.0.0",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/workflow",
-                "reference": "663b2c260608f2fe2328d419d995146c5958df26"
+                "reference": "94a9df66cbacc67bc3c36a84eb6dc37eb2d045ac"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -6681,12 +6681,7 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "peanut-business/artifact-revision": 5,
-        "peanut-business/entitlement-quota": 5,
-        "peanut-business/peanut-identity": 5,
-        "peanut-business/workflow": 5
-    },
+    "stability-flags": {},
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
