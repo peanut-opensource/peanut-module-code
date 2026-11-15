@@ -60,8 +60,8 @@ COALESCE(GROUP_CONCAT(DISTINCT CONCAT(
     COALESCE(target_set.id, 0), ':', COALESCE(target_set.revision, 0), ':', COALESCE(target_set.status, '')
 ) ORDER BY r.id, policy.id, policy_group.id, policy_condition.id SEPARATOR '|'), '') AS policy_revisions,
 MIN(CASE
-    WHEN policy.valid_from > CURRENT_TIMESTAMP(3) THEN policy.valid_from
-    WHEN policy.valid_until > CURRENT_TIMESTAMP(3) THEN policy.valid_until
+    WHEN policy.valid_from > UTC_TIMESTAMP(3) THEN policy.valid_from
+    WHEN policy.valid_until > UTC_TIMESTAMP(3) THEN policy.valid_until
     ELSE NULL
 END) AS next_transition
 SQL)
@@ -118,10 +118,10 @@ SQL)
             ->where('member_role.tenant_member_id', $memberId)
             ->whereIn('policy.resource_operation_id', $operationIds)
             ->where(function ($query): void {
-                $query->pk('id')->whereNull('policy.valid_from')->whereOr('policy.valid_from', '<=', new Raw('CURRENT_TIMESTAMP(3)'));
+                $query->pk('id')->whereNull('policy.valid_from')->whereOr('policy.valid_from', '<=', new Raw('UTC_TIMESTAMP(3)'));
             })
             ->where(function ($query): void {
-                $query->pk('id')->whereNull('policy.valid_until')->whereOr('policy.valid_until', '>', new Raw('CURRENT_TIMESTAMP(3)'));
+                $query->pk('id')->whereNull('policy.valid_until')->whereOr('policy.valid_until', '>', new Raw('UTC_TIMESTAMP(3)'));
             })
             ->where(function ($query): void {
                 $query->pk('id')->where('definition.key', '<>', 'core.specified_objects')
