@@ -946,7 +946,10 @@
   <body>
     <div class="page">
       <header class="topbar"
-        ><a class="brand" href="/install" aria-label="Peanut Module Code 安装向导"
+        ><a
+          class="brand"
+          href="/install"
+          aria-label="Peanut Module Code 安装向导"
           ><img src="/brand/logo.svg" alt="" /><span data-product-name
             >Peanut Module Code</span
           ></a
@@ -1881,13 +1884,25 @@
             !Number.isSafeInteger(value?.maximum_length) ||
             value.minimum_length < 1 ||
             value.maximum_length < value.minimum_length ||
+            ![
+              'require_uppercase',
+              'require_lowercase',
+              'require_digit',
+              'require_special',
+            ].every((key) => typeof value[key] === 'boolean') ||
             value.length_unit !== 'utf8_bytes'
           )
             throw new Error('无法读取有效的密码要求');
           passwordPolicy = value;
-          $(
-            'passwordHint'
-          ).textContent = `密码长度为 ${value.minimum_length}–${value.maximum_length} 个 UTF-8 字节，建议使用较长且不重复的密码。`;
+          const required = [
+            value.require_uppercase && 'A-Z',
+            value.require_lowercase && 'a-z',
+            value.require_digit && '0-9',
+            value.require_special && 'ASCII 标点（不含空格）',
+          ].filter(Boolean);
+          $('passwordHint').textContent =
+            `密码长度为 ${value.minimum_length}–${value.maximum_length} 个 UTF-8 字节` +
+            (required.length ? '；须包含：' + required.join('、') : '');
           $('install').disabled = !databaseReady || attempted;
         } catch (error) {
           $('passwordHint').textContent =
@@ -2134,7 +2149,14 @@
           const length = new TextEncoder().encode($(id).value).length;
           $(id).setCustomValidity(
             length < passwordPolicy.minimum_length ||
-              length > passwordPolicy.maximum_length
+              length > passwordPolicy.maximum_length ||
+              (passwordPolicy.require_uppercase &&
+                !/[A-Z]/.test($(id).value)) ||
+              (passwordPolicy.require_lowercase &&
+                !/[a-z]/.test($(id).value)) ||
+              (passwordPolicy.require_digit && !/[0-9]/.test($(id).value)) ||
+              (passwordPolicy.require_special &&
+                !/[\x21-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e]/.test($(id).value))
               ? $('passwordHint').textContent
               : ''
           );

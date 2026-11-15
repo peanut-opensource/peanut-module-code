@@ -59,6 +59,7 @@ final class InstallationController extends BaseController
             'minimum_length' => $passwords->minimumLength(),
             'maximum_length' => $passwords->maximumLength(),
             'length_unit' => 'utf8_bytes',
+            ...$passwords->requirements(),
         ]);
     }
 

@@ -2,7 +2,9 @@
   <PageContent class="pa-page-stack">
     <PageHeader>
       <h1>{{ $t('menu.system.admin') }}</h1>
-      <p class="pa-page-header__description">{{ $t('systemAdmin.page.description') }}</p>
+      <p class="pa-page-header__description">{{
+        $t('systemAdmin.page.description')
+      }}</p>
       <template #actions>
         <el-button
           v-permission="['core.member.create']"
@@ -18,48 +20,57 @@
 
     <el-card class="general-card">
       <PageToolbar :label="$t('systemAdmin.region.filters')">
-        <el-form class="pa-page-filters" :model="queryParams" label-position="left" label-width="80px" @submit.prevent="search">
-        <el-form-item prop="account" :label="$t('systemAdmin.search.account')">
-          <el-input
-            v-model="queryParams.account"
-            clearable
-            :placeholder="$t('systemAdmin.search.account.placeholder')"
-            @keyup.enter="search"
-          />
-        </el-form-item>
-        <el-form-item prop="name" :label="$t('systemAdmin.search.name')">
-          <el-input
-            v-model="queryParams.name"
-            clearable
-            :placeholder="$t('systemAdmin.search.name.placeholder')"
-            @keyup.enter="search"
-          />
-        </el-form-item>
-        <el-form-item prop="role_id" :label="$t('systemAdmin.search.role')">
-          <el-select
-            v-model="queryParams.role_id"
-            :disabled="!canReadRoles"
-            clearable
-            :placeholder="$t('systemAdmin.search.role.all')"
-            ><el-option
-              v-for="option in roleOptions"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
-          /></el-select>
-        </el-form-item>
-        <el-form-item class="pa-page-filters__actions" label-width="0">
-          <el-space>
-            <el-button type="primary" @click="search">
-              <template #icon><Search /></template>
-              {{ $t('systemAdmin.operation.search') }}
-            </el-button>
-            <el-button @click="resetQuery">
-              <template #icon><Refresh /></template>
-              {{ $t('systemAdmin.operation.reset') }}
-            </el-button>
-          </el-space>
-        </el-form-item>
+        <el-form
+          class="pa-page-filters"
+          :model="queryParams"
+          label-position="left"
+          label-width="80px"
+          @submit.prevent="search"
+        >
+          <el-form-item
+            prop="account"
+            :label="$t('systemAdmin.search.account')"
+          >
+            <el-input
+              v-model="queryParams.account"
+              clearable
+              :placeholder="$t('systemAdmin.search.account.placeholder')"
+              @keyup.enter="search"
+            />
+          </el-form-item>
+          <el-form-item prop="name" :label="$t('systemAdmin.search.name')">
+            <el-input
+              v-model="queryParams.name"
+              clearable
+              :placeholder="$t('systemAdmin.search.name.placeholder')"
+              @keyup.enter="search"
+            />
+          </el-form-item>
+          <el-form-item prop="role_id" :label="$t('systemAdmin.search.role')">
+            <el-select
+              v-model="queryParams.role_id"
+              :disabled="!canReadRoles"
+              clearable
+              :placeholder="$t('systemAdmin.search.role.all')"
+              ><el-option
+                v-for="option in roleOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+            /></el-select>
+          </el-form-item>
+          <el-form-item class="pa-page-filters__actions" label-width="0">
+            <el-space>
+              <el-button type="primary" @click="search">
+                <template #icon><Search /></template>
+                {{ $t('systemAdmin.operation.search') }}
+              </el-button>
+              <el-button @click="resetQuery">
+                <template #icon><Refresh /></template>
+                {{ $t('systemAdmin.operation.reset') }}
+              </el-button>
+            </el-space>
+          </el-form-item>
         </el-form>
       </PageToolbar>
     </el-card>
@@ -68,14 +79,22 @@
       <div class="pa-page-results-toolbar pa-page-results-toolbar--standalone">
         <div class="pa-page-results-title">
           <h2>{{ $t('systemAdmin.region.results') }}</h2>
-          <span aria-live="polite">{{ $t('systemAdmin.pagination.total', { total: pagination.total }) }}</span>
+          <span aria-live="polite">{{
+            $t('systemAdmin.pagination.total', { total: pagination.total })
+          }}</span>
         </div>
         <el-button @click="openExport">
           <template #icon><Download /></template>
           {{ $t('systemAdmin.operation.export') }}
         </el-button>
       </div>
-        <el-table class="pa-page-table" row-key="id" v-loading="loading" :data="renderData" max-height="max(320px, calc(100dvh - 440px))">
+      <el-table
+        class="pa-page-table"
+        row-key="id"
+        v-loading="loading"
+        :data="renderData"
+        max-height="max(320px, calc(100dvh - 440px))"
+      >
         <el-table-column
           prop="id"
           :label="$t('systemAdmin.columns.id')"
@@ -187,18 +206,25 @@
             ></template
           ></el-table-column
         >
-        </el-table>
-      <nav class="pa-page-pagination" :aria-label="$t('systemAdmin.region.pagination')">
-      <el-pagination
-        v-model:current-page="pagination.current"
-        v-model:page-size="pagination.pageSize"
-        :total="pagination.total"
-        :page-sizes="[10, 15, 30, 50]"
-        :layout="desktopTable ? 'total, sizes, prev, pager, next' : 'total, prev, pager, next'"
-        :pager-count="5"
-        @current-change="onPageChange"
-        @size-change="onPageSizeChange"
-      />
+      </el-table>
+      <nav
+        class="pa-page-pagination"
+        :aria-label="$t('systemAdmin.region.pagination')"
+      >
+        <el-pagination
+          v-model:current-page="pagination.current"
+          v-model:page-size="pagination.pageSize"
+          :total="pagination.total"
+          :page-sizes="[10, 15, 30, 50]"
+          :layout="
+            desktopTable
+              ? 'total, sizes, prev, pager, next'
+              : 'total, prev, pager, next'
+          "
+          :pager-count="5"
+          @current-change="onPageChange"
+          @size-change="onPageSizeChange"
+        />
       </nav>
     </el-card>
 
@@ -218,132 +244,140 @@
         <fieldset class="pa-page-form-section">
           <legend>{{ $t('systemAdmin.section.identity') }}</legend>
           <div class="pa-page-form-grid">
-        <el-form-item prop="account" :label="$t('systemAdmin.field.account')">
-          <el-input
-            v-model="form.account"
-            :disabled="isEdit || form.root === 1"
-            maxlength="255"
-            :placeholder="$t('systemAdmin.field.account.placeholder')"
-          />
-        </el-form-item>
+            <el-form-item
+              prop="account"
+              :label="$t('systemAdmin.field.account')"
+            >
+              <el-input
+                v-model="form.account"
+                :disabled="isEdit || form.root === 1"
+                maxlength="255"
+                :placeholder="$t('systemAdmin.field.account.placeholder')"
+              />
+            </el-form-item>
 
-        <el-form-item prop="name" :label="$t('systemAdmin.field.name')">
-          <el-input
-            v-model="form.name"
-            maxlength="120"
-            :placeholder="$t('systemAdmin.field.name.placeholder')"
-          />
-        </el-form-item>
-
+            <el-form-item prop="name" :label="$t('systemAdmin.field.name')">
+              <el-input
+                v-model="form.name"
+                maxlength="120"
+                :placeholder="$t('systemAdmin.field.name.placeholder')"
+              />
+            </el-form-item>
           </div>
-          <p class="pa-page-form-help">{{ $t('systemAdmin.field.avatar.ownerTip') }}</p>
+          <p class="pa-page-form-help">{{
+            $t('systemAdmin.field.avatar.ownerTip')
+          }}</p>
         </fieldset>
         <fieldset class="pa-page-form-section">
           <legend>{{ $t('systemAdmin.section.organization') }}</legend>
           <div class="pa-page-form-grid">
-        <el-form-item prop="dept_id" :label="$t('systemAdmin.field.dept')">
-          <DepartmentPicker
-            v-model="form.dept_id"
-            :key="departmentPickerRevision"
-            :root-label="$t('systemAdmin.field.dept.unassigned')"
-          />
-        </el-form-item>
+            <el-form-item prop="dept_id" :label="$t('systemAdmin.field.dept')">
+              <DepartmentPicker
+                v-model="form.dept_id"
+                :key="departmentPickerRevision"
+                :root-label="$t('systemAdmin.field.dept.unassigned')"
+              />
+            </el-form-item>
 
-        <el-form-item prop="jobs_id" :label="$t('systemAdmin.field.jobs')">
-          <el-select
-            v-model="form.jobs_id"
-            :disabled="!canReadJobs"
-            multiple
-            clearable
-            :placeholder="$t('systemAdmin.field.jobs.placeholder')"
-            ><el-option
-              v-for="option in jobsOptions"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
-          /></el-select>
-        </el-form-item>
+            <el-form-item prop="jobs_id" :label="$t('systemAdmin.field.jobs')">
+              <el-select
+                v-model="form.jobs_id"
+                :disabled="!canReadJobs"
+                multiple
+                clearable
+                :placeholder="$t('systemAdmin.field.jobs.placeholder')"
+                ><el-option
+                  v-for="option in jobsOptions"
+                  :key="option.value"
+                  :label="option.label"
+                  :value="option.value"
+              /></el-select>
+            </el-form-item>
 
-        <el-form-item
-          v-if="form.root !== 1"
-          class="pa-page-form-wide"
-          prop="role_id"
-          :label="$t('systemAdmin.field.roles')"
-        >
-          <el-select
-            v-model="form.role_id"
-            :disabled="!canReadRoles || !canAssignRoles"
-            multiple
-            clearable
-            :placeholder="$t('systemAdmin.field.roles.placeholder')"
-            ><el-option
-              v-for="option in roleOptions"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
-          /></el-select>
-        </el-form-item>
-
+            <el-form-item
+              v-if="form.root !== 1"
+              class="pa-page-form-wide"
+              prop="role_id"
+              :label="$t('systemAdmin.field.roles')"
+            >
+              <el-select
+                v-model="form.role_id"
+                :disabled="!canReadRoles || !canAssignRoles"
+                multiple
+                clearable
+                :placeholder="$t('systemAdmin.field.roles.placeholder')"
+                ><el-option
+                  v-for="option in roleOptions"
+                  :key="option.value"
+                  :label="option.label"
+                  :value="option.value"
+              /></el-select>
+            </el-form-item>
           </div>
         </fieldset>
         <fieldset class="pa-page-form-section">
           <legend>{{ $t('systemAdmin.section.security') }}</legend>
           <div class="pa-page-form-grid">
-        <el-form-item prop="password" :label="$t('systemAdmin.field.password')">
-          <el-input
-            type="password"
-            show-password
-            v-model="form.password"
-            clearable
-            :placeholder="
-              isEdit
-                ? $t('systemAdmin.field.password.editPlaceholder')
-                : passwordHint
-            "
-          />
-        </el-form-item>
+            <el-form-item
+              prop="password"
+              :label="$t('systemAdmin.field.password')"
+            >
+              <el-input
+                type="password"
+                show-password
+                v-model="form.password"
+                clearable
+                :placeholder="
+                  isEdit
+                    ? $t('systemAdmin.field.password.editPlaceholder')
+                    : passwordHint
+                "
+              />
+            </el-form-item>
 
-        <el-form-item
-          prop="password_confirm"
-          :label="$t('systemAdmin.field.passwordConfirm')"
-        >
-          <el-input
-            type="password"
-            show-password
-            v-model="form.password_confirm"
-            clearable
-            :placeholder="$t('systemAdmin.field.passwordConfirm.placeholder')"
-          />
-        </el-form-item>
+            <el-form-item
+              prop="password_confirm"
+              :label="$t('systemAdmin.field.passwordConfirm')"
+            >
+              <el-input
+                type="password"
+                show-password
+                v-model="form.password_confirm"
+                clearable
+                :placeholder="
+                  $t('systemAdmin.field.passwordConfirm.placeholder')
+                "
+              />
+            </el-form-item>
 
-        <el-form-item
-          v-if="form.root !== 1"
-          prop="disable"
-          :label="$t('systemAdmin.field.status')"
-        >
-          <el-switch
-            v-model="form.disable"
-            :disabled="!canEditStatus"
-            :active-value="0"
-            :inactive-value="1"
-          />
-        </el-form-item>
+            <el-form-item
+              v-if="form.root !== 1"
+              prop="disable"
+              :label="$t('systemAdmin.field.status')"
+            >
+              <el-switch
+                v-model="form.disable"
+                :disabled="!canEditStatus"
+                :active-value="0"
+                :inactive-value="1"
+              />
+            </el-form-item>
 
-        <el-form-item
-          prop="multipoint_login"
-          :label="$t('systemAdmin.field.multipoint')"
-        >
-          <div>
-            <el-switch
-              v-model="form.multipoint_login"
-              :active-value="1"
-              :inactive-value="0"
-            />
-            <div class="form-tip">
-              {{ $t('systemAdmin.field.multipoint.tip') }}
-            </div>
-          </div>
-        </el-form-item>
+            <el-form-item
+              prop="multipoint_login"
+              :label="$t('systemAdmin.field.multipoint')"
+            >
+              <div>
+                <el-switch
+                  v-model="form.multipoint_login"
+                  :active-value="1"
+                  :inactive-value="0"
+                />
+                <div class="form-tip">
+                  {{ $t('systemAdmin.field.multipoint.tip') }}
+                </div>
+              </div>
+            </el-form-item>
           </div>
         </fieldset>
       </el-form>
@@ -448,6 +482,7 @@
   import {
     getPasswordPolicy,
     passwordWithinPolicy,
+    passwordRequirementsHint,
     type PasswordPolicy,
   } from '@/api/password-policy';
   import { getRoleAll } from '@/api/system/role';
@@ -468,7 +503,7 @@
   } from '@/api/system/admin';
   import { DepartmentPicker } from '../dept/parent-options';
 
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const userStore = useUserStore();
   const appStore = useAppStore();
   const desktopTable = computed(() => appStore.device === 'desktop');
@@ -578,7 +613,7 @@
       ? t('systemAdmin.field.password.length', {
           min: passwordPolicy.value.minimum_length,
           max: passwordPolicy.value.maximum_length,
-        })
+        }) + passwordRequirementsHint(passwordPolicy.value, locale.value)
       : passwordPolicyError.value ||
         t('systemAdmin.field.password.policyLoading')
   );
@@ -881,5 +916,4 @@
     color: var(--color-text-3);
     font-size: 12px;
   }
-
 </style>

@@ -29,6 +29,7 @@
           <el-form-item label="设置账户密码"
             ><el-input
               v-model="acceptPassword"
+              :placeholder="passwordHint"
               type="password"
               show-password
               autocomplete="new-password"
@@ -1394,6 +1395,7 @@
       <el-form-item label="初始密码（已有账户可留空）"
         ><el-input
           v-model="operatorForm.initial_password"
+          :placeholder="passwordHint"
           type="password"
           show-password
           autocomplete="new-password"
@@ -1556,6 +1558,12 @@
     type TenantOwner,
   } from './api/platform';
   import type { OpsConsoleSection } from './modules/peanut-ops/runtime/src/runtime';
+  import {
+    getPasswordPolicy,
+    passwordWithinPolicy,
+    passwordRequirementsHint,
+    type PasswordPolicy,
+  } from './api/password-policy';
   import ProviderQualificationCard from './components/ProviderQualificationCard.vue';
   import DeveloperCenterPage from './components/DeveloperCenterPage.vue';
   import PermissionBundlesPanel from './components/PermissionBundlesPanel.vue';
@@ -1590,6 +1598,18 @@
   const invitationToken = ref(tokenFromUrl || '');
   const invitation = ref<InvitationInspection | null>(null);
   const acceptPassword = ref('');
+  const passwordPolicy = ref<PasswordPolicy | null>(null);
+  const passwordHint = computed(() =>
+    passwordPolicy.value
+      ? `密码须为 ${passwordPolicy.value.minimum_length}～${passwordPolicy.value.maximum_length} 个 UTF-8 字节` +
+        passwordRequirementsHint(passwordPolicy.value)
+      : '提交时读取密码要求'
+  );
+  async function validateNewPassword(value: string) {
+    passwordPolicy.value = await getPasswordPolicy();
+    if (!passwordWithinPolicy(value, passwordPolicy.value))
+      throw new Error(passwordHint.value);
+  }
   const authenticated = ref(hasPlatformSession());
   const platformAccount = ref('');
   const loading = ref(false);
@@ -2729,6 +2749,8 @@
     loading.value = true;
     error.value = '';
     try {
+      if (invitation.value.requires_password)
+        await validateNewPassword(acceptPassword.value);
       await api.acceptInvitation(invitationToken.value, acceptPassword.value);
       invitation.value = null;
       invitationToken.value = '';
@@ -3189,6 +3211,8 @@
   async function createOperator() {
     if (!can('platform.operator.create') || loading.value) return;
     await run(async () => {
+      if (operatorForm.initial_password)
+        await validateNewPassword(operatorForm.initial_password);
       await api.createOperator({ ...operatorForm });
       operatorDialog.value = false;
       Object.assign(operatorForm, {

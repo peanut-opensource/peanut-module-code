@@ -2886,7 +2886,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Public effective password limits from the native container binding; available before and after installation. No credentials or instance configuration are returned. */
+        /** @description Public effective password requirements from the native container binding; lengths count UTF-8 bytes, character requirements use ASCII letters, digits and printable punctuation excluding space. Available before and after installation; no credentials are returned. */
         get: operations["getPasswordPolicy"];
         put?: never;
         post?: never;
@@ -19214,6 +19214,10 @@ export interface operations {
                             maximum_length: number;
                             /** @enum {string} */
                             length_unit: "utf8_bytes";
+                            require_uppercase: boolean;
+                            require_lowercase: boolean;
+                            require_digit: boolean;
+                            require_special: boolean;
                         };
                     };
                 };

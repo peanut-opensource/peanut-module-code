@@ -84,12 +84,29 @@
     minimum_length: number;
     maximum_length: number;
     length_unit: 'utf8_bytes';
+    require_uppercase: boolean;
+    require_lowercase: boolean;
+    require_digit: boolean;
+    require_special: boolean;
   }
   const passwordPolicy = ref<PasswordPolicy | null>(null);
   const passwordPolicyError = ref('');
+  const passwordRequirements = computed(() =>
+    passwordPolicy.value
+      ? [
+          passwordPolicy.value.require_uppercase && 'A-Z',
+          passwordPolicy.value.require_lowercase && 'a-z',
+          passwordPolicy.value.require_digit && '0-9',
+          passwordPolicy.value.require_special && 'ASCII 标点（不含空格）',
+        ].filter(Boolean)
+      : []
+  );
   const passwordHint = computed(() =>
     passwordPolicy.value
-      ? `密码须为 ${passwordPolicy.value.minimum_length}～${passwordPolicy.value.maximum_length} 个 UTF-8 字节`
+      ? `密码须为 ${passwordPolicy.value.minimum_length}～${passwordPolicy.value.maximum_length} 个 UTF-8 字节` +
+        (passwordRequirements.value.length
+          ? '；须包含：' + passwordRequirements.value.join('、')
+          : '')
       : passwordPolicyError.value || '正在读取密码要求'
   );
   async function loadPasswordPolicy() {
@@ -104,7 +121,17 @@
         !Number.isSafeInteger(policy?.maximum_length) ||
         policy.minimum_length < 1 ||
         policy.maximum_length < policy.minimum_length ||
-        policy.length_unit !== 'utf8_bytes'
+        policy.length_unit !== 'utf8_bytes' ||
+        ![
+          'require_uppercase',
+          'require_lowercase',
+          'require_digit',
+          'require_special',
+        ].every(
+          (key) =>
+            typeof (policy as unknown as Record<string, unknown>)[key] ===
+            'boolean'
+        )
       ) {
         throw new Error('Invalid password policy');
       }
@@ -138,7 +165,17 @@
     const length = new TextEncoder().encode(pwdForm.value.new_password).length;
     if (
       length < passwordPolicy.value.minimum_length ||
-      length > passwordPolicy.value.maximum_length
+      length > passwordPolicy.value.maximum_length ||
+      (passwordPolicy.value.require_uppercase &&
+        !/[A-Z]/.test(pwdForm.value.new_password)) ||
+      (passwordPolicy.value.require_lowercase &&
+        !/[a-z]/.test(pwdForm.value.new_password)) ||
+      (passwordPolicy.value.require_digit &&
+        !/[0-9]/.test(pwdForm.value.new_password)) ||
+      (passwordPolicy.value.require_special &&
+        !/[\x21-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e]/.test(
+          pwdForm.value.new_password
+        ))
     )
       return ElMessage.warning(passwordHint.value);
     pwdLoading.value = true;

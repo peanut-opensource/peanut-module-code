@@ -23,7 +23,15 @@ return [
         if (!is_int($minimum) || !is_int($maximum)) {
             throw new \InvalidArgumentException('Password policy bounds must be integers.');
         }
-        return new PasswordPolicy($minimum, $maximum);
+        $requirements = [];
+        foreach (['require_uppercase', 'require_lowercase', 'require_digit', 'require_special'] as $key) {
+            $value = config('peanut.password.' . $key, false);
+            if (!is_bool($value)) {
+                throw new \InvalidArgumentException('Password policy requirements must be booleans.');
+            }
+            $requirements[] = $value;
+        }
+        return new PasswordPolicy($minimum, $maximum, ...$requirements);
     },
     'think\Request'          => Request::class,
     'think\exception\Handle' => ExceptionHandle::class,

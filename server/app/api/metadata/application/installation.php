@@ -165,14 +165,18 @@ $paths = [
         'Installation',
         ['200' => $success([
             'type' => 'object', 'additionalProperties' => false,
-            'required' => ['minimum_length', 'maximum_length', 'length_unit'],
+            'required' => ['minimum_length', 'maximum_length', 'length_unit', 'require_uppercase', 'require_lowercase', 'require_digit', 'require_special'],
             'properties' => [
                 'minimum_length' => ['type' => 'integer', 'minimum' => 1],
                 'maximum_length' => ['type' => 'integer', 'minimum' => 1],
                 'length_unit' => ['type' => 'string', 'enum' => ['utf8_bytes']],
+                'require_uppercase' => ['type' => 'boolean'],
+                'require_lowercase' => ['type' => 'boolean'],
+                'require_digit' => ['type' => 'boolean'],
+                'require_special' => ['type' => 'boolean'],
             ],
         ])],
-        description: 'Public effective password limits from the native container binding; available before and after installation. No credentials or instance configuration are returned.',
+        description: 'Public effective password requirements from the native container binding; lengths count UTF-8 bytes, character requirements use ASCII letters, digits and printable punctuation excluding space. Available before and after installation; no credentials are returned.',
     )],
     '/installapi/configuration' => ['get' => $operation(
         'getInstallationConfiguration',

@@ -146,6 +146,7 @@
   import {
     getPasswordPolicy,
     passwordWithinPolicy,
+    passwordRequirementsHint,
     type PasswordPolicy,
   } from '@/api/password-policy';
   import { uploadFile, type FileRecord } from '@/modules/peanut-file/api';
@@ -155,7 +156,7 @@
     type EditSelfForm,
   } from '@/api/system/admin';
 
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const userStore = useUserStore();
   const { loading, setLoading } = useLoading(true);
 
@@ -187,7 +188,7 @@
       ? t('userSetting.security.error.length', {
           min: passwordPolicy.value.minimum_length,
           max: passwordPolicy.value.maximum_length,
-        })
+        }) + passwordRequirementsHint(passwordPolicy.value, locale.value)
       : passwordPolicyError.value || t('userSetting.security.policyLoading')
   );
   async function loadPasswordPolicy() {

@@ -3,8 +3,15 @@
 declare(strict_types=1);
 
 return [
-    // Optional minimum_length / maximum_length integers; omitted values use Core defaults (UTF-8 bytes).
-    'password' => [],
+    // New credentials only; lengths count UTF-8 bytes. Existing login credentials are unaffected.
+    'password' => [
+        'minimum_length' => 6,
+        'maximum_length' => 32,
+        'require_uppercase' => false, // ASCII A-Z
+        'require_lowercase' => false, // ASCII a-z
+        'require_digit' => false, // ASCII 0-9
+        'require_special' => false, // Printable ASCII punctuation, excluding space
+    ],
     // 稳定 override key => 实现 AdminPermissionPolicy 的应用类。
     'overrides' => [],
     // module_key => [setting_key => value]; DB deployment/tenant/target values take precedence.

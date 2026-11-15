@@ -46,6 +46,7 @@
   import {
     getPasswordPolicy,
     passwordWithinPolicy,
+    passwordRequirementsHint,
     type PasswordPolicy,
   } from '@/api/password-policy';
   import { changePassword } from '@/modules/peanut-member/api/user';
@@ -55,7 +56,8 @@
   const passwordPolicyError = ref('');
   const passwordHint = computed(() =>
     passwordPolicy.value
-      ? `密码须为 ${passwordPolicy.value.minimum_length}～${passwordPolicy.value.maximum_length} 个 UTF-8 字节`
+      ? `密码须为 ${passwordPolicy.value.minimum_length}～${passwordPolicy.value.maximum_length} 个 UTF-8 字节` +
+        passwordRequirementsHint(passwordPolicy.value)
       : passwordPolicyError.value || '正在读取密码要求'
   );
   async function loadPasswordPolicy() {
