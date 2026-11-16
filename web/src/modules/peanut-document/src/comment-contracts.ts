@@ -1,4 +1,5 @@
 import type { DocumentOwner } from './contracts';
+import type { RichTextDocumentValue } from '../../peanut-rich-text/src/document';
 
 /** The host changes contextKey when tenant/member/authorization context changes. */
 export interface DocumentCommentScope {
@@ -27,7 +28,23 @@ export interface DocumentCommentAnchor {
   end_offset: number;
   quote: string;
 }
-export type DocumentCommentAction = 'create' | 'reply' | 'resolve' | 'reopen';
+export type DocumentCommentAction =
+  | 'create'
+  | 'reply'
+  | 'resolve'
+  | 'reopen'
+  | 'suggest'
+  | 'accept'
+  | 'reject';
+export interface DocumentRevisionSuggestion {
+  candidate_content: RichTextDocumentValue;
+  candidate_sha256: string;
+  decision: 'pending' | 'accepted' | 'rejected';
+  decided_by_member_id: number | null;
+  decided_at: string | null;
+  result_revision_id: number | null;
+  result_state_seq: number | null;
+}
 export type DocumentCommentStatus = 'open' | 'resolved';
 export interface DocumentCommentThread
   extends DocumentCommentBinding,
@@ -41,6 +58,7 @@ export interface DocumentCommentThread
   updated_by_member_id: number;
   created_at: string;
   updated_at: string;
+  suggestion?: DocumentRevisionSuggestion | null;
 }
 export interface DocumentCommentMessage {
   message_id: number;
@@ -79,7 +97,20 @@ export type DocumentCommentCommand =
       input: CommandBase & DocumentCommentAnchor & { body: string };
     }
   | { action: 'reply'; input: CommandBase & ExistingThread & { body: string } }
-  | { action: 'resolve' | 'reopen'; input: CommandBase & ExistingThread };
+  | { action: 'resolve' | 'reopen'; input: CommandBase & ExistingThread }
+  | {
+      action: 'suggest';
+      input: CommandBase &
+        DocumentCommentAnchor & {
+          body: string;
+          candidate_content: RichTextDocumentValue;
+        };
+    }
+  | {
+      action: 'accept';
+      input: CommandBase & ExistingThread & { expected_state_seq: number };
+    }
+  | { action: 'reject'; input: CommandBase & ExistingThread };
 export interface DocumentCommentReceipt extends DocumentCommentBinding {
   document_id: number;
   revision_id: number;
@@ -91,6 +122,9 @@ export interface DocumentCommentReceipt extends DocumentCommentBinding {
   message_id: number;
   actor_member_id: number;
   created_at: string;
+  suggestion?: DocumentRevisionSuggestion | null;
+  result_revision_id?: number | null;
+  result_state_seq?: number | null;
 }
 export interface DocumentCommentTransport {
   threads(

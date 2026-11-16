@@ -95,6 +95,16 @@
                 @click="session.select(thread.thread_id)"
               >
                 <span class="document-comments__quote">{{ thread.quote }}</span>
+                <span v-if="thread.suggestion"
+                  >整篇修改建议 ·
+                  {{
+                    thread.suggestion.decision === 'pending'
+                      ? '待决定'
+                      : thread.suggestion.decision === 'accepted'
+                      ? '已接受'
+                      : '已拒绝'
+                  }}</span
+                >
                 <span
                   >{{ thread.status === 'open' ? '未解决' : '已解决' }} · 成员
                   #{{ thread.created_by_member_id }}</span
@@ -235,6 +245,9 @@
       reply: '回复',
       resolve: '标记已解决',
       reopen: '重新打开',
+      suggest: '提出修改建议',
+      accept: '接受修改建议',
+      reject: '拒绝修改建议',
     }[action]);
 
   async function perform(operation: () => Promise<void>) {

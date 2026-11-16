@@ -11,7 +11,9 @@ import type {
   DocumentCommentAnchor,
   DocumentCommentTransport,
   DocumentCommentPending,
+  DocumentRevisionSuggestion,
 } from './comment-contracts';
+import type { RichTextDocumentValue } from '../../peanut-rich-text/src/document';
 import { DocumentCommentRejection } from './comment-rejection';
 
 export { DocumentCommentRejection } from './comment-rejection';
@@ -28,6 +30,36 @@ const integer = (value: unknown, min = 1): value is number =>
 const digest = (value: unknown) =>
   typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
 const status = (value: unknown) => value === 'open' || value === 'resolved';
+function parseSuggestion(
+  value: unknown
+): DocumentRevisionSuggestion | null | undefined {
+  if (value === undefined || value === null) return value;
+  const row = record(value);
+  if (
+    !digest(row.candidate_sha256) ||
+    !['pending', 'accepted', 'rejected'].includes(String(row.decision))
+  )
+    return fail();
+  // RichText's public parser owns structured-content validation at the rendering boundary.
+  record(row.candidate_content);
+  if (row.decision === 'pending') {
+    if (
+      row.decided_by_member_id !== null ||
+      row.decided_at !== null ||
+      row.result_revision_id !== null ||
+      row.result_state_seq !== null
+    )
+      return fail();
+  } else if (
+    !integer(row.decided_by_member_id) ||
+    typeof row.decided_at !== 'string' ||
+    (row.decision === 'accepted'
+      ? !integer(row.result_revision_id) || !integer(row.result_state_seq, 0)
+      : row.result_revision_id !== null || row.result_state_seq !== null)
+  )
+    return fail();
+  return value as DocumentRevisionSuggestion;
+}
 const sameOwner = (
   left: DocumentCommentSource['owner'],
   right: DocumentCommentSource['owner']
@@ -88,6 +120,13 @@ function parseThread(
   source: DocumentCommentSource
 ): DocumentCommentThread {
   const row = record(value);
+  const suggestion = parseSuggestion(row.suggestion);
+  const emptySuggestion =
+    !!suggestion &&
+    source.text_length === 0 &&
+    row.start_offset === 0 &&
+    row.end_offset === 0 &&
+    row.quote === '';
   if (
     !integer(row.thread_id) ||
     !integer(row.thread_revision) ||
@@ -96,8 +135,8 @@ function parseThread(
     row.revision_id !== source.revision_id ||
     !sameBinding(row, source) ||
     !integer(row.start_offset, 0) ||
-    !integer(row.end_offset) ||
-    row.end_offset <= row.start_offset ||
+    !integer(row.end_offset, emptySuggestion ? 0 : 1) ||
+    (!emptySuggestion && row.end_offset <= row.start_offset) ||
     row.end_offset > source.text_length ||
     row.end_offset - row.start_offset > 4096 ||
     row.quote !==
@@ -122,10 +161,18 @@ function parseMessage(
     row.thread_id !== thread.thread_id ||
     !integer(row.thread_revision) ||
     row.thread_revision > thread.thread_revision ||
-    !['create', 'reply', 'resolve', 'reopen'].includes(String(row.action)) ||
+    ![
+      'create',
+      'reply',
+      'resolve',
+      'reopen',
+      'suggest',
+      'accept',
+      'reject',
+    ].includes(String(row.action)) ||
     !integer(row.actor_member_id) ||
     typeof row.created_at !== 'string' ||
-    (['create', 'reply'].includes(String(row.action))
+    (['create', 'reply', 'suggest'].includes(String(row.action))
       ? typeof row.body !== 'string' ||
         Array.from(row.body).length < 1 ||
         Array.from(row.body).length > 4000
@@ -216,17 +263,40 @@ export function parseCommentReceipt(
     !integer(row.thread_id) ||
     !integer(row.message_id) ||
     !integer(row.actor_member_id) ||
-    row.status !== (command.action === 'resolve' ? 'resolved' : 'open') ||
+    !status(row.status) ||
+    (!['accept', 'reject'].includes(command.action) &&
+      row.status !== (command.action === 'resolve' ? 'resolved' : 'open')) ||
     typeof row.created_at !== 'string'
   )
     return fail();
   if (
-    command.action === 'create'
+    command.action === 'create' || command.action === 'suggest'
       ? row.thread_revision !== 1
       : row.thread_id !== command.input.thread_id ||
         row.thread_revision !== command.input.expected_thread_revision + 1
   )
     return fail();
+  const suggestion = parseSuggestion(row.suggestion);
+  if (['suggest', 'accept', 'reject'].includes(command.action)) {
+    if (
+      !suggestion ||
+      suggestion.decision !==
+        (
+          {
+            suggest: 'pending',
+            accept: 'accepted',
+            reject: 'rejected',
+          } as Partial<Record<DocumentCommentCommand['action'], string>>
+        )[command.action]
+    )
+      return fail();
+    if (
+      command.action === 'accept' &&
+      (row.result_revision_id !== suggestion.result_revision_id ||
+        row.result_state_seq !== suggestion.result_state_seq)
+    )
+      return fail();
+  }
   return value as DocumentCommentReceipt;
 }
 
@@ -542,6 +612,76 @@ export class RevisionCommentSession {
         body,
       },
     });
+  }
+
+  async suggest(
+    anchor: DocumentCommentAnchor,
+    body: string,
+    candidate: RichTextDocumentValue
+  ): Promise<void> {
+    RevisionCommentSession.body(body);
+    const emptySource =
+      this.source?.text_length === 0 &&
+      anchor.start_offset === 0 &&
+      anchor.end_offset === 0 &&
+      anchor.quote === '';
+    if (
+      !this.source ||
+      anchor.start_offset < 0 ||
+      (!emptySource && anchor.end_offset <= anchor.start_offset) ||
+      anchor.end_offset > this.source.text_length ||
+      anchor.end_offset - anchor.start_offset > 4096 ||
+      Array.from(this.source.text)
+        .slice(anchor.start_offset, anchor.end_offset)
+        .join('') !== anchor.quote
+    )
+      throw new Error('DOCUMENT_COMMENT_RANGE_INVALID');
+    // Match the native collaboration projector's clean() contract once at the
+    // candidate boundary. Preserve non-null PM defaults and isolate the retry payload.
+    const clean = (value: unknown): unknown => {
+      if (Array.isArray(value)) return value.map(clean);
+      if (value && typeof value === 'object') {
+        const result: Record<string, unknown> = {};
+        for (const [key, raw] of Object.entries(value)) {
+          if (key === 'attrs') {
+            const attributes = Object.fromEntries(
+              Object.entries(raw as object).filter(
+                ([, item]) => item !== null && item !== undefined
+              )
+            );
+            if (Object.keys(attributes).length) result[key] = clean(attributes);
+          } else result[key] = clean(raw);
+        }
+        return result;
+      }
+      return value;
+    };
+    const snapshot = clean(candidate) as RichTextDocumentValue;
+    await this.start({
+      action: 'suggest',
+      input: { ...this.base(), ...anchor, body, candidate_content: snapshot },
+    });
+  }
+
+  async decideSuggestion(
+    action: 'accept' | 'reject',
+    expectedStateSeq?: number
+  ): Promise<void> {
+    if (!this.active || this.active.suggestion?.decision !== 'pending')
+      throw new Error('DOCUMENT_SUGGESTION_STATE_CONFLICT');
+    const input = {
+      ...this.base(),
+      thread_id: this.active.thread_id,
+      expected_thread_revision: this.active.thread_revision,
+    };
+    if (action === 'accept') {
+      if (!integer(expectedStateSeq, 0))
+        throw new Error('DOCUMENT_SUGGESTION_STATE_REQUIRED');
+      await this.start({
+        action,
+        input: { ...input, expected_state_seq: expectedStateSeq },
+      });
+    } else await this.start({ action, input });
   }
 
   async transition(action: 'resolve' | 'reopen'): Promise<void> {

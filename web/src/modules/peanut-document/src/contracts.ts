@@ -78,4 +78,6 @@ export interface DocumentSurfaceOptions {
 export interface DocumentViewerOptions extends DocumentSurfaceOptions {
   revisionId?: number;
   comments?: boolean;
+  /** Opt-in isolated RichText candidates and persisted change provenance. */
+  suggestions?: boolean;
 }

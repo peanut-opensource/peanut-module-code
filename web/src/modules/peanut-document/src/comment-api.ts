@@ -3,7 +3,7 @@ import type { DocumentCommentTransport } from './comment-contracts';
 import { DocumentCommentRejection } from './comment-rejection';
 
 /** Keep the normal application's authenticated Axios client and preserve native rejection codes. */
-async function request(
+export async function documentCommentRequest(
   config: AxiosRequestConfig,
   signal: AbortSignal
 ): Promise<unknown> {
@@ -49,7 +49,7 @@ async function request(
 }
 export const documentCommentTransport: DocumentCommentTransport = {
   threads: (scope, before, signal) =>
-    request(
+    documentCommentRequest(
       {
         method: 'GET',
         url: '/adminapi/peanut.document.comments',
@@ -63,7 +63,7 @@ export const documentCommentTransport: DocumentCommentTransport = {
       signal
     ),
   thread: (scope, threadId, after, signal) =>
-    request(
+    documentCommentRequest(
       {
         method: 'GET',
         url: '/adminapi/peanut.document.comment.thread',
@@ -78,10 +78,18 @@ export const documentCommentTransport: DocumentCommentTransport = {
       signal
     ),
   submit: (command, signal) =>
-    request(
+    documentCommentRequest(
       {
         method: 'POST',
-        url: `/adminapi/peanut.document.comment.${command.action}`,
+        url: `/adminapi/peanut.document.${
+          (
+            {
+              suggest: 'suggestion.create',
+              accept: 'suggestion.accept',
+              reject: 'suggestion.reject',
+            } as Partial<Record<typeof command.action, string>>
+          )[command.action] ?? `comment.${command.action}`
+        }`,
         data: command.input,
       },
       signal

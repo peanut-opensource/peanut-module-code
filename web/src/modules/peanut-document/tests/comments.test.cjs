@@ -19,6 +19,20 @@ const compiled = ts.transpileModule(fs.readFileSync(sourcePath, 'utf8'), {
 const actual = new Module(sourcePath, module);
 actual.filename = sourcePath;
 actual.paths = module.paths;
+const rejectionPath = path.resolve(__dirname, '../src/comment-rejection.ts');
+const rejection = new Module(rejectionPath, module);
+rejection._compile(
+  ts.transpileModule(fs.readFileSync(rejectionPath, 'utf8'), {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2020,
+      module: ts.ModuleKind.CommonJS,
+    },
+  }).outputText,
+  rejectionPath
+);
+const nativeRequire = actual.require.bind(actual);
+actual.require = (id) =>
+  id === './comment-rejection' ? rejection.exports : nativeRequire(id);
 actual._compile(compiled.outputText, sourcePath);
 const {
   RevisionCommentSession,
@@ -468,4 +482,227 @@ test('disposing the component prevents a late response from restoring its old co
   await loading;
   assert.equal(session.source, undefined);
   assert.deepEqual(session.threads, []);
+});
+
+const candidate = () => ({
+  schemaVersion: 'peanut.richtext/1',
+  editorModel: 'tiptap-prosemirror',
+  content: {
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: '修改后的完整正文', marks: [{ type: 'bold' }] },
+        ],
+      },
+    ],
+  },
+  annotations: [],
+});
+const suggestion = (decision = 'pending') => ({
+  candidate_content: candidate(),
+  candidate_sha256: hash('candidate'),
+  decision,
+  decided_by_member_id: decision === 'pending' ? null : 22,
+  decided_at: decision === 'pending' ? null : '2026-11-16 00:00:00.000',
+  result_revision_id: decision === 'accepted' ? 99 : null,
+  result_state_seq: decision === 'accepted' ? 8 : null,
+});
+
+test('isolated candidate is snapshotted and an unknown suggestion retries the same full request', async () => {
+  const sent = [];
+  const { session, ids } = await ready(
+    transport({
+      submit: async (command) => {
+        sent.push(command);
+        if (sent.length === 1) throw new Error('network result unknown');
+        return {
+          ...receipt(command),
+          thread_id: 1,
+          thread_revision: 1,
+          suggestion: suggestion(),
+        };
+      },
+    })
+  );
+  const local = candidate();
+  await session.suggest(anchor, '格式与正文修改说明', local);
+  local.content.content[0].content[0].text = '后来继续编辑的本地文字';
+  assert.equal(session.pending.state, 'unknown');
+  assert.equal(session.source, undefined);
+  assert.equal(
+    session.pending.command.input.candidate_content.content.content[0]
+      .content[0].text,
+    '修改后的完整正文'
+  );
+  assert.equal(ids(), 1);
+  await session.retry();
+  assert.equal(sent[0], sent[1]);
+  assert.equal(session.pending, undefined);
+  assert.equal(session.lastReceipt.action, 'suggest');
+  assert.equal(ids(), 1);
+});
+
+test('accepting a pending suggestion uses current waterline and preserves independent resolved discussion status', async () => {
+  const proposed = {
+    ...thread(A),
+    status: 'resolved',
+    suggestion: suggestion(),
+  };
+  let submitted;
+  const { session } = await ready(
+    transport({
+      threads: async () => list(A, [proposed]),
+      thread: async () => ({ ...detail(A), thread: proposed }),
+      submit: async (command) => {
+        submitted = command;
+        return {
+          ...receipt(command),
+          status: 'resolved',
+          suggestion: suggestion('accepted'),
+          result_revision_id: 99,
+          result_state_seq: 8,
+        };
+      },
+    })
+  );
+  await session.select(1);
+  await session.decideSuggestion('accept', 7);
+  assert.equal(submitted.action, 'accept');
+  assert.equal(submitted.input.expected_state_seq, 7);
+  assert.equal(submitted.input.expected_thread_revision, 1);
+  assert.equal(session.pending, undefined);
+  assert.equal(session.lastReceipt.status, 'resolved');
+  assert.equal(session.lastReceipt.result_revision_id, 99);
+});
+
+test('a view-only scope cannot submit a full candidate or allocate a request id', async () => {
+  const { session, ids } = await ready(
+    transport({ threads: async () => ({ ...list(A), can_write: false }) })
+  );
+  await assert.rejects(
+    () => session.suggest(anchor, '修改说明', candidate()),
+    /DOCUMENT_COMMENT_NOT_WRITABLE/
+  );
+  assert.equal(ids(), 0);
+  assert.equal(session.pending, undefined);
+});
+
+test('an incomplete accept receipt remains unknown and retains its original decision request', async () => {
+  const proposed = { ...thread(A), suggestion: suggestion() };
+  const { session } = await ready(
+    transport({
+      threads: async () => list(A, [proposed]),
+      thread: async () => ({ ...detail(A), thread: proposed }),
+      submit: async (command) => ({
+        ...receipt(command),
+        suggestion: suggestion('accepted'),
+      }),
+    })
+  );
+  await session.select(1);
+  await session.decideSuggestion('accept', 7);
+  assert.equal(session.pending.state, 'unknown');
+  assert.equal(session.pending.command.input.expected_state_seq, 7);
+  assert.equal(session.lastReceipt, undefined);
+});
+
+test('an empty fixed document permits the suggestion-only empty anchor while ordinary comments still require a quote', async () => {
+  const emptySource = {
+    ...source(A),
+    text: '',
+    text_length: 0,
+    text_sha256: hash(''),
+  };
+  const emptyThread = {
+    ...thread(A),
+    text_sha256: hash(''),
+    start_offset: 0,
+    end_offset: 0,
+    quote: '',
+    suggestion: suggestion(),
+  };
+  const emptyPage = { ...list(A, [emptyThread]), source: emptySource };
+  const { session, ids } = await ready(
+    transport({
+      threads: async () => emptyPage,
+      thread: async () => ({
+        ...detail(A),
+        source: emptySource,
+        thread: emptyThread,
+      }),
+      submit: async (command) => ({
+        ...receipt(command),
+        thread_id: 1,
+        thread_revision: 1,
+        suggestion: suggestion(),
+      }),
+    })
+  );
+  const emptyAnchor = { start_offset: 0, end_offset: 0, quote: '' };
+  await assert.rejects(
+    () => session.create(emptyAnchor, '普通评论不能使用空引用'),
+    /DOCUMENT_COMMENT_RANGE_INVALID/
+  );
+  assert.equal(ids(), 0);
+  await session.suggest(emptyAnchor, '从空正文开始提出完整候选', candidate());
+  assert.equal(session.lastReceipt.action, 'suggest');
+  assert.equal(session.pending, undefined);
+  assert.equal(session.error, undefined);
+  assert.equal(session.active.suggestion.decision, 'pending');
+  assert.throws(
+    () =>
+      parseCommentThreads(
+        { ...emptyPage, items: [{ ...emptyThread, suggestion: null }] },
+        A
+      ),
+    /DOCUMENT_COMMENT_RESPONSE_INVALID/
+  );
+});
+
+test('candidate boundary removes null and empty attrs while preserving native non-null defaults', async () => {
+  let submitted;
+  const { session } = await ready(
+    transport({
+      submit: async (command) => {
+        submitted = command;
+        throw new Error('hold original candidate');
+      },
+    })
+  );
+  const local = candidate();
+  local.content.content[0].attrs = { textAlign: null };
+  local.content.content[0].content[0].marks = [
+    {
+      type: 'link',
+      attrs: {
+        href: 'https://example.com',
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        class: null,
+      },
+    },
+  ];
+  local.content.content.push({
+    type: 'orderedList',
+    attrs: { start: 1 },
+    content: [
+      { type: 'listItem', content: [{ type: 'paragraph', attrs: {} }] },
+    ],
+  });
+  await session.suggest(anchor, '完整候选的原生格式', local);
+  const snapshot = submitted.input.candidate_content;
+  assert.equal(snapshot.content.content[0].attrs, undefined);
+  assert.deepEqual(snapshot.content.content[0].content[0].marks[0].attrs, {
+    href: 'https://example.com',
+    target: '_blank',
+    rel: 'noopener noreferrer',
+  });
+  assert.deepEqual(snapshot.content.content[1].attrs, { start: 1 });
+  assert.equal(
+    snapshot.content.content[1].content[0].content[0].attrs,
+    undefined
+  );
+  assert.deepEqual(local.content.content[0].attrs, { textAlign: null });
 });

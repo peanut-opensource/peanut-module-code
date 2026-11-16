@@ -18,6 +18,21 @@
     @error="emit('error', $event)"
   />
   <p v-else-if="props.comments">评论需要明确的固定修订和当前身份上下文。</p>
+  <DocumentRevisionSuggestions
+    v-if="
+      props.suggestions && props.revisionId !== undefined && props.contextKey
+    "
+    :document-id="props.documentId"
+    :revision-id="props.revisionId"
+    :context-key="props.contextKey"
+    :owner="props.owner"
+    :callbacks="props.callbacks"
+    @changed="emit('changed', $event)"
+    @error="emit('error', $event)"
+  />
+  <p v-else-if="props.suggestions"
+    >修改建议需要明确的固定修订和当前身份上下文。</p
+  >
 </template>
 
 <script setup lang="ts">
@@ -25,13 +40,18 @@
   import type { SurfaceCapabilities } from '@/modules/peanut-content-tools/src/contracts';
   import DocumentSurface from './DocumentSurface.vue';
   import DocumentRevisionComments from './DocumentRevisionComments.vue';
+  import DocumentRevisionSuggestions from './DocumentRevisionSuggestions.vue';
   import type { DocumentViewerOptions, DocumentDetail } from '../src/contracts';
   import type { DocumentCommentReceipt } from '../src/comment-contracts';
 
   defineOptions({ inheritAttrs: false });
   const props = defineProps<DocumentViewerOptions>();
   const surfaceProps = computed(() => {
-    const { comments: _comments, ...surface } = props;
+    const {
+      comments: _comments,
+      suggestions: _suggestions,
+      ...surface
+    } = props;
     return surface;
   });
   const emit = defineEmits<{
@@ -40,5 +60,6 @@
     (event: 'capabilities', value: SurfaceCapabilities): void;
     (event: 'error', code: string): void;
     (event: 'comment', receipt: DocumentCommentReceipt): void;
+    (event: 'changed', receipt: DocumentCommentReceipt): void;
   }>();
 </script>
