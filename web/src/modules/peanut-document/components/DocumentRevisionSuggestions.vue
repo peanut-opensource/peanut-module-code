@@ -60,13 +60,17 @@
       <p v-if="!session.canWrite"
         >当前仅可阅读；提出与决定建议需要业务编辑权限。</p
       >
+      <p v-else-if="props.readOnly"
+        >正文操作尚未完成，建议暂只读；已发起的原请求仍可继续核对。</p
+      >
       <template v-if="session.canWrite && !composing">
         <el-button
           :disabled="
             !!session.pending ||
             deciding ||
             session.loading ||
-            session.loadingThread
+            session.loadingThread ||
+            props.readOnly
           "
           @click="beginCandidate"
           >提出整篇修改建议</el-button
@@ -100,9 +104,13 @@
           v-model="candidate"
           :context-key="candidateKey"
           :read-only="
-            !!session.pending || reviewing || deciding || !session.canWrite
+            !!session.pending ||
+            reviewing ||
+            deciding ||
+            !session.canWrite ||
+            props.readOnly
           "
-          :callbacks="callbacks"
+          :callbacks="resourceCallbacks"
           :registry="registry"
           @ready="candidateReady = true"
           @error="candidateError"
@@ -113,7 +121,7 @@
             v-model="body"
             type="textarea"
             :rows="3"
-            :disabled="!!session.pending || reviewing"
+            :disabled="!!session.pending || reviewing || props.readOnly"
           />
         </label>
         <p>{{ Array.from(body).length }} / 4000</p>
@@ -151,7 +159,7 @@
               ><h5>修改前 · 固定版本</h5
               ><RichTextViewer
                 :model-value="baseline"
-                :callbacks="callbacks"
+                :callbacks="resourceCallbacks"
                 :registry="registry"
                 :context-key="scopeKey + ':draft-before'"
             /></section>
@@ -159,7 +167,7 @@
               ><h5>修改后 · 本地候选</h5
               ><RichTextViewer
                 :model-value="candidate"
-                :callbacks="callbacks"
+                :callbacks="resourceCallbacks"
                 :registry="registry"
                 :context-key="candidateKey + ':preview'"
             /></section>
@@ -241,7 +249,7 @@
               ><h5>修改前 · 固定版本</h5
               ><RichTextViewer
                 :model-value="baseline"
-                :callbacks="callbacks"
+                :callbacks="resourceCallbacks"
                 :registry="registry"
                 :context-key="scopeKey + ':before'"
             /></section>
@@ -249,7 +257,7 @@
               ><h5>修改后 · 已保存候选</h5
               ><RichTextViewer
                 :model-value="persistedCandidate"
-                :callbacks="callbacks"
+                :callbacks="resourceCallbacks"
                 :registry="registry"
                 :context-key="
                   scopeKey + ':candidate:' + session.active?.thread_id
@@ -264,13 +272,17 @@
           >
             <el-button
               type="primary"
-              :disabled="!!session.pending || deciding || composing"
+              :disabled="
+                !!session.pending || deciding || composing || props.readOnly
+              "
               :loading="deciding"
               @click="decide('accept')"
               >接受整项建议并生成修订</el-button
             >
             <el-button
-              :disabled="!!session.pending || deciding || composing"
+              :disabled="
+                !!session.pending || deciding || composing || props.readOnly
+              "
               @click="decide('reject')"
               >拒绝整项建议</el-button
             >
@@ -369,6 +381,7 @@
     contextKey: string;
     owner?: DocumentOwner;
     callbacks?: SurfaceCallbacks;
+    readOnly?: boolean;
   }>();
   const emit = defineEmits<{
     (event: 'changed', receipt: DocumentCommentReceipt): void;
@@ -378,6 +391,14 @@
     new RevisionCommentSession(documentCommentTransport)
   );
   const registry = createLockedContentToolRegistry();
+  // Only resource access crosses into this isolated editor; never register the
+  // original document's text appender or collaboration/autosave binding.
+  const resourceCallbacks = computed<SurfaceCallbacks>(() => ({
+    pickMedia: props.callbacks?.pickMedia,
+    resolveMedia: props.callbacks?.resolveMedia,
+    resolvePreview: props.callbacks?.resolvePreview,
+    downloadOriginal: props.callbacks?.downloadOriginal,
+  }));
   const baseline = shallowRef<RichTextDocumentValue>();
   const candidate = shallowRef<RichTextDocumentValue>();
   const body = ref('');
@@ -431,6 +452,7 @@
   const canSubmit = computed(
     () =>
       session.canWrite &&
+      !props.readOnly &&
       !session.pending &&
       !deciding.value &&
       !session.loading &&
@@ -495,7 +517,13 @@
     report(new Error(code));
   }
   function beginCandidate() {
-    if (!baseline.value || !session.canWrite || session.pending) return;
+    if (
+      !baseline.value ||
+      !session.canWrite ||
+      session.pending ||
+      props.readOnly
+    )
+      return;
     candidate.value = JSON.parse(JSON.stringify(baseline.value));
     candidateGeneration.value += 1;
     candidateReady.value = false;
@@ -547,6 +575,7 @@
       deciding.value ||
       session.pending ||
       !session.canWrite ||
+      props.readOnly ||
       activeSuggestion.value?.decision !== 'pending'
     )
       return;

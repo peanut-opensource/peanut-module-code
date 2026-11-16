@@ -27,6 +27,7 @@
     :context-key="props.contextKey"
     :owner="props.owner"
     :callbacks="props.callbacks"
+    :read-only="props.suggestionsReadOnly"
     @changed="emit('changed', $event)"
     @error="emit('error', $event)"
   />
@@ -50,6 +51,7 @@
     const {
       comments: _comments,
       suggestions: _suggestions,
+      suggestionsReadOnly: _suggestionsReadOnly,
       ...surface
     } = props;
     return surface;

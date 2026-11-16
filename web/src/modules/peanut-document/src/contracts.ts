@@ -80,4 +80,6 @@ export interface DocumentViewerOptions extends DocumentSurfaceOptions {
   comments?: boolean;
   /** Opt-in isolated RichText candidates and persisted change provenance. */
   suggestions?: boolean;
+  /** Pause new suggestions/decisions without unmounting an unresolved original request. */
+  suggestionsReadOnly?: boolean;
 }
