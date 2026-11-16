@@ -105,7 +105,7 @@ final readonly class DocumentRevisionCommentService implements DocumentRevisionC
                     throw BusinessException::conflict('DOCUMENT_COMMENT_REQUEST_CONFLICT', '该请求号已绑定其他评论输入或成员');
                 }
                 $this->findThread($document, $source, (int) $replay->thread_id);
-                return json_decode((string) $replay->result_json, true, 64, JSON_THROW_ON_ERROR);
+                return json_decode((string) $replay->getData('result_json'), true, 64, JSON_THROW_ON_ERROR);
             }
             $now = gmdate('Y-m-d H:i:s') . '.000';
             if ($action === 'create') {
