@@ -2,7 +2,7 @@ import axios, { type AxiosRequestConfig } from 'axios';
 import type { DocumentCommentTransport } from './comment-contracts';
 import { DocumentCommentRejection } from './comment-rejection';
 
-/** Keep the normal application's authenticated Axios client and preserve native rejection codes. */
+/** Preserve native HTTP status/codes; the outcome contract also distinguishes unconfirmed writes. */
 export async function documentCommentRequest(
   config: AxiosRequestConfig,
   signal: AbortSignal

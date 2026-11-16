@@ -755,10 +755,14 @@ export class RevisionCommentSession {
         tracked.command
       );
     } catch (error) {
-      tracked.state =
-        error instanceof DocumentCommentRejection ? 'rejected' : 'unknown';
-      tracked.uncertain =
-        tracked.uncertain || !(error instanceof DocumentCommentRejection);
+      const definite =
+        error instanceof DocumentCommentRejection && error.isDefinitive;
+      const cancelled =
+        tracked.command.action === 'accept' &&
+        error instanceof DocumentCommentRejection &&
+        error.confirmsAcceptanceCancellation;
+      tracked.uncertain = !cancelled && (tracked.uncertain || !definite);
+      tracked.state = tracked.uncertain ? 'unknown' : 'rejected';
       if (error instanceof DocumentCommentRejection) {
         tracked.errorCode = error.errorCode;
       } else if (error instanceof Error) {

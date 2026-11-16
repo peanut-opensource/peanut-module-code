@@ -202,67 +202,80 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
         if (isset($prepared['receipt'])) return $prepared['receipt'];
         $plan = $prepared['plan'];
         $command = $prepared['command'];
-        $provider = $this->acceptedWrites->requireProvider();
-        $operation = DocumentOperation::where('document_id', $documentId)->where('operation_id', $key)->find();
-        if ($operation->phase !== 'completed') {
-            try {
-                $provider->drainBusinessBarrier($plan);
-                // A confirmed changed baseline cancels only this acceptance, before any Yjs mutation.
-                $canApply = $this->businessTransaction($context, $owner, 'edit', function (TenantContext $current) use ($documentId, $snapshot, $source, $input, $plan, $provider): bool {
-                    $doc = $this->authorization->document($current, $documentId, 'edit', true);
-                    $state = DocumentState::where('document_id', $documentId)->lock(true)->find();
-                    $proof = $provider->lockDrainedBusinessBarrier($current, $plan);
-                    $thread = $this->suggestionThread($doc, $source, $input, true);
-                    $same = $state !== null && (int) $doc->state_seq === $input['expected_state_seq']
-                        && RichTextProjection::fromStructured(self::json($state->projected_json))->json === RichTextProjection::fromStructured($snapshot->structuredContent)->json;
-                    if (!$same) {
-                        $this->completeSuggestionBusiness($current, $doc, $plan, $proof, [], $state->state_sha256);
-                        $thread->save(['accept_request_id' => null]);
+        $confirmedCancellation = false;
+        try {
+            $provider = $this->acceptedWrites->requireProvider();
+            $operation = DocumentOperation::where('document_id', $documentId)->where('operation_id', $key)->find();
+            if ($operation->phase !== 'completed') {
+                try {
+                    $provider->drainBusinessBarrier($plan);
+                    // A confirmed changed baseline cancels only this acceptance, before any Yjs mutation.
+                    $canApply = $this->businessTransaction($context, $owner, 'edit', function (TenantContext $current) use ($documentId, $snapshot, $source, $input, $plan, $provider): bool {
+                        $doc = $this->authorization->document($current, $documentId, 'edit', true);
+                        $state = DocumentState::where('document_id', $documentId)->lock(true)->find();
+                        $proof = $provider->lockDrainedBusinessBarrier($current, $plan);
+                        $thread = $this->suggestionThread($doc, $source, $input, true);
+                        $same = $state !== null && (int) $doc->state_seq === $input['expected_state_seq']
+                            && RichTextProjection::fromStructured(self::json($state->projected_json))->json === RichTextProjection::fromStructured($snapshot->structuredContent)->json;
+                        if (!$same) {
+                            $this->completeSuggestionBusiness($current, $doc, $plan, $proof, [], $state->state_sha256);
+                            $thread->save(['accept_request_id' => null]);
+                        }
+                        return $same;
+                    }, true);
+                    if ($canApply) {
+                        $capture = $provider->applySuggestion($plan, $command['structured_content'], $command['baseline_projection_sha256']);
+                        $this->businessTransaction($context, $owner, 'edit', function (TenantContext $current) use ($documentId, $snapshot, $source, $input, $plan, $provider, $capture): void {
+                            $doc = $this->authorization->document($current, $documentId, 'edit', true);
+                            $state = DocumentState::where('document_id', $documentId)->lock(true)->find();
+                            $operation = DocumentOperation::where('document_id', $documentId)->where('operation_id', $plan->data['operation_id'])->lock(true)->find();
+                            $this->assertBusinessActor($current, $operation);
+                            if ($operation->phase === 'completed') return;
+                            $proof = $provider->lockDrainedBusinessBarrier($current, $plan);
+                            $provider->verifySuggestionCapture($current, $capture);
+                            $this->verifyPreparedVersion($current, $snapshot, $plan->owner);
+                            $this->assertSuggestionBaseline($doc, $state, $snapshot, $input['expected_state_seq']);
+                            $thread = $this->suggestionThread($doc, $source, $input, true);
+                            $version = $this->persistSuggestion($current, $doc, $state, $capture->projection, $input['request_id'], $capture->binary);
+                            $this->completeSuggestion($current, $doc, $thread, $source, $input, $version);
+                            $this->completeSuggestionBusiness($current, $doc, $plan, $proof, $version, $capture->binarySha256);
+                        }, true);
                     }
-                    return $same;
-                }, true);
-                if ($canApply) {
-                    $capture = $provider->applySuggestion($plan, $command['structured_content'], $command['baseline_projection_sha256']);
-                    $this->businessTransaction($context, $owner, 'edit', function (TenantContext $current) use ($documentId, $snapshot, $source, $input, $plan, $provider, $capture): void {
-                        $doc = $this->authorization->document($current, $documentId, 'edit', true);
-                        $state = DocumentState::where('document_id', $documentId)->lock(true)->find();
-                        $operation = DocumentOperation::where('document_id', $documentId)->where('operation_id', $plan->data['operation_id'])->lock(true)->find();
-                        $this->assertBusinessActor($current, $operation);
-                        if ($operation->phase === 'completed') return;
-                        $proof = $provider->lockDrainedBusinessBarrier($current, $plan);
-                        $provider->verifySuggestionCapture($current, $capture);
-                        $this->verifyPreparedVersion($current, $snapshot, $plan->owner);
-                        $this->assertSuggestionBaseline($doc, $state, $snapshot, $input['expected_state_seq']);
-                        $thread = $this->suggestionThread($doc, $source, $input, true);
-                        $version = $this->persistSuggestion($current, $doc, $state, $capture->projection, $input['request_id'], $capture->binary);
-                        $this->completeSuggestion($current, $doc, $thread, $source, $input, $version);
-                        $this->completeSuggestionBusiness($current, $doc, $plan, $proof, $version, $capture->binarySha256);
-                    }, true);
-                }
-            } catch (\Throwable $error) {
-                if ($error instanceof BusinessException && in_array($error->errorCode, ['SUGGESTION_CONTENT_INVALID','SUGGESTION_BASELINE_INVALID','SUGGESTION_BASELINE_CONFLICT'], true)) {
-                    // Only a signed, durably bound rejection before mutation can release this operation.
-                    $this->businessTransaction($context, $owner, 'edit', function (TenantContext $current) use ($documentId, $source, $input, $plan, $provider, $error): void {
-                        $doc = $this->authorization->document($current, $documentId, 'edit', true);
-                        $state = DocumentState::where('document_id', $documentId)->lock(true)->find();
-                        $proof = $provider->lockDrainedBusinessBarrier($current, $plan);
-                        $thread = $this->suggestionThread($doc, $source, $input, true);
-                        $this->completeSuggestionBusiness($current, $doc, $plan, $proof, [], $state->state_sha256, $error->errorCode);
-                        $thread->save(['accept_request_id' => null]);
-                    }, true);
-                    $this->releaseBusiness($context, $plan);
+                } catch (\Throwable $error) {
+                    if ($error instanceof BusinessException && in_array($error->errorCode, ['SUGGESTION_CONTENT_INVALID','SUGGESTION_BASELINE_INVALID','SUGGESTION_BASELINE_CONFLICT'], true)) {
+                        // Only a signed, durably bound rejection before mutation can release this operation.
+                        $this->businessTransaction($context, $owner, 'edit', function (TenantContext $current) use ($documentId, $source, $input, $plan, $provider, $error): void {
+                            $doc = $this->authorization->document($current, $documentId, 'edit', true);
+                            $state = DocumentState::where('document_id', $documentId)->lock(true)->find();
+                            $proof = $provider->lockDrainedBusinessBarrier($current, $plan);
+                            $thread = $this->suggestionThread($doc, $source, $input, true);
+                            $this->completeSuggestionBusiness($current, $doc, $plan, $proof, [], $state->state_sha256, $error->errorCode);
+                            $thread->save(['accept_request_id' => null]);
+                        }, true);
+                        $this->releaseBusiness($context, $plan);
+                        $confirmedCancellation = true;
+                        throw $error;
+                    }
                     throw $error;
                 }
-                $this->markBusinessAttention($context, $plan, 'edit');
-                throw $error;
             }
+            $businessResult = $this->releaseBusiness($context, $plan);
+            if (!isset($businessResult['revision_id'])) {
+                $confirmedCancellation = true;
+                throw BusinessException::conflict($businessResult['conflict_code'], '建议没有应用；原接受已取消，请核对当前固定版本和候选');
+            }
+            return $this->businessTransaction($context, $owner, 'edit', function (TenantContext $current) use ($documentId, $source, $input): array {
+                $doc = $this->authorization->document($current, $documentId, 'edit', true);
+                return $this->suggestionReplay($current, $doc, $source, $input) ?? throw BusinessException::conflict('DOCUMENT_SUGGESTION_RECEIPT_MISSING', '原建议接受回执尚未确认');
+            });
+        } catch (\Throwable $error) {
+            if ($confirmedCancellation) throw $error;
+            // Preparation survived its transaction. A later authorization denial, failed
+            // capture or lost release cannot prove that this original request was unwritten.
+            $reason = $error instanceof BusinessException ? $error->errorCode : 'DOCUMENT_SUGGESTION_INTERNAL_FAILURE';
+            $this->markBusinessAttention($context, $plan, 'edit', $reason);
+            throw BusinessException::conflict('DOCUMENT_SUGGESTION_APPLICATION_UNCONFIRMED', '原建议接受尚未确认，请继续同一请求；原因：' . $reason);
         }
-        $businessResult = $this->releaseBusiness($context, $plan);
-        if (!isset($businessResult['revision_id'])) throw BusinessException::conflict($businessResult['conflict_code'], '建议没有应用；原接受已取消，请核对当前固定版本和候选');
-        return $this->businessTransaction($context, $owner, 'edit', function (TenantContext $current) use ($documentId, $source, $input): array {
-            $doc = $this->authorization->document($current, $documentId, 'edit', true);
-            return $this->suggestionReplay($current, $doc, $source, $input) ?? throw BusinessException::conflict('DOCUMENT_SUGGESTION_RECEIPT_MISSING', '原建议接受回执尚未确认');
-        });
     }
 
     private function suggestionReplay(TenantContext $current, Document $doc, array $source, array $input): ?array
@@ -761,10 +774,10 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
         return $plan;
     }
 
-    private function markBusinessAttention(TenantContext $context, BusinessBarrierPlan $plan, string $action): void
+    private function markBusinessAttention(TenantContext $context, BusinessBarrierPlan $plan, string $action, ?string $reason = null): void
     {
         try {
-            $this->businessTransaction($context, $plan->owner, $action, function (TenantContext $current) use ($plan, $action): void {
+            $this->businessTransaction($context, $plan->owner, $action, function (TenantContext $current) use ($plan, $action, $reason): void {
                 $this->authorization->owner($current, $plan->owner, $action, true);
                 Document::where('id', $plan->data['binding']['document_id'])->lock(true)->find();
                 $op = DocumentOperation::where('document_id', $plan->data['binding']['document_id'])->where('operation_id', $plan->data['operation_id'])->lock(true)->find();
@@ -781,7 +794,7 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
                         null,
                         0,
                         null,
-                        ['operation_id' => $plan->data['operation_id']],
+                        ['operation_id' => $plan->data['operation_id']] + ($reason === null ? [] : ['reason' => $reason]),
                     );
                 }
             });

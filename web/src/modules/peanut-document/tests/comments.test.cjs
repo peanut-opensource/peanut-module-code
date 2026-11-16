@@ -315,13 +315,144 @@ test('denial after an unknown outcome does not discard the original potentially 
   );
   await session.create(anchor, 'Original');
   await session.retry();
-  assert.equal(session.pending.state, 'rejected');
+  assert.equal(session.pending.state, 'unknown');
   assert.equal(session.pending.uncertain, true);
   const request = session.pending.command;
   session.dismissRejected();
   assert.equal(session.pending.command, request);
   await session.retry();
   assert.equal(ids(), 1);
+  assert.equal(session.pending, undefined);
+});
+
+// Execute the production Axios adapter and its actual transformResponse against
+// native HTTP envelopes, so session tests cannot accidentally skip code/status handling.
+function nativeHttpAcceptance(responses) {
+  const sent = [];
+  const client = {
+    defaults: { transformResponse: [] },
+    request: async (config) => {
+      const command = { action: 'accept', input: config.data };
+      sent.push(structuredClone(command));
+      const response = responses.shift();
+      assert.ok(response, 'Unexpected additional native HTTP request');
+      const status = response.status ?? 200;
+      let value = status < 400
+        ? { ...receipt(command), suggestion: suggestion('accepted'), result_revision_id: 99, result_state_seq: 8 }
+        : { code: status * 100, msg: '安全业务错误', data: { error_code: response.code } };
+      for (const transform of config.transformResponse) value = transform(value, {}, status);
+      if (status >= 400) throw new Error('Axios native HTTP status rejection');
+      return { data: value };
+    },
+  };
+  const filename = path.resolve(__dirname, '../src/comment-api.ts');
+  const adapter = new Module(filename, module);
+  adapter.filename = filename;
+  adapter.paths = module.paths;
+  const requireNative = adapter.require.bind(adapter);
+  adapter.require = (id) => id === 'axios' ? { default: client }
+    : id === './comment-rejection' ? rejection.exports : requireNative(id);
+  adapter._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
+    compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS },
+  }).outputText, filename);
+  return { submit: adapter.exports.documentCommentTransport.submit, sent };
+}
+
+async function nativeAcceptanceSession(responses) {
+  const proposed = { ...thread(A), suggestion: suggestion() };
+  const http = nativeHttpAcceptance(responses);
+  const { session, ids } = await ready(transport({
+    threads: async () => list(A, [proposed]),
+    thread: async () => ({ ...detail(A), thread: proposed }),
+    submit: http.submit,
+  }));
+  await session.select(1);
+  await session.decideSuggestion('accept', 7);
+  return { session, ids, sent: http.sent };
+}
+
+for (const code of ['COLLABORATION_CONTROL_UNKNOWN', 'CONTROL_HOLDER_CHANGED']) {
+  test(`native HTTP first 409 ${code} keeps the frozen original acceptance unknown`, async () => {
+    const { session, ids, sent } = await nativeAcceptanceSession([{ status: 409, code }, {}]);
+    assert.equal(session.pending.state, 'unknown');
+    assert.equal(session.pending.uncertain, true);
+    assert.equal(session.pending.errorCode, code);
+    const original = session.pending.command;
+    session.dismissRejected();
+    assert.equal(session.pending.command, original);
+    await session.retry();
+    assert.deepEqual(sent[1], sent[0]);
+    assert.equal(ids(), 1);
+    assert.equal(session.pending, undefined);
+    assert.equal(session.lastReceipt.result_revision_id, 99);
+  });
+}
+
+test('native HTTP committed acceptance with release unconfirmed keeps its request until the original receipt', async () => {
+  const { session, ids, sent } = await nativeAcceptanceSession([
+    { status: 409, code: 'DOCUMENT_SUGGESTION_APPLICATION_UNCONFIRMED' }, {},
+  ]);
+  assert.equal(session.pending.state, 'unknown');
+  assert.equal(session.pending.uncertain, true);
+  const original = session.pending.command;
+  session.dismissRejected();
+  assert.equal(session.pending.command, original);
+  await session.retry();
+  assert.deepEqual(sent[1], sent[0]);
+  assert.equal(ids(), 1);
+  assert.equal(session.lastReceipt.result_revision_id, 99);
+});
+
+for (const denied of [{ status: 403, code: 'DOCUMENT_SESSION_DENIED' }, { status: 409, code: 'DOCUMENT_COMMENT_REVISION_CONFLICT' }]) {
+  test(`native HTTP unknown then ordinary ${denied.status} cannot discard the original acceptance`, async () => {
+    const { session, ids, sent } = await nativeAcceptanceSession([
+      { status: 409, code: 'COLLABORATION_CONTROL_UNKNOWN' }, denied, {},
+    ]);
+    const original = session.pending.command;
+    await session.retry();
+    assert.equal(session.pending.state, 'unknown');
+    assert.equal(session.pending.uncertain, true);
+    session.dismissRejected();
+    assert.equal(session.pending.command, original);
+    await session.retry();
+    assert.deepEqual(sent[1], sent[0]);
+    assert.deepEqual(sent[2], sent[0]);
+    assert.equal(ids(), 1);
+    assert.equal(session.pending, undefined);
+  });
+}
+
+test('native HTTP 500 envelope is unknown while a confirmed pre-application 409 remains re-editable', async () => {
+  const unknown = await nativeAcceptanceSession([{ status: 500, code: 'INTERNAL_SERVER_ERROR' }, {}]);
+  assert.equal(unknown.session.pending.state, 'unknown');
+  assert.equal(unknown.session.pending.uncertain, true);
+  unknown.session.dismissRejected();
+  assert.ok(unknown.session.pending);
+  await unknown.session.retry();
+  assert.deepEqual(unknown.sent[1], unknown.sent[0]);
+  const rejected = await nativeAcceptanceSession([{ status: 409, code: 'SUGGESTION_CONTENT_INVALID' }]);
+  assert.equal(rejected.session.pending.state, 'rejected');
+  assert.equal(rejected.session.pending.uncertain, false);
+  rejected.session.dismissRejected();
+  assert.equal(rejected.session.pending, undefined);
+});
+
+test('native HTTP original cancellation confirmed after a lost release ends uncertainty without applying a candidate', async () => {
+  const { session, ids, sent } = await nativeAcceptanceSession([
+    { status: 409, code: 'DOCUMENT_SUGGESTION_APPLICATION_UNCONFIRMED' },
+    { status: 409, code: 'SUGGESTION_BASELINE_CONFLICT' },
+  ]);
+  assert.equal(session.pending.state, 'unknown');
+  const original = session.pending.command;
+  session.dismissRejected();
+  assert.equal(session.pending.command, original);
+  await session.retry();
+  assert.deepEqual(sent[1], sent[0]);
+  assert.equal(ids(), 1);
+  assert.equal(session.pending.state, 'rejected');
+  assert.equal(session.pending.uncertain, false);
+  assert.equal(session.lastReceipt, undefined);
+  session.dismissRejected();
   assert.equal(session.pending, undefined);
 });
 test('acknowledgement from another context cannot replace the current receipt or thread', async () => {
