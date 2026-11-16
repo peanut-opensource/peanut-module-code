@@ -308,7 +308,7 @@
           publish({
             documentId: result.document_id,
             operationId: result.operation_id,
-            action: result.action,
+            action: input.action,
             state: 'completed',
             released: result.released,
             result: result.result,
