@@ -43,6 +43,7 @@ final class DocumentRevisionCommentTest extends TestCase
     private DocumentCommands $commands;
     private DocumentQueries $queries;
     private DocumentRevisionComments $comments;
+    private DocumentCommentFixture\Audit $audit;
     private string $directory;
     private int $sequence = 0;
     private array $disabled = [];
@@ -83,6 +84,11 @@ final class DocumentRevisionCommentTest extends TestCase
         DocumentCommentFixture\schema(
             $server . '/app/modules/peanut/document/database/migrations/20261107100007_document_revision_comments.php',
             ['document_comment_thread','document_comment_message','document_comment_operation'],
+            $server . '/app/modules/peanut/document/database/migrations/20261116000007_document_revision_suggestions.php',
+        );
+        DocumentCommentFixture\schema(
+            $server . '/app/modules/peanut/document/database/migrations/20261116000007_document_revision_suggestions.php',
+            ['document_change'],
         );
         $contexts = new ExecutionContextStore();
         $current = new CurrentExecutionContext($contexts);
@@ -129,7 +135,7 @@ final class DocumentRevisionCommentTest extends TestCase
             $references,
             $this->createStub(FileDocumentSnapshots::class),
             $this->createStub(FileStorage::class),
-            new DocumentCommentFixture\Audit(),
+            $this->audit = new DocumentCommentFixture\Audit(),
             $unused(PeanutAdmin\Modules\ContentTools\Service\ContentCapabilitiesService::class),
             $contexts,
             $unused(PeanutAdmin\Modules\Document\Service\DocumentAcceptedWriteRegistry::class),
@@ -139,7 +145,7 @@ final class DocumentRevisionCommentTest extends TestCase
         );
         $this->commands = $documents;
         $this->queries = $documents;
-        $this->comments = new DocumentRevisionCommentService($this->authorization, $documents, $owners, $this->fence);
+        $this->comments = new DocumentRevisionCommentService($this->authorization, $documents, $owners, $this->fence, $documents, $this->audit, $references);
         $this->app->instance(DocumentRevisionComments::class, $this->comments);
         $this->app->instance(DocumentRevisionCommentService::class, $this->comments);
         self::assertSame(DocumentRevisionCommentService::class, (new PeanutAdmin\Modules\Document\ModuleProvider())->bindings()[DocumentRevisionComments::class]);
@@ -208,7 +214,7 @@ final class DocumentRevisionCommentTest extends TestCase
     {
         $state = [];
         foreach (['document','document_state','document_revision','document_file_ref','document_resource_binding','document_operation',
-            'document_comment_thread','document_comment_message','document_comment_operation'] as $table) {
+            'document_comment_thread','document_comment_message','document_comment_operation','document_change'] as $table) {
             $state[$table] = Db::query('SELECT * FROM pa_' . $table . ' ORDER BY 1');
         }
         return $state;
@@ -226,6 +232,208 @@ final class DocumentRevisionCommentTest extends TestCase
         self::assertFalse(Db::connect()->getPdo()->inTransaction());
     }
 
+
+    private function suggestion(array $revision, string $request = 'suggest-create'): array
+    {
+        return $this->comments->createSuggestion($this->sessions->actor(), $revision['document_id'], $revision['revision_id'],
+            $this->input($this->source($revision), $request) + ['candidate_content' => self::projection('建议正文😀')]);
+    }
+
+    public function testSuggestionAcceptCreatesNewFixedRevisionAndKeepsOriginalCandidateAndReceipt(): void
+    {
+        $revision = $this->revision();
+        $source = $this->source($revision);
+        $before = $this->state();
+        $created = $this->suggestion($revision);
+        foreach (['document', 'document_state', 'document_revision', 'document_change'] as $table) {
+            self::assertSame($before[$table], $this->state()[$table], 'Creating a suggestion never applies or approves its text');
+        }
+        self::assertSame('pending', $created['suggestion']['decision']);
+        self::assertNull($created['suggestion']['result_revision_id']);
+        self::assertSame('open', $created['status']);
+        $candidate = RichTextProjection::canonical(self::projection('建议正文😀'));
+        self::assertSame($candidate, $created['suggestion']['candidate_content']);
+        $input = $this->transition($created, 'suggest-accept') + ['expected_state_seq' => 1];
+        $accepted = $this->comments->acceptSuggestion($this->sessions->actor(22), $revision['document_id'], $revision['revision_id'], $input);
+        self::assertSame('accepted', $accepted['suggestion']['decision']);
+        self::assertSame('open', $accepted['status'], 'Decision does not resolve discussion');
+        self::assertSame(22, $accepted['actor_member_id']);
+        self::assertSame(2, $accepted['result_state_seq']);
+        self::assertNotSame($revision['revision_id'], $accepted['result_revision_id']);
+        self::assertSame($candidate, $accepted['suggestion']['candidate_content']);
+        self::assertSame($created['suggestion']['candidate_sha256'], $accepted['suggestion']['candidate_sha256']);
+        self::assertSame($source, $this->source($revision), 'Original fixed version and anchor remain immutable');
+        $snapshot = $this->queries->versionSnapshot($this->sessions->actor(), $revision['document_id'], $accepted['result_revision_id']);
+        self::assertSame($candidate, $snapshot->structuredContent);
+        self::assertSame(2, $snapshot->sourceStateSeq);
+        self::assertCount(2, $this->state()['document_revision']);
+        $persisted = $this->state();
+        $auditCount = count($this->audit->events);
+        self::assertSame($accepted, $this->comments->acceptSuggestion($this->sessions->actor(22), $revision['document_id'], $revision['revision_id'], $input));
+        self::assertSame($persisted, $this->state());
+        self::assertCount($auditCount, $this->audit->events);
+        self::assertSame($created, $this->suggestion($revision), 'Creation replay retains the original pending receipt');
+        $this->rejected('DOCUMENT_COMMENT_REQUEST_CONFLICT', fn() => $this->comments->createSuggestion($this->sessions->actor(), $revision['document_id'], $revision['revision_id'],
+            $this->input($source, 'suggest-create') + ['candidate_content' => self::projection('Changed request candidate')]));
+        $this->owner->denied['22:edit'] = true;
+        $this->rejected('COMMENT_FIXTURE_EDIT_DENIED', fn() => $this->comments->acceptSuggestion($this->sessions->actor(22), $revision['document_id'], $revision['revision_id'], $input));
+        unset($this->owner->denied['22:edit']);
+        $this->rejected('DOCUMENT_COMMENT_REQUEST_CONFLICT', fn() => $this->comments->acceptSuggestion($this->sessions->actor(), $revision['document_id'], $revision['revision_id'], $input));
+        $this->rejected('DOCUMENT_COMMENT_REQUEST_CONFLICT', fn() => $this->comments->acceptSuggestion($this->sessions->actor(22), $revision['document_id'], $revision['revision_id'], array_replace($input, ['expected_state_seq' => 2])));
+        $this->rejected('DOCUMENT_SUGGESTION_ALREADY_DECIDED', fn() => $this->comments->rejectSuggestion($this->sessions->actor(), $revision['document_id'], $revision['revision_id'], $this->transition($accepted, 'reject-accepted')));
+        $changes = $this->queries->changes($this->sessions->actor(), $revision['document_id'], 1);
+        self::assertCount(1, $changes['items']);
+        $change = $changes['items'][0];
+        self::assertSame('suggestion.accept', $change['kind']);
+        self::assertSame(22, $change['actor_member_id']);
+        self::assertSame('suggest-accept', $change['operation_id']);
+        self::assertSame($source['text'], $change['before_text']);
+        self::assertSame("建议正文😀\nend", $change['after_text']);
+        self::assertSame($created['suggestion']['candidate_sha256'], $change['to_projection_sha256']);
+        self::assertSame($change['change_id'], $changes['next_before_change_id']);
+        $previous = $this->queries->changes($this->sessions->actor(), $revision['document_id'], 1, $changes['next_before_change_id']);
+        self::assertSame('solo.save', $previous['items'][0]['kind']);
+        self::assertNull($previous['next_before_change_id']);
+    }
+
+    public function testSuggestionDiscussionAndRejectionAreIndependentAndNeverApplyCandidate(): void
+    {
+        $revision = $this->revision();
+        $created = $this->suggestion($revision);
+        $actor = $this->sessions->actor(22);
+        $resolved = $this->comments->resolve($actor, $revision['document_id'], $revision['revision_id'], $this->transition($created, 'suggest-resolve'));
+        self::assertSame('pending', $resolved['suggestion']['decision']);
+        $before = $this->state();
+        $input = $this->transition($resolved, 'suggest-reject');
+        $rejected = $this->comments->rejectSuggestion($actor, $revision['document_id'], $revision['revision_id'], $input);
+        self::assertSame('resolved', $rejected['status']);
+        self::assertSame('rejected', $rejected['suggestion']['decision']);
+        self::assertSame($created['suggestion']['candidate_content'], $rejected['suggestion']['candidate_content']);
+        self::assertNull($rejected['suggestion']['result_revision_id']);
+        foreach (['document', 'document_state', 'document_revision', 'document_change'] as $table) self::assertSame($before[$table], $this->state()[$table]);
+        $persisted = $this->state();
+        self::assertSame($rejected, $this->comments->rejectSuggestion($actor, $revision['document_id'], $revision['revision_id'], $input));
+        self::assertSame($persisted, $this->state());
+        $this->rejected('DOCUMENT_SUGGESTION_ALREADY_DECIDED', fn() => $this->comments->acceptSuggestion($actor, $revision['document_id'], $revision['revision_id'], $this->transition($rejected, 'accept-rejected') + ['expected_state_seq' => 1]));
+        $reopened = $this->comments->reopen($actor, $revision['document_id'], $revision['revision_id'], $this->transition($rejected, 'reopen-rejected'));
+        self::assertSame('rejected', $reopened['suggestion']['decision']);
+        $detail = $this->comments->thread($actor, $revision['document_id'], $revision['revision_id'], $created['thread_id']);
+        self::assertSame(['suggest', 'resolve', 'reject', 'reopen'], array_column($detail['messages'], 'action'));
+        self::assertSame($reopened['suggestion'], $detail['thread']['suggestion']);
+    }
+
+    public function testSuggestionAcceptRejectsChangedDraftEvenWithCurrentSequence(): void
+    {
+        $revision = $this->revision();
+        $created = $this->suggestion($revision);
+        $actor = $this->sessions->actor();
+        $this->commands->saveSolo($actor, $revision['document_id'], 1, self::projection('New independent draft'), 'independent-save');
+        $this->rejected('DOCUMENT_STATE_SEQ_CONFLICT', fn() => $this->comments->acceptSuggestion($actor, $revision['document_id'], $revision['revision_id'], $this->transition($created, 'stale-sequence') + ['expected_state_seq' => 1]));
+        $this->rejected('DOCUMENT_SUGGESTION_BASE_CHANGED', fn() => $this->comments->acceptSuggestion($actor, $revision['document_id'], $revision['revision_id'], $this->transition($created, 'changed-baseline') + ['expected_state_seq' => 2]));
+        self::assertSame('pending', $this->comments->thread($actor, $revision['document_id'], $revision['revision_id'], $created['thread_id'])['thread']['suggestion']['decision']);
+    }
+
+    #[DataProvider('suggestionCommands')]
+    public function testSuggestionCommandsEnforceCurrentEditTenantAndSession(string $action): void
+    {
+        $revision = $this->revision();
+        $created = $this->suggestion($revision);
+        $actor = $this->sessions->actor(22);
+        $input = $action === 'createSuggestion'
+            ? $this->input($this->source($revision), 'other-create') + ['candidate_content' => self::projection('Other candidate')]
+            : $this->transition($created, 'other-decision') + ($action === 'acceptSuggestion' ? ['expected_state_seq' => 1] : []);
+        $call = fn(TenantContext $current) => $this->comments->$action($current, $revision['document_id'], $revision['revision_id'], $input);
+        $this->owner->denied['22:edit'] = true;
+        $this->rejected('COMMENT_FIXTURE_EDIT_DENIED', fn() => $call($actor));
+        unset($this->owner->denied['22:edit']);
+        $this->rejected('DOCUMENT_NOT_FOUND', fn() => $call($this->sessions->actor(33)));
+        $this->sessions->revoked[22] = true;
+        $this->rejected('DOCUMENT_SESSION_DENIED', fn() => $call($actor));
+        unset($this->sessions->revoked[22]);
+        ++$this->sessions->revision;
+        $this->rejected('DOCUMENT_AUTHORIZATION_STALE', fn() => $call($actor));
+    }
+
+    public static function suggestionCommands(): array
+    {
+        return [['createSuggestion'], ['acceptSuggestion'], ['rejectSuggestion']];
+    }
+
+    public function testSuggestionAcceptStorageFailureRollsBackDraftVersionDecisionAndChangeThenRetries(): void
+    {
+        $revision = $this->revision();
+        $created = $this->suggestion($revision);
+        $input = $this->transition($created, 'retry-accept') + ['expected_state_seq' => 1];
+        $before = $this->state();
+        Db::execute("CREATE TRIGGER suggestion_receipt_failure BEFORE INSERT ON pa_document_comment_operation WHEN NEW.action = 'accept' BEGIN SELECT RAISE(ABORT, 'SUGGESTION_STORAGE_FAILURE'); END");
+        try {
+            $this->comments->acceptSuggestion($this->sessions->actor(), $revision['document_id'], $revision['revision_id'], $input);
+            self::fail('Storage error was hidden');
+        } catch (think\db\exception\PDOException $error) {
+            self::assertStringContainsString('SUGGESTION_STORAGE_FAILURE', $error->getMessage());
+        }
+        self::assertSame($before, $this->state());
+        self::assertFalse(Db::connect()->getPdo()->inTransaction());
+        Db::execute('DROP TRIGGER suggestion_receipt_failure');
+        $accepted = $this->comments->acceptSuggestion($this->sessions->actor(), $revision['document_id'], $revision['revision_id'], $input);
+        self::assertSame('accepted', $accepted['suggestion']['decision']);
+        self::assertCount(2, $this->state()['document_revision']);
+        self::assertCount(2, $this->state()['document_change']);
+    }
+
+    public function testSuggestionChangeSourceReadUsesCurrentDocumentAccess(): void
+    {
+        $revision = $this->revision();
+        $this->rejected('DOCUMENT_NOT_FOUND', fn() => $this->queries->changes($this->sessions->actor(33), $revision['document_id']));
+        $this->owner->denied['22:view'] = true;
+        $this->rejected('COMMENT_FIXTURE_VIEW_DENIED', fn() => $this->queries->changes($this->sessions->actor(22), $revision['document_id']));
+        $this->rejected('DOCUMENT_CHANGE_PAGE_INVALID', fn() => $this->queries->changes($this->sessions->actor(), $revision['document_id'], 101));
+    }
+
+    public function testSuggestionCanFillEmptyFixedRevisionWithoutWeakeningCommentAnchor(): void
+    {
+        $actor = $this->sessions->actor();
+        $owner = $this->owner->add(1, 'empty-note');
+        $document = $this->commands->create($actor, $owner, 'rich_text', 'empty-create');
+        $empty = json_decode(RichTextProjection::empty()->json, true, 64, JSON_THROW_ON_ERROR);
+        $saved = $this->commands->saveSolo($actor, $document['document_id'], 0, $empty, 'empty-save');
+        $revision = $this->authorization->run($actor, fn(TenantContext $current) =>
+            $this->commands->freeze($current, $document['document_id'], $saved['state_seq'], 'Empty fixed baseline', 'empty-freeze'));
+        $source = $this->source($revision);
+        self::assertSame('', $source['text']);
+        $anchor = array_replace($this->input($source, 'empty-suggest'), ['end_offset' => 0, 'quote' => '']);
+        $this->rejected('DOCUMENT_COMMENT_INPUT_INVALID', fn() => $this->comments->createThread($actor, $revision['document_id'], $revision['revision_id'], $anchor));
+        $created = $this->comments->createSuggestion($actor, $revision['document_id'], $revision['revision_id'], $anchor + ['candidate_content' => self::projection('First draft')]);
+        $accepted = $this->comments->acceptSuggestion($actor, $revision['document_id'], $revision['revision_id'], $this->transition($created, 'empty-accept') + ['expected_state_seq' => 1]);
+        self::assertSame('accepted', $accepted['suggestion']['decision']);
+        self::assertSame('', $this->source($revision)['text']);
+        self::assertSame(RichTextProjection::canonical(self::projection('First draft')),
+            $this->queries->versionSnapshot($actor, $revision['document_id'], $accepted['result_revision_id'])->structuredContent);
+        $nonempty = $this->revision();
+        $invalid = array_replace($this->input($this->source($nonempty), 'nonempty-zero-anchor'), ['end_offset' => 0, 'quote' => '']);
+        $this->rejected('DOCUMENT_COMMENT_RANGE_INVALID', fn() => $this->comments->createSuggestion($actor, $nonempty['document_id'], $nonempty['revision_id'], $invalid + ['candidate_content' => self::projection('Invalid anchor')]));
+    }
+
+    public function testSuggestionFinalEditRecheckRollsBackAppliedStateAndLeavesOriginalAcceptRetryable(): void
+    {
+        $revision = $this->revision();
+        $created = $this->suggestion($revision);
+        $input = $this->transition($created, 'final-edit-accept') + ['expected_state_seq' => 1];
+        $afterWriteReached = false;
+        $this->fence->onLock = function () use ($revision, &$afterWriteReached): void {
+            if ((int) Db::name('document')->where('id', $revision['document_id'])->value('state_seq') === 2) {
+                $afterWriteReached = true;
+                $this->owner->denied['11:edit'] = true;
+            }
+        };
+        $this->rejected('COMMENT_FIXTURE_EDIT_DENIED', fn() => $this->comments->acceptSuggestion($this->sessions->actor(), $revision['document_id'], $revision['revision_id'], $input));
+        self::assertTrue($afterWriteReached, 'Revocation must happen after real draft/version/decision writes');
+        $this->fence->onLock = null;
+        unset($this->owner->denied['11:edit']);
+        $accepted = $this->comments->acceptSuggestion($this->sessions->actor(), $revision['document_id'], $revision['revision_id'], $input);
+        self::assertSame('accepted', $accepted['suggestion']['decision']);
+        self::assertCount(2, $this->state()['document_revision']);
+    }
 
     #[DataProvider('readEndpoints')]
     public function testLockedOwnerKeepsFixedRevisionReadable(string $endpoint): void

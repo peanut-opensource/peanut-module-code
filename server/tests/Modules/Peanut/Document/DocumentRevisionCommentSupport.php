@@ -183,15 +183,16 @@ final class Audit
  * Translate owned native migration columns/defaults/unique/checks and Document-owned FKs.
  * External Identity/File FK targets are not reproduced by this synthetic-boundary fixture.
  */
-function schema(string $path, array $names): void
+function schema(string $path, array $names, ?string $amendment = null): void
 {
+    $changes = $amendment === null ? '' : file_get_contents($amendment);
     preg_match_all('/CREATE TABLE \x60?pa_([a-z0-9_]+)\x60? \((.*?)\n\) ENGINE/s', file_get_contents($path), $tables, PREG_SET_ORDER);
     $created = [];
     foreach ($tables as $table) {
         if (!in_array($table[1], $names, true)) {
             continue;
         }
-        preg_match_all('/^  \x60?([a-z0-9_]+)\x60? (bigint|smallint|tinyint|int|varchar|char|text|mediumtext|longtext|json|datetime|mediumblob|blob)([^\n]*)/m', $table[2], $columns, PREG_SET_ORDER);
+        preg_match_all('/^ +\x60?([a-z0-9_]+)\x60? (bigint|smallint|tinyint|int|varchar|char|text|mediumtext|longtext|json|datetime|mediumblob|blob)([^\n]*)/m', $table[2], $columns, PREG_SET_ORDER);
         $definitions = [];
         $hasId = false;
         foreach ($columns as $column) {
@@ -207,6 +208,16 @@ function schema(string $path, array $names): void
             }
             $definitions[] = $definition;
         }
+        // Read the additive native Phinx declarations, rather than maintaining a second field list.
+        if ($table[1] === 'document_comment_thread' && $changes !== '') {
+            preg_match_all('/->addColumn\(\x27([a-z0-9_]+)\x27, \x27([a-z]+)\x27, \[([^]]*)\]\)/', $changes, $additions, PREG_SET_ORDER);
+            foreach ($additions as $column) {
+                $definitions[] = '"' . $column[1] . '" ' . ($column[2] === 'biginteger' ? 'INTEGER' : 'TEXT');
+                $columns[] = ['', $column[1]];
+            }
+            preg_match_all('/ALTER TABLE pa_document_comment_thread ADD CONSTRAINT ([^";]+)"\);/', $changes, $checks, PREG_SET_ORDER);
+            foreach ($checks as $check) $definitions[] = 'CONSTRAINT ' . $check[1];
+        }
         if (!$hasId && preg_match('/PRIMARY KEY \(([^)]+)\)/', $table[2], $primary)) {
             $definitions[] = 'PRIMARY KEY (' . $primary[1] . ')';
         }
@@ -214,12 +225,16 @@ function schema(string $path, array $names): void
         foreach ($unique as $index) {
             $definitions[] = 'UNIQUE (' . $index[1] . ')';
         }
-        preg_match_all('/^  CONSTRAINT ([^\n]+)/m', $table[2], $constraints, PREG_SET_ORDER);
+        preg_match_all('/^ +CONSTRAINT ([^\n]+)/m', $table[2], $constraints, PREG_SET_ORDER);
         foreach ($constraints as $constraint) {
             $value = rtrim($constraint[1], ',');
+            if ($changes !== '' && preg_match('/^\x60?([a-z0-9_]+)\x60? CHECK /', $value, $name)
+                && preg_match('/ADD CONSTRAINT ' . preg_quote($name[1], '/') . ' (CHECK .*?)"\);/', $changes, $replacement)) {
+                $value = $name[1] . ' ' . $replacement[1];
+            }
             if (str_contains($value, ' CHECK ')) {
                 $definitions[] = 'CONSTRAINT ' . str_replace('_utf8mb4', '', $value);
-            } elseif (preg_match('/REFERENCES \x60pa_document(?:_[a-z0-9_]+)?\x60/', $value) === 1) {
+            } elseif (preg_match('/REFERENCES \x60?pa_document(?:_[a-z0-9_]+)?\x60? /', $value) === 1) {
                 $definitions[] = 'CONSTRAINT ' . $value;
             }
         }
