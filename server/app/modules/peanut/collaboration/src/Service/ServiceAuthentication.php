@@ -203,7 +203,7 @@ final class ServiceAuthentication
             || !is_string($config['projector_version'] ?? null) || preg_match('/^[A-Za-z0-9_.:\/-]{1,64}$/D', $config['projector_version']) !== 1
             || !is_string($config['secret'] ?? null) || strlen($config['secret']) < 32
             || !is_int($config['clock_window_seconds'] ?? null) || $config['clock_window_seconds'] < 1 || $config['clock_window_seconds'] > 60
-            || !is_int($config['max_request_bytes'] ?? null) || $config['max_request_bytes'] < 1 || $config['max_request_bytes'] > 8388608
+            || !is_int($config['max_request_bytes'] ?? null) || $config['max_request_bytes'] < 1 || $config['max_request_bytes'] > 33554432
             || ($config['max_response_bytes'] ?? null) !== 33554432) {
             throw new ApiProblem('COLLAB_UNAVAILABLE', 503, '协作服务配置不完整');
         }

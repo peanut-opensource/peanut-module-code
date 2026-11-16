@@ -67,7 +67,6 @@ final readonly class AcceptedStoreInput
         $progress = -1;
         $previousHash = null;
         $previousText = null;
-        $textBytes = 0;
         foreach ($tuple['changes'] as $change) {
             $keys = ['connection_key','authorization_revision','authorized_at_ms','progress','update_sha256',
                 'before_projection_sha256','after_projection_sha256','before_text','after_text'];
@@ -83,13 +82,12 @@ final readonly class AcceptedStoreInput
                     throw new \InvalidArgumentException('COLLABORATION_CHANGES_INVALID');
                 }
             }
-            $textBytes += strlen($change['before_text']) + strlen($change['after_text']);
-            if ($textBytes > 16 * 1024 * 1024) {
-                throw new \InvalidArgumentException('COLLABORATION_CHANGES_INVALID');
-            }
             $progress = $change['progress'];
             $previousHash = $change['after_projection_sha256'];
             $previousText = $change['after_text'];
+        }
+        if (strlen(json_encode($tuple['changes'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS)) > 16 * 1024 * 1024) {
+            throw new \InvalidArgumentException('COLLABORATION_CHANGES_INVALID');
         }
         if (array_diff(array_keys($tuple['owner']), ['module_key','object_type','object_id','slot']) !== []) {
             throw new \InvalidArgumentException('COLLABORATION_STORE_OWNER_INVALID');

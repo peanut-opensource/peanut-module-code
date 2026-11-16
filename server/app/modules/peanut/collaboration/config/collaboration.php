@@ -27,7 +27,8 @@ return [
     'clock_window_seconds' => 30,
     'connection_lease_seconds' => 15,
     'room_lease_seconds' => 30,
-    'max_request_bytes' => 8388608,
+    // Paired service 1.0.2: <=16 MiB serialized history + CRDT base64/projection/participants.
+    'max_request_bytes' => 33554432,
     // Bounded native baseline/capture, base64 expansion and metadata.
     'max_response_bytes' => 33554432,
     'projector_version' => 'peanut.richtext-yjs/1',
