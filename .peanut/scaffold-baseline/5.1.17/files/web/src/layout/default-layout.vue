@@ -77,7 +77,9 @@
       <div class="tenant-page-tools"
         ><ShellContributions name="page-tools"
       /></div>
-      <main class="tenant-content"><PageLayout /></main>
+      <main ref="contentRef" class="tenant-content" tabindex="0"
+        ><PageLayout
+      /></main>
       <Footer v-if="appStore.footer" />
     </div>
   </component>
@@ -155,10 +157,12 @@
     }
   );
   const drawerVisible = ref(false);
+  const contentRef = ref<HTMLElement | null>(null);
   watch(
     () => route.fullPath,
     () => {
       drawerVisible.value = false;
+      contentRef.value?.scrollTo({ top: 0, left: 0 });
     }
   );
   provide('toggleDrawerMenu', () => {
@@ -168,20 +172,35 @@
 
 <style lang="less">
   .tenant-shell {
-    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
     background: var(--el-bg-color-page);
     .navbar {
       height: var(--pa-shell-header-height);
+      flex: 0 0 auto;
     }
     .pa-shell__workspace {
       display: flex;
-      min-height: calc(100vh - var(--pa-shell-header-height));
+      flex: 1 1 auto;
+      min-height: 0;
+      min-width: 0;
+      overflow: hidden;
     }
     .pa-shell__main {
+      display: flex;
+      flex-direction: column;
       flex: 1;
+      min-height: 0;
       min-width: 0;
       width: 100%;
       padding: 0;
+      overflow: hidden;
+      > .tab-bar-container {
+        flex: 0 0 auto;
+      }
     }
     .tenant-sidebar {
       width: var(--pa-shell-sidebar-width);
@@ -202,7 +221,7 @@
       }
       display: flex;
       flex-direction: column;
-      height: calc(100vh - var(--pa-shell-header-height));
+      height: 100%;
       min-height: 0;
       overflow: hidden;
       .tenant-sidebar__menu {
@@ -231,7 +250,17 @@
     }
     .tenant-page-body {
       --pa-page-inset: var(--pa-shell-spacing);
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 0;
+      width: 100%;
       padding: var(--pa-page-inset);
+      overflow: hidden;
+      > .tenant-page-tools,
+      > .footer {
+        flex: 0 0 auto;
+      }
     }
     .tenant-breadcrumb {
       min-width: 0;
@@ -251,8 +280,11 @@
       display: none;
     }
     .tenant-content {
+      flex: 1 1 auto;
+      min-height: 0;
       min-width: 0;
       width: 100%;
+      overflow: auto;
       > * {
         min-width: 0;
         max-width: 100%;

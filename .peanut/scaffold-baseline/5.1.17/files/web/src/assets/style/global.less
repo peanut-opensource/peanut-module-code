@@ -47,6 +47,7 @@ body {
 
 .pa-page-stack {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--pa-shell-spacing);
 
   > .pa-page-header {
@@ -161,6 +162,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: var(--pa-shell-gap);
+  flex-wrap: wrap;
   margin-top: var(--pa-shell-spacing);
   padding-block: var(--pa-shell-gap);
   border-top: 1px solid var(--el-border-color-lighter);

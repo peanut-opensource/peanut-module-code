@@ -90,6 +90,12 @@ PageHeader 标题插槽包含 h1；PageToolbar 使用准确的本地化 label。
 
 ## 内容区域合同
 
+### Shell 与滚动边界
+
+管理 Shell 占当前动态视口高度，顶栏和标签栏保留自然高度；workspace、main 与内容容器沿 flex 链显式允许收缩（`min-height: 0`）。侧栏菜单独立纵滚，普通页面由 `main.tenant-content` 纵滚，长内容不能撑高主文档或带走导航。顶部导航、隐藏顶栏、标签栏开关和窄屏抽屉沿同一高度链，不用固定减去某一套顶栏高度。切换路由时内容回到顶部；键盘可以聚焦主内容滚动区。
+
+列表表格仍只用 Element Plus 内部横滚；长表按实际空间预算使用其 `max-height`，不能把整页和表格绑定同一个横滚容器。普通详情随主内容纵滚；编辑器／画布已有独立滚动合同继续保留。弹窗 Teleport 到原有浮层层级，不以 Shell 的 overflow 裁掉浮层。应用已有 sticky 导航与品牌定制由原生三方采用审阅保留，不复制覆盖。
+
 区域是页面的组合职责，不是新增九个组件。使用已有PageContent、PageHeader、PageToolbar和Element Plus，省略无业务内容的可选区，不为填满模板虚构说明、统计或操作。普通列表采用成员页的现有样板，公共样式集中在global.less：
 
 | 区域 | 内容与交互 | 现有承载及样式 |
@@ -121,6 +127,15 @@ PageHeader 标题插槽包含 h1；PageToolbar 使用准确的本地化 label。
 - 长结果用Element Plus height／max-height及内部纵滚保留表头。样板max-height为`max(320px, calc(100dvh - 440px))`；这是本样板的可视窗口预算，不是所有页面硬编码标准。其他查询区高度不同须按实际布局选择；不以CSS sticky叠加原生固定表头。
 - 分页在表格下方独立横线分区，桌面右对齐；窄屏保留总数、前后页和有限页码，省略拥挤的每页数选择。仍能换行，不要求用户横滚才能翻页。当前数据不足时明确不宣称已验多页／长表纵滚。
 - 行操作使用真实权限，编辑与删除保持原确认／loading。固定列与表头继承主题背景和Element Plus阴影，不用硬编码白底掩盖重叠；需实际横滚核对左右固定和操作点击。
+
+### 常用列表扩展的采用边界
+
+ProComponents 的[工具栏、筛选与列设置](https://next-procomponents.ant.design/en-US/components/table/)和[Vben 搜索／表格分区](https://doc.vben.pro/components/common-ui/vben-vxe-table.html)作为结构参考（2026-11-16查阅；[ProComponents](https://github.com/ant-design/pro-components)与[Vben](https://github.com/vbenjs/vue-vben-admin)均为MIT）。前者基于React，后者封装VXE；本项目继续使用Page组件及[Element Plus原生固定列／高度](https://element-plus.org/en-US/component/table)，不新增表格库或Schema页面引擎。
+
+- 列设置使用已有Element Plus复选／下拉控件，只管理可选展示列；必要标识、选择和操作列不能被隐藏。密度沿Shell现有设置，不在每个表格新增第二份状态。高级条件确实超过常用一行时才折叠；重置恢复页面定义的默认查询并回第一页。
+- 批量动作明确限当前页选择，切换查询、分页或回收站时清空选择；结果逐项呈现已有后端成功／失败，不把局部失败提示为全部成功。
+- 导入导出复用`peanut.import-export`的provider、Task及File合同：真实支持导入的业务才显示导入入口，保留映射校验、失败行文件、异步进度、取消与到期语义。既有文章的`export=1/2`协议继续走原SDK；导出当前筛选结果，不自行拼浏览器CSV绕过字段授权或另建任务引擎。
+- 回收站仅适用于已有软删除及恢复合同的数据。文章沿`peanut.article.recycle.list`、`restore`、`force-delete`独立权限，保留关联文档与引用保护；永久删除明确确认对象及不可恢复含义。未实现合同的列表不显示伪恢复／永久删除按钮，不建立跨业务全表垃圾桶。
 
 ### 表单、动态字段与详情
 

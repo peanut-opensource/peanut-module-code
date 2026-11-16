@@ -41,17 +41,37 @@ h1 {
   min-height: 100vh;
 }
 .platform-preset {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
   background: var(--el-bg-color-page);
+}
+.platform-preset .pa-shell__workspace {
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
 }
 .platform-preset .pa-shell__main {
   display: flex;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
   min-width: 0;
+}
+.platform-preset .platform-navigation {
+  overflow-y: auto;
+}
+.platform-preset .pa-shell__main > .el-container {
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
 }
 .platform-breadcrumb {
   margin-bottom: var(--pa-shell-spacing);
 }
 .platform-preset .pa-shell__main > .el-container > .el-main {
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
   padding: var(--pa-shell-spacing);
 }
 .platform-preset .el-header {
