@@ -3,7 +3,11 @@
     <div class="login-form-title">{{ $t('login.form.title') }}</div>
     <div class="login-form-sub-title">{{ brandStore.website.slogan }}</div>
     <div class="login-form-error-msg">{{ errorMessage }}</div>
+    <p v-if="!brandStore.loginEnabled" class="login-disabled-message">
+      {{ $t('login.form.disabled') }}
+    </p>
     <el-form
+      v-else
       ref="loginForm"
       :model="userInfo"
       class="login-form"
@@ -80,6 +84,7 @@
   import useLoading from '@/hooks/loading';
   import type { LoginData } from '@/api/user';
   import type { TenantChoice } from '@peanut-admin/vue';
+  import { loginDestination } from '@/router/login-destination';
 
   const router = useRouter();
   const { t } = useI18n();
@@ -108,6 +113,7 @@
   );
 
   const handleSubmit = async () => {
+    if (!brandStore.loginEnabled) return;
     if (loading.value) return;
     const valid = await loginForm.value?.validate().catch(() => false);
     if (!valid) return;
@@ -125,19 +131,9 @@
         userInfo.tenantId = tenantChoices.value[0]?.tenant_id;
         return;
       }
-      const { redirect, ...othersQuery } = router.currentRoute.value.query;
-      const redirectRoute =
-        typeof redirect === 'string' &&
-        redirect !== 'login' &&
-        router.hasRoute(redirect)
-          ? redirect
-          : 'Workplace';
-      router.push({
-        name: redirectRoute,
-        query: {
-          ...othersQuery,
-        },
-      });
+      await router.replace(
+        loginDestination(router, router.currentRoute.value.query.redirect)
+      );
       ElMessage.success(t('login.form.login.success'));
     } catch (err) {
       errorMessage.value = (err as Error).message;
@@ -170,6 +166,11 @@
       min-height: 28px;
       color: var(--el-color-danger);
       line-height: 28px;
+    }
+
+    &-disabled-message {
+      color: var(--el-text-color-secondary);
+      line-height: 24px;
     }
 
     &-actions {

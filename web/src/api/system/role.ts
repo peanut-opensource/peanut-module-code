@@ -3,6 +3,8 @@ import axios from 'axios';
 /** 角色记录 */
 export interface RoleRecord {
   id: number;
+  /** Stable Identity role key; never infer built-in roles from display labels. */
+  key: string;
   name: string;
   desc: string;
   num: number;

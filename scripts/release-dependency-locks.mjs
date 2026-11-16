@@ -214,7 +214,7 @@ function nativeClientModulePackages(read, client) {
 }
 
 /** read 只读取指定源码/锁；Git 候选检查传入 git-show，绝不执行候选中的代码。 */
-export function verifyDependencyLocks(versions, read, parseYaml, internal = false) {
+export function verifyDependencyLocks(versions, read, parseYaml, internal = false, archiveLocks = false) {
   const mode = dependencyMode(versions);
   const json = (path) => JSON.parse(String(read(path)));
   const p = versions.core_php,
@@ -236,7 +236,7 @@ export function verifyDependencyLocks(versions, read, parseYaml, internal = fals
   )
     fail('Composer manifest/lock/provenance');
   if (
-    (mode === 'registry' || internal) &&
+    (mode === 'registry' || internal || archiveLocks) &&
     (Object.values(composer.repositories ?? {}).some(
       (x) => x?.type === 'path'
     ) ||
@@ -268,7 +268,7 @@ export function verifyDependencyLocks(versions, read, parseYaml, internal = fals
     const manifest = json(`${client}/package.json`);
     const modules = nativeClientModulePackages(read, client);
     if (
-      (mode === 'registry' || internal) &&
+      (mode === 'registry' || internal || archiveLocks) &&
       Object.entries({
         ...manifest.dependencies,
         ...manifest.devDependencies,
@@ -277,7 +277,7 @@ export function verifyDependencyLocks(versions, read, parseYaml, internal = fals
         ([name, value]) =>
           typeof value !== 'string' ||
           (/^(?:file:|link:|workspace:|\/|\.\.?\/)/.test(value) &&
-            !(internal && coreWebPackages.includes(name)) &&
+            !(mode === 'archive' && coreWebPackages.includes(name)) &&
             !(client === 'web' && modules[name] && value.startsWith('workspace:')))
       )
     )
@@ -298,7 +298,7 @@ export function verifyDependencyLocks(versions, read, parseYaml, internal = fals
       )
         fail(`${client}:${name} declaration`);
     }
-    if (mode === 'archive' && !internal) continue;
+    if (mode === 'archive' && !internal && !archiveLocks) continue;
     if (client === 'web') {
       if (typeof parseYaml !== 'function')
         fail('locked YAML parser required for native pnpm lock');
@@ -624,9 +624,9 @@ if (
 ) {
   try {
     const args = process.argv.slice(2);
-    if (!args[0] || args.slice(1).some((arg) => !['--installed', '--internal-candidate', '--third-party-only'].includes(arg) && !arg.startsWith('--tool-root=') && !arg.startsWith('--core-inputs=')))
+    if (!args[0] || args.slice(1).some((arg) => !['--installed', '--native-locks', '--internal-candidate', '--third-party-only'].includes(arg) && !arg.startsWith('--tool-root=') && !arg.startsWith('--core-inputs=')))
       throw new Error(
-        'Usage: release-dependency-locks.mjs <application-root> [--installed] [--internal-candidate] [--core-inputs=<absolute-receipt>] [--third-party-only] [--tool-root=<root>]'
+        'Usage: release-dependency-locks.mjs <application-root> [--installed] [--native-locks] [--internal-candidate] [--core-inputs=<absolute-receipt>] [--third-party-only] [--tool-root=<root>]'
       );
     const root = realpathSync(args[0]);
     const read = (relative) => {
@@ -642,7 +642,7 @@ if (
     const fixedInputs = coreInputOptions.length ? fixedArchiveInputs(root, coreInputOptions[0].slice(14), document, read) : null;
     if (internal && dependencyMode(document) !== 'archive') fail('internal candidate requires carried archives');
     const toolRoot = args.find((arg) => arg.startsWith('--tool-root='))?.slice(12) ?? root;
-    const parseYaml = (internal || fixedInputs !== null || args.includes('--third-party-only') || dependencyMode(document) === 'registry')
+    const parseYaml = (internal || fixedInputs !== null || args.includes('--native-locks') || args.includes('--third-party-only') || dependencyMode(document) === 'registry')
       ? lockedYamlParser(toolRoot) : undefined;
     if (args.includes('--third-party-only')) {
       console.log(JSON.stringify(thirdPartyLocks(read, parseYaml)));
@@ -652,7 +652,8 @@ if (
       document,
       read,
       parseYaml,
-      internal || fixedInputs !== null
+      internal || fixedInputs !== null,
+      args.includes('--native-locks')
     );
     const installed =
       args.includes('--installed')

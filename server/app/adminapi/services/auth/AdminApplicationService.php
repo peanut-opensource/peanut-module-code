@@ -8,6 +8,7 @@ use app\common\exception\BusinessException;
 use app\common\dto\authorization\AdminPrincipal;
 use app\common\execution\CurrentExecutionContext;
 use app\common\services\authorization\AdminAuthorizationService;
+use app\common\runtime\authorization\RoleAdministrationRuntime;
 use DateTimeImmutable;
 use DateTimeZone;
 use PeanutAdmin\Modules\File\Contract\FileReferences;
@@ -35,6 +36,7 @@ final class AdminApplicationService
         private readonly PasswordPolicy $passwords,
         private readonly CurrentExecutionContext $executionContext,
         private readonly AdminAuthorizationService $authorization,
+        private readonly RoleAdministrationRuntime $roleAdministration,
     ) {}
 
     public function normalizeInput(array $params, bool $write = false): array
@@ -146,6 +148,8 @@ final class AdminApplicationService
                 throw BusinessException::invalid('ADMIN_ROLE_REQUIRED', '请选择角色');
             }
             $this->assertMemberPermission($context, 'role.assign');
+            // Ordinary member creation must never grant the protected owner identity.
+            $this->assertOrdinaryOwnerRoleBoundary($context->tenantId, $roles, false);
             if ((int) $params['disable'] === 0) {
                 $this->assertMemberPermission($context, 'activate');
             }
@@ -182,9 +186,15 @@ final class AdminApplicationService
             }
             $service = $this->tenantAdmins->members();
             $member = $service->get($context->tenantId, (int) $params['id']);
+            $currentlyOwner = self::isTenantOwnerMember($member);
             $currentRoles = self::normalizeIds($member['role_ids']);
             if ($roles !== $currentRoles) {
                 $this->assertMemberPermission($context, 'role.assign');
+                $this->assertOrdinaryOwnerRoleBoundary($context->tenantId, $roles, $currentlyOwner);
+            }
+            if ($currentlyOwner && (int) $params['disable'] !== ($member['status'] === 'active' ? 0 : 1)) {
+                throw BusinessException::forbidden('TENANT_OWNER_STATUS_REQUIRES_PLATFORM_FLOW',
+                    '租户所有者状态仅能通过正式平台所有者流程变更');
             }
             $this->assertStatusPermission($context, $member, (int) $params['disable']);
             $service->updateAdministrator(
@@ -203,6 +213,39 @@ final class AdminApplicationService
         }
     }
 
+    /** @param array<string,mixed> $member Current Identity-owned member projection. */
+    private static function isTenantOwnerMember(array $member): bool
+    {
+        $keys = $member['role_keys'] ?? null;
+        if (!is_array($keys) || !array_is_list($keys)
+            || !array_reduce($keys, static fn(bool $valid, mixed $key): bool => $valid && is_string($key), true)) {
+            throw BusinessException::conflict('MEMBER_ROLE_IDENTITY_UNAVAILABLE', '成员角色身份当前不可核实');
+        }
+        return in_array('core.tenant-owner', $keys, true);
+    }
+
+    /**
+     * The ordinary tenant member editor may grant business roles, never owner identity.
+     * Owner provisioning and transfer remain separate audited platform operations.
+     * @param list<int> $requestedRoleIds
+     */
+    private function assertOrdinaryOwnerRoleBoundary(int $tenantId, array $requestedRoleIds, bool $currentlyOwner): void
+    {
+        $requestsOwner = false;
+        foreach ($requestedRoleIds as $roleId) {
+            $role = $this->roleAdministration->service()->get($tenantId, $roleId);
+            if (($role['key'] ?? null) === 'core.tenant-owner') {
+                $requestsOwner = true;
+            }
+        }
+        if ($currentlyOwner !== $requestsOwner) {
+            throw BusinessException::forbidden(
+                'TENANT_OWNER_ROLE_REQUIRES_PLATFORM_FLOW',
+                '租户所有者角色仅能通过正式平台所有者流程变更',
+            );
+        }
+    }
+
     public function delete(TenantContext $context, int $id, int $selfId = 0): bool
     {
         $this->assertMemberPermission($context, 'leave');
@@ -212,6 +255,10 @@ final class AdminApplicationService
         try {
             $service = $this->tenantAdmins->members();
             $member = $service->get($context->tenantId, $id);
+            if (self::isTenantOwnerMember($member)) {
+                throw BusinessException::forbidden('TENANT_OWNER_STATUS_REQUIRES_PLATFORM_FLOW',
+                    '租户所有者状态仅能通过正式平台所有者流程变更');
+            }
             $service->leave(
                 $context,
                 $id,
@@ -231,7 +278,12 @@ final class AdminApplicationService
         }
         try {
             $service = $this->tenantAdmins->members();
-            $this->transitionStatus($service, $context, $service->get($context->tenantId, $id), $disable);
+            $member = $service->get($context->tenantId, $id);
+            if (self::isTenantOwnerMember($member)) {
+                throw BusinessException::forbidden('TENANT_OWNER_STATUS_REQUIRES_PLATFORM_FLOW',
+                    '租户所有者状态仅能通过正式平台所有者流程变更');
+            }
+            $this->transitionStatus($service, $context, $member, $disable);
             return true;
         } catch (\Throwable $e) {
             throw $e;

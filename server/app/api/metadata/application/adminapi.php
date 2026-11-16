@@ -208,9 +208,9 @@ $schemas = [
     ],
     'AdminRole' => [
         'type' => 'object', 'additionalProperties' => false,
-        'required' => ['id', 'name', 'desc', 'sort', 'create_time', 'num', 'permission_keys', 'status', 'revision'],
+        'required' => ['id', 'key', 'name', 'desc', 'sort', 'create_time', 'num', 'permission_keys', 'status', 'revision'],
         'properties' => [
-            'id' => ['type' => 'integer'], 'name' => ['type' => 'string'], 'desc' => ['type' => 'string'],
+            'id' => ['type' => 'integer'], 'key' => ['type' => 'string'], 'name' => ['type' => 'string'], 'desc' => ['type' => 'string'],
             'sort' => ['type' => 'integer'], 'create_time' => ['type' => 'string'], 'num' => ['type' => 'integer', 'minimum' => 0],
             'permission_keys' => $ref('StringList'), 'status' => ['type' => 'string'],
             'revision' => ['type' => 'integer', 'minimum' => 1],
@@ -278,7 +278,7 @@ $schemas = [
     ],
     'AdminBrandConfig' => [
         'type' => 'object', 'additionalProperties' => false,
-        'required' => ['website', 'tenantName', 'demo'],
+        'required' => ['website', 'tenantName', 'demo', 'login_enabled'],
         'properties' => [
             'website' => $ref('WebsiteConfig'),
             'tenantName' => ['type' => 'string'],
@@ -287,6 +287,7 @@ $schemas = [
                 'required' => ['enabled', 'email', 'password'],
                 'properties' => ['enabled' => ['type' => 'boolean'], 'email' => ['type' => 'string'], 'password' => ['type' => 'string']],
             ],
+            'login_enabled' => ['type' => 'boolean'],
         ],
     ],
     'CopyrightItemList' => [

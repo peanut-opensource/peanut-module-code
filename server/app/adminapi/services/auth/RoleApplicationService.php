@@ -77,7 +77,7 @@ final class RoleApplicationService
     {
         $keys = $role['permission_keys'] ?? [];
         $roleId = (int) $role['id'];
-        return ['id' => $roleId, 'name' => $role['name'], 'desc' => $role['description'] ?? '', 'sort' => 0,
+        return ['id' => $roleId, 'key' => (string) $role['key'], 'name' => $role['name'], 'desc' => $role['description'] ?? '', 'sort' => 0,
             'create_time' => (string) $role['created_at'], 'num' => $memberCounts === null
                 ? $this->runtime->memberCount($context->tenantId, $roleId) : ($memberCounts[$roleId] ?? 0),
             'permission_keys' => $keys, 'status' => $role['status'], 'revision' => (int) $role['revision']];

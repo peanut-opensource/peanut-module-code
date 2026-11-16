@@ -24,6 +24,7 @@ final class ModuleAdoptPackage extends ContextualCommand
             ->addOption('sha256', null, Option::VALUE_REQUIRED, 'Required archive SHA-256')
             ->addOption('official-key', null, Option::VALUE_REQUIRED, 'Exact official Module key bound to a reviewed upstream archive digest')
             ->addOption('signature-key-id', null, Option::VALUE_REQUIRED, 'Optional trusted signature key id when explicitly selected')
+            ->addOption('replace-local-source', null, Option::VALUE_NONE, 'Replace the reviewed selected local source, preserving its native before-image')
             ->addOption('composition', null, Option::VALUE_REQUIRED, 'MT pre-install composition request JSON path')
             ->addOption('plan-sha256', null, Option::VALUE_REQUIRED, 'Prepare the complete source graph only if its plan SHA matches')
             ->addOption('recover', null, Option::VALUE_NONE, 'Resume the pending source/lock transaction only');
@@ -48,7 +49,7 @@ final class ModuleAdoptPackage extends ContextualCommand
             if ($input->getOption('composition') !== null) {
                 if ($input->getOption('recover') || $input->getArgument('package') !== null
                     || $input->getOption('sha256') !== null || $input->getOption('official-key') !== null
-                    || $input->getOption('signature-key-id') !== null) {
+                    || $input->getOption('signature-key-id') !== null || $input->getOption('replace-local-source')) {
                     throw new ModulePackageException('MODULE_COMPOSITION_REQUEST_INVALID', 'Composition and single-package operations are separate.');
                 }
                 $request = json_decode((string) file_get_contents((string) $input->getOption('composition')), true, 512, JSON_THROW_ON_ERROR);
@@ -57,6 +58,9 @@ final class ModuleAdoptPackage extends ContextualCommand
                 }
                 $result = $service->compose($request, $input->getOption('plan-sha256'));
             } else {
+                if ($input->getOption('recover') && $input->getOption('replace-local-source')) {
+                    throw new ModulePackageException('MODULE_COMPOSITION_REQUEST_INVALID', 'Local source replacement requires one incoming package, not recovery.');
+                }
                 if ($input->getOption('plan-sha256') !== null) {
                     throw new ModulePackageException('MODULE_COMPOSITION_REQUEST_INVALID', 'A plan SHA requires a composition request.');
                 }
@@ -65,6 +69,7 @@ final class ModuleAdoptPackage extends ContextualCommand
                     $input->getOption('sha256'),
                     $input->getOption('signature-key-id'),
                     $input->getOption('official-key'),
+                    (bool) $input->getOption('replace-local-source'),
                 );
             }
             $output->writeln(json_encode($result, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));

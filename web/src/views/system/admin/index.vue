@@ -265,23 +265,27 @@
         </el-form-item>
 
         <el-form-item
-          v-if="form.root !== 1"
           class="pa-page-form-wide"
           prop="role_id"
           :label="$t('systemAdmin.field.roles')"
         >
           <el-select
-            v-model="form.role_id"
-            :disabled="!canReadRoles || !canAssignRoles"
+            :model-value="form.role_id"
+            @update:model-value="updateRoleSelection"
+            :disabled="!canReadRoles || !canAssignRoles || (editingOwnerRoles && ownerRoleId === null)"
             multiple
-            clearable
+            :clearable="!editingOwnerRoles"
             :placeholder="$t('systemAdmin.field.roles.placeholder')"
             ><el-option
               v-for="option in roleOptions"
               :key="option.value"
               :label="option.label"
               :value="option.value"
+              :disabled="option.key === 'core.tenant-owner'"
           /></el-select>
+          <p v-if="editingOwnerRoles" class="pa-page-form-help">
+            {{ $t('systemAdmin.field.roles.ownerFixed') }}
+          </p>
         </el-form-item>
 
           </div>
@@ -452,6 +456,7 @@
     type PasswordPolicy,
   } from '@/api/password-policy';
   import { getRoleAll } from '@/api/system/role';
+  import { reconcileRoleSelection } from '@/utils/owner-role-selection';
   import { getJobsAll } from '@/api/system/jobs';
   import {
     addAdmin,
@@ -497,7 +502,19 @@
       ? '-'
       : date.toLocaleString('zh-CN', { hour12: false });
   };
-  const roleOptions = ref<{ value: number; label: string }[]>([]);
+  const roleOptions = ref<{ value: number; label: string; key: string }[]>([]);
+  const ownerRoleId = computed(
+    () => roleOptions.value.find((role) => role.key === 'core.tenant-owner')?.value ?? null
+  );
+  const editingOwnerRoles = computed(() => isEdit.value && form.root === 1);
+  const updateRoleSelection = (value: number[]) => {
+    form.role_id = reconcileRoleSelection(
+      form.role_id,
+      value,
+      editingOwnerRoles.value,
+      ownerRoleId.value
+    );
+  };
   const jobsOptions = ref<{ value: number; label: string }[]>([]);
   const departmentPickerRevision = ref(0);
 
@@ -543,6 +560,7 @@
       roleOptions.value = data.map((item) => ({
         value: item.id,
         label: item.name,
+        key: item.key || '',
       }));
     }
     if (canReadJobs.value) {
@@ -756,6 +774,13 @@
         ElMessage.error(passwordPolicyError.value);
         return false;
       }
+    }
+    if (
+      editingOwnerRoles.value &&
+      (ownerRoleId.value === null || !form.role_id.includes(ownerRoleId.value))
+    ) {
+      ElMessage.error(t('systemAdmin.field.roles.ownerFixed'));
+      return false;
     }
     const valid = await formRef.value?.validate().catch(() => false);
     if (!valid) return false;

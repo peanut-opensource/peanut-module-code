@@ -65,6 +65,7 @@ export default {
   'systemAdmin.field.roles': 'Roles',
   'systemAdmin.field.roles.placeholder': 'Select roles',
   'systemAdmin.field.roles.required': 'Select at least one role',
+  'systemAdmin.field.roles.ownerFixed': 'Keep the immutable tenant owner role; supplementary business roles may be added or removed.',
   'systemAdmin.field.password': 'Password',
   'systemAdmin.field.password.addPlaceholder': 'Enter password',
   'systemAdmin.field.password.editPlaceholder': 'Leave blank to keep unchanged',

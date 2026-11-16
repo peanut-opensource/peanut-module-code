@@ -1,0 +1,24 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+// Module-owned maintenance entry; native Console owns parsing and dependency injection.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit(1);
+}
+
+$serverRoot = dirname(__DIR__,5);
+require $serverRoot . '/vendor/autoload.php';
+array_splice($_SERVER['argv'],1,0,['identity:standalone-entitlements']);
+$_SERVER['argc'] = count($_SERVER['argv']);
+$console = new class (new \think\App($serverRoot)) extends \think\Console {
+    protected function loadCommands(): void
+    {
+        $this->addCommand(\PeanutAdmin\Modules\Identity\Console\StandaloneEntitlementsCommand::class);
+        $this->addCommand(\think\console\command\Help::class);
+    }
+};
+$console->setAutoExit(false);
+exit($console->run());

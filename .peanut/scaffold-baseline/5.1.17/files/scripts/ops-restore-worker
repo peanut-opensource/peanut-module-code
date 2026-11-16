@@ -1,0 +1,425 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+die() { printf 'ops-restore-worker: %s\n' "$1" >&2; exit 1; }
+
+[[ $# -eq 1 && "$1" == '--once' ]] || die 'usage: scripts/ops-restore-worker --once'
+for command_name in jq gzip sha256sum tar openssl; do
+  command -v "$command_name" >/dev/null || die "$command_name is required"
+done
+
+project_root="$(pwd -P)"
+[[ -f "$project_root/server/docker/compose.yaml" && -f "$project_root/server/think" ]] || die 'run from an APP mounted deployment root'
+backend_env="$project_root/server/.env"
+[[ -f "$backend_env" && ! -L "$backend_env" && "$(stat -c '%a %h' "$backend_env")" == '600 1' ]] || die 'private backend environment is unsafe'
+registry="${PEANUT_RESOURCE_REGISTRY:-}"
+if [[ -z "$registry" ]]; then
+  if [[ -f "$project_root/server/.peanut/release-identity.json" ]]; then
+    registry="$project_root/server/resources/project-resources.json"
+    [[ ! -e "$project_root/server/private/resources/project-resources.json" ]] || registry="$project_root/server/private/resources/project-resources.json"
+  else
+    registry="$project_root/resources/project-resources.json"
+  fi
+fi
+[[ "$registry" == /* && -f "$registry" && ! -L "$registry" ]] || die 'explicit ordinary APP resource registry is required'
+resource_json() {
+  jq -ce --arg id "$1" '[.. | objects | select(.stable_resource_id? == $id)] | if length == 1 then .[0] else error("resource missing or ambiguous") end' "$registry"
+}
+deployment_json="$(jq -ce --arg root "$project_root" \
+  '[.. | objects | select(.deployment_root? == $root and .compose_file? == "server/docker/compose.yaml")] | if length == 1 then .[0] else error("deployment missing or ambiguous") end' "$registry")"
+deployment_id="$(jq -er .stable_resource_id <<<"$deployment_json")"
+database_id="$(jq -er .database_resource_id <<<"$deployment_json")"
+application_id="$(jq -er .application_resource_id <<<"$deployment_json")"
+backup_resource_id="$(jq -er .backup_resource_id <<<"$deployment_json")"
+compose_project="$(jq -er .compose_project <<<"$deployment_json")"
+database_json="$(resource_json "$database_id")"
+database_name="$(jq -er .database <<<"$database_json")"
+backup_json="$(resource_json "$backup_resource_id")"
+backup_root="$(jq -er .path <<<"$backup_json")"
+http_json="$(resource_json "$(jq -er .http_resource_id <<<"$deployment_json")")"
+http_port="$(jq -er .port <<<"$http_json")"
+[[ "$compose_project" =~ ^[a-z0-9][a-z0-9_-]{0,62}$ && "$database_name" =~ ^[A-Za-z0-9_]{1,64}$ \
+  && "$backup_root" == "$project_root/backups" && "$http_port" =~ ^[0-9]{4,5}$ ]] || die 'registered APP backup tuple is invalid'
+jq -e --arg project "$compose_project" --arg root "$project_root" --arg deployment "$deployment_id" \
+  '.compose_project == $project and .namespace == ($root + "/server/docker/mysql")
+   and .container_endpoint.host == "mysql" and .container_endpoint.port == 3306
+   and .application_runtime == true and .fallback == "none"' <<<"$database_json" >/dev/null || die 'database mount registration differs'
+jq -e --arg deployment "$deployment_id" '.deployment_resource_id == $deployment and .fallback == "none"' \
+  <<<"$backup_json" >/dev/null || die 'backup ownership differs'
+jq -e '.fallback == "none" and (.environments | index("production") != null)' \
+  <<<"$deployment_json" >/dev/null || die 'registered production deployment is required'
+database_endpoint_id="$(jq -er .container_endpoint.endpoint_id <<<"$database_json")"
+[[ ! -L "$backup_root" && ! -L "$project_root/server/docker" ]] || die 'backup/runtime parent is linked'
+compose=(sudo -n docker compose --env-file "$project_root/server/docker/.env" -p "$compose_project" -f "$project_root/server/docker/compose.yaml")
+maintenance=("${compose[@]}" run -T --rm --no-deps \
+  -e "PEANUT_DATABASE_RESOURCE_ID=$database_id" -e "PEANUT_DATABASE_ENDPOINT_ID=$database_endpoint_id" \
+  -e PEANUT_DATABASE_CONSUMER=container -e PEANUT_DEPLOYMENT_TARGET=production --entrypoint php php)
+"${maintenance[@]}" database/environment-guard.php --validate-config >/dev/null || die 'APP database configuration differs from registered production resource'
+think=("${maintenance[@]}" think ops-restore:task)
+claim_json="$("${think[@]}" claim </dev/null)" || die 'task claim failed'
+jq -e '.ok == true' <<<"$claim_json" >/dev/null || die 'task claim was rejected'
+if [[ "$(jq -r '.result == null' <<<"$claim_json")" == true ]]; then
+  printf 'ops-restore-worker: no queued restore task\n'
+  exit 0
+fi
+
+task_key="$(jq -r '.result.task_key' <<<"$claim_json")"
+backup_reference_key="$(jq -r '.result.backup_reference_key' <<<"$claim_json")"
+provider_key="$(jq -r '.result.provider_key' <<<"$claim_json")"
+target_key="$(jq -r '.result.target_key' <<<"$claim_json")"
+manifest_sha256="$(jq -r '.result.manifest_sha256' <<<"$claim_json")"
+source_commit="$(jq -r '.result.source_commit' <<<"$claim_json")"
+source_tree="$(jq -r '.result.source_tree' <<<"$claim_json")"
+execution_revision="$(jq -r '.result.execution_revision' <<<"$claim_json")"
+[[ "$task_key" =~ ^job_[a-f0-9]{32}$ ]] || die 'claimed task key is invalid'
+[[ "$backup_reference_key" =~ ^backup_[a-f0-9]{32}$ ]] || die 'claimed backup reference is invalid'
+[[ "$provider_key" == 'peanut.paired-db-files' && "$target_key" == 'isolated-new-target' ]] \
+  || die 'claimed restore binding is invalid'
+[[ "$manifest_sha256" =~ ^[a-f0-9]{64}$ && "$source_commit" =~ ^[a-f0-9]{40}$ && "$source_tree" =~ ^[a-f0-9]{40}$ ]] \
+  || die 'claimed backup identity is invalid'
+[[ "$execution_revision" =~ ^[1-9][0-9]*$ && "$execution_revision" -ge 2 ]] \
+  || die 'claimed execution revision is invalid'
+
+failure_code='OPS_RESTORE_RUNTIME_FAILED'
+heartbeat_pid=''
+worker_pid=$$
+stop_heartbeat() {
+  if [[ -n "$heartbeat_pid" ]]; then
+    kill "$heartbeat_pid" >/dev/null 2>&1 || true
+    wait "$heartbeat_pid" >/dev/null 2>&1 || true
+    heartbeat_pid=''
+  fi
+}
+mark_failed() {
+  local exit_status="${1:-1}"
+  trap - ERR INT TERM
+  stop_heartbeat
+  "${think[@]}" fail --task-key "$task_key" --revision "$execution_revision" \
+    --error-code "$failure_code" </dev/null >/dev/null 2>&1 || true
+  printf 'ops-restore-worker: failed task=%s code=%s; registered target retained\n' \
+    "$task_key" "$failure_code" >&2
+  [[ "$exit_status" -ne 0 ]] || exit_status=1
+  exit "$exit_status"
+}
+heartbeat_once() {
+  "${think[@]}" heartbeat --task-key "$task_key" --revision "$execution_revision" </dev/null >/dev/null
+}
+heartbeat_loop() {
+  while sleep 60; do
+    heartbeat_once || { kill -TERM "$worker_pid"; return 1; }
+  done
+}
+trap 'mark_failed $?' ERR
+trap 'mark_failed 130' INT TERM
+heartbeat_once
+heartbeat_loop &
+heartbeat_pid=$!
+
+backup_dir=''
+while IFS= read -r -d '' candidate_manifest; do
+  if jq -e --arg reference "$backup_reference_key" \
+      '.backup_reference_key == $reference' "$candidate_manifest" >/dev/null; then
+    [[ -z "$backup_dir" ]] || { failure_code='OPS_RESTORE_ARTIFACT_INVALID'; false; }
+    backup_dir="$(dirname "$candidate_manifest")"
+  fi
+done < <(find "$backup_root" -mindepth 2 -maxdepth 2 -type f -name manifest.json -print0)
+[[ -n "$backup_dir" ]] || { failure_code='OPS_RESTORE_BACKUP_NOT_FOUND'; false; }
+
+failure_code='OPS_RESTORE_ARTIFACT_INVALID'
+(
+  cd "$backup_dir"
+  sudo -n sha256sum -c SHA256SUMS >/dev/null
+  sudo -n gzip -t database.sql.gz
+  sudo -n tar -tzf php-storage.tar.gz >/dev/null
+  sudo -n tar -tzf php-private-storage.tar.gz >/dev/null
+  sudo -n tar -tzf php-installation.tar.gz >/dev/null
+)
+sudo -n cat "$backup_dir/manifest.json" \
+  | "${think[@]}" verify-manifest --task-key "$task_key" --revision "$execution_revision" >/dev/null
+jq -e \
+  --arg reference "$backup_reference_key" \
+  --arg commit "$source_commit" \
+  --arg tree "$source_tree" \
+  --arg deployment "$deployment_id" --arg database "$database_id" --arg application "$application_id" --arg backup "$backup_resource_id" \
+  --arg dbname "$database_name" --arg project "$compose_project" \
+  '.schema_version == 4
+   and .backup_reference_key == $reference
+   and .provider_key == "peanut.paired-db-files"
+   and .source.commit == $commit
+   and .source.tree == $tree
+   and .resources.deployment == $deployment and .resources.database == $database
+   and .resources.application == $application and .resources.backup == $backup
+   and .runtime.database_name == $dbname and .runtime.compose_project == $project
+   and .runtime.compose_file == "server/docker/compose.yaml"
+   and .runtime.public_storage_directory == "server/public"
+   and .runtime.private_storage_directory == "server/private/storage"
+   and .runtime.installation_directory == "server/private/installation"
+   and ([.artifacts[].filename] | sort) == ["database.sql.gz", "php-installation.tar.gz", "php-private-storage.tar.gz", "php-storage.tar.gz"]' \
+  "$backup_dir/manifest.json" >/dev/null
+for artifact in database.sql.gz php-storage.tar.gz php-private-storage.tar.gz php-installation.tar.gz; do
+  expected_sha="$(jq -r --arg filename "$artifact" '.artifacts[] | select(.filename == $filename) | .sha256' "$backup_dir/manifest.json")"
+  actual_sha="$(sudo -n sha256sum "$backup_dir/$artifact" | awk '{print $1}')"
+  [[ "$actual_sha" == "$expected_sha" ]] || false
+done
+sudo -n python3 - "$backup_dir" <<'PY'
+import pathlib,sys,tarfile
+root=pathlib.Path(sys.argv[1])
+for name in ("php-storage.tar.gz","php-private-storage.tar.gz","php-installation.tar.gz"):
+    seen=set()
+    with tarfile.open(root/name,"r:gz") as archive:
+        for entry in archive:
+            raw=entry.name
+            while raw.startswith("./"): raw=raw[2:]
+            if raw==".": raw=""
+            path=pathlib.PurePosixPath(raw)
+            if raw.startswith("/") or ".." in path.parts or "\\" in raw or "//" in raw \
+                    or any(ord(c)<32 for c in raw) or (not entry.isdir() and not entry.isfile()):
+                raise SystemExit("unsafe backup archive member")
+            key=str(path)
+            if key in seen: raise SystemExit("duplicate backup archive member")
+            seen.add(key)
+            if name=="php-storage.tar.gz" and (not path.parts or path.parts[0] not in ("storage","uploads")):
+                raise SystemExit("public archive includes program files")
+PY
+
+target_json="$(resource_json "$(jq -er .restore_verification_resource_id <<<"$deployment_json")")"
+jq -e --arg source "$deployment_id" '.restore_target_key == "isolated-new-target"
+  and .source_deployment_resource_id == $source and .fallback == "none"' <<<"$target_json" >/dev/null || false
+target_root="$(jq -er .deployment_root <<<"$target_json")"
+target_project="$(jq -er .compose_project <<<"$target_json")"
+target_database_json="$(resource_json "$(jq -er .database_resource_id <<<"$target_json")")"
+target_runtime_json="$(resource_json "$(jq -er .application_resource_id <<<"$target_json")")"
+target_database="$(jq -er .database <<<"$target_database_json")"
+[[ "$target_root" =~ ^/([A-Za-z0-9_-][A-Za-z0-9._-]*/)*[A-Za-z0-9_-][A-Za-z0-9._-]*$ \
+  && "$target_project" =~ ^[a-z0-9][a-z0-9_-]{0,62}$ && "$target_database" =~ ^[A-Za-z0-9_]{1,64}$ \
+  && "$target_project" != "$compose_project" && "$target_database" != "$database_name" \
+  && "$target_root" != "$project_root" && "$target_root" != "$project_root/"* \
+  && "$project_root" != "$target_root/"* && "$target_root" != "$backup_root" && "$target_root" != "$backup_root/"* ]] || false
+jq -e --arg root "$target_root" --arg project "$target_project" --arg id "$(jq -r .stable_resource_id <<<"$target_json")" \
+  --arg db "$(jq -r .stable_resource_id <<<"$target_database_json")" --arg runtime "$(jq -r .stable_resource_id <<<"$target_runtime_json")" '
+  [.. | objects | select(.deployment_root? != null)
+   | select(.stable_resource_id as $resource | [$id,$db,$runtime] | index($resource) == null)
+   | . as $other | select(.deployment_root == $root or (.deployment_root | startswith($root + "/"))
+      or ($root | startswith($other.deployment_root + "/")) or .compose_project == $project)] | length == 0
+' "$registry" >/dev/null || false
+jq -e --arg project "$target_project" --arg root "$target_root" \
+  '.compose_project == $project and .namespace == ($root + "/server/docker/mysql")
+   and .fallback == "none" and .container_endpoint.host == "mysql" and .container_endpoint.port == 3306' \
+  <<<"$target_database_json" >/dev/null || false
+jq -e --arg project "$target_project" '.compose_project == $project and .fallback == "none"' \
+  <<<"$target_runtime_json" >/dev/null || false
+target_container="$target_project-mysql-1"
+target_mysql_directory="$target_root/server/docker/mysql"
+target_storage_directory="$target_root/server/public"
+target_private_storage_directory="$target_root/server/private/storage"
+target_installation_directory="$target_root/server/private/installation"
+target_network="${target_project}_default"
+
+protected_runtime_identity() {
+  # Isolation covers every existing shared-host container, rather than two
+  # obsolete deployment names. The newly owned verification target is excluded.
+  sudo -n docker ps -aq | while IFS= read -r container; do
+    [[ -n "$container" ]] || continue
+    name="$(sudo -n docker inspect "$container" --format '{{.Name}}')"
+    [[ "$name" != "/$target_container" ]] || continue
+    sudo -n docker inspect "$container" \
+      --format 'container={{.Name}} id={{.Id}} image={{.Image}} status={{.State.Status}} mounts={{json .Mounts}}'
+  done
+  for path in "$project_root/server/docker/mysql" "$project_root/server/public/storage" \
+      "$project_root/server/private/storage" "$project_root/server/private/installation"; do
+    sudo -n stat -c 'directory=%n inode=%i device=%d mode=%a' "$path"
+  done
+}
+
+protected_before_sha256="$(protected_runtime_identity | sort | sha256sum | awk '{print $1}')"
+[[ "$protected_before_sha256" =~ ^[a-f0-9]{64}$ ]] \
+  || { failure_code='OPS_RESTORE_ISOLATION_VIOLATION'; false; }
+
+failure_code='OPS_RESTORE_TARGET_NOT_EMPTY'
+[[ ! -e "$target_root" ]] || false
+! sudo -n docker container inspect "$target_container" >/dev/null 2>&1 || false
+! sudo -n docker network inspect "$target_network" >/dev/null 2>&1 || false
+
+mysql_image="$(jq -r '.runtime.images[] | select(.role == "mysql") | .digest' "$backup_dir/manifest.json")"
+php_image="$(jq -r '.runtime.images[] | select(.role == "php") | .digest' "$backup_dir/manifest.json")"
+[[ "$mysql_image" =~ ^sha256:[a-f0-9]{64}$ && "$php_image" =~ ^sha256:[a-f0-9]{64}$ ]] \
+  || { failure_code='OPS_RESTORE_ARTIFACT_INVALID'; false; }
+sudo -n docker image inspect "$mysql_image" "$php_image" >/dev/null
+for role in php mysql; do
+  registered_image="$(jq -er --arg role "$role" '.runtime_images[$role]' <<<"$target_json")"
+  [[ "$registered_image" =~ ^sha256:[a-f0-9]{64}$ || "$registered_image" =~ @sha256:[a-f0-9]{64}$ ]] || false
+  recorded_image="$(jq -er --arg role "$role" '.runtime.images[] | select(.role == $role) | .digest' "$backup_dir/manifest.json")"
+  [[ "$(sudo -n docker image inspect "$registered_image" --format '{{.Id}}')" == "$recorded_image" ]] || false
+done
+
+target_parent="$(dirname "$target_root")"
+[[ -d "$target_parent" && ! -L "$target_parent" && "$(realpath -e "$target_parent")" == "$target_parent" ]] || false
+sudo -n mkdir -m 0700 "$target_root"
+sudo -n install -d -m 0700 "$target_mysql_directory" "$target_storage_directory" "$target_private_storage_directory" "$target_installation_directory"
+mysql_root_password="$(openssl rand -hex 32)"
+sudo -n docker network create --internal "$target_network" >/dev/null
+
+failure_code='OPS_RESTORE_DATABASE_FAILED'
+sudo -n docker run -d \
+  --name "$target_container" \
+  --network "$target_network" \
+  --network-alias mysql \
+  --mount "type=bind,source=$target_mysql_directory,target=/var/lib/mysql" \
+  --env "MYSQL_ROOT_PASSWORD=$mysql_root_password" \
+  --env "MYSQL_DATABASE=$target_database" \
+  "$mysql_image" >/dev/null
+unset mysql_root_password
+
+ready=0
+for _ in {1..60}; do
+  if sudo -n docker exec "$target_container" sh -c \
+      'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqladmin ping -h127.0.0.1 --protocol=TCP -uroot --silent' >/dev/null 2>&1; then
+    ready=1
+    break
+  fi
+  sleep 1
+done
+[[ "$ready" -eq 1 ]] || false
+
+sudo -n gzip -dc "$backup_dir/database.sql.gz" \
+  | sudo -n docker exec -i "$target_container" sh -c \
+      'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot "$1"' sh "$target_database"
+
+failure_code='OPS_RESTORE_FILES_FAILED'
+sudo -n gzip -dc "$backup_dir/php-storage.tar.gz" \
+  | sudo -n docker run --rm --network none -i \
+      --mount "type=bind,source=$target_storage_directory,target=/restore" \
+      --entrypoint tar "$php_image" -xf - -C /restore
+sudo -n gzip -dc "$backup_dir/php-private-storage.tar.gz" \
+  | sudo -n docker run --rm --network none -i \
+      --mount "type=bind,source=$target_private_storage_directory,target=/restore" \
+      --entrypoint tar "$php_image" -xf - -C /restore
+sudo -n gzip -dc "$backup_dir/php-installation.tar.gz" \
+  | sudo -n docker run --rm --network none -i \
+      --mount "type=bind,source=$target_installation_directory,target=/restore" \
+      --entrypoint tar "$php_image" -xf - -C /restore
+sudo -n docker run --rm --network none \
+  --mount "type=bind,source=$target_installation_directory,target=/restore,readonly" \
+  --entrypoint sh "$php_image" -c \
+  'test -f /restore/installed.json && test ! -L /restore/installed.json && test -f /restore/baseline.json && test ! -L /restore/baseline.json'
+
+mysql_scalar() {
+  sudo -n docker exec "$target_container" sh -c \
+    'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -N -B -uroot "$1" -e "$2"' \
+    sh "$target_database" "$1"
+}
+
+failure_code='OPS_RESTORE_SCHEMA_INVALID'
+table_count="$(mysql_scalar "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()")"
+# The restored database uses this APP's native migration configuration.
+# Keep the historical evidence field name for stored results and consumers.
+migration_count_sql="$("${maintenance[@]}" -r '
+require "vendor/autoload.php";
+(new \think\App(getcwd()))->initialize();
+$table = (string) \think\facade\Db::connect()->getConfig("prefix")
+    . (string) \think\facade\Config::get("database.migration_table", "migrations");
+echo "SELECT COUNT(*) FROM `" . str_replace("`", "``", $table) . "`";
+')"
+schema_migration_count="$(mysql_scalar "$migration_count_sql")"
+critical_table_count="$(mysql_scalar "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('pa_account','pa_tenant','pa_tenant_member','pa_role','pa_permission','pa_config')")"
+[[ "$table_count" =~ ^[1-9][0-9]*$ && "$schema_migration_count" =~ ^[1-9][0-9]*$ && "$critical_table_count" == 6 ]] \
+  || false
+
+failure_code='OPS_RESTORE_DATA_INVALID'
+account_count="$(mysql_scalar 'SELECT COUNT(*) FROM pa_account')"
+tenant_count="$(mysql_scalar 'SELECT COUNT(*) FROM pa_tenant')"
+tenant_member_count="$(mysql_scalar 'SELECT COUNT(*) FROM pa_tenant_member')"
+[[ "$account_count" =~ ^[1-9][0-9]*$ && "$tenant_count" =~ ^[1-9][0-9]*$ && "$tenant_member_count" =~ ^[1-9][0-9]*$ ]] \
+  || false
+
+failure_code='OPS_RESTORE_FILES_FAILED'
+storage_metrics="$(sudo -n docker run --rm --network none \
+  --mount "type=bind,source=$target_storage_directory,target=/restore,readonly" \
+  --entrypoint sh "$php_image" -c \
+  'find /restore -type f | wc -l; du -sb /restore | cut -f1')"
+storage_file_count="$(sed -n '1p' <<<"$storage_metrics" | tr -d '[:space:]')"
+storage_bytes="$(sed -n '2p' <<<"$storage_metrics" | tr -d '[:space:]')"
+[[ "$storage_file_count" =~ ^[0-9]+$ && "$storage_bytes" =~ ^[0-9]+$ ]] || false
+private_storage_metrics="$(sudo -n docker run --rm --network none \
+  --mount "type=bind,source=$target_private_storage_directory,target=/restore,readonly" \
+  --entrypoint sh "$php_image" -c \
+  'find /restore -type f | wc -l; du -sb /restore | cut -f1')"
+private_storage_file_count="$(sed -n '1p' <<<"$private_storage_metrics" | tr -d '[:space:]')"
+private_storage_bytes="$(sed -n '2p' <<<"$private_storage_metrics" | tr -d '[:space:]')"
+[[ "$private_storage_file_count" =~ ^[0-9]+$ && "$private_storage_bytes" =~ ^[0-9]+$ ]] || false
+installation_metrics="$(sudo -n docker run --rm --network none \
+  --mount "type=bind,source=$target_installation_directory,target=/restore,readonly" \
+  --entrypoint sh "$php_image" -c \
+  'find /restore -type f | wc -l; du -sb /restore | cut -f1')"
+installation_file_count="$(sed -n '1p' <<<"$installation_metrics" | tr -d '[:space:]')"
+installation_bytes="$(sed -n '2p' <<<"$installation_metrics" | tr -d '[:space:]')"
+[[ "$installation_file_count" =~ ^[0-9]+$ && "$installation_bytes" =~ ^[0-9]+$ ]] || false
+
+failure_code='OPS_RESTORE_ISOLATION_VIOLATION'
+published_port_count="$(sudo -n docker inspect "$target_container" \
+  | jq '[.[0].NetworkSettings.Ports // {} | to_entries[] | select(.value != null)] | length')"
+[[ "$published_port_count" == 0 ]] || false
+
+verified_at="$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)"
+
+failure_code='OPS_RESTORE_CLEANUP_FAILED'
+sudo -n docker rm -f "$target_container" >/dev/null
+sudo -n docker network rm "$target_network" >/dev/null
+sudo -n rm -rf -- "$target_root"
+[[ ! -e "$target_root" ]] || false
+! sudo -n docker container inspect "$target_container" >/dev/null 2>&1 || false
+! sudo -n docker network inspect "$target_network" >/dev/null 2>&1 || false
+
+protected_after_sha256="$(protected_runtime_identity | sort | sha256sum | awk '{print $1}')"
+[[ "$protected_after_sha256" == "$protected_before_sha256" ]] \
+  || { failure_code='OPS_RESTORE_ISOLATION_VIOLATION'; false; }
+
+evidence_json="$(jq -c -n \
+  --arg backup_reference_key "$backup_reference_key" \
+  --arg manifest_sha256 "$manifest_sha256" \
+  --arg source_commit "$source_commit" \
+  --arg source_tree "$source_tree" \
+  --arg target_deployment "$(jq -r .stable_resource_id <<<"$target_json")" \
+  --arg target_database_resource "$(jq -r .stable_resource_id <<<"$target_database_json")" \
+  --arg target_runtime_resource "$(jq -r .stable_resource_id <<<"$target_runtime_json")" \
+  --arg project "$target_project" --arg database "$target_database" \
+  --argjson table_count "$table_count" \
+  --argjson schema_migration_count "$schema_migration_count" \
+  --argjson critical_table_count "$critical_table_count" \
+  --argjson account_count "$account_count" \
+  --argjson tenant_count "$tenant_count" \
+  --argjson tenant_member_count "$tenant_member_count" \
+  --argjson storage_file_count "$storage_file_count" \
+  --argjson storage_bytes "$storage_bytes" \
+  --argjson private_storage_file_count "$private_storage_file_count" \
+  --argjson private_storage_bytes "$private_storage_bytes" \
+  --argjson installation_file_count "$installation_file_count" \
+  --argjson installation_bytes "$installation_bytes" \
+  --argjson published_port_count "$published_port_count" \
+  --arg protected_before_sha256 "$protected_before_sha256" \
+  --arg protected_after_sha256 "$protected_after_sha256" \
+  --arg verified_at "$verified_at" \
+  '{schema_version:4,backup_reference_key:$backup_reference_key,
+    provider_key:"peanut.paired-db-files",target_key:"isolated-new-target",
+    manifest_sha256:$manifest_sha256,source:{commit:$source_commit,tree:$source_tree},
+    target:{deployment_resource_id:$target_deployment,database_resource_id:$target_database_resource,
+      runtime_resource_id:$target_runtime_resource,compose_project:$project,database_name:$database,
+      public_storage_directory:"server/public",private_storage_directory:"server/private/storage",
+      installation_directory:"server/private/installation"},
+    verification:{table_count:$table_count,schema_migration_count:$schema_migration_count,
+      critical_table_count:$critical_table_count,account_count:$account_count,
+      tenant_count:$tenant_count,tenant_member_count:$tenant_member_count,
+      storage_file_count:$storage_file_count,storage_bytes:$storage_bytes,
+      private_storage_file_count:$private_storage_file_count,private_storage_bytes:$private_storage_bytes,
+      installation_file_count:$installation_file_count,installation_bytes:$installation_bytes},
+    isolation:{published_port_count:$published_port_count,
+      protected_runtime_before_sha256:$protected_before_sha256,
+      protected_runtime_after_sha256:$protected_after_sha256},
+    cleanup_state:"removed",verified_at:$verified_at}')"
+
+stop_heartbeat
+printf '%s' "$evidence_json" \
+  | "${think[@]}" succeed --task-key "$task_key" --revision "$execution_revision" >/dev/null
+trap - ERR INT TERM
+printf 'ops-restore-worker: succeeded task=%s backup_reference=%s\n' \
+  "$task_key" "$backup_reference_key"

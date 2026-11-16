@@ -22,7 +22,7 @@ Provider、事件/命令、套餐与许可证、HTTP/CLI/Task 上下文及安装
 | 能力 | Core 保留/提供 | 应用层持有 | 复用与重写方式、真实入口 |
 | --- | --- | --- | --- |
 | 配置、容器、生命周期 | 模块 Provider 协议和绑定合同校验 | 宿主装配、模块实现及启用来源 | ThinkPHP 原生配置/容器；`app/provider.php`、`AppService`、`common/composition/ModuleComposition` |
-| 密码 | `Identity/PasswordPolicy` 默认 6～1024 UTF-8 字节；`PasswordHasher` 的 Argon2id hash/verify/needsRehash | 创建/改密/重置的身份业务与事务；演示账号的固定/锁定规则 | `peanut.password` 配置新密码上下限；分别绑定策略和散列实现；安装、Identity、Member 共用注入服务 |
+| 密码 | `Identity/PasswordPolicy` 默认 6～32 UTF-8 字节，四项复杂度要求默认关闭；`PasswordHasher` 的 Argon2id hash/verify/needsRehash | 创建/改密/重置的身份业务与事务；演示账号的固定/锁定规则 | `peanut.password` 配置新密码上下限和复杂度；分别绑定策略和散列实现；安装、Identity、Member 共用注入服务 |
 | 时钟、令牌 | `Auth/Clock`、UTC 默认 `SystemClock`、安全 `TokenIssuer` | 认证安全域、会话记录、撤销、TTL 业务 | 原生绑定；Tenant/Platform Auth、EffectiveAccessPreview、EntitlementQuota 消费注入对象；替换保持时间/令牌合同 |
 | 身份/权限 | 可信类型、授权原语、revision cache、Scope | 账号/组织/角色/凭据/会话完整业务 | Identity ModuleProvider；可替换实现不能取消租户、权限、撤销和拒绝优先语义 |
 | ORM、事务 | `TenantModel`、租户持久化/Scope 原语 | 业务 Model、表、迁移和最外层用例事务 | Think ORM 原生 Model/query/transaction；不提取逐表 CRUD Repository 到 Core |
@@ -43,7 +43,14 @@ Provider、事件/命令、套餐与许可证、HTTP/CLI/Task 上下文及安装
 默认安装不需要自定义类。`server/config/peanut.php` 的 `password` 默认空数组，由 Core 提供缺省值。应用加强要求可使用：
 
 ```php
-'password' => ['minimum_length' => 12, 'maximum_length' => 128],
+'password' => [
+    'minimum_length' => 6,
+    'maximum_length' => 32,
+    'require_uppercase' => false,
+    'require_lowercase' => false,
+    'require_digit' => false,
+    'require_special' => false,
+],
 ```
 
 边界必须是整数，最小值至少 1，最大值不能小于最小值或超过散列技术输入上限 4096 字节；无效配置报错，不静默改回默认值。默认上限仍为 1024。技术输入上限用于限制散列/验证输入成本，独立于新密码策略，参考 Symfony PasswordHasher 的输入长度保护。单位是 UTF-8 字节，PHP 使用 `strlen`，客户端使用 UTF-8 编码后的字节数。中文/emoji 的字符数不能代替字节数。
@@ -69,7 +76,7 @@ Web Core 包有公开合同不等于每个产品宿主都已接入；确认某�
 
 新凭据写入（安装 CLI/guided、管理员/Platform 操作员/租户 owner、邀请接受、会员注册/重置/改密）执行同一个有效策略，再用注入散列服务生成摘要。登录和既有摘要重算只消费散列服务；提高最小长度不能把已有凭据变成无法验证。身份、权限、会话撤销、事务及完整性保护仍由原业务合同负责。
 
-`GET /installapi/password-policy` 在安装前后返回当前注入策略的 `minimum_length`、`maximum_length` 和 `length_unit: utf8_bytes`，只暴露公开限制。Web/PC/UniApp 新密码表单使用有效策略；读取失败显示错误并阻止提交，没有写死的备用上下限。HTTP/SDK metadata 不再用 JSON Schema 的字符长度宣称运行时字节限制。
+`GET /installapi/password-policy` 在安装前后返回当前注入策略的 `minimum_length`、`maximum_length`、`length_unit: utf8_bytes` 和四个 `require_*` 布尔开关，只暴露公开要求。上下限可按应用配置覆盖（最大不超过散列实现允许的输入字节数）；全部开关关闭时，6～32 字节内的纯数字密码可用。开启对应开关后才要求至少一个 ASCII 大写字母 A-Z、小写字母 a-z、数字 0-9 或可打印 ASCII 标点（U+0021–002F、U+003A–0040、U+005B–0060、U+007B–007E；不含空格）。其他字符仍可使用，但不满足这些 ASCII 类别。Web/PC/UniApp 新密码表单使用有效策略；读取失败显示错误并阻止提交，没有写死的备用上下限。既有密码的登录验证不受新密码策略影响。HTTP/SDK metadata 不用 JSON Schema 的字符长度宣称运行时字节限制。自定义策略同时通过 `requirements()` 暴露实际复杂度要求。
 
 应用自有绑定、类及配置处于应用仓，Core 升级不直接改这些源码。若官方应用更新也触及自定义文件，沿既有基线摘要/冲突审阅流程处理，不能用升级覆盖定制。新依赖以 Composer manifest/lock 的固定源码提交为准；开发 `dev-dev#<commit>` 不是正式包发布。PHP 固定开发源码与 Web 已锁定 registry 制品可以独立组合，公开发行打包仍由 `scripts/package-release-files.py` 要求精确已发布 PHP 版本。历史发行快照与已安装实例不会因 dev 修改自动更新。
 

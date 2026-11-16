@@ -22,6 +22,10 @@ export interface ModuleApiOperations {
   documentRevisionCommentReply: paths['/adminapi/peanut.document.comment.reply']['post'];
   documentRevisionCommentResolve: paths['/adminapi/peanut.document.comment.resolve']['post'];
   documentRevisionCommentReopen: paths['/adminapi/peanut.document.comment.reopen']['post'];
+  documentRevisionSuggestionCreate: paths['/adminapi/peanut.document.suggestion.create']['post'];
+  documentRevisionSuggestionAccept: paths['/adminapi/peanut.document.suggestion.accept']['post'];
+  documentRevisionSuggestionReject: paths['/adminapi/peanut.document.suggestion.reject']['post'];
+  documentChanges: paths['/adminapi/peanut.document.changes']['get'];
 }
 
 export function createModuleApi(client: Client<paths>) {
@@ -45,6 +49,10 @@ export function createModuleApi(client: Client<paths>) {
     documentRevisionCommentReply: pathClient['/adminapi/peanut.document.comment.reply'].POST,
     documentRevisionCommentResolve: pathClient['/adminapi/peanut.document.comment.resolve'].POST,
     documentRevisionCommentReopen: pathClient['/adminapi/peanut.document.comment.reopen'].POST,
+    documentRevisionSuggestionCreate: pathClient['/adminapi/peanut.document.suggestion.create'].POST,
+    documentRevisionSuggestionAccept: pathClient['/adminapi/peanut.document.suggestion.accept'].POST,
+    documentRevisionSuggestionReject: pathClient['/adminapi/peanut.document.suggestion.reject'].POST,
+    documentChanges: pathClient['/adminapi/peanut.document.changes'].GET,
   };
 }
 

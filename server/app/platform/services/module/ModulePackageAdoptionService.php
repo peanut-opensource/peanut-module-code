@@ -6,7 +6,9 @@ namespace app\platform\services\module;
 
 use app\platform\exception\module\ModulePackageException;
 use app\platform\infrastructure\module\ModuleLockResolver;
+use app\platform\infrastructure\module\ModuleArtifactWriter;
 use app\platform\infrastructure\module\ModulePackageSourcePromoter;
+use app\platform\exception\module\ModuleLifecycleException;
 use app\common\module\PackageCheck;
 use app\common\module\ModuleMigrationRun;
 use PeanutAdmin\Kernel\Module\ManifestLoader;
@@ -26,7 +28,7 @@ final readonly class ModulePackageAdoptionService
         return $promoter->run(fn(): array => $promoter->recover());
     }
 
-    /** MT pre-install composition uses the existing archive verifier, source writer and recovery journal. */
+    /** Edition-bound pre-install composition reuses the existing source writer and recovery journal. */
     public function compose(array $request, ?string $approvedPlanSha256 = null): array
     {
         $this->development();
@@ -38,11 +40,12 @@ final readonly class ModulePackageAdoptionService
     private function compositionPlan(array $request, ModulePackageSourcePromoter $promoter, ?string $approvedSha): array
     {
         $root = dirname($this->serverRoot);
+        $edition = $request['edition'] ?? null;
         if (($request['schema_version'] ?? null) !== 1
             || ($request['protocol'] ?? null) !== 'peanut.module-source-composition-request.v1'
-            || ($request['edition'] ?? null) !== 'multi-tenant'
-            || (string) \think\facade\Config::get('deployment.mode', '') !== 'multi-tenant') {
-            throw new ModulePackageException('MODULE_COMPOSITION_REQUEST_INVALID', 'Composition requires an explicit MT request and MT host.');
+            || !in_array($edition, ['standalone', 'multi-tenant'], true)
+            || (string) \think\facade\Config::get('deployment.mode', '') !== $edition) {
+            throw new ModulePackageException('MODULE_COMPOSITION_REQUEST_INVALID', 'Composition requires the exact supported Edition of the uninstalled Host.');
         }
         foreach (['private/installation/installed.json', 'private/installation/executing.json',
             'runtime/installation/installed.json', 'runtime/installation/executing.json'] as $marker) {
@@ -212,7 +215,7 @@ final readonly class ModulePackageAdoptionService
                         $action = ($selected[$key] ?? null) === 'retain-higher' ? 'retain-higher' : 'retain';
                         $archiveSha = $promoter->pinnedArchiveSha($key, $current[$key]->version, $current[$key]->source['sha256']);
                     }
-                    PackageCheck::assertEdition($manifest->root, 'multi-tenant');
+                    PackageCheck::assertEdition($manifest->root, $edition);
                     $composer = json_decode((string) file_get_contents($manifest->root . '/composer.json'), true, 512, JSON_THROW_ON_ERROR);
                     PackageCheck::assertComposerRequirements(array_filter(
                         $composer['require'] ?? [],
@@ -279,7 +282,7 @@ final readonly class ModulePackageAdoptionService
             }
             ksort($writes, SORT_STRING);
             $plan = ['schema_version' => 1, 'protocol' => 'peanut.module-source-composition-plan.v1',
-                'status' => $diagnostics === [] ? 'ready' : 'blocked', 'edition' => 'multi-tenant', 'roots' => $roots,
+                'status' => $diagnostics === [] ? 'ready' : 'blocked', 'edition' => $edition, 'roots' => $roots,
                 'composition' => ['version' => $composition['version'], 'sha256' => $compositionSha, 'preset' => $request['preset']],
                 'index' => array_intersect_key($identity, array_flip(['repository', 'tag', 'commit', 'sha256'])),
                 'kernel_version' => $kernel, 'host_composer_sha256' => hash_file('sha256', $this->serverRoot . '/composer.json'),
@@ -312,7 +315,7 @@ final readonly class ModulePackageAdoptionService
     }
 
     /** Verify the transport digest and any explicitly selected signature before a source-only transaction. */
-    public function adopt(string $archivePath, ?string $expectedSha256, ?string $signatureKeyId, ?string $expectedOfficialKey = null): array
+    public function adopt(string $archivePath, ?string $expectedSha256, ?string $signatureKeyId, ?string $expectedOfficialKey = null, bool $replaceLocalSource = false): array
     {
         $this->development();
         if (!is_string($expectedSha256) || preg_match('/^[a-f0-9]{64}$/D', $expectedSha256) !== 1) {
@@ -326,10 +329,12 @@ final readonly class ModulePackageAdoptionService
             throw new ModulePackageException('MODULE_PACKAGE_OFFICIAL_SOURCE_UNTRUSTED', 'Official adoption requires an exact namespaced Module identity.');
         }
         $promoter = new ModulePackageSourcePromoter($this->serverRoot);
-        return $promoter->run(function () use ($promoter, $archivePath, $expectedSha256, $signatureKeyId, $expectedOfficialKey): array {
+        return $promoter->run(function () use ($promoter, $archivePath, $expectedSha256, $signatureKeyId, $expectedOfficialKey, $replaceLocalSource): array {
             $recovery = $promoter->recover();
             $lockPath = dirname($this->serverRoot) . '/modules.lock';
-            $current = is_file($lockPath) ? (new ModuleLockResolver($this->serverRoot, $lockPath))->all() : [];
+            // Existing development source may contain reviewed fixes; runtime declarations do not attest old archive bytes.
+            // The incoming archive below still receives the complete native source verification.
+            $current = is_file($lockPath) ? ModuleLockResolver::forRuntime($this->serverRoot, $lockPath)->all() : [];
             $versions = [];
             foreach ($current as $descriptor) {
                 foreach ($descriptor->trust['compatibility']['modules'] as $module) {
@@ -360,6 +365,7 @@ final readonly class ModulePackageAdoptionService
                     }
                 }
                 $previous = $current[$package->packageKey] ?? null;
+                $localSourceMatches = true;
                 if ($previous !== null) {
                     $before = array_keys($previous->moduleRoots);
                     $after = array_keys($package->modules);
@@ -381,6 +387,14 @@ final readonly class ModulePackageAdoptionService
                         if ($pinnedArchive === null || !hash_equals($pinnedArchive, $package->archiveSha256)) {
                             throw new ModulePackageException('PACKAGE_VERSION_IDENTITY_CONFLICT', 'Same-version official archive identity cannot be verified.');
                         }
+                    }
+                    $local = (new ModuleArtifactWriter($this->serverRoot))->build($previous->key, $previous->version,
+                        [$previous->key . '=' . dirname($package->manifestRelative)]);
+                    $localSourceMatches = ($previous->source['type'] !== 'canonical-contents'
+                        || hash_equals($previous->source['sha256'], $local['source']['sha256']))
+                        && $previous->npm === $local['npm'] && $previous->frontend === $local['frontend'];
+                    if (!$localSourceMatches && !$replaceLocalSource) {
+                        throw new ModuleLifecycleException('PLUGIN_ARTIFACT_MISMATCH', 'Selected local source differs; review it before using --replace-local-source.');
                     }
                 }
                 $routes = [];
@@ -418,7 +432,7 @@ final readonly class ModulePackageAdoptionService
                 $entries[$package->packageKey] = $incoming;
                 ksort($entries, SORT_STRING);
                 $next['modules'] = array_values($entries);
-                $unchanged = $previous !== null && $previous->version === $package->packageVersion;
+                $unchanged = $previous !== null && $previous->version === $package->packageVersion && $localSourceMatches;
                 if (!$unchanged) {
                     $promoter->promote($package, json_encode($next, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n", $previous);
                 }

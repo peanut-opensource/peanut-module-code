@@ -66,6 +66,7 @@ export default {
   'systemAdmin.field.roles': '角色',
   'systemAdmin.field.roles.placeholder': '请选择角色',
   'systemAdmin.field.roles.required': '请选择角色',
+  'systemAdmin.field.roles.ownerFixed': '租户所有者角色不可移除；保留该角色后，可追加或撤销其他业务角色。',
   'systemAdmin.field.password': '密码',
   'systemAdmin.field.password.addPlaceholder': '请输入密码',
   'systemAdmin.field.password.editPlaceholder': '留空表示不修改密码',

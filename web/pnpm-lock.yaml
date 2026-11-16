@@ -29,17 +29,17 @@ importers:
         specifier: 2.3.2
         version: 2.3.2(vue@3.5.40(typescript@5.9.3))
       '@peanut-admin/client':
-        specifier: 5.1.0
-        version: 5.1.0
+        specifier: 5.1.2
+        version: 5.1.2
       '@peanut-admin/peanut-chart':
         specifier: workspace:^1.0.0
         version: link:src/modules/peanut-chart
       '@peanut-admin/ui-vue':
-        specifier: 5.1.0
-        version: 5.1.0(@peanut-admin/vue@5.1.0(@peanut-admin/client@5.1.0)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
+        specifier: 5.1.2
+        version: 5.1.2(@peanut-admin/vue@5.1.2(@peanut-admin/client@5.1.2)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
       '@peanut-admin/vue':
-        specifier: 5.1.0
-        version: 5.1.0(@peanut-admin/client@5.1.0)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
+        specifier: 5.1.2
+        version: 5.1.2(@peanut-admin/client@5.1.2)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
       '@vueuse/core':
         specifier: ^9.3.0
         version: 9.13.0(vue@3.5.40(typescript@5.9.3))
@@ -789,23 +789,23 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@peanut-admin/client@5.1.0':
-    resolution: {integrity: sha512-dCULPj0M36T9tLdr8CuFa++EpiDHAdp7JPCF7afGXYI7GskT3uKxL2e7CLe4k8T79QEctcdxQuFmgYDU6ZOafA==}
+  '@peanut-admin/client@5.1.2':
+    resolution: {integrity: sha512-9uFsiIHH7ywqzGdQEJlQlKejyDBWRkFxmHLwdidNlKtXc1BbkLXhgycGq2nrSJUcj6XSChPBscWNrGlvPIvrbw==}
     engines: {node: '>=22.12.0 <23'}
 
-  '@peanut-admin/ui-vue@5.1.0':
-    resolution: {integrity: sha512-TpQwYxndXWXpbpMIW489rEe4XAVg0HhfTkVp6rYLKnxFmw96uV3+u7O4dswAXedazmmgC4V/01E0FbSNxFOX1g==}
+  '@peanut-admin/ui-vue@5.1.2':
+    resolution: {integrity: sha512-y0xL4+SjVDRRbwbSc0WO/+9fjM1oSLMH0A605bpQA3gnZ/IkxrXPGYVJEyOfgK/H79U8YF/46n0FXKONXVwMzA==}
     engines: {node: '>=22.12.0 <23'}
     peerDependencies:
-      '@peanut-admin/vue': 5.1.0
+      '@peanut-admin/vue': 5.1.2
       element-plus: ^2.14.3
       vue: ^3.4.21
 
-  '@peanut-admin/vue@5.1.0':
-    resolution: {integrity: sha512-oL0YTM0Ww6Qe/h2m4tBZ878cLaffvUBa6GeBz3LBSvSCY/GFmb6PuOsLzktuhiWnQqKb+gLPi+Rv36KtYA+hkg==}
+  '@peanut-admin/vue@5.1.2':
+    resolution: {integrity: sha512-xwraz/kiglDOjODuhZ1XK/RLB0fE1o/fhW4+q+tu7ss+wvqRMEWFq9FmuWecBL23r6zHUq9wZ7G+qeMftjLTtg==}
     engines: {node: '>=22.12.0 <23'}
     peerDependencies:
-      '@peanut-admin/client': 5.1.0
+      '@peanut-admin/client': 5.1.2
       pinia: '>=2.0.23 <5'
       vue: ^3.4.21
 
@@ -1094,6 +1094,7 @@ packages:
 
   '@tiptap/y-tiptap@3.0.12':
     resolution: {integrity: sha512-MlmBpmm4xiRDZmk4hiwnjScOrUtiEBYwqeJBvrDil30Eq1GqrZEox1mciBpOnnpfN731fH07OPeGS7uHryPX0g==}
+    deprecated: Persistent position migrations can cause excessive collaborative document growth. Upgrade all collaborating clients to 3.1.0 or later.
     peerDependencies:
       prosemirror-model: ^1.7.1
       prosemirror-state: ^1.2.3
@@ -4465,17 +4466,17 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@peanut-admin/client@5.1.0': {}
+  '@peanut-admin/client@5.1.2': {}
 
-  '@peanut-admin/ui-vue@5.1.0(@peanut-admin/vue@5.1.0(@peanut-admin/client@5.1.0)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
+  '@peanut-admin/ui-vue@5.1.2(@peanut-admin/vue@5.1.2(@peanut-admin/client@5.1.2)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
     dependencies:
-      '@peanut-admin/vue': 5.1.0(@peanut-admin/client@5.1.0)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
+      '@peanut-admin/vue': 5.1.2(@peanut-admin/client@5.1.2)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
       element-plus: 2.14.3(vue@3.5.40(typescript@5.9.3))
       vue: 3.5.40(typescript@5.9.3)
 
-  '@peanut-admin/vue@5.1.0(@peanut-admin/client@5.1.0)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
+  '@peanut-admin/vue@5.1.2(@peanut-admin/client@5.1.2)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
     dependencies:
-      '@peanut-admin/client': 5.1.0
+      '@peanut-admin/client': 5.1.2
       pinia: 2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3))
       vue: 3.5.40(typescript@5.9.3)
 

@@ -8,7 +8,7 @@
 
 模块包至少应声明负责人、版本、依赖、兼容产品范围、迁移、权限、菜单与客户端贡献。安装前核验可信来源、许可、归档摘要及逐文件清单。当前实现允许可信外部SHA-256作为来源证明；签名是另一个可选的可信证明分支，不要求每个模块作者配置私钥。没有可信摘要或有效签名时拒绝。PHP模块在应用进程内运行，不是安全沙箱；普通租户不能上传任意PHP、Shell、类名或路径执行。
 
-模块自己的 `composer.json` 依赖也必须与目标应用相容；宿主的 Composer 安装成功，不代表其未参与依赖解析的模块声明已经验证。源码联合开发可沿用当前开发 Core，发行构建则需在隔离副本中同步宿主和模块的实际发布依赖，再用原生包管理器验证。源码接收返回 `source_declarations`、`dependencies_installed=false` 和后续待办，只表示源码已采用。完整安装/升级共用原生依赖执行：Composer 将模块作为 path 包参与宿主求解，模块开发依赖由原生开发 metapackage 参与；Web 使用 pnpm workspace，其余端使用 npm workspace，保留各依赖类别。原生失败阻止整体可用并保留原因、退出码及恢复状态。
+模块自己的 `composer.json` 依赖也必须与目标应用相容；宿主的 Composer 安装成功，不代表其未参与依赖解析的模块声明已经验证。`module.json` 与 Composer 的版本约束使用 Composer SemVer 语义，按实际使用的公开 API 声明最低所需版本与兼容范围。稳定 `1.x` 合同可用 `^1.0.1` 表达至少 `1.0.1`、小于 `2.0.0` 的兼容版本，不逐个枚举补丁；真实不兼容的公开 API 变更须升 major，再由消费者适配约束，不能把所有依赖无条件改成 caret。约束声明兼容范围，实际采用仍由审阅的固定归档、`modules.lock` 与 `composer.lock` 锁定。源码联合开发可沿用当前开发 Core，发行构建则需在隔离副本中同步宿主和模块的实际发布依赖，再用原生包管理器验证。源码接收返回 `source_declarations`、`dependencies_installed=false` 和后续待办，只表示源码已采用。完整安装/升级共用原生依赖执行：Composer 将模块作为 path 包参与宿主求解，模块开发依赖由原生开发 metapackage 参与；Web 使用 pnpm workspace，其余端使用 npm workspace，保留各依赖类别。原生失败阻止整体可用并保留原因、退出码及恢复状态。
 
 打包收集模块后端及已声明客户端的完整源码与资源，包括生成的 API 声明；递归前跳过 `vendor`、`node_modules`、`.cache`、`.vite`、`.nuxt`、`.output`、`.next`、`.turbo`、`.parcel-cache`、`coverage`、`tmp`、`temp` 和 `unpackage` 目录。普通 `build`、`dist` 目录可能被源码、包入口或资源引用，因此保留。作者无需为打包删除本地依赖；路径越界、符号链接、环境配置和凭据仍拒绝交付。
 
@@ -67,6 +67,10 @@ Identity 升级若变更核心权限目录，升级完成后须在新的 CLI 进
 普通平台、租户 access token 认证从主库无锁读取当前会话及身份状态，不为正常读取锁住租户、账号和会话行。失效会话的撤销先在事务中加锁复核；刷新、登出、切换租户等写操作及既有事务内的认证继续使用加锁路径。租户后台 Login 与 Auth 中间件通过 ThinkPHP Request 内部存储传递一次已装载的身份，权限中间件消费后清除；身份不进入跨请求缓存。业务用例的 `decide()` 和授权操作仍重新核对当前身份，不复用这一中间件传递记录。
 
 包作者通过可信渠道交付archive和SHA-256，不能把未知包旁自行计算的摘要当作可信来源。当消费者业务代码已经引用新版官方模块接口、旧版模块装配无法启动时，可先由应用部署 owner 使用 `peanut module adopt <archive> --sha256=<从官方可信渠道独立核实的SHA-256> --official-key=peanut.identity`（按真实模块 key 替换示例）执行无数据库源码采用。该显式身份绑定只接受 `peanut.*`／`official.*` 的 canonical repository-contents 制品；不能以包内自报的摘要、随意计算的摘要或 `--official-key` 本身证明官方发行来源。对于同版官方制品，原生采用器同时核对已有源码事务回执固定的发行包 SHA；即使源码内容相同，重新签名导致归档 SHA 不同仍拒绝。既有源码来自脚手架但尚无官方归档回执时，不将同版本归档标为已采用，应等正式下一版本或按官方生命周期选择正确路径。私有模块保留原 `adopt` 用法，官方来源必须由操作员另行核对发行渠道与固定SHA。采用只更新经过验证的模块源码与 `modules.lock`，保留事务恢复句柄，返回 `runtime_activation=not-verified`、`reconciliation_status=pending`，不声称数据库已迁移、已激活或租户获得授权。后续按原生 `module lock --write`（仅在声明确实需要重新派生时）、依赖准备、API生成／编译及 `reconcile --selected-installed=<key>` 的现行步骤完成生命周期；错误恢复使用原生 `peanut module adopt --recover`，不能重新下载并重放不明事务。
+
+单包 `adopt` 用现有运行时声明解析旧锁，仍核对模块声明与 Composer 身份；锁内 npm／frontend 身份保持关联校验，但不重新验证未选模块的前端文件或整棵源码摘要。它允许未选模块保留已审开发修复，不证明这些旧文件仍等于原归档，也不重写它们的锁身份。入包始终执行完整归档、inventory、源码及 npm／frontend 字节验证。
+
+选中模块仍默认核对其实际源码；存在本地差异时拒绝替换。只有操作者已审阅选中模块的完整写集、确认目标归档包含应保留的定制，或明确决定替换这些差异后，才在该次单包 `adopt` 增加 `--replace-local-source`。此选项不接受 composition 或 recovery，不绕过声明、Composer、来源 SHA、官方身份或同版本归档限制；它授权用已验证归档替换选中源码，不执行三方合并。原生事务保存实际旧目录的 before-image、锁前后摘要与 next.lock，支持原事务前向恢复；备份不代表定制仍在当前源码中。未选模块保持原样；恢复继续使用原事务的 `adopt --recover`，不重复选择替换。
 
 `peanut module install <archive> --sha256=<trusted-64-hex>`是已知Standalone / multi-tenant实例的本地开发或调试Runtime安装入口；它不创建租户、开通TenantModule或授予RBAC。确需签名时，打包同时提供`--signing-key-id`和`--signing-secret-key-file`，安装可显式要求`--signature-key-id`；既有签名不被无条件忽略。生产模块交付仍走该版本支持的受控入口，不允许普通租户自行上传和运行PHP。
 
