@@ -29,7 +29,11 @@ export type DocumentBusinessOperation =
   components['schemas']['DocumentBusinessOperationResponse']['data'];
 export type DocumentBusinessResult =
   components['schemas']['DocumentBusinessResult'];
-export type DocumentBusinessAction = DocumentBusinessOperation['action'];
+/** Suggestion decisions belong to their dedicated review UI, not the general toolbar. */
+export type DocumentBusinessAction = Exclude<
+  DocumentBusinessOperation['action'],
+  'suggestion.accept'
+>;
 export type DocumentSoloBusinessReceipt =
   | components['schemas']['DocumentVersionResponse']['data']
   | components['schemas']['DocumentMetadataResponse']['data'];
