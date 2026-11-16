@@ -10,7 +10,7 @@ final class DocumentRevisionSuggestions extends Migrator
 {
     public function up(): void
     {
-        $thread = $this->table('pa_document_comment_thread');
+        $thread = $this->table('document_comment_thread');
         if (!$thread->hasColumn('candidate_json')) {
             $thread->addColumn('candidate_json', 'json', ['null' => true])
                 ->addColumn('candidate_sha256', 'char', ['limit' => 64, 'null' => true])
@@ -24,7 +24,7 @@ final class DocumentRevisionSuggestions extends Migrator
         }
         $this->execute("ALTER TABLE pa_document_comment_message DROP CHECK chk_document_comment_message_action, ADD CONSTRAINT chk_document_comment_message_action CHECK ((action IN ('create','reply','suggest') AND body IS NOT NULL) OR (action IN ('resolve','reopen','accept','reject') AND body IS NULL))");
         $this->execute("ALTER TABLE pa_document_comment_thread DROP CHECK chk_document_comment_range, ADD CONSTRAINT chk_document_comment_range CHECK (end_offset > start_offset OR (candidate_json IS NOT NULL AND start_offset = 0 AND end_offset = 0 AND quote_text = ''))");
-        if (!$this->hasTable('pa_document_change')) {
+        if (!$this->hasTable('document_change')) {
             $this->execute(<<<'SQL'
 CREATE TABLE pa_document_change (
  id bigint unsigned NOT NULL AUTO_INCREMENT,
