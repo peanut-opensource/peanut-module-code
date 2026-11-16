@@ -1,5 +1,5 @@
 <template>
-  <PageContent>
+  <PageContent class="pa-page-stack">
     <PageHeader>
       <h1>{{ recycled ? '文章回收站' : $t('menu.article.list') }}</h1>
       <template #actions>
@@ -75,12 +75,16 @@
           >
         </el-form>
       </PageToolbar>
-      <div class="pa-page-results-toolbar">
-        <div
-          ><strong>{{ recycled ? '回收站' : '文章列表' }}</strong> ·
-          {{ pagination.total }} 条
-          <span v-if="selected.length"
-            >（已选 {{ selected.length }} 条）</span
+    </el-card>
+    <el-card class="general-card">
+      <div class="pa-page-results-toolbar pa-page-results-toolbar--standalone">
+        <div class="pa-page-results-title"
+          ><h2>{{ recycled ? '回收站' : '文章列表' }}</h2
+          ><span>
+            {{ pagination.total }} 条
+            <span v-if="selected.length"
+              >（已选 {{ selected.length }} 条）</span
+            ></span
           ></div
         >
         <el-space wrap>
@@ -100,7 +104,9 @@
           >
           <el-button
             v-if="can(listPermission)"
-            :disabled="loading || articleAction.loading.value"
+            :disabled="
+              loading || articleAction.loading.value || !appliedFilters
+            "
             @click="openExport"
             >导出</el-button
           >
@@ -155,11 +161,12 @@
         >
       </el-alert>
       <el-table
+        class="pa-page-table"
         v-loading="loading"
         row-key="id"
         :data="renderData"
         border
-        max-height="calc(100dvh - 380px)"
+        max-height="max(240px, calc(100dvh - 380px))"
         scrollbar-tabindex="0"
         :aria-label="$t('article.table.accessibleName')"
         @selection-change="selected = $event"
@@ -636,21 +643,14 @@
       ? visibleColumns.value.filter((item) => item !== column)
       : [...visibleColumns.value, column];
   };
+  const appliedFilters = ref<ArticleListParams>();
   const exportVisible = ref(false);
   const exportInfo = ref<ArticleExportInfo>();
   const exportRange = reactive({ page_start: 1, page_end: 1 });
-  const filterParams = (): ArticleListParams => ({
-    title: formModel.value.title || undefined,
-    cid: formModel.value.cid === '' ? undefined : formModel.value.cid,
-    is_show:
-      formModel.value.is_show === '' ? undefined : formModel.value.is_show,
-    page_size: pagination.pageSize,
-    page_type: 1,
-  });
   const openExport = async () => {
-    if (!can(listPermission.value)) return;
+    if (!can(listPermission.value) || !appliedFilters.value) return;
     const result = await articleAction.run(() =>
-      getArticleExportInfo(filterParams(), recycled.value)
+      getArticleExportInfo(appliedFilters.value, recycled.value)
     );
     if (result.status !== 'completed') return;
     exportInfo.value = result.data.data;
@@ -662,9 +662,12 @@
     exportVisible.value = true;
   };
   const downloadExport = async () => {
-    if (!can(listPermission.value)) return;
+    if (!can(listPermission.value) || !appliedFilters.value) return;
     const result = await articleAction.run(() =>
-      exportArticles({ ...filterParams(), ...exportRange }, recycled.value)
+      exportArticles(
+        { ...appliedFilters.value, ...exportRange },
+        recycled.value
+      )
     );
     if (result.status !== 'completed') return;
     const anchor = document.createElement('a');
@@ -676,6 +679,12 @@
   const switchList = () => {
     if (!recycled.value && !can('peanut.article.recycle.list')) return;
     recycled.value = !recycled.value;
+    renderData.value = [];
+    selected.value = [];
+    pagination.total = 0;
+    pagination.current = 1;
+    appliedFilters.value = undefined;
+    exportVisible.value = false;
     batchResult.value = undefined;
     fetchData(1);
   };
@@ -900,12 +909,12 @@
       );
       if (!active(controller, key)) return;
       renderData.value = data.lists;
+      appliedFilters.value = { ...params, page_no: undefined };
       pagination.current = data.pageNo;
       pagination.pageSize = data.pageSize;
       pagination.total = data.count;
     } catch (error) {
       if (active(controller, key)) {
-        renderData.value = [];
         listError.value =
           error instanceof Error ? error.message : t('article.error.request');
       }
@@ -1205,6 +1214,7 @@
       batchResult.value = undefined;
       exportVisible.value = false;
       recycled.value = false;
+      appliedFilters.value = undefined;
       cateOptions.value = [];
       formModel.value = generateFormModel();
       pagination.current = 1;

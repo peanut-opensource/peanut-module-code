@@ -106,13 +106,15 @@
 </script>
 
 <template>
-  <PageContent>
-    <PageHeader
-      ><h1>{{ t('importExport.title') }}</h1
-      ><template #description>{{
-        t('importExport.description')
-      }}</template></PageHeader
-    >
+  <PageContent class="pa-page-stack">
+    <PageHeader>
+      <div
+        ><h1>{{ t('importExport.title') }}</h1
+        ><p class="pa-page-header__description">{{
+          t('importExport.description')
+        }}</p></div
+      >
+    </PageHeader>
     <ElCard class="general-card" shadow="never">
       <ElCollapse v-if="canCreate">
         <ElCollapseItem name="create" title="高级任务提交">
@@ -192,7 +194,10 @@
         ></ElForm>
       </PageToolbar>
       <div class="pa-page-results-toolbar">
-        <strong>{{ t('importExport.title') }} · {{ state.total }}</strong>
+        <div class="pa-page-results-title"
+          ><h2>{{ t('importExport.title') }}</h2
+          ><span>{{ state.total }} 条</span></div
+        >
         <div class="operations-actions">
           <ElButton
             :loading="state.loading"
@@ -231,11 +236,12 @@
         >
       </ElAlert>
       <ElTable
+        class="pa-page-table"
         v-loading="state.loading"
         :data="state.error ? [] : state.items"
         row-key="operationKey"
         border
-        max-height="calc(100dvh - 380px)"
+        max-height="max(240px, calc(100dvh - 380px))"
         scrollbar-tabindex="0"
         :aria-label="t('importExport.title')"
       >
