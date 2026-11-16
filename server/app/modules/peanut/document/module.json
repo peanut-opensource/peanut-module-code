@@ -3,7 +3,7 @@
   "key": "peanut.document",
   "name": "Business Documents",
   "description": "Business-owned documents, committed immutable versions and controlled File references.",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-document",
@@ -56,7 +56,8 @@
       "pa_document_source_grant",
       "pa_document_comment_thread",
       "pa_document_comment_message",
-      "pa_document_comment_operation"
+      "pa_document_comment_operation",
+      "pa_document_change"
     ]
   },
   "contracts": {
@@ -85,7 +86,9 @@
       "PeanutAdmin\\Modules\\Document\\Service\\DocumentAcceptedCommitQuery",
       "PeanutAdmin\\Modules\\Document\\Service\\DocumentOwnerRegistry",
       "PeanutAdmin\\Modules\\Document\\Contract\\DocumentSourceGrants",
-      "PeanutAdmin\\Modules\\Document\\Contract\\DocumentRevisionComments"
+      "PeanutAdmin\\Modules\\Document\\Contract\\DocumentRevisionComments",
+      "PeanutAdmin\\Modules\\Document\\Contract\\DocumentRevisionSuggestions",
+      "PeanutAdmin\\Modules\\Document\\Contract\\SuggestionAppliedCapture"
     ],
     "events": []
   },

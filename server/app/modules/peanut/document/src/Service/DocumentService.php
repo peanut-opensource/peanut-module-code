@@ -32,6 +32,10 @@ use PeanutAdmin\Modules\Document\Model\DocumentRevision;
 use PeanutAdmin\Modules\Document\Model\DocumentResourceBinding;
 use PeanutAdmin\Modules\Document\Model\DocumentFileReference;
 use PeanutAdmin\Modules\Document\Model\DocumentOperation;
+use PeanutAdmin\Modules\Document\Model\DocumentCommentThread;
+use PeanutAdmin\Modules\Document\Model\DocumentCommentMessage;
+use PeanutAdmin\Modules\Document\Model\DocumentCommentOperation;
+use PeanutAdmin\Modules\Document\Model\DocumentChange;
 use PeanutAdmin\Modules\File\Contract\FileDocumentReferencePolicy;
 use PeanutAdmin\Modules\File\Contract\FileDocumentSnapshots;
 use PeanutAdmin\Modules\File\Contract\FileReferenceCommands;
@@ -137,12 +141,224 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
             if ($state === null || $state->yjs_state_binary !== null) {
                 throw BusinessException::conflict('DOCUMENT_SOLO_STATE_INVALID', '文档持久模式不允许单人保存');
             }
+            $before = RichTextProjection::fromStructured(self::json($state->projected_json));
             $state->save(['state_seq' => $next,'state_sha256' => hash('sha256', $projection->json),'projected_json' => $projection->json,
                 'persisted_at' => self::now(),'last_store_id' => $requestId]);
             $document->save(['state_seq' => $next,'updated_by_member_id' => $current->memberId,'update_time' => time()]);
             $this->writeReferences($current, $document, $projection->fileReferences);
+            $this->recordChange($current->tenantId, $documentId, $next, 'solo.save', $current->memberId, $requestId, $before, $projection);
             return $this->receipt($current, $document, 'solo.save', $requestId, $input, ['document_id' => $documentId,'state_seq' => $next,'persisted_at' => self::now(),'digest' => hash('sha256', $projection->json)]);
         }));
+    }
+
+    public function acceptRevisionSuggestion(TenantContext $context, int $documentId, int $revisionId, array $input): array
+    {
+        DocumentRevisionCommentService::input('accept', $input);
+        return $this->authorization->run($context, fn(TenantContext $current): array => $this->acceptAuthorizedRevisionSuggestion($current, $documentId, $revisionId, $input));
+    }
+
+    private function acceptAuthorizedRevisionSuggestion(TenantContext $context, int $documentId, int $revisionId, array $input): array
+    {
+        $this->outsideTransaction();
+        $snapshot = $this->versionSnapshot($context, $documentId, $revisionId);
+        $source = DocumentRevisionCommentText::source($snapshot);
+        DocumentRevisionCommentText::assertBinding($source, $input);
+        $candidate = Document::where('id', $documentId)->find();
+        if ($candidate === null) throw BusinessException::notFound('DOCUMENT_NOT_FOUND', '文档不存在');
+        $owner = DocumentAuthorizationService::reference($candidate);
+        $key = 'suggestion:' . hash('sha256', $input['request_id']);
+        $prepared = $this->businessTransaction($context, $owner, 'edit', function (TenantContext $current) use ($documentId, $snapshot, $source, $input, $key, $owner): array {
+            $doc = $this->authorization->document($current, $documentId, 'edit', true);
+            $this->verifyPreparedVersion($current, $snapshot, $owner);
+            $old = DocumentOperation::where('document_id', $documentId)->where('operation_id', $key)->lock(true)->find();
+            $replay = $this->suggestionReplay($current, $doc, $source, $input);
+            if ($old !== null) {
+                $this->assertBusinessActor($current, $old);
+                $command = self::json($old->command_input_json);
+                foreach ($input as $field => $value) {
+                    if (($command[$field] ?? null) !== $value) throw BusinessException::conflict('DOCUMENT_IDEMPOTENCY_CONFLICT', '接受请求输入改变');
+                }
+                if ($old->action !== 'suggestion.accept' || $old->barrier_plan_json === null) throw BusinessException::conflict('DOCUMENT_IDEMPOTENCY_CONFLICT', '请求已用于其他文档操作');
+                return ['plan' => new BusinessBarrierPlan(self::json($old->barrier_plan_json)), 'command' => $command];
+            }
+            if ($replay !== null) return ['receipt' => $replay];
+            $state = DocumentState::where('document_id', $documentId)->lock(true)->find();
+            $thread = $this->suggestionThread($doc, $source, $input);
+            $projection = RichTextProjection::fromStructured(DocumentRevisionCommentService::suggestionData($thread)['candidate_content']);
+            $this->assertSuggestionBaseline($doc, $state, $snapshot, $input['expected_state_seq']);
+            $this->references->assertDocumentReferencesReadable($current, $documentId, array_column($projection->fileReferences, 'file_key'));
+            if (!(bool) $doc->collaboration_enabled) {
+                $this->solo($doc, 'rich_text');
+                $version = $this->persistSuggestion($current, $doc, $state, $projection, $input['request_id'], null);
+                return ['receipt' => $this->completeSuggestion($current, $doc, $thread, $source, $input, $version)];
+            }
+            $command = $input + ['revision_id' => $snapshot->revisionId, 'structured_content' => json_decode($projection->json, true, 64, JSON_THROW_ON_ERROR),
+                'baseline_projection_sha256' => hash('sha256', RichTextProjection::fromStructured($snapshot->structuredContent)->json)];
+            $ownerState = $this->owners->requirePolicy($owner)->resolveOwner($current, $owner, true);
+            $plan = $this->prepareBusiness($current, $doc, 'suggestion.accept', $key, $command, $ownerState->revision);
+            $thread->save(['accept_request_id' => $input['request_id']]);
+            return ['plan' => $plan, 'command' => $command];
+        }, true);
+        if (isset($prepared['receipt'])) return $prepared['receipt'];
+        $plan = $prepared['plan'];
+        $command = $prepared['command'];
+        $provider = $this->acceptedWrites->requireProvider();
+        $operation = DocumentOperation::where('document_id', $documentId)->where('operation_id', $key)->find();
+        if ($operation->phase !== 'completed') {
+            try {
+                $provider->drainBusinessBarrier($plan);
+                // A confirmed changed baseline cancels only this acceptance, before any Yjs mutation.
+                $canApply = $this->businessTransaction($context, $owner, 'edit', function (TenantContext $current) use ($documentId, $snapshot, $source, $input, $plan, $provider): bool {
+                    $doc = $this->authorization->document($current, $documentId, 'edit', true);
+                    $state = DocumentState::where('document_id', $documentId)->lock(true)->find();
+                    $proof = $provider->lockDrainedBusinessBarrier($current, $plan);
+                    $thread = $this->suggestionThread($doc, $source, $input, true);
+                    $same = $state !== null && (int) $doc->state_seq === $input['expected_state_seq']
+                        && RichTextProjection::fromStructured(self::json($state->projected_json))->json === RichTextProjection::fromStructured($snapshot->structuredContent)->json;
+                    if (!$same) {
+                        $this->completeSuggestionBusiness($current, $doc, $plan, $proof, [], $state->state_sha256);
+                        $thread->save(['accept_request_id' => null]);
+                    }
+                    return $same;
+                }, true);
+                if ($canApply) {
+                    $capture = $provider->applySuggestion($plan, $command['structured_content'], $command['baseline_projection_sha256']);
+                    $this->businessTransaction($context, $owner, 'edit', function (TenantContext $current) use ($documentId, $snapshot, $source, $input, $plan, $provider, $capture): void {
+                        $doc = $this->authorization->document($current, $documentId, 'edit', true);
+                        $state = DocumentState::where('document_id', $documentId)->lock(true)->find();
+                        $operation = DocumentOperation::where('document_id', $documentId)->where('operation_id', $plan->data['operation_id'])->lock(true)->find();
+                        $this->assertBusinessActor($current, $operation);
+                        if ($operation->phase === 'completed') return;
+                        $proof = $provider->lockDrainedBusinessBarrier($current, $plan);
+                        $provider->verifySuggestionCapture($current, $capture);
+                        $this->verifyPreparedVersion($current, $snapshot, $plan->owner);
+                        $this->assertSuggestionBaseline($doc, $state, $snapshot, $input['expected_state_seq']);
+                        $thread = $this->suggestionThread($doc, $source, $input, true);
+                        $version = $this->persistSuggestion($current, $doc, $state, $capture->projection, $input['request_id'], $capture->binary);
+                        $this->completeSuggestion($current, $doc, $thread, $source, $input, $version);
+                        $this->completeSuggestionBusiness($current, $doc, $plan, $proof, $version, $capture->binarySha256);
+                    }, true);
+                }
+            } catch (\Throwable $error) {
+                if ($error instanceof BusinessException && in_array($error->errorCode, ['SUGGESTION_CONTENT_INVALID','SUGGESTION_BASELINE_INVALID','SUGGESTION_BASELINE_CONFLICT'], true)) {
+                    // Only a signed, durably bound rejection before mutation can release this operation.
+                    $this->businessTransaction($context, $owner, 'edit', function (TenantContext $current) use ($documentId, $source, $input, $plan, $provider, $error): void {
+                        $doc = $this->authorization->document($current, $documentId, 'edit', true);
+                        $state = DocumentState::where('document_id', $documentId)->lock(true)->find();
+                        $proof = $provider->lockDrainedBusinessBarrier($current, $plan);
+                        $thread = $this->suggestionThread($doc, $source, $input, true);
+                        $this->completeSuggestionBusiness($current, $doc, $plan, $proof, [], $state->state_sha256, $error->errorCode);
+                        $thread->save(['accept_request_id' => null]);
+                    }, true);
+                    $this->releaseBusiness($context, $plan);
+                    throw $error;
+                }
+                $this->markBusinessAttention($context, $plan, 'edit');
+                throw $error;
+            }
+        }
+        $businessResult = $this->releaseBusiness($context, $plan);
+        if (!isset($businessResult['revision_id'])) throw BusinessException::conflict($businessResult['conflict_code'], '建议没有应用；原接受已取消，请核对当前固定版本和候选');
+        return $this->businessTransaction($context, $owner, 'edit', function (TenantContext $current) use ($documentId, $source, $input): array {
+            $doc = $this->authorization->document($current, $documentId, 'edit', true);
+            return $this->suggestionReplay($current, $doc, $source, $input) ?? throw BusinessException::conflict('DOCUMENT_SUGGESTION_RECEIPT_MISSING', '原建议接受回执尚未确认');
+        });
+    }
+
+    private function suggestionReplay(TenantContext $current, Document $doc, array $source, array $input): ?array
+    {
+        $row = DocumentCommentOperation::where('document_id', $doc->id)->where('request_id', $input['request_id'])->lock(true)->find();
+        if ($row === null) return null;
+        if (!hash_equals((string) $row->input_sha256, self::suggestionHash($current, $source, $input))) {
+            throw BusinessException::conflict('DOCUMENT_COMMENT_REQUEST_CONFLICT', '请求已绑定其他输入或人员');
+        }
+        return self::json($row->getData('result_json'));
+    }
+
+    private static function suggestionHash(TenantContext $current, array $source, array $input): string
+    {
+        return hash('sha256', json_encode(RichTextProjection::canonical([$current->tenantId, $current->accountId, $current->memberId,
+            $source['document_id'], $source['revision_id'], 'accept', $input]), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+
+    private function suggestionThread(Document $doc, array $source, array $input, bool $reserved = false): DocumentCommentThread
+    {
+        $thread = DocumentCommentThread::where('document_id', $doc->id)->where('revision_id', $source['revision_id'])->where('id', $input['thread_id'])->lock(true)->find();
+        if ($thread === null) throw BusinessException::notFound('DOCUMENT_COMMENT_THREAD_NOT_FOUND', '当前固定版本没有此建议');
+        DocumentRevisionCommentService::assertPendingSuggestion($thread);
+        $owner = DocumentAuthorizationService::reference($doc);
+        $ownerDigest = hash('sha256', json_encode(RichTextProjection::canonical([$owner->moduleKey, $owner->objectType, $owner->objectId, $owner->slot]), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $candidate = RichTextProjection::fromStructured(DocumentRevisionCommentService::suggestionData($thread)['candidate_content']);
+        if (!hash_equals((string) $thread->owner_sha256, $ownerDigest) || !hash_equals((string) $thread->candidate_sha256, hash('sha256', $candidate->json))) {
+            throw BusinessException::conflict('DOCUMENT_SUGGESTION_BINDING_INVALID', '建议的归属或固定候选不一致');
+        }
+        if ((int) $thread->thread_revision !== $input['expected_thread_revision'] || ($reserved ? $thread->accept_request_id !== $input['request_id'] : $thread->accept_request_id !== null)) {
+            throw BusinessException::conflict('DOCUMENT_COMMENT_REVISION_CONFLICT', '建议已更新或正在接受');
+        }
+        DocumentRevisionCommentService::assertSuggestionAnchor($source, ['version_digest' => $thread->version_digest, 'text_profile' => $thread->text_profile,
+            'text_sha256' => $thread->text_sha256, 'start_offset' => (int) $thread->start_offset, 'end_offset' => (int) $thread->end_offset, 'quote' => $thread->quote_text], true);
+        return $thread;
+    }
+
+    private function assertSuggestionBaseline(Document $doc, ?DocumentState $state, VersionSnapshot $snapshot, int $expected): void
+    {
+        $this->cas($doc, $expected);
+        if ($state === null || (int) $state->state_seq !== $expected || $doc->content_kind !== 'rich_text'
+            || RichTextProjection::fromStructured(self::json($state->projected_json))->json !== RichTextProjection::fromStructured($snapshot->structuredContent)->json) {
+            throw BusinessException::conflict('DOCUMENT_SUGGESTION_BASE_CHANGED', '当前草稿与建议固定基线不一致，不能自动合并');
+        }
+    }
+
+    private function persistSuggestion(TenantContext $current, Document $doc, DocumentState $state, RichTextProjection $projection, string $requestId, ?string $binary): array
+    {
+        $before = RichTextProjection::fromStructured(self::json($state->projected_json));
+        $next = (int) $doc->state_seq + 1;
+        $state->save(['state_seq' => $next, 'projected_json' => $projection->json, 'yjs_state_binary' => $binary,
+            'state_sha256' => hash('sha256', $binary ?? $projection->json), 'persisted_at' => self::now(), 'last_store_id' => $requestId]);
+        $doc->save(['state_seq' => $next, 'updated_by_member_id' => $current->memberId, 'update_time' => time()]);
+        $this->writeReferences($current, $doc, $projection->fileReferences);
+        $version = $this->appendRevision($current, $doc, 'suggestion.accept:' . $requestId, null);
+        $this->recordChange($current->tenantId, (int) $doc->id, $next, 'suggestion.accept', $current->memberId, $requestId, $before, $projection);
+        return $version;
+    }
+
+    private function completeSuggestion(TenantContext $current, Document $doc, DocumentCommentThread $thread, array $source, array $input, array $version): array
+    {
+        $now = self::now();
+        $thread->save(['decision' => 'accepted', 'decided_by_member_id' => $current->memberId, 'decided_at' => $now,
+            'result_revision_id' => $version['revision_id'], 'result_state_seq' => $version['source_state_seq'], 'accept_request_id' => null,
+            'thread_revision' => (int) $thread->thread_revision + 1, 'updated_by_member_id' => $current->memberId,
+            'updated_by_account_id' => $current->accountId, 'updated_at' => $now]);
+        $message = DocumentCommentMessage::create(['tenant_id' => $current->tenantId, 'thread_id' => $thread->id, 'thread_revision' => $thread->thread_revision,
+            'action' => 'accept', 'body' => null, 'actor_member_id' => $current->memberId, 'actor_account_id' => $current->accountId, 'created_at' => $now]);
+        $result = ['document_id' => (int) $doc->id, 'revision_id' => $source['revision_id'], 'version_digest' => $source['version_digest'],
+            'text_profile' => $source['text_profile'], 'text_sha256' => $source['text_sha256'], 'request_id' => $input['request_id'], 'action' => 'accept',
+            'thread_id' => (int) $thread->id, 'thread_revision' => (int) $thread->thread_revision, 'status' => $thread->status,
+            'message_id' => (int) $message->id, 'actor_member_id' => $current->memberId, 'created_at' => $now,
+            'suggestion' => DocumentRevisionCommentService::suggestionData($thread), 'result_revision_id' => $version['revision_id'], 'result_state_seq' => $version['source_state_seq']];
+        DocumentCommentOperation::create(['tenant_id' => $current->tenantId, 'document_id' => $doc->id, 'request_id' => $input['request_id'], 'action' => 'accept',
+            'input_sha256' => self::suggestionHash($current, $source, $input), 'thread_id' => $thread->id, 'message_id' => $message->id,
+            'actor_member_id' => $current->memberId, 'actor_account_id' => $current->accountId, 'result_json' => json_encode($result, JSON_THROW_ON_ERROR), 'created_at' => $now]);
+        $this->audit->appendTenantMember($current, 'document.suggestion.accept', 'document.suggestion.accept', 'document', (string) $doc->id,
+            null, null, 1, $version['digest'], ['thread_id' => (int) $thread->id, 'base_revision_id' => $source['revision_id'], 'revision_id' => $version['revision_id']]);
+        return $result;
+    }
+
+    private function completeSuggestionBusiness(TenantContext $current, Document $doc, BusinessBarrierPlan $plan, DrainedBusinessBarrier $proof, array $version, string $binarySha256, string $conflictCode = 'DOCUMENT_SUGGESTION_BASE_CHANGED'): void
+    {
+        $doc->save(['auth_revision' => $plan->data['base_auth_revision'] + 1, 'lease_epoch' => $plan->data['lease_epoch'] + 1]);
+        $result = $this->summary($doc) + $version + ['operation_id' => $plan->data['operation_id'], 'phase' => 'completed',
+            'lease_epoch' => (int) $doc->lease_epoch, 'binary_sha256' => $binarySha256, 'store_id' => $proof->storeId, 'target_progress' => $proof->targetProgress];
+        if ($version === []) $result += ['cancelled' => true, 'conflict_code' => $conflictCode];
+        $operation = DocumentOperation::where('document_id', $doc->id)->where('operation_id', $plan->data['operation_id'])->lock(true)->find();
+        $this->assertBusinessActor($current, $operation);
+        $operation->save(['phase' => 'completed', 'result_json' => json_encode($result, JSON_THROW_ON_ERROR), 'business_sha256' => self::inputHash($result)]);
+        if ($version === []) {
+            $this->audit->appendTenantMember($current, 'document.suggestion.cancelled', 'document.suggestion.accept', 'document', (string) $doc->id,
+                null, null, 0, null, ['operation_id' => $plan->data['operation_id'], 'reason' => $conflictCode]);
+        }
+        $this->acceptedWrites->requireProvider()->consumeBusinessBarrier($proof, new DocumentBusinessReceipt($plan, $result));
+        $this->releaseFencedCollaborationReferences((int) $doc->id, DocumentAuthorizationService::reference($doc), $plan->data['lease_epoch']);
     }
 
     public function bindResource(TenantContext $context, int $documentId, string $fileKey, int $expectedStateSeq, string $requestId): array
@@ -250,9 +466,11 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
                 if ($state === null || $revision->yjs_snapshot !== null) {
                     throw BusinessException::conflict('DOCUMENT_COLLABORATION_BARRIER_REQUIRED', '协作版本恢复需要真实服务屏障');
                 }
+                $before = RichTextProjection::fromStructured(self::json($state->projected_json));
                 $state->save(['projected_json' => $projection->json,'state_sha256' => hash('sha256', $projection->json),'yjs_state_binary' => null,
                     'state_seq' => $expectedStateSeq + 1,'persisted_at' => self::now(),'last_store_id' => $requestId]);
                 $this->writeReferences($current, $document, $projection->fileReferences);
+                $this->recordChange($current->tenantId, $documentId, $expectedStateSeq + 1, 'version.restore', $current->memberId, $requestId, $before, $projection);
             } else {
                 $snapshot = $this->snapshots->describeForDocument($current, (string) $revision->immutable_file_key);
                 if (!hash_equals((string) $revision->immutable_file_sha256, $snapshot['sha256'])) {
@@ -414,10 +632,10 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
     }
 
     /** Native decision remains authoritative; the digest only prevents RR snapshots from missing revocation. */
-    private function businessTransaction(TenantContext $context, DocumentOwnerReference $owner, string $action, callable $operation): mixed
+    private function businessTransaction(TenantContext $context, DocumentOwnerReference $owner, string $action, callable $operation, bool $verifyAfter = false): mixed
     {
         $this->outsideTransaction();
-        return $this->authorization->run($context, function (TenantContext $current) use ($owner, $action, $operation): mixed {
+        return $this->authorization->run($context, function (TenantContext $current) use ($owner, $action, $operation, $verifyAfter): mixed {
             $policy = $this->owners->requirePolicy($owner);
             $permissions = $policy->authorizationPermissionKeys($action);
             $modules = ['peanut.document','peanut.file',$owner->moduleKey];
@@ -433,13 +651,18 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
             if (!hash_equals($before, $this->authorizationFence->snapshot($current, $permissions, $modules))) {
                 throw BusinessException::conflict('DOCUMENT_AUTHORIZATION_CHANGED', '准备期间授权输入改变');
             }
-            return Db::transaction(function () use ($current, $permissions, $modules, $before, $operation, $action): mixed {
+            return Db::transaction(function () use ($current, $permissions, $modules, $before, $operation, $action, $owner, $verifyAfter): mixed {
                 try {
                     $this->authorizationFence->lockAndAssert($current, $permissions, $modules, $before);
                 } catch (\DomainException) {
                     throw BusinessException::conflict('DOCUMENT_AUTHORIZATION_CHANGED', '当前授权输入已改变');
                 }
-                return $operation($current);
+                $result = $operation($current);
+                if ($verifyAfter) {
+                    $this->authorizationFence->lockAndAssert($current, $permissions, $modules, $before);
+                    $this->authorization->run($current, fn(TenantContext $fresh) => $this->authorization->owner($fresh, $owner, $action, true));
+                }
+                return $result;
             });
         });
     }
@@ -589,6 +812,7 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
         $action = $plan->data['action'];
         $revisionResult = [];
         if ($action === 'version.restore') {
+            $before = RichTextProjection::fromStructured(self::json($state->projected_json));
             $revision = $this->revision($doc, $input[0]);
             $snapshot = $this->snapshotFromRevision($current, $doc, $revision);
             if ($revision->content_kind !== 'rich_text' || !is_string($revision->yjs_snapshot) || $revision->yjs_snapshot === '' || strlen($revision->yjs_snapshot) > 4194304) {
@@ -603,6 +827,7 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
                 'persisted_at' => self::now(),'last_store_id' => $plan->data['operation_id']]);
             $this->writeReferences($current, $doc, $projection->fileReferences);
             $revisionResult = $this->appendRevision($current, $doc, 'restore:' . $revision->id, null);
+            $this->recordChange($current->tenantId, (int) $doc->id, $next, 'version.restore', $current->memberId, $plan->data['operation_id'], $before, $projection);
         } else {
             $doc->save(['status' => $action === 'archive' ? 'archived' : 'active','auth_revision' => (int) $doc->auth_revision + 1,
                 'lease_epoch' => $plan->data['lease_epoch'] + 1,'archived_at' => $action === 'archive' ? self::now() : null,
@@ -632,9 +857,9 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
 
     private function releaseBusiness(TenantContext $context, BusinessBarrierPlan $plan): array
     {
-        $action = str_starts_with($plan->data['action'], 'version.') ? 'version.create' : $plan->data['action'];
-        $result = $this->businessTransaction($context, $plan->owner, $action, function (TenantContext $current) use ($plan): array {
-            $doc = $this->authorization->document($current, $plan->data['binding']['document_id'], str_starts_with($plan->data['action'], 'version.') ? 'version.create' : $plan->data['action'], true);
+        $action = $plan->data['action'] === 'suggestion.accept' ? 'edit' : (str_starts_with($plan->data['action'], 'version.') ? 'version.create' : $plan->data['action']);
+        $result = $this->businessTransaction($context, $plan->owner, $action, function (TenantContext $current) use ($plan, $action): array {
+            $doc = $this->authorization->document($current, $plan->data['binding']['document_id'], $action, true);
             $operation = DocumentOperation::where('document_id', $doc->id)->where('operation_id', $plan->data['operation_id'])->lock(true)->find();
             if ($operation === null || $operation->phase !== 'completed' || $operation->input_sha256 !== $plan->data['input_sha256']) {
                 throw BusinessException::conflict('DOCUMENT_BUSINESS_PENDING', '业务操作尚未完成，继续原操作');
@@ -647,8 +872,8 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
         }
         $result = $result['result'];
         $this->acceptedWrites->requireProvider()->releaseBusinessBarrier($plan, new DocumentBusinessReceipt($plan, $result));
-        $this->businessTransaction($context, $plan->owner, $action, function (TenantContext $current) use ($plan): void {
-            $this->authorization->owner($current, $plan->owner, str_starts_with($plan->data['action'], 'version.') ? 'version.create' : $plan->data['action'], true);
+        $this->businessTransaction($context, $plan->owner, $action, function (TenantContext $current) use ($plan, $action): void {
+            $this->authorization->owner($current, $plan->owner, $action, true);
             Document::where('id', $plan->data['binding']['document_id'])->lock(true)->find();
             $operation = DocumentOperation::where('document_id', $plan->data['binding']['document_id'])->where('operation_id', $plan->data['operation_id'])->lock(true)->find();
             $this->assertBusinessActor($current, $operation);
@@ -667,7 +892,7 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
         }
         $owner = DocumentAuthorizationService::reference($doc);
         $state = $this->owners->requirePolicy($owner)->resolveOwner($context, $owner);
-        $action = str_starts_with($op->action, 'version.') ? 'version.create' : $op->action;
+        $action = $op->action === 'suggestion.accept' ? 'edit' : (str_starts_with($op->action, 'version.') ? 'version.create' : $op->action);
         if (($action === 'archive' && !$state->archived) || ($action === 'restore' && $state->archived)) {
             $action .= '.prepare';
         }
@@ -752,6 +977,33 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
                 'items' => $items, 'next_before_revision_no' => $hasMore ? $items[array_key_last($items)]['revision_no'] : null,
             ];
         });
+    }
+
+    public function changes(TenantContext $context, int $documentId, int $limit = 20, ?int $beforeChangeId = null): array
+    {
+        if ($limit < 1 || $limit > 100 || ($beforeChangeId !== null && $beforeChangeId < 1)) throw BusinessException::invalid('DOCUMENT_CHANGE_PAGE_INVALID', '修改来源分页无效');
+        $this->outsideTransaction();
+        return $this->authorization->run($context, function (TenantContext $current) use ($documentId, $limit, $beforeChangeId): array {
+            $doc = $this->authorization->document($current, $documentId, 'view');
+            $query = DocumentChange::where('document_id', $doc->id);
+            if ($beforeChangeId !== null) $query->where('id', '<', $beforeChangeId);
+            $rows = $query->order('id', 'desc')->limit($limit + 1)->select()->toArray();
+            $more = count($rows) > $limit;
+            if ($more) array_pop($rows);
+            $items = array_map(static fn(array $row): array => ['change_id' => (int) $row['id'], 'document_id' => (int) $row['document_id'],
+                'state_seq' => (int) $row['state_seq'], 'kind' => $row['kind'], 'actor_member_id' => $row['actor_member_id'] === null ? null : (int) $row['actor_member_id'],
+                'source_label' => $row['source_label'], 'from_projection_sha256' => $row['from_projection_sha256'], 'to_projection_sha256' => $row['to_projection_sha256'],
+                'before_text' => $row['before_text'], 'after_text' => $row['after_text'], 'created_at' => $row['created_at'], 'operation_id' => $row['operation_id']], $rows);
+            return ['items' => $items, 'next_before_change_id' => $more ? $items[array_key_last($items)]['change_id'] : null];
+        });
+    }
+
+    private function recordChange(int $tenantId, int $documentId, int $stateSeq, string $kind, ?int $memberId, string $operationId, RichTextProjection $before, RichTextProjection $after): void
+    {
+        DocumentChange::create(['tenant_id' => $tenantId, 'document_id' => $documentId, 'state_seq' => $stateSeq, 'kind' => $kind,
+            'actor_member_id' => $memberId, 'source_label' => '实际认证操作者；不推断历史文字原作者',
+            'from_projection_sha256' => hash('sha256', $before->json), 'to_projection_sha256' => hash('sha256', $after->json),
+            'before_text' => $before->plainText(), 'after_text' => $after->plainText(), 'operation_id' => $operationId, 'source_progress' => null, 'created_at' => self::now()]);
     }
 
     public function detail(TenantContext $context, int $documentId, ?int $revisionId = null): array
@@ -1807,6 +2059,13 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
             'hash' => $input->hash(),'reservations' => $plan->reservations];
         $this->references->releaseSettledCollaborationReferences($release);
         $provider->markPersisted($plan, $receipt);
+        foreach ($plan->changes as $change) {
+            DocumentChange::create(['tenant_id' => $in['tenant_id'], 'document_id' => $in['document_id'], 'state_seq' => $next,
+                'kind' => 'collaboration.update', 'actor_member_id' => $change['member_id'],
+                'source_label' => '实际认证提交者；重连合并不代表逐字原作者', 'from_projection_sha256' => $change['before_projection_sha256'],
+                'to_projection_sha256' => $change['after_projection_sha256'], 'before_text' => $change['before_text'], 'after_text' => $change['after_text'],
+                'operation_id' => $in['store_id'], 'source_progress' => $change['progress'], 'created_at' => self::now()]);
+        }
         $this->audit->appendTenantSystem(
             $in['tenant_id'],
             'document.collaboration.persisted',

@@ -17,13 +17,16 @@ use PeanutAdmin\Modules\RichText\Contract\RichTextProjection;
 use think\facade\Db;
 
 /** One native authorization/owner/Document transaction. No draft writes, rebasing or synthetic actors. */
-final readonly class DocumentRevisionCommentService implements DocumentRevisionComments
+final readonly class DocumentRevisionCommentService implements DocumentRevisionComments, \PeanutAdmin\Modules\Document\Contract\DocumentRevisionSuggestions
 {
     public function __construct(
         private DocumentAuthorizationService $authorization,
         private DocumentQueries $documents,
         private DocumentOwnerRegistry $owners,
         private TenantAuthorizationReadFence $fence,
+        private \PeanutAdmin\Modules\Document\Contract\DocumentCommands $commands,
+        private \app\common\services\audit\AuditContractHost $audit,
+        private \PeanutAdmin\Modules\File\Contract\FileReferenceCommands $references,
     ) {}
 
     public function threads(TenantContext $context, int $documentId, int $revisionId, int $limit = 20, ?int $beforeThreadId = null): array
@@ -88,13 +91,29 @@ final readonly class DocumentRevisionCommentService implements DocumentRevisionC
         return $this->command($context, $documentId, $revisionId, 'reopen', $input);
     }
 
+    public function createSuggestion(TenantContext $context, int $documentId, int $revisionId, array $input): array
+    {
+        return $this->command($context, $documentId, $revisionId, 'suggest', $input);
+    }
+
+    public function rejectSuggestion(TenantContext $context, int $documentId, int $revisionId, array $input): array
+    {
+        return $this->command($context, $documentId, $revisionId, 'reject', $input);
+    }
+
+    public function acceptSuggestion(TenantContext $context, int $documentId, int $revisionId, array $input): array
+    {
+        self::input('accept', $input);
+        return $this->commands->acceptRevisionSuggestion($context, $documentId, $revisionId, $input);
+    }
+
     private function command(TenantContext $context, int $documentId, int $revisionId, string $action, array $input): array
     {
         self::input($action, $input);
         return $this->withRevision($context, $documentId, $revisionId, true, function (TenantContext $actor, Document $document, array $source) use ($action, $input): array {
             DocumentRevisionCommentText::assertBinding($source, $input);
-            if ($action === 'create') {
-                DocumentRevisionCommentText::assertAnchor($source, $input);
+            if (in_array($action, ['create', 'suggest'], true)) {
+                self::assertSuggestionAnchor($source, $input, $action === 'suggest');
             }
             $hash = self::digest([$actor->tenantId, $actor->accountId, $actor->memberId,
                 $source['document_id'], $source['revision_id'], $action, $input]);
@@ -108,7 +127,8 @@ final readonly class DocumentRevisionCommentService implements DocumentRevisionC
                 return json_decode((string) $replay->getData('result_json'), true, 64, JSON_THROW_ON_ERROR);
             }
             $now = gmdate('Y-m-d H:i:s') . '.000';
-            if ($action === 'create') {
+            if (in_array($action, ['create', 'suggest'], true)) {
+                $candidate = $action === 'suggest' ? RichTextProjection::fromStructured($input['candidate_content']) : null;
                 $thread = DocumentCommentThread::create([
                     'tenant_id' => $actor->tenantId, 'document_id' => $source['document_id'], 'revision_id' => $source['revision_id'],
                     'version_digest' => $source['version_digest'], 'owner_sha256' => self::ownerDigest($document),
@@ -118,20 +138,43 @@ final readonly class DocumentRevisionCommentService implements DocumentRevisionC
                     'created_by_member_id' => $actor->memberId, 'created_by_account_id' => $actor->accountId,
                     'updated_by_member_id' => $actor->memberId, 'updated_by_account_id' => $actor->accountId,
                     'created_at' => $now, 'updated_at' => $now,
+                    'candidate_json' => $candidate?->json, 'candidate_sha256' => $candidate === null ? null : hash('sha256', $candidate->json),
+                    'decision' => $candidate === null ? null : 'pending',
                 ]);
+                if ($candidate !== null) {
+                    $this->references->assertDocumentReferencesReadable($actor, (int) $document->id, array_column($candidate->fileReferences, 'file_key'));
+                    foreach ($candidate->fileReferences as $ref) {
+                        $query = \PeanutAdmin\Modules\Document\Model\DocumentFileReference::where('document_id', $document->id)->where('file_key', $ref['file_key'])->where('usage', 'suggestion');
+                        if ($query->find() === null) {
+                            \PeanutAdmin\Modules\Document\Model\DocumentFileReference::create(['tenant_id' => $actor->tenantId, 'document_id' => $document->id,
+                                'file_key' => $ref['file_key'], 'variant_key' => $ref['variant_key'], 'usage' => 'suggestion',
+                                'derived_state_seq' => $source['source_state_seq'], 'updated_at' => $now]);
+                        }
+                    }
+                    $keys = \PeanutAdmin\Modules\Document\Model\DocumentFileReference::where('document_id', $document->id)->order('file_key')->column('file_key');
+                    $this->references->replaceDocumentReferences($actor, (int) $document->id, array_values(array_unique($keys)));
+                }
             } else {
                 $thread = $this->findThread($document, $source, $input['thread_id']);
+                if ($thread->accept_request_id !== null) {
+                    throw BusinessException::conflict('DOCUMENT_SUGGESTION_ACCEPT_PENDING', '建议接受正在协调，请先核对原接受请求');
+                }
                 if ((int) $thread->thread_revision !== $input['expected_thread_revision']) {
                     throw BusinessException::conflict('DOCUMENT_COMMENT_REVISION_CONFLICT', '评论线程已更新，请读取当前修订');
                 }
                 $expected = $action === 'reopen' ? 'resolved' : 'open';
-                if ($thread->status !== $expected) {
+                if ($action === 'reject') {
+                    self::assertPendingSuggestion($thread);
+                } elseif ($thread->status !== $expected) {
                     throw BusinessException::conflict('DOCUMENT_COMMENT_STATE_CONFLICT', '当前评论状态不允许此操作');
                 }
                 $thread->save(['thread_revision' => $input['expected_thread_revision'] + 1,
-                    'status' => $action === 'resolve' ? 'resolved' : 'open',
+                    'status' => $action === 'reject' ? $thread->status : ($action === 'resolve' ? 'resolved' : 'open'),
                     'updated_by_member_id' => $actor->memberId, 'updated_by_account_id' => $actor->accountId,
                     'updated_at' => $now]);
+                if ($action === 'reject') {
+                    $thread->save(['decision' => 'rejected', 'decided_by_member_id' => $actor->memberId, 'decided_at' => $now]);
+                }
             }
             $message = DocumentCommentMessage::create([
                 'tenant_id' => $actor->tenantId, 'thread_id' => (int) $thread->id,
@@ -144,7 +187,8 @@ final readonly class DocumentRevisionCommentService implements DocumentRevisionC
                 'request_id' => $input['request_id'], 'action' => $action,
                 'thread_id' => (int) $thread->id, 'thread_revision' => (int) $thread->thread_revision,
                 'status' => (string) $thread->status, 'message_id' => (int) $message->id,
-                'actor_member_id' => $actor->memberId, 'created_at' => $now];
+                'actor_member_id' => $actor->memberId, 'created_at' => $now,
+                'suggestion' => self::suggestionData($thread)];
             DocumentCommentOperation::create([
                 'tenant_id' => $actor->tenantId, 'document_id' => $source['document_id'],
                 'request_id' => $input['request_id'], 'action' => $action, 'input_sha256' => $hash,
@@ -153,6 +197,11 @@ final readonly class DocumentRevisionCommentService implements DocumentRevisionC
                 'result_json' => json_encode($result, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'created_at' => $now,
             ]);
+            if (in_array($action, ['suggest', 'reject'], true)) {
+                $this->audit->appendTenantMember($actor, 'document.suggestion.' . $action, 'document.suggestion.' . $action,
+                    'document', (string) $document->id, null, null, 1, $thread->candidate_sha256,
+                    ['revision_id' => $source['revision_id'], 'thread_id' => (int) $thread->id]);
+            }
             return $result;
         });
     }
@@ -218,11 +267,11 @@ final readonly class DocumentRevisionCommentService implements DocumentRevisionC
         if (!hash_equals((string) $thread->owner_sha256, self::ownerDigest($document))) {
             throw BusinessException::conflict('DOCUMENT_COMMENT_OWNER_CHANGED', '评论业务归属已改变');
         }
-        DocumentRevisionCommentText::assertAnchor($source, [
+        self::assertSuggestionAnchor($source, [
             'version_digest' => (string) $thread->version_digest, 'text_profile' => (string) $thread->text_profile,
             'text_sha256' => (string) $thread->text_sha256, 'start_offset' => (int) $thread->start_offset,
             'end_offset' => (int) $thread->end_offset, 'quote' => (string) $thread->quote_text,
-        ]);
+        ], $thread->getData('candidate_json') !== null);
     }
 
     private function canWrite(TenantContext $actor, Document $document): bool
@@ -239,11 +288,13 @@ final readonly class DocumentRevisionCommentService implements DocumentRevisionC
         }
     }
 
-    private static function input(string $action, array $input): void
+    public static function input(string $action, array $input): void
     {
+        $creating = in_array($action, ['create', 'suggest'], true);
         $fields = ['request_id', 'version_digest', 'text_profile', 'text_sha256',
-            ...($action === 'create' ? ['start_offset', 'end_offset', 'quote'] : ['thread_id', 'expected_thread_revision']),
-            ...(in_array($action, ['create', 'reply'], true) ? ['body'] : [])];
+            ...($creating ? ['start_offset', 'end_offset', 'quote'] : ['thread_id', 'expected_thread_revision']),
+            ...(in_array($action, ['create', 'reply', 'suggest'], true) ? ['body'] : []),
+            ...($action === 'suggest' ? ['candidate_content'] : []), ...($action === 'accept' ? ['expected_state_seq'] : [])];
         if (count($fields) !== count($input) || array_diff(array_keys($input), $fields) !== []) {
             throw BusinessException::invalid('DOCUMENT_COMMENT_INPUT_INVALID', '评论字段缺失或包含未知字段');
         }
@@ -258,15 +309,23 @@ final readonly class DocumentRevisionCommentService implements DocumentRevisionC
             || $input['text_profile'] !== RichTextProjection::TEXT_PROFILE) {
             throw BusinessException::invalid('DOCUMENT_COMMENT_INPUT_INVALID', '评论请求号、摘要或文本格式无效');
         }
-        foreach ($action === 'create' ? ['start_offset', 'end_offset'] : ['thread_id', 'expected_thread_revision'] as $field) {
-            if (!is_int($input[$field] ?? null) || $input[$field] < ($action === 'create' ? 0 : 1)) {
+        foreach ($creating ? ['start_offset', 'end_offset'] : ['thread_id', 'expected_thread_revision'] as $field) {
+            if (!is_int($input[$field] ?? null) || $input[$field] < ($creating ? 0 : 1)) {
                 throw BusinessException::invalid('DOCUMENT_COMMENT_INPUT_INVALID', '评论区间或线程修订无效');
             }
         }
-        foreach ($action === 'create' ? ['quote', 'body'] : ($action === 'reply' ? ['body'] : []) as $field) {
+        if ($action === 'accept' && (!is_int($input['expected_state_seq']) || $input['expected_state_seq'] < 0)) {
+            throw BusinessException::invalid('DOCUMENT_SUGGESTION_SEQUENCE_INVALID', '建议接受水位无效');
+        }
+        if ($action === 'suggest') {
+            if (!is_array($input['candidate_content'])) throw BusinessException::invalid('DOCUMENT_SUGGESTION_CONTENT_INVALID', '建议正文无效');
+            RichTextProjection::fromStructured($input['candidate_content']);
+        }
+        foreach ($creating ? ['quote', 'body'] : ($action === 'reply' ? ['body'] : []) as $field) {
             $text = $input[$field] ?? null;
             $max = $field === 'quote' ? DocumentRevisionCommentText::MAX_QUOTE_LENGTH : 4000;
-            if (!is_string($text) || !mb_check_encoding($text, 'UTF-8') || mb_strlen($text, 'UTF-8') < 1
+            $min = $field === 'quote' && $action === 'suggest' ? 0 : 1;
+            if (!is_string($text) || !mb_check_encoding($text, 'UTF-8') || mb_strlen($text, 'UTF-8') < $min
                 || mb_strlen($text, 'UTF-8') > $max || ($field === 'body' && preg_match('/\S/u', $text) !== 1)) {
                 throw BusinessException::invalid('DOCUMENT_COMMENT_INPUT_INVALID', '评论正文或引用长度无效');
             }
@@ -297,7 +356,35 @@ final readonly class DocumentRevisionCommentService implements DocumentRevisionC
             'quote' => (string) $thread->quote_text, 'status' => (string) $thread->status,
             'thread_revision' => (int) $thread->thread_revision,
             'created_by_member_id' => (int) $thread->created_by_member_id, 'updated_by_member_id' => (int) $thread->updated_by_member_id,
-            'created_at' => (string) $thread->created_at, 'updated_at' => (string) $thread->updated_at];
+            'created_at' => (string) $thread->created_at, 'updated_at' => (string) $thread->updated_at,
+            'suggestion' => self::suggestionData($thread)];
+    }
+
+    public static function assertPendingSuggestion(DocumentCommentThread $thread): void
+    {
+        if ($thread->decision !== 'pending' || $thread->getData('candidate_json') === null) {
+            throw BusinessException::conflict('DOCUMENT_SUGGESTION_ALREADY_DECIDED', '建议不存在或已经接受/拒绝');
+        }
+    }
+
+    public static function assertSuggestionAnchor(array $source, array $input, bool $suggestion): void
+    {
+        if ($suggestion && $source['text'] === '' && $input['start_offset'] === 0 && $input['end_offset'] === 0 && $input['quote'] === '') {
+            DocumentRevisionCommentText::assertBinding($source, $input);
+            return;
+        }
+        DocumentRevisionCommentText::assertAnchor($source, $input);
+    }
+
+    public static function suggestionData(DocumentCommentThread $thread): ?array
+    {
+        $raw = $thread->getData('candidate_json');
+        if ($raw === null) return null;
+        return ['candidate_content' => is_array($raw) ? $raw : json_decode((string) $raw, true, 64, JSON_THROW_ON_ERROR),
+            'candidate_sha256' => (string) $thread->candidate_sha256, 'decision' => (string) $thread->decision,
+            'decided_by_member_id' => $thread->decided_by_member_id === null ? null : (int) $thread->decided_by_member_id,
+            'decided_at' => $thread->decided_at, 'result_revision_id' => $thread->result_revision_id === null ? null : (int) $thread->result_revision_id,
+            'result_state_seq' => $thread->result_state_seq === null ? null : (int) $thread->result_state_seq];
     }
     private static function messageData(DocumentCommentMessage $message): array
     {

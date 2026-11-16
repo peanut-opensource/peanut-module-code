@@ -34,12 +34,13 @@ $businessFields = ['operation_id' => $request,'phase' => ['type' => 'string','en
 $metadata['properties'] += $businessFields;
 $version['properties'] += $metadata['properties'];
 $businessOperation = $object(
-    ['document_id' => $id,'operation_id' => $request,'action' => ['type' => 'string','enum' => ['version.create','version.restore','archive','restore']],
+    ['document_id' => $id,'operation_id' => $request,'action' => ['type' => 'string','enum' => ['version.create','version.restore','archive','restore','suggestion.accept']],
         'input_sha256' => $digest,'phase' => ['type' => 'string','enum' => ['prepared','attention','completed']],
         'target_progress' => $seq + ['nullable' => true],'store_id' => $request + ['nullable' => true],
         'state_seq' => $seq + ['nullable' => true],'binary_sha256' => $digest + ['nullable' => true],
         'released' => ['type' => 'boolean'],'result' => ['type' => 'object','additionalProperties' => false,'nullable' => true,
-            'properties' => $version['properties'],'required' => ['document_id','state_seq','auth_revision','status','operation_id','phase','lease_epoch','binary_sha256','store_id','target_progress']]],
+            'properties' => $version['properties'] + ['cancelled' => ['type' => 'boolean'], 'conflict_code' => $text],
+            'required' => ['document_id','state_seq','auth_revision','status','operation_id','phase','lease_epoch','binary_sha256','store_id','target_progress']]],
     ['document_id','operation_id','action','input_sha256','phase','target_progress','store_id','state_seq','binary_sha256','released','result'],
 );
 $businessResult = $businessOperation['properties']['result'];
@@ -74,13 +75,20 @@ $commentSource = $object([
 ], ['document_id','revision_id','revision_no','source_state_seq','version_digest','text_profile','offset_unit','text','text_sha256','text_length','owner']);
 $commentBinding = ['version_digest' => $digest, 'text_profile' => $commentSource['properties']['text_profile'], 'text_sha256' => $digest];
 $commentAnchor = ['start_offset' => $seq, 'end_offset' => $id, 'quote' => ['type' => 'string','minLength' => 1,'maxLength' => 4096]];
+$suggestionAnchor = array_replace($commentAnchor, ['end_offset' => $seq, 'quote' => ['type' => 'string','minLength' => 0,'maxLength' => 4096]]);
 $commentState = ['type' => 'string','enum' => ['open','resolved']];
-$commentAction = ['type' => 'string','enum' => ['create','reply','resolve','reopen']];
+$commentAction = ['type' => 'string','enum' => ['create','reply','resolve','reopen','suggest','accept','reject']];
+$suggestionFields = ['candidate_content' => $ref('DocumentStructuredContent'), 'candidate_sha256' => $digest,
+    'decision' => ['type' => 'string','enum' => ['pending','accepted','rejected']],
+    'decided_by_member_id' => $id + ['nullable' => true], 'decided_at' => $text + ['nullable' => true],
+    'result_revision_id' => $id + ['nullable' => true], 'result_state_seq' => $seq + ['nullable' => true]];
+$suggestion = $object($suggestionFields, array_keys($suggestionFields)) + ['nullable' => true];
 $commentThreadFields = ['thread_id' => $id,'document_id' => $id,'revision_id' => $id] + $commentBinding + $commentAnchor + [
     'status' => $commentState,'thread_revision' => $id,'created_by_member_id' => $id,'updated_by_member_id' => $id,
     'created_at' => $text,'updated_at' => $text,
+    'suggestion' => $suggestion,
 ];
-$commentThread = $object($commentThreadFields, array_keys($commentThreadFields));
+$commentThread = $object(array_replace($commentThreadFields, $suggestionAnchor), array_keys($commentThreadFields));
 $commentMessageFields = ['message_id' => $id,'thread_id' => $id,'thread_revision' => $id,'action' => $commentAction,
     'body' => ['type' => 'string','nullable' => true,'minLength' => 1,'maxLength' => 4000],
     'actor_member_id' => $id,'created_at' => $text];
@@ -88,6 +96,7 @@ $commentMessage = $object($commentMessageFields, array_keys($commentMessageField
 $commentReceiptFields = ['document_id' => $id,'revision_id' => $id] + $commentBinding + [
     'request_id' => $request,'action' => $commentAction,'thread_id' => $id,'thread_revision' => $id,
     'status' => $commentState,'message_id' => $id,'actor_member_id' => $id,'created_at' => $text,
+    'suggestion' => $suggestion,
 ];
 $commentInputs = ['document_id' => $id,'revision_id' => $id,'request_id' => $request] + $commentBinding;
 $commentExisting = ['thread_id' => $id,'expected_thread_revision' => $id];
@@ -126,7 +135,23 @@ foreach (['create','reply','resolve','reopen'] as $action) {
         $object($input, array_keys($input)),
     )];
 }
+foreach (['create','accept','reject'] as $action) {
+    $input = $commentInputs + ($action === 'create' ? $suggestionAnchor + $commentBody + ['candidate_content' => $ref('DocumentStructuredContent')] : $commentExisting)
+        + ($action === 'accept' ? ['expected_state_seq' => $seq] : []);
+    $commentPaths['/adminapi/peanut.document.suggestion.' . $action] = ['post' => $commentOperation(
+        'documentRevisionSuggestion' . ucfirst($action), 'DocumentSuggestionReceiptResponse', $object($input, array_keys($input)))];
+}
+$changeFields = ['change_id' => $id, 'document_id' => $id, 'state_seq' => $seq, 'kind' => ['type' => 'string','enum' => ['solo.save','version.restore','suggestion.accept','collaboration.update']],
+    'actor_member_id' => $id + ['nullable' => true], 'source_label' => $text, 'from_projection_sha256' => $digest, 'to_projection_sha256' => $digest,
+    'before_text' => $text, 'after_text' => $text, 'created_at' => $text, 'operation_id' => $request];
+$commentPaths['/adminapi/peanut.document.changes'] = ['get' => $operation('documentChanges', 'DocumentChangesResponse', null,
+    [['name' => 'document_id','in' => 'query','required' => true,'schema' => $id], ['name' => 'limit','in' => 'query','schema' => $id + ['maximum' => 100]],
+        ['name' => 'before_change_id','in' => 'query','schema' => $id]])];
 $commentSchemas = [
+    'DocumentSuggestion' => $suggestion,
+    'DocumentSuggestionReceiptResponse' => $envelope($object($commentReceiptFields + ['result_revision_id' => $id,'result_state_seq' => $seq], array_keys($commentReceiptFields))),
+    'DocumentChangesResponse' => $envelope($object(['items' => ['type' => 'array','maxItems' => 100,'items' => $object($changeFields, array_keys($changeFields))],
+        'next_before_change_id' => $id + ['nullable' => true]], ['items','next_before_change_id'])),
     'DocumentCommentSource' => $commentSource,
     'DocumentCommentThread' => $commentThread,
     'DocumentCommentMessage' => $commentMessage,

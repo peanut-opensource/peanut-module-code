@@ -54,7 +54,7 @@ class DocumentRevisionCommentController extends BaseAdminController
         return $this->submit('reopen');
     }
 
-    private function submit(string $method)
+    protected function submit(string $method)
     {
         $input = $this->request->post();
         $documentId = self::id($input, 'document_id');

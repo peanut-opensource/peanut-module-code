@@ -12,6 +12,8 @@ interface DocumentCommands
     public function assertOwnerDeletionAllowed(TenantContext $context, DocumentOwnerReference $owner): void;
     public function create(TenantContext $context, DocumentOwnerReference $owner, string $contentKind, string $requestId, ?string $fileKey = null): array;
     public function saveSolo(TenantContext $context, int $documentId, int $expectedStateSeq, array $structuredContent, string $requestId): array;
+    /** Accept one immutable candidate against its unchanged fixed base and current draft. */
+    public function acceptRevisionSuggestion(TenantContext $context, int $documentId, int $revisionId, array $input): array;
     public function bindResource(TenantContext $context, int $documentId, string $fileKey, int $expectedStateSeq, string $requestId): array;
     public function freeze(TenantContext $context, int $documentId, int $expectedStateSeq, string $reason, string $requestId): array;
     /** Owner business preparation, in its existing transaction; an explicit target is not canceled after this claim. */
