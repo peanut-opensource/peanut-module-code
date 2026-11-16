@@ -11,7 +11,9 @@ final readonly class DocumentBusinessReceipt
     {
         $required = ['document_id','content_kind','schema_version','status','state_seq','auth_revision','operation_id','phase','lease_epoch','binary_sha256','store_id','target_progress'];
         $version = ['revision_id','revision_no','source_state_seq','digest'];
-        if (array_diff($required, array_keys($data)) !== [] || array_diff(array_keys($data), [...$required, ...$version]) !== []
+        $cancelled = $plan->data['action'] === 'suggestion.accept' && ($data['cancelled'] ?? null) === true;
+        $cancellation = $cancelled ? ['cancelled','conflict_code'] : [];
+        if (array_diff($required, array_keys($data)) !== [] || array_diff(array_keys($data), [...$required, ...$version, ...$cancellation]) !== []
             || $data['document_id'] !== $plan->data['binding']['document_id'] || $data['operation_id'] !== $plan->data['operation_id']
             || $data['phase'] !== 'completed' || $data['content_kind'] !== 'rich_text' || !is_string($data['schema_version']) || $data['schema_version'] === ''
             || $data['lease_epoch'] !== $plan->data['lease_epoch'] + 1 || !is_int($data['target_progress']) || $data['target_progress'] < 0
@@ -22,7 +24,10 @@ final readonly class DocumentBusinessReceipt
             || !is_string($data['binary_sha256']) || preg_match('/^[a-f0-9]{64}$/D', $data['binary_sha256']) !== 1) {
             throw new \InvalidArgumentException('DOCUMENT_BUSINESS_RECEIPT_INVALID');
         }
-        if (str_starts_with($plan->data['action'], 'version.')) {
+        if ($cancelled && (!is_string($data['conflict_code'] ?? null) || preg_match('/^[A-Z][A-Z0-9_]{0,127}$/D', $data['conflict_code']) !== 1)) {
+            throw new \InvalidArgumentException('DOCUMENT_BUSINESS_RECEIPT_INVALID');
+        }
+        if (str_starts_with($plan->data['action'], 'version.') || $plan->data['action'] === 'suggestion.accept' && !$cancelled) {
             if (array_diff($version, array_keys($data)) !== [] || !is_int($data['revision_id']) || $data['revision_id'] < 1
                 || !is_int($data['revision_no']) || $data['revision_no'] < 1 || $data['source_state_seq'] !== $data['state_seq']
                 || !is_string($data['digest']) || preg_match('/^[a-f0-9]{64}$/D', $data['digest']) !== 1) {

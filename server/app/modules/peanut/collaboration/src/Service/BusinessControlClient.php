@@ -18,9 +18,9 @@ final readonly class BusinessControlClient
 
     public function __construct(private OutboundHttpTransport $http, private array $configuration) {}
 
-    public function call(string $stage, BusinessBarrierPlan $plan, ?DocumentBusinessReceipt $result = null): array
+    public function call(string $stage, BusinessBarrierPlan $plan, ?DocumentBusinessReceipt $result = null, ?array $suggestion = null): array
     {
-        if ($plan->data['control_mode'] !== 'native' || !in_array($stage, ['drain','release'], true)
+        if ($plan->data['control_mode'] !== 'native' || !in_array($stage, ['drain','release','suggestion.accept'], true)
             || $result !== null && $result->plan->hash() !== $plan->hash()) {
             throw new \InvalidArgumentException('DOCUMENT_BUSINESS_RECEIPT_INVALID');
         }
@@ -36,6 +36,12 @@ final readonly class BusinessControlClient
                 throw new \InvalidArgumentException('DOCUMENT_BUSINESS_RELEASE_INVALID');
             }
             $input += ['result_epoch' => $result->data['lease_epoch'],'status' => $result->data['status']];
+        }
+        if ($stage === 'suggestion.accept') {
+            if ($plan->data['action'] !== 'suggestion.accept' || $suggestion === null) {
+                throw new \InvalidArgumentException('DOCUMENT_SUGGESTION_CAPTURE_INVALID');
+            }
+            $input['suggestion'] = $suggestion;
         }
         $response = $this->exchange($input);
         if (($response['protocol'] ?? null) !== 2 || ($response['holder_key'] ?? null) !== $input['holder_key']
@@ -106,7 +112,7 @@ final readonly class BusinessControlClient
         $time = $h['x-collaboration-timestamp'] ?? '';
         $digest = hash('sha256', $response->body);
         $expected = hash_hmac('sha256', implode("\n", ['peanut.collaboration.' . $domain . '.response.v2', ...$prefix, $nonce,'POST',$path,$bodyHash,$time,(string) $response->status,$digest]), $c['secret']);
-        if (strlen($response->body) > 8388608 || ($h['x-collaboration-protocol'] ?? null) !== '2'
+        if (strlen($response->body) > 33554432 || ($h['x-collaboration-protocol'] ?? null) !== '2'
             || ($h['x-collaboration-holder-key'] ?? null) !== $input['holder_key']
             || ($h['x-collaboration-service-instance'] ?? null) !== $c['service_instance_id'] || ($h['x-collaboration-key-id'] ?? null) !== $c['key_id']
             || ($h['x-collaboration-nonce'] ?? null) !== $nonce || ($h['x-collaboration-body-sha256'] ?? null) !== $digest
@@ -119,6 +125,11 @@ final readonly class BusinessControlClient
             && ($decoded['error_code'] ?? null) === 'CONTROL_HOLDER_CHANGED') {
             // Authentication of the former holder proves rejection, never an offline drain.
             throw BusinessException::conflict('CONTROL_HOLDER_CHANGED', '原屏障服务代际已退出，须保留原操作等待明确恢复');
+        }
+        if ($input['action'] === 'suggestion.accept' && $response->status === 409 && is_array($decoded)
+            && ($decoded['ok'] ?? null) === false
+            && in_array($decoded['error_code'] ?? null, ['SUGGESTION_CONTENT_INVALID','SUGGESTION_BASELINE_INVALID','SUGGESTION_BASELINE_CONFLICT'], true)) {
+            throw BusinessException::conflict($decoded['error_code'], '原生服务已确认在修改前拒绝原建议');
         }
         if ($response->status !== 200 || !is_array($decoded) || ($decoded['ok'] ?? null) !== true
             || !is_array($decoded['data'] ?? null)) {

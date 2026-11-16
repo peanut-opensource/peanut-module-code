@@ -29,6 +29,10 @@ interface DocumentAcceptedWriteProvider
     public function prepareBusinessBarrier(TenantContext $current, int $documentId, DocumentOwnerReference $owner, string $action, string $operationId, string $inputSha256, int $stateSeq, int $authRevision, string $ownerRevision): BusinessBarrierPlan;
     /** Outside any SQL transaction: retry/query the exact original plan; uncertainty keeps admission closed. */
     public function drainBusinessBarrier(BusinessBarrierPlan $plan): void;
+    /** Outside SQL: applies the original fixed candidate in the drained native room, never an HTTP document save. */
+    public function applySuggestion(BusinessBarrierPlan $plan, array $structuredContent, string $baselineProjectionSha256): SuggestionAppliedCapture;
+    /** Same final transaction: proves this exact capture is durably bound to the original barrier and actor. */
+    public function verifySuggestionCapture(TenantContext $current, SuggestionAppliedCapture $capture): void;
     public function lockDrainedBusinessBarrier(TenantContext $current, BusinessBarrierPlan $plan): DrainedBusinessBarrier;
     /** Verifies this connection's staged Document operation before consuming the original target. */
     public function consumeBusinessBarrier(DrainedBusinessBarrier $proof, DocumentBusinessReceipt $businessResult): void;

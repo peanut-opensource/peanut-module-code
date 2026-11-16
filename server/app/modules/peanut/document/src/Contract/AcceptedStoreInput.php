@@ -18,7 +18,7 @@ final readonly class AcceptedStoreInput
         $expected = ['protocol','instance_id','edition','tenant_id','document_id','owner','room_key',
             'service_instance_id','lease_epoch','base_state_seq','store_id','target_progress',
             'baseline_sha256','binary_sha256','projector_version','projection_sha256',
-            'reference_digest','participants','binary_base64','structured_content'];
+            'reference_digest','participants','changes','binary_base64','structured_content'];
         if (count($tuple) !== count($expected) || array_diff(array_keys($tuple), $expected) !== []) {
             throw new \InvalidArgumentException('COLLABORATION_STORE_FIELDS_INVALID');
         }
@@ -61,6 +61,36 @@ final readonly class AcceptedStoreInput
                 throw new \InvalidArgumentException('COLLABORATION_PARTICIPANT_INVALID');
             }
         }
+        if (!is_array($tuple['changes']) || !array_is_list($tuple['changes']) || count($tuple['changes']) > 10000) {
+            throw new \InvalidArgumentException('COLLABORATION_CHANGES_INVALID');
+        }
+        $progress = -1;
+        $previousHash = null;
+        $previousText = null;
+        $textBytes = 0;
+        foreach ($tuple['changes'] as $change) {
+            $keys = ['connection_key','authorization_revision','authorized_at_ms','progress','update_sha256',
+                'before_projection_sha256','after_projection_sha256','before_text','after_text'];
+            if (!is_array($change) || count($change) !== count($keys) || array_diff(array_keys($change), $keys) !== []
+                || !is_int($change['authorized_at_ms'] ?? null) || $change['authorized_at_ms'] < 1
+                || !is_int($change['progress'] ?? null) || $change['progress'] <= $progress || $change['progress'] > $tuple['target_progress']
+                || !is_string($change['before_text'] ?? null) || !is_string($change['after_text'] ?? null)
+                || $previousHash !== null && ($change['before_projection_sha256'] !== $previousHash || $change['before_text'] !== $previousText)) {
+                throw new \InvalidArgumentException('COLLABORATION_CHANGES_INVALID');
+            }
+            foreach (['connection_key','authorization_revision','update_sha256','before_projection_sha256','after_projection_sha256'] as $field) {
+                if (!is_string($change[$field]) || preg_match('/^[a-f0-9]{64}$/D', $change[$field]) !== 1) {
+                    throw new \InvalidArgumentException('COLLABORATION_CHANGES_INVALID');
+                }
+            }
+            $textBytes += strlen($change['before_text']) + strlen($change['after_text']);
+            if ($textBytes > 16 * 1024 * 1024) {
+                throw new \InvalidArgumentException('COLLABORATION_CHANGES_INVALID');
+            }
+            $progress = $change['progress'];
+            $previousHash = $change['after_projection_sha256'];
+            $previousText = $change['after_text'];
+        }
         if (array_diff(array_keys($tuple['owner']), ['module_key','object_type','object_id','slot']) !== []) {
             throw new \InvalidArgumentException('COLLABORATION_STORE_OWNER_INVALID');
         }
@@ -82,6 +112,10 @@ final readonly class AcceptedStoreInput
         }
         $this->binary = $binary;
         $this->projection = RichTextProjection::fromStructured($tuple['structured_content']);
+        if ($previousHash !== null && ($previousHash !== $tuple['projection_sha256'] || $previousText !== $this->projection->plainText()
+            || $progress !== $tuple['target_progress'])) {
+            throw new \InvalidArgumentException('COLLABORATION_CHANGES_INVALID');
+        }
         if (!hash_equals(hash('sha256', $this->projection->json), $tuple['projection_sha256'])
             || !hash_equals(self::referencesDigest($this->projection->fileReferences), $tuple['reference_digest'])) {
             throw new \InvalidArgumentException('COLLABORATION_STORE_PROJECTION_INVALID');

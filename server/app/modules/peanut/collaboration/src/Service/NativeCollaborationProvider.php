@@ -21,12 +21,13 @@ use PeanutAdmin\Modules\Document\Contract\DurableSaveReceipt;
 use PeanutAdmin\Modules\Document\Contract\BusinessBarrierPlan;
 use PeanutAdmin\Modules\Document\Contract\DrainedBusinessBarrier;
 use PeanutAdmin\Modules\Document\Contract\DocumentBusinessReceipt;
+use PeanutAdmin\Modules\Document\Contract\SuggestionAppliedCapture;
 use PeanutAdmin\Modules\Document\Service\DocumentAcceptedCommitQuery;
 use PeanutAdmin\Modules\File\Contract\CollaborationReferenceInput;
 use PeanutAdmin\Modules\RichText\Contract\RichTextProjection;
 use think\facade\Db;
 
-/** Native batch custody and business-control proofs. No update journal or per-frame persistence. */
+/** Native batch custody and business-control proofs; frame history commits with the original batch. */
 final class NativeCollaborationProvider implements DocumentAcceptedWriteProvider
 {
     private \WeakMap $plans;
@@ -149,7 +150,16 @@ final class NativeCollaborationProvider implements DocumentAcceptedWriteProvider
         }
         $members = [];
         $connections = [];
+        $participantTimes = [];
+        $changeMembers = [];
         foreach ($in['participants'] as $source) {
+            $participantTimes[$source['connection_key'] . ':' . $source['authorization_revision']] = $source['authorized_at_ms'];
+        }
+        foreach (array_merge($in['participants'], $in['changes']) as $source) {
+            $sourceKey = $source['connection_key'] . ':' . $source['authorization_revision'];
+            if (!isset($participantTimes[$sourceKey]) || $source['authorized_at_ms'] > $participantTimes[$sourceKey]) {
+                throw BusinessException::forbidden('COLLABORATION_CHANGE_SOURCE_INVALID', '变更来源不在原保存批次参与者中');
+            }
             $connection = CollaborationConnection::where('connection_key', $source['connection_key'])->where('room_id', $room->id)->find();
             $ticket = $connection === null ? null : CollaborationTicket::where('id', $connection->ticket_id)->find();
             $grant = $connection === null ? null : CollaborationGrant::where('connection_id', $connection->id)->where('room_id', $room->id)
@@ -166,7 +176,19 @@ final class NativeCollaborationProvider implements DocumentAcceptedWriteProvider
             }
             $identity = self::json($ticket->issued_identity_json);
             $members[] = (int) $identity['member_id'];
+            if (isset($source['progress'])) {
+                $changeMembers[] = $source + ['member_id' => (int) $identity['member_id'],'attribution' => 'authenticated_submitter'];
+            }
             $connections[(int) $connection->id] = max($connections[(int) $connection->id] ?? 0, $source['authorized_at_ms']);
+        }
+        $state = $this->commits->collaborationBaseline($in['document_id'])['state'];
+        if ($state !== null && $state['yjs_state_binary'] !== null) {
+            $baseline = RichTextProjection::fromStructured(self::json($state['projected_json']));
+            $first = $in['changes'][0] ?? null;
+            if ($first === null || $first['before_projection_sha256'] !== hash('sha256', $baseline->json)
+                || $first['before_text'] !== $baseline->plainText()) {
+                throw BusinessException::forbidden('COLLABORATION_CHANGE_BASELINE_INVALID', '变更历史未连续衔接原持久基线');
+            }
         }
         if ($in['participants'] === []) {
             $state = $this->commits->collaborationBaseline($in['document_id'])['state'];
@@ -191,7 +213,7 @@ final class NativeCollaborationProvider implements DocumentAcceptedWriteProvider
             }
             $reservations[] = ['reservation_key' => $grant->reservation_key,'digest' => $grant->grant_key,'file_keys' => $keys];
         }
-        $plan = new AcceptedWritePlan($input, $reservations, array_values(array_unique($members)));
+        $plan = new AcceptedWritePlan($input, $reservations, array_values(array_unique($members)), $changeMembers);
         $this->plans[$plan] = ['root' => $this->execution->rootIdentity(),'pdo' => Db::connect()->getPdo(),'request' => $request,
             'room' => $room,'connections' => $connections];
         return $plan;
@@ -346,7 +368,7 @@ final class NativeCollaborationProvider implements DocumentAcceptedWriteProvider
             'owner_revision' => $ownerRevision,'deadline' => (time() + 60) * 1000]);
         CollaborationBarrier::create(['tenant_id' => $current->tenantId,'room_id' => $room->id,'connection_id' => null,
             'barrier_key' => $key,'lease_epoch' => $room->lease_epoch,
-            'purpose' => $action === 'archive' ? 'archive' : 'restore','status' => 'draining','input_sha256' => $plan->hash(),
+            'purpose' => $action === 'archive' ? 'archive' : ($action === 'suggestion.accept' ? 'version' : 'restore'),'status' => 'draining','input_sha256' => $plan->hash(),
             'business_plan_json' => json_encode($plan->data, JSON_THROW_ON_ERROR),
             'drained_receipt_json' => $local ? json_encode(['phase' => 'closed_persisted'], JSON_THROW_ON_ERROR) : null,
             'created_at' => gmdate('Y-m-d H:i:s'),
@@ -368,6 +390,12 @@ final class NativeCollaborationProvider implements DocumentAcceptedWriteProvider
         }
         Db::transaction(function () use ($plan, $reply): void {
             [, $barrier] = $this->lockBusinessPlan($plan);
+            $existing = $barrier->drained_receipt_json === null ? [] : self::json($barrier->drained_receipt_json);
+            foreach (['suggestion_command_sha256','suggestion_capture','suggestion_rejected'] as $key) {
+                if (array_key_exists($key, $existing)) {
+                    $reply[$key] = $existing[$key];
+                }
+            }
             $barrier->save(['drained_receipt_json' => json_encode($reply, JSON_THROW_ON_ERROR)]);
         });
     }
@@ -388,6 +416,127 @@ final class NativeCollaborationProvider implements DocumentAcceptedWriteProvider
             throw BusinessException::conflict('COLLABORATION_BUSINESS_BINDING_INVALID', '业务屏障不是原始持久操作');
         }
         return [$room, $barrier];
+    }
+
+    /** Runs a short original-plan read transaction, then the authenticated native command outside SQL. */
+    public function applySuggestion(BusinessBarrierPlan $plan, array $structuredContent, string $baselineProjectionSha256): SuggestionAppliedCapture
+    {
+        if (Db::connect()->getPdo()->inTransaction()) {
+            throw new \LogicException('COLLABORATION_CONTROL_TRANSACTION_DENIED');
+        }
+        [$suggestion, $existing] = Db::transaction(function () use ($plan, $structuredContent, $baselineProjectionSha256): array {
+            $scope = $this->execution->current();
+            if (!$scope instanceof AdminExecutionContext) {
+                throw BusinessException::forbidden('DOCUMENT_BUSINESS_ACTOR_REQUIRED', '建议接受需要原操作人员');
+            }
+            $this->commits->lockCollaborationBusinessRows($plan->data['binding']['document_id'], $plan->data['operation_id']);
+            [$room, $barrier] = $this->lockBusinessPlan($plan);
+            $command = $this->suggestionCommand($scope->tenant, $plan);
+            if (RichTextProjection::fromStructured($command['structured_content'])->json !== RichTextProjection::fromStructured($structuredContent)->json
+                || $command['baseline_projection_sha256'] !== $baselineProjectionSha256) {
+                throw BusinessException::forbidden('DOCUMENT_SUGGESTION_COMMAND_INVALID', '候选不是原人员已准备的建议操作');
+            }
+            $drained = $barrier->drained_receipt_json === null ? [] : self::json($barrier->drained_receipt_json);
+            if (isset($drained['suggestion_capture'])) {
+                return [[], new SuggestionAppliedCapture($plan, $drained['suggestion_capture'])];
+            }
+            $this->lockDrainedBusinessBarrier($scope->tenant, $plan);
+            $state = $this->commits->collaborationBaseline((int) $room->document_id, true)['state'];
+            $projection = RichTextProjection::fromStructured(self::json($state['projected_json']));
+            if ((int) $state['state_seq'] !== $plan->data['base_state_seq'] || hash('sha256', $projection->json) !== $baselineProjectionSha256) {
+                throw BusinessException::conflict('DOCUMENT_SUGGESTION_BASELINE_CONFLICT', '当前草稿已偏离固定建议基线');
+            }
+            $suggestion = [
+                'binding' => $plan->data['binding'],'actor_member_id' => $scope->tenant->memberId,
+                'base_state_seq' => (int) $state['state_seq'],'baseline_binary_sha256' => $state['state_sha256'],
+                'baseline_binary_base64' => base64_encode($state['yjs_state_binary']),
+                'baseline_structured_content' => self::json($state['projected_json']),
+                'baseline_projection_sha256' => $baselineProjectionSha256,'structured_content' => $structuredContent,
+            ];
+            $commandHash = self::hash($suggestion);
+            if (isset($drained['suggestion_command_sha256']) && $drained['suggestion_command_sha256'] !== $commandHash) {
+                throw BusinessException::conflict('DOCUMENT_SUGGESTION_CAPTURE_CONFLICT', '必须继续原建议应用命令');
+            }
+            $drained['suggestion_command_sha256'] = $commandHash;
+            $barrier->save(['drained_receipt_json' => json_encode($drained, JSON_THROW_ON_ERROR)]);
+            return [$suggestion, null];
+        });
+        if ($existing !== null) {
+            return $existing;
+        }
+        try {
+            $reply = $this->control->call('suggestion.accept', $plan, suggestion: $suggestion);
+        } catch (BusinessException $error) {
+            if (!in_array($error->errorCode, ['SUGGESTION_CONTENT_INVALID','SUGGESTION_BASELINE_INVALID','SUGGESTION_BASELINE_CONFLICT'], true)) {
+                throw $error;
+            }
+            Db::transaction(function () use ($plan, $suggestion, $error): void {
+                $this->commits->lockCollaborationBusinessRows($plan->data['binding']['document_id'], $plan->data['operation_id']);
+                [, $barrier] = $this->lockBusinessPlan($plan);
+                $drained = self::json($barrier->drained_receipt_json);
+                if (($drained['suggestion_command_sha256'] ?? null) !== self::hash($suggestion) || isset($drained['suggestion_capture'])) {
+                    throw BusinessException::conflict('DOCUMENT_SUGGESTION_APPLICATION_UNCONFIRMED', '原建议拒绝与持久命令不一致');
+                }
+                $drained['suggestion_rejected'] = ['command_sha256' => self::hash($suggestion),'code' => $error->errorCode];
+                $barrier->save(['drained_receipt_json' => json_encode($drained, JSON_THROW_ON_ERROR)]);
+            });
+            throw $error;
+        }
+        $capture = new SuggestionAppliedCapture($plan, $reply);
+        if ($capture->stateSeq !== $suggestion['base_state_seq'] || $capture->baselineBinarySha256 !== $suggestion['baseline_binary_sha256']
+            || $capture->baselineProjectionSha256 !== $baselineProjectionSha256
+            || $reply['actor_member_id'] !== $suggestion['actor_member_id']
+            || $capture->projection->json !== RichTextProjection::fromStructured($structuredContent)->json) {
+            throw BusinessException::conflict('COLLABORATION_CONTROL_UNKNOWN', '原建议捕获响应未确认');
+        }
+        Db::transaction(function () use ($plan, $capture): void {
+            $this->commits->lockCollaborationBusinessRows($plan->data['binding']['document_id'], $plan->data['operation_id']);
+            [, $barrier] = $this->lockBusinessPlan($plan);
+            $reply = self::json($barrier->drained_receipt_json);
+            if (isset($reply['suggestion_capture']) && RichTextProjection::canonical($reply['suggestion_capture']) !== RichTextProjection::canonical($capture->data)) {
+                throw BusinessException::conflict('DOCUMENT_SUGGESTION_CAPTURE_CONFLICT', '原建议已绑定另一固定捕获');
+            }
+            $reply['suggestion_capture'] = $capture->data;
+            $barrier->save(['drained_receipt_json' => json_encode($reply, JSON_THROW_ON_ERROR)]);
+        });
+        return $capture;
+    }
+
+    public function verifySuggestionCapture(TenantContext $current, SuggestionAppliedCapture $capture): void
+    {
+        $plan = $capture->plan;
+        $command = $this->suggestionCommand($current, $plan);
+        [$room, $barrier] = $this->lockBusinessPlan($plan);
+        $drained = self::json($barrier->drained_receipt_json);
+        $state = $this->commits->collaborationBaseline((int) $room->document_id, true)['state'];
+        if (!isset($drained['suggestion_capture']) || RichTextProjection::canonical($drained['suggestion_capture']) !== RichTextProjection::canonical($capture->data)
+            || $capture->data['actor_member_id'] !== $current->memberId
+            || $state === null || (int) $state['state_seq'] !== $capture->stateSeq || $state['state_sha256'] !== $capture->baselineBinarySha256
+            || hash('sha256', RichTextProjection::fromStructured(self::json($state['projected_json']))->json) !== $capture->baselineProjectionSha256
+            || $command['baseline_projection_sha256'] !== $capture->baselineProjectionSha256
+            || RichTextProjection::fromStructured($command['structured_content'])->json !== $capture->projection->json) {
+            throw BusinessException::forbidden('DOCUMENT_SUGGESTION_CAPTURE_INVALID', '固定建议捕获未绑定原操作与排空基线');
+        }
+    }
+
+    private function suggestionCommand(TenantContext $current, BusinessBarrierPlan $plan): array
+    {
+        $scope = $this->execution->current();
+        $this->assertTransaction($current->tenantId);
+        $operation = $this->commits->collaborationStoreReceipt($plan->data['binding']['document_id'], $plan->data['operation_id']);
+        $identity = $operation === null ? [] : self::json($operation['initiator_json']);
+        $command = $operation === null ? [] : self::json($operation['command_input_json']);
+        if (!$scope instanceof AdminExecutionContext || $scope->tenant !== $current
+            || $plan->data['action'] !== 'suggestion.accept' || $plan->data['control_mode'] !== 'native'
+            || $operation === null || $operation['action'] !== 'suggestion.accept' || !in_array($operation['phase'], ['prepared','attention'], true)
+            || $operation['input_sha256'] !== $plan->data['input_sha256']
+            || RichTextProjection::canonical(self::json($operation['barrier_plan_json'])) !== RichTextProjection::canonical($plan->data)
+            || RichTextProjection::canonical($identity) !== RichTextProjection::canonical([
+                'tenant_id' => $current->tenantId,'account_id' => $current->accountId,'member_id' => $current->memberId])
+            || !is_array($command['structured_content'] ?? null) || !is_string($command['baseline_projection_sha256'] ?? null)) {
+            throw BusinessException::forbidden('DOCUMENT_SUGGESTION_COMMAND_INVALID', '建议接受不是原操作、人员或候选');
+        }
+        return $command;
     }
 
     public function lockDrainedBusinessBarrier(TenantContext $current, BusinessBarrierPlan $plan): DrainedBusinessBarrier
@@ -435,12 +584,33 @@ final class NativeCollaborationProvider implements DocumentAcceptedWriteProvider
         }
         $this->commits->assertStagedBusinessCommit($proof->plan, $receipt->data);
         [$room, $barrier] = $this->lockBusinessPlan($proof->plan);
+        self::assertSuggestionResult($proof, $receipt, self::json($barrier->drained_receipt_json));
         $barrier->save(['business_sha256' => self::businessHash($receipt->data),'business_result_json' => json_encode($receipt->data, JSON_THROW_ON_ERROR)]);
         $room->save(['persisted_state_seq' => $receipt->data['state_seq'],'baseline_sha256' => $receipt->data['binary_sha256'],
             'lease_epoch' => $receipt->data['lease_epoch'],'last_store_id' => null,'last_store_sha256' => null,
             'last_receipt_json' => null,'last_target_progress' => 0,'status' => $receipt->data['status'] === 'archived' ? 'closed' : 'draining']);
         CollaborationConnection::where('room_id', $room->id)->where('status', 'active')->update(['status' => 'closed']);
         unset($this->businessProofs[$proof]);
+    }
+
+    /** A sent command is cancelable only with its exact authenticated no-mutation rejection. */
+    private static function assertSuggestionResult(DrainedBusinessBarrier $proof, DocumentBusinessReceipt $receipt, array $drained): void
+    {
+        if ($proof->plan->data['action'] === 'suggestion.accept' && ($receipt->data['cancelled'] ?? null) === true) {
+            if (isset($drained['suggestion_command_sha256']) && (isset($drained['suggestion_capture'])
+                || ($drained['suggestion_rejected']['command_sha256'] ?? null) !== $drained['suggestion_command_sha256']
+                || ($drained['suggestion_rejected']['code'] ?? null) !== ($receipt->data['conflict_code'] ?? null))) {
+                throw BusinessException::conflict('DOCUMENT_SUGGESTION_APPLICATION_UNCONFIRMED', '已发送的原建议命令必须核对，不能作为未应用取消');
+            }
+        }
+        if ($proof->plan->data['action'] === 'suggestion.accept' && ($receipt->data['cancelled'] ?? null) !== true) {
+            $capture = $drained['suggestion_capture'] ?? null;
+            if (!is_array($capture) || $capture['baseline_binary_sha256'] !== $proof->binarySha256
+                || $capture['base_state_seq'] !== $proof->stateSeq || $receipt->data['state_seq'] !== $proof->stateSeq + 1
+                || $receipt->data['binary_sha256'] !== $capture['binary_sha256']) {
+                throw BusinessException::forbidden('DOCUMENT_SUGGESTION_CAPTURE_INVALID', '业务提交不是原屏障的固定建议捕获');
+            }
+        }
     }
 
     public function releaseBusinessBarrier(BusinessBarrierPlan $plan, DocumentBusinessReceipt $receipt): void

@@ -52,7 +52,7 @@ final readonly class BusinessBarrierPlan
                 ? (!is_string($data['holder_key']) || preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $data['holder_key']) !== 1)
                 : ($data['holder_key'] !== null || $data['action'] !== 'restore'))
             || !is_string($data['service_instance_id'] ?? null) || preg_match('/^[A-Za-z0-9_-]{1,128}$/D', $data['service_instance_id']) !== 1
-            || !in_array($data['action'] ?? null, ['version.restore','archive','restore'], true)) {
+            || !in_array($data['action'] ?? null, ['version.restore','archive','restore','suggestion.accept'], true)) {
             throw new \InvalidArgumentException('DOCUMENT_BUSINESS_BARRIER_INVALID');
         }
     }
