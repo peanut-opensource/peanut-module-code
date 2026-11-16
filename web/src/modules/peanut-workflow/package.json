@@ -1,6 +1,6 @@
 {
   "name": "@peanut-modules/workflow-web",
-  "version": "5.0.1",
+  "version": "5.0.2",
   "private": true,
   "license": "Apache-2.0",
   "exports": {
