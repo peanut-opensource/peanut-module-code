@@ -39,6 +39,10 @@
   const workflowKey = ref(fixedWorkflowKey ?? '');
   const definition = shallowRef<WorkflowDefinition | null>(null);
   const definitionScope = ref('');
+  const scenarioCapabilities = ref<string[]>([]);
+  const supportsReviewNotification = computed(() =>
+    scenarioCapabilities.value.includes('workflow.notification')
+  );
   const initial: EditorDocument = {
     graph: {
       contract_version: 2,
@@ -131,6 +135,7 @@
     workflowKey.value = '';
     definition.value = null;
     definitionScope.value = '';
+    scenarioCapabilities.value = [];
     revision.value = null;
     previewSummary.value = '';
     previewPeople.value = [];
@@ -165,6 +170,22 @@
     history.undo();
     sync();
     previewSummary.value = '';
+  }
+  function setReviewNotification(enabled: boolean | string | number) {
+    if (!supportsReviewNotification.value) return;
+    change((draft) => {
+      if (enabled === true) {
+        if (
+          !draft.graph.required_capabilities.includes('workflow.notification')
+        )
+          draft.graph.required_capabilities.push('workflow.notification');
+      } else {
+        draft.graph.required_capabilities =
+          draft.graph.required_capabilities.filter(
+            (capability) => capability !== 'workflow.notification'
+          );
+      }
+    });
   }
   function redo() {
     history.redo();
@@ -240,17 +261,17 @@
     if (busy.value || !lifecycle.valid()) return;
     busy.value = true;
     error.value = '';
+    scenarioCapabilities.value = [];
     controller?.abort();
     controller = new AbortController();
     epoch += 1;
     const current = epoch;
     const requestedScope = `${moduleKey.value}:${workflowKey.value}`;
     try {
-      const result = await api.definition(
-        moduleKey.value,
-        workflowKey.value,
-        controller.signal
-      );
+      const [result, scenario] = await Promise.all([
+        api.definition(moduleKey.value, workflowKey.value, controller.signal),
+        api.scenario(moduleKey.value, workflowKey.value, controller.signal),
+      ]);
       if (
         current !== epoch ||
         !lifecycle.valid() ||
@@ -259,6 +280,7 @@
         return;
       definition.value = result;
       definitionScope.value = requestedScope;
+      scenarioCapabilities.value = scenario.capabilities;
       revision.value = result.draft_revision;
       history.replace({ graph: result.graph, layout: result.layout });
       sync();
@@ -295,6 +317,7 @@
     controller?.abort();
     definition.value = null;
     definitionScope.value = '';
+    scenarioCapabilities.value = [];
     revision.value = null;
     history.replace(initial);
     sync();
@@ -736,6 +759,19 @@
       <p
         >场景字段、组织绑定与业务动作必须来自正式登记，填写合同键不会授予业务权限。模板由所属业务模块提供。</p
       >
+      <el-form-item v-if="supportsReviewNotification" label="审批结果站内通知">
+        <el-switch
+          :model-value="
+            state.graph.required_capabilities.includes('workflow.notification')
+          "
+          :disabled="!allowedWrite || busy"
+          aria-label="审批结果站内通知"
+          @update:model-value="setReviewNotification"
+        />
+        <p
+          >人工通过或退回时，通知该流程的真实发起人。每条通知只表示该项决定，不代表整个流程结束。设置随草稿保存，发布并启用该版本后用于新实例；不改变在途实例。</p
+        >
+      </el-form-item>
     </el-form>
     <div v-if="step === 2 || mode === 'canvas'" class="editor">
       <div class="graph-area">
