@@ -53,7 +53,7 @@ final class ContentToolRegistry
         foreach ([
             'image' => ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'],
             'pdf' => ['application/pdf'],
-            'audio' => ['audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/webm', 'audio/mp4'],
+            'audio' => ['audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/x-wav', 'audio/webm', 'audio/mp4'],
             'video' => ['video/mp4', 'video/webm', 'video/ogg'],
         ] as $kind => $mimeTypes) {
             $registry->register(new SurfaceAdapterRegistration(

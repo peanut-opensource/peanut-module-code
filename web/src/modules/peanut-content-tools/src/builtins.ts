@@ -6,7 +6,7 @@ const builtinContentAdapters: readonly SurfaceAdapterRegistration[] =
   Object.entries({
     image: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'],
     pdf: ['application/pdf'],
-    audio: ['audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/webm', 'audio/mp4'],
+    audio: ['audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/x-wav', 'audio/webm', 'audio/mp4'],
     video: ['video/mp4', 'video/webm', 'video/ogg'],
   }).map(([kind, mimeTypes]) => ({
     id: `builtin.${kind}`,
