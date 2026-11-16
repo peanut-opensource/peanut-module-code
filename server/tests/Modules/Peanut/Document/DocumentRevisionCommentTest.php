@@ -47,6 +47,8 @@ final class DocumentRevisionCommentTest extends TestCase
     private string $directory;
     private int $sequence = 0;
     private array $disabled = [];
+    private bool $collaborationEnabled = false;
+    private PeanutAdmin\Modules\Document\Contract\DocumentAcceptedWriteProvider $collaboration;
 
     protected function setUp(): void
     {
@@ -115,7 +117,7 @@ final class DocumentRevisionCommentTest extends TestCase
         $modules->method('tenantModule')->willReturnCallback(fn(int $tenant, string $key) => new TenantModuleRecord(
             $tenant,
             $key,
-            $key === 'peanut.collaboration' || isset($this->disabled[$key]) ? 'disabled' : 'enabled',
+            ($key === 'peanut.collaboration' && !$this->collaborationEnabled) || isset($this->disabled[$key]) ? 'disabled' : 'enabled',
             null,
             null,
             1,
@@ -130,6 +132,8 @@ final class DocumentRevisionCommentTest extends TestCase
             self::assertSame([], $keys, 'Actual public source verification reaches the File boundary with no resources');
         });
         $unused = static fn(string $class): object => (new ReflectionClass($class))->newInstanceWithoutConstructor();
+        $this->collaboration = $this->createStub(PeanutAdmin\Modules\Document\Contract\DocumentAcceptedWriteProvider::class);
+        $this->app->instance($this->collaboration::class, $this->collaboration);
         $documents = new DocumentService(
             $this->authorization,
             $references,
@@ -138,7 +142,7 @@ final class DocumentRevisionCommentTest extends TestCase
             $this->audit = new DocumentCommentFixture\Audit(),
             $unused(PeanutAdmin\Modules\ContentTools\Service\ContentCapabilitiesService::class),
             $contexts,
-            $unused(PeanutAdmin\Modules\Document\Service\DocumentAcceptedWriteRegistry::class),
+            new PeanutAdmin\Modules\Document\Service\DocumentAcceptedWriteRegistry($this->app, $this->collaboration::class),
             $owners,
             $this->fence,
             $modules,
@@ -232,6 +236,204 @@ final class DocumentRevisionCommentTest extends TestCase
         self::assertFalse(Db::connect()->getPdo()->inTransaction());
     }
 
+
+    /** Real Document orchestration/rows; the external collaboration transport and Yjs capture alone are synthetic. */
+    private function collaborativeSuggestion(string $failure): array
+    {
+        $revision = $this->revision();
+        $created = $this->suggestion($revision);
+        $this->collaborationEnabled = true;
+        Db::name('document')->where('id', $revision['document_id'])->update(['collaboration_enabled' => 1, 'lease_epoch' => 1]);
+        $baselineBinary = 'synthetic-external-yjs-baseline';
+        Db::name('document_state')->where('document_id', $revision['document_id'])->update([
+            'yjs_state_binary' => $baselineBinary, 'state_sha256' => hash('sha256', $baselineBinary),
+        ]);
+        $boundary = (object) ['failure' => $failure, 'prepare' => 0, 'drain' => 0, 'apply' => 0, 'consume' => 0, 'release' => 0];
+        $this->collaboration->method('prepareBusinessBarrier')->willReturnCallback(function ($actor, $id, $owner, $action, $operation, $hash, $seq, $auth, $ownerRevision) use ($boundary) {
+            self::assertTrue(Db::connect()->getPdo()->inTransaction());
+            ++$boundary->prepare;
+            $doc = Db::name('document')->where('id', $id)->find();
+            return new PeanutAdmin\Modules\Document\Contract\BusinessBarrierPlan([
+                'protocol' => 2, 'binding' => ['instance_id' => 'synthetic-comments', 'edition' => 'multi-tenant',
+                    'tenant_id' => $actor->tenantId, 'document_id' => $id,
+                    'owner' => ['module_key' => $owner->moduleKey, 'object_type' => $owner->objectType, 'object_id' => $owner->objectId, 'slot' => $owner->slot]],
+                'operation_id' => $operation, 'action' => $action, 'input_sha256' => $hash,
+                'barrier_key' => str_repeat('b', 64), 'room_key' => str_repeat('c', 64),
+                'service_instance_id' => 'synthetic-collaboration', 'control_mode' => 'native',
+                'holder_key' => '00000000-0000-4000-8000-000000000001', 'lease_epoch' => (int) $doc['lease_epoch'],
+                'base_state_seq' => $seq, 'base_auth_revision' => $auth, 'owner_revision' => $ownerRevision, 'deadline' => time() + 60,
+            ]);
+        });
+        $this->collaboration->method('drainBusinessBarrier')->willReturnCallback(static function ($plan) use ($boundary): void {
+            self::assertFalse(Db::connect()->getPdo()->inTransaction());
+            ++$boundary->drain;
+            if (in_array($boundary->failure, ['COLLABORATION_CONTROL_UNCONFIRMED', 'COLLABORATION_HOLDER_CHANGED'], true)) {
+                throw BusinessException::conflict($boundary->failure, 'Synthetic external drain refusal');
+            }
+        });
+        $this->collaboration->method('lockDrainedBusinessBarrier')->willReturnCallback(static function ($actor, $plan) use ($baselineBinary) {
+            self::assertTrue(Db::connect()->getPdo()->inTransaction());
+            return new PeanutAdmin\Modules\Document\Contract\DrainedBusinessBarrier($plan, $plan->data['base_state_seq'], hash('sha256', $baselineBinary), null, 0);
+        });
+        $this->collaboration->method('applySuggestion')->willReturnCallback(static function ($plan, $candidate, $baselineHash) use ($boundary, $baselineBinary) {
+            self::assertFalse(Db::connect()->getPdo()->inTransaction());
+            ++$boundary->apply;
+            if (in_array($boundary->failure, ['cancel', 'cancel-release'], true)) throw BusinessException::conflict('SUGGESTION_BASELINE_CONFLICT', 'Synthetic signed pre-mutation refusal');
+            $projection = RichTextProjection::fromStructured($candidate);
+            $binary = 'synthetic-external-yjs-applied';
+            return new PeanutAdmin\Modules\Document\Contract\SuggestionAppliedCapture($plan, [
+                'protocol' => 2, 'operation_id' => $plan->data['operation_id'], 'input_sha256' => $plan->data['input_sha256'],
+                'room_key' => $plan->data['room_key'], 'holder_key' => $plan->data['holder_key'], 'lease_epoch' => $plan->data['lease_epoch'],
+                'phase' => 'suggestion_applied', 'base_state_seq' => $plan->data['base_state_seq'], 'actor_member_id' => 11,
+                'structured_content' => $candidate, 'baseline_binary_sha256' => hash('sha256', $baselineBinary),
+                'baseline_projection_sha256' => $baselineHash, 'binary_sha256' => hash('sha256', $binary),
+                'projection_sha256' => hash('sha256', $projection->json),
+                'reference_digest' => PeanutAdmin\Modules\Document\Contract\AcceptedStoreInput::referencesDigest($projection->fileReferences),
+                'binary_base64' => base64_encode($binary), 'snapshot_base64' => base64_encode('synthetic-external-yjs-snapshot'),
+            ]);
+        });
+        $this->collaboration->method('verifySuggestionCapture')->willReturnCallback(function ($actor, $capture) use ($boundary): void {
+            self::assertTrue(Db::connect()->getPdo()->inTransaction());
+            if ($boundary->failure === 'final-edit') $this->owner->denied['11:edit'] = true;
+        });
+        $this->collaboration->method('consumeBusinessBarrier')->willReturnCallback(static function ($proof, $receipt) use ($boundary): void {
+            self::assertTrue(Db::connect()->getPdo()->inTransaction());
+            ++$boundary->consume;
+        });
+        $this->collaboration->method('fencedReferenceReservations')->willReturn([]);
+        $this->collaboration->method('releaseBusinessBarrier')->willReturnCallback(static function ($plan, $receipt) use ($boundary): void {
+            self::assertFalse(Db::connect()->getPdo()->inTransaction());
+            ++$boundary->release;
+            if (in_array($boundary->failure, ['release', 'cancel-release'], true)) throw BusinessException::conflict('COLLABORATION_RELEASE_UNCONFIRMED', 'Synthetic external lost release');
+        });
+        return [$revision, $created, $this->transition($created, 'collaboration-accept') + ['expected_state_seq' => 1], $boundary];
+    }
+
+    private function unconfirmedSuggestion(array $revision, array $input, string $reason): void
+    {
+        try {
+            $this->comments->acceptSuggestion($this->sessions->actor(), $revision['document_id'], $revision['revision_id'], $input);
+            self::fail('Expected original application uncertainty');
+        } catch (BusinessException $error) {
+            self::assertSame('DOCUMENT_SUGGESTION_APPLICATION_UNCONFIRMED', $error->errorCode);
+            self::assertStringContainsString($reason, $error->getMessage());
+        }
+        self::assertFalse(Db::connect()->getPdo()->inTransaction());
+    }
+
+    #[DataProvider('collaborationUncertainDrainReasons')]
+    public function testCollaborativeSuggestionDrainUncertaintyRetainsOriginalRequest(string $reason): void
+    {
+        [$revision, $created, $input, $boundary] = $this->collaborativeSuggestion($reason);
+        $this->unconfirmedSuggestion($revision, $input, $reason);
+        self::assertSame(1, $boundary->prepare);
+        self::assertSame(0, $boundary->apply);
+        $state = $this->state();
+        self::assertCount(1, $state['document_revision']);
+        self::assertSame('pending', $state['document_comment_thread'][0]['decision']);
+        self::assertSame($input['request_id'], $state['document_comment_thread'][0]['accept_request_id']);
+        $op = array_values(array_filter($state['document_operation'], static fn($row) => $row['action'] === 'suggestion.accept'))[0];
+        self::assertSame('attention', $op['phase']);
+        self::assertNull($op['released_at']);
+        $boundary->failure = '';
+        $accepted = $this->comments->acceptSuggestion($this->sessions->actor(), $revision['document_id'], $revision['revision_id'], $input);
+        self::assertSame('accepted', $accepted['suggestion']['decision']);
+        self::assertSame(1, $boundary->prepare, 'Retry must reuse the original barrier');
+        self::assertCount(2, $this->state()['document_revision']);
+    }
+
+    public static function collaborationUncertainDrainReasons(): array
+    {
+        return [['COLLABORATION_CONTROL_UNCONFIRMED'], ['COLLABORATION_HOLDER_CHANGED']];
+    }
+
+    public function testCollaborativeSuggestionFinalEditRefusalIsUnconfirmedAfterExternalApply(): void
+    {
+        [$revision, $created, $input, $boundary] = $this->collaborativeSuggestion('final-edit');
+        $this->unconfirmedSuggestion($revision, $input, 'COMMENT_FIXTURE_EDIT_DENIED');
+        self::assertSame(1, $boundary->apply);
+        $state = $this->state();
+        self::assertCount(1, $state['document_revision']);
+        self::assertCount(1, $state['document_comment_operation']);
+        self::assertSame('pending', $state['document_comment_thread'][0]['decision']);
+        self::assertSame($input['request_id'], $state['document_comment_thread'][0]['accept_request_id']);
+        self::assertSame(0, $boundary->release);
+    }
+
+    public function testCollaborativeSuggestionCommittedReleaseUncertaintyReplaysReceiptWithoutApplyingAgain(): void
+    {
+        [$revision, $created, $input, $boundary] = $this->collaborativeSuggestion('release');
+        $this->unconfirmedSuggestion($revision, $input, 'COLLABORATION_RELEASE_UNCONFIRMED');
+        $state = $this->state();
+        self::assertCount(2, $state['document_revision']);
+        self::assertCount(2, $state['document_comment_operation']);
+        self::assertSame('accepted', $state['document_comment_thread'][0]['decision']);
+        $op = array_values(array_filter($state['document_operation'], static fn($row) => $row['action'] === 'suggestion.accept'))[0];
+        self::assertSame('completed', $op['phase']);
+        self::assertNull($op['released_at']);
+        $receipt = json_decode($state['document_comment_operation'][1]['result_json'], true, 64, JSON_THROW_ON_ERROR);
+        $boundary->failure = '';
+        $accepted = $this->comments->acceptSuggestion($this->sessions->actor(), $revision['document_id'], $revision['revision_id'], $input);
+        self::assertSame($receipt, $accepted);
+        foreach (['document_revision', 'document_comment_thread', 'document_comment_message', 'document_comment_operation', 'document_change'] as $table) {
+            self::assertSame($state[$table], $this->state()[$table], 'Release retry cannot apply or decide a second time');
+        }
+        self::assertSame(1, $boundary->prepare);
+        self::assertSame(1, $boundary->drain);
+        self::assertSame(1, $boundary->apply);
+        self::assertSame(1, $boundary->consume);
+        self::assertSame(2, $boundary->release);
+    }
+
+    public function testCollaborativeSuggestionConfirmedPreMutationCancellationKeepsOriginalRejection(): void
+    {
+        [$revision, $created, $input, $boundary] = $this->collaborativeSuggestion('cancel');
+        try {
+            $this->comments->acceptSuggestion($this->sessions->actor(), $revision['document_id'], $revision['revision_id'], $input);
+            self::fail('Expected confirmed refusal');
+        } catch (BusinessException $error) {
+            self::assertSame('SUGGESTION_BASELINE_CONFLICT', $error->errorCode);
+        }
+        $state = $this->state();
+        self::assertCount(1, $state['document_revision']);
+        self::assertCount(1, $state['document_comment_operation']);
+        self::assertSame('pending', $state['document_comment_thread'][0]['decision']);
+        self::assertNull($state['document_comment_thread'][0]['accept_request_id']);
+        $op = array_values(array_filter($state['document_operation'], static fn($row) => $row['action'] === 'suggestion.accept'))[0];
+        self::assertSame('completed', $op['phase']);
+        self::assertNotNull($op['released_at']);
+        self::assertTrue(json_decode($op['result_json'], true, 64, JSON_THROW_ON_ERROR)['cancelled']);
+        self::assertSame(1, $boundary->release);
+        $before = $this->state();
+        $this->owner->denied['11:edit'] = true;
+        $this->rejected('COMMENT_FIXTURE_EDIT_DENIED', fn() => $this->comments->acceptSuggestion($this->sessions->actor(), $revision['document_id'], $revision['revision_id'], array_replace($input, ['request_id' => 'never-prepared'])));
+        self::assertSame($before, $this->state(), 'Before preparation refusal stays deterministic and writes nothing');
+    }
+
+    public function testCollaborativeSuggestionCancelledReleaseUncertaintyRequiresOriginalRequestRecovery(): void
+    {
+        [$revision, $created, $input, $boundary] = $this->collaborativeSuggestion('cancel-release');
+        $this->unconfirmedSuggestion($revision, $input, 'COLLABORATION_RELEASE_UNCONFIRMED');
+        $state = $this->state();
+        self::assertCount(1, $state['document_revision']);
+        self::assertSame('pending', $state['document_comment_thread'][0]['decision']);
+        $op = array_values(array_filter($state['document_operation'], static fn($row) => $row['action'] === 'suggestion.accept'))[0];
+        self::assertSame('completed', $op['phase']);
+        self::assertNull($op['released_at']);
+        self::assertTrue(json_decode($op['result_json'], true, 64, JSON_THROW_ON_ERROR)['cancelled']);
+        $boundary->failure = '';
+        try {
+            $this->comments->acceptSuggestion($this->sessions->actor(), $revision['document_id'], $revision['revision_id'], $input);
+            self::fail('Confirmed cancellation must return its original rejection');
+        } catch (BusinessException $error) {
+            self::assertSame('SUGGESTION_BASELINE_CONFLICT', $error->errorCode);
+        }
+        self::assertSame(1, $boundary->prepare);
+        self::assertSame(1, $boundary->apply);
+        self::assertSame(2, $boundary->release);
+        self::assertCount(1, $this->state()['document_revision']);
+        self::assertCount(1, $this->state()['document_comment_operation']);
+    }
 
     private function suggestion(array $revision, string $request = 'suggest-create'): array
     {
