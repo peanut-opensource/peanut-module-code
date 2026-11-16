@@ -254,7 +254,7 @@
         >
         <el-table-column
           :label="$t('article.columns.operations')"
-          width="210"
+          :width="narrow ? 160 : 210"
           fixed="right"
           ><template #default="{ row }"
             ><el-space>

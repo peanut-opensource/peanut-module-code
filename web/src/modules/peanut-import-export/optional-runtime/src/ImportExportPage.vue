@@ -323,7 +323,7 @@
         />
         <ElTableColumn
           :label="t('importExport.actions')"
-          width="230"
+          :width="narrow ? 160 : 230"
           fixed="right"
           ><template #default="{ row }"
             ><div class="operations-actions">
