@@ -34,6 +34,9 @@ interface DocumentAcceptedWriteProvider
     /** Same final transaction: proves this exact capture is durably bound to the original barrier and actor. */
     public function verifySuggestionCapture(TenantContext $current, SuggestionAppliedCapture $capture): void;
     public function lockDrainedBusinessBarrier(TenantContext $current, BusinessBarrierPlan $plan): DrainedBusinessBarrier;
+    /** Only the confirmed pre-dispatch loaded-progress mismatch; cannot authorize candidate application. */
+    public function lockUnsentSuggestionCancellation(TenantContext $current, BusinessBarrierPlan $plan): UnsentSuggestionCancellation;
+    public function consumeUnsentSuggestionCancellation(UnsentSuggestionCancellation $proof, DocumentBusinessReceipt $businessResult): void;
     /** Verifies this connection's staged Document operation before consuming the original target. */
     public function consumeBusinessBarrier(DrainedBusinessBarrier $proof, DocumentBusinessReceipt $businessResult): void;
     /** After the outer commit, reload/close and confirm release of the same business result. */

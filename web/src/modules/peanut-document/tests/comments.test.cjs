@@ -455,6 +455,24 @@ test('native HTTP original cancellation confirmed after a lost release ends unce
   session.dismissRejected();
   assert.equal(session.pending, undefined);
 });
+
+test('native HTTP original loaded-progress cancellation ends uncertainty only on the confirmed terminal code', async () => {
+  const { session, ids, sent } = await nativeAcceptanceSession([
+    { status: 409, code: 'DOCUMENT_SUGGESTION_APPLICATION_UNCONFIRMED' },
+    { status: 409, code: 'DOCUMENT_SUGGESTION_NOT_APPLIED_PROGRESS_MISMATCH' },
+  ]);
+  const original = session.pending.command;
+  session.dismissRejected();
+  assert.equal(session.pending.command, original);
+  await session.retry();
+  assert.deepEqual(sent[1], sent[0]);
+  assert.equal(ids(), 1);
+  assert.equal(session.pending.state, 'rejected');
+  assert.equal(session.pending.uncertain, false);
+  assert.equal(session.lastReceipt, undefined);
+  session.dismissRejected();
+  assert.equal(session.pending, undefined);
+});
 test('acknowledgement from another context cannot replace the current receipt or thread', async () => {
   const old = defer();
   let oldCommand;

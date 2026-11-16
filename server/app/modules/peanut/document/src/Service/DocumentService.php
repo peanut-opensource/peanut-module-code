@@ -19,6 +19,7 @@ use PeanutAdmin\Modules\Document\Contract\AcceptedWritePlan;
 use PeanutAdmin\Modules\Document\Contract\DurableSaveReceipt;
 use PeanutAdmin\Modules\Document\Contract\BusinessBarrierPlan;
 use PeanutAdmin\Modules\Document\Contract\DrainedBusinessBarrier;
+use PeanutAdmin\Modules\Document\Contract\UnsentSuggestionCancellation;
 use PeanutAdmin\Modules\Document\Contract\DocumentBusinessReceipt;
 use PeanutAdmin\Modules\Identity\Contract\TenantAuthorizationReadFence;
 use PeanutAdmin\Modules\File\Contract\AcceptedReferenceTransfer;
@@ -213,7 +214,18 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
                     $canApply = $this->businessTransaction($context, $owner, 'edit', function (TenantContext $current) use ($documentId, $snapshot, $source, $input, $plan, $provider): bool {
                         $doc = $this->authorization->document($current, $documentId, 'edit', true);
                         $state = DocumentState::where('document_id', $documentId)->lock(true)->find();
-                        $proof = $provider->lockDrainedBusinessBarrier($current, $plan);
+                        try {
+                            $proof = $provider->lockDrainedBusinessBarrier($current, $plan);
+                        } catch (BusinessException $error) {
+                            if ($error->errorCode !== 'COLLABORATION_BARRIER_NOT_DURABLE') throw $error;
+                            // Old native rooms can reference a durable store with a previous
+                            // progress counter. This proof can only cancel the unsent acceptance.
+                            $cancellation = $provider->lockUnsentSuggestionCancellation($current, $plan);
+                            $thread = $this->suggestionThread($doc, $source, $input, true);
+                            $this->completeSuggestionBusiness($current, $doc, $plan, $cancellation, [], $state->state_sha256, UnsentSuggestionCancellation::CODE);
+                            $thread->save(['accept_request_id' => null]);
+                            return false;
+                        }
                         $thread = $this->suggestionThread($doc, $source, $input, true);
                         $same = $state !== null && (int) $doc->state_seq === $input['expected_state_seq']
                             && RichTextProjection::fromStructured(self::json($state->projected_json))->json === RichTextProjection::fromStructured($snapshot->structuredContent)->json;
@@ -357,8 +369,11 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
         return $result;
     }
 
-    private function completeSuggestionBusiness(TenantContext $current, Document $doc, BusinessBarrierPlan $plan, DrainedBusinessBarrier $proof, array $version, string $binarySha256, string $conflictCode = 'DOCUMENT_SUGGESTION_BASE_CHANGED'): void
+    private function completeSuggestionBusiness(TenantContext $current, Document $doc, BusinessBarrierPlan $plan, DrainedBusinessBarrier|UnsentSuggestionCancellation $proof, array $version, string $binarySha256, string $conflictCode = 'DOCUMENT_SUGGESTION_BASE_CHANGED'): void
     {
+        if ($proof instanceof UnsentSuggestionCancellation && ($version !== [] || $conflictCode !== UnsentSuggestionCancellation::CODE)) {
+            throw new \LogicException('DOCUMENT_SUGGESTION_CANCELLATION_ONLY');
+        }
         $doc->save(['auth_revision' => $plan->data['base_auth_revision'] + 1, 'lease_epoch' => $plan->data['lease_epoch'] + 1]);
         $result = $this->summary($doc) + $version + ['operation_id' => $plan->data['operation_id'], 'phase' => 'completed',
             'lease_epoch' => (int) $doc->lease_epoch, 'binary_sha256' => $binarySha256, 'store_id' => $proof->storeId, 'target_progress' => $proof->targetProgress];
@@ -370,7 +385,13 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
             $this->audit->appendTenantMember($current, 'document.suggestion.cancelled', 'document.suggestion.accept', 'document', (string) $doc->id,
                 null, null, 0, null, ['operation_id' => $plan->data['operation_id'], 'reason' => $conflictCode]);
         }
-        $this->acceptedWrites->requireProvider()->consumeBusinessBarrier($proof, new DocumentBusinessReceipt($plan, $result));
+        $provider = $this->acceptedWrites->requireProvider();
+        $receipt = new DocumentBusinessReceipt($plan, $result);
+        if ($proof instanceof UnsentSuggestionCancellation) {
+            $provider->consumeUnsentSuggestionCancellation($proof, $receipt);
+        } else {
+            $provider->consumeBusinessBarrier($proof, $receipt);
+        }
         $this->releaseFencedCollaborationReferences((int) $doc->id, DocumentAuthorizationService::reference($doc), $plan->data['lease_epoch']);
     }
 
@@ -1979,15 +2000,8 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
         if (!hash_equals((string) $state->state_sha256, hash('sha256', $state->yjs_state_binary))) {
             throw BusinessException::conflict('RECOVERY_REQUIRED', '已持久正文的真实字节摘要不一致');
         }
-        if (is_string($state->last_store_id)) {
-            $old = DocumentOperation::where('document_id', $document->id)->where('operation_id', $state->last_store_id)->lock(true)->find();
-            $receipt = $old === null ? [] : self::json($old->result_json);
-            if ($old !== null && in_array($old->action, ['collaboration.store','collaboration.baseline'], true)
-                && ($receipt['state_seq'] ?? null) === (int) $state->state_seq && ($receipt['lease_epoch'] ?? null) === (int) $document->lease_epoch
-                && ($receipt['binary_sha256'] ?? null) === $state->state_sha256 && isset($receipt['target_progress'])) {
-                return $old->operation_id;
-            }
-        }
+        // A newly loaded native room starts its own progress counter at zero.
+        // Reuse the fixed baseline receipt, never a prior room's store progress.
         $storeId = 'baseline:' . hash('sha256', json_encode([(int) $document->id,(int) $document->lease_epoch,
             (int) $state->state_seq,$state->state_sha256], JSON_THROW_ON_ERROR));
         $facts = ['document_id' => (int) $document->id,'store_id' => $storeId,'lease_epoch' => (int) $document->lease_epoch,

@@ -27,6 +27,7 @@ export class DocumentCommentRejection extends Error {
       'SUGGESTION_BASELINE_INVALID',
       'SUGGESTION_BASELINE_CONFLICT',
       'DOCUMENT_SUGGESTION_BASE_CHANGED',
+      'DOCUMENT_SUGGESTION_NOT_APPLIED_PROGRESS_MISMATCH',
     ].includes(this.errorCode);
   }
 }

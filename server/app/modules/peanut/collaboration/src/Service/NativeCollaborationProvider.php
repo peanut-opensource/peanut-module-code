@@ -20,6 +20,7 @@ use PeanutAdmin\Modules\Document\Contract\AcceptedWritePlan;
 use PeanutAdmin\Modules\Document\Contract\DurableSaveReceipt;
 use PeanutAdmin\Modules\Document\Contract\BusinessBarrierPlan;
 use PeanutAdmin\Modules\Document\Contract\DrainedBusinessBarrier;
+use PeanutAdmin\Modules\Document\Contract\UnsentSuggestionCancellation;
 use PeanutAdmin\Modules\Document\Contract\DocumentBusinessReceipt;
 use PeanutAdmin\Modules\Document\Contract\SuggestionAppliedCapture;
 use PeanutAdmin\Modules\Document\Service\DocumentAcceptedCommitQuery;
@@ -585,12 +586,74 @@ final class NativeCollaborationProvider implements DocumentAcceptedWriteProvider
         $this->commits->assertStagedBusinessCommit($proof->plan, $receipt->data);
         [$room, $barrier] = $this->lockBusinessPlan($proof->plan);
         self::assertSuggestionResult($proof, $receipt, self::json($barrier->drained_receipt_json));
+        $this->commitBusinessResult($room, $barrier, $receipt);
+        unset($this->businessProofs[$proof]);
+    }
+
+    public function lockUnsentSuggestionCancellation(TenantContext $current, BusinessBarrierPlan $plan): UnsentSuggestionCancellation
+    {
+        // Reuses the original current actor/command check, including tenant and PDO admission.
+        $this->suggestionCommand($current, $plan);
+        [$room, $barrier] = $this->lockBusinessPlan($plan);
+        $reply = self::json($barrier->drained_receipt_json);
+        $baseline = $this->commits->collaborationBaseline((int) $room->document_id, true);
+        $state = $baseline['state'];
+        $document = $baseline['document'];
+        $store = $this->commits->collaborationStoreReceipt((int) $room->document_id, $reply['store_id'] ?? '');
+        $receipt = $store === null ? [] : self::json($store['result_json']);
+        if ($plan->data['control_mode'] !== 'native' || ($reply['phase'] ?? null) !== 'drained'
+            || array_intersect(['suggestion_command_sha256','suggestion_capture','suggestion_rejected'], array_keys($reply)) !== []
+            || ($reply['target_progress'] ?? null) !== 0 || $store === null || $store['action'] !== 'collaboration.store'
+            || !is_int($receipt['target_progress'] ?? null) || $receipt['target_progress'] <= 0
+            || ($receipt['document_id'] ?? null) !== $plan->data['binding']['document_id']
+            || ($receipt['store_id'] ?? null) !== ($reply['store_id'] ?? null)
+            || ($receipt['lease_epoch'] ?? null) !== $plan->data['lease_epoch']
+            || $state === null || $document === null || !is_string($state['yjs_state_binary'])
+            || (int) $document['lease_epoch'] !== $plan->data['lease_epoch']
+            || (int) $document['auth_revision'] !== $plan->data['base_auth_revision']
+            || (int) $document['state_seq'] !== $plan->data['base_state_seq']
+            || (int) $state['state_seq'] !== $plan->data['base_state_seq']
+            || (int) $room->persisted_state_seq !== (int) $state['state_seq']
+            || ($reply['state_seq'] ?? null) !== (int) $state['state_seq']
+            || ($receipt['state_seq'] ?? null) !== (int) $state['state_seq']
+            || hash('sha256', $state['yjs_state_binary']) !== $state['state_sha256']
+            || $room->baseline_sha256 !== $state['state_sha256']
+            || ($reply['binary_sha256'] ?? null) !== $state['state_sha256']
+            || ($receipt['binary_sha256'] ?? null) !== $state['state_sha256']) {
+            throw BusinessException::conflict('COLLABORATION_BARRIER_NOT_DURABLE', '不是尚未发送建议的原加载进度错配，原操作保持待核对');
+        }
+        $barrier->save(['status' => 'committed','committed_state_seq' => $state['state_seq'],'committed_state_sha256' => $state['state_sha256']]);
+        $proof = new UnsentSuggestionCancellation($plan, (int) $state['state_seq'], $state['state_sha256'], $reply['store_id'], $receipt['target_progress']);
+        $this->businessProofs[$proof] = ['root' => $this->execution->rootIdentity(),'pdo' => Db::connect()->getPdo()];
+        return $proof;
+    }
+
+    public function consumeUnsentSuggestionCancellation(UnsentSuggestionCancellation $proof, DocumentBusinessReceipt $receipt): void
+    {
+        $held = $this->businessProofs[$proof] ?? null;
+        if ($held === null || $held['root'] !== $this->execution->rootIdentity() || $held['pdo'] !== Db::connect()->getPdo()
+            || $receipt->plan->hash() !== $proof->plan->hash() || ($receipt->data['cancelled'] ?? null) !== true
+            || ($receipt->data['conflict_code'] ?? null) !== UnsentSuggestionCancellation::CODE
+            || $receipt->data['state_seq'] !== $proof->stateSeq || $receipt->data['binary_sha256'] !== $proof->binarySha256
+            || $receipt->data['store_id'] !== $proof->storeId || $receipt->data['target_progress'] !== $proof->targetProgress) {
+            throw BusinessException::forbidden('DOCUMENT_SUGGESTION_CANCELLATION_ONLY', '原加载进度证明只能取消同一未应用请求');
+        }
+        $this->commits->assertStagedBusinessCommit($proof->plan, $receipt->data);
+        [$room, $barrier] = $this->lockBusinessPlan($proof->plan);
+        if (array_intersect(['suggestion_command_sha256','suggestion_capture','suggestion_rejected'], array_keys(self::json($barrier->drained_receipt_json))) !== []) {
+            throw BusinessException::conflict('DOCUMENT_SUGGESTION_APPLICATION_UNCONFIRMED', '原建议已发送，不能使用加载进度取消证明');
+        }
+        $this->commitBusinessResult($room, $barrier, $receipt);
+        unset($this->businessProofs[$proof]);
+    }
+
+    private function commitBusinessResult(CollaborationRoom $room, CollaborationBarrier $barrier, DocumentBusinessReceipt $receipt): void
+    {
         $barrier->save(['business_sha256' => self::businessHash($receipt->data),'business_result_json' => json_encode($receipt->data, JSON_THROW_ON_ERROR)]);
         $room->save(['persisted_state_seq' => $receipt->data['state_seq'],'baseline_sha256' => $receipt->data['binary_sha256'],
             'lease_epoch' => $receipt->data['lease_epoch'],'last_store_id' => null,'last_store_sha256' => null,
             'last_receipt_json' => null,'last_target_progress' => 0,'status' => $receipt->data['status'] === 'archived' ? 'closed' : 'draining']);
         CollaborationConnection::where('room_id', $room->id)->where('status', 'active')->update(['status' => 'closed']);
-        unset($this->businessProofs[$proof]);
     }
 
     /** A sent command is cancelable only with its exact authenticated no-mutation rejection. */

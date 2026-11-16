@@ -271,9 +271,20 @@ final class DocumentRevisionCommentTest extends TestCase
                 throw BusinessException::conflict($boundary->failure, 'Synthetic external drain refusal');
             }
         });
-        $this->collaboration->method('lockDrainedBusinessBarrier')->willReturnCallback(static function ($actor, $plan) use ($baselineBinary) {
+        $this->collaboration->method('lockDrainedBusinessBarrier')->willReturnCallback(static function ($actor, $plan) use ($baselineBinary, $boundary) {
             self::assertTrue(Db::connect()->getPdo()->inTransaction());
+            if (str_starts_with($boundary->failure, 'progress')) throw BusinessException::conflict('COLLABORATION_BARRIER_NOT_DURABLE', 'Synthetic native loaded-progress mismatch');
             return new PeanutAdmin\Modules\Document\Contract\DrainedBusinessBarrier($plan, $plan->data['base_state_seq'], hash('sha256', $baselineBinary), null, 0);
+        });
+        $this->collaboration->method('lockUnsentSuggestionCancellation')->willReturnCallback(static fn($actor, $plan) =>
+            new PeanutAdmin\Modules\Document\Contract\UnsentSuggestionCancellation($plan, $plan->data['base_state_seq'], hash('sha256', $baselineBinary), 'store:previous-room', 1));
+        $this->collaboration->method('consumeUnsentSuggestionCancellation')->willReturnCallback(static function ($proof, $receipt) use ($boundary): void {
+            self::assertTrue(Db::connect()->getPdo()->inTransaction());
+            self::assertTrue($receipt->data['cancelled']);
+            self::assertArrayNotHasKey('revision_id', $receipt->data);
+            self::assertSame($proof->stateSeq, $receipt->data['state_seq']);
+            self::assertSame($proof->binarySha256, $receipt->data['binary_sha256']);
+            ++$boundary->consume;
         });
         $this->collaboration->method('applySuggestion')->willReturnCallback(static function ($plan, $candidate, $baselineHash) use ($boundary, $baselineBinary) {
             self::assertFalse(Db::connect()->getPdo()->inTransaction());
@@ -304,9 +315,216 @@ final class DocumentRevisionCommentTest extends TestCase
         $this->collaboration->method('releaseBusinessBarrier')->willReturnCallback(static function ($plan, $receipt) use ($boundary): void {
             self::assertFalse(Db::connect()->getPdo()->inTransaction());
             ++$boundary->release;
-            if (in_array($boundary->failure, ['release', 'cancel-release'], true)) throw BusinessException::conflict('COLLABORATION_RELEASE_UNCONFIRMED', 'Synthetic external lost release');
+            if (in_array($boundary->failure, ['release', 'cancel-release', 'progress-release'], true)) throw BusinessException::conflict('COLLABORATION_RELEASE_UNCONFIRMED', 'Synthetic external lost release');
         });
         return [$revision, $created, $this->transition($created, 'collaboration-accept') + ['expected_state_seq' => 1], $boundary];
+    }
+
+    public function testLoadedProgressCancellationKeepsOriginalRequestUntilReleaseAckAndNeverApplies(): void
+    {
+        [$revision, $created, $input, $boundary] = $this->collaborativeSuggestion('progress-release');
+        $before = $this->state();
+        $this->unconfirmedSuggestion($revision, $input, 'COLLABORATION_RELEASE_UNCONFIRMED');
+        self::assertSame(0, $boundary->apply);
+        self::assertSame(1, $boundary->consume);
+        $after = $this->state();
+        self::assertSame($before['document_state'], $after['document_state']);
+        self::assertSame($before['document_revision'], $after['document_revision']);
+        self::assertSame($before['document_change'], $after['document_change']);
+        self::assertSame('pending', $after['document_comment_thread'][0]['decision']);
+        self::assertSame($before['document_comment_thread'][0]['candidate_json'], $after['document_comment_thread'][0]['candidate_json']);
+        $op = array_values(array_filter($after['document_operation'], static fn($row) => $row['action'] === 'suggestion.accept'))[0];
+        self::assertSame('completed', $op['phase']);
+        self::assertNull($op['released_at']);
+        self::assertTrue(json_decode($op['result_json'], true, 64, JSON_THROW_ON_ERROR)['cancelled']);
+        $original = $op['command_input_json'];
+        $boundary->failure = 'progress';
+        try {
+            $this->comments->acceptSuggestion($this->sessions->actor(), $revision['document_id'], $revision['revision_id'], $input);
+            self::fail('Cancellation is exposed only after its original release ACK');
+        } catch (BusinessException $error) {
+            self::assertSame(PeanutAdmin\Modules\Document\Contract\UnsentSuggestionCancellation::CODE, $error->errorCode);
+        }
+        $op = Db::name('document_operation')->where('document_id', $revision['document_id'])->where('action', 'suggestion.accept')->find();
+        self::assertNotNull($op['released_at']);
+        self::assertSame($original, $op['command_input_json']);
+        self::assertSame(1, $boundary->prepare);
+        self::assertSame(1, $boundary->drain);
+        self::assertSame(0, $boundary->apply);
+        self::assertSame(2, $boundary->release);
+    }
+
+    /** Real PHP provider/Document rows; only the original native drain receipt is synthetic. */
+    private function nativeLoadedProgressFixture(): array
+    {
+        [$revision, , $input] = $this->collaborativeSuggestion('COLLABORATION_CONTROL_UNCONFIRMED');
+        $this->unconfirmedSuggestion($revision, $input, 'COLLABORATION_CONTROL_UNCONFIRMED');
+        $server = dirname(__DIR__, 4);
+        DocumentCommentFixture\schema($server . '/app/modules/peanut/collaboration/database/migrations/20261102000008_initial_collaboration_schema.php',
+            ['collaboration_room','collaboration_connection','collaboration_barrier']);
+        $op = Db::name('document_operation')->where('document_id', $revision['document_id'])->where('action', 'suggestion.accept')->find();
+        $plan = new PeanutAdmin\Modules\Document\Contract\BusinessBarrierPlan(json_decode($op['barrier_plan_json'], true, 64, JSON_THROW_ON_ERROR));
+        $state = Db::name('document_state')->where('document_id', $revision['document_id'])->find();
+        $receipt = ['document_id' => $revision['document_id'],'store_id' => 'store:previous-room','lease_epoch' => $plan->data['lease_epoch'],
+            'state_seq' => (int) $state['state_seq'],'binary_sha256' => $state['state_sha256'],'target_progress' => 1];
+        Db::name('document_operation')->insert(['tenant_id' => 1,'document_id' => $revision['document_id'],'operation_id' => $receipt['store_id'],
+            'action' => 'collaboration.store','input_sha256' => str_repeat('a', 64),'result_json' => json_encode($receipt, JSON_THROW_ON_ERROR),'created_at' => '2026-11-16 00:00:00']);
+        Db::name('document_state')->where('document_id', $revision['document_id'])->update(['last_store_id' => $receipt['store_id']]);
+        $roomId = Db::name('collaboration_room')->insertGetId(['tenant_id' => 1,'instance_id' => $plan->data['binding']['instance_id'],
+            'edition' => 'multi-tenant','document_id' => $revision['document_id'],'room_key' => $plan->data['room_key'],
+            'binding_json' => json_encode($plan->data['binding'], JSON_THROW_ON_ERROR),'service_instance_id' => $plan->data['service_instance_id'],
+            'holder_key' => $plan->data['holder_key'],'lease_epoch' => $plan->data['lease_epoch'],'lease_expires_at' => '2026-11-16 00:01:00',
+            'status' => 'draining','persisted_state_seq' => $state['state_seq'],'baseline_sha256' => $state['state_sha256'],
+            'created_at' => '2026-11-16 00:00:00','updated_at' => '2026-11-16 00:00:00','protocol_version' => 2]);
+        $reply = array_intersect_key($plan->data, array_flip(['protocol','operation_id','input_sha256','room_key','holder_key','lease_epoch']))
+            + ['phase' => 'drained','store_id' => $receipt['store_id'],'state_seq' => (int) $state['state_seq'],
+                'binary_sha256' => $state['state_sha256'],'target_progress' => 0,'snapshot_base64' => base64_encode('synthetic-native-snapshot')];
+        Db::name('collaboration_barrier')->insert(['tenant_id' => 1,'room_id' => $roomId,'barrier_key' => $plan->data['barrier_key'],
+            'lease_epoch' => $plan->data['lease_epoch'],'purpose' => 'version','status' => 'draining','input_sha256' => $plan->hash(),
+            'business_plan_json' => json_encode($plan->data, JSON_THROW_ON_ERROR),'drained_receipt_json' => json_encode($reply, JSON_THROW_ON_ERROR),
+            'created_at' => '2026-11-16 00:00:00','expires_at' => '2026-11-16 00:01:00']);
+        $class = new ReflectionClass(PeanutAdmin\Modules\Collaboration\Service\NativeCollaborationProvider::class);
+        $provider = $class->newInstanceWithoutConstructor();
+        $contexts = $this->app->make(ExecutionContextStore::class);
+        foreach (['execution' => $contexts,'commits' => new PeanutAdmin\Modules\Document\Service\DocumentAcceptedCommitQuery($contexts),'businessProofs' => new WeakMap()] as $name => $value) {
+            $class->getProperty($name)->setValue($provider, $value);
+        }
+        return [$provider, $plan, $reply, $revision];
+    }
+
+    public function testNativeLoadedProgressProofOnlyCancelsUnchangedBytesAndSequence(): void
+    {
+        [$provider, $plan, $reply, $revision] = $this->nativeLoadedProgressFixture();
+        $before = $this->state();
+        $this->authorization->run($this->sessions->actor(), function (TenantContext $actor) use ($provider, $plan, $reply): void {
+            Db::transaction(function () use ($actor, $provider, $plan, $reply): void {
+                try {
+                    $provider->lockDrainedBusinessBarrier($actor, $plan);
+                    self::fail('Ordinary accepted-write proof must still reject the progress mismatch');
+                } catch (BusinessException $error) {
+                    self::assertSame('COLLABORATION_BARRIER_NOT_DURABLE', $error->errorCode);
+                }
+                $proof = $provider->lockUnsentSuggestionCancellation($actor, $plan);
+                self::assertNotInstanceOf(PeanutAdmin\Modules\Document\Contract\DrainedBusinessBarrier::class, $proof);
+                $result = ['document_id' => $plan->data['binding']['document_id'],'content_kind' => 'rich_text','schema_version' => RichTextProjection::SCHEMA,
+                    'status' => 'active','state_seq' => $proof->stateSeq,'auth_revision' => $plan->data['base_auth_revision'] + 1,
+                    'operation_id' => $plan->data['operation_id'],'phase' => 'completed','lease_epoch' => $plan->data['lease_epoch'] + 1,
+                    'binary_sha256' => $proof->binarySha256,'store_id' => $proof->storeId,'target_progress' => $proof->targetProgress,
+                    'cancelled' => true,'conflict_code' => PeanutAdmin\Modules\Document\Contract\UnsentSuggestionCancellation::CODE];
+                $receipt = new PeanutAdmin\Modules\Document\Contract\DocumentBusinessReceipt($plan, $result);
+                $forged = new PeanutAdmin\Modules\Document\Contract\UnsentSuggestionCancellation($plan, $proof->stateSeq, $proof->binarySha256, $proof->storeId, $proof->targetProgress);
+                try {
+                    $provider->consumeUnsentSuggestionCancellation($forged, $receipt);
+                    self::fail('Constructing a DTO cannot issue a consumable proof');
+                } catch (BusinessException $error) {
+                    self::assertSame('DOCUMENT_SUGGESTION_CANCELLATION_ONLY', $error->errorCode);
+                }
+                $accepted = $result;
+                unset($accepted['cancelled'], $accepted['conflict_code']);
+                $accepted += ['revision_id' => 99,'revision_no' => 2,'source_state_seq' => $proof->stateSeq,'digest' => str_repeat('a', 64)];
+                try {
+                    $provider->consumeUnsentSuggestionCancellation($proof, new PeanutAdmin\Modules\Document\Contract\DocumentBusinessReceipt($plan, $accepted));
+                    self::fail('Cancellation proof cannot consume an accepted revision');
+                } catch (BusinessException $error) {
+                    self::assertSame('DOCUMENT_SUGGESTION_CANCELLATION_ONLY', $error->errorCode);
+                }
+                foreach (['state_seq' => $proof->stateSeq + 1,'binary_sha256' => str_repeat('f', 64)] as $field => $changed) {
+                    try {
+                        $provider->consumeUnsentSuggestionCancellation($proof, new PeanutAdmin\Modules\Document\Contract\DocumentBusinessReceipt($plan, [$field => $changed] + $result));
+                        self::fail('Cancellation cannot change ' . $field);
+                    } catch (BusinessException $error) {
+                        self::assertSame('DOCUMENT_SUGGESTION_CANCELLATION_ONLY', $error->errorCode);
+                    }
+                }
+                Db::name('document')->where('id', $result['document_id'])->update(['auth_revision' => $result['auth_revision'],'lease_epoch' => $result['lease_epoch']]);
+                Db::name('document_operation')->where('operation_id', $plan->data['operation_id'])->update(['phase' => 'completed','result_json' => json_encode($result, JSON_THROW_ON_ERROR)]);
+                foreach (['suggestion_command_sha256','suggestion_capture','suggestion_rejected'] as $key) {
+                    Db::name('collaboration_barrier')->where('barrier_key', $plan->data['barrier_key'])->update(['drained_receipt_json' => json_encode([$key => null] + $reply, JSON_THROW_ON_ERROR)]);
+                    try {
+                        $provider->consumeUnsentSuggestionCancellation($proof, $receipt);
+                        self::fail('A dispatched command cannot consume a cancellation proof');
+                    } catch (BusinessException $error) {
+                        self::assertSame('DOCUMENT_SUGGESTION_APPLICATION_UNCONFIRMED', $error->errorCode);
+                    }
+                }
+                Db::name('collaboration_barrier')->where('barrier_key', $plan->data['barrier_key'])->update(['drained_receipt_json' => json_encode($reply, JSON_THROW_ON_ERROR)]);
+                $provider->consumeUnsentSuggestionCancellation($proof, $receipt);
+                $barrier = Db::name('collaboration_barrier')->where('barrier_key', $plan->data['barrier_key'])->find();
+                self::assertSame($reply, json_decode($barrier['drained_receipt_json'], true, 64, JSON_THROW_ON_ERROR));
+                self::assertTrue(json_decode($barrier['business_result_json'], true, 64, JSON_THROW_ON_ERROR)['cancelled']);
+                try {
+                    $provider->consumeUnsentSuggestionCancellation($proof, $receipt);
+                    self::fail('The same proof is single use');
+                } catch (BusinessException $error) {
+                    self::assertSame('DOCUMENT_SUGGESTION_CANCELLATION_ONLY', $error->errorCode);
+                }
+            });
+        });
+        $after = $this->state();
+        foreach (['document_state','document_revision','document_change'] as $table) self::assertSame($before[$table], $after[$table]);
+    }
+
+    #[DataProvider('nativeProgressCancellationRefusals')]
+    public function testNativeLoadedProgressCancellationRejectsAnyOtherMismatch(string $change): void
+    {
+        [$provider, $plan, $reply, $revision] = $this->nativeLoadedProgressFixture();
+        if ($change === 'other-action') $plan = new PeanutAdmin\Modules\Document\Contract\BusinessBarrierPlan(['action' => 'version.restore'] + $plan->data);
+        if (in_array($change, ['suggestion_command_sha256','suggestion_capture','suggestion_rejected'], true)) $reply[$change] = null;
+        if ($change === 'drained-progress') $reply['target_progress'] = 1;
+        if ($change === 'drained-sequence') ++$reply['state_seq'];
+        if ($change === 'drained-binary') $reply['binary_sha256'] = str_repeat('f', 64);
+        Db::name('collaboration_barrier')->where('barrier_key', $plan->data['barrier_key'])->update(['drained_receipt_json' => json_encode($reply, JSON_THROW_ON_ERROR)]);
+        $store = Db::name('document_operation')->where('operation_id', $reply['store_id'])->find();
+        $receipt = json_decode($store['result_json'], true, 64, JSON_THROW_ON_ERROR);
+        if ($change === 'store-progress') $receipt['target_progress'] = 0;
+        if ($change === 'store-epoch') ++$receipt['lease_epoch'];
+        Db::name('document_operation')->where('operation_id', $reply['store_id'])->update(['result_json' => json_encode($receipt, JSON_THROW_ON_ERROR)]);
+        if ($change === 'store-action') Db::name('document_operation')->where('operation_id', $reply['store_id'])->update(['action' => 'collaboration.baseline']);
+        if ($change === 'actual-bytes') Db::name('document_state')->where('document_id', $revision['document_id'])->update(['yjs_state_binary' => 'changed']);
+        if ($change === 'room-baseline') Db::name('collaboration_room')->where('room_key', $plan->data['room_key'])->update(['baseline_sha256' => str_repeat('f', 64)]);
+        $before = $this->state();
+        $this->authorization->run($this->sessions->actor($change === 'other-actor' ? 22 : 11), function (TenantContext $actor) use ($provider, $plan, $change): void {
+            Db::transaction(function () use ($actor, $provider, $plan, $change): void {
+                try {
+                    $provider->lockUnsentSuggestionCancellation($actor, $plan);
+                    self::fail('Only the confirmed pre-dispatch loaded-progress defect is cancelable');
+                } catch (BusinessException $error) {
+                    self::assertSame(in_array($change, ['other-action','other-actor'], true) ? 'DOCUMENT_SUGGESTION_COMMAND_INVALID' : 'COLLABORATION_BARRIER_NOT_DURABLE', $error->errorCode);
+                }
+            });
+        });
+        self::assertSame($before, $this->state());
+        self::assertSame('draining', Db::name('collaboration_barrier')->value('status'));
+    }
+
+    public static function nativeProgressCancellationRefusals(): array
+    {
+        return array_map(static fn($case) => [$case], ['suggestion_command_sha256','suggestion_capture','suggestion_rejected',
+            'drained-progress','drained-sequence','drained-binary','store-progress','store-epoch','store-action','actual-bytes','room-baseline','other-action','other-actor']);
+    }
+
+    public function testLoadedBaselineUsesAStableZeroProgressReceiptInsteadOfOldStoreProgress(): void
+    {
+        [, $plan] = $this->nativeLoadedProgressFixture();
+        $before = $this->state();
+        $this->authorization->run($this->sessions->actor(), function () use ($plan): void {
+            Db::transaction(function () use ($plan): void {
+                $doc = PeanutAdmin\Modules\Document\Model\Document::find($plan->data['binding']['document_id']);
+                $state = PeanutAdmin\Modules\Document\Model\DocumentState::where('document_id', $doc->id)->find();
+                $baseline = new ReflectionMethod(DocumentService::class, 'baselineReceipt');
+                $storeId = $baseline->invoke($this->commands, $doc, $state);
+                self::assertStringStartsWith('baseline:', $storeId);
+                self::assertSame($storeId, $baseline->invoke($this->commands, $doc, $state));
+                $op = Db::name('document_operation')->where('operation_id', $storeId)->find();
+                self::assertSame('collaboration.baseline', $op['action']);
+                $receipt = json_decode($op['result_json'], true, 64, JSON_THROW_ON_ERROR);
+                self::assertSame(0, $receipt['target_progress']);
+                self::assertSame((int) $state->state_seq, $receipt['state_seq']);
+                self::assertSame($state->state_sha256, $receipt['binary_sha256']);
+            });
+        });
+        $after = $this->state();
+        foreach (['document','document_state','document_revision','document_change'] as $table) self::assertSame($before[$table], $after[$table]);
     }
 
     private function unconfirmedSuggestion(array $revision, array $input, string $reason): void
