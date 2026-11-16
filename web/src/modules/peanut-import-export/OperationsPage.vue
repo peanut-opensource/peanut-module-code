@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { onBeforeUnmount, provide } from 'vue';
   import { useRoute } from 'vue-router';
+  import FilePicker from '@/components/file-picker/index.vue';
   import { hasPermission } from '@/hooks/permission';
   import { tenantSessionFetch } from '@/api/tenant-session-fetch';
   import ImportExportPage from './optional-runtime/src/ImportExportPage.vue';
@@ -33,5 +34,19 @@
 </script>
 
 <template>
-  <ImportExportPage />
+  <ImportExportPage>
+    <template #file-picker="{ select, disabled }">
+      <FilePicker
+        v-if="!disabled"
+        :type="30"
+        :limit="1"
+        button-text="从素材库选择 CSV"
+        @select="
+          (_urls, files) => {
+            if (files[0]?.file_key) select(files[0].file_key);
+          }
+        "
+      />
+    </template>
+  </ImportExportPage>
 </template>

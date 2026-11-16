@@ -401,12 +401,18 @@ export type ArticleListRes = PageData<ArticleRecord>;
 
 export function getArticleList(
   params?: ArticleListParams,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  recycled = false
 ) {
-  return axios.get<ArticleListRes>('/adminapi/peanut.article.list', {
-    params: params ?? {},
-    signal,
-  });
+  return axios.get<ArticleListRes>(
+    recycled
+      ? '/adminapi/peanut.article.recycle.list'
+      : '/adminapi/peanut.article.list',
+    {
+      params: params ?? {},
+      signal,
+    }
+  );
 }
 
 export function getArticleExportInfo(
@@ -462,6 +468,20 @@ export function updateArticleStatus(
       id,
       is_show: isShow,
     },
+    { signal }
+  );
+}
+
+export type ArticleBatchResult =
+  components['schemas']['ArticleBatchMutationResult'];
+export function recycleArticles(
+  action: 'restore' | 'force-delete',
+  ids: number[],
+  signal?: AbortSignal
+) {
+  return axios.post<ArticleBatchResult>(
+    `/adminapi/peanut.article.${action}`,
+    { ids },
     { signal }
   );
 }
