@@ -464,14 +464,12 @@ final readonly class MemberAdminService
         if (count($roles) !== count($roleIds)) {
             throw AdminAccessException::notFound();
         }
-        $activeOwnerMemberIds = $this->activeOwnerMemberIdsForUpdate($actor->tenantId);
-        $currentlyOwner = in_array($memberId, $activeOwnerMemberIds, true);
         $keepsOwner = false;
         foreach ($roles as $role) {
             $keepsOwner = $keepsOwner || ($role['key'] === 'core.tenant-owner' && (int) $role['is_builtin'] === 1);
         }
-        if ($currentlyOwner && !$keepsOwner) {
-            $this->assertOwnerRemovalAllowed($activeOwnerMemberIds);
+        if (!$keepsOwner) {
+            $this->assertOwnerRemovalAllowed($actor->tenantId, $memberId);
         }
         $oldRoleIds = array_map('intval', MemberRole::where('tenant_id', $actor->tenantId)->where('tenant_member_id', $memberId)->order('role_id')->column('role_id'));
         MemberRole::where('tenant_id', $actor->tenantId)->where('tenant_member_id', $memberId)->delete();
@@ -554,10 +552,7 @@ final readonly class MemberAdminService
             throw AdminAccessException::conflict('MEMBER_STATUS_CONFLICT', 'The member status transition is not allowed.');
         }
         if (in_array($nextStatus, ['suspended', 'left'], true)) {
-            $activeOwnerMemberIds = $this->activeOwnerMemberIdsForUpdate($actor->tenantId);
-            if (in_array($memberId, $activeOwnerMemberIds, true)) {
-                $this->assertOwnerRemovalAllowed($activeOwnerMemberIds);
-            }
+            $this->assertOwnerRemovalAllowed($actor->tenantId, $memberId);
         }
         $now = $this->now();
         $data = [
@@ -674,10 +669,11 @@ final readonly class MemberAdminService
         return array_keys($memberIds);
     }
 
-    /** @param list<int> $activeOwnerMemberIds */
-    private function assertOwnerRemovalAllowed(array $activeOwnerMemberIds): void
+    /** The caller holds the tenant row lock, shared by tenant and platform membership writes. */
+    public function assertOwnerRemovalAllowed(int $tenantId, int $memberId): void
     {
-        if (count($activeOwnerMemberIds) <= 1) {
+        $activeOwnerMemberIds = $this->activeOwnerMemberIdsForUpdate($tenantId);
+        if (in_array($memberId, $activeOwnerMemberIds, true) && count($activeOwnerMemberIds) <= 1) {
             throw AdminAccessException::conflict(
                 'LAST_ACTIVE_OWNER_REQUIRED',
                 'The final active tenant owner cannot be removed or suspended.',

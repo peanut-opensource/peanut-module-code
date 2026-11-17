@@ -7,6 +7,7 @@ namespace PeanutAdmin\Modules\Identity\Audit;
 use PeanutAdmin\Modules\Identity\Audit\Model\PlatformAuditEventRecord;
 use PeanutAdmin\Modules\Identity\Audit\Model\TenantAuditEventRecord;
 use PeanutAdmin\Kernel\Auth\TenantContext;
+use PeanutAdmin\Kernel\Context\PlatformContext;
 use think\db\Raw;
 
 final readonly class AuditService implements \PeanutAdmin\Kernel\Audit\AuditWriter, \PeanutAdmin\Modules\Identity\Contract\RevocationFacts
@@ -18,11 +19,15 @@ final readonly class AuditService implements \PeanutAdmin\Kernel\Audit\AuditWrit
     ) {}
 
     /** Called only by the Identity negative producers inside their original write transaction. */
-    public function recordRevocation(TenantContext $actor, int $tenantId, int $memberId, string $kind, string $subjectId, string $reason, array $before, array $after, ?string $sessionFingerprint = null): void
+    public function recordRevocation(TenantContext|PlatformContext $actor, int $tenantId, int $memberId, string $kind, string $subjectId, string $reason, array $before, array $after, ?string $sessionFingerprint = null): void
     {
         $ambient = $this->execution?->current();
         $pdo = \think\facade\Db::connect()->getPdo();
-        if (!$ambient instanceof \app\common\execution\AdminExecutionContext || $ambient->tenant != $actor
+        $tenantProducer = $actor instanceof TenantContext && $ambient instanceof \app\common\execution\AdminExecutionContext
+            && $ambient->tenant == $actor;
+        $platformProducer = $actor instanceof PlatformContext && $ambient instanceof \app\common\execution\PlatformExecutionContext
+            && $ambient->platform->core == $actor && $kind === 'member' && $reason === 'member_suspended';
+        if ((!$tenantProducer && !$platformProducer)
             || !$pdo instanceof \PDO || !$pdo->inTransaction() || $tenantId < 1 || $memberId < 1
             || !in_array($kind, ['member', 'role', 'session', 'tenant_scope_account'], true)
             || !in_array($reason, ['member_suspended', 'member_left', 'member_roles_removed', 'role_permissions_removed', 'role_archived', 'session_revoked', 'credential_changed'], true)
@@ -48,7 +53,7 @@ final readonly class AuditService implements \PeanutAdmin\Kernel\Audit\AuditWrit
             'tenant_id' => $tenantId, 'member_id' => $memberId, 'subject_kind' => $kind, 'subject_id' => $subjectId,
             'negative_action' => 'invalidate_old_grant', 'reason' => $reason, 'before' => $before, 'after' => $after,
             'session_fingerprint' => $sessionFingerprint, 'producer_operation_id' => $actor->requestId,
-            'actor' => ['tenant_id' => $actor->tenantId, 'account_id' => $actor->accountId, 'member_id' => $actor->memberId],
+            'actor' => self::revocationActor($actor),
             'occurred_at' => (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d H:i:s.v')];
         $hash = hash('sha256', self::revocationJson($fact));
         $row = new TenantAuditEventRecord();
@@ -56,7 +61,11 @@ final readonly class AuditService implements \PeanutAdmin\Kernel\Audit\AuditWrit
             throw new \DomainException('IDENTITY_REVOCATION_PDO_MISMATCH');
         }
         $row->save(['tenant_id' => $tenantId, 'event_type' => 'identity.revocation.fact', 'action' => $reason, 'outcome' => 'success',
-            'actor_tenant_id' => $tenantId, 'actor_type' => 'tenant_system', 'target_resource_type' => 'member',
+            'actor_tenant_id' => $platformProducer ? null : $tenantId,
+            'actor_type' => $platformProducer ? 'platform_operator' : 'tenant_system',
+            'actor_account_id' => $platformProducer ? $actor->accountId : null,
+            'actor_platform_operator_id' => $platformProducer ? $actor->operatorId : null,
+            'target_resource_type' => 'member',
             'target_resource_id' => (string) $memberId, 'target_count' => 1, 'request_id' => $actor->requestId,
             'operation_id' => $fact['fact_id'], 'metadata_json' => $fact, 'occurred_at' => $fact['occurred_at'],
             'revocation_fact_key' => $fact['fact_id'], 'revocation_fact_sha256' => $hash]);
@@ -73,11 +82,11 @@ final readonly class AuditService implements \PeanutAdmin\Kernel\Audit\AuditWrit
     }
 
     /** Persistent post-change evidence narrows this internal writer to the actual Identity producers. */
-    private function assertRevocationSource(TenantContext $actor, int $tenantId, int $memberId, string $kind, string $subjectId, string $reason, array $before, array $after, ?string $sessionFingerprint): void
+    private function assertRevocationSource(TenantContext|PlatformContext $actor, int $tenantId, int $memberId, string $kind, string $subjectId, string $reason, array $before, array $after, ?string $sessionFingerprint): void
     {
         $member = \PeanutAdmin\Modules\Identity\Persistence\Model\TenantMember::where('tenant_id', $tenantId)->where('id', $memberId)
             ->field('id,account_id,status,security_revision,authorization_revision')->find();
-        if ($member === null || $tenantId !== $actor->tenantId && $reason !== 'credential_changed') {
+        if ($member === null || $actor instanceof TenantContext && $tenantId !== $actor->tenantId && $reason !== 'credential_changed') {
             throw new \DomainException('IDENTITY_REVOCATION_SOURCE_INVALID');
         }
         $expectedKind = match ($reason) {
@@ -151,7 +160,8 @@ final readonly class AuditService implements \PeanutAdmin\Kernel\Audit\AuditWrit
         }
         $context = $this->execution?->current();
         $pdo = \think\facade\Db::connect()->getPdo();
-        $producer = $context instanceof \app\common\execution\AdminExecutionContext && $pdo instanceof \PDO && $pdo->inTransaction();
+        $producer = ($context instanceof \app\common\execution\AdminExecutionContext
+            || $context instanceof \app\common\execution\PlatformExecutionContext) && $pdo instanceof \PDO && $pdo->inTransaction();
         $worker = $context instanceof \app\common\execution\SystemExecutionContext && $context->tenantId() === $tenantId
             && $context->operation() === 'identity.revocation.propagate' && $context->metadata->jobKey !== null;
         $discovery = $context instanceof \app\common\execution\InstanceExecutionContext && PHP_SAPI === 'cli'
@@ -179,12 +189,13 @@ final readonly class AuditService implements \PeanutAdmin\Kernel\Audit\AuditWrit
             if (!is_array($actor)) {
                 throw new \DomainException('IDENTITY_REVOCATION_FACT_MISMATCH');
             }
-            $expectedActor = ['tenant_id' => $context->tenant->tenantId, 'account_id' => $context->tenant->accountId, 'member_id' => $context->tenant->memberId];
+            $producerActor = $context instanceof \app\common\execution\AdminExecutionContext ? $context->tenant : $context->platform->core;
+            $expectedActor = self::revocationActor($producerActor);
             // MySQL JSON object ordering is not the producer's insertion order.
             // Keep exact keys and PHP value types after normalizing only order.
             ksort($actor, SORT_STRING);
             ksort($expectedActor, SORT_STRING);
-            if ($actor !== $expectedActor || $fact['producer_operation_id'] !== $context->tenant->requestId) {
+            if ($actor !== $expectedActor || $fact['producer_operation_id'] !== $producerActor->requestId) {
                 throw new \DomainException('IDENTITY_REVOCATION_FACT_MISMATCH');
             }
         }
@@ -227,6 +238,13 @@ final readonly class AuditService implements \PeanutAdmin\Kernel\Audit\AuditWrit
             'target_resource_type' => 'revocation_fact', 'target_resource_id' => $fact['fact_id'],
             'request_id' => $context->requestId(), 'metadata_json' => ['fact_id' => $fact['fact_id'], 'fact_sha256' => $fact['fact_sha256'], 'timing_basis' => 'precommit_occurred_at'],
             'occurred_at' => new Raw('UTC_TIMESTAMP(3)'), 'revocation_fact_key' => $key]);
+    }
+
+    private static function revocationActor(TenantContext|PlatformContext $actor): array
+    {
+        return $actor instanceof TenantContext
+            ? ['tenant_id' => $actor->tenantId, 'account_id' => $actor->accountId, 'member_id' => $actor->memberId]
+            : ['account_id' => $actor->accountId, 'operator_id' => $actor->operatorId];
     }
 
     private static function revocationJson(array $value): string

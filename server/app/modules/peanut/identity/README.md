@@ -6,6 +6,12 @@
 
 `4.0.0-rc.53` 在既有 `ReserveCustomMenuIds` 之前增加 `20261107005900_initialize_menu_allocation_metadata.php`：通过同一个原生 PDO 连接执行 `SHOW CREATE TABLE pa_system_menu`，打开新建空表的真实自增元数据。它不插入占位菜单、不修改已有 ID，也不更换会话级元数据缓存设置。原有编号保留迁移及初始结构字节保持不变。原生迁移运行器仍按未执行版本逐条执行；已有更高版本账本不代替这条新增迁移。安装是否完成以真实迁移账本和安装回执为准。
 
+## 平台撤回已接受的 owner
+
+已导出的 `TenantOwnerAdminService::revokeOwner()` 接受可信平台 `PlatformContext`、租户/成员 ID、读取快照的 revision 和变更原因。宿主仍须在平台登录及 `platform.tenant.provision-owner` 写权限入口调用；它不复用 pending 邀请撤销，也不构造租户成员身份。该操作在同一原生事务内仅撤去目标成员的内置 owner 角色并停用该租户成员，保留账号、其他角色关系、其他租户身份和审计。最后 active owner 保护与原成员管理共用，成员安全/授权及租户授权 revision 随之推进。
+
+撤权事实沿既有 Identity Audit → Task/Collaboration 链交付，平台生产者必须与当前原生 `PlatformExecutionContext` 匹配，事实保留真实平台操作员投影。成员状态与安全 revision 使旧会话失效；事实入队不表示远端协作 ACK 已确认。宿主路由、运行采用和实际撤回仍需各自验证，源码方法存在不表示消费者已接入。
+
 ## 成员目录
 
 [`TenantMemberDirectory`](src/Contract/TenantMemberDirectory.php) 返回只读 [`TenantMemberSummary`](src/Contract/Dto/TenantMemberSummary.php)，含租户、成员、账号、显示名称、主部门及安全/授权修订，不返回凭据或 ORM 对象。
