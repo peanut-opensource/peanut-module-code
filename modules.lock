@@ -7,7 +7,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "c0b14b9c706c65be339674434e37cb609395333f32812d85ae84871c99afa54b"
+                "sha256": "39828214fa125666e9527e5d034c188d1951140a2ef6ba2dd30791487b65c973"
             },
             "trust": {
                 "channel": "bundled",
@@ -63,7 +63,7 @@
                     "package": "@custom/custom-ai-access",
                     "version": "1.0.1-rc.3",
                     "entry": "web/src/modules/custom-ai-access/contribution.ts",
-                    "sha256": "4cce2631b2d419855511119fc7e4b5c284e8db90ee763597895b81ff68a6aaeb"
+                    "sha256": "0d6e028c9aee3f3e13de099e22dcd7c3a6e6b8e049213ed3778fdf716ae77a28"
                 }
             ],
             "modules": [
