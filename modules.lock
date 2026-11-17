@@ -3,11 +3,11 @@
     "modules": [
         {
             "key": "custom.ai-assistant",
-            "version": "1.2.2",
+            "version": "1.2.3",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "d103b2a83218fc6d428dc84934b3e3a5c139dc054796f8d59fe67d6c96bba207"
+                "sha256": "ff337ff41f8fb640732e004484b3e2f346d966b1908af496e6b5fb8c20f17602"
             },
             "trust": {
                 "channel": "bundled",
@@ -23,7 +23,7 @@
                     "modules": [
                         {
                             "key": "custom.ai-assistant",
-                            "version": "1.2.2",
+                            "version": "1.2.3",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -58,22 +58,22 @@
             "composer": [
                 {
                     "name": "custom/custom-ai-assistant",
-                    "version": "1.2.2",
-                    "sha256": "8bb666a28ad92781d57aed5f48d34727b6565fd7f7d7eebcd3b2245036b488cc"
+                    "version": "1.2.3",
+                    "sha256": "118d27d075932dfedf964dcebec797ae6a91d3f3262b2b85b4f1885d73afd9e6"
                 }
             ],
             "npm": [
                 {
                     "name": "@custom/custom-ai-assistant",
-                    "version": "1.2.2",
-                    "integrity": "sha256-TXE8C1zj8rURJJd2q35PXG/xikZ4x1gBGyx0hGnlCOA="
+                    "version": "1.2.3",
+                    "integrity": "sha256-U3VkWWDddSmq3yalMLeO9/Hu2Rfx3Jn8KRHUlKaai5E="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "admin-web",
                     "package": "@custom/custom-ai-assistant",
-                    "version": "1.2.2",
+                    "version": "1.2.3",
                     "entry": "web/src/modules/custom-ai-assistant/contribution.ts",
                     "sha256": "f78dcaaa30c90f8f1c9785b59773aca3e379ed1899db6a3f8361e386db1ee677"
                 }
@@ -85,7 +85,7 @@
                 }
             ],
             "manifest": "server/app/modules/custom/ai_assistant/module.json",
-            "manifest_sha256": "d7f5d2e566d807916e1e100ce47feaac0973d41c1463e40231b92ab977ce94c3"
+            "manifest_sha256": "6f64f74f8398056b992cfe94a7de92277331ae3cc50a9140dbad64f9eccdfaf1"
         },
         {
             "key": "peanut.article",
@@ -665,7 +665,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "acc7d5a7168522b440108f64443630fb213ad88cec6ec3a0d62a60a71d038413"
+                "sha256": "787e8cf707bd44e496f4b17de24e0aa78acc6f70976087528ea4848bae1e9187"
             },
             "trust": {
                 "channel": "bundled",
@@ -739,7 +739,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "8ff290be6942054df725963a49b56290d1025cfcb5174bca3e690c0bc0b7019e"
+                "sha256": "0e8087f13cbfd30179530c3e55b64dfd17ed23bcc30c393c36b201a978a0c464"
             },
             "trust": {
                 "channel": "bundled",

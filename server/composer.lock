@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7f6a7123ccb8f62c2be62928bca87efc",
+    "content-hash": "42a0d382977f2be8e5e1c40862cec542",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -281,11 +281,11 @@
         },
         {
             "name": "custom/custom-ai-assistant",
-            "version": "1.2.2",
+            "version": "1.2.3",
             "dist": {
                 "type": "path",
                 "url": "app/modules/custom/ai_assistant",
-                "reference": "9a4a5af2b8f41803bead67455f31c8bfd0882804"
+                "reference": "c8b56901bf9679cd47968dd241ce5dcbd46c1c9e"
             },
             "require": {
                 "peanut-business/peanut-document": "^1.0.17",

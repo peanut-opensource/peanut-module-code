@@ -1,19 +1,18 @@
 <template>
-  <main class="workspace">
-    <header
-      ><div
-        ><p class="eyebrow">AI ASSISTANT · 人工制作与采纳</p
-        ><h1>{{ names[kind] }}</h1
-        ><p
-          >先配置机构服务和适用模型，再用固定来源制作候选。技术结果、人工采纳与业务审批分别记录。</p
-        ></div
-      ><div
-        ><el-button :loading="loading" @click="refresh">刷新</el-button
-        ><el-button v-if="canCreate" type="primary" @click="openForm()"
-          >新建{{ names[kind] }}</el-button
-        ></div
-      ></header
-    >
+  <PageContent class="workspace pa-page-stack">
+    <PageHeader>
+      <p class="eyebrow">AI ASSISTANT · 人工制作与采纳</p>
+      <h1>{{ names[kind] }}</h1>
+      <p class="pa-page-header__description">
+        先配置机构服务和适用模型，再用固定来源制作候选。技术结果、人工采纳与业务审批分别记录。
+      </p>
+      <template #actions>
+        <el-button :loading="loading" @click="refresh">刷新</el-button>
+        <el-button v-if="canCreate" type="primary" @click="openForm()">
+          新建{{ names[kind] }}
+        </el-button>
+      </template>
+    </PageHeader>
     <nav
       ><router-link
         v-for="(name, key) in names"
@@ -142,24 +141,35 @@
         >
       </el-table>
     </section>
-    <section class="filters"
-      ><el-input
+    <PageToolbar class="filters pa-page-filters" label="AI业务记录查询">
+      <el-input
         v-model="search"
         placeholder="业务名称"
         clearable
+        aria-label="业务名称"
         @keyup.enter="searchNow"
-      /><el-select v-model="capability" clearable placeholder="制作能力"
-        ><el-option
+      />
+      <el-select
+        v-model="capability"
+        clearable
+        placeholder="制作能力"
+        aria-label="制作能力"
+      >
+        <el-option
           v-for="c in capabilities"
           :key="c"
           :value="c"
-          :label="capabilityNames[c]" /></el-select
-      ><el-input
+          :label="capabilityNames[c]"
+        />
+      </el-select>
+      <el-input
         v-model="statusFilter"
         placeholder="状态，可留空"
         clearable
-      /><el-button @click="searchNow">查询</el-button></section
-    >
+        aria-label="状态，可留空"
+      />
+      <el-button @click="searchNow">查询</el-button>
+    </PageToolbar>
     <el-empty
       v-if="!loading && !rows.length"
       :description="
@@ -418,6 +428,7 @@
     >
     <el-dialog
       v-model="formVisible"
+      class="pa-page-form-dialog"
       destroy-on-close
       :title="(editing ? '修订' : '新建') + names[kind]"
       width="min(780px,96vw)"
@@ -659,6 +670,7 @@
     >
     <el-dialog
       v-model="actionVisible"
+      class="pa-page-form-dialog"
       destroy-on-close
       :title="actionNames[action] || action"
       width="min(680px,96vw)"
@@ -749,6 +761,7 @@
     >
     <el-dialog
       v-model="recoveryVisible"
+      class="pa-page-form-dialog"
       :title="'恢复原请求 ' + (recoveryTarget?.id || '')"
       width="min(850px,96vw)"
       :close-on-click-modal="false"
@@ -845,9 +858,10 @@
         ></template
       >
     </el-dialog>
-  </main>
+  </PageContent>
 </template>
 <script setup lang="ts">
+  import { PageContent, PageHeader, PageToolbar } from '@peanut-admin/ui-vue';
   import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
   import {
     RequestLane,
@@ -2194,60 +2208,46 @@
 </script>
 <style scoped>
   .workspace {
-    padding: 28px;
-    max-width: 1500px;
-    margin: auto;
-    color: #203b36;
-  }
-  header {
-    display: flex;
-    justify-content: space-between;
-    gap: 22px;
-    align-items: center;
-  }
-  h1 {
-    font-size: 30px;
-    margin: 8px 0;
+    min-width: 0;
+    color: var(--el-text-color-primary);
   }
   .eyebrow {
     font-size: 12px;
     letter-spacing: 0.12em;
-    color: #087f6b;
-  }
-  header p {
-    line-height: 1.7;
-    color: #61766e;
+    color: var(--el-text-color-secondary);
   }
   nav,
-  .actions,
-  .filters {
+  .actions {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
     margin: 20px 0;
   }
+  .workspace > nav {
+    margin: 0;
+  }
   nav a {
     padding: 9px 15px;
     border-radius: 8px;
-    background: #eaf4ee;
-    color: #285849;
+    background: var(--el-color-primary-light-9);
+    color: var(--el-color-primary);
     text-decoration: none;
   }
   .router-link-active {
-    background: #c9e7d8;
+    background: var(--el-color-primary-light-8);
   }
   .filters .el-input,
   .filters .el-select {
     max-width: 260px;
   }
-  .el-alert {
-    margin: 14px 0;
+  .workspace > .el-alert {
+    margin: 0;
   }
   .setup-guide {
     padding: 16px 20px;
-    border: 1px solid #d5e3dd;
-    border-radius: 9px;
-    background: #f7faf8;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 8px;
+    background: var(--el-bg-color-overlay);
   }
   .setup-guide p {
     margin: 8px 0;
@@ -2260,7 +2260,7 @@
     margin-bottom: 0;
   }
   .setup-guide a {
-    color: #087f6b;
+    color: var(--el-color-primary);
   }
   pre {
     white-space: pre-wrap;
@@ -2278,9 +2278,9 @@
   }
   .comparison > div {
     padding: 15px;
-    border: 1px solid #d5e3dd;
-    border-radius: 9px;
-    background: #f7faf8;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 8px;
+    background: var(--el-bg-color-overlay);
   }
   p {
     line-height: 1.7;
@@ -2289,14 +2289,8 @@
     margin: 14px 0;
   }
   @media (max-width: 700px) {
-    header {
-      display: block;
-    }
     .comparison {
       grid-template-columns: 1fr;
-    }
-    .workspace {
-      padding: 16px;
     }
   }
 </style>
