@@ -26,6 +26,12 @@ python3 scripts/build-module-release-index --plan-only \
 
 变化模块及其反向依赖闭包进入验证范围。未变化的依赖模块只在必要时下载原包并执行原生 check，不重打包。契约、Edition 和依赖约束仍由原 `PackageCheck`、模块边界检查及原生装配负责，不在发行器另写业务依赖求解器。
 
+## 本地开发候选与官方目录
+
+本地模块候选复用 Code 的[本地模块候选合同](https://github.com/peanut-business/peanut-admin-code/blob/dev/docs/public/module-development.md#本地模块候选)。作者应用先原生采用提供该能力的宿主版本，再通过现有 pack 的显式候选准备入口同步选中模块、Composer 和已声明客户端的版本；准备、原生锁与依赖更新、固定源码打包及消费者运行采用分别记录。普通 pack 不自动升版，已固定的同版本归档不覆盖；源码继续变化时使用后继 RC，不用文件名或 build metadata 冒充可升级版本。
+
+`custom.*` 可以按该合同准备私有本地候选，但不进入本工具的官方目录或正式发行工作流。`peanut.*` 的官方目录比较、稳定/预发行选择和不可变原件仍只由本页既有流程负责。本地候选 ready 不等于正式发行或下游已采用；开发候选与正式发行后的消费者交接按 Code 的[发行生产者约定](https://github.com/peanut-business/peanut-admin-code/blob/dev/docs/maintenance/release-producers.md)分别执行，不为通知新增发布器或自动升级。
+
 ## v2 目录与两种摘要
 
 新目录使用 `schema_version=2` / `peanut.module-release-index.v2`，保留 v1 的读取与不可变身份规则。每条记录仍包含 key、独立版本、资产名、包 SHA-256、大小、许可、Edition、Kernel 约束和依赖，并增加：
