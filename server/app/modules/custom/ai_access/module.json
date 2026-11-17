@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "key": "custom.ai-access",
+  "name": "AI 接入配置",
+  "description": "租户 AI 服务商、令牌和模型管理及按能力调用",
+  "version": "1.0.0",
+  "kernel_constraint": "^1.0",
+  "license": "Apache-2.0",
+  "php_package": "custom/custom-ai-access",
+  "web_package": "@custom/custom-ai-access",
+  "dependencies": [
+    {
+      "module_key": "peanut.identity",
+      "version": "^4.0.0-rc.32"
+    },
+    {
+      "module_key": "peanut.settings",
+      "version": "^1.0.24"
+    }
+  ],
+  "lifecycle": {
+    "protected": false
+  },
+  "backend": {
+    "provider": "Custom\\Modules\\AiAccess\\ModuleProvider",
+    "menus": "resources/menus.json",
+    "permissions": "resources/permissions.json",
+    "setting_definitions": "resources/setting-definitions.json",
+    "migrations": "database/migrations"
+  },
+  "frontend": {
+    "entry": "web/src/modules/custom-ai-access/contribution.ts"
+  },
+  "database": {
+    "owned_tables": [
+      "pa_ai_access_catalog",
+      "pa_ai_access_request"
+    ]
+  },
+  "contracts": {
+    "exports": [
+      "Custom\\Modules\\AiAccess\\Contract\\AiClient"
+    ],
+    "events": []
+  },
+  "tenant": {
+    "enableable": true,
+    "disable_behavior": "reject_new_operations",
+    "requires": [
+      "peanut.identity",
+      "peanut.settings"
+    ]
+  }
+}

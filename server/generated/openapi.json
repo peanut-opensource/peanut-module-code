@@ -126,6 +126,9 @@
             "name": "Installation"
         },
         {
+            "name": "AiAccess"
+        },
+        {
             "name": "AiAssistant"
         },
         {
@@ -19300,6 +19303,92 @@
                     }
                 },
                 "x-peanut-permissions": []
+            }
+        },
+        "/adminapi/custom.ai-access.catalog": {
+            "get": {
+                "operationId": "aiAccessCatalog",
+                "tags": [
+                    "AiAccess"
+                ],
+                "description": "读取当前租户的 AI 服务商、可用模型和令牌配置状态。",
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "custom.ai-access"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "custom.ai-access.view"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "AI 接入配置目录"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "custom.ai-access"
+                    },
+                    "controller": "Custom\\Modules\\AiAccess\\Controller\\CatalogController",
+                    "action": "catalog",
+                    "permission": "custom.ai-access.view",
+                    "source": {
+                        "file": "server/app/modules/custom/ai_access/route/app.php",
+                        "line": 16
+                    }
+                }
+            }
+        },
+        "/adminapi/custom.ai-access.save": {
+            "post": {
+                "operationId": "aiAccessSave",
+                "tags": [
+                    "AiAccess"
+                ],
+                "description": "新增或更新租户 AI 服务商、令牌或模型。同一服务商的地址和 API 前缀在登记后固定。",
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "custom.ai-access"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "custom.ai-access.configure"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "已保存的配置，不含令牌值"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "custom.ai-access"
+                    },
+                    "controller": "Custom\\Modules\\AiAccess\\Controller\\CatalogController",
+                    "action": "save",
+                    "permission": "custom.ai-access.configure",
+                    "source": {
+                        "file": "server/app/modules/custom/ai_access/route/app.php",
+                        "line": 18
+                    }
+                }
             }
         },
         "/adminapi/custom.ai-assistant.textRoutes": {

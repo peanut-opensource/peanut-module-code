@@ -2,6 +2,80 @@
     "schema_version": 1,
     "modules": [
         {
+            "key": "custom.ai-access",
+            "version": "1.0.0",
+            "source": {
+                "type": "canonical-contents",
+                "reference": "canonical-plugin-contents-v1",
+                "sha256": "fa46e336bea6afe4ecec12b5982bcb34fdd14f6dac7f0db6d74aa3964deced71"
+            },
+            "trust": {
+                "channel": "bundled",
+                "origin": {
+                    "type": "repository-contents",
+                    "reference": "canonical-plugin-contents-v1"
+                },
+                "license": {
+                    "identifier": "Apache-2.0",
+                    "status": "declared"
+                },
+                "compatibility": {
+                    "modules": [
+                        {
+                            "key": "custom.ai-access",
+                            "version": "1.0.0",
+                            "kernel_constraint": "^1.0",
+                            "dependencies": [
+                                {
+                                    "module_key": "peanut.identity",
+                                    "version": "^4.0.0-rc.32"
+                                },
+                                {
+                                    "module_key": "peanut.settings",
+                                    "version": "^1.0.24"
+                                }
+                            ],
+                            "permissions": {
+                                "path": "resources/permissions.json",
+                                "sha256": "3e177eda8ec7bf42ca588ccc0cf91e22cc4334f6e1aea59cb742319576ae1e78"
+                            }
+                        }
+                    ]
+                }
+            },
+            "composer": [
+                {
+                    "name": "custom/custom-ai-access",
+                    "version": "1.0.0",
+                    "sha256": "9aefbc771421ea0aa040382745c33f108ee3e2d7ec2c3a55fc9f0f6d3fd8ebe9"
+                }
+            ],
+            "npm": [
+                {
+                    "name": "@custom/custom-ai-access",
+                    "version": "1.0.0",
+                    "integrity": "sha256-84tMeG+Xrh8CG1jAifv8YSfxpOnzjMtddNgLHlKwZPA="
+                }
+            ],
+            "frontend": [
+                {
+                    "client_key": "admin-web",
+                    "package": "@custom/custom-ai-access",
+                    "version": "1.0.0",
+                    "entry": "web/src/modules/custom-ai-access/contribution.ts",
+                    "sha256": "a3adf3b6491e4fd833e53610f4b2ce504176acdba311af1f10754bfb01513309"
+                }
+            ],
+            "modules": [
+                {
+                    "key": "custom.ai-access",
+                    "root": "server/app/modules/custom/ai_access"
+                }
+            ],
+            "manifest": "server/app/modules/custom/ai_access/module.json",
+            "manifest_sha256": "386016b92eec669c1a9e60b488f565d4102ebb9367e3976a3a963959038af9df"
+        },
+        {
             "key": "custom.ai-assistant",
             "version": "1.2.4",
             "source": {

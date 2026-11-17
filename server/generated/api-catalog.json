@@ -4,7 +4,7 @@
     "inputs": [
         {
             "path": "modules.lock",
-            "sha256": "669f519bb1582ad2ea4b1dd1fdaffa38474f040c4f725d364dbb99c66f2d4b90"
+            "sha256": "5362b0e923d97946dfc175bf82fe544afda3c065b684df04ef5c706be5630d75"
         },
         {
             "path": "release-versions.json",
@@ -37,6 +37,14 @@
         {
             "path": "server/app/api/metadata/contracts/openapi.json",
             "sha256": "59f4b51475c160c781cf69f5721ab11fbbd1af76de07c17c4276f4160cb220b8"
+        },
+        {
+            "path": "server/app/modules/custom/ai_access/api/metadata/openapi.php",
+            "sha256": "e488d1c5416f8d4feebf09b0e472171621e6a0b9a0959e95457c2e763fab43aa"
+        },
+        {
+            "path": "server/app/modules/custom/ai_access/route/app.php",
+            "sha256": "42210435e2e4448a597f96be8b0c761beb3fa52c92637d80e68ec669cb2584c8"
         },
         {
             "path": "server/app/modules/custom/ai_assistant/api/metadata/openapi.php",
@@ -208,27 +216,27 @@
         ]
     },
     "summary": {
-        "route_count": 485,
-        "generated_api_operations": 459,
+        "route_count": 487,
+        "generated_api_operations": 461,
         "route_only_operations": 26,
         "complete_operations": 459,
-        "partial_operations": 0,
-        "runtime_routes": 485,
-        "documented_operations": 459,
+        "partial_operations": 2,
+        "runtime_routes": 487,
+        "documented_operations": 461,
         "undocumented_routes": 26,
-        "automatic_route_metadata": 485,
+        "automatic_route_metadata": 487,
         "requires_owner_contract": 26,
-        "owners": 20,
+        "owners": 21,
         "runtime_inventory": {
-            "total": 485,
+            "total": 487,
             "methods": {
                 "DELETE": 4,
-                "GET": 214,
-                "POST": 256,
+                "GET": 215,
+                "POST": 257,
                 "PUT": 11
             },
             "applications": {
-                "adminapi": 343,
+                "adminapi": 345,
                 "api": 47,
                 "installation": 9,
                 "platform": 86
@@ -238,6 +246,7 @@
                 "application:api": 7,
                 "application:installation": 9,
                 "application:platform": 75,
+                "module:custom.ai-access": 2,
                 "module:custom.ai-assistant": 20,
                 "module:peanut.article": 39,
                 "module:peanut.collaboration": 11,
@@ -263,6 +272,7 @@
         "application:api": 7,
         "application:installation": 9,
         "application:platform": 75,
+        "module:custom.ai-access": 2,
         "module:custom.ai-assistant": 20,
         "module:peanut.article": 39,
         "module:peanut.collaboration": 11,
@@ -4029,6 +4039,86 @@
                     "source"
                 ],
                 "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "7f2b2a8d358c1af625ee3b4d742ba8e1ee8af33036d70f3aeabe44d3e29cb9e0",
+            "method": "GET",
+            "path": "/adminapi/custom.ai-access.catalog",
+            "runtime_path": "/adminapi/custom.ai-access.catalog",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-access"
+            },
+            "controller": "Custom\\Modules\\AiAccess\\Controller\\CatalogController",
+            "action": "catalog",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-access.view"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-access"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-access.view"
+                }
+            ],
+            "errors": [
+                401,
+                403
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-access",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_access/route/app.php",
+                "line": 16
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAccessCatalog",
+            "contract_quality": "partial",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-access/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": [
+                    "response_schema:200",
+                    "permission_error_response"
+                ]
             }
         },
         {
@@ -20800,6 +20890,86 @@
                     "source"
                 ],
                 "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "2fa6e7d8a7ae77f659a17a4cdecd085da155e22a7b29cc6204d960387c0e6b78",
+            "method": "POST",
+            "path": "/adminapi/custom.ai-access.save",
+            "runtime_path": "/adminapi/custom.ai-access.save",
+            "application": "adminapi",
+            "audience": "tenant",
+            "owner": {
+                "type": "module",
+                "key": "custom.ai-access"
+            },
+            "controller": "Custom\\Modules\\AiAccess\\Controller\\CatalogController",
+            "action": "save",
+            "auth": {
+                "mode": "tenant_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "custom.ai-access.configure"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "module_capability",
+                    "key": "custom.ai-access"
+                },
+                {
+                    "kind": "tenant_action",
+                    "key": "custom.ai-access.configure"
+                }
+            ],
+            "errors": [
+                401,
+                403
+            ],
+            "middleware": [
+                {
+                    "class": "app\\adminapi\\http\\middleware\\LoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\common\\infrastructure\\module\\OfficialModuleMiddleware",
+                    "arguments": [
+                        "custom.ai-access",
+                        "http.admin"
+                    ]
+                },
+                {
+                    "class": "app\\adminapi\\http\\middleware\\AuthMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/app/modules/custom/ai_access/route/app.php",
+                "line": 18
+            },
+            "documented": true,
+            "openapi_operation_id": "aiAccessSave",
+            "contract_quality": "partial",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/custom-ai-access/generated/openapi.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": [
+                    "response_schema:200",
+                    "permission_error_response"
+                ]
             }
         },
         {

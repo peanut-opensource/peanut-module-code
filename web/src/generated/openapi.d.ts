@@ -2998,6 +2998,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/adminapi/custom.ai-access.catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 读取当前租户的 AI 服务商、可用模型和令牌配置状态。 */
+        get: operations["aiAccessCatalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/custom.ai-access.save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description 新增或更新租户 AI 服务商、令牌或模型。同一服务商的地址和 API 前缀在登记后固定。 */
+        post: operations["aiAccessSave"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/adminapi/custom.ai-assistant.textRoutes": {
         parameters: {
             query?: never;
@@ -19612,6 +19646,42 @@ export interface operations {
             409: components["responses"]["ErrorResponse"];
             422: components["responses"]["ErrorResponse"];
             503: components["responses"]["ErrorResponse"];
+        };
+    };
+    aiAccessCatalog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description AI 接入配置目录 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    aiAccessSave: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已保存的配置，不含令牌值 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     aiAssistantTextRoutes: {

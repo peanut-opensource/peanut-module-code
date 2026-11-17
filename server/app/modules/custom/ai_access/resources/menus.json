@@ -1,0 +1,18 @@
+[
+  {
+    "key": "custom.ai-access.catalog",
+    "parent_key": "core.applications",
+    "scope": "tenant",
+    "type": "page",
+    "name": "AI 接入配置",
+    "icon": "icon-mind-mapping",
+    "route_name": "AiAccessCatalog",
+    "route_path": "/ai-access/catalog",
+    "component_key": "custom.ai-access.catalog",
+    "required_permission": "custom.ai-access.view",
+    "sort_order": 606,
+    "client_keys": [
+      "admin-web"
+    ]
+  }
+]

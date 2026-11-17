@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3cdbc3a4c25fed525c3bf98a6e38c07e",
+    "content-hash": "5ca81a5db7312cf4b0f2c2e905603149",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -278,6 +278,40 @@
                 }
             ],
             "time": "2025-08-20T19:15:30+00:00"
+        },
+        {
+            "name": "custom/custom-ai-access",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "app/modules/custom/ai_access",
+                "reference": "c54a615727b9d744379ee062792d9d3ee4319042"
+            },
+            "require": {
+                "peanut-business/peanut-identity": "^4.0.0-rc.32",
+                "peanut-business/peanut-settings": "^1.0.24"
+            },
+            "type": "peanut-admin-module",
+            "extra": {
+                "peanut": {
+                    "editions": [
+                        "multi-tenant"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Custom\\Modules\\AiAccess\\": "src/"
+                }
+            },
+            "license": [
+                "Apache-2.0"
+            ],
+            "description": "Tenant AI provider, credential and model configuration and invocation",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
         },
         {
             "name": "custom/custom-ai-assistant",

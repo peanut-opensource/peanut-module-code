@@ -1,0 +1,20 @@
+[
+  {
+    "key": "custom.ai-access.view",
+    "type": "api",
+    "name": "查看 AI 接入配置",
+    "risk_level": "normal"
+  },
+  {
+    "key": "custom.ai-access.configure",
+    "type": "action",
+    "name": "维护 AI 接入及令牌",
+    "risk_level": "critical"
+  },
+  {
+    "key": "custom.ai-access.use",
+    "type": "action",
+    "name": "调用 AI 服务",
+    "risk_level": "normal"
+  }
+]
