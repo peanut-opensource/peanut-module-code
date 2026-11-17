@@ -37,7 +37,7 @@ export const shellUserOptions: ShellUserOptions = {
 
 主题应用于 `.tenant-shell` 根，侧栏使用 `--pa-shell-surface-color`，菜单继承 Element Plus 变量。仅需深色侧栏、浅色内容时，应用自有样式可在 `.tenant-shell .tenant-sidebar` 局部设置背景及 `--el-menu-bg-color/text-color/active-color/hover-bg-color`；不要为局部外观把整个 theme.mode 改为 dark。样式不替换菜单数据或账号动作。
 
-宿主使用原 `useMenuTree` 已授权菜单、原图标映射、`activeMenu` 与 route name 跳转；分类/预设不新增、删除或重新授予权限。外链继续交给浏览器并保留 `_self/_blank` 目标；内部跳转不另建 URL 映射。原账号、租户切换、退出、菜单搜索和 action binding 的消费者不变。面包屑优先使用已授权可见菜单的层级与名称，无菜单页面再回退已匹配路由；标签栏复用既有 TabBar 及缓存合同。
+宿主使用原 `useMenuTree` 已授权菜单、原图标映射、`activeMenu` 与 route name 跳转；分类/预设不新增、删除或重新授予权限。外链继续交给浏览器并保留 `_self/_blank` 目标；内部跳转不另建 URL 映射。原账号、租户切换、退出、菜单搜索和 action binding 的消费者不变。面包屑优先使用已授权可见菜单的层级与名称，无菜单页面再回退已匹配路由；标签栏复用既有 TabBar 及缓存合同。标签及切换列表优先使用授权菜单的显示名称，再取路由 `meta.title`、翻译后的 `meta.locale` 或路由名称；字面标题不作为翻译表达式执行。图标使用菜单、路由声明及现有默认菜单图标，展示投影不改变标签身份、缓存、关闭或导航地址。
 
 要替换整个外壳，在现有 `PEANUT_ADMIN_PRESETS` 或默认导出的应用 overrides 中登记 Core 的 `WORKSPACE_SHELL_OVERRIDE_KEY`（`peanut.shell.service.workspace-component`，kind=`service`，contractVersion=`1.0.0`），值为 `(audience) => Component`。`web/src/core/runtime.ts` 将现有 permission slot 和 `ADMIN_SHELL_OVERRIDE_SLOTS` 交给同一个 registry，按 default → preset → application 解析，不使用另一套扫描器。组件接收同一 theme/layout/navigation-mode 属性及 header/sidebar/breadcrumb/tabs/default slots，必须保留宿主传来的账号动作、授权菜单和页面内容；未知 key、合同或错误组件仍报错。
 

@@ -5,7 +5,7 @@
         <tab-item
           :index="0"
           :item-data="tagList[0]"
-          :icon="tagIcons.get(getTabKey(tagList[0]))"
+          :icon="tagList[0].icon"
         />
       </div>
       <el-button
@@ -30,7 +30,7 @@
             :key="getTabKey(tag)"
             :index="index + 1"
             :item-data="tag"
-            :icon="tagIcons.get(getTabKey(tag))"
+            :icon="tag.icon"
           />
         </div>
       </div>
@@ -51,6 +51,7 @@
         show-tabs
         :index="actionIndex"
         :item-data="actionTag"
+        :tabs="tagList"
       />
     </div>
   </div>
@@ -66,6 +67,7 @@
     onBeforeUnmount,
   } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
+  import { useI18n } from 'vue-i18n';
   import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
   import { getTabKey } from '@peanut-admin/ui-vue/tabs';
   import { useTabBarStore } from '@/store';
@@ -79,13 +81,29 @@
   const route = useRoute();
   const router = useRouter();
   const { menuTree } = useMenuTree();
+  const { t, te } = useI18n();
 
   const tabScrollRef = ref<HTMLElement>();
   const canScrollLeft = ref(false);
   const canScrollRight = ref(false);
-  const tagList = computed(() => {
-    return tabBarStore.getTabList;
-  });
+  const tagList = computed(() =>
+    tabBarStore.getTabList.map((tag) => {
+      const resolved = router.resolve(tag.fullPath);
+      const menuPath = findMenuRoutePath(menuTree.value, resolved);
+      const item = menuPath?.[menuPath.length - 1];
+      const locale = String(resolved.meta.locale || tag.title || '');
+      return {
+        ...tag,
+        title: String(
+          item?.meta?.title ||
+            resolved.meta.title ||
+            (locale && (te(locale) || te(locale, 'en-US')) ? t(locale) : locale) ||
+            tag.name
+        ),
+        icon: item?.meta?.icon || resolved.meta.icon || 'icon-menu',
+      };
+    })
+  );
   const actionIndex = computed(() => {
     const index = tagList.value.findIndex(
       (tag) => getTabKey(tag) === getTabKey(route)
@@ -93,20 +111,6 @@
     return index < 0 ? 0 : index;
   });
   const actionTag = computed(() => tagList.value[actionIndex.value]);
-  const tagIcons = computed(
-    () =>
-      new Map(
-        tagList.value.map((tag) => {
-          const resolved = router.resolve(tag.fullPath);
-          const menuPath = findMenuRoutePath(menuTree.value, resolved);
-          const item = menuPath?.[menuPath.length - 1];
-          return [
-            getTabKey(tag),
-            item?.meta?.icon ?? resolved.meta.icon,
-          ] as const;
-        })
-      )
-  );
 
   const updateScrollControls = () => {
     const container = tabScrollRef.value;

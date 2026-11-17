@@ -9,7 +9,7 @@
       <el-icon v-if="icon" class="tab-icon" aria-hidden="true">
         <component :is="resolveMenuIcon(icon)" />
       </el-icon>
-      <span class="tag-link">{{ $t(itemData.title) }}</span>
+      <span class="tag-link">{{ itemData.title }}</span>
     </el-tag>
   </TabBarMenu>
 </template>

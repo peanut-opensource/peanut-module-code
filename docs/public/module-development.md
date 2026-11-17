@@ -41,6 +41,23 @@
 
 模块生产应用先采用脚手架升级，再检查、优化模块对当前 Core、宿主及公开合同的使用，收敛模块版本、依赖和派生结果后，按独立授权通过 `peanut module pack <module-key>` 等既有发行入口正式交付模块。消费应用先采用脚手架升级，再选择并升级实际采用的模块，更新对应模块锁及 Composer／workspace 原生依赖锁，最后按实际变化完成迁移、客户端构建和业务确认。脚手架升级不等于模块升级；升级前为保全当前源码而刷新旧模块锁，也不代表已采用目标模块。非业务能力优先引用 Core／脚手架标准实现及既有扩展点，保留应用真实业务定制；三方 baseline 冲突沿原计划审阅，不覆盖定制或伪造摘要。
 
+### 本地模块候选
+
+本地开发累积功能和修复，使用独立 RC，收敛后再按授权发行正式 patch。沿原有 pack 入口显式准备选中模块的候选声明：
+
+```sh
+peanut module pack custom.example --prepare-candidate --plan-only
+peanut module pack custom.example --prepare-candidate
+```
+
+原生等价入口为应用 `server` 目录下的 `php think module:pack custom.example --prepare-candidate`。只读计划返回旧版、下一版和精确文件清单；不写源码、锁或归档。执行准备要求原有 development/debug 本地 CLI 身份，将 `module.json`、同模块 `composer.json` 和各已声明客户端 `package.json` 同步到下一待发 patch 的 `rc.1`：例如 `1.2.3` → `1.2.4-rc.1`，已有 `1.2.4-rc.1` → `1.2.4-rc.2`。三类声明须事先同号；其他预发行格式须由作者先明确目标，不猜正式版本。准备不接受归档或签名参数，不生成归档；普通 pack 不修改源码或升版。
+
+准备后审阅差异，沿 `peanut module lock --write` 刷新原生模块锁，用应用已有 Composer/workspace 入口仅准备受影响依赖。例如宿主确实消费该 path 包时，在 `server` 目录执行 `composer update <计划返回的composer_package> --no-scripts --no-plugins`，审阅原生锁差异；宿主精确约束若仍指旧版，先按候选选择更新对应声明。workspace 依赖声明变化时用其原生包管理器更新锁；仅包自身版本变化且锁不编码该版本时无需空跑。不得手改锁摘要，也不把尚未完成的锁/依赖准备称为候选可采用。
+
+最终固定源码与原生锁后执行普通 `peanut module pack custom.example`，使用版本派生的默认输出路径；再按原生只读安装计划验证固定归档和 SHA。同版本内容不可变，修改来源后重新准备下一个 N，不换目录或文件名复用已占版本；同号同内容可复用原件，不能只改 tar 名或加 `+local` 掩盖变化。已经使用稳定号的本地包继续保留，后续不同内容使用更高 patch。正式发布不得覆盖本地已占用的稳定号。`custom.*` 本地候选不进入官方 `peanut.*` 发行索引；本地 RC、官方 prerelease、正式 published 和应用 adopted 分别记录。
+
+源码功能完成时向实际依赖消费者说明固定来源、变化范围和当前状态；候选可用后补充版本、归档 SHA、采用入口及验证限制，源码通知不表示已可安装。正式渠道核验为 published 后再通知相关消费者升级，各应用 owner 审阅并记录 adopted 或延期原因；不自动强升，未受影响者明确无需升级。
+
 失败后保留原计划和恢复句柄，修复直接原因，只重做受影响步骤；已知问题集中闭合，不以每次修复重新制包试错。源码采用、运行可用和发行资格分别报告；fail-fast 未执行部分不算通过，环境失败与业务断言失败分记。版本或依赖身份真的变化时由原生入口重新准入，不能用关闭 HTTP 校验替代准备。
 
 正式版应用也可明确选择本地快照模板做开发升级：CLI与原生引擎核对原正式来源及目标快照、Edition、profile和Workflow后，按同一三方计划采用。采用后来源如实记录为development；不手改旧baseline、不伪造Git祖先、不先重建应用。目标版本不得降低，模板载荷、文件冲突和恢复校验保留。

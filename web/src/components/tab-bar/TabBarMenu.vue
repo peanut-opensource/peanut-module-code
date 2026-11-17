@@ -17,7 +17,7 @@
     <template #dropdown>
       <el-dropdown-menu :class="{ 'tab-list-menu': showTabs }">
         <el-dropdown-item
-          v-for="(tag, tagIndex) in showTabs ? tagList : []"
+          v-for="(tag, tagIndex) in showTabs ? (tabs ?? tagList) : []"
           :key="getTabKey(tag)"
           class="tab-list-item"
           :class="{ 'sperate-line': tagIndex === tagList.length - 1 }"
@@ -27,7 +27,7 @@
           <span class="tab-list-marker" aria-hidden="true">
             <el-icon v-if="isCurrent(tag)"><Check /></el-icon>
           </span>
-          <span class="tab-list-label">{{ $t(tag.title) }}</span>
+          <span class="tab-list-label">{{ tag.title }}</span>
         </el-dropdown-item>
         <el-dropdown-item
           :disabled="!isCurrent(itemData)"
@@ -85,6 +85,7 @@
       itemData: ShellTab;
       index: number;
       showTabs?: boolean;
+      tabs?: ShellTab[];
     }>(),
     { showTabs: false }
   );

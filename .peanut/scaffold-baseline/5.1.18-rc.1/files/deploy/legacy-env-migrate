@@ -1,0 +1,360 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+die() {
+  printf 'legacy-env-migrate: %s\n' "$1" >&2
+  exit 1
+}
+
+usage() {
+  cat <<'EOF'
+Usage: deploy/legacy-env-migrate --target <production|production-candidate> \
+  --root-env <file> [--backend-env <file>] \
+  --expected-port <port> --expected-project <name> \
+  --expected-database-resource <id> --expected-database-name <name> \
+  --expected-mode <standalone|multi-tenant> \
+  --expected-platform-hosts <hosts> \
+  --expected-owner-invitation-mode <auto|manual> \
+  --public-scheme <http|https> --trusted-hosts <comma-separated-hosts> \
+  [--root-output <file> --backend-output <file>] [--allow-secret-rotation] \
+  [--check-only]
+
+The input files are parsed as data. They are never sourced or executed. Output
+files are written atomically with mode 0600 only after every selector and value
+has passed validation.
+EOF
+}
+
+[[ $# -gt 0 ]] || { usage >&2; exit 64; }
+
+target=''
+root_env=''
+backend_env=''
+root_output=''
+backend_output=''
+expected_port=''
+expected_project=''
+expected_database_resource=''
+expected_database_name=''
+expected_mode=''
+expected_platform_hosts=''
+expected_owner_invitation_mode=''
+public_scheme=''
+trusted_hosts=''
+allow_secret_rotation=0
+check_only=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --target) [[ $# -ge 2 ]] || die '--target requires a value'; target="$2"; shift 2 ;;
+    --root-env) [[ $# -ge 2 ]] || die '--root-env requires a value'; root_env="$2"; shift 2 ;;
+    --backend-env) [[ $# -ge 2 ]] || die '--backend-env requires a value'; backend_env="$2"; shift 2 ;;
+    --root-output) [[ $# -ge 2 ]] || die '--root-output requires a value'; root_output="$2"; shift 2 ;;
+    --backend-output) [[ $# -ge 2 ]] || die '--backend-output requires a value'; backend_output="$2"; shift 2 ;;
+    --expected-port) [[ $# -ge 2 ]] || die '--expected-port requires a value'; expected_port="$2"; shift 2 ;;
+    --expected-project) [[ $# -ge 2 ]] || die '--expected-project requires a value'; expected_project="$2"; shift 2 ;;
+    --expected-database-resource) [[ $# -ge 2 ]] || die '--expected-database-resource requires a value'; expected_database_resource="$2"; shift 2 ;;
+    --expected-database-name) [[ $# -ge 2 ]] || die '--expected-database-name requires a value'; expected_database_name="$2"; shift 2 ;;
+    --expected-mode) [[ $# -ge 2 ]] || die '--expected-mode requires a value'; expected_mode="$2"; shift 2 ;;
+    --expected-platform-hosts) [[ $# -ge 2 ]] || die '--expected-platform-hosts requires a value'; expected_platform_hosts="$2"; shift 2 ;;
+    --expected-owner-invitation-mode) [[ $# -ge 2 ]] || die '--expected-owner-invitation-mode requires a value'; expected_owner_invitation_mode="$2"; shift 2 ;;
+    --public-scheme) [[ $# -ge 2 ]] || die '--public-scheme requires a value'; public_scheme="$2"; shift 2 ;;
+    --trusted-hosts) [[ $# -ge 2 ]] || die '--trusted-hosts requires a value'; trusted_hosts="$2"; shift 2 ;;
+    --allow-secret-rotation) allow_secret_rotation=1; shift ;;
+    --check-only) check_only=1; shift ;;
+    --help|-h) usage; exit 0 ;;
+    *) usage >&2; die "unknown option: $1" ;;
+  esac
+done
+
+[[ "$target" == production || "$target" == production-candidate ]] || die 'target is not a registered deployment selector'
+[[ "$root_env" == /* && -f "$root_env" && ! -L "$root_env" ]] || die 'root environment must be an absolute regular file, not a symlink'
+if [[ -n "$backend_env" ]]; then
+  [[ "$backend_env" == /* && -f "$backend_env" && ! -L "$backend_env" ]] || die 'backend environment must be an absolute regular file, not a symlink'
+fi
+[[ "$expected_port" =~ ^[0-9]+$ && "$expected_port" -ge 1 && "$expected_port" -le 65535 ]] || die 'registered HTTP port is invalid'
+[[ "$expected_project" =~ ^[a-z0-9][a-z0-9_-]{0,62}$ ]] || die 'registered Compose project is invalid'
+[[ "$expected_database_resource" =~ ^[a-z0-9][a-z0-9-]{0,127}$ ]] || die 'registered database resource is invalid'
+[[ "$expected_database_name" =~ ^[a-z0-9][a-z0-9_]{0,63}$ ]] || die 'registered database name is invalid'
+[[ "$expected_mode" == standalone || "$expected_mode" == multi-tenant ]] || die 'registered deployment mode is invalid'
+[[ "$expected_owner_invitation_mode" == auto || "$expected_owner_invitation_mode" == manual ]] || die 'registered invitation mode is invalid'
+[[ "$public_scheme" == http || "$public_scheme" == https ]] || die 'registered public scheme is invalid'
+[[ -n "$trusted_hosts" && "$trusted_hosts" != *'*'* ]] || die 'registered trusted hosts must be explicit'
+
+if (( check_only == 0 )); then
+  [[ -n "$root_output" && -n "$backend_output" ]] || die 'output files are required unless --check-only is used'
+  [[ "$root_output" == /* && "$backend_output" == /* ]] || die 'output paths must be absolute'
+  [[ ! -e "$root_output" && ! -L "$root_output" ]] || die 'root output already exists or is a symlink'
+  [[ ! -e "$backend_output" && ! -L "$backend_output" ]] || die 'backend output already exists or is a symlink'
+  [[ -d "$(dirname "$root_output")" && -d "$(dirname "$backend_output")" ]] || die 'output directories must already exist'
+fi
+
+mode_of() {
+  local mode
+  if mode="$(stat -c '%a' "$1" 2>/dev/null)"; then
+    printf '%s' "$mode"
+  elif mode="$(stat -f '%Lp' "$1" 2>/dev/null)"; then
+    printf '%s' "$mode"
+  fi
+}
+
+[[ "$(mode_of "$root_env")" == 600 ]] || die 'root environment must have mode 0600'
+if [[ -n "$backend_env" ]]; then
+  [[ "$(mode_of "$backend_env")" == 600 ]] || die 'backend environment must have mode 0600'
+fi
+
+ROOT_KEYS=(_legacy_array_sentinel_)
+ROOT_VALUES=(_legacy_array_sentinel_)
+BACKEND_KEYS=(_legacy_array_sentinel_)
+BACKEND_VALUES=(_legacy_array_sentinel_)
+MERGED_KEYS=(_legacy_array_sentinel_)
+MERGED_VALUES=(_legacy_array_sentinel_)
+MERGED_SOURCES=(_legacy_array_sentinel_)
+
+parse_env_file() {
+  local path="$1" scope="$2" line line_number=0 key value existing
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line_number=$((line_number + 1))
+    line="${line%$'\r'}"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    [[ "$line" == *=* ]] || die "$scope environment has malformed line $line_number"
+    key="${line%%=*}"
+    value="${line#*=}"
+    [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || die "$scope environment has an invalid key at line $line_number"
+    if [[ "$scope" == root ]]; then
+      for existing in "${ROOT_KEYS[@]}"; do
+        [[ "$existing" != "$key" ]] || die "$scope environment contains duplicate key $key"
+      done
+      ROOT_KEYS+=("$key")
+      ROOT_VALUES+=("$value")
+    else
+      for existing in "${BACKEND_KEYS[@]}"; do
+        [[ "$existing" != "$key" ]] || die "$scope environment contains duplicate key $key"
+      done
+      BACKEND_KEYS+=("$key")
+      BACKEND_VALUES+=("$value")
+    fi
+  done < "$path"
+}
+
+parse_env_file "$root_env" root
+[[ -z "$backend_env" ]] || parse_env_file "$backend_env" backend
+
+is_orchestration_key() {
+  case "$1" in
+    COMPOSE_PROFILES|COMPOSE_PROJECT_NAME|HTTP_PORT|PHP_IMAGE|NGINX_IMAGE|PC_IMAGE|PEANUT_PC_RENDER_MODE|BUILD_HTTP_PROXY|BUILD_HTTPS_PROXY|BUILD_ALL_PROXY|BUILD_NO_PROXY|PEANUT_PUBLIC_SCHEME|PEANUT_TRUSTED_HOSTS|MYSQL_ROOT_PASSWORD) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_transient_key() {
+  case "$1" in
+    ADMIN_INITIAL_EMAIL|ADMIN_INITIAL_PASSWORD|PLATFORM_INITIAL_EMAIL|PLATFORM_INITIAL_PASSWORD|PEANUT_DEMO_TENANT_ID) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_backend_key() {
+  case "$1" in
+    APP_ENV|APP_DEBUG|PEANUT_DEPLOYMENT_TARGET|PEANUT_DATABASE_RESOURCE_ID|PEANUT_DATABASE_ENDPOINT_ID|PEANUT_DATABASE_CONSUMER|PEANUT_RESOURCE_LEASE_PROOF|P0E_HOST_LEASE_PROOF|DEPLOYMENT_MODE|PLATFORM_HOSTS|OWNER_INVITATION_DELIVERY_MODE|JWT_SECRET|JWT_EXPIRE|ADMIN_TOKEN_EXPIRE|ADMIN_TOKEN_RENEW_BEFORE|ADMIN_PASSWORD_ERROR_TIMES|ADMIN_LOGIN_LOCK_MINUTES|NOTIFICATION_VERIFICATION_MAX_FAILURES|NOTIFICATION_VERIFICATION_ENTRY_MAX_FAILURES|NOTIFICATION_VERIFICATION_ENTRY_WINDOW_SECONDS|TENANT_IDENTIFIER_HMAC_KEY|PLATFORM_IDENTIFIER_HMAC_KEY|PEANUT_STORAGE_CREDENTIAL_MASTER_KEY|PEANUT_SETTINGS_SECRET_KEYS|PEANUT_SETTINGS_ACTIVE_SECRET_KEY_ID|PEANUT_DEMO_MODE|PEANUT_DEMO_ADMIN_EMAIL|PEANUT_DEMO_PLATFORM_EMAIL|PEANUT_DEMO_TENANT_A_EMAIL|PEANUT_DEMO_TENANT_B_EMAIL|PEANUT_DEMO_SHARED_PASSWORD|PEANUT_DEMO_TENANT_A_HOST|PEANUT_DEMO_TENANT_B_HOST|PEANUT_DEMO_DOCS_URL|DB_DRIVER|DB_TYPE|DB_HOST|DB_PORT|DB_NAME|DB_USER|DB_PASS|DB_CONNECT_TIMEOUT_SECONDS|DB_CHARSET|DB_PREFIX|ASYNC_SIGNING_KEY|ASYNC_WORKER_LIMIT|INTEGRATION_MACHINE_SCOPES|INTEGRATION_WEBHOOK_SECRET_KEY_ID|INTEGRATION_WEBHOOK_SECRET_KEY|DEFAULT_LANG|PROJECT_VERSION|PEANUT_MODULE_ROOTS|PEANUT_MODULE_LOCK|PEANUT_MODULE_KERNEL_VERSION|PEANUT_MODULE_TRUSTED_KEYS_JSON|RICH_TEXT_COLLABORATION_URL|RICH_TEXT_COLLABORATION_SECRET|PEANUT_INSTALLATION_MODE|PEANUT_INSTALLATION_SETUP_TOKEN|PEANUT_INSTALLATION_OFFICIAL_MODULES) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+merge_value() {
+  local key="$1" value="$2" source="$3" alias="${4:-no}"
+  local index
+  index="$(merged_index "$key")"
+  if (( index >= 0 )); then
+    if [[ "$alias" == yes && "${MERGED_SOURCES[$index]}" == root-alias && "${MERGED_VALUES[$index]}" == "$value" ]]; then
+      return 0
+    fi
+    die "duplicate backend key across environment layouts: $key"
+  fi
+  MERGED_KEYS+=("$key")
+  MERGED_VALUES+=("$value")
+  MERGED_SOURCES+=("$source")
+}
+
+merged_index() {
+  local wanted="$1" index
+  for index in "${!MERGED_KEYS[@]}"; do
+    if [[ "${MERGED_KEYS[$index]}" == "$wanted" ]]; then
+      printf '%s' "$index"
+      return 0
+    fi
+  done
+  printf '%s' -1
+}
+
+for index in "${!ROOT_KEYS[@]}"; do
+  key="${ROOT_KEYS[$index]}"
+  [[ "$key" == _legacy_array_sentinel_ ]] && continue
+  value="${ROOT_VALUES[$index]}"
+  if is_orchestration_key "$key"; then
+    :
+  elif is_transient_key "$key" || is_backend_key "$key"; then
+    merge_value "$key" "$value" root
+  else
+    die "root environment contains an unsupported selector or key: $key"
+  fi
+done
+
+for index in "${!BACKEND_KEYS[@]}"; do
+  key="${BACKEND_KEYS[$index]}"
+  [[ "$key" == _legacy_array_sentinel_ ]] && continue
+  value="${BACKEND_VALUES[$index]}"
+  if [[ "$key" == DB_ROOT_PASS ]]; then
+    root_password_index=-1
+    for root_candidate in "${!ROOT_KEYS[@]}"; do
+      if [[ "${ROOT_KEYS[$root_candidate]}" == MYSQL_ROOT_PASSWORD ]]; then
+        root_password_index="$root_candidate"
+        break
+      fi
+    done
+    if (( root_password_index >= 0 )); then
+      [[ "${ROOT_VALUES[$root_password_index]}" == "$value" ]] || die 'MYSQL_ROOT_PASSWORD and legacy DB_ROOT_PASS conflict'
+    else
+      ROOT_KEYS+=(MYSQL_ROOT_PASSWORD)
+      ROOT_VALUES+=("$value")
+    fi
+    continue
+  elif is_orchestration_key "$key"; then
+    die "backend environment contains orchestration key: $key"
+  elif is_transient_key "$key"; then
+    continue
+  elif is_backend_key "$key"; then
+    merge_value "$key" "$value" backend
+  else
+    die "backend environment contains an unsupported key: $key"
+  fi
+done
+
+get_value() {
+  local index
+  index="$(merged_index "$1")"
+  (( index >= 0 )) || return 1
+  printf '%s' "${MERGED_VALUES[$index]}"
+}
+
+set_controlled() {
+  local key="$1" expected="$2"
+  local index
+  index="$(merged_index "$key")"
+  if (( index >= 0 )); then
+    [[ "${MERGED_VALUES[$index]}" == "$expected" ]] || die "registered selector mismatch: $key"
+    MERGED_VALUES[$index]="$expected"
+    MERGED_SOURCES[$index]=controlled
+    return 0
+  fi
+  MERGED_KEYS+=("$key")
+  MERGED_VALUES+=("$expected")
+  MERGED_SOURCES+=(controlled)
+}
+
+set_controlled APP_ENV production
+set_controlled APP_DEBUG false
+set_controlled PEANUT_DEPLOYMENT_TARGET "$target"
+set_controlled PEANUT_DATABASE_RESOURCE_ID "$expected_database_resource"
+set_controlled DEPLOYMENT_MODE "$expected_mode"
+set_controlled DB_HOST mysql
+set_controlled DB_PORT 3306
+set_controlled DB_NAME "$expected_database_name"
+set_controlled DB_PREFIX pa_
+set_controlled DB_DRIVER mysql
+set_controlled DB_TYPE mysql
+set_controlled DB_CHARSET utf8mb4
+set_controlled PEANUT_INSTALLATION_MODE automatic
+set_controlled OWNER_INVITATION_DELIVERY_MODE "$expected_owner_invitation_mode"
+set_controlled PLATFORM_HOSTS "$expected_platform_hosts"
+
+for required_key in DB_USER DB_PASS JWT_SECRET TENANT_IDENTIFIER_HMAC_KEY PLATFORM_IDENTIFIER_HMAC_KEY; do
+  [[ -n "$(get_value "$required_key" || true)" ]] || die "required backend secret or credential is missing: $required_key"
+done
+root_password_present=0
+for index in "${!ROOT_KEYS[@]}"; do
+  if [[ "${ROOT_KEYS[$index]}" == MYSQL_ROOT_PASSWORD && -n "${ROOT_VALUES[$index]}" ]]; then
+    root_password_present=1
+    break
+  fi
+done
+(( root_password_present == 1 )) || die 'required Docker credential is missing: MYSQL_ROOT_PASSWORD'
+
+storage_key_index="$(merged_index PEANUT_STORAGE_CREDENTIAL_MASTER_KEY)"
+if (( storage_key_index < 0 )) || [[ -z "${MERGED_VALUES[$storage_key_index]}" ]]; then
+  (( allow_secret_rotation == 1 )) || die 'PEANUT_STORAGE_CREDENTIAL_MASTER_KEY is missing and secret rotation is not allowed'
+  command -v openssl >/dev/null 2>&1 || die 'openssl is required to generate a missing deployment secret'
+  generated_secret="$(openssl rand -hex 32)" || die 'could not generate the missing deployment secret'
+  [[ "$generated_secret" =~ ^[0-9a-f]{64}$ ]] || die 'generated deployment secret has an invalid format'
+  if (( storage_key_index < 0 )); then
+    MERGED_KEYS+=(PEANUT_STORAGE_CREDENTIAL_MASTER_KEY)
+    MERGED_VALUES+=("$generated_secret")
+    MERGED_SOURCES+=(generated)
+  else
+    MERGED_VALUES[$storage_key_index]="$generated_secret"
+    MERGED_SOURCES[$storage_key_index]=generated
+  fi
+fi
+
+set_controlled_root() {
+  local key="$1" expected="$2"
+  local index
+  for index in "${!ROOT_KEYS[@]}"; do
+    if [[ "${ROOT_KEYS[$index]}" == "$key" ]]; then
+      [[ "${ROOT_VALUES[$index]}" == "$expected" ]] || die "registered orchestration selector mismatch: $key"
+      ROOT_VALUES[$index]="$expected"
+      return 0
+    fi
+  done
+  ROOT_KEYS+=("$key")
+  ROOT_VALUES+=("$expected")
+}
+
+root_index() {
+  local wanted="$1" index
+  for index in "${!ROOT_KEYS[@]}"; do
+    if [[ "${ROOT_KEYS[$index]}" == "$wanted" ]]; then
+      printf '%s' "$index"
+      return 0
+    fi
+  done
+  printf '%s' -1
+}
+
+pc_render_mode=spa
+pc_mode_index="$(root_index PEANUT_PC_RENDER_MODE)"
+(( pc_mode_index < 0 )) || pc_render_mode="${ROOT_VALUES[$pc_mode_index]}"
+[[ "$pc_render_mode" == spa || "$pc_render_mode" == hybrid ]] || die 'PEANUT_PC_RENDER_MODE must be spa or hybrid'
+compose_profiles=bundled-db
+[[ "$pc_render_mode" != hybrid ]] || compose_profiles=bundled-db,ssr
+set_controlled_root COMPOSE_PROFILES "$compose_profiles"
+set_controlled_root COMPOSE_PROJECT_NAME "$expected_project"
+set_controlled_root HTTP_PORT "$expected_port"
+set_controlled_root PEANUT_PUBLIC_SCHEME "$public_scheme"
+set_controlled_root PEANUT_TRUSTED_HOSTS "$trusted_hosts"
+
+if (( check_only == 0 )); then
+  root_tmp="$(mktemp "$(dirname "$root_output")/.legacy-root.XXXXXX")"
+  backend_tmp="$(mktemp "$(dirname "$backend_output")/.legacy-backend.XXXXXX")"
+  chmod 600 "$root_tmp" "$backend_tmp"
+  cleanup_outputs() { rm -f -- "$root_tmp" "$backend_tmp"; }
+  trap cleanup_outputs EXIT
+
+  for key in COMPOSE_PROFILES COMPOSE_PROJECT_NAME HTTP_PORT PHP_IMAGE NGINX_IMAGE PC_IMAGE PEANUT_PC_RENDER_MODE BUILD_HTTP_PROXY BUILD_HTTPS_PROXY BUILD_ALL_PROXY BUILD_NO_PROXY PEANUT_PUBLIC_SCHEME PEANUT_TRUSTED_HOSTS MYSQL_ROOT_PASSWORD; do
+    index="$(root_index "$key")"
+    (( index >= 0 )) || continue
+    printf '%s=%s\n' "$key" "${ROOT_VALUES[$index]}" >> "$root_tmp"
+  done
+  for key in APP_ENV APP_DEBUG PEANUT_DEPLOYMENT_TARGET PEANUT_DATABASE_RESOURCE_ID PEANUT_DATABASE_ENDPOINT_ID PEANUT_DATABASE_CONSUMER PEANUT_RESOURCE_LEASE_PROOF P0E_HOST_LEASE_PROOF DEPLOYMENT_MODE PLATFORM_HOSTS OWNER_INVITATION_DELIVERY_MODE JWT_SECRET JWT_EXPIRE ADMIN_TOKEN_EXPIRE ADMIN_TOKEN_RENEW_BEFORE ADMIN_PASSWORD_ERROR_TIMES ADMIN_LOGIN_LOCK_MINUTES NOTIFICATION_VERIFICATION_MAX_FAILURES NOTIFICATION_VERIFICATION_ENTRY_MAX_FAILURES NOTIFICATION_VERIFICATION_ENTRY_WINDOW_SECONDS TENANT_IDENTIFIER_HMAC_KEY PLATFORM_IDENTIFIER_HMAC_KEY PEANUT_STORAGE_CREDENTIAL_MASTER_KEY PEANUT_SETTINGS_SECRET_KEYS PEANUT_SETTINGS_ACTIVE_SECRET_KEY_ID PEANUT_DEMO_MODE PEANUT_DEMO_ADMIN_EMAIL PEANUT_DEMO_PLATFORM_EMAIL PEANUT_DEMO_TENANT_A_EMAIL PEANUT_DEMO_TENANT_B_EMAIL PEANUT_DEMO_SHARED_PASSWORD PEANUT_DEMO_TENANT_A_HOST PEANUT_DEMO_TENANT_B_HOST PEANUT_DEMO_DOCS_URL DB_DRIVER DB_TYPE DB_HOST DB_PORT DB_NAME DB_USER DB_PASS DB_CONNECT_TIMEOUT_SECONDS DB_CHARSET DB_PREFIX ASYNC_SIGNING_KEY ASYNC_WORKER_LIMIT INTEGRATION_MACHINE_SCOPES INTEGRATION_WEBHOOK_SECRET_KEY_ID INTEGRATION_WEBHOOK_SECRET_KEY DEFAULT_LANG PROJECT_VERSION PEANUT_MODULE_ROOTS PEANUT_MODULE_LOCK PEANUT_MODULE_KERNEL_VERSION PEANUT_MODULE_TRUSTED_KEYS_JSON RICH_TEXT_COLLABORATION_URL RICH_TEXT_COLLABORATION_SECRET PEANUT_INSTALLATION_MODE PEANUT_INSTALLATION_SETUP_TOKEN PEANUT_INSTALLATION_OFFICIAL_MODULES; do
+    index="$(merged_index "$key")"
+    (( index >= 0 )) || continue
+    printf '%s=%s\n' "$key" "${MERGED_VALUES[$index]}" >> "$backend_tmp"
+  done
+  mv -f -- "$root_tmp" "$root_output"
+  mv -f -- "$backend_tmp" "$backend_output"
+  trap - EXIT
+  printf 'legacy_layout=converted\n'
+else
+  printf 'legacy_layout=validated\n'
+fi
