@@ -25,18 +25,31 @@ const contribution: ModuleFrontendContribution = {
       name: 'customAiAccessRoot',
       component: DEFAULT_LAYOUT,
       meta: { requiresAuth: true, tenantModuleKey: 'custom.ai-access' },
-      children: pages.map(({ path, name, title, kind }) => ({
-        path,
-        name,
-        component: () => import('./views/index.vue'),
-        props: { kind },
-        meta: {
-          title,
-          requiresAuth: true,
-          tenantModuleKey: 'custom.ai-access',
-          requiredPermissions: 'custom.ai-access.view',
+      children: [
+        ...pages.map(({ path, name, title, kind }) => ({
+          path,
+          name,
+          component: () => import('./views/index.vue'),
+          props: { kind },
+          meta: {
+            title,
+            requiresAuth: true,
+            tenantModuleKey: 'custom.ai-access',
+            requiredPermissions: 'custom.ai-access.view',
+          },
+        })),
+        {
+          path: 'test',
+          name: 'AiAccessTest',
+          component: () => import('./views/test.vue'),
+          meta: {
+            title: '调用测试',
+            requiresAuth: true,
+            tenantModuleKey: 'custom.ai-access',
+            requiredPermissions: 'custom.ai-access.use',
+          },
         },
-      })),
+      ],
     },
   ],
 };

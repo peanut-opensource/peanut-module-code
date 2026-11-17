@@ -6,6 +6,9 @@ import type { paths } from '@/generated/openapi';
 export interface ModuleApiOperations {
   aiAccessCatalog: paths['/adminapi/custom.ai-access.catalog']['get'];
   aiAccessSave: paths['/adminapi/custom.ai-access.save']['post'];
+  aiAccessDiscover: paths['/adminapi/custom.ai-access.discover']['post'];
+  aiAccessGenerate: paths['/adminapi/custom.ai-access.generate']['post'];
+  aiAccessRequestStatus: paths['/adminapi/custom.ai-access.request-status']['get'];
 }
 
 export function createModuleApi(client: Client<paths>) {
@@ -13,6 +16,9 @@ export function createModuleApi(client: Client<paths>) {
   return {
     aiAccessCatalog: pathClient['/adminapi/custom.ai-access.catalog'].GET,
     aiAccessSave: pathClient['/adminapi/custom.ai-access.save'].POST,
+    aiAccessDiscover: pathClient['/adminapi/custom.ai-access.discover'].POST,
+    aiAccessGenerate: pathClient['/adminapi/custom.ai-access.generate'].POST,
+    aiAccessRequestStatus: pathClient['/adminapi/custom.ai-access.request-status'].GET,
   };
 }
 

@@ -17,6 +17,12 @@ Route::group(function (): void {
         ->option(['peanut_permission' => 'custom.ai-access.view']);
     Route::post('custom.ai-access.save', [CatalogController::class, 'save'])
         ->option(['peanut_permission' => 'custom.ai-access.configure']);
+    Route::post('custom.ai-access.discover', [CatalogController::class, 'discover'])
+        ->option(['peanut_permission' => 'custom.ai-access.configure']);
+    Route::post('custom.ai-access.generate', [CatalogController::class, 'generate'])
+        ->option(['peanut_permission' => 'custom.ai-access.use']);
+    Route::get('custom.ai-access.request-status', [CatalogController::class, 'requestStatus'])
+        ->option(['peanut_permission' => 'custom.ai-access.use']);
 })->middleware(LoginMiddleware::class)
     ->middleware(OfficialModuleMiddleware::class, 'custom.ai-access', 'http.admin')
     ->middleware(AuthMiddleware::class);

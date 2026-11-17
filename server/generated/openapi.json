@@ -19391,6 +19391,135 @@
                 }
             }
         },
+        "/adminapi/custom.ai-access.discover": {
+            "post": {
+                "operationId": "aiAccessDiscover",
+                "tags": [
+                    "AiAccess"
+                ],
+                "description": "使用指定令牌读取服务商提供的模型候选。",
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "custom.ai-access"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "custom.ai-access.configure"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "远端模型候选"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "custom.ai-access"
+                    },
+                    "controller": "Custom\\Modules\\AiAccess\\Controller\\CatalogController",
+                    "action": "discover",
+                    "permission": "custom.ai-access.configure",
+                    "source": {
+                        "file": "server/app/modules/custom/ai_access/route/app.php",
+                        "line": 20
+                    }
+                }
+            }
+        },
+        "/adminapi/custom.ai-access.generate": {
+            "post": {
+                "operationId": "aiAccessGenerate",
+                "tags": [
+                    "AiAccess"
+                ],
+                "description": "同步生成文字或 PNG 图片。",
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "custom.ai-access"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "custom.ai-access.use"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "生成结果与请求回执"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "custom.ai-access"
+                    },
+                    "controller": "Custom\\Modules\\AiAccess\\Controller\\CatalogController",
+                    "action": "generate",
+                    "permission": "custom.ai-access.use",
+                    "source": {
+                        "file": "server/app/modules/custom/ai_access/route/app.php",
+                        "line": 22
+                    }
+                }
+            }
+        },
+        "/adminapi/custom.ai-access.request-status": {
+            "get": {
+                "operationId": "aiAccessRequestStatus",
+                "tags": [
+                    "AiAccess"
+                ],
+                "description": "根据请求标识查阅当前成员的调用状态。",
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "custom.ai-access"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "custom.ai-access.use"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "请求回执"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "custom.ai-access"
+                    },
+                    "controller": "Custom\\Modules\\AiAccess\\Controller\\CatalogController",
+                    "action": "requestStatus",
+                    "permission": "custom.ai-access.use",
+                    "source": {
+                        "file": "server/app/modules/custom/ai_access/route/app.php",
+                        "line": 24
+                    }
+                }
+            }
+        },
         "/adminapi/custom.ai-assistant.textRoutes": {
             "get": {
                 "operationId": "aiAssistantTextRoutes",

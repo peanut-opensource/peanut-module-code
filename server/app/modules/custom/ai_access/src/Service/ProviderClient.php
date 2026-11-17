@@ -36,6 +36,44 @@ final readonly class ProviderClient implements AiClient
         return $this->generate('image', $prompt, $requestKey, $model, $provider, $credential);
     }
 
+    public function discover(TenantContext $tenant, mixed $provider, mixed $credential): array
+    {
+        $provider = $this->catalog->identifier($provider);
+        $credential = $this->catalog->identifier($credential);
+        $endpoint = $this->catalog->query($tenant, 'provider')->where('entry_key', $provider)->where('enabled', 1)->find();
+        $token = $this->catalog->query($tenant, 'credential')->where('provider', $provider)
+            ->where('entry_key', $credential)->where('enabled', 1)->find();
+        if ($endpoint === null || $token === null) {
+            throw BusinessException::conflict('AI_ACCESS_TARGET_UNAVAILABLE', '请选择已启用的服务商和令牌');
+        }
+        $address = $this->catalog->details($endpoint);
+        if (!$this->catalog->isApprovedOrigin($address['origin'])) {
+            throw BusinessException::forbidden('AI_ACCESS_ORIGIN_DENIED', '该 HTTPS 地址未由实例维护者登记');
+        }
+        $secret = $this->catalog->reveal($tenant, $token);
+        $request = new OutboundHttpRequest('GET', $address['origin'] . $address['api_prefix'] . '/models',
+            ['Authorization' => 'Bearer ' . $secret, 'Accept' => 'application/json']);
+        try {
+            $response = $this->http->send($request);
+            $payload = $response->status === 200 ? json_decode($response->body, true, 32, JSON_THROW_ON_ERROR) : [];
+        } catch (\Throwable) {
+            $payload = [];
+        }
+        if (!is_array($payload['data'] ?? null)) {
+            throw BusinessException::conflict('AI_ACCESS_DISCOVERY_FAILED', '未能读取服务商模型列表，可以手动登记模型接入');
+        }
+        $models = [];
+        foreach ($payload['data'] as $model) {
+            $id = $model['id'] ?? null;
+            if (!is_string($id) || trim($id) === '' || mb_strlen($id) > 200) {
+                continue;
+            }
+            $owner = $model['owned_by'] ?? null;
+            $models[$id] = ['id' => $id, 'owner' => is_string($owner) ? mb_substr($owner, 0, 120) : ''];
+        }
+        return ['items' => array_values($models)];
+    }
+
     public function requestStatus(string $requestKey): array
     {
         $tenant = $this->tenant();
@@ -106,7 +144,7 @@ final readonly class ProviderClient implements AiClient
                 $receipt['provider_request_id'] = preg_match('/^[A-Za-z0-9_:.\/-]{1,180}$/D', $remoteRequest) ? $remoteRequest : null;
                 if ($response->status < 200 || $response->status >= 300) {
                     $receipt['status'] = $response->status >= 500 || $response->status === 408 ? 'unknown' : 'rejected';
-                    throw BusinessException::conflict('AI_ACCESS_PROVIDER_REJECTED', '服务商未返回成功结果，请查询原请求');
+                    throw BusinessException::conflict('AI_ACCESS_PROVIDER_REJECTED', '服务商返回 HTTP ' . $response->status . '，请查询原请求');
                 }
                 $size = filesize($sink);
                 if ($size === false || $size < 2 || $size > self::RESPONSE_LIMIT) {
@@ -145,6 +183,13 @@ final readonly class ProviderClient implements AiClient
 
     private function select(TenantContext $tenant, string $capability, int $length, ?string $model, ?string $provider, ?string $credential): array
     {
+        $default = null;
+        if ($model === null) {
+            $record = $this->catalog->query($tenant, 'default')->where('entry_key', $capability)->where('enabled', 1)->find();
+            if ($record !== null) {
+                $default = $this->catalog->details($record);
+            }
+        }
         $providers = $this->catalog->query($tenant, 'provider')->where('enabled', 1);
         if ($provider !== null) {
             $providers->where('entry_key', $provider);
@@ -158,6 +203,10 @@ final readonly class ProviderClient implements AiClient
             $providers->where('entry_key', $owners[0] ?? '');
         }
 
+        if ($default !== null && ($provider === null || $provider === $default['provider'])) {
+            $providers->orderRaw('CASE WHEN entry_key = ? THEN 0 ELSE 1 END', [$default['provider']]);
+        }
+        $definitions = $this->catalog->query($tenant, 'definition')->where('enabled', 1)->column('entry_key');
         foreach ($providers->order('priority', 'desc')->order('entry_key')->select() as $candidate) {
             $key = $candidate['entry_key'];
             // Configure and choose credentials under the same provider lock.
@@ -167,8 +216,8 @@ final readonly class ProviderClient implements AiClient
                 continue;
             }
             $models = $this->catalog->query($tenant, 'model')->where('provider', $key)->where('enabled', 1);
-            if ($model !== null) {
-                $models->where('entry_key', $model);
+            if ($default !== null && $key === $default['provider']) {
+                $models->orderRaw('CASE WHEN entry_key = ? THEN 0 ELSE 1 END', [$default['offering']]);
             }
             $tokens = $this->catalog->query($tenant, 'credential')->where('provider', $key)->where('enabled', 1)
                 ->whereNotNull('secret_payload');
@@ -178,6 +227,13 @@ final readonly class ProviderClient implements AiClient
             $available = $tokens->order('selection_order')->order('entry_key')->lock(true)->select();
             foreach ($models->order('priority', 'desc')->order('entry_key')->lock(true)->select() as $choice) {
                 $details = $this->catalog->details($choice);
+                $definition = $details['definition'] ?? null;
+                if ($model !== null && $model !== ($definition ?? $choice['entry_key'])) {
+                    continue;
+                }
+                if ($definition !== null && !in_array($definition, $definitions, true)) {
+                    continue;
+                }
                 if (!isset($details['protocols'][$capability]) || $details['input_limit_chars'] < $length) {
                     continue;
                 }
@@ -209,6 +265,9 @@ final readonly class ProviderClient implements AiClient
             if ($capability === 'image') {
                 $path = '/images/generations';
                 $body += ['prompt' => $prompt, 'n' => 1, 'size' => '1024x1024', 'output_format' => 'png'];
+            } elseif ($protocol === 'openai_responses') {
+                $path = '/responses';
+                $body += ['input' => $prompt, 'max_output_tokens' => $details['max_output_tokens'], 'store' => false];
             } else {
                 $path = '/chat/completions';
                 $body += ['messages' => [['role' => 'user', 'content' => $prompt]], 'max_completion_tokens' => $details['max_output_tokens']];
@@ -237,6 +296,17 @@ final readonly class ProviderClient implements AiClient
             foreach ($payload['content'] as $block) {
                 if (($block['type'] ?? null) === 'text' && is_string($block['text'] ?? null)) {
                     $parts[] = $block['text'];
+                }
+            }
+            $text = implode("\n", $parts);
+        }
+        if ($text === null && ($payload['object'] ?? null) === 'response' && ($payload['status'] ?? null) === 'completed') {
+            $parts = [];
+            foreach ($payload['output'] ?? [] as $item) {
+                foreach ($item['content'] ?? [] as $block) {
+                    if (($block['type'] ?? null) === 'output_text' && is_string($block['text'] ?? null)) {
+                        $parts[] = $block['text'];
+                    }
                 }
             }
             $text = implode("\n", $parts);

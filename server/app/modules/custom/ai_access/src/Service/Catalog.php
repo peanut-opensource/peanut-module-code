@@ -16,7 +16,7 @@ use think\facade\Db;
 final readonly class Catalog
 {
     public const PROTOCOLS = [
-        'text' => ['openai_text', 'anthropic_messages'],
+        'text' => ['openai_text', 'openai_responses', 'anthropic_messages'],
         'image' => ['openai_image'],
     ];
 
@@ -27,12 +27,15 @@ final readonly class Catalog
 
     public function listing(TenantContext $tenant): array
     {
-        $result = ['providers' => [], 'credentials' => [], 'models' => []];
+        $result = ['providers' => [], 'credentials' => [], 'models' => [], 'authors' => [], 'definitions' => [], 'defaults' => []];
         foreach ($this->query($tenant)->order('priority', 'desc')->order('entry_key')->select() as $row) {
             $result[match ($row['kind']) {
                 'provider' => 'providers',
                 'credential' => 'credentials',
                 'model' => 'models',
+                'author' => 'authors',
+                'definition' => 'definitions',
+                'default' => 'defaults',
             }][] = $this->present($row);
         }
         return $result + ['can_configure' => $this->allowed($tenant, 'configure')];
@@ -41,21 +44,37 @@ final readonly class Catalog
     public function save(TenantContext $tenant, array $input): array
     {
         $kind = $input['kind'] ?? null;
-        if (!in_array($kind, ['provider', 'model', 'credential'], true)) {
+        if (!in_array($kind, ['provider', 'model', 'credential', 'author', 'definition', 'default'], true)) {
             $this->invalid('请选择配置类型');
         }
         $key = $this->identifier($input['key'] ?? null);
-        $provider = $kind === 'provider' ? $key : $this->identifier($input['provider'] ?? null);
+        $provider = match ($kind) {
+            'provider' => $key,
+            'author', 'definition', 'default' => '',
+            default => $this->identifier($input['provider'] ?? null),
+        };
+        if ($kind === 'default' && !isset(self::PROTOCOLS[$key])) {
+            $this->invalid('默认模型能力无效');
+        }
         $name = $this->text($input['name'] ?? null, 120, '名称');
         $enabled = $input['enabled'] ?? null;
         if (!is_bool($enabled)) {
             $this->invalid('启用状态无效');
         }
-        $priority = $kind === 'credential' ? 0 : $this->number($input['priority'] ?? 0, 0, 10000);
+        $priority = !in_array($kind, ['provider', 'model'], true) ? 0 : $this->number($input['priority'] ?? 0, 0, 10000);
         $details = match ($kind) {
             'provider' => $this->endpoint($input),
             'model' => $this->model($input),
             'credential' => ['models' => $this->modelScope($input['models'] ?? null)],
+            'author' => [],
+            'definition' => [
+                'author' => $this->identifier($input['author'] ?? null),
+                'capabilities' => $this->capabilities($input['capabilities'] ?? null),
+            ],
+            'default' => [
+                'provider' => $this->identifier($input['provider'] ?? null),
+                'offering' => $this->identifier($input['offering'] ?? null),
+            ],
         };
         if ($kind === 'provider' && $enabled && !$this->isApprovedOrigin($details['origin'])) {
             throw BusinessException::forbidden('AI_ACCESS_ORIGIN_DENIED', '该 HTTPS 地址未由实例维护者登记');
@@ -67,7 +86,7 @@ final readonly class Catalog
 
         return Db::transaction(function () use ($tenant, $kind, $provider, $key, $name, $enabled, $priority, $details, $secret): array {
             $parent = $this->query($tenant, 'provider')->where('entry_key', $provider)->lock(true)->find();
-            if ($kind !== 'provider' && $parent === null) {
+            if (in_array($kind, ['model', 'credential'], true) && $parent === null) {
                 $this->invalid('服务商不存在');
             }
             $record = $kind === 'provider' ? $parent : $this->query($tenant, $kind)
@@ -75,11 +94,36 @@ final readonly class Catalog
             if ($kind === 'provider' && $record !== null && $details != $this->details($record)) {
                 $this->invalid('服务地址和 API 前缀固定，变更时请登记新的服务商标识');
             }
-            if ($kind === 'credential' && $details['models'] !== ['*']) {
+            if ($kind === 'credential' && $details['models'] !== [] && $details['models'] !== ['*']) {
                 $models = $this->query($tenant, 'model')->where('provider', $provider)
                     ->whereIn('entry_key', $details['models'])->count();
                 if ((int) $models !== count($details['models'])) {
                     $this->invalid('令牌范围包含未在此服务商登记的模型');
+                }
+            }
+            if ($kind === 'definition') {
+                if (!$this->query($tenant, 'author')->where('entry_key', $details['author'])->find()) {
+                    $this->invalid('模型厂商不存在');
+                }
+                foreach ($this->query($tenant, 'model')->select() as $offering) {
+                    $registered = $this->details($offering);
+                    if (($registered['definition'] ?? null) === $key
+                        && array_diff(array_keys($registered['protocols']), $details['capabilities']) !== []) {
+                        $this->invalid('请先调整该模型的接入能力');
+                    }
+                }
+            }
+            if ($kind === 'model') {
+                $definition = $this->query($tenant, 'definition')->where('entry_key', $details['definition'])->lock(true)->find();
+                if ($definition === null || array_diff(array_keys($details['protocols']), $this->details($definition)['capabilities']) !== []) {
+                    $this->invalid('接入能力必须由目录模型支持');
+                }
+            }
+            if ($kind === 'default' && $enabled) {
+                $offering = $this->query($tenant, 'model')->where('provider', $details['provider'])
+                    ->where('entry_key', $details['offering'])->where('enabled', 1)->find();
+                if ($offering === null || !isset($this->details($offering)['protocols'][$key])) {
+                    $this->invalid('请选择支持该能力且已启用的模型接入');
                 }
             }
             $values = [
@@ -165,6 +209,7 @@ final readonly class Catalog
             'provider' => ['priority' => (int) $row['priority']] + $this->details($row),
             'model' => ['provider' => $row['provider'], 'priority' => (int) $row['priority']] + $this->details($row),
             'credential' => ['provider' => $row['provider'], 'configured' => $row['secret_payload'] !== null] + $this->details($row),
+            default => $this->details($row),
         };
     }
 
@@ -194,6 +239,7 @@ final readonly class Catalog
             }
         }
         return [
+            'definition' => $this->identifier($input['definition'] ?? null),
             'remote_model' => $this->text($input['remote_model'] ?? null, 200, '服务商模型标识'),
             'protocols' => $protocols,
             'input_limit_chars' => $this->number($input['input_limit_chars'] ?? null, 1, 200000),
@@ -201,12 +247,25 @@ final readonly class Catalog
         ];
     }
 
+    private function capabilities(mixed $capabilities): array
+    {
+        if (!is_array($capabilities) || !array_is_list($capabilities) || $capabilities === []) {
+            $this->invalid('至少选择一项模型能力');
+        }
+        foreach ($capabilities as $capability) {
+            if (!is_string($capability) || !isset(self::PROTOCOLS[$capability])) {
+                $this->invalid('模型能力无效');
+            }
+        }
+        return array_values(array_unique($capabilities));
+    }
+
     private function modelScope(mixed $scope): array
     {
         if ($scope === ['*']) {
             return $scope;
         }
-        if (!is_array($scope) || !array_is_list($scope) || $scope === []) {
+        if (!is_array($scope) || !array_is_list($scope)) {
             $this->invalid('请明确令牌可用的模型范围');
         }
         return array_values(array_unique(array_map($this->identifier(...), $scope)));

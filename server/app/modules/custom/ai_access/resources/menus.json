@@ -58,5 +58,21 @@
     "client_keys": [
       "admin-web"
     ]
+  },
+  {
+    "key": "custom.ai-access.test",
+    "parent_key": "custom.ai-access.group",
+    "scope": "tenant",
+    "type": "page",
+    "name": "调用测试",
+    "icon": "icon-lab",
+    "route_name": "AiAccessTest",
+    "route_path": "/ai-access/test",
+    "component_key": "custom.ai-access.test",
+    "required_permission": "custom.ai-access.use",
+    "sort_order": 40,
+    "client_keys": [
+      "admin-web"
+    ]
   }
 ]
