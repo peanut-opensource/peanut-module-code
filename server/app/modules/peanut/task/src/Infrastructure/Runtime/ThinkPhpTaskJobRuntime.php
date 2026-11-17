@@ -138,6 +138,7 @@ final readonly class ThinkPhpTaskJobRuntime implements TaskJobRuntime, \PeanutAd
             },
             negativeSigningKey: $this->signingKey,
             jobKey: $jobKey,
+            executionContext: $this->currentExecution,
         );
 
         $processed = 0;

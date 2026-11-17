@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace PeanutAdmin\Modules\Task\Job\Execution;
 
+use app\common\execution\CurrentExecutionContext;
+use app\common\infrastructure\runtime\OperationalLog;
 use PeanutAdmin\Kernel\Async\JobHandlerAdapter;
 use think\facade\Db;
 use PeanutAdmin\Modules\Task\Contract\JobExecution;
@@ -27,6 +29,7 @@ final readonly class LocalWorker
         private int $leaseSeconds = 60,
         private ?string $negativeSigningKey = null,
         private ?string $jobKey = null,
+        private ?CurrentExecutionContext $executionContext = null,
     ) {
         if ($tenantId < 1
             || preg_match('/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/D', $workerId) !== 1
@@ -106,6 +109,23 @@ final readonly class LocalWorker
         } catch (RetryableTaskException $exception) {
             return $this->failClaim($claim, $exception->safeCode, true, $this->backoff($claim->attemptNumber));
         } catch (Throwable $exception) {
+            if (!$exception instanceof TaskJobException && $this->executionContext !== null) {
+                OperationalLog::error($this->executionContext, 'task.worker.unexpected_failure', [
+                    'tenant_id' => $claim->tenantId,
+                    'job_key' => $claim->jobKey,
+                    'attempt_number' => $claim->attemptNumber,
+                    'handler_key' => $claim->handlerKey,
+                    'exception_class' => $exception::class,
+                    'file' => basename($exception->getFile()),
+                    'line' => $exception->getLine(),
+                    'frames' => array_map(static fn(array $frame): array => [
+                        'class' => $frame['class'] ?? null,
+                        'function' => $frame['function'] ?? null,
+                        'file' => isset($frame['file']) ? basename($frame['file']) : null,
+                        'line' => $frame['line'] ?? null,
+                    ], array_slice($exception->getTrace(), 0, 8)),
+                ]);
+            }
             $code = $exception instanceof TaskJobException ? $exception->problemCode : 'TASK_HANDLER_FAILED';
             return $this->failClaim($claim, $code, false, 0);
         }
