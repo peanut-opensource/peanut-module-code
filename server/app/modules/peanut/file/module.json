@@ -3,7 +3,7 @@
   "key": "peanut.file",
   "name": "File and Media",
   "description": "Tenant-owned media library, uploads and private file metadata.",
-  "version": "1.0.49",
+  "version": "1.0.50-rc.1",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-file",
@@ -84,6 +84,9 @@
   "tenant": {
     "enableable": true,
     "disable_behavior": "reject_new_operations",
-    "requires": ["peanut.identity", "peanut.content-tools"]
+    "requires": [
+      "peanut.identity",
+      "peanut.content-tools"
+    ]
   }
 }
