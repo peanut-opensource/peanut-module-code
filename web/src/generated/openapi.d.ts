@@ -2203,6 +2203,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platformapi/tenants/owner/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Requires an authenticated platform operator with platform.tenant.provision-owner. Removes only the selected owner role and suspends that membership; preserves the global account and other tenants. Identity rejects stale revisions and removal of the last active owner. Requires Identity 4.0.1-rc.1 or a later release containing revokeOwner. */
+        post: operations["revokePlatformTenantOwner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platformapi/operators/create": {
         parameters: {
             query?: never;
@@ -4424,6 +4441,70 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["documentRevisionCommentReopen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.suggestion.create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["documentRevisionSuggestionCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.suggestion.accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["documentRevisionSuggestionAccept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.suggestion.reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["documentRevisionSuggestionReject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.document.changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["documentChanges"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -7725,6 +7806,7 @@ export interface components {
         };
         AdminRole: {
             id: number;
+            key: string;
             name: string;
             desc: string;
             sort: number;
@@ -7825,6 +7907,7 @@ export interface components {
                 email: string;
                 password: string;
             };
+            login_enabled: boolean;
         };
         CopyrightItemList: {
             key: string;
@@ -8708,6 +8791,23 @@ export interface components {
             selection_sha256: string;
         };
         PlatformOfficialUpdateResult: components["schemas"]["PlatformOfficialUpdatePreview"] | components["schemas"]["PlatformOpsTask"];
+        PlatformTenantOwnerRevocationRequest: {
+            tenant_id: number;
+            member_id: number;
+            /** @description Target membership authorization revision, not the tenant revision. */
+            expected_revision: number;
+            change_reason: string;
+        };
+        PlatformTenantOwnerRevocation: {
+            tenant_id: string;
+            member_id: string;
+            account_id: string;
+            /** @enum {string} */
+            status: "suspended";
+            revision: string;
+            /** @enum {boolean} */
+            owner_revoked: true;
+        };
         TenantPlan: {
             id: number;
             code: string;
@@ -9961,7 +10061,7 @@ export interface components {
                 document_id: number;
                 operation_id: string;
                 /** @enum {string} */
-                action: "version.create" | "version.restore" | "archive" | "restore";
+                action: "version.create" | "version.restore" | "archive" | "restore" | "suggestion.accept";
                 input_sha256: string;
                 /** @enum {string} */
                 phase: "prepared" | "attention" | "completed";
@@ -9991,6 +10091,8 @@ export interface components {
                     binary_sha256: string;
                     store_id: string | null;
                     target_progress: number;
+                    cancelled?: boolean;
+                    conflict_code?: string;
                 } | null;
             };
         };
@@ -10044,6 +10146,8 @@ export interface components {
             binary_sha256: string;
             store_id: string | null;
             target_progress: number;
+            cancelled?: boolean;
+            conflict_code?: string;
         };
         DocumentContentCapabilities: {
             /** @enum {string} */
@@ -10058,6 +10162,74 @@ export interface components {
             state: "permission_denied" | "preview_unavailable" | "edit_unsupported" | "service_unavailable" | "read_only" | "available";
             unavailableReason: string | null;
             capabilityRevision: string;
+        };
+        DocumentSuggestion: {
+            candidate_content: components["schemas"]["DocumentStructuredContent"];
+            candidate_sha256: string;
+            /** @enum {string} */
+            decision: "pending" | "accepted" | "rejected";
+            decided_by_member_id: number | null;
+            decided_at: string | null;
+            result_revision_id: number | null;
+            result_state_seq: number | null;
+        } | null;
+        DocumentSuggestionReceiptResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                document_id: number;
+                revision_id: number;
+                version_digest: string;
+                /** @enum {string} */
+                text_profile: "peanut.richtext.plain-text/1";
+                text_sha256: string;
+                request_id: string;
+                /** @enum {string} */
+                action: "create" | "reply" | "resolve" | "reopen" | "suggest" | "accept" | "reject";
+                thread_id: number;
+                thread_revision: number;
+                /** @enum {string} */
+                status: "open" | "resolved";
+                message_id: number;
+                actor_member_id: number;
+                created_at: string;
+                suggestion: {
+                    candidate_content: components["schemas"]["DocumentStructuredContent"];
+                    candidate_sha256: string;
+                    /** @enum {string} */
+                    decision: "pending" | "accepted" | "rejected";
+                    decided_by_member_id: number | null;
+                    decided_at: string | null;
+                    result_revision_id: number | null;
+                    result_state_seq: number | null;
+                } | null;
+                result_revision_id?: number;
+                result_state_seq?: number;
+            };
+        };
+        DocumentChangesResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            msg: string;
+            data: {
+                items: {
+                    change_id: number;
+                    document_id: number;
+                    state_seq: number;
+                    /** @enum {string} */
+                    kind: "solo.save" | "version.restore" | "suggestion.accept" | "collaboration.update";
+                    actor_member_id: number | null;
+                    source_label: string;
+                    from_projection_sha256: string;
+                    to_projection_sha256: string;
+                    before_text: string;
+                    after_text: string;
+                    created_at: string;
+                    operation_id: string;
+                }[];
+                next_before_change_id: number | null;
+            };
         };
         DocumentCommentSource: {
             document_id: number;
@@ -10097,13 +10269,23 @@ export interface components {
             updated_by_member_id: number;
             created_at: string;
             updated_at: string;
+            suggestion: {
+                candidate_content: components["schemas"]["DocumentStructuredContent"];
+                candidate_sha256: string;
+                /** @enum {string} */
+                decision: "pending" | "accepted" | "rejected";
+                decided_by_member_id: number | null;
+                decided_at: string | null;
+                result_revision_id: number | null;
+                result_state_seq: number | null;
+            } | null;
         };
         DocumentCommentMessage: {
             message_id: number;
             thread_id: number;
             thread_revision: number;
             /** @enum {string} */
-            action: "create" | "reply" | "resolve" | "reopen";
+            action: "create" | "reply" | "resolve" | "reopen" | "suggest" | "accept" | "reject";
             body: string | null;
             actor_member_id: number;
             created_at: string;
@@ -10152,6 +10334,16 @@ export interface components {
                     updated_by_member_id: number;
                     created_at: string;
                     updated_at: string;
+                    suggestion: {
+                        candidate_content: components["schemas"]["DocumentStructuredContent"];
+                        candidate_sha256: string;
+                        /** @enum {string} */
+                        decision: "pending" | "accepted" | "rejected";
+                        decided_by_member_id: number | null;
+                        decided_at: string | null;
+                        result_revision_id: number | null;
+                        result_state_seq: number | null;
+                    } | null;
                 }[];
                 next_before_thread_id: number | null;
             };
@@ -10200,13 +10392,23 @@ export interface components {
                     updated_by_member_id: number;
                     created_at: string;
                     updated_at: string;
+                    suggestion: {
+                        candidate_content: components["schemas"]["DocumentStructuredContent"];
+                        candidate_sha256: string;
+                        /** @enum {string} */
+                        decision: "pending" | "accepted" | "rejected";
+                        decided_by_member_id: number | null;
+                        decided_at: string | null;
+                        result_revision_id: number | null;
+                        result_state_seq: number | null;
+                    } | null;
                 };
                 messages: {
                     message_id: number;
                     thread_id: number;
                     thread_revision: number;
                     /** @enum {string} */
-                    action: "create" | "reply" | "resolve" | "reopen";
+                    action: "create" | "reply" | "resolve" | "reopen" | "suggest" | "accept" | "reject";
                     body: string | null;
                     actor_member_id: number;
                     created_at: string;
@@ -10227,7 +10429,7 @@ export interface components {
                 text_sha256: string;
                 request_id: string;
                 /** @enum {string} */
-                action: "create" | "reply" | "resolve" | "reopen";
+                action: "create" | "reply" | "resolve" | "reopen" | "suggest" | "accept" | "reject";
                 thread_id: number;
                 thread_revision: number;
                 /** @enum {string} */
@@ -10235,6 +10437,16 @@ export interface components {
                 message_id: number;
                 actor_member_id: number;
                 created_at: string;
+                suggestion: {
+                    candidate_content: components["schemas"]["DocumentStructuredContent"];
+                    candidate_sha256: string;
+                    /** @enum {string} */
+                    decision: "pending" | "accepted" | "rejected";
+                    decided_by_member_id: number | null;
+                    decided_at: string | null;
+                    result_revision_id: number | null;
+                    result_state_seq: number | null;
+                } | null;
             };
         };
         StorageAccountSnapshot: {
@@ -17427,6 +17639,41 @@ export interface operations {
             422: components["responses"]["ErrorResponse"];
         };
     };
+    revokePlatformTenantOwner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformTenantOwnerRevocationRequest"];
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["PlatformTenantOwnerRevocation"];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            412: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
     createPlatformOperator: {
         parameters: {
             query?: never;
@@ -22425,6 +22672,159 @@ export interface operations {
                 };
             };
             400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    documentRevisionSuggestionCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: number;
+                    revision_id: number;
+                    request_id: string;
+                    version_digest: string;
+                    /** @enum {string} */
+                    text_profile: "peanut.richtext.plain-text/1";
+                    text_sha256: string;
+                    start_offset: number;
+                    end_offset: number;
+                    quote: string;
+                    body: string;
+                    candidate_content: components["schemas"]["DocumentStructuredContent"];
+                };
+            };
+        };
+        responses: {
+            /** @description Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentSuggestionReceiptResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    documentRevisionSuggestionAccept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: number;
+                    revision_id: number;
+                    request_id: string;
+                    version_digest: string;
+                    /** @enum {string} */
+                    text_profile: "peanut.richtext.plain-text/1";
+                    text_sha256: string;
+                    thread_id: number;
+                    expected_thread_revision: number;
+                    expected_state_seq: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentSuggestionReceiptResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    documentRevisionSuggestionReject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: number;
+                    revision_id: number;
+                    request_id: string;
+                    version_digest: string;
+                    /** @enum {string} */
+                    text_profile: "peanut.richtext.plain-text/1";
+                    text_sha256: string;
+                    thread_id: number;
+                    expected_thread_revision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentSuggestionReceiptResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    documentChanges: {
+        parameters: {
+            query: {
+                document_id: number;
+                limit?: number;
+                before_change_id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current owner-authorized document result. Confirmed versions are immutable and committed, not business approval. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentChangesResponse"];
+                };
+            };
             401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
             404: components["responses"]["ErrorResponse"];

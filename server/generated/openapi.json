@@ -6,7 +6,7 @@
     },
     "info": {
         "title": "Peanut Module Code HTTP API",
-        "version": "5.1.12",
+        "version": "5.1.18-rc.2",
         "description": "Application HTTP contract for the identity, Tenant, article, file and notification entry points. Runtime authorization and Tenant binding remain enforced by the server middleware.",
         "x-peanut-contract-generator": {
             "name": "scripts/generate-api-contracts.php",
@@ -969,7 +969,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 198
+                        "line": 201
                     }
                 },
                 "x-peanut-permissions": [
@@ -1047,7 +1047,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 151
+                        "line": 154
                     }
                 },
                 "x-peanut-permissions": [
@@ -1125,7 +1125,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 195
+                        "line": 198
                     }
                 },
                 "x-peanut-permissions": [
@@ -1203,7 +1203,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 192
+                        "line": 195
                     }
                 },
                 "x-peanut-permissions": [
@@ -1307,7 +1307,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 154
+                        "line": 157
                     }
                 },
                 "x-peanut-permissions": [
@@ -1385,7 +1385,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 157
+                        "line": 160
                     }
                 },
                 "x-peanut-permissions": [
@@ -1497,7 +1497,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 165
+                        "line": 168
                     }
                 },
                 "x-peanut-permissions": [
@@ -1603,7 +1603,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 168
+                        "line": 171
                     }
                 },
                 "x-peanut-permissions": [
@@ -1704,7 +1704,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 176
+                        "line": 179
                     }
                 },
                 "x-peanut-permissions": [
@@ -1816,7 +1816,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 179
+                        "line": 182
                     }
                 },
                 "x-peanut-permissions": [
@@ -1910,7 +1910,7 @@
                     "permission": "platform.ops.upgrade.manage",
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 182
+                        "line": 185
                     }
                 },
                 "x-peanut-permissions": [
@@ -2015,7 +2015,7 @@
                     "permission": "platform.ops.module.manage",
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 187
+                        "line": 190
                     }
                 },
                 "x-peanut-permissions": [
@@ -2107,7 +2107,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 201
+                        "line": 204
                     }
                 },
                 "x-peanut-permissions": [
@@ -12425,7 +12425,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 232
+                        "line": 235
                     }
                 },
                 "x-peanut-permissions": [
@@ -12598,7 +12598,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 207
+                        "line": 210
                     }
                 },
                 "x-peanut-permissions": [
@@ -12686,7 +12686,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 210
+                        "line": 213
                     }
                 },
                 "x-peanut-permissions": [
@@ -12774,7 +12774,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 213
+                        "line": 216
                     }
                 },
                 "x-peanut-permissions": [
@@ -12883,7 +12883,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 84
+                        "line": 87
                     }
                 },
                 "x-peanut-permissions": [
@@ -12992,7 +12992,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 87
+                        "line": 90
                     }
                 },
                 "x-peanut-permissions": [
@@ -13101,7 +13101,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 90
+                        "line": 93
                     }
                 },
                 "x-peanut-permissions": [
@@ -13210,7 +13210,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 93
+                        "line": 96
                     }
                 },
                 "x-peanut-permissions": [
@@ -13328,7 +13328,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 96
+                        "line": 99
                     }
                 },
                 "x-peanut-permissions": [
@@ -13420,6 +13420,109 @@
                     {
                         "kind": "platform_action",
                         "key": "platform.tenant.read"
+                    }
+                ]
+            }
+        },
+        "/platformapi/tenants/owner/revoke": {
+            "post": {
+                "tags": [
+                    "PlatformTenants"
+                ],
+                "operationId": "revokePlatformTenantOwner",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "enum": [
+                                                20000
+                                            ]
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/PlatformTenantOwnerRevocation"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "412": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PlatformTenantOwnerRevocationRequest"
+                            }
+                        }
+                    }
+                },
+                "x-peanut-errors": [
+                    "CHANGE_REASON_REQUIRED",
+                    "PLATFORM_OPERATOR_INVALID",
+                    "TENANT_NOT_ACTIVE",
+                    "REVISION_MISMATCH",
+                    "TENANT_OWNER_STATE_CONFLICT",
+                    "LAST_ACTIVE_OWNER_REQUIRED"
+                ],
+                "description": "Requires an authenticated platform operator with platform.tenant.provision-owner. Removes only the selected owner role and suspends that membership; preserves the global account and other tenants. Identity rejects stale revisions and removal of the last active owner. Requires Identity 4.0.1-rc.1 or a later release containing revokeOwner.",
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "platform",
+                    "owner": {
+                        "type": "application",
+                        "key": "platform"
+                    },
+                    "controller": "app\\platform\\controller\\PlatformTenantController",
+                    "action": "revokeOwner",
+                    "permission": null,
+                    "source": {
+                        "file": "server/route/platform.php",
+                        "line": 84
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "platform_action",
+                        "key": "platform.tenant.provision-owner"
                     }
                 ]
             }
@@ -13518,7 +13621,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 235
+                        "line": 238
                     }
                 },
                 "x-peanut-permissions": [
@@ -13628,7 +13731,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 238
+                        "line": 241
                     }
                 },
                 "x-peanut-permissions": [
@@ -13742,7 +13845,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 241
+                        "line": 244
                     }
                 },
                 "x-peanut-permissions": [
@@ -13847,7 +13950,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 244
+                        "line": 247
                     }
                 },
                 "x-peanut-permissions": [
@@ -13952,7 +14055,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 247
+                        "line": 250
                     }
                 },
                 "x-peanut-permissions": [
@@ -14057,7 +14160,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 250
+                        "line": 253
                     }
                 },
                 "x-peanut-permissions": [
@@ -14162,7 +14265,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 253
+                        "line": 256
                     }
                 },
                 "x-peanut-permissions": [
@@ -14276,7 +14379,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 256
+                        "line": 259
                     }
                 },
                 "x-peanut-permissions": [
@@ -14381,7 +14484,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 259
+                        "line": 262
                     }
                 },
                 "x-peanut-permissions": [
@@ -14494,7 +14597,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 262
+                        "line": 265
                     }
                 },
                 "x-peanut-permissions": [
@@ -15124,7 +15227,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 142
+                        "line": 145
                     }
                 },
                 "x-peanut-permissions": [
@@ -15244,7 +15347,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 145
+                        "line": 148
                     }
                 },
                 "x-peanut-permissions": [
@@ -15349,7 +15452,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 204
+                        "line": 207
                     }
                 },
                 "x-peanut-permissions": [
@@ -15443,7 +15546,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 107
+                        "line": 110
                     }
                 },
                 "x-peanut-permissions": [
@@ -15588,7 +15691,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 111
+                        "line": 114
                     }
                 },
                 "x-peanut-permissions": [
@@ -15706,7 +15809,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 99
+                        "line": 102
                     }
                 },
                 "x-peanut-permissions": [
@@ -15812,7 +15915,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 119
+                        "line": 122
                     }
                 },
                 "x-peanut-permissions": [
@@ -15931,7 +16034,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 123
+                        "line": 126
                     }
                 },
                 "x-peanut-permissions": [
@@ -16019,7 +16122,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 127
+                        "line": 130
                     }
                 },
                 "x-peanut-permissions": [
@@ -16129,7 +16232,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 115
+                        "line": 118
                     }
                 },
                 "x-peanut-permissions": [
@@ -16230,7 +16333,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 134
+                        "line": 137
                     }
                 },
                 "x-peanut-permissions": [
@@ -16322,7 +16425,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 138
+                        "line": 141
                     }
                 },
                 "x-peanut-permissions": [
@@ -16495,7 +16598,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 130
+                        "line": 133
                     }
                 },
                 "x-peanut-permissions": [
@@ -16580,7 +16683,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 104
+                        "line": 107
                     }
                 },
                 "x-peanut-permissions": [
@@ -16658,7 +16761,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 148
+                        "line": 151
                     }
                 },
                 "x-peanut-permissions": [
@@ -16789,7 +16892,7 @@
                     "permission": "platform.ops.logs.read",
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 160
+                        "line": 163
                     }
                 },
                 "x-peanut-permissions": [
@@ -16889,7 +16992,7 @@
                     "permission": "platform.ops.logs.read",
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 171
+                        "line": 174
                     }
                 },
                 "x-peanut-permissions": [
@@ -17007,7 +17110,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 217
+                        "line": 220
                     }
                 },
                 "x-peanut-permissions": [
@@ -17096,7 +17199,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 220
+                        "line": 223
                     }
                 },
                 "x-peanut-permissions": [
@@ -17185,7 +17288,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 223
+                        "line": 226
                     }
                 },
                 "x-peanut-permissions": [
@@ -17276,7 +17379,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 226
+                        "line": 229
                     }
                 },
                 "x-peanut-permissions": [
@@ -17365,7 +17468,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 229
+                        "line": 232
                     }
                 },
                 "x-peanut-permissions": [
@@ -27591,7 +27694,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 21
+                        "line": 25
                     }
                 },
                 "x-peanut-permissions": [
@@ -27681,7 +27784,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 22
+                        "line": 26
                     }
                 },
                 "x-peanut-permissions": [
@@ -27765,7 +27868,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 20
+                        "line": 24
                     }
                 },
                 "x-peanut-permissions": [
@@ -27848,7 +27951,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 17
+                        "line": 21
                     }
                 },
                 "x-peanut-permissions": [
@@ -27941,7 +28044,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 18
+                        "line": 22
                     }
                 },
                 "x-peanut-permissions": [
@@ -28036,7 +28139,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 19
+                        "line": 23
                     }
                 },
                 "x-peanut-permissions": [
@@ -28135,7 +28238,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 23
+                        "line": 27
                     }
                 },
                 "x-peanut-permissions": [
@@ -28235,7 +28338,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 24
+                        "line": 28
                     }
                 },
                 "x-peanut-permissions": [
@@ -28336,7 +28439,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 25
+                        "line": 29
                     }
                 },
                 "x-peanut-permissions": [
@@ -28436,7 +28539,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 26
+                        "line": 30
                     }
                 },
                 "x-peanut-permissions": [
@@ -28531,7 +28634,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 27
+                        "line": 31
                     }
                 },
                 "x-peanut-permissions": [
@@ -28626,7 +28729,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 28
+                        "line": 32
                     }
                 },
                 "x-peanut-permissions": [
@@ -28731,7 +28834,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 11
+                        "line": 15
                     }
                 },
                 "x-peanut-permissions": [
@@ -28845,7 +28948,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 12
+                        "line": 16
                     }
                 },
                 "x-peanut-permissions": [
@@ -28982,7 +29085,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 13
+                        "line": 17
                     }
                 },
                 "x-peanut-permissions": [
@@ -29113,7 +29216,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 14
+                        "line": 18
                     }
                 },
                 "x-peanut-permissions": [
@@ -29238,7 +29341,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 15
+                        "line": 19
                     }
                 },
                 "x-peanut-permissions": [
@@ -29363,7 +29466,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/document/route/app.php",
-                        "line": 16
+                        "line": 20
                     }
                 },
                 "x-peanut-permissions": [
@@ -29374,6 +29477,494 @@
                     {
                         "kind": "tenant_action",
                         "key": "peanut.document.comment.reopen"
+                    }
+                ]
+            }
+        },
+        "/adminapi/peanut.document.suggestion.create": {
+            "post": {
+                "tags": [
+                    "Document"
+                ],
+                "operationId": "documentRevisionSuggestionCreate",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DocumentSuggestionReceiptResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "document_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "revision_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "request_id": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z0-9:_-]{1,128}$"
+                                    },
+                                    "version_digest": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "text_profile": {
+                                        "type": "string",
+                                        "enum": [
+                                            "peanut.richtext.plain-text/1"
+                                        ]
+                                    },
+                                    "text_sha256": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "start_offset": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    "end_offset": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    "quote": {
+                                        "type": "string",
+                                        "minLength": 0,
+                                        "maxLength": 4096
+                                    },
+                                    "body": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 4000
+                                    },
+                                    "candidate_content": {
+                                        "$ref": "#/components/schemas/DocumentStructuredContent"
+                                    }
+                                },
+                                "required": [
+                                    "document_id",
+                                    "revision_id",
+                                    "request_id",
+                                    "version_digest",
+                                    "text_profile",
+                                    "text_sha256",
+                                    "start_offset",
+                                    "end_offset",
+                                    "quote",
+                                    "body",
+                                    "candidate_content"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.document"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Document\\Controller\\DocumentRevisionSuggestionController",
+                    "action": "createSuggestion",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/document/route/app.php",
+                        "line": 11
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.document"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "peanut.document.suggestion.create"
+                    }
+                ]
+            }
+        },
+        "/adminapi/peanut.document.suggestion.accept": {
+            "post": {
+                "tags": [
+                    "Document"
+                ],
+                "operationId": "documentRevisionSuggestionAccept",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DocumentSuggestionReceiptResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "document_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "revision_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "request_id": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z0-9:_-]{1,128}$"
+                                    },
+                                    "version_digest": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "text_profile": {
+                                        "type": "string",
+                                        "enum": [
+                                            "peanut.richtext.plain-text/1"
+                                        ]
+                                    },
+                                    "text_sha256": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "thread_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "expected_thread_revision": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "expected_state_seq": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    }
+                                },
+                                "required": [
+                                    "document_id",
+                                    "revision_id",
+                                    "request_id",
+                                    "version_digest",
+                                    "text_profile",
+                                    "text_sha256",
+                                    "thread_id",
+                                    "expected_thread_revision",
+                                    "expected_state_seq"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.document"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Document\\Controller\\DocumentRevisionSuggestionController",
+                    "action": "acceptSuggestion",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/document/route/app.php",
+                        "line": 12
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.document"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "peanut.document.suggestion.accept"
+                    }
+                ]
+            }
+        },
+        "/adminapi/peanut.document.suggestion.reject": {
+            "post": {
+                "tags": [
+                    "Document"
+                ],
+                "operationId": "documentRevisionSuggestionReject",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Current owner-authorized immutable revision comments. Unicode code point offsets are half-open [start,end); no automatic reanchoring. Every write and replay requires current owner edit.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DocumentSuggestionReceiptResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "document_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "revision_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "request_id": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z0-9:_-]{1,128}$"
+                                    },
+                                    "version_digest": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "text_profile": {
+                                        "type": "string",
+                                        "enum": [
+                                            "peanut.richtext.plain-text/1"
+                                        ]
+                                    },
+                                    "text_sha256": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "thread_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "expected_thread_revision": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    }
+                                },
+                                "required": [
+                                    "document_id",
+                                    "revision_id",
+                                    "request_id",
+                                    "version_digest",
+                                    "text_profile",
+                                    "text_sha256",
+                                    "thread_id",
+                                    "expected_thread_revision"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.document"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Document\\Controller\\DocumentRevisionSuggestionController",
+                    "action": "rejectSuggestion",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/document/route/app.php",
+                        "line": 13
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.document"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "peanut.document.suggestion.reject"
+                    }
+                ]
+            }
+        },
+        "/adminapi/peanut.document.changes": {
+            "get": {
+                "tags": [
+                    "Document"
+                ],
+                "operationId": "documentChanges",
+                "parameters": [
+                    {
+                        "name": "document_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
+                        }
+                    },
+                    {
+                        "name": "before_change_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Current owner-authorized document result. Confirmed versions are immutable and committed, not business approval.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DocumentChangesResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "adminapi",
+                    "owner": {
+                        "type": "module",
+                        "key": "peanut.document"
+                    },
+                    "controller": "PeanutAdmin\\Modules\\Document\\Controller\\DocumentController",
+                    "action": "changes",
+                    "permission": null,
+                    "source": {
+                        "file": "server/app/modules/peanut/document/route/app.php",
+                        "line": 14
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "module_capability",
+                        "key": "peanut.document"
+                    },
+                    {
+                        "kind": "tenant_action",
+                        "key": "peanut.document.changes"
                     }
                 ]
             }
@@ -46905,6 +47496,7 @@
                 "additionalProperties": false,
                 "required": [
                     "id",
+                    "key",
                     "name",
                     "desc",
                     "sort",
@@ -46917,6 +47509,9 @@
                 "properties": {
                     "id": {
                         "type": "integer"
+                    },
+                    "key": {
+                        "type": "string"
                     },
                     "name": {
                         "type": "string"
@@ -47285,7 +47880,8 @@
                 "required": [
                     "website",
                     "tenantName",
-                    "demo"
+                    "demo",
+                    "login_enabled"
                 ],
                 "properties": {
                     "website": {
@@ -47313,6 +47909,9 @@
                                 "type": "string"
                             }
                         }
+                    },
+                    "login_enabled": {
+                        "type": "boolean"
                     }
                 }
             },
@@ -51024,6 +51623,78 @@
                         "$ref": "#/components/schemas/PlatformOpsTask"
                     }
                 ]
+            },
+            "PlatformTenantOwnerRevocationRequest": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "tenant_id",
+                    "member_id",
+                    "expected_revision",
+                    "change_reason"
+                ],
+                "properties": {
+                    "tenant_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "member_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "expected_revision": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "Target membership authorization revision, not the tenant revision."
+                    },
+                    "change_reason": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                    }
+                }
+            },
+            "PlatformTenantOwnerRevocation": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "tenant_id",
+                    "member_id",
+                    "account_id",
+                    "status",
+                    "revision",
+                    "owner_revoked"
+                ],
+                "properties": {
+                    "tenant_id": {
+                        "type": "string",
+                        "pattern": "^[1-9][0-9]*$"
+                    },
+                    "member_id": {
+                        "type": "string",
+                        "pattern": "^[1-9][0-9]*$"
+                    },
+                    "account_id": {
+                        "type": "string",
+                        "pattern": "^[1-9][0-9]*$"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "suspended"
+                        ]
+                    },
+                    "revision": {
+                        "type": "string",
+                        "pattern": "^[1-9][0-9]*$"
+                    },
+                    "owner_revoked": {
+                        "type": "boolean",
+                        "enum": [
+                            true
+                        ]
+                    }
+                }
             },
             "TenantPlan": {
                 "type": "object",
@@ -56388,7 +57059,8 @@
                                     "version.create",
                                     "version.restore",
                                     "archive",
-                                    "restore"
+                                    "restore",
+                                    "suggestion.accept"
                                 ]
                             },
                             "input_sha256": {
@@ -56507,6 +57179,12 @@
                                     "target_progress": {
                                         "type": "integer",
                                         "minimum": 0
+                                    },
+                                    "cancelled": {
+                                        "type": "boolean"
+                                    },
+                                    "conflict_code": {
+                                        "type": "string"
                                     }
                                 },
                                 "required": [
@@ -56760,6 +57438,12 @@
                     "target_progress": {
                         "type": "integer",
                         "minimum": 0
+                    },
+                    "cancelled": {
+                        "type": "boolean"
+                    },
+                    "conflict_code": {
+                        "type": "string"
                     }
                 },
                 "required": [
@@ -56838,6 +57522,329 @@
                     "state",
                     "unavailableReason",
                     "capabilityRevision"
+                ]
+            },
+            "DocumentSuggestion": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "candidate_content": {
+                        "$ref": "#/components/schemas/DocumentStructuredContent"
+                    },
+                    "candidate_sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "decision": {
+                        "type": "string",
+                        "enum": [
+                            "pending",
+                            "accepted",
+                            "rejected"
+                        ]
+                    },
+                    "decided_by_member_id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "nullable": true
+                    },
+                    "decided_at": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "result_revision_id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "nullable": true
+                    },
+                    "result_state_seq": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "candidate_content",
+                    "candidate_sha256",
+                    "decision",
+                    "decided_by_member_id",
+                    "decided_at",
+                    "result_revision_id",
+                    "result_state_seq"
+                ],
+                "nullable": true
+            },
+            "DocumentSuggestionReceiptResponse": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "code": {
+                        "type": "integer",
+                        "enum": [
+                            20000
+                        ]
+                    },
+                    "msg": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "document_id": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "revision_id": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "version_digest": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                            },
+                            "text_profile": {
+                                "type": "string",
+                                "enum": [
+                                    "peanut.richtext.plain-text/1"
+                                ]
+                            },
+                            "text_sha256": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                            },
+                            "request_id": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9:_-]{1,128}$"
+                            },
+                            "action": {
+                                "type": "string",
+                                "enum": [
+                                    "create",
+                                    "reply",
+                                    "resolve",
+                                    "reopen",
+                                    "suggest",
+                                    "accept",
+                                    "reject"
+                                ]
+                            },
+                            "thread_id": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "thread_revision": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "status": {
+                                "type": "string",
+                                "enum": [
+                                    "open",
+                                    "resolved"
+                                ]
+                            },
+                            "message_id": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "actor_member_id": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "created_at": {
+                                "type": "string"
+                            },
+                            "suggestion": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "candidate_content": {
+                                        "$ref": "#/components/schemas/DocumentStructuredContent"
+                                    },
+                                    "candidate_sha256": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "decision": {
+                                        "type": "string",
+                                        "enum": [
+                                            "pending",
+                                            "accepted",
+                                            "rejected"
+                                        ]
+                                    },
+                                    "decided_by_member_id": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "nullable": true
+                                    },
+                                    "decided_at": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "result_revision_id": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "nullable": true
+                                    },
+                                    "result_state_seq": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "nullable": true
+                                    }
+                                },
+                                "required": [
+                                    "candidate_content",
+                                    "candidate_sha256",
+                                    "decision",
+                                    "decided_by_member_id",
+                                    "decided_at",
+                                    "result_revision_id",
+                                    "result_state_seq"
+                                ],
+                                "nullable": true
+                            },
+                            "result_revision_id": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "result_state_seq": {
+                                "type": "integer",
+                                "minimum": 0
+                            }
+                        },
+                        "required": [
+                            "document_id",
+                            "revision_id",
+                            "version_digest",
+                            "text_profile",
+                            "text_sha256",
+                            "request_id",
+                            "action",
+                            "thread_id",
+                            "thread_revision",
+                            "status",
+                            "message_id",
+                            "actor_member_id",
+                            "created_at",
+                            "suggestion"
+                        ]
+                    }
+                },
+                "required": [
+                    "code",
+                    "msg",
+                    "data"
+                ]
+            },
+            "DocumentChangesResponse": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "code": {
+                        "type": "integer",
+                        "enum": [
+                            20000
+                        ]
+                    },
+                    "msg": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "items": {
+                                "type": "array",
+                                "maxItems": 100,
+                                "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "change_id": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "document_id": {
+                                            "type": "integer",
+                                            "minimum": 1
+                                        },
+                                        "state_seq": {
+                                            "type": "integer",
+                                            "minimum": 0
+                                        },
+                                        "kind": {
+                                            "type": "string",
+                                            "enum": [
+                                                "solo.save",
+                                                "version.restore",
+                                                "suggestion.accept",
+                                                "collaboration.update"
+                                            ]
+                                        },
+                                        "actor_member_id": {
+                                            "type": "integer",
+                                            "minimum": 1,
+                                            "nullable": true
+                                        },
+                                        "source_label": {
+                                            "type": "string"
+                                        },
+                                        "from_projection_sha256": {
+                                            "type": "string",
+                                            "pattern": "^[0-9a-f]{64}$"
+                                        },
+                                        "to_projection_sha256": {
+                                            "type": "string",
+                                            "pattern": "^[0-9a-f]{64}$"
+                                        },
+                                        "before_text": {
+                                            "type": "string"
+                                        },
+                                        "after_text": {
+                                            "type": "string"
+                                        },
+                                        "created_at": {
+                                            "type": "string"
+                                        },
+                                        "operation_id": {
+                                            "type": "string",
+                                            "pattern": "^[A-Za-z0-9:_-]{1,128}$"
+                                        }
+                                    },
+                                    "required": [
+                                        "change_id",
+                                        "document_id",
+                                        "state_seq",
+                                        "kind",
+                                        "actor_member_id",
+                                        "source_label",
+                                        "from_projection_sha256",
+                                        "to_projection_sha256",
+                                        "before_text",
+                                        "after_text",
+                                        "created_at",
+                                        "operation_id"
+                                    ]
+                                }
+                            },
+                            "next_before_change_id": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "nullable": true
+                            }
+                        },
+                        "required": [
+                            "items",
+                            "next_before_change_id"
+                        ]
+                    }
+                },
+                "required": [
+                    "code",
+                    "msg",
+                    "data"
                 ]
             },
             "DocumentCommentSource": {
@@ -56962,11 +57969,11 @@
                     },
                     "end_offset": {
                         "type": "integer",
-                        "minimum": 1
+                        "minimum": 0
                     },
                     "quote": {
                         "type": "string",
-                        "minLength": 1,
+                        "minLength": 0,
                         "maxLength": 4096
                     },
                     "status": {
@@ -56993,6 +58000,56 @@
                     },
                     "updated_at": {
                         "type": "string"
+                    },
+                    "suggestion": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "candidate_content": {
+                                "$ref": "#/components/schemas/DocumentStructuredContent"
+                            },
+                            "candidate_sha256": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                            },
+                            "decision": {
+                                "type": "string",
+                                "enum": [
+                                    "pending",
+                                    "accepted",
+                                    "rejected"
+                                ]
+                            },
+                            "decided_by_member_id": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "nullable": true
+                            },
+                            "decided_at": {
+                                "type": "string",
+                                "nullable": true
+                            },
+                            "result_revision_id": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "nullable": true
+                            },
+                            "result_state_seq": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "nullable": true
+                            }
+                        },
+                        "required": [
+                            "candidate_content",
+                            "candidate_sha256",
+                            "decision",
+                            "decided_by_member_id",
+                            "decided_at",
+                            "result_revision_id",
+                            "result_state_seq"
+                        ],
+                        "nullable": true
                     }
                 },
                 "required": [
@@ -57010,7 +58067,8 @@
                     "created_by_member_id",
                     "updated_by_member_id",
                     "created_at",
-                    "updated_at"
+                    "updated_at",
+                    "suggestion"
                 ]
             },
             "DocumentCommentMessage": {
@@ -57035,7 +58093,10 @@
                             "create",
                             "reply",
                             "resolve",
-                            "reopen"
+                            "reopen",
+                            "suggest",
+                            "accept",
+                            "reject"
                         ]
                     },
                     "body": {
@@ -57207,11 +58268,11 @@
                                         },
                                         "end_offset": {
                                             "type": "integer",
-                                            "minimum": 1
+                                            "minimum": 0
                                         },
                                         "quote": {
                                             "type": "string",
-                                            "minLength": 1,
+                                            "minLength": 0,
                                             "maxLength": 4096
                                         },
                                         "status": {
@@ -57238,6 +58299,56 @@
                                         },
                                         "updated_at": {
                                             "type": "string"
+                                        },
+                                        "suggestion": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "candidate_content": {
+                                                    "$ref": "#/components/schemas/DocumentStructuredContent"
+                                                },
+                                                "candidate_sha256": {
+                                                    "type": "string",
+                                                    "pattern": "^[0-9a-f]{64}$"
+                                                },
+                                                "decision": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "pending",
+                                                        "accepted",
+                                                        "rejected"
+                                                    ]
+                                                },
+                                                "decided_by_member_id": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "nullable": true
+                                                },
+                                                "decided_at": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "result_revision_id": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "nullable": true
+                                                },
+                                                "result_state_seq": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "required": [
+                                                "candidate_content",
+                                                "candidate_sha256",
+                                                "decision",
+                                                "decided_by_member_id",
+                                                "decided_at",
+                                                "result_revision_id",
+                                                "result_state_seq"
+                                            ],
+                                            "nullable": true
                                         }
                                     },
                                     "required": [
@@ -57255,7 +58366,8 @@
                                         "created_by_member_id",
                                         "updated_by_member_id",
                                         "created_at",
-                                        "updated_at"
+                                        "updated_at",
+                                        "suggestion"
                                     ]
                                 }
                             },
@@ -57421,11 +58533,11 @@
                                     },
                                     "end_offset": {
                                         "type": "integer",
-                                        "minimum": 1
+                                        "minimum": 0
                                     },
                                     "quote": {
                                         "type": "string",
-                                        "minLength": 1,
+                                        "minLength": 0,
                                         "maxLength": 4096
                                     },
                                     "status": {
@@ -57452,6 +58564,56 @@
                                     },
                                     "updated_at": {
                                         "type": "string"
+                                    },
+                                    "suggestion": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "candidate_content": {
+                                                "$ref": "#/components/schemas/DocumentStructuredContent"
+                                            },
+                                            "candidate_sha256": {
+                                                "type": "string",
+                                                "pattern": "^[0-9a-f]{64}$"
+                                            },
+                                            "decision": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "pending",
+                                                    "accepted",
+                                                    "rejected"
+                                                ]
+                                            },
+                                            "decided_by_member_id": {
+                                                "type": "integer",
+                                                "minimum": 1,
+                                                "nullable": true
+                                            },
+                                            "decided_at": {
+                                                "type": "string",
+                                                "nullable": true
+                                            },
+                                            "result_revision_id": {
+                                                "type": "integer",
+                                                "minimum": 1,
+                                                "nullable": true
+                                            },
+                                            "result_state_seq": {
+                                                "type": "integer",
+                                                "minimum": 0,
+                                                "nullable": true
+                                            }
+                                        },
+                                        "required": [
+                                            "candidate_content",
+                                            "candidate_sha256",
+                                            "decision",
+                                            "decided_by_member_id",
+                                            "decided_at",
+                                            "result_revision_id",
+                                            "result_state_seq"
+                                        ],
+                                        "nullable": true
                                     }
                                 },
                                 "required": [
@@ -57469,7 +58631,8 @@
                                     "created_by_member_id",
                                     "updated_by_member_id",
                                     "created_at",
-                                    "updated_at"
+                                    "updated_at",
+                                    "suggestion"
                                 ]
                             },
                             "messages": {
@@ -57497,7 +58660,10 @@
                                                 "create",
                                                 "reply",
                                                 "resolve",
-                                                "reopen"
+                                                "reopen",
+                                                "suggest",
+                                                "accept",
+                                                "reject"
                                             ]
                                         },
                                         "body": {
@@ -57595,7 +58761,10 @@
                                     "create",
                                     "reply",
                                     "resolve",
-                                    "reopen"
+                                    "reopen",
+                                    "suggest",
+                                    "accept",
+                                    "reject"
                                 ]
                             },
                             "thread_id": {
@@ -57623,6 +58792,56 @@
                             },
                             "created_at": {
                                 "type": "string"
+                            },
+                            "suggestion": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "candidate_content": {
+                                        "$ref": "#/components/schemas/DocumentStructuredContent"
+                                    },
+                                    "candidate_sha256": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$"
+                                    },
+                                    "decision": {
+                                        "type": "string",
+                                        "enum": [
+                                            "pending",
+                                            "accepted",
+                                            "rejected"
+                                        ]
+                                    },
+                                    "decided_by_member_id": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "nullable": true
+                                    },
+                                    "decided_at": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "result_revision_id": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "nullable": true
+                                    },
+                                    "result_state_seq": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "nullable": true
+                                    }
+                                },
+                                "required": [
+                                    "candidate_content",
+                                    "candidate_sha256",
+                                    "decision",
+                                    "decided_by_member_id",
+                                    "decided_at",
+                                    "result_revision_id",
+                                    "result_state_seq"
+                                ],
+                                "nullable": true
                             }
                         },
                         "required": [
@@ -57638,7 +58857,8 @@
                             "status",
                             "message_id",
                             "actor_member_id",
-                            "created_at"
+                            "created_at",
+                            "suggestion"
                         ]
                     }
                 },
