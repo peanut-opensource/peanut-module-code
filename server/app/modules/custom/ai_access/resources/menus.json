@@ -1,16 +1,60 @@
 [
   {
-    "key": "custom.ai-access.catalog",
-    "parent_key": "core.applications",
+    "key": "custom.ai-access.group",
+    "parent_key": null,
     "scope": "tenant",
-    "type": "page",
+    "type": "group",
     "name": "AI 接入配置",
     "icon": "icon-mind-mapping",
-    "route_name": "AiAccessCatalog",
-    "route_path": "/ai-access/catalog",
-    "component_key": "custom.ai-access.catalog",
-    "required_permission": "custom.ai-access.view",
     "sort_order": 606,
+    "client_keys": [
+      "admin-web"
+    ]
+  },
+  {
+    "key": "custom.ai-access.providers",
+    "parent_key": "custom.ai-access.group",
+    "scope": "tenant",
+    "type": "page",
+    "name": "服务商",
+    "icon": "icon-link",
+    "route_name": "AiAccessProviders",
+    "route_path": "/ai-access/providers",
+    "component_key": "custom.ai-access.providers",
+    "required_permission": "custom.ai-access.view",
+    "sort_order": 10,
+    "client_keys": [
+      "admin-web"
+    ]
+  },
+  {
+    "key": "custom.ai-access.credentials",
+    "parent_key": "custom.ai-access.group",
+    "scope": "tenant",
+    "type": "page",
+    "name": "令牌",
+    "icon": "icon-lock",
+    "route_name": "AiAccessCredentials",
+    "route_path": "/ai-access/credentials",
+    "component_key": "custom.ai-access.credentials",
+    "required_permission": "custom.ai-access.view",
+    "sort_order": 20,
+    "client_keys": [
+      "admin-web"
+    ]
+  },
+  {
+    "key": "custom.ai-access.models",
+    "parent_key": "custom.ai-access.group",
+    "scope": "tenant",
+    "type": "page",
+    "name": "模型",
+    "icon": "icon-apps",
+    "route_name": "AiAccessModels",
+    "route_path": "/ai-access/models",
+    "component_key": "custom.ai-access.models",
+    "required_permission": "custom.ai-access.view",
+    "sort_order": 30,
     "client_keys": [
       "admin-web"
     ]

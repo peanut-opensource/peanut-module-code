@@ -3,7 +3,7 @@
   "key": "custom.ai-access",
   "name": "AI 接入配置",
   "description": "租户 AI 服务商、令牌和模型管理及按能力调用",
-  "version": "1.0.1-rc.1",
+  "version": "1.0.1-rc.2",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "custom/custom-ai-access",

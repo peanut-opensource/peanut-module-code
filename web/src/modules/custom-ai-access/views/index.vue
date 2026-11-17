@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <el-card v-loading="loading" class="general-card" header="AI 接入配置">
+    <el-card v-loading="loading" class="general-card" :header="labels[kind]">
       <el-alert
         v-if="!canConfigure"
         title="当前账号只有查看权限，不能保存配置。"
@@ -9,161 +9,155 @@
         show-icon
         class="notice"
       />
-      <el-tabs v-model="activeTab">
-        <el-tab-pane name="providers" label="服务商">
-          <div class="toolbar"
-            ><el-button
-              type="primary"
-              :disabled="!canConfigure"
-              @click="open('provider')"
-              >新增服务商</el-button
-            ></div
-          >
-          <el-table :data="providers" row-key="key" empty-text="暂无服务商">
-            <el-table-column prop="name" label="名称" min-width="150" />
-            <el-table-column prop="key" label="标识" min-width="150" />
-            <el-table-column prop="origin" label="来源" min-width="180" />
-            <el-table-column
-              prop="api_prefix"
-              label="API 前缀"
-              min-width="180"
-            />
-            <el-table-column prop="priority" label="优先级" width="100" />
-            <el-table-column label="启用" width="100">
-              <template #default="{ row }"
-                ><el-switch
-                  v-model="row.enabled"
-                  :disabled="!canConfigure || saving"
-                  @change="saveRow('provider', row)"
-              /></template>
-            </el-table-column>
-            <el-table-column label="操作" width="90">
-              <template #default="{ row }"
-                ><el-button
-                  link
-                  type="primary"
-                  :disabled="!canConfigure"
-                  @click="open('provider', row)"
-                  >编辑</el-button
-                ></template
-              >
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
+      <template v-if="kind === 'provider'">
+        <div class="toolbar"
+          ><el-button
+            type="primary"
+            :disabled="!canConfigure"
+            @click="open('provider')"
+            >新增服务商</el-button
+          ></div
+        >
+        <el-table :data="providers" row-key="key" empty-text="暂无服务商">
+          <el-table-column prop="name" label="名称" min-width="150" />
+          <el-table-column prop="key" label="标识" min-width="150" />
+          <el-table-column prop="origin" label="来源" min-width="180" />
+          <el-table-column prop="api_prefix" label="API 前缀" min-width="180" />
+          <el-table-column prop="priority" label="优先级" width="100" />
+          <el-table-column label="启用" width="100">
+            <template #default="{ row }"
+              ><el-switch
+                v-model="row.enabled"
+                :disabled="!canConfigure || saving"
+                @change="saveRow('provider', row)"
+            /></template>
+          </el-table-column>
+          <el-table-column label="操作" width="90">
+            <template #default="{ row }"
+              ><el-button
+                link
+                type="primary"
+                :disabled="!canConfigure"
+                @click="open('provider', row)"
+                >编辑</el-button
+              ></template
+            >
+          </el-table-column>
+        </el-table>
+      </template>
 
-        <el-tab-pane name="credentials" label="令牌">
-          <div class="toolbar"
-            ><el-button
-              type="primary"
-              :disabled="!canConfigure"
-              @click="open('credential')"
-              >新增令牌</el-button
-            ></div
+      <template v-else-if="kind === 'credential'">
+        <div class="toolbar"
+          ><el-button
+            type="primary"
+            :disabled="!canConfigure"
+            @click="open('credential')"
+            >新增令牌</el-button
+          ></div
+        >
+        <el-table
+          :data="credentials"
+          :row-key="rowIdentity"
+          empty-text="暂无令牌"
+        >
+          <el-table-column
+            prop="name"
+            label="名称"
+            min-width="160"
+          /><el-table-column
+            prop="key"
+            label="标识"
+            min-width="150"
+          /><el-table-column prop="provider" label="服务商" min-width="130" />
+          <el-table-column label="模型范围" min-width="180"
+            ><template #default="{ row }">{{
+              row.models.join(', ') || '未限制'
+            }}</template></el-table-column
           >
-          <el-table
-            :data="credentials"
-            :row-key="rowIdentity"
-            empty-text="暂无令牌"
+          <el-table-column label="状态" width="110"
+            ><template #default="{ row }"
+              ><el-tag :type="row.configured ? 'success' : 'warning'">{{
+                row.configured ? '已配置' : '未配置'
+              }}</el-tag></template
+            ></el-table-column
           >
-            <el-table-column
-              prop="name"
-              label="名称"
-              min-width="160"
-            /><el-table-column
-              prop="key"
-              label="标识"
-              min-width="150"
-            /><el-table-column prop="provider" label="服务商" min-width="130" />
-            <el-table-column label="模型范围" min-width="180"
-              ><template #default="{ row }">{{
-                row.models.join(', ') || '未限制'
-              }}</template></el-table-column
-            >
-            <el-table-column label="状态" width="110"
-              ><template #default="{ row }"
-                ><el-tag :type="row.configured ? 'success' : 'warning'">{{
-                  row.configured ? '已配置' : '未配置'
-                }}</el-tag></template
-              ></el-table-column
-            >
-            <el-table-column label="启用" width="90"
-              ><template #default="{ row }"
-                ><el-switch
-                  v-model="row.enabled"
-                  :disabled="!canConfigure || saving"
-                  @change="saveRow('credential', row)" /></template
-            ></el-table-column>
-            <el-table-column label="操作" width="90"
-              ><template #default="{ row }"
-                ><el-button
-                  link
-                  type="primary"
-                  :disabled="!canConfigure"
-                  @click="open('credential', row)"
-                  >编辑</el-button
-                ></template
-              ></el-table-column
-            >
-          </el-table>
-        </el-tab-pane>
+          <el-table-column label="启用" width="90"
+            ><template #default="{ row }"
+              ><el-switch
+                v-model="row.enabled"
+                :disabled="!canConfigure || saving"
+                @change="saveRow('credential', row)" /></template
+          ></el-table-column>
+          <el-table-column label="操作" width="90"
+            ><template #default="{ row }"
+              ><el-button
+                link
+                type="primary"
+                :disabled="!canConfigure"
+                @click="open('credential', row)"
+                >编辑</el-button
+              ></template
+            ></el-table-column
+          >
+        </el-table>
+      </template>
 
-        <el-tab-pane name="models" label="模型">
-          <div class="toolbar"
-            ><el-button
-              type="primary"
-              :disabled="!canConfigure"
-              @click="open('model')"
-              >新增模型</el-button
-            ></div
+      <template v-else>
+        <div class="toolbar"
+          ><el-button
+            type="primary"
+            :disabled="!canConfigure"
+            @click="open('model')"
+            >新增模型</el-button
+          ></div
+        >
+        <el-table :data="models" :row-key="rowIdentity" empty-text="暂无模型">
+          <el-table-column
+            prop="name"
+            label="名称"
+            min-width="150"
+          /><el-table-column
+            prop="key"
+            label="标识"
+            min-width="140"
+          /><el-table-column
+            prop="provider"
+            label="服务商"
+            min-width="120"
+          /><el-table-column
+            prop="remote_model"
+            label="远端模型"
+            min-width="150"
+          />
+          <el-table-column label="协议" min-width="150"
+            ><template #default="{ row }">{{
+              Object.values(row.protocols).join(', ')
+            }}</template></el-table-column
           >
-          <el-table :data="models" :row-key="rowIdentity" empty-text="暂无模型">
-            <el-table-column
-              prop="name"
-              label="名称"
-              min-width="150"
-            /><el-table-column
-              prop="key"
-              label="标识"
-              min-width="140"
-            /><el-table-column
-              prop="provider"
-              label="服务商"
-              min-width="120"
-            /><el-table-column
-              prop="remote_model"
-              label="远端模型"
-              min-width="150"
-            />
-            <el-table-column label="协议" min-width="150"
-              ><template #default="{ row }">{{
-                Object.values(row.protocols).join(', ')
-              }}</template></el-table-column
-            >
-            <el-table-column
-              prop="priority"
-              label="优先级"
-              width="90"
-            /><el-table-column label="启用" width="90"
-              ><template #default="{ row }"
-                ><el-switch
-                  v-model="row.enabled"
-                  :disabled="!canConfigure || saving"
-                  @change="saveRow('model', row)" /></template
-            ></el-table-column>
-            <el-table-column label="操作" width="90"
-              ><template #default="{ row }"
-                ><el-button
-                  link
-                  type="primary"
-                  :disabled="!canConfigure"
-                  @click="open('model', row)"
-                  >编辑</el-button
-                ></template
-              ></el-table-column
-            >
-          </el-table>
-        </el-tab-pane>
-      </el-tabs>
+          <el-table-column
+            prop="priority"
+            label="优先级"
+            width="90"
+          /><el-table-column label="启用" width="90"
+            ><template #default="{ row }"
+              ><el-switch
+                v-model="row.enabled"
+                :disabled="!canConfigure || saving"
+                @change="saveRow('model', row)" /></template
+          ></el-table-column>
+          <el-table-column label="操作" width="90"
+            ><template #default="{ row }"
+              ><el-button
+                link
+                type="primary"
+                :disabled="!canConfigure"
+                @click="open('model', row)"
+                >编辑</el-button
+              ></template
+            ></el-table-column
+          >
+        </el-table>
+      </template>
     </el-card>
 
     <el-drawer
@@ -265,10 +259,10 @@
 
   type Kind = SavePayload['kind'];
   type Row = Provider | Credential | AiModel;
+  defineProps<{ kind: Kind }>();
 
   const loading = ref(false);
   const saving = ref(false);
-  const activeTab = ref('providers');
   const drawerOpen = ref(false);
   const isNew = ref(false);
   const canConfigure = ref(false);
