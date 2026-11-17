@@ -262,7 +262,8 @@ final readonly class RevocationTask implements TaskWorkerDefinition, \PeanutAdmi
     private function connections(array $fact): \think\db\BaseQuery
     {
         $prefix = (string) Db::connect()->getConfig('prefix');
-        return CollaborationConnection::alias('connection')->join($prefix . 'collaboration_ticket ticket', 'ticket.id=connection.ticket_id AND ticket.tenant_id=connection.tenant_id')
+        // Instance discovery has no ambient Tenant; the verified fact supplies the exact scope below.
+        return CollaborationConnection::withoutTenantScope()->alias('connection')->join($prefix . 'collaboration_ticket ticket', 'ticket.id=connection.ticket_id AND ticket.tenant_id=connection.tenant_id')
             ->join($prefix . 'collaboration_room room', 'room.id=connection.room_id AND room.tenant_id=connection.tenant_id')
             ->where('connection.tenant_id', $fact['tenant_id'])->where('ticket.instance_id', $this->configuration['instance_id'])
             ->where('ticket.edition', $this->edition)->whereRaw("JSON_EXTRACT(ticket.issued_identity_json, '$.member_id') = ?", [$fact['member_id']]);
