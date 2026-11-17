@@ -109,6 +109,16 @@ final class ImportExportStore
         return $this->map($row, $tenantId);
     }
 
+    public function providerForJob(int $tenantId, int $memberId, string $jobKey): ?string
+    {
+        $this->assertStorageMode();
+        $provider = $this->query('import_export_operation', $tenantId)
+            ->where('task_job_key', $jobKey)
+            ->where('created_by_member_id', $memberId)
+            ->value('provider_key');
+        return is_string($provider) ? $provider : null;
+    }
+
     /** @return array{items: list<OperationRecord>, page: int, page_size: int, total: int} */
     public function list(int $tenantId, string $status, int $page, int $pageSize): array
     {

@@ -6,7 +6,6 @@
   import FilePicker from '@/components/file-picker/index.vue';
   import { hasPermission } from '@/hooks/permission';
   import { tenantSessionFetch } from '@/api/tenant-session-fetch';
-  import { useAppStore } from '@/store';
   import ImportExportPage from './optional-runtime/src/ImportExportPage.vue';
   import {
     createImportExportFetchTransport,
@@ -19,11 +18,10 @@
 
   const route = useRoute();
   const { t } = useI18n();
-  const app = useAppStore();
   const canImportDrafts = computed(
     () =>
-      app.enabledTenantModules.includes('peanut.article') &&
       hasPermission('peanut.article.add', route.path) &&
+      hasPermission('peanut.file.list', route.path) &&
       hasPermission('peanut.file.download-original', route.path)
   );
   const draftCsv = ref<{ key: string; name: string }>();

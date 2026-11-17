@@ -7,12 +7,15 @@ namespace PeanutAdmin\Modules\ImportExport\Infrastructure\Authorization;
 use DateTimeImmutable;
 use DateTimeZone;
 use app\common\services\authorization\AdminAuthorizationService;
+use PeanutAdmin\Modules\ImportExport\Contract\Dto\CsvExportOperation;
 use PeanutAdmin\Modules\ImportExport\Engine\Application\ImportExportService;
+use PeanutAdmin\Modules\ImportExport\Engine\Persistence\ImportExportStore;
 use PeanutAdmin\Kernel\Async\AsyncAuthorizationRevalidator;
 use PeanutAdmin\Kernel\Async\VerifiedJobEnvelope;
 use PeanutAdmin\Kernel\Auth\AuthException;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Auth\ValidatedTenantSession;
+use PeanutAdmin\Kernel\Context\AuthorizationDecision;
 use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 use PeanutAdmin\Modules\Identity\Contract\TenantMemberDirectory;
 
@@ -22,6 +25,7 @@ final readonly class AdminAsyncAuthorization implements AsyncAuthorizationRevali
     public function __construct(
         private AdminAuthorizationService $authorization,
         private TenantMemberDirectory $members,
+        private ImportExportStore $operations,
     ) {}
 
     public function reauthorize(VerifiedJobEnvelope $envelope): AuthorizedOperationContext
@@ -55,14 +59,34 @@ final readonly class AdminAsyncAuthorization implements AsyncAuthorizationRevali
                 $member->tenantAuthorizationRevision,
             ), $envelope->traceId);
             $principal = $this->authorization->principal($context);
-            return $this->authorization->authorizedOperation(
+            $provider = $this->operations->providerForJob($context->tenantId, $context->memberId, $envelope->operationId);
+            if ($provider === CsvExportOperation::OPERATION_LOG_PROVIDER) {
+                return $this->authorization->authorizedOperation(
+                    $context,
+                    $principal,
+                    $envelope->resourceKey,
+                    $envelope->operation,
+                    $envelope->requestedTargets,
+                    $envelope->operationId,
+                );
+            }
+            $permission = 'peanut.import-export.operations.create';
+            if ($provider === null || !$this->authorization->decide($context, $principal, $permission)->allowed) {
+                throw $this->denied();
+            }
+            return AuthorizedOperationContext::fromDecision(AuthorizationDecision::allow(
                 $context,
-                $principal,
                 $envelope->resourceKey,
                 $envelope->operation,
                 $envelope->requestedTargets,
-                $envelope->operationId,
-            );
+                hash('sha256', implode("\0", [
+                    (string) $context->tenantId,
+                    (string) $context->memberId,
+                    (string) $context->authorizationRevision,
+                    $permission,
+                    $envelope->operationId,
+                ])),
+            ));
         } catch (\Throwable) {
             throw $this->denied();
         }

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6cc166fdb8dbb856273386b150480e72",
+    "content-hash": "6e98692fd41ebb9d33c4e11ea6f0683b",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2240,11 +2240,11 @@
         },
         {
             "name": "peanut-business/peanut-article",
-            "version": "1.0.20",
+            "version": "1.0.21-rc.1",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/article",
-                "reference": "3fe4efa2b6f9bce896d8725b56ad3a1fa63bb41f"
+                "reference": "36f1a2e1bd8a08f9bea8870d87b0524e5e64f899"
             },
             "require": {
                 "peanut-business/peanut-document": "^1.0.16",
@@ -2436,11 +2436,11 @@
         },
         {
             "name": "peanut-business/peanut-file",
-            "version": "1.0.50-rc.1",
+            "version": "1.0.50-rc.2",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/file",
-                "reference": "0f0fb32c24c881613a61fe30fd88e1a4e7d6a6df"
+                "reference": "f4d32babfbe69da25d3353d875a068abe49dc461"
             },
             "require": {
                 "aws/aws-sdk-php": "^3.0",
@@ -2513,16 +2513,16 @@
         },
         {
             "name": "peanut-business/peanut-import-export",
-            "version": "1.0.36",
+            "version": "1.0.37-rc.3",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/import_export",
-                "reference": "30cbb14be056ee25153be38577d6ab8b31cb45a9"
+                "reference": "7ac00320d3c2ebe8c9cb3825c9f2acfb7847d204"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
                 "peanut-admin/module-composition-host": "^1.0",
-                "peanut-business/peanut-file": "^1.0.38",
+                "peanut-business/peanut-file": "^1.0.50-rc.2",
                 "peanut-business/peanut-identity": "^4.0.0-rc.32",
                 "peanut-business/peanut-integration": "^1.0",
                 "peanut-business/peanut-settings": "^1.0",
@@ -6682,9 +6682,11 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
+        "peanut-business/peanut-article": 5,
         "peanut-business/peanut-collaboration": 5,
         "peanut-business/peanut-file": 5,
-        "peanut-business/peanut-identity": 5
+        "peanut-business/peanut-identity": 5,
+        "peanut-business/peanut-import-export": 5
     },
     "prefer-stable": false,
     "prefer-lowest": false,

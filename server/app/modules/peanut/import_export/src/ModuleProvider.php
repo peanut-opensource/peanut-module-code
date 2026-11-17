@@ -100,6 +100,7 @@ final class ModuleProvider extends \think\Service implements ModuleProviderContr
                     new AdminAsyncAuthorization(
                         $app->make(AdminAuthorizationService::class),
                         $app->make(\PeanutAdmin\Modules\Identity\Contract\TenantMemberDirectory::class),
+                        $app->make(\PeanutAdmin\Modules\ImportExport\Engine\Persistence\ImportExportStore::class),
                     ),
                 );
             },
