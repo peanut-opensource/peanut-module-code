@@ -9,7 +9,7 @@ final class CreateAiAccessCatalog extends Migrator
 {
     public function up(): void
     {
-        $this->execute("CREATE TABLE pa_ai_access_catalog (
+        $this->execute("CREATE TABLE IF NOT EXISTS pa_ai_access_catalog (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             tenant_id BIGINT UNSIGNED NOT NULL,
             kind VARCHAR(16) NOT NULL,
@@ -36,7 +36,7 @@ final class CreateAiAccessCatalog extends Migrator
             capability VARCHAR(16) NOT NULL,
             status VARCHAR(24) NOT NULL,
             provider_request_id VARCHAR(180) DEFAULT NULL,
-            usage JSON DEFAULT NULL,
+            usage_json JSON DEFAULT NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             UNIQUE KEY member_request (tenant_id, member_id, request_key)

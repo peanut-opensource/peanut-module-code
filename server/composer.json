@@ -13,7 +13,9 @@
         {
             "type": "path",
             "url": "app/modules/custom/ai_access",
-            "options": { "symlink": false }
+            "options": {
+                "symlink": false
+            }
         },
         {
             "type": "path",
@@ -225,7 +227,7 @@
         "peanut-business/peanut-rich-text": "1.0.18",
         "peanut-business/workflow": "4.0.1",
         "peanut-business/peanut-chart-examples": "1.0.4",
-        "custom/custom-ai-access": "1.0.0",
+        "custom/custom-ai-access": "1.0.1-rc.1",
         "custom/custom-ai-assistant": "1.2.4"
     },
     "require-dev": {

@@ -82,7 +82,7 @@ final readonly class ProviderClient implements AiClient
                 $receipt = [
                     'request_key' => $requestKey, 'provider_key' => $endpoint['entry_key'],
                     'model_key' => $selectedModel['entry_key'], 'credential_key' => $token['entry_key'],
-                    'capability' => $capability, 'status' => 'sending', 'provider_request_id' => null, 'usage' => null,
+                    'capability' => $capability, 'status' => 'sending', 'provider_request_id' => null, 'usage_json' => null,
                 ];
                 try {
                     Db::name('ai_access_request')->insert($receipt + [
@@ -120,7 +120,7 @@ final readonly class ProviderClient implements AiClient
                     is_array($payload['usage'] ?? null) ? $payload['usage'] : [],
                     array_flip(['prompt_tokens', 'completion_tokens', 'input_tokens', 'output_tokens', 'total_tokens']),
                 ), static fn (mixed $value): bool => is_int($value) && $value >= 0);
-                $receipt['usage'] = $usage === [] ? null : json_encode($usage, JSON_THROW_ON_ERROR);
+                $receipt['usage_json'] = $usage === [] ? null : json_encode($usage, JSON_THROW_ON_ERROR);
                 $result = $this->result($capability, $payload);
                 $receipt['status'] = 'succeeded';
             } catch (BusinessException $exception) {
@@ -130,7 +130,7 @@ final readonly class ProviderClient implements AiClient
             } finally {
                 $this->requests($tenant, $requestKey)->update([
                     'status' => $receipt['status'] === 'sending' ? 'unknown' : $receipt['status'],
-                    'provider_request_id' => $receipt['provider_request_id'], 'usage' => $receipt['usage'],
+                    'provider_request_id' => $receipt['provider_request_id'], 'usage_json' => $receipt['usage_json'],
                 ]);
             }
 
@@ -269,9 +269,9 @@ final readonly class ProviderClient implements AiClient
     private function receipt(array $row): array
     {
         $value = array_intersect_key($row, array_flip([
-            'request_key', 'provider_key', 'model_key', 'credential_key', 'capability', 'status', 'provider_request_id', 'usage',
+            'request_key', 'provider_key', 'model_key', 'credential_key', 'capability', 'status', 'provider_request_id',
         ]));
-        $value['usage'] = $row['usage'] === null ? null : json_decode($row['usage'], true, 16, JSON_THROW_ON_ERROR);
+        $value['usage'] = $row['usage_json'] === null ? null : json_decode($row['usage_json'], true, 16, JSON_THROW_ON_ERROR);
         return $value;
     }
 }

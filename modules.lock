@@ -3,11 +3,11 @@
     "modules": [
         {
             "key": "custom.ai-access",
-            "version": "1.0.0",
+            "version": "1.0.1-rc.1",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "fa46e336bea6afe4ecec12b5982bcb34fdd14f6dac7f0db6d74aa3964deced71"
+                "sha256": "a033e65a76d240d2189ff9c6044efd3b53f3825fdd050746de4b5f573e36be5a"
             },
             "trust": {
                 "channel": "bundled",
@@ -23,7 +23,7 @@
                     "modules": [
                         {
                             "key": "custom.ai-access",
-                            "version": "1.0.0",
+                            "version": "1.0.1-rc.1",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -46,22 +46,22 @@
             "composer": [
                 {
                     "name": "custom/custom-ai-access",
-                    "version": "1.0.0",
-                    "sha256": "9aefbc771421ea0aa040382745c33f108ee3e2d7ec2c3a55fc9f0f6d3fd8ebe9"
+                    "version": "1.0.1-rc.1",
+                    "sha256": "735b269dae1c3317163579bfa90ed3aae3844c996ad82fdc83857d8d5b8abf4e"
                 }
             ],
             "npm": [
                 {
                     "name": "@custom/custom-ai-access",
-                    "version": "1.0.0",
-                    "integrity": "sha256-84tMeG+Xrh8CG1jAifv8YSfxpOnzjMtddNgLHlKwZPA="
+                    "version": "1.0.1-rc.1",
+                    "integrity": "sha256-O2ZvlkgMn3PN1Ap9BULdba1r1ut10vTagLsH0AniA3c="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "admin-web",
                     "package": "@custom/custom-ai-access",
-                    "version": "1.0.0",
+                    "version": "1.0.1-rc.1",
                     "entry": "web/src/modules/custom-ai-access/contribution.ts",
                     "sha256": "a3adf3b6491e4fd833e53610f4b2ce504176acdba311af1f10754bfb01513309"
                 }
@@ -73,7 +73,7 @@
                 }
             ],
             "manifest": "server/app/modules/custom/ai_access/module.json",
-            "manifest_sha256": "386016b92eec669c1a9e60b488f565d4102ebb9367e3976a3a963959038af9df"
+            "manifest_sha256": "b2a7911ba3d75e55a9b9b2c1b93cd63b8c15722d31e81724465caec4687cf76e"
         },
         {
             "key": "custom.ai-assistant",
