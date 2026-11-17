@@ -9,6 +9,7 @@ use PeanutAdmin\Modules\Article\Service\ArticleCategoryAdministrationService;
 use PeanutAdmin\Modules\Article\Service\ArticleQueryService;
 use PeanutAdmin\Modules\Article\Service\PublicArticleService;
 use PeanutAdmin\Modules\Article\Contract\ArticleAdministration;
+use PeanutAdmin\Modules\Article\Contract\ArticleDraftImport;
 use PeanutAdmin\Modules\Article\Contract\ArticleCategoryAdministration;
 use PeanutAdmin\Modules\Article\Contract\ArticleQueries;
 use PeanutAdmin\Modules\Article\Contract\PublicArticleQueries;
@@ -33,6 +34,7 @@ final class ModuleProvider implements ModuleProviderContract, \PeanutAdmin\Modul
             PublicArticleQueries::class => PublicArticleService::class,
             \PeanutAdmin\Modules\Member\Contract\MemberCollectionCounts::class => PublicArticleService::class,
             ArticleAdministration::class => ArticleAdministrationService::class,
+            ArticleDraftImport::class => ArticleAdministrationService::class,
             ArticleCategoryAdministration::class => ArticleCategoryAdministrationService::class,
         ];
     }

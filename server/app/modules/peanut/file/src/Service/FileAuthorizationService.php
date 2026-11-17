@@ -11,6 +11,7 @@ use app\common\execution\ExecutionContextStore;
 use DateTimeImmutable;
 use DateTimeZone;
 use PeanutAdmin\Kernel\Auth\TenantContext;
+use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 use PeanutAdmin\Kernel\Module\ModuleGuard;
 use PeanutAdmin\Kernel\Module\ModuleRuntimeRepository;
 use PeanutAdmin\Modules\Identity\Contract\TenantSessionAccess;
@@ -205,10 +206,31 @@ final readonly class FileAuthorizationService
             || $current->tenantAuthorizationRevision !== $context->tenantAuthorizationRevision) {
             throw BusinessException::forbidden('FILE_AUTHORIZATION_STALE', '资源授权已改变');
         }
+        $this->requireBackgroundOriginalDownload($current);
+    }
+
+    public function authorizeBackgroundImportSource(AuthorizedOperationContext $context, array $object): void
+    {
+        $actor = $context->tenantContext;
+        $root = $this->execution->current();
+        if (!$root instanceof \app\common\execution\SystemExecutionContext
+            || $root->tenantId() !== $actor->tenantId
+            || $root->system->actorKey !== 'task-worker'
+            || $root->operation() !== 'async.worker'
+            || $root->metadata->handlerKey !== 'peanut.import-export.execute'
+            || $context->resourceKey !== 'peanut.import-export' || $context->operation !== 'create'
+            || $actor->tenantId !== (int) $object['tenant_id'] || $object['status'] !== 'ready') {
+            throw BusinessException::forbidden('FILE_SOURCE_CONTEXT_DENIED', '导入来源需要当前后台任务上下文');
+        }
+        $this->requireBackgroundOriginalDownload($actor);
+    }
+
+    private function requireBackgroundOriginalDownload(TenantContext $actor): void
+    {
         $guard = new ModuleGuard($this->modules);
         $guard->assertDeployment('peanut.file');
-        $guard->assertTenant($current->tenantId, 'peanut.file', new DateTimeImmutable('now', new DateTimeZone('UTC')));
-        $this->requireOperationPermission($current, $this->authorization->principal($current), 'download_original');
+        $guard->assertTenant($actor->tenantId, 'peanut.file', new DateTimeImmutable('now', new DateTimeZone('UTC')));
+        $this->requireOperationPermission($actor, $this->authorization->principal($actor), 'download_original');
     }
 
     /** Restores only a verified durable grant's identity through Identity's live validation. */

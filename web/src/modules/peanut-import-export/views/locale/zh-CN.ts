@@ -1,5 +1,11 @@
 export default {
   'menu.system.configurationTransfer': '配置转移',
+  'importExport.drafts.title': '导入资讯草稿',
+  'importExport.drafts.csvInstructions':
+    '使用 UTF-8 CSV，表头为 title、cid、body。cid 填写已有栏目 ID，正文为纯文本，可留空。',
+  'importExport.drafts.pickFile': '从素材库选择 CSV',
+  'importExport.drafts.submit': '导入草稿',
+  'importExport.drafts.invalidFile': '请选择已有的私有 CSV 文件。',
 
   'configurationTransfer.notice.title': '安全的租户配置包',
   'configurationTransfer.notice.description':

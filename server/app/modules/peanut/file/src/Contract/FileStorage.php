@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace PeanutAdmin\Modules\File\Contract;
 
+use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
+
 interface FileStorage
 {
     /** Writes require no outer database transaction so intent is durable before provider I/O.
@@ -34,6 +36,9 @@ interface FileStorage
 
     /** @return array{path:string,temporary:bool,filename:string,media_type:string} */
     public function openForTenant(int $tenantId, string $fileKey): array;
+
+    /** @return array{path:string,temporary:bool,filename:string,media_type:string} */
+    public function openImportSource(AuthorizedOperationContext $context, string $fileKey): array;
 
     /** @return array{path:string,temporary:bool,filename:string,media_type:string,disposition:string} */
     public function authorizedDownload(int $tenantId, string $fileKey, string $token): array;

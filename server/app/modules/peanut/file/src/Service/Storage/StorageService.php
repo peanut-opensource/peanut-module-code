@@ -32,6 +32,7 @@ use think\db\BaseQuery;
 use think\db\Raw;
 use think\facade\Db;
 use PeanutAdmin\Kernel\Auth\TenantContext;
+use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 use app\common\execution\CurrentExecutionContext;
 use app\common\infrastructure\runtime\OperationalLog;
 use PeanutAdmin\Modules\File\Service\FileAuthorizationService;
@@ -980,6 +981,21 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             throw BusinessException::notFound('STORAGE_INPUT_NOT_FOUND', '文件不存在或不可用');
         }
         $this->authorization->authorize($this->execution->tenantAdmin(), $object, 'download_original');
+        return $this->openedObject($object);
+    }
+
+    public function openImportSource(AuthorizedOperationContext $context, string $fileKey): array
+    {
+        $object = $this->deliverableObjectForTenant($context->tenantContext->tenantId, $fileKey);
+        if ($object === null || $object['access_type'] !== 'private') {
+            throw BusinessException::notFound('STORAGE_INPUT_NOT_FOUND', '文件不存在或不可用');
+        }
+        $this->authorization->authorizeBackgroundImportSource($context, $object);
+        return $this->openedObject($object);
+    }
+
+    private function openedObject(array $object): array
+    {
         return [
             ...$this->materialize($object),
             'filename' => (string) $object['original_name'],

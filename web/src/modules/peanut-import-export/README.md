@@ -31,9 +31,11 @@ onBeforeUnmount(runtime.dispose);
 新建成功切到第一页排队状态。提交完成只代表异步任务已入队，不代表业务数据处理成功。
 
 `mapping` 为非空的 CSV 表头 → 提供者字段名字符串字典；导入文件必须已存在且为当前
-租户可用的私有 CSV 文件。页面不上传文件，也不接受路径、SQL 或任意类名。当前默认
-注册的 `app.operation-log` 是只导出的真实消费者，不支持导入；接入导入需要实际业务
-提供者及其正式注册，不能把操作日志导出当作导入示例。
+租户可读的私有 CSV 文件。导入操作不接受路径、SQL 或任意类名。`peanut.article.drafts`
+在采用 Article 草稿导入合同的实例中可用。UTF-8 CSV 使用 `title,cid,body` 表头，
+`cid` 是当前租户的现有栏目 ID，`body` 是可留空的纯文本。有效行写为隐藏草稿，
+无效行进入现有错误报告。提交人须拥有文章新增、原文件读取和对应导入操作权限。
+`app.operation-log` 仅支持操作日志导出。
 
 权限分别为 `peanut.import-export.operations.read/create/cancel`。前端回调控制交互，
 服务端仍按可信租户、人员、提供者和对象权限独立授权。运行时不跨租户共享；宿主切换

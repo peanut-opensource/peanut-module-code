@@ -116,6 +116,7 @@
       >
     </PageHeader>
     <ElCard class="general-card" shadow="never">
+      <slot v-if="canCreate" name="submission" :disabled="busy" />
       <ElCollapse v-if="canCreate">
         <ElCollapseItem name="create" title="高级任务提交">
           <section

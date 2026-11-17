@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Article\Service;
 
 use app\common\contract\authorization\AdminAuthorizationQuery;
+use app\common\contract\idempotency\IdempotencyCommand;
+use app\common\contract\idempotency\IdempotencyReceipt;
+use app\common\contract\idempotency\IdempotentCommandExecutor;
 use app\common\dto\authorization\AdminPrincipal;
 use app\common\exception\BusinessException;
 use app\common\execution\CurrentExecutionContext;
 use app\common\http\PageResult;
+use app\common\infrastructure\module\ModuleExecutionBoundary;
 use app\common\services\ProductAssetReferenceService;
 use app\common\services\RichTextResourceService;
 use app\common\services\XlsxExportService;
@@ -16,14 +20,16 @@ use app\common\support\ExportPageInfo;
 use app\common\support\PaginationInput;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Modules\Article\Contract\ArticleAdministration;
+use PeanutAdmin\Modules\Article\Contract\ArticleDraftImport;
 use PeanutAdmin\Modules\Article\Model\Article;
 use PeanutAdmin\Modules\Article\Model\ArticleCate;
 use PeanutAdmin\Modules\Article\Model\ArticleCollect;
+use PeanutAdmin\Modules\Article\Validation\ArticleValidate;
 use think\db\BaseQuery;
 use think\facade\Db;
 
 /** 资讯后台用例：权限、Tenant Scope、输入字段和软删除状态都在服务边界复核。 */
-final class ArticleAdministrationService implements ArticleAdministration
+final class ArticleAdministrationService implements ArticleAdministration, ArticleDraftImport
 {
     private const PAGE_SIZE_DEFAULT = 25;
     private const PAGE_SIZE_MAX = 25000;
@@ -105,14 +111,81 @@ final class ArticleAdministrationService implements ArticleAdministration
     public function add(TenantContext $context, array $params): bool
     {
         $this->assertPermission($context, 'peanut.article.add');
-        return Db::transaction(function () use ($context, $params): bool {
-            $this->requireCategory((int) $params['cid'], true);
-            $article = new Article();
-            if (!$article->save($this->articleWriteData($context, $params))) {
-                throw new \LogicException('ARTICLE_CREATE_FAILED');
+        Db::transaction(fn(): int => $this->createArticle($context, $params));
+        return true;
+    }
+
+    public function invalidDraftFields(TenantContext $context, array $row): array
+    {
+        $this->assertDraftImportPermission($context);
+        $validator = (new ArticleValidate())->forTenant($context)->only(['title', 'cid'])->batch();
+        $row['title'] = trim($row['title']);
+        $invalid = $validator->check($row) ? [] : array_keys($validator->getError(true));
+        if (strlen($this->draftBodyHtml($row['body'])) > 65535) {
+            $invalid[] = 'body';
+        }
+        return $invalid;
+    }
+
+    public function importDraft(TenantContext $context, string $title, int $categoryId, string $body, string $rowKey): void
+    {
+        $this->assertDraftImportPermission($context);
+        $title = trim($title);
+        $content = $this->draftBodyHtml($body);
+        if (!(new ArticleValidate())->only(['title'])->check(['title' => $title]) || strlen($content) > 65535) {
+            throw BusinessException::invalid('ARTICLE_DRAFT_INVALID', '资讯草稿标题或正文无效');
+        }
+        $params = [
+            'title' => $title,
+            'cid' => $categoryId,
+            'content' => $content,
+            'is_show' => 0,
+        ];
+        $idempotency = app(IdempotentCommandExecutor::class);
+        Db::transaction(function () use ($context, $params, $rowKey, $idempotency): void {
+            $receipt = $idempotency->begin(IdempotencyCommand::tenant(
+                $context,
+                'article.draft-import',
+                $rowKey,
+                hash('sha256', json_encode($params, JSON_THROW_ON_ERROR)),
+                new \DateTimeImmutable('+90 days'),
+            ));
+            if ($receipt->isReplayable()) {
+                return;
             }
-            return true;
+            if (!$receipt->isExecutionOwner()) {
+                throw BusinessException::conflict('ARTICLE_DRAFT_IMPORT_IN_PROGRESS', '资讯草稿正在导入');
+            }
+            $id = $this->createArticle($context, $params);
+            $idempotency->complete($receipt, new IdempotencyReceipt(201, ['id' => $id], 'article', (string) $id));
         });
+    }
+
+    private function draftBodyHtml(string $body): string
+    {
+        return nl2br(htmlspecialchars($body, ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8'), false);
+    }
+
+    private function createArticle(TenantContext $context, array $params): int
+    {
+        $this->requireCategory((int) $params['cid'], true);
+        $article = new Article();
+        if (!$article->save($this->articleWriteData($context, $params))) {
+            throw new \LogicException('ARTICLE_CREATE_FAILED');
+        }
+        return (int) $article->id;
+    }
+
+    private function assertDraftImportPermission(TenantContext $context): void
+    {
+        if ($this->executionContext->systemExecution()->tenantId() !== $context->tenantId) {
+            throw BusinessException::forbidden('ARTICLE_ADMIN_PERMISSION_DENIED', '无权管理资讯');
+        }
+        app(ModuleExecutionBoundary::class)->assertWorker('peanut.article');
+        $principal = $this->authorization->principal($context);
+        if (!$this->authorization->decide($context, $principal, 'peanut.article.add')->allowed) {
+            throw BusinessException::forbidden('ARTICLE_ADMIN_PERMISSION_DENIED', '无权管理资讯');
+        }
     }
 
     public function edit(TenantContext $context, array $params): bool

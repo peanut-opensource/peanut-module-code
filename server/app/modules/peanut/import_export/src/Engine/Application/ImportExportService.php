@@ -104,6 +104,9 @@ final readonly class ImportExportService
         }
         $provider = $this->providers->require($providerKey);
         $schema = $provider->schema();
+        if ($direction === 'export' && $schema->exportColumns() === []) {
+            throw ImportExportException::denied();
+        }
         $mapping = $direction === 'import' ? $schema->validateImportMapping($mapping) : [];
         $requestHash = hash('sha256', $this->json([
             'direction' => $direction,

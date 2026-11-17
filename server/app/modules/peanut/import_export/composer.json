@@ -8,7 +8,7 @@
     "peanut-admin/module-composition-host": "^1.0",
     "php": "^8.3",
     "peanut-admin/core": "^5.0.2",
-    "peanut-business/peanut-file": "^1.0.38",
+    "peanut-business/peanut-file": "^1.0.50-rc.2",
     "peanut-business/peanut-task": "^1.0",
     "peanut-business/peanut-settings": "^1.0",
     "peanut-business/peanut-integration": "^1.0",

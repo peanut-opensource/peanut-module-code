@@ -1,5 +1,11 @@
 export default {
   'menu.system.configurationTransfer': 'Configuration Transfer',
+  'importExport.drafts.title': 'Article draft import',
+  'importExport.drafts.csvInstructions':
+    'Use a UTF-8 CSV with the headers title, cid, body. Use an existing category ID for cid. The plain-text body may be empty.',
+  'importExport.drafts.pickFile': 'Choose CSV from the media library',
+  'importExport.drafts.submit': 'Import drafts',
+  'importExport.drafts.invalidFile': 'Choose an existing private CSV file.',
 
   'configurationTransfer.notice.title': 'Safe Tenant configuration package',
   'configurationTransfer.notice.description':

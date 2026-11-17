@@ -11,7 +11,7 @@
   "dependencies": [
     {
       "module_key": "peanut.file",
-      "version": "^1.0.38"
+      "version": "^1.0.50-rc.2"
     },
     {
       "module_key": "peanut.task",
@@ -28,6 +28,12 @@
     {
       "module_key": "peanut.identity",
       "version": "^4.0.0-rc.32"
+    }
+  ],
+  "optional_dependencies": [
+    {
+      "module_key": "peanut.article",
+      "version": "^1.0.21-rc.1"
     }
   ],
   "backend": {

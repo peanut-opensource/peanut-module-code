@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PeanutAdmin\Modules\ImportExport\Infrastructure\File;
 
+use app\common\exception\BusinessException;
 use PeanutAdmin\Modules\File\Contract\FileStorage;
 use PeanutAdmin\Modules\ImportExport\Engine\Application\ImportExportException;
 use PeanutAdmin\Modules\ImportExport\Engine\File\FileMediaGateway;
@@ -17,7 +18,11 @@ final readonly class AppFileMediaGateway implements FileMediaGateway
         if (preg_match('/^file_[0-9a-f]{32}$/D', $fileKey) !== 1) {
             throw ImportExportException::fileUnavailable();
         }
-        $opened = $this->storage->openForTenant($context->tenantContext->tenantId, $fileKey);
+        try {
+            $opened = $this->storage->openImportSource($context, $fileKey);
+        } catch (BusinessException) {
+            throw ImportExportException::fileUnavailable();
+        }
         $source = null;
         $copy = null;
         try {
