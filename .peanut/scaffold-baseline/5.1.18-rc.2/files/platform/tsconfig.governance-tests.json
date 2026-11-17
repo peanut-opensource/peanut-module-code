@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "vitest": ["../tools/quality/node_modules/vitest"]
+    },
+    "types": []
+  },
+  "include": ["src/modules/governance/optional-runtime/tests/**/*.ts"],
+  "exclude": []
+}

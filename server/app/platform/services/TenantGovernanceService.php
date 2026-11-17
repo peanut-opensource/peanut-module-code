@@ -96,6 +96,19 @@ final readonly class TenantGovernanceService
     }
 
     /** @return array<string,mixed> */
+    public function revokeOwner(
+        PlatformOperatorContext $operator,
+        int $tenantId,
+        int $memberId,
+        int $expectedRevision,
+        string $changeReason,
+    ): array {
+        return $this->owners->revokeOwner(
+            $operator->core, $tenantId, $memberId, $expectedRevision, $changeReason,
+        );
+    }
+
+    /** @return array<string,mixed> */
     public function transition(
         PlatformOperatorContext $operator,
         int $tenantId,

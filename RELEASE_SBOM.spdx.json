@@ -38,7 +38,7 @@
                 {
                     "referenceCategory": "PACKAGE-MANAGER",
                     "referenceType": "purl",
-                    "referenceLocator": "pkg:github/peanut-business/peanut-admin-code@5.1.18-rc.1"
+                    "referenceLocator": "pkg:github/peanut-business/peanut-admin-code@5.1.18-rc.2"
                 }
             ]
         },

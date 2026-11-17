@@ -1,0 +1,4 @@
+[
+  {"key":"peanut.settings.read","type":"api","name":"查看设置","risk_level":"normal"},
+  {"key":"peanut.settings.manage","type":"action","name":"管理设置","risk_level":"critical"}
+]

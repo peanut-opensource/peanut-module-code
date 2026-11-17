@@ -1,0 +1,39 @@
+# Explicit source-development ingress; never selected by APP start.sh.
+# Host PHP and the independent Hocuspocus service retain their own lifecycles.
+name: ${SOURCE_COLLABORATION_PROJECT:?set the registered source ingress project}
+
+services:
+  ingress:
+    image: nginx:1.28.0-alpine@sha256:30f1c0d78e0ad60901648be663a710bdadf19e4c10ac6782c235200619158284
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETGID, SETUID, NET_BIND_SERVICE, DAC_OVERRIDE]
+    security_opt: [no-new-privileges:true]
+    ports:
+      - "127.0.0.1:8443:8443"
+      - "127.0.0.1:${COLLABORATION_WSS_PORT:?}:443"
+    volumes:
+      - ./conf/nginx.source-collaboration.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./tls:/etc/nginx/peanut-collaboration-tls:ro
+    tmpfs:
+      - /etc/nginx/conf.d:rw,noexec,nosuid,size=1m
+      - /var/cache/nginx:rw,noexec,nosuid,size=16m
+      - /var/run:rw,noexec,nosuid,size=1m
+    environment:
+      COLLABORATION_PHP_TLS_HOST: ${COLLABORATION_PHP_TLS_HOST:?}
+      COLLABORATION_CONTROL_TLS_HOST: ${COLLABORATION_CONTROL_TLS_HOST:?}
+      COLLABORATION_WSS_HOSTNAME: ${COLLABORATION_WSS_HOSTNAME:?}
+      SOURCE_PHP_PORT: ${SOURCE_PHP_PORT:?set the registered host PHP port}
+    networks:
+      service:
+        aliases: ["${COLLABORATION_PHP_TLS_HOST:?}"]
+    healthcheck:
+      test: [CMD, nginx, -t]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  service:
+    external: true
+    name: ${COLLABORATION_NETWORK:?set the registered interface network}

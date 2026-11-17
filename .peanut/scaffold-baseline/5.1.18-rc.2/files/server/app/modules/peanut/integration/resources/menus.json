@@ -1,0 +1,3 @@
+[
+  {"key":"peanut.integration.security","parent_key":"core.applications","scope":"tenant","type":"page","name":"集成与安全","route_name":"peanut.integration.index","route_path":"/system/integration-security","component_key":"peanut.integration.index","required_permission":"peanut.integration.access","icon":"icon-link","sort_order":54,"client_keys":["admin-web"]}
+]
