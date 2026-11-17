@@ -15,19 +15,20 @@ final readonly class ThinkPhpTargetSetConstraintApplier implements TargetSetCons
 {
     public function apply(BaseQuery $query, ExistsByContract $constraint): void
     {
-        $outerColumn = $constraint->outerColumn->value;
+        $builder = $query->getConnection()->getBuilder();
+        $outerColumn = $builder->parseKey($query, $constraint->outerColumn->value, true);
         $targetTable = (new DataPermissionTargetRecord())->getTable();
         $subquery = (new Query($query->getConnection()))
             ->table($targetTable)
-            ->fieldRaw('1')
+            ->field('target_id')
             ->where('tenant_id', $constraint->tenantId)
             ->where('target_set_id', $constraint->targetSetId)
-            ->where('status', 'active')
-            ->whereRaw(
-                "target_id COLLATE utf8mb4_0900_ai_ci = (CAST({$outerColumn} AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_0900_ai_ci)",
-            );
+            ->where('status', 'active');
         $subquery->parseOptions();
-        $sql = $query->getConnection()->getBuilder()->select($subquery);
-        $query->whereExists(new Raw($sql, $subquery->getBind(false)));
+        $query->whereFieldRaw(
+            "CAST({$outerColumn} AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_0900_ai_ci",
+            'IN',
+            new Raw($builder->select($subquery), $subquery->getBind(false)),
+        );
     }
 }
