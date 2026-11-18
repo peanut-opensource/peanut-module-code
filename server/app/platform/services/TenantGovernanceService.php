@@ -8,7 +8,6 @@ use PeanutAdmin\Modules\Identity\Contract\TenantOwnerAdminProvisioner;
 use app\common\exception\BusinessException;
 use app\platform\context\PlatformOperatorContext;
 use PeanutAdmin\Modules\Identity\Platform\Application\PlatformTenantAdminService;
-use PeanutAdmin\Modules\Identity\Platform\Application\TenantOwnerAdminService;
 use think\facade\Db;
 use PeanutAdmin\Modules\Identity\Tenancy\TenantStatus;
 
@@ -22,7 +21,6 @@ final readonly class TenantGovernanceService
 {
     public function __construct(
         private PlatformTenantAdminService $administration,
-        private TenantOwnerAdminService $owners,
         private TenantOwnerAdminProvisioner $ownerAdmins,
     ) {}
 
@@ -93,19 +91,6 @@ final readonly class TenantGovernanceService
                 'Tenant provisioning was rejected.',
             );
         }
-    }
-
-    /** @return array<string,mixed> */
-    public function revokeOwner(
-        PlatformOperatorContext $operator,
-        int $tenantId,
-        int $memberId,
-        int $expectedRevision,
-        string $changeReason,
-    ): array {
-        return $this->owners->revokeOwner(
-            $operator->core, $tenantId, $memberId, $expectedRevision, $changeReason,
-        );
     }
 
     /** @return array<string,mixed> */

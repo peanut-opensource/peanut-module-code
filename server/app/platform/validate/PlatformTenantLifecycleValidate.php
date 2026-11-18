@@ -17,7 +17,6 @@ final class PlatformTenantLifecycleValidate extends Validate
         'initial_password' => 'passwordPolicy',
         'owner_display_name' => 'require|max:190',
         'tenant_id' => 'require|positiveInteger',
-        'member_id' => 'require|positiveInteger',
         'expected_revision' => 'require|positiveInteger',
         'change_reason' => 'require|max:500',
     ];
@@ -34,12 +33,6 @@ final class PlatformTenantLifecycleValidate extends Validate
         'suspend' => ['tenant_id', 'expected_revision', 'change_reason'],
         'close' => ['tenant_id', 'expected_revision', 'change_reason'],
     ];
-
-    public function sceneRevokeOwner(): self
-    {
-        return $this->only(['tenant_id', 'member_id', 'expected_revision', 'change_reason'])
-            ->append('change_reason', 'string');
-    }
 
     protected function positiveInteger(mixed $value): bool
     {

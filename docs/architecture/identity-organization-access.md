@@ -127,9 +127,9 @@ MT 实例的菜单、按钮引用由平台通过 `GET /platformapi/permission/me
 
 一个管理域名对应一个租户。同一租户的多个成员均可在该入口登录；同一账号属于多个租户时，应访问目标租户的绑定域名登录。管理界面不在已绑定入口提供跨租户选择或切换，后端也拒绝绑定冲突；当前没有跨域会话转移或自动跳转。登录后品牌来自 `/adminapi/user/info` 的已认证租户上下文，退出时同步重置。会员端 `/api/index/config` 与 `/api/pc/config` 的内容、名称均来自同一个 `member-api` Host 上下文；未绑定入口继续拒绝，不跨客户端借用管理绑定。开发代理须保留浏览器请求 Host，使后端沿同一 DB 绑定路径识别租户。
 
-租户后台普通成员管理只允许给既有所有者增删**非所有者业务角色**，不允许通过成员新增、普通编辑、状态切换或删除入口授予、取消、停用或退出 `core.tenant-owner`；后台 UI 和已认证服务端操作都应拒绝。合法所有者授予、转移与退出仍由平台专用的受审计流程负责，Identity 的最后有效所有者不变式继续独立生效。此限制不能通过角色名称或前台会员令牌绕过。
+租户后台成员管理统一通过已认证的角色编辑。新建管理员需指定至少一个角色；既有成员可取消全部角色而保留成员身份。另一个有效租户 Owner 且具备成员更新、角色分配权限时，可以从目标成员角色集合中移除 `core.tenant-owner`，但不能自行降权，不能移除最后一名有效 Owner，也不能借普通编辑授予新的 Owner。Identity 继续保证同租户边界、并发修订、原子角色更新、权限失效与审计。特殊的首次所有者开通和邀请保留原生单独流程；不得把移除角色等同于停用成员账号。
 
-平台正式撤回入口为 `POST /platformapi/tenants/owner/revoke`，要求平台登录及既有 `platform.tenant.provision-owner` 写权限。请求只接受 `tenant_id`、`member_id`、`expected_revision`、`change_reason`；修订取目标成员的 `authorization_revision`，不能传租户修订或自动读取新修订重试。宿主沿现有 TenantGovernanceService 传递真实平台上下文给 Identity `TenantOwnerAdminService::revokeOwner`（需提供该方法的 Identity 4.0.1-rc.1 或后继版本），不制造租户身份。Identity 在同一事务内校验 active operator、租户/成员状态、修订和最后 active owner，只撤掉目标 owner 角色关系并停用该 membership，保留全局账号、其他角色关系及其他租户；推进安全/授权修订并沿既有负事实链审计/投递。未知字段或无效输入拒绝；成员不存在、状态冲突、修订过期及最后 owner 保护沿原异常合同返回，不吞错或绕过普通成员管理边界。源码交付不代表已发布或已在应用安装，消费者须先原生采用匹配宿主和 Identity 组合，再同步 API 权限目录并验证真实平台 HTTP 入口。
+旧的 `POST /platformapi/tenants/owner/revoke` 额外撤权入口会同时暂停成员身份，已确认不符合普通角色编辑合同；它及配套 HTTP Controller、Service 消费者、校验场景、API 声明和 Identity 独立 `revokeOwner()` 方法均已退出当前源码，不再作为产品管理流程或公共模块用例。
 
 所有者邀请的创建、重发、撤销、查询和接受由 Identity 的 `Invitation` 用例维护；邀请表、账号、凭据、成员及角色属于同一身份业务。管理用例只接收同一个已验证 Core `PlatformContext` 并使用原生平台授权器；HTTP 包装上下文只留在控制器，不能把宿主会话服务重新变成模块依赖。`OwnerInvitationDeliveryPort` 是可信投递适配器，`TenantOwnerAdminProvisioner` 是已确认所有者后的应用初始化接口，宿主负责各自实现与绑定，不把数据库对象作为接口。原始令牌只交给既定投递或显式允许的人工交付方式，不在持久化、调试或普通日志中保存明文；重新发送和接受继续失效旧令牌，既有账号密码不得被邀请流程覆盖。
 

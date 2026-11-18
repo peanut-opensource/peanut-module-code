@@ -22,7 +22,6 @@ use PeanutAdmin\Modules\Identity\Persistence\Model\PlatformOperator;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Role;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Tenant;
 use PeanutAdmin\Modules\Identity\Persistence\Model\TenantMember;
-use PeanutAdmin\Modules\Identity\Membership\Application\MemberAdminService;
 use Throwable;
 use think\db\Raw;
 use think\facade\Db;
@@ -34,7 +33,6 @@ final readonly class TenantOwnerAdminService
         private AuditService $audit,
         private PasswordHasher $passwords,
         private PasswordPolicy $passwordPolicy,
-        private MemberAdminService $members,
     ) {}
 
     /** @return array<string, mixed> */
@@ -238,65 +236,6 @@ final readonly class TenantOwnerAdminService
             );
 
             return $this->candidate($tenantId, $memberId);
-        });
-    }
-
-    /** Revoke an accepted owner membership without changing its global account or other tenants. */
-    public function revokeOwner(
-        PlatformContext $actor,
-        int $tenantId,
-        int $memberId,
-        int $expectedRevision,
-        string $changeReason,
-    ): array {
-        if (trim($changeReason) === '') {
-            throw AdminAccessException::invalid('CHANGE_REASON_REQUIRED', 'A change reason is required.');
-        }
-
-        return $this->transaction(function () use ($actor, $tenantId, $memberId, $expectedRevision, $changeReason): array {
-            $this->requireOperator($actor);
-            if (Tenant::where('id', $tenantId)->where('status', 'active')->lock(true)->value('id') === null) {
-                throw AdminAccessException::conflict('TENANT_NOT_ACTIVE', 'The tenant must be active.');
-            }
-            $member = TenantMember::where('tenant_id', $tenantId)->where('id', $memberId)->lock(true)->find();
-            if ($member === null) {
-                throw AdminAccessException::notFound();
-            }
-            if ((int) $member->authorization_revision !== $expectedRevision) {
-                throw AdminAccessException::revisionMismatch();
-            }
-            if ($member->status !== 'active' || !$this->memberHasOwnerRole($tenantId, $memberId)) {
-                throw AdminAccessException::conflict('TENANT_OWNER_STATE_CONFLICT', 'An active owner membership is required.');
-            }
-            $this->members->assertOwnerRemovalAllowed($tenantId, $memberId);
-            $roleId = Role::where('tenant_id', $tenantId)->where('key', 'core.tenant-owner')
-                ->where('is_builtin', 1)->where('status', 'active')->value('id');
-            MemberRole::where('tenant_id', $tenantId)->where('tenant_member_id', $memberId)->where('role_id', $roleId)->delete();
-            $now = $this->now();
-            $securityRevision = (int) $member->security_revision;
-            $member->save([
-                'status' => 'suspended', 'suspended_at' => $now, 'updated_at' => $now,
-                'security_revision' => $securityRevision + 1,
-                'authorization_revision' => $expectedRevision + 1,
-            ]);
-            Tenant::where('id', $tenantId)->update([
-                'authorization_revision' => new Raw('authorization_revision + 1'), 'updated_at' => $now,
-            ]);
-            $this->audit->recordRevocation(
-                $actor, $tenantId, $memberId, 'member', (string) $memberId, 'member_suspended',
-                ['authorization_revision' => $expectedRevision, 'security_revision' => $securityRevision, 'status' => 'active'],
-                ['authorization_revision' => $expectedRevision + 1, 'security_revision' => $securityRevision + 1, 'status' => 'suspended'],
-            );
-            $this->audit->platform(
-                $actor->operatorId, $actor->accountId, $actor->requestId,
-                'tenant.owner.revoked', 'platform.tenant.provision-owner',
-                ['tenant_id' => (string) $tenantId, 'member_id' => (string) $memberId,
-                    'removed_role_id' => (string) $roleId, 'change_reason' => $changeReason],
-            );
-
-            return ['tenant_id' => (string) $tenantId, 'member_id' => (string) $memberId,
-                'account_id' => (string) $member->account_id, 'status' => 'suspended',
-                'revision' => (string) ($expectedRevision + 1), 'owner_revoked' => true];
         });
     }
 

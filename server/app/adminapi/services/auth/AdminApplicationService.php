@@ -149,7 +149,7 @@ final class AdminApplicationService
             }
             $this->assertMemberPermission($context, 'role.assign');
             // Ordinary member creation must never grant the protected owner identity.
-            $this->assertOrdinaryOwnerRoleBoundary($context->tenantId, $roles, false);
+            $this->assertOrdinaryOwnerRoleBoundary($context, $roles, false, 0);
             if ((int) $params['disable'] === 0) {
                 $this->assertMemberPermission($context, 'activate');
             }
@@ -181,16 +181,13 @@ final class AdminApplicationService
                 throw BusinessException::forbidden('ADMIN_PASSWORD_SELF_SERVICE_REQUIRED', '密码只能由账号本人修改');
             }
             $roles = self::normalizeIds($params['role_id'] ?? []);
-            if ($roles === []) {
-                throw BusinessException::invalid('ADMIN_ROLE_REQUIRED', '请选择角色');
-            }
             $service = $this->tenantAdmins->members();
             $member = $service->get($context->tenantId, (int) $params['id']);
             $currentlyOwner = self::isTenantOwnerMember($member);
             $currentRoles = self::normalizeIds($member['role_ids']);
             if ($roles !== $currentRoles) {
                 $this->assertMemberPermission($context, 'role.assign');
-                $this->assertOrdinaryOwnerRoleBoundary($context->tenantId, $roles, $currentlyOwner);
+                $this->assertOrdinaryOwnerRoleBoundary($context, $roles, $currentlyOwner, (int) $member['id']);
             }
             if ($currentlyOwner && (int) $params['disable'] !== ($member['status'] === 'active' ? 0 : 1)) {
                 throw BusinessException::forbidden('TENANT_OWNER_STATUS_REQUIRES_PLATFORM_FLOW',
@@ -225,24 +222,44 @@ final class AdminApplicationService
     }
 
     /**
-     * The ordinary tenant member editor may grant business roles, never owner identity.
-     * Owner provisioning and transfer remain separate audited platform operations.
+     * Only an active owner may remove another owner's role using normal member editing.
+     * Ordinary role assignment cannot grant owner; onboarding remains invitation-based.
      * @param list<int> $requestedRoleIds
      */
-    private function assertOrdinaryOwnerRoleBoundary(int $tenantId, array $requestedRoleIds, bool $currentlyOwner): void
+    private function assertOrdinaryOwnerRoleBoundary(
+        TenantContext $context,
+        array $requestedRoleIds,
+        bool $currentlyOwner,
+        int $targetMemberId,
+    ): void
     {
         $requestsOwner = false;
         foreach ($requestedRoleIds as $roleId) {
-            $role = $this->roleAdministration->service()->get($tenantId, $roleId);
+            $role = $this->roleAdministration->service()->get($context->tenantId, $roleId);
             if (($role['key'] ?? null) === 'core.tenant-owner') {
                 $requestsOwner = true;
             }
         }
-        if ($currentlyOwner !== $requestsOwner) {
+        if (!$currentlyOwner && $requestsOwner) {
             throw BusinessException::forbidden(
                 'TENANT_OWNER_ROLE_REQUIRES_PLATFORM_FLOW',
-                '租户所有者角色仅能通过正式平台所有者流程变更',
+                '新增租户所有者仍须通过正式邀请流程',
             );
+        }
+        if ($currentlyOwner && !$requestsOwner) {
+            if ($targetMemberId === $context->memberId) {
+                throw BusinessException::forbidden(
+                    'TENANT_OWNER_SELF_DEMOTION_FORBIDDEN',
+                    '不能通过成员编辑取消自己的租户所有者角色',
+                );
+            }
+            $actor = $this->tenantAdmins->members()->get($context->tenantId, $context->memberId);
+            if (($actor['status'] ?? null) !== 'active' || !self::isTenantOwnerMember($actor)) {
+                throw BusinessException::forbidden(
+                    'TENANT_OWNER_ACTOR_REQUIRED',
+                    '仅当前租户的有效所有者能够移除其他所有者的角色',
+                );
+            }
         }
     }
 

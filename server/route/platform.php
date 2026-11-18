@@ -81,9 +81,6 @@ Route::get('tenants/invitations', [PlatformTenantInvitationController::class, 'l
 Route::get('tenants/owner', [PlatformControlPlaneQueryController::class, 'owner'])
     ->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.tenant.read');
-Route::post('tenants/owner/revoke', [PlatformTenantController::class, 'revokeOwner'])
-    ->completeMatch()->middleware(PlatformLoginMiddleware::class)
-    ->middleware(PlatformPermissionMiddleware::class, 'platform.tenant.provision-owner');
 Route::get('operators', [PlatformControlPlaneQueryController::class, 'operators'])
     ->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.operator.read');

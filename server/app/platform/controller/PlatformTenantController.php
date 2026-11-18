@@ -43,26 +43,6 @@ final class PlatformTenantController extends BasePlatformController
         ));
     }
 
-    public function revokeOwner()
-    {
-        if ($this->platformContext === null) {
-            throw \app\common\http\ApiProblem::fromEnvelope('Platform authentication is required.', null, 40100);
-        }
-
-        $params = $this->validateInput(
-            $this->request->post(),
-            PlatformTenantLifecycleValidate::class . '.revokeOwner',
-            ['tenant_id', 'member_id', 'expected_revision', 'change_reason'],
-        )->all();
-        return $this->data($this->tenantGovernance->revokeOwner(
-            $this->platformContext,
-            (int) $params['tenant_id'],
-            (int) $params['member_id'],
-            (int) $params['expected_revision'],
-            trim($params['change_reason']),
-        ));
-    }
-
     public function activate()
     {
         if ($this->platformContext === null) {

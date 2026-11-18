@@ -65,7 +65,7 @@ export default {
   'systemAdmin.field.roles': 'Roles',
   'systemAdmin.field.roles.placeholder': 'Select roles',
   'systemAdmin.field.roles.required': 'Select at least one role',
-  'systemAdmin.field.roles.ownerFixed': 'Keep the immutable tenant owner role; supplementary business roles may be added or removed.',
+  'systemAdmin.field.roles.ownerDemotionHint': 'Another authorized active tenant owner may remove this role. At least one active owner must remain. Removing a role does not suspend the member.',
   'systemAdmin.field.password': 'Password',
   'systemAdmin.field.password.addPlaceholder': 'Enter password',
   'systemAdmin.field.password.editPlaceholder': 'Leave blank to keep unchanged',

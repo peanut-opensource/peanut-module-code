@@ -274,17 +274,17 @@
             @update:model-value="updateRoleSelection"
             :disabled="!canReadRoles || !canAssignRoles || (editingOwnerRoles && ownerRoleId === null)"
             multiple
-            :clearable="!editingOwnerRoles"
+            :clearable="isEdit"
             :placeholder="$t('systemAdmin.field.roles.placeholder')"
             ><el-option
               v-for="option in roleOptions"
               :key="option.value"
               :label="option.label"
               :value="option.value"
-              :disabled="option.key === 'core.tenant-owner'"
+              :disabled="option.key === 'core.tenant-owner' && !editingOwnerRoles"
           /></el-select>
           <p v-if="editingOwnerRoles" class="pa-page-form-help">
-            {{ $t('systemAdmin.field.roles.ownerFixed') }}
+            {{ $t('systemAdmin.field.roles.ownerDemotionHint') }}
           </p>
         </el-form-item>
 
@@ -664,7 +664,7 @@
           value: number[],
           callback: (message?: string | Error) => void
         ) => {
-          if (form.root !== 1 && (!value || value.length === 0)) {
+          if (!isEdit.value && (!value || value.length === 0)) {
             callback(new Error(t('systemAdmin.field.roles.required')));
             return;
           }
@@ -774,13 +774,6 @@
         ElMessage.error(passwordPolicyError.value);
         return false;
       }
-    }
-    if (
-      editingOwnerRoles.value &&
-      (ownerRoleId.value === null || !form.role_id.includes(ownerRoleId.value))
-    ) {
-      ElMessage.error(t('systemAdmin.field.roles.ownerFixed'));
-      return false;
     }
     const valid = await formRef.value?.validate().catch(() => false);
     if (!valid) return false;
