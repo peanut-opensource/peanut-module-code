@@ -52,6 +52,9 @@ final readonly class MemberAdminService
         array $jobIds = [],
     ): array {
         $this->assertRoleIdsLimit($roleIds);
+        if ($roleIds === []) {
+            throw AdminAccessException::invalid('ADMIN_ROLE_REQUIRED', 'An administrator role is required.');
+        }
         $jobIds = $this->normalizeJobIds($jobIds);
 
         return $this->transaction(function () use (
@@ -189,9 +192,6 @@ final readonly class MemberAdminService
         array $roleIds,
         bool $enabled,
     ): array {
-        if ($roleIds === []) {
-            throw AdminAccessException::invalid('ADMIN_ROLE_REQUIRED', 'An administrator role is required.');
-        }
         $memberId = (int) $member['id'];
         $member = $this->replaceRolesInTransaction($actor, $memberId, $roleIds, (int) $member['revision']);
         if ($enabled && in_array($member['status'], ['pending', 'suspended'], true)) {
