@@ -41,6 +41,11 @@
             :disabled="!canReadRoles"
             clearable
             :placeholder="$t('systemAdmin.search.role.all')"
+            @visible-change="
+              (visible: boolean) => {
+                if (visible) ensureRoleOptions();
+              }
+            "
             ><el-option
               v-for="option in roleOptions"
               :key="option.value"
@@ -554,23 +559,48 @@
     }
   };
 
-  const loadOptions = async () => {
-    if (canReadRoles.value) {
-      const { data } = await getRoleAll();
-      roleOptions.value = data.map((item) => ({
-        value: item.id,
-        label: item.name,
-        key: item.key || '',
-      }));
+  let rolesLoadingPromise: Promise<void> | null = null;
+  let jobsLoadingPromise: Promise<void> | null = null;
+
+  const ensureRoleOptions = () => {
+    if (!canReadRoles.value) return Promise.resolve();
+    if (roleOptions.value.length > 0) return Promise.resolve();
+    if (!rolesLoadingPromise) {
+      rolesLoadingPromise = getRoleAll()
+        .then(({ data }) => {
+          roleOptions.value = data.map((item) => ({
+            value: item.id,
+            label: item.name,
+            key: item.key || '',
+          }));
+        })
+        .catch(() => {
+          rolesLoadingPromise = null;
+        });
     }
-    if (canReadJobs.value) {
-      const { data } = await getJobsAll();
-      jobsOptions.value = data.map((item) => ({
-        value: item.id,
-        label: item.name,
-      }));
-    }
+    return rolesLoadingPromise;
   };
+
+  const ensureJobsOptions = () => {
+    if (!canReadJobs.value) return Promise.resolve();
+    if (jobsOptions.value.length > 0) return Promise.resolve();
+    if (!jobsLoadingPromise) {
+      jobsLoadingPromise = getJobsAll()
+        .then(({ data }) => {
+          jobsOptions.value = data.map((item) => ({
+            value: item.id,
+            label: item.name,
+          }));
+        })
+        .catch(() => {
+          jobsLoadingPromise = null;
+        });
+    }
+    return jobsLoadingPromise;
+  };
+
+  const loadOptions = () =>
+    Promise.all([ensureRoleOptions(), ensureJobsOptions()]);
 
   const search = () => fetchData(1);
   const resetQuery = () => {
@@ -739,6 +769,7 @@
 
   const handleAdd = () => {
     departmentPickerRevision.value += 1;
+    loadOptions();
     loadPasswordPolicy();
     isEdit.value = false;
     resetForm();
@@ -746,7 +777,7 @@
   };
 
   const handleEdit = async (record: AdminRecord) => {
-    await loadPasswordPolicy();
+    await Promise.all([loadOptions(), loadPasswordPolicy()]);
     isEdit.value = true;
     const { data } = await getAdminDetail(record.id);
     originalDisable.value = data.disable;
@@ -885,7 +916,7 @@
     }
   };
 
-  Promise.all([fetchData(1), loadOptions()]);
+  fetchData(1);
 </script>
 
 <script lang="ts">

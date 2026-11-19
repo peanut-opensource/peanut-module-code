@@ -37,8 +37,22 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
         private readonly CurrentExecutionContext $execution,
     ) {}
 
+    /** @var array<string, AdminPrincipal> */
+    private array $principalCache = [];
+
     public function principal(TenantContext $tenantContext, bool $includeTenantCount = true): AdminPrincipal
     {
+        $cacheKey = implode(':', [
+            $tenantContext->tenantId,
+            $tenantContext->accountId,
+            $tenantContext->memberId,
+            $tenantContext->authorizationRevision,
+            $tenantContext->tenantAuthorizationRevision,
+            $includeTenantCount ? '1' : '0',
+        ]);
+        if (isset($this->principalCache[$cacheKey])) {
+            return $this->principalCache[$cacheKey];
+        }
         $snapshot = $this->directory->activePrincipalProfileWithRoles($tenantContext->tenantId, $tenantContext->accountId, $includeTenantCount);
         if ($snapshot === null || $snapshot['profile']['member']->memberId !== $tenantContext->memberId) {
             throw new \DomainException('TENANT_ADMIN_PRINCIPAL_UNAVAILABLE');
@@ -52,7 +66,7 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
             $root = $root || ($role['key'] === 'core.tenant-owner' && $role['is_builtin']);
         }
 
-        return new AdminPrincipal(
+        return $this->principalCache[$cacheKey] = new AdminPrincipal(
             id: $member->memberId,
             tenantId: $member->tenantId,
             accountId: $member->accountId,
@@ -213,7 +227,15 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
             return $this->validContext($tenantContext, $admin)
                 ? $this->accessDataForPrincipal($tenantContext, $admin)->menu
                 : [];
-        } catch (\Throwable) {
+        } catch (\DomainException) {
+            return [];
+        } catch (\Throwable $exception) {
+            \think\facade\Log::warning('ADMIN_MENUS_LOOKUP_FAILED', [
+                'tenant_id' => $tenantContext->tenantId,
+                'member_id' => $memberId,
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
             return [];
         }
     }
