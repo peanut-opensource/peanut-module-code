@@ -7,11 +7,16 @@ namespace PeanutAdmin\Modules\ReferenceCodes\Controller;
 use app\adminapi\controller\BaseAdminController;
 use PeanutAdmin\Modules\ReferenceCodes\Infrastructure\ThinkPhpDictionaryCustomizationProvider;
 use think\response\Json;
+use think\App;
 
-/** @property-read ThinkPhpDictionaryCustomizationProvider $dictionaryCustomization */
 final class DictionaryCatalogController extends BaseAdminController
 {
-    protected string $dictionaryCustomizationClass = ThinkPhpDictionaryCustomizationProvider::class;
+    public function __construct(
+        App $app,
+        private readonly ThinkPhpDictionaryCustomizationProvider $dictionaryCustomization,
+    ) {
+        parent::__construct($app);
+    }
 
     public function types(): Json
     {

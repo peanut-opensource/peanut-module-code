@@ -8,11 +8,16 @@ use app\adminapi\controller\BaseAdminController;
 use PeanutAdmin\Modules\Member\Contract\MemberAdministration;
 use PeanutAdmin\Modules\Member\Validation\AccountLogValidate;
 use PeanutAdmin\Modules\Member\Value\AccountLogEnum;
+use think\App;
 
-/** @property-read MemberAdministration $members 当前 App 中声明式解析的控制器依赖。 */
 class AccountLogController extends BaseAdminController
 {
-    protected string $membersClass = MemberAdministration::class;
+    public function __construct(
+        App $app,
+        private readonly MemberAdministration $members,
+    ) {
+        parent::__construct($app);
+    }
 
     public function lists()
     {

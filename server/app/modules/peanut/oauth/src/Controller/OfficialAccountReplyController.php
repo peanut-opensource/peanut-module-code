@@ -9,8 +9,8 @@ use app\common\traits\CrudTrait;
 use PeanutAdmin\Modules\OAuth\Service\OfficialAccountReplyApplicationService;
 use PeanutAdmin\Modules\OAuth\Validation\OfficialAccountReplyValidate;
 use PeanutAdmin\Kernel\Auth\TenantContext;
+use think\App;
 
-/** @property-read OfficialAccountReplyApplicationService $replies 当前 App 中声明式解析的控制器依赖。 */
 class OfficialAccountReplyController extends BaseAdminController
 {
     use CrudTrait;
@@ -21,7 +21,12 @@ class OfficialAccountReplyController extends BaseAdminController
     protected const CRUD_VALIDATE_LISTS = true;
     protected const CRUD_STATUS_FIELD = 'status';
 
-    protected string $repliesClass = OfficialAccountReplyApplicationService::class;
+    public function __construct(
+        App $app,
+        private readonly OfficialAccountReplyApplicationService $replies,
+    ) {
+        parent::__construct($app);
+    }
 
     protected function resolveCrudContext(): TenantContext
     {

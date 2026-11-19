@@ -6,18 +6,22 @@ namespace PeanutAdmin\Modules\Notification\Controller;
 
 use app\adminapi\controller\BaseAdminController;
 use PeanutAdmin\Modules\Notification\Service\NotificationAdminApplicationService;
+use think\App;
 
-/**
- * 通知渠道配置控制器
- * @property-read NotificationAdminApplicationService $notifications 当前 App 中声明式解析的控制器依赖。
- */
 class NoticeChannelController extends BaseAdminController
 {
-    protected string $notificationsClass = NotificationAdminApplicationService::class;
 
     /**
      * 获取渠道配置（脱敏：密钥只返回是否已设置）
      */
+
+    public function __construct(
+        App $app,
+        private readonly NotificationAdminApplicationService $notifications,
+    ) {
+        parent::__construct($app);
+    }
+
     public function detail(): \think\Response
     {
         return $this->data($this->notifications->channel(

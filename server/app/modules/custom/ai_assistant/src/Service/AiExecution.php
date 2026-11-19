@@ -56,7 +56,11 @@ final readonly class AiExecution
             if (in_array($d['stage'], ['prepared','blocked_source_authorization'], true) && !isset($d['attempt_started_at']) && !isset($d['provider_id'])) {
                 try {
                     $this->recordSourceBlock($execution, $id, $error instanceof BusinessException ? $error->errorCode : 'AI_SOURCE_AUTHORIZATION_DENIED');
-                } catch (\Throwable) {
+                } catch (\Throwable $blockError) {
+                    \think\facade\Log::warning('AI_EXECUTION_RECORD_BLOCK_FAILED', [
+                        'execution_id' => $id,
+                        'error_type' => $blockError::class,
+                    ]);
                     // If native identity/lease also vanished, keep the original not_sent fact and reserved quota for an authorized retry/cancel.
                     // No source content or provider action is permitted by this bookkeeping path.
                 }
@@ -106,6 +110,10 @@ final readonly class AiExecution
             try {
                 $response = $this->http->send($request);
             } catch (\Throwable $error) {
+                \think\facade\Log::warning('AI_EXECUTION_HTTP_SEND_FAILED', [
+                    'execution_id' => $id,
+                    'error_type' => $error::class,
+                ]);
                 $execution->assertLeaseOwned();
                 $this->update($c, $execution, $id, function ($r, array &$data) use ($c, $providerId): void {
                     if ($providerId === null) {
@@ -141,7 +149,11 @@ final readonly class AiExecution
         $execution->checkpoint();
         try {
             $result = $this->protocol->parse($fixed['connection']['details']['protocol'], $rawPath, $receipt['headers'], $receipt['status']);
-        } catch (\Throwable) {
+        } catch (\Throwable $parseError) {
+            \think\facade\Log::warning('AI_EXECUTION_PROTOCOL_PARSE_FAILED', [
+                'execution_id' => $id,
+                'error_type' => $parseError::class,
+            ]);
             $this->update($c, $execution, $id, function ($r, array &$data) use ($c): void {
                 $this->quota->settle($c, $r, $data, 'confirmed');
                 $data['stage'] = 'response_unusable';

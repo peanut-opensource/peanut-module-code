@@ -8,11 +8,16 @@ use PeanutAdmin\Modules\Integration\Application\IntegrationAdminApplicationServi
 use PeanutAdmin\Modules\Integration\Application\MachineIdentity;
 use PeanutAdmin\IntegrationSecurity\Application\IntegrationSecurityException;
 use think\response\Json;
+use think\App;
 
-/** @property-read IntegrationAdminApplicationService $machines 当前 App 中声明式解析的控制器依赖。 */
 final class MachineIdentityController extends IntegrationAdminController
 {
-    protected string $machinesClass = IntegrationAdminApplicationService::class;
+    public function __construct(
+        App $app,
+        private readonly IntegrationAdminApplicationService $machines,
+    ) {
+        parent::__construct($app);
+    }
 
     public function index(): Json
     {

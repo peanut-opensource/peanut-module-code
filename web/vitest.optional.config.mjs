@@ -71,7 +71,6 @@ export default {
       'src/modules/peanut-import-export/optional-runtime/tests/**/*.spec.ts',
       'src/modules/peanut-notification/optional-runtime/tests/**/*.spec.ts',
       'src/modules/peanut-task/optional-runtime/tests/**/*.spec.ts',
-      'src/modules/peanut-reference-codes/runtime/tests/**/*.spec.ts',
       'src/modules/peanut-settings/runtime/tests/**/*.spec.ts',
       'src/modules/peanut-content-tools/tests/**/*.spec.ts',
       'src/modules/peanut-rich-text/tests/**/*.spec.ts',

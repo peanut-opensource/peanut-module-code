@@ -11,6 +11,15 @@ interface WorkflowAuthorizationResolver
     /** Native provider SQL constraints, applied before count and pagination. */
     public function applyVisibleScopes(AuthorizedOperationContext $trustedBasis, \think\db\BaseQuery $query): void;
 
+    /** @return list<string> */
+    public function authorizedSubjectKeys(
+        AuthorizedOperationContext $trustedBasis,
+        string $resourceKey,
+        string $operation,
+        array $permissionKeys,
+        array $subjectKeys,
+    ): array;
+
     /** @param non-empty-list<string> $permissionKeys */
     public function authorize(
         AuthorizedOperationContext $trustedBasis,

@@ -11,7 +11,6 @@ const areas = [
   'peanut-import-export/optional-runtime',
   'peanut-notification/optional-runtime',
   'peanut-task/optional-runtime',
-  'peanut-reference-codes/runtime',
   'peanut-settings/runtime',
   'peanut-content-tools',
   'peanut-rich-text',

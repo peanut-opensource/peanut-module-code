@@ -10,11 +10,16 @@ use PeanutAdmin\Modules\Task\Contract\JobRecord;
 use PeanutAdmin\Modules\Task\Job\Application\TaskJobException;
 use PeanutAdmin\Modules\Task\Service\TaskAdminApplicationService;
 use think\response\Json;
+use think\App;
 
-/** @property-read TaskAdminApplicationService $tasks 当前 App 中声明式解析的控制器依赖。 */
 final class TaskJobController extends BaseAdminController
 {
-    protected string $tasksClass = TaskAdminApplicationService::class;
+    public function __construct(
+        App $app,
+        private readonly TaskAdminApplicationService $tasks,
+    ) {
+        parent::__construct($app);
+    }
 
     public function index(): Json
     {

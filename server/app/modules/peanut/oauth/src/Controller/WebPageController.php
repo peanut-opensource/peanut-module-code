@@ -7,11 +7,16 @@ namespace PeanutAdmin\Modules\OAuth\Controller;
 use app\adminapi\controller\BaseAdminController;
 use PeanutAdmin\Modules\OAuth\Service\WebPageApplicationService;
 use PeanutAdmin\Modules\OAuth\Validation\WebPageValidate;
+use think\App;
 
-/** @property-read WebPageApplicationService $webPages 当前 App 中声明式解析的控制器依赖。 */
 class WebPageController extends BaseAdminController
 {
-    protected string $webPagesClass = WebPageApplicationService::class;
+    public function __construct(
+        App $app,
+        private readonly WebPageApplicationService $webPages,
+    ) {
+        parent::__construct($app);
+    }
 
     public function getConfig()
     {

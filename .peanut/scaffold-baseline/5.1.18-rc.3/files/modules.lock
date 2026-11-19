@@ -813,7 +813,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "be179f55202af3e20cdde049f803b3a378986d7428bcc1ef8d528069574afd99"
+                "sha256": "1beaeabe6a85b99943336bfa7b6080d0da355658b07875ac25557c56f86fc5aa"
             },
             "trust": {
                 "channel": "bundled",

@@ -7,14 +7,16 @@ namespace PeanutAdmin\Modules\Task\Controller;
 use app\adminapi\controller\BaseAdminController;
 use PeanutAdmin\Modules\Task\Service\TaskAdminApplicationService;
 use PeanutAdmin\Modules\Task\Validation\CrontabValidate;
+use think\App;
 
-/**
- * 定时任务控制器
- * @property-read TaskAdminApplicationService $crontabs 当前 App 中声明式解析的控制器依赖。
- */
 class CrontabController extends BaseAdminController
 {
-    protected string $crontabsClass = TaskAdminApplicationService::class;
+    public function __construct(
+        App $app,
+        private readonly TaskAdminApplicationService $crontabs,
+    ) {
+        parent::__construct($app);
+    }
 
     public function lists()
     {

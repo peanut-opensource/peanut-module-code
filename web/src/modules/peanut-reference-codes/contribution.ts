@@ -31,17 +31,6 @@ const contribution: ModuleFrontendContribution = {
             requiredPermissions: 'peanut.reference-codes.read',
           },
         },
-        {
-          path: 'reference-codes',
-          name: 'OfficialReferenceCodes',
-          component: () => import('./RuntimePage.vue'),
-          meta: {
-            locale: 'officialReferenceCodes.title',
-            requiresAuth: true,
-            tenantModuleKey: 'peanut.reference-codes',
-            requiredPermissions: 'peanut.reference-codes.read',
-          },
-        },
       ],
     },
   ],

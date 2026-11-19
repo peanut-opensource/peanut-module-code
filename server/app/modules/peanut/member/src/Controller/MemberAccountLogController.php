@@ -6,13 +6,20 @@ namespace PeanutAdmin\Modules\Member\Controller;
 
 use app\api\controller\BaseApiController;
 use PeanutAdmin\Modules\Member\Contract\MemberQueries;
+use think\App;
 
-/** @property-read MemberQueries $members 当前 App 中声明式解析的控制器依赖。 */
 class MemberAccountLogController extends BaseApiController
 {
-    protected string $membersClass = MemberQueries::class;
 
     /** 账户流水 */
+
+    public function __construct(
+        App $app,
+        private readonly MemberQueries $members,
+    ) {
+        parent::__construct($app);
+    }
+
     public function lists()
     {
         $params = [

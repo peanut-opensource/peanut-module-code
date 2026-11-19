@@ -10,13 +10,12 @@ use PeanutAdmin\Modules\Article\Contract\ArticleCategoryAdministration;
 use PeanutAdmin\Modules\Article\Validation\ArticleCateValidate;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use think\response\Json;
+use think\App;
 
-/** @property-read ArticleCategoryAdministration $crud 当前 App 中正式绑定的资讯分类管理用例。 */
 class ArticleCateController extends BaseAdminController
 {
     use CrudTrait;
 
-    protected string $crudClass = ArticleCategoryAdministration::class;
     protected const CRUD_VALIDATE = ArticleCateValidate::class;
     protected const CRUD_ADD_SUCCESS_MESSAGE = '添加成功';
     protected const CRUD_EDIT_SUCCESS_MESSAGE = '编辑成功';
@@ -48,6 +47,13 @@ class ArticleCateController extends BaseAdminController
         'edit' => ['name', 'is_show', 'sort'],
         'status' => ['is_show'],
     ];
+
+    public function __construct(
+        App $app,
+        private readonly ArticleCategoryAdministration $crud,
+    ) {
+        parent::__construct($app);
+    }
 
     protected function resolveCrudContext(): TenantContext
     {

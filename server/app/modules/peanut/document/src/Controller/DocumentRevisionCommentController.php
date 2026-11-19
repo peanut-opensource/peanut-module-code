@@ -7,17 +7,22 @@ namespace PeanutAdmin\Modules\Document\Controller;
 use app\adminapi\controller\BaseAdminController;
 use app\common\exception\BusinessException;
 use PeanutAdmin\Modules\Document\Contract\DocumentRevisionComments;
+use think\App;
 
 /** Authenticated contextual entry: actor identity always comes from the native session. */
 class DocumentRevisionCommentController extends BaseAdminController
 {
-    protected string $commandsClass = DocumentRevisionComments::class;
-    protected string $queriesClass = DocumentRevisionComments::class;
+    public function __construct(
+        App $app,
+        private readonly DocumentRevisionComments $comments,
+    ) {
+        parent::__construct($app);
+    }
 
     public function threads()
     {
         $input = $this->query(['document_id', 'revision_id', 'limit', 'before_thread_id']);
-        return $this->data($this->queries->threads(
+        return $this->data($this->comments->threads(
             $this->tenantAdminContext(),
             self::id($input, 'document_id'),
             self::id($input, 'revision_id'),
@@ -28,7 +33,7 @@ class DocumentRevisionCommentController extends BaseAdminController
     public function thread()
     {
         $input = $this->query(['document_id', 'revision_id', 'thread_id', 'limit', 'after_message_id']);
-        return $this->data($this->queries->thread(
+        return $this->data($this->comments->thread(
             $this->tenantAdminContext(),
             self::id($input, 'document_id'),
             self::id($input, 'revision_id'),
@@ -39,29 +44,29 @@ class DocumentRevisionCommentController extends BaseAdminController
     }
     public function createThread()
     {
-        return $this->submit('createThread');
+        return $this->submit($this->comments->createThread(...));
     }
     public function reply()
     {
-        return $this->submit('reply');
+        return $this->submit($this->comments->reply(...));
     }
     public function resolve()
     {
-        return $this->submit('resolve');
+        return $this->submit($this->comments->resolve(...));
     }
     public function reopen()
     {
-        return $this->submit('reopen');
+        return $this->submit($this->comments->reopen(...));
     }
 
-    protected function submit(string $method)
+    protected function submit(callable $command)
     {
         $input = $this->request->post();
         $documentId = self::id($input, 'document_id');
         $revisionId = self::id($input, 'revision_id');
         unset($input['document_id'], $input['revision_id']);
         // The public service validates every remaining key, including rejecting tenant/actor overrides.
-        return $this->data($this->commands->$method($this->tenantAdminContext(), $documentId, $revisionId, $input));
+        return $this->data($command($this->tenantAdminContext(), $documentId, $revisionId, $input));
     }
 
     private function query(array $fields): array

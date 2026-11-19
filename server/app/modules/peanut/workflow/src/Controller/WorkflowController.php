@@ -12,18 +12,19 @@ use PeanutAdmin\Modules\Workflow\Application\WorkflowException;
 use PeanutAdmin\Modules\Workflow\Http\WorkflowHttpContext;
 use PeanutAdmin\Kernel\Api\ApiException;
 use think\response\Json;
+use think\App;
 
-/** @property-read WorkflowCommands $commands
- * @property-read WorkflowQueries $queries
- * @property-read WorkflowHttpContext $workflowContext
- * @property-read \PeanutAdmin\Modules\Workflow\Application\WorkflowNotificationDelivery $notifications
- */
 final class WorkflowController extends BaseAdminController
 {
-    protected string $commandsClass = WorkflowCommands::class;
-    protected string $queriesClass = WorkflowQueries::class;
-    protected string $workflowContextClass = WorkflowHttpContext::class;
-    protected string $notificationsClass = \PeanutAdmin\Modules\Workflow\Application\WorkflowNotificationDelivery::class;
+    public function __construct(
+        App $app,
+        private readonly WorkflowCommands $commands,
+        private readonly WorkflowQueries $queries,
+        private readonly WorkflowHttpContext $workflowContext,
+        private readonly \PeanutAdmin\Modules\Workflow\Application\WorkflowNotificationDelivery $notifications,
+    ) {
+        parent::__construct($app);
+    }
 
     public function summary(string $moduleKey, string $workflowKey): Json
     {

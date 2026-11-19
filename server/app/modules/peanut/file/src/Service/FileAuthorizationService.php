@@ -42,13 +42,19 @@ final readonly class FileAuthorizationService
 
     public function authorizePublic(array $object): string
     {
-        if ($object['status'] !== 'ready' || $object['access_type'] !== 'public' || !\PeanutAdmin\Modules\File\Value\Storage\StoragePurpose::allowsDocumentPreviewInheritance($object['purpose'])) {
-            throw BusinessException::forbidden('FILE_PUBLIC_ACCESS_DENIED', '资源不能公开交付');
-        }
+        $this->assertPublicObject($object);
         $guard = new ModuleGuard($this->modules);
         $installation = $guard->assertDeployment('peanut.file');
         $tenantModule = $guard->assertTenant((int) $object['tenant_id'], 'peanut.file', new DateTimeImmutable('now', new DateTimeZone('UTC')));
         return hash('sha256', json_encode([$installation, $tenantModule], JSON_THROW_ON_ERROR));
+    }
+
+    /** Object policy for callers that already validated this tenant's public authorization. */
+    public function assertPublicObject(array $object): void
+    {
+        if ($object['status'] !== 'ready' || $object['access_type'] !== 'public' || !\PeanutAdmin\Modules\File\Value\Storage\StoragePurpose::allowsDocumentPreviewInheritance($object['purpose'])) {
+            throw BusinessException::forbidden('FILE_PUBLIC_ACCESS_DENIED', '资源不能公开交付');
+        }
     }
 
     public function requireManagementPermission(TenantContext $context, string $permission): void

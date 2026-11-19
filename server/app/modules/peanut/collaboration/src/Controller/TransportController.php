@@ -7,10 +7,16 @@ namespace PeanutAdmin\Modules\Collaboration\Controller;
 use app\adminapi\controller\BaseAdminController;
 use app\common\exception\BusinessException;
 use PeanutAdmin\Modules\Collaboration\Service\CollaborationService;
+use think\App;
 
 final class TransportController extends BaseAdminController
 {
-    protected string $collaborationClass = CollaborationService::class;
+    public function __construct(
+        App $app,
+        private readonly CollaborationService $collaboration,
+    ) {
+        parent::__construct($app);
+    }
 
     public function resolve()
     {

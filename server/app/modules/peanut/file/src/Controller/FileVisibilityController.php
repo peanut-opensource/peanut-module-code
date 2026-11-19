@@ -7,11 +7,16 @@ namespace PeanutAdmin\Modules\File\Controller;
 use app\adminapi\controller\BaseAdminController;
 use app\common\exception\BusinessException;
 use PeanutAdmin\Modules\File\Contract\FileVisibility;
+use think\App;
 
-/** @property-read FileVisibility $visibility */
 final class FileVisibilityController extends BaseAdminController
 {
-    protected string $visibilityClass = FileVisibility::class;
+    public function __construct(
+        App $app,
+        private readonly FileVisibility $visibility,
+    ) {
+        parent::__construct($app);
+    }
 
     public function preview()
     {

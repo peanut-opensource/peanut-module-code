@@ -8,11 +8,16 @@ use app\adminapi\controller\BaseAdminController;
 use PeanutAdmin\Modules\Payment\Service\RechargeAdministrationService;
 use PeanutAdmin\Modules\Payment\Validation\RechargeValidate;
 use app\common\http\JsonResponseFactory;
+use think\App;
 
-/** @property-read RechargeAdministrationService $recharges 当前 App 中声明式解析的控制器依赖。 */
 class RechargeController extends BaseAdminController
 {
-    protected string $rechargesClass = RechargeAdministrationService::class;
+    public function __construct(
+        App $app,
+        private readonly RechargeAdministrationService $recharges,
+    ) {
+        parent::__construct($app);
+    }
 
     public function lists()
     {

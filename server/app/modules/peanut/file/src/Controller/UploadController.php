@@ -10,11 +10,16 @@ use PeanutAdmin\Modules\File\Contract\Dto\UploadFile;
 use PeanutAdmin\Modules\File\Enum\FileEnum;
 use think\file\UploadedFile;
 use app\common\exception\BusinessException;
+use think\App;
 
-/** @property-read FileUploads $uploads 当前 App 中声明式解析的控制器依赖。 */
 class UploadController extends BaseAdminController
 {
-    protected string $uploadsClass = FileUploads::class;
+    public function __construct(
+        App $app,
+        private readonly FileUploads $uploads,
+    ) {
+        parent::__construct($app);
+    }
 
     public function image()
     {

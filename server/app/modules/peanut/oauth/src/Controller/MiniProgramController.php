@@ -7,11 +7,16 @@ namespace PeanutAdmin\Modules\OAuth\Controller;
 use app\adminapi\controller\BaseAdminController;
 use PeanutAdmin\Modules\OAuth\Service\MiniProgramApplicationService;
 use PeanutAdmin\Modules\OAuth\Validation\MiniProgramValidate;
+use think\App;
 
-/** @property-read MiniProgramApplicationService $miniPrograms 当前 App 中声明式解析的控制器依赖。 */
 class MiniProgramController extends BaseAdminController
 {
-    protected string $miniProgramsClass = MiniProgramApplicationService::class;
+    public function __construct(
+        App $app,
+        private readonly MiniProgramApplicationService $miniPrograms,
+    ) {
+        parent::__construct($app);
+    }
 
     public function getConfig()
     {

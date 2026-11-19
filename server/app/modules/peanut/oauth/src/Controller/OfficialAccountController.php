@@ -7,11 +7,16 @@ namespace PeanutAdmin\Modules\OAuth\Controller;
 use app\adminapi\controller\BaseAdminController;
 use PeanutAdmin\Modules\OAuth\Service\OfficialAccountApplicationService;
 use PeanutAdmin\Modules\OAuth\Validation\OfficialAccountValidate;
+use think\App;
 
-/** @property-read OfficialAccountApplicationService $officialAccounts 当前 App 中声明式解析的控制器依赖。 */
 class OfficialAccountController extends BaseAdminController
 {
-    protected string $officialAccountsClass = OfficialAccountApplicationService::class;
+    public function __construct(
+        App $app,
+        private readonly OfficialAccountApplicationService $officialAccounts,
+    ) {
+        parent::__construct($app);
+    }
 
     public function getConfig()
     {

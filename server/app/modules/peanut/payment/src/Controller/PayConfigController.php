@@ -7,11 +7,16 @@ namespace PeanutAdmin\Modules\Payment\Controller;
 use app\adminapi\controller\BaseAdminController;
 use PeanutAdmin\Modules\Payment\Service\PayConfigApplicationService;
 use PeanutAdmin\Modules\Payment\Validation\PayConfigValidate;
+use think\App;
 
-/** @property-read PayConfigApplicationService $payConfigs 当前 App 中声明式解析的控制器依赖。 */
 class PayConfigController extends BaseAdminController
 {
-    protected string $payConfigsClass = PayConfigApplicationService::class;
+    public function __construct(
+        App $app,
+        private readonly PayConfigApplicationService $payConfigs,
+    ) {
+        parent::__construct($app);
+    }
 
     public function getConfig()
     {

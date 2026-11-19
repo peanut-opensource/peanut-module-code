@@ -83,7 +83,6 @@
   import { encodeStateAsUpdate } from 'yjs';
   import { useUserStore } from '@/store';
   import { getSessionSnapshot } from '@/utils/auth';
-  import randomUuid from '@/utils/random-uuid';
   import ContentEditor from '@/modules/peanut-content-tools/src/ContentEditor.vue';
   import ContentViewer from '@/modules/peanut-content-tools/src/ContentViewer.vue';
   import createRegistry from '@/modules/peanut-content-tools/src/contributions';
@@ -646,7 +645,7 @@
         structured,
       ]);
       if (attempt?.input !== input)
-        attempt = { input, requestId: randomUuid() };
+        attempt = { input, requestId: globalThis.crypto.randomUUID() };
       const response = await saveSoloDocument(
         data.document_id,
         data.state_seq,

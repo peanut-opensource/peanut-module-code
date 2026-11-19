@@ -10,14 +10,16 @@ use app\common\exception\BusinessException;
 use app\common\http\RequestTrace;
 use PeanutAdmin\Modules\Integration\Contract\ExternalTenantResolutionException;
 use PeanutAdmin\Kernel\Module\ModuleException;
+use think\App;
 
-/**
- * 公众号协议适配：用例负责验签及执行范围，这里只保留 HTTP 输入和响应映射。
- * @property-read OfficialAccountCallbackService $application 当前 App 中声明式解析的控制器依赖。
- */
 class OfficialAccountCallbackController extends BaseApiController
 {
-    protected string $applicationClass = OfficialAccountCallbackService::class;
+    public function __construct(
+        App $app,
+        private readonly OfficialAccountCallbackService $application,
+    ) {
+        parent::__construct($app);
+    }
 
     public function verify()
     {

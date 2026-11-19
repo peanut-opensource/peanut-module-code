@@ -6,11 +6,16 @@ namespace PeanutAdmin\Modules\ImportExport\Controller;
 
 use app\adminapi\controller\BaseAdminController;
 use PeanutAdmin\Modules\ImportExport\Service\OperationLogExportApplicationService;
+use think\App;
 
-/** @property-read OperationLogExportApplicationService $exports 当前 App 中声明式解析的控制器依赖。 */
 final class OperationLogExportController extends BaseAdminController
 {
-    protected string $exportsClass = OperationLogExportApplicationService::class;
+    public function __construct(
+        App $app,
+        private readonly OperationLogExportApplicationService $exports,
+    ) {
+        parent::__construct($app);
+    }
 
     public function export()
     {

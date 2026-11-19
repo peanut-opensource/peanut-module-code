@@ -9,11 +9,16 @@ use app\common\http\ApiProblem;
 use PeanutAdmin\Modules\Settings\Application\SettingException;
 use PeanutAdmin\Modules\Settings\Service\SettingsHttpApplicationService;
 use think\response\Json;
+use think\App;
 
-/** @property-read SettingsHttpApplicationService $settings 当前 App 中声明式解析的控制器依赖。 */
 final class SettingsController extends BaseAdminController
 {
-    protected string $settingsClass = SettingsHttpApplicationService::class;
+    public function __construct(
+        App $app,
+        private readonly SettingsHttpApplicationService $settings,
+    ) {
+        parent::__construct($app);
+    }
 
     public function index(): Json
     {

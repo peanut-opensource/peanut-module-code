@@ -10,11 +10,16 @@ use PeanutAdmin\Modules\Notification\Delivery\Application\NotificationException;
 use PeanutAdmin\Modules\Notification\Delivery\Application\NotificationMessage;
 use PeanutAdmin\Modules\Notification\Service\NotificationAdminApplicationService;
 use think\response\Json;
+use think\App;
 
-/** @property-read NotificationAdminApplicationService $notifications 当前 App 中声明式解析的控制器依赖。 */
 final class NotificationInboxController extends BaseAdminController
 {
-    protected string $notificationsClass = NotificationAdminApplicationService::class;
+    public function __construct(
+        App $app,
+        private readonly NotificationAdminApplicationService $notifications,
+    ) {
+        parent::__construct($app);
+    }
 
     public function index(): Json
     {

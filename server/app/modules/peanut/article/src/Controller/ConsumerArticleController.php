@@ -8,15 +8,17 @@ use app\api\controller\BaseApiController;
 use app\common\validate\ListsValidate;
 use app\common\exception\BusinessException;
 use PeanutAdmin\Modules\Article\Contract\PublicArticleQueries;
+use think\App;
 
-/**
- * @property-read PublicArticleQueries $articles
- * @property-read \PeanutAdmin\Modules\Article\Service\ArticleLandingService $landing
- */
 class ConsumerArticleController extends BaseApiController
 {
-    protected string $articlesClass = PublicArticleQueries::class;
-    protected string $landingClass = \PeanutAdmin\Modules\Article\Service\ArticleLandingService::class;
+    public function __construct(
+        App $app,
+        private readonly PublicArticleQueries $articles,
+        private readonly \PeanutAdmin\Modules\Article\Service\ArticleLandingService $landing,
+    ) {
+        parent::__construct($app);
+    }
 
     public function mobileIndex()
     {

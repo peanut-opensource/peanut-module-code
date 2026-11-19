@@ -1,6 +1,6 @@
 {
   "name": "@peanut-admin/peanut-oauth",
-  "version": "1.0.12",
+  "version": "1.0.13-rc.1",
   "private": true,
   "license": "Apache-2.0",
   "type": "module",

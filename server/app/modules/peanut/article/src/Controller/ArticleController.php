@@ -10,13 +10,19 @@ use PeanutAdmin\Modules\Article\Contract\ArticleAdministration;
 use PeanutAdmin\Modules\Article\Validation\ArticleValidate;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use think\response\Json;
+use think\App;
 
-/** @property-read ArticleAdministration $crud 当前 App 中正式绑定的资讯管理用例。 */
 class ArticleController extends BaseAdminController
 {
     use CrudTrait;
 
-    protected string $crudClass = ArticleAdministration::class;
+    public function __construct(
+        App $app,
+        private readonly ArticleAdministration $crud,
+    ) {
+        parent::__construct($app);
+    }
+
     public function bodyHtmlPreview(): Json
     {
         $input = $this->bodyInput($this->request->get(), false);

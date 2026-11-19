@@ -11,11 +11,16 @@ use PeanutAdmin\Modules\ImportExport\Engine\Application\ImportExportException;
 use PeanutAdmin\Modules\ImportExport\Service\ImportExportAdminApplicationService;
 use think\Response;
 use think\response\Json;
+use think\App;
 
-/** @property-read ImportExportAdminApplicationService $operations 当前 App 中声明式解析的控制器依赖。 */
 final class ImportExportOperationController extends BaseAdminController
 {
-    protected string $operationsClass = ImportExportAdminApplicationService::class;
+    public function __construct(
+        App $app,
+        private readonly ImportExportAdminApplicationService $operations,
+    ) {
+        parent::__construct($app);
+    }
 
     public function index(): Json
     {

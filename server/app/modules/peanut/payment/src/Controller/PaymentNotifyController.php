@@ -8,14 +8,16 @@ use app\api\controller\BaseApiController;
 use PeanutAdmin\Modules\Payment\Service\PaymentCallbackApplicationService;
 use PeanutAdmin\Modules\Payment\Infrastructure\Channel\CallbackRequest;
 use app\common\http\RequestTrace;
+use think\App;
 
-/**
- * 支付回调 HTTP 适配：保留签名原文和渠道确认格式，不在控制器编排入账。
- * @property-read PaymentCallbackApplicationService $application 当前 App 中声明式解析的控制器依赖。
- */
 class PaymentNotifyController extends BaseApiController
 {
-    protected string $applicationClass = PaymentCallbackApplicationService::class;
+    public function __construct(
+        App $app,
+        private readonly PaymentCallbackApplicationService $application,
+    ) {
+        parent::__construct($app);
+    }
 
     public function wechat()
     {

@@ -8,12 +8,19 @@ use app\adminapi\controller\BaseAdminController;
 use app\common\exception\BusinessException;
 use PeanutAdmin\Modules\Document\Contract\DocumentCommands;
 use PeanutAdmin\Modules\Document\Contract\DocumentQueries;
+use think\App;
 
 /** Authenticated contextual API; the use case always resolves the compiled owner and current business permission. */
 class DocumentController extends BaseAdminController
 {
-    protected string $commandsClass = DocumentCommands::class;
-    protected string $queriesClass = DocumentQueries::class;
+    public function __construct(
+        App $app,
+        private readonly DocumentCommands $commands,
+        private readonly DocumentQueries $queries,
+    ) {
+        parent::__construct($app);
+    }
+
     public function detail()
     {
         $in = $this->input(false, ['document_id','revision_id']);

@@ -7,11 +7,16 @@ namespace PeanutAdmin\Modules\OAuth\Controller;
 use app\adminapi\controller\BaseAdminController;
 use PeanutAdmin\Modules\OAuth\Service\OpenPlatformApplicationService;
 use PeanutAdmin\Modules\OAuth\Validation\OpenPlatformValidate;
+use think\App;
 
-/** @property-read OpenPlatformApplicationService $openPlatforms 当前 App 中声明式解析的控制器依赖。 */
 class OpenPlatformController extends BaseAdminController
 {
-    protected string $openPlatformsClass = OpenPlatformApplicationService::class;
+    public function __construct(
+        App $app,
+        private readonly OpenPlatformApplicationService $openPlatforms,
+    ) {
+        parent::__construct($app);
+    }
 
     public function getConfig()
     {

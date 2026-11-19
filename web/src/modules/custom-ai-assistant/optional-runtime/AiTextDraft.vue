@@ -34,7 +34,6 @@
   import { hasPermission } from '@/hooks/permission';
   import { registerTenantDisposer } from '@peanut-admin/vue';
   import { getSessionSnapshot } from '@/utils/auth';
-  import randomUuid from '@/utils/random-uuid';
   import { generateText, textRoutes, type GenerateTextInput, type Lookup } from '../text-draft-api';
 
   const props = defineProps<{ consumerModule: string; contextKey: string; disabled: boolean }>();
@@ -64,7 +63,7 @@
     page = 0; routes.value = []; routeId.value = undefined; more.value = false; topic.value = ''; outline.value = ''; resetInput();
   }
   watch(() => [props.contextKey, props.consumerModule, props.disabled, canUse.value], clear, { flush: 'sync' });
-  const dispose = registerTenantDisposer(`custom.ai-assistant.draft.${randomUuid()}`, clear);
+  const dispose = registerTenantDisposer(`custom.ai-assistant.draft.${globalThis.crypto.randomUUID()}`, clear);
   onBeforeUnmount(() => { clear(); dispose(); });
   async function readRoutes() {
     if (loading.value || props.disabled || !canUse.value) return;
@@ -91,7 +90,7 @@
     const { signal } = controller;
     const { generation } = getSessionSnapshot();
     const request = original.value ?? { route_id: routeId.value, consumer_module: props.consumerModule,
-      topic: topic.value.trim(), outline: outline.value.trim(), request_id: randomUuid(), confirm_send: true as const };
+      topic: topic.value.trim(), outline: outline.value.trim(), request_id: globalThis.crypto.randomUUID(), confirm_send: true as const };
     original.value = request; busy.value = true; error.value = '';
     try {
       const result = await generateText(request, signal);

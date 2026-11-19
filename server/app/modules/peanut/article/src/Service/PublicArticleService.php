@@ -15,6 +15,7 @@ use app\common\support\PaginationInput;
 use PeanutAdmin\Modules\Article\Contract\PublicArticleQueries;
 use PeanutAdmin\Modules\Member\Contract\MemberCollectionCounts;
 use PeanutAdmin\Kernel\Context\AuthenticatedMemberContext;
+use PeanutAdmin\Kernel\Context\TenantSystemContext;
 
 /** Serves public article reads and authenticated member collection commands. */
 final class PublicArticleService implements PublicArticleQueries, MemberCollectionCounts
@@ -70,6 +71,38 @@ final class PublicArticleService implements PublicArticleQueries, MemberCollecti
         unset($row);
 
         return new PageResult($lists, $pageResult->total, $pageResult->page, $pageResult->pageSize);
+    }
+
+    public function publishedCardsSql(TenantSystemContext $context): string
+    {
+        return Article::where([])->where('tenant_id', $context->tenantId)->where('is_show', 1)
+            ->field(['id', 'title', 'abstract', 'desc' => 'description'])->buildSql();
+    }
+
+    /** @inheritDoc */
+    public function summariesByIds(array $ids): array
+    {
+        if (!array_is_list($ids) || count($ids) > 200) {
+            throw BusinessException::invalid('ARTICLE_SUMMARY_IDS_INVALID', 'A maximum of 200 article summary IDs is supported.');
+        }
+        foreach ($ids as $id) {
+            if (!is_int($id) || $id < 1) {
+                throw BusinessException::invalid('ARTICLE_SUMMARY_IDS_INVALID', 'IDs must be positive integers.');
+            }
+        }
+        if ($ids === []) {
+            return [];
+        }
+
+        $rows = Article::where([])->whereIn('id', array_values(array_unique($ids)))->where('is_show', 1)
+            ->field(['id', 'cid', 'title', 'abstract', 'desc', 'image', 'author', 'create_time'])
+            ->select()->toArray();
+        $summaries = [];
+        foreach ($rows as $row) {
+            $row['image'] = $this->assets->forRead((string) ($row['image'] ?? ''));
+            $summaries[(int) $row['id']] = $row;
+        }
+        return $summaries;
     }
 
     public function categories(): array

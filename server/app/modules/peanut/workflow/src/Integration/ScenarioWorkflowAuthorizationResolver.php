@@ -40,4 +40,20 @@ final readonly class ScenarioWorkflowAuthorizationResolver implements WorkflowAu
             }
         });
     }
+
+    public function authorizedSubjectKeys(AuthorizedOperationContext $trustedBasis, string $resourceKey, string $operation, array $permissionKeys, array $subjectKeys): array
+    {
+        $access = $this->scenarios->access($resourceKey);
+        if (!$access instanceof WorkflowScenarioBatchAccess || $permissionKeys === [] || $subjectKeys === []) {
+            return [];
+        }
+
+        return $access->authorizedSubjectKeys(
+            $trustedBasis,
+            $resourceKey,
+            $operation,
+            $permissionKeys,
+            array_values(array_unique($subjectKeys)),
+        );
+    }
 }

@@ -13,6 +13,7 @@
   },
   "include": ["src/**/*.ts", "src/**/*.vue"],
   "exclude": [
-    "src/modules/peanut-ops/runtime/tests/**"
+    "src/modules/peanut-ops/runtime/tests/**",
+    "src/modules/governance/optional-runtime/tests/**"
   ]
 }

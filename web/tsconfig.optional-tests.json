@@ -17,7 +17,6 @@
     "src/modules/peanut-import-export/optional-runtime/tests/**/*.ts",
     "src/modules/peanut-notification/optional-runtime/tests/**/*.ts",
     "src/modules/peanut-task/optional-runtime/tests/**/*.ts",
-    "src/modules/peanut-reference-codes/runtime/tests/**/*.ts",
     "src/modules/peanut-settings/runtime/tests/**/*.ts",
     "src/modules/peanut-content-tools/tests/**/*.ts",
     "src/env.d.ts",

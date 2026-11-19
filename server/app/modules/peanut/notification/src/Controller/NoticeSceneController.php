@@ -7,11 +7,16 @@ namespace PeanutAdmin\Modules\Notification\Controller;
 use app\adminapi\controller\BaseAdminController;
 use PeanutAdmin\Modules\Notification\Service\NotificationAdminApplicationService;
 use PeanutAdmin\Modules\Notification\Validation\NoticeSceneValidate;
+use think\App;
 
-/** @property-read NotificationAdminApplicationService $notifications 当前 App 中声明式解析的控制器依赖。 */
 class NoticeSceneController extends BaseAdminController
 {
-    protected string $notificationsClass = NotificationAdminApplicationService::class;
+    public function __construct(
+        App $app,
+        private readonly NotificationAdminApplicationService $notifications,
+    ) {
+        parent::__construct($app);
+    }
 
     public function lists()
     {

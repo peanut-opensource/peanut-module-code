@@ -7,14 +7,16 @@ namespace PeanutAdmin\Modules\ImportExport\Controller;
 use PeanutAdmin\Modules\ImportExport\Service\TenantConfigurationTransferService;
 use app\adminapi\controller\BaseAdminController;
 use app\common\exception\BusinessException;
+use think\App;
 
-/**
- * Tenant-scoped, path-free configuration package HTTP Host.
- * @property-read TenantConfigurationTransferService $transfers 当前 App 中声明式解析的控制器依赖。
- */
 final class ConfigurationTransferController extends BaseAdminController
 {
-    protected string $transfersClass = TenantConfigurationTransferService::class;
+    public function __construct(
+        App $app,
+        private readonly TenantConfigurationTransferService $transfers,
+    ) {
+        parent::__construct($app);
+    }
 
     public function export()
     {

@@ -41,16 +41,13 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, shallowRef, watch, type ComponentPublicInstance } from 'vue';
+  import { computed, ref, shallowRef, type ComponentPublicInstance } from 'vue';
   import { PageContent, PageHeader } from '@peanut-admin/ui-vue';
   import { Chart, type EChartsOption } from '@peanut-admin/peanut-chart/charts';
-  import useThemes from '@/hooks/themes';
+  import { useAppStore } from '@/store';
 
-  const { isDark } = useThemes();
-  const dark = ref(isDark.value);
-  watch(isDark, (value) => {
-    dark.value = value;
-  });
+  const app = useAppStore();
+  const dark = computed(() => app.theme === 'dark');
   const loading = ref(false);
   const lineChartReady = ref(false);
   const interaction = ref('点击图形查看事件');

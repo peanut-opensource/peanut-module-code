@@ -81,6 +81,38 @@ final class CoreTenantModuleAdminBridge
     }
 
     /**
+     * Lightweight, revision-keyed cached payload for /adminapi/user/info.
+     * Skips unused registered_permissions / registered_system_menu_permissions calculations.
+     *
+     * @return array{menu:list<array<string,mixed>>,permissions:list<string>,system_menu_rows:list<array<string,mixed>>,managed_menu_keys:list<string>,assignable_menu_records:list<array<string,mixed>>}
+     */
+    public function userAccessData(TenantContext $tenantContext): array
+    {
+        if ($tenantContext->tenantId < 1 || $tenantContext->memberId < 1) {
+            return ['menu' => [], 'permissions' => [], 'system_menu_rows' => [], 'managed_menu_keys' => [], 'assignable_menu_records' => []];
+        }
+        $pdo = Db::connect()->getPdo();
+        if ($pdo !== false && $pdo->inTransaction()) {
+            return $this->accessProjection($tenantContext, false, true);
+        }
+        $license = $this->entitlements->license($tenantContext->tenantId, context: $tenantContext);
+        $cacheKey = implode(':', [
+            'admin:user-access:v1',
+            $tenantContext->tenantId,
+            $tenantContext->memberId,
+            $tenantContext->authorizationRevision,
+            $tenantContext->tenantAuthorizationRevision,
+            $license['state'] ?? 'missing',
+            (int) ($license['revision'] ?? 0),
+        ]);
+        return Cache::remember(
+            $cacheKey,
+            fn(): array => $this->accessProjection($tenantContext, false, true),
+            300,
+        );
+    }
+
+    /**
      * One read-only Admin Shell projection; all qualification inputs are read here.
      * @return array{menu:list<array<string,mixed>>,permissions:list<string>,registered_permissions:list<string>,registered_system_menu_permissions:list<string>,managed_menu_keys:list<string>,system_menu_rows:list<array<string,mixed>>,assignable_menu_records:list<array<string,mixed>>}
      */
@@ -90,7 +122,7 @@ final class CoreTenantModuleAdminBridge
     }
 
     /** Local values never survive this call or bypass a later independent qualification. */
-    private function accessProjection(mixed $tenantContext, bool $includeShell): array
+    private function accessProjection(mixed $tenantContext, bool $includeShell, bool $includeActionBindings = false): array
     {
         if (!$tenantContext instanceof TenantContext
             || $tenantContext->tenantId < 1
@@ -115,6 +147,8 @@ final class CoreTenantModuleAdminBridge
             'instance.tenant',
             ...array_filter($tenantModules, static fn(string $key): bool => isset($installed[$key])),
         ]));
+        $nativeRecords = $this->cachedMenuRecords();
+        $definitions = $this->activeDefinitionsFromRecords($nativeRecords);
         $corePermissions = ($tenantOwner || $includeShell) ? $this->registeredCoreTenantPermissions() : [];
         $registeredPermissions = ($tenantOwner || $includeShell)
             ? $this->registeredLicensedSubset(
@@ -122,14 +156,12 @@ final class CoreTenantModuleAdminBridge
                 $entitlements['modules'],
                 installed: $installed,
             ) : [];
-        $definitions = $this->menuCatalog->activeDefinitions('tenant');
         $visible = (new MenuRegistry($definitions))->visible(
             'admin-web',
             static fn(string $moduleKey): bool => in_array($moduleKey, $deploymentModules, true),
             static fn(string $moduleKey): bool => in_array($moduleKey, $tenantModules, true),
             static fn(string $permission): bool => in_array($permission, $permissions, true),
         );
-        $nativeRecords = ($includeShell || $visible !== []) ? $this->cachedMenuRecords() : [];
         $systemMenus = [];
         $data = [
             'menu' => $visible === [] ? [] : $this->renderServerMenuRecords(
@@ -159,6 +191,10 @@ final class CoreTenantModuleAdminBridge
                 static fn(string $permission): bool => in_array($permission, $entitlements['permissions'], true),
             );
             $data['assignable_menu_records'] = $this->renderServerMenuRecords($assignable, $systemMenus, $nativeRecords, null);
+        } elseif ($includeActionBindings) {
+            $data['managed_menu_keys'] = array_column($nativeRecords, 'key');
+            $data['system_menu_rows'] = $systemMenus;
+            $data['assignable_menu_records'] = $data['menu'];
         }
         return $data;
     }
@@ -507,6 +543,40 @@ final class CoreTenantModuleAdminBridge
     private function cachedMenuRecords(): array
     {
         return $this->menuRecordsCache ??= $this->menuAdministration->records();
+    }
+
+    /**
+     * @param list<array<string,mixed>> $records
+     * @return list<MenuDefinition>
+     */
+    private function activeDefinitionsFromRecords(array $records): array
+    {
+        $definitions = [];
+        foreach ($records as $row) {
+            if (($row['scope'] ?? null) !== 'tenant' || ($row['status'] ?? null) !== 'active') {
+                continue;
+            }
+            $rawClientKeys = $row['client_keys_json'] ?? ($row['client_keys'] ?? []);
+            $clientKeys = is_array($rawClientKeys) ? $rawClientKeys : json_decode((string) $rawClientKeys, true);
+            $definitions[] = new MenuDefinition(
+                key: (string) $row['key'],
+                moduleKey: (string) $row['module_key'],
+                scope: (string) $row['scope'],
+                parentKey: $row['parent_key'] === null ? null : (string) $row['parent_key'],
+                type: (string) $row['type'],
+                name: (string) $row['name'],
+                routeName: $row['route_name'] === null ? null : (string) $row['route_name'],
+                routePath: $row['route_path'] === null ? null : (string) $row['route_path'],
+                componentKey: $row['component_key'] === null ? null : (string) $row['component_key'],
+                requiredPermission: ($row['instance_permission'] ?? null) !== null
+                    ? (string) $row['instance_permission']
+                    : ($row['required_permission'] === null ? null : (string) $row['required_permission']),
+                clientKeys: is_array($clientKeys) ? array_values(array_map('strval', $clientKeys)) : [],
+                sortOrder: (int) ($row['sort_order'] ?? 0),
+                icon: $row['icon'] === null ? null : (string) $row['icon'],
+            );
+        }
+        return $definitions;
     }
 
     /**

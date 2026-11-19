@@ -7,13 +7,20 @@ namespace PeanutAdmin\Modules\Member\Controller;
 use app\api\controller\BaseApiController;
 use PeanutAdmin\Modules\Member\Service\UserApplicationService;
 use app\common\exception\BusinessException;
+use think\App;
 
-/** @property-read UserApplicationService $users 当前 App 中声明式解析的控制器依赖。 */
 class MemberSelfController extends BaseApiController
 {
-    protected string $usersClass = UserApplicationService::class;
 
     /** 用户中心 */
+
+    public function __construct(
+        App $app,
+        private readonly UserApplicationService $users,
+    ) {
+        parent::__construct($app);
+    }
+
     public function center()
     {
         $data = $this->users->center($this->memberContext(), $this->memberId);

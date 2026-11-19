@@ -10,13 +10,12 @@ use PeanutAdmin\Modules\ReferenceCodes\Validation\DictDataValidate;
 use app\common\traits\CrudTrait;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use think\response\Json;
+use think\App;
 
-/** @property-read DictDataApplicationService $dictionaryData 当前 App 中声明式解析的控制器依赖。 */
 class DictDataController extends BaseAdminController
 {
     use CrudTrait;
 
-    protected string $dictionaryDataClass = DictDataApplicationService::class;
     protected const CRUD_VALIDATE = DictDataValidate::class;
     protected const CRUD_NOT_FOUND_MESSAGE = '字典数据不存在';
     protected const CRUD_INPUT_FIELDS = [
@@ -31,6 +30,13 @@ class DictDataController extends BaseAdminController
         'edit' => ['name', 'value', 'sort', 'is_disable', 'remark'],
         'status' => ['is_disable'],
     ];
+
+    public function __construct(
+        App $app,
+        private readonly DictDataApplicationService $dictionaryData,
+    ) {
+        parent::__construct($app);
+    }
 
     protected function resolveCrudContext(): TenantContext
     {

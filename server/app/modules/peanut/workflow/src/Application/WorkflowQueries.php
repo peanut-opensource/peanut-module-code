@@ -107,7 +107,7 @@ final readonly class WorkflowQueries
                         continue;
                     }
                 }
-                if ($action === 'withdraw' && ((int) $row['initiated_by_member_id'] !== $c->tenantContext->memberId || $row['substantive_at'] !== null)) {
+                if ($action === 'withdraw' && !$this->canConsiderWithdraw($c, $row)) {
                     continue;
                 }
                 if ($action === 'retry' && $row['status'] !== 'blocked') {
@@ -133,6 +133,93 @@ final readonly class WorkflowQueries
             $blocker = ['code' => 'ACTION_BLOCKED', 'message' => $row['blocked_reason'], 'node_execution_key' => $nodes[0]['node_execution_key'] ?? ''];
         }
         return ['instance_key' => $row['instance_key'], 'status' => $row['status'], 'result_code' => $row['result_code'], 'revision' => (int) $row['revision'], 'subject_type' => $row['subject_type'], 'subject_key' => $row['subject_key'], 'subject_revision_key' => $row['subject_revision_key'], 'active_nodes' => $nodes, 'own_work_items' => $own, 'reassign_work_items' => $reassignable, 'available_actions' => $actions, 'event_cursor' => (int) Event::scope('tenant', $this->scope($c))->where('instance_id', $row['id'])->max('sequence_no'), 'blocker' => $blocker];
+    }
+
+    /**
+     * Lightweight current projections for business lists, up to 200 keys.
+     *
+     * @param list<string> $instanceKeys
+     * @return array<string,array{status:string,result_code:?string,revision:int,has_own_work_item:bool,can_withdraw:bool}>
+     */
+    public function instanceSummaries(AuthorizedOperationContext $c, array $instanceKeys): array
+    {
+        $rows = $this->authorizedInstances($c, $instanceKeys);
+        if ($rows === []) {
+            return [];
+        }
+
+        $items = Db::name('workflow_work_item')->alias('w')
+            ->join('workflow_node_execution n', 'n.id=w.node_execution_id AND n.tenant_id=w.tenant_id')
+            ->where('w.tenant_id', $c->tenantContext->tenantId)
+            ->whereIn('w.instance_id', array_column($rows, 'id'));
+        $this->own($c, $items, null);
+        $ownIds = array_fill_keys($items->group('w.instance_id')->column('w.instance_id'), true);
+
+        $withdrawCandidates = [];
+        foreach ($rows as $row) {
+            if ($this->canConsiderWithdraw($c, $row)) {
+                $withdrawCandidates[$row['subject_resource_key']][] = $row['subject_key'];
+            }
+        }
+        $withdrawable = [];
+        foreach ($withdrawCandidates as $resource => $keys) {
+            $withdrawable[$resource] = array_fill_keys($this->authorization->authorizedSubjectKeys(
+                $c, $resource, 'withdraw', ['peanut.workflow.instance.withdraw'], $keys,
+            ), true);
+        }
+
+        $summaries = [];
+        foreach ($rows as $key => $row) {
+            $summaries[$key] = [
+                'status' => $row['status'],
+                'result_code' => $row['result_code'],
+                'revision' => (int) $row['revision'],
+                'has_own_work_item' => isset($ownIds[$row['id']]),
+                'can_withdraw' => $this->canConsiderWithdraw($c, $row)
+                    && isset($withdrawable[$row['subject_resource_key']][$row['subject_key']]),
+            ];
+        }
+        return $summaries;
+    }
+
+    /**
+     * Business history projection with the first 20 events per instance, in sequence order.
+     *
+     * @param list<string> $instanceKeys
+     * @return array<string,array{status:string,result_code:?string,events:list<array{event_key:string,actor_member_id:?string,comment:?string,occurred_at:string}>}>
+     */
+    public function instanceHistories(AuthorizedOperationContext $c, array $instanceKeys): array
+    {
+        $rows = $this->authorizedInstances($c, $instanceKeys);
+        if ($rows === []) {
+            return [];
+        }
+
+        $ranked = Db::name('workflow_event')->where('tenant_id', $c->tenantContext->tenantId)
+            ->whereIn('instance_id', array_column($rows, 'id'))
+            ->field('instance_id,event_key,actor_member_id,comment_text,occurred_at')
+            ->fieldRaw('ROW_NUMBER() OVER (PARTITION BY instance_id ORDER BY sequence_no) AS event_rank')->buildSql();
+        $events = Db::table($ranked . ' ranked_events')->where('event_rank', '<=', 20)
+            ->order('event_rank')->select()->toArray();
+
+        $byInstance = [];
+        foreach ($events as $event) {
+            $byInstance[$event['instance_id']][] = [
+                'event_key' => $event['event_key'],
+                'actor_member_id' => $event['actor_member_id'] === null ? null : (string) $event['actor_member_id'],
+                'comment' => $event['comment_text'],
+                'occurred_at' => self::utc($event['occurred_at']),
+            ];
+        }
+        $histories = [];
+        foreach ($rows as $key => $row) {
+            $histories[$key] = [
+                'status' => $row['status'],
+                'result_code' => $row['result_code'],
+                'events' => $byInstance[$row['id']] ?? [],
+            ];
+        }
+        return $histories;
     }
 
     /** Current-authorized frozen materials; preparing owner-native versions never occurs inside command transactions. */
@@ -346,6 +433,69 @@ final readonly class WorkflowQueries
             throw WorkflowException::subjectNotFound();
         }
         return [$row, $graph];
+    }
+
+    /** Batch operations fail closed if any requested instance is missing or no longer readable. */
+    private function authorizedInstances(AuthorizedOperationContext $c, array $instanceKeys): array
+    {
+        if (!array_is_list($instanceKeys) || count($instanceKeys) > 200) {
+            throw WorkflowException::definitionInvalid('Invalid instance batch.');
+        }
+        foreach ($instanceKeys as $key) {
+            if (!is_string($key) || preg_match('/^instance_[0-9a-f]{32}$/D', $key) !== 1) {
+                throw WorkflowException::subjectNotFound();
+            }
+        }
+        if ($instanceKeys === []) {
+            return [];
+        }
+
+        $this->lifecycle->assertAvailable($c->tenantContext->tenantId);
+        $keys = array_values(array_unique($instanceKeys));
+        $instances = Db::name('workflow_instance')->alias('i')->where('i.tenant_id', $c->tenantContext->tenantId)
+            ->whereIn('i.instance_key', $keys)
+            ->leftJoin('workflow_definition_version v', 'v.definition_id=i.definition_id AND v.version=i.definition_version AND v.tenant_id=i.tenant_id')
+            ->field('i.id,i.instance_key,i.definition_id,i.definition_version,i.subject_key,i.status,i.result_code,i.revision,i.initiated_by_member_id,i.substantive_at,v.graph_json,v.graph_sha256')
+            ->select()->toArray();
+        if (count($instances) !== count($keys)) {
+            throw WorkflowException::subjectNotFound();
+        }
+
+        $graphs = $subjects = $rows = [];
+        foreach ($instances as $row) {
+            if ($row['graph_sha256'] === null) {
+                throw WorkflowException::internal();
+            }
+            $versionKey = $row['definition_id'] . ':' . $row['definition_version'];
+            $graph = $graphs[$versionKey] ??= WorkflowGraph::fromArray(self::decode($row['graph_json']));
+            if (!hash_equals($graph->sha256, $row['graph_sha256'])) {
+                throw WorkflowException::internal();
+            }
+            $resource = $graph->data['subject_resource_key'];
+            $operation = $graph->data['subject_read_operation'];
+            $subjects[$resource][$operation][] = $row['subject_key'];
+            unset($row['graph_json'], $row['graph_sha256']);
+            $rows[$row['instance_key']] = $row + ['subject_resource_key' => $resource];
+        }
+        foreach ($subjects as $resource => $operations) {
+            foreach ($operations as $operation => $subjectKeys) {
+                $allowed = $this->authorization->authorizedSubjectKeys(
+                    $c, $resource, $operation, ['peanut.workflow.instance.read'], $subjectKeys,
+                );
+                if (array_diff($subjectKeys, $allowed) !== []) {
+                    throw WorkflowException::subjectNotFound();
+                }
+            }
+        }
+
+        return $rows;
+    }
+
+    private function canConsiderWithdraw(AuthorizedOperationContext $c, \ArrayAccess|array $row): bool
+    {
+        return in_array($row['status'], ['running', 'blocked'], true)
+            && (int) $row['initiated_by_member_id'] === $c->tenantContext->memberId
+            && $row['substantive_at'] === null;
     }
 
     private function allowed(AuthorizedOperationContext $basis, WorkflowGraph $graph, string $subject, string $operation, array $permissions): bool

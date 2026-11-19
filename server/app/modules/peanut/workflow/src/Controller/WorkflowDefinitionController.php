@@ -12,17 +12,18 @@ use PeanutAdmin\Modules\Workflow\Application\WorkflowException;
 use PeanutAdmin\Modules\Workflow\Http\WorkflowHttpContext;
 use PeanutAdmin\Kernel\Api\ApiException;
 use think\response\Json;
+use think\App;
 
-/** Full-only contribution, excluded together with design routes in runtime artifacts.
- * @property-read WorkflowDefinitionService $definitions
- * @property-read WorkflowQueries $queries
- * @property-read WorkflowHttpContext $workflowContext
- */
 final class WorkflowDefinitionController extends BaseAdminController
 {
-    protected string $definitionsClass = WorkflowDefinitionService::class;
-    protected string $queriesClass = WorkflowQueries::class;
-    protected string $workflowContextClass = WorkflowHttpContext::class;
+    public function __construct(
+        App $app,
+        private readonly WorkflowDefinitionService $definitions,
+        private readonly WorkflowQueries $queries,
+        private readonly WorkflowHttpContext $workflowContext,
+    ) {
+        parent::__construct($app);
+    }
 
     public function index(): Json
     {

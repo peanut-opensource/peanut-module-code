@@ -562,7 +562,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
     }
 
     /**
-     * Batch-resolves public file_key references into delivery URLs in 1 SELECT + 1 INSERT.
+     * Batch-resolves public file_key references using the public delivery policy.
      *
      * @param list<string> $references
      * @return array<string, string>
@@ -588,21 +588,50 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         }
         $objects = $this->objectQuery(null)
             ->whereIn('f.file_key', array_keys($validKeys))
-            ->where('f.access_type', 'public')
             ->where('f.status', 'ready')
+            ->leftJoin('file_derivative d', 'd.tenant_id=f.tenant_id AND d.derivative_file_key=f.file_key')
+            ->field('d.source_file_key AS derivative_source_key')
             ->select()
             ->toArray();
         if ($objects === []) {
             return $result;
         }
 
+        $activeTenants = array_fill_keys($this->directory->activeTenantIds(
+            array_map('intval', array_column($objects, 'tenant_id')),
+        ), true);
+        $sourceKeys = array_filter(array_column($objects, 'derivative_source_key'));
+        $sources = $sourceKeys === [] ? [] : array_column(
+            $this->objectQuery(null)->whereIn('f.file_key', array_values(array_unique($sourceKeys)))
+                ->where('f.status', 'ready')->select()->toArray(),
+            null,
+            'file_key',
+        );
+
         $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
         $expiresAt = gmdate('Y-m-d H:i:s', time() + self::DELIVERY_URL_TTL);
         $grantRows = [];
+        $tenantRevisions = [];
         $origin = rtrim($this->applicationOrigin, '/');
         foreach ($objects as $object) {
             $fileKey = (string) $object['file_key'];
             $tenantId = (int) $object['tenant_id'];
+            if (!isset($activeTenants[$tenantId])) {
+                continue;
+            }
+            if (isset($tenantRevisions[$tenantId])) {
+                $this->authorization->assertPublicObject($object);
+            } else {
+                $tenantRevisions[$tenantId] = $this->authorization->authorizePublic($object);
+            }
+            if ($object['derivative_source_key'] !== null) {
+                $source = $sources[$object['derivative_source_key']] ?? null;
+                if ($source === null || (int) $source['tenant_id'] !== $tenantId
+                    || !str_starts_with((string) $source['object_key'], $this->ownerPrefix($tenantId))) {
+                    $source = null;
+                }
+                $this->authorization->assertPublicObject($this->requireDerivativeSource($source));
+            }
             $tokenId = bin2hex(random_bytes(16));
             $grantRows[] = [
                 'token_id_hash' => hash('sha256', $tokenId),
@@ -615,7 +644,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
                 'source_visibility' => 'public',
                 'operation' => 'public',
                 'document_id' => null,
-                'authorization_revision' => $this->authorization->authorizePublic($object),
+                'authorization_revision' => $tenantRevisions[$tenantId],
                 'reference_digest' => null,
                 'subject_json' => null,
                 'expires_at' => $expiresAt,
@@ -1687,11 +1716,16 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         $derivative = $query->find();
         if (is_array($derivative)) {
             $source = $this->deliverableObjectForTenant((int) $object['tenant_id'], (string) $derivative['source_file_key']);
-            if ($source === null || $source['access_type'] !== 'public') {
-                throw BusinessException::forbidden('FILE_PUBLIC_ACCESS_DENIED', '资源不能公开交付');
-            }
-            $this->authorization->authorizePublic($source);
+            $this->authorization->authorizePublic($this->requireDerivativeSource($source));
         }
+    }
+
+    private function requireDerivativeSource(?array $source): array
+    {
+        if ($source === null) {
+            throw BusinessException::forbidden('FILE_PUBLIC_ACCESS_DENIED', '资源不能公开交付');
+        }
+        return $source;
     }
 
     private function reserveObject(int $tenantId, array $data): void

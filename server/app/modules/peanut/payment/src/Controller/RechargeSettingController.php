@@ -7,11 +7,16 @@ namespace PeanutAdmin\Modules\Payment\Controller;
 use app\adminapi\controller\BaseAdminController;
 use PeanutAdmin\Modules\Payment\Service\RechargeSettingApplicationService;
 use PeanutAdmin\Modules\Payment\Validation\RechargeSettingValidate;
+use think\App;
 
-/** @property-read RechargeSettingApplicationService $rechargeSettings 当前 App 中声明式解析的控制器依赖。 */
 class RechargeSettingController extends BaseAdminController
 {
-    protected string $rechargeSettingsClass = RechargeSettingApplicationService::class;
+    public function __construct(
+        App $app,
+        private readonly RechargeSettingApplicationService $rechargeSettings,
+    ) {
+        parent::__construct($app);
+    }
 
     public function config()
     {

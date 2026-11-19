@@ -115,7 +115,6 @@
   } from 'vue';
   import { useUserStore } from '@/store';
   import { getSessionSnapshot } from '@/utils/auth';
-  import randomUuid from '@/utils/random-uuid';
   import DocumentEditor from '@/modules/peanut-document/components/DocumentEditor.vue';
   import parseCapabilities from '@/modules/peanut-content-tools/src/capabilities';
   import {
@@ -278,7 +277,7 @@
         token: number;
       }
     | undefined;
-  let ensureId = randomUuid();
+  let ensureId = globalThis.crypto.randomUUID();
   const current = (controller: AbortController, key: string, token: number) =>
     !disposed &&
     !controller.signal.aborted &&
@@ -740,7 +739,7 @@
     )
       return false;
     const { controller, key, token } = start();
-    const requestId = targetAttempt.value?.requestId ?? randomUuid();
+    const requestId = targetAttempt.value?.requestId ?? globalThis.crypto.randomUUID();
     try {
       targetAttempt.value ??= {
         requestId,
@@ -908,7 +907,7 @@
       targetAttempt.value = undefined;
       saved.value = undefined;
       phase.value = 'idle';
-      ensureId = randomUuid();
+      ensureId = globalThis.crypto.randomUUID();
       open();
     },
     { immediate: true, flush: 'sync' }

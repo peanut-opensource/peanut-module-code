@@ -1,6 +1,6 @@
 {
   "name": "@peanut-admin/peanut-rich-text",
-  "version": "1.0.18",
+  "version": "1.0.19-rc.1",
   "private": true,
   "license": "Apache-2.0",
   "type": "module",

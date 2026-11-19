@@ -6,11 +6,26 @@ namespace PeanutAdmin\Modules\Article\Contract;
 
 use app\common\http\PageResult;
 use PeanutAdmin\Kernel\Context\AuthenticatedMemberContext;
+use PeanutAdmin\Kernel\Context\TenantSystemContext;
 
 /** Public member and storefront reads owned by the Article Module. */
 interface PublicArticleQueries
 {
     public function lists(array $params, int $memberId = 0): PageResult;
+
+    /**
+     * Parenthesized SQL for joining tenant-published cards before counting or pagination.
+     * Columns: id, title, abstract, description.
+     */
+    public function publishedCardsSql(TenantSystemContext $context): string;
+
+    /**
+     * Pure published card projection without a detail read or a view counter.
+     *
+     * @param list<int> $ids
+     * @return array<int, array<string,mixed>>
+     */
+    public function summariesByIds(array $ids): array;
 
     /** @return list<array<string,mixed>> */
     public function categories(): array;

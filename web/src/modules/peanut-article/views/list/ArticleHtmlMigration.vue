@@ -58,7 +58,6 @@
   import type { RichTextDocumentValue } from '@peanut-admin/peanut-rich-text/document';
   import { useUserStore } from '@/store';
   import { getSessionSnapshot } from '@/utils/auth';
-  import randomUuid from '@/utils/random-uuid';
   import {
     previewArticleHtml,
     migrateArticleHtml,
@@ -206,7 +205,7 @@
     attempt.value = JSON.parse(
       JSON.stringify({
         id: props.articleId,
-        request_id: randomUuid(),
+        request_id: globalThis.crypto.randomUUID(),
         confirmed: true,
         source_sha256: source.value.source_sha256,
         owner_revision: source.value.owner_revision,

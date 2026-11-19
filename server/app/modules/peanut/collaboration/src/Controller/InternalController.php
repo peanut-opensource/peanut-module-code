@@ -6,11 +6,17 @@ namespace PeanutAdmin\Modules\Collaboration\Controller;
 
 use app\common\http\JsonResponseFactory;
 use PeanutAdmin\Modules\Collaboration\Service\CollaborationService;
+use think\App;
 
 /** Each action consumes the middleware's original authenticated request bytes. */
 final class InternalController extends \app\BaseController
 {
-    protected string $collaborationClass = CollaborationService::class;
+    public function __construct(
+        App $app,
+        private readonly CollaborationService $collaboration,
+    ) {
+        parent::__construct($app);
+    }
 
     public function authorize()
     {
