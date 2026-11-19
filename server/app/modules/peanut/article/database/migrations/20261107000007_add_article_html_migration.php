@@ -30,7 +30,7 @@ CREATE TABLE `pa_article_html_migration` (
   CONSTRAINT `fk_article_html_migration_document` FOREIGN KEY (`tenant_id`,`document_id`) REFERENCES `pa_document` (`tenant_id`,`id`) ON DELETE RESTRICT,
   CONSTRAINT `chk_article_html_migration_input` CHECK (regexp_like(`input_sha256`,_ascii'^[a-f0-9]{64}$')),
   CONSTRAINT `chk_article_html_migration_source` CHECK (regexp_like(`source_sha256`,_ascii'^[a-f0-9]{64}$'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL);
     }
 

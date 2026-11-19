@@ -42,7 +42,7 @@ final class ApiPermissionCatalog
         if ($permissionKeys === []) {
             return [];
         }
-        $rows = Db::name('api_endpoint')->alias('endpoint')
+        $rows = Db::name('system_api')->alias('endpoint')
             ->join('permission_api binding', 'binding.api_id = endpoint.id')
             ->join('permission permission', 'permission.id = binding.permission_id')
             ->where('endpoint.audience', 'platform')->where('endpoint.status', 'active')
@@ -97,7 +97,7 @@ final class ApiPermissionCatalog
                 'default_permission_keys' => json_encode($defaults, JSON_THROW_ON_ERROR),
                 'prerequisite_permission_keys' => json_encode($endpoint['prerequisite_permission_keys'], JSON_THROW_ON_ERROR),
                 'updated_at' => $now, 'retired_at' => null];
-            Db::name('api_endpoint')->duplicate($data)->insert(['id' => $id, ...$data, 'created_at' => $now]);
+            Db::name('system_api')->duplicate($data)->insert(['id' => $id, ...$data, 'created_at' => $now]);
             $activeIds[] = $id;
             if (!in_array($mode, ['tenant_permission', 'platform_permission'], true)) {
                 $defaults = [];
@@ -134,7 +134,7 @@ final class ApiPermissionCatalog
                 Db::name('permission_api_config')->where('permission_id', $binding['permission_id'])->inc('revision')->update(['updated_at' => $now]);
             }
         }
-        $retire = Db::name('api_endpoint')->where('status', 'active');
+        $retire = Db::name('system_api')->where('status', 'active');
         if (!$fullRegistry) {
             $retire->whereIn('module_key', ['peanut.admin', 'platform', 'member', 'installation', ...$moduleKeys]);
         }
@@ -147,7 +147,7 @@ final class ApiPermissionCatalog
     public function revisionRows(): array
     {
         return [
-            'endpoints' => Db::name('api_endpoint')->field('id,method,path,audience,module_key,access_mode,status,default_permission_keys,prerequisite_permission_keys')->order('id')->select()->toArray(),
+            'endpoints' => Db::name('system_api')->field('id,method,path,audience,module_key,access_mode,status,default_permission_keys,prerequisite_permission_keys')->order('id')->select()->toArray(),
             'bindings' => Db::name('permission_api')->field('permission_id,api_id')->order('permission_id,api_id')->select()->toArray(),
         ];
     }
@@ -227,7 +227,7 @@ final class ApiPermissionCatalog
 
     private function endpointQuery(string $method, string $path, string $audience): \think\db\Query
     {
-        return Db::name('api_endpoint')->pk('id')->schema([
+        return Db::name('system_api')->pk('id')->schema([
             'id' => 'string', 'method' => 'string', 'path' => 'string', 'audience' => 'string',
             'module_key' => 'string', 'access_mode' => 'string', 'status' => 'string',
             'default_permission_keys' => 'json', 'prerequisite_permission_keys' => 'json',
@@ -292,7 +292,7 @@ final class ApiPermissionCatalog
 
     public function apis(PageRequest $page, string $audience, string $search, string $status): array
     {
-        $query = Db::name('api_endpoint')->where('audience', $audience);
+        $query = Db::name('system_api')->where('audience', $audience);
         if ($search !== '') {
             $query->whereLike('method|path|module_key', '%' . $search . '%');
         }
@@ -323,7 +323,7 @@ final class ApiPermissionCatalog
     {
         return Db::transaction(function () use ($key, $expectedRevision, $apiIds, $modules): array {
             // Serialize only this management dependency's invariant through native row locks.
-            $recoveryApis = Db::name('api_endpoint')->where('audience', 'platform')->where('status', 'active')
+            $recoveryApis = Db::name('system_api')->where('audience', 'platform')->where('status', 'active')
                 ->where(function ($query): void {
                     $query->where(function ($read): void {
                         $read->where('method', 'GET')->whereIn('path', [
@@ -347,7 +347,7 @@ final class ApiPermissionCatalog
                 throw AdminAccessException::revisionMismatch();
             }
             $apiIds = array_values(array_unique($apiIds));
-            $rows = $apiIds === [] ? [] : Db::name('api_endpoint')->whereIn('id', $apiIds)->lock(true)->select()->toArray();
+            $rows = $apiIds === [] ? [] : Db::name('system_api')->whereIn('id', $apiIds)->lock(true)->select()->toArray();
             if (count($rows) !== count($apiIds)) {
                 throw AdminAccessException::invalid('API_NOT_BINDABLE', 'All APIs must be registered.');
             }
@@ -435,7 +435,7 @@ final class ApiPermissionCatalog
 
     private function assertManagementRecovery(): void
     {
-        $apis = Db::name('api_endpoint')->where('audience', 'platform')->where('status', 'active')
+        $apis = Db::name('system_api')->where('audience', 'platform')->where('status', 'active')
             ->whereIn('path', ['/platformapi/permission/bundles', '/platformapi/permission/apis', '/platformapi/permission/apis/bindings'])
             ->lock(true)->select()->toArray();
         foreach ($apis as $api) {

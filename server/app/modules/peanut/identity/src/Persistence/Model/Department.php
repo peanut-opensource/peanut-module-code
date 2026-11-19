@@ -22,7 +22,6 @@ final class Department extends \PeanutAdmin\Kernel\Persistence\Model\TenantModel
         'parent_id' => 'integer',
         'code' => 'string',
         'name' => 'string',
-        'leader' => 'string',
         'leader_member_id' => 'bigint',
         'mobile' => 'string',
         'sort_order' => 'int',

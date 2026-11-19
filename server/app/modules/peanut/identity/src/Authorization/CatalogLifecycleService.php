@@ -218,51 +218,21 @@ final readonly class CatalogLifecycleService
         if ($moduleKeys === []) {
             return;
         }
-        $declared = ['pa_permission' => [], 'pa_protected_resource' => [], 'pa_target_type' => [], 'pa_data_condition_definition' => []];
-        $operations = [];
+        $declared = ['pa_permission' => []];
         foreach ($manifests as $moduleKey => $manifest) {
             $catalog = is_array($manifest->data['catalog'] ?? null) ? $manifest->data['catalog'] : [];
-            foreach (['permissions' => 'pa_permission', 'protected_resources' => 'pa_protected_resource', 'target_types' => 'pa_target_type', 'data_conditions' => 'pa_data_condition_definition'] as $manifestKey => $table) {
-                foreach ((array) ($catalog[$manifestKey] ?? []) as $entry) {
-                    if (is_array($entry) && is_string($entry['key'] ?? null)) {
-                        $declared[$table][$moduleKey][] = $entry['key'];
-                    }
-                }
-            }
-            foreach ((array) ($catalog['protected_resources'] ?? []) as $resource) {
-                if (!is_array($resource) || !is_string($resource['key'] ?? null)) {
-                    continue;
-                }
-                foreach ((array) ($resource['operations'] ?? []) as $operation) {
-                    if (is_array($operation) && is_string($operation['key'] ?? null)) {
-                        $operations[$resource['key'] . "\0" . $operation['key']] = true;
-                    }
+            foreach ((array) ($catalog['permissions'] ?? []) as $entry) {
+                if (is_array($entry) && is_string($entry['key'] ?? null)) {
+                    $declared['pa_permission'][$moduleKey][] = $entry['key'];
                 }
             }
         }
-        Db::transaction(function () use ($declared, $operations, $moduleKeys, $invalidate): void {
+        Db::transaction(function () use ($declared, $moduleKeys, $invalidate): void {
             $now = $this->now();
             foreach ($declared as $table => $byModule) {
                 foreach ($moduleKeys as $moduleKey) {
                     $this->retireMissingKeys($table, $moduleKey, array_values(array_unique($byModule[$moduleKey] ?? [])), $now);
                 }
-            }
-            $rows = Db::table('pa_resource_operation')->alias('operation')
-                ->join('pa_protected_resource resource', 'resource.id=operation.protected_resource_id')
-                ->whereIn('resource.module_key', $moduleKeys)->where('operation.status', 'active')
-                ->field('operation.id,resource.key AS resource_key,operation.operation')->order('operation.id')->select()->toArray();
-            $missing = [];
-            foreach ($rows as $row) {
-                if (!isset($operations[(string) $row['resource_key'] . "\0" . (string) $row['operation']])) {
-                    $missing[] = (string) $row['id'];
-                }
-            }
-            if ($missing !== []) {
-                $this->deleteByForeignIds('pa_resource_operation_permission', 'resource_operation_id', $missing);
-                foreach (['pa_resource_operation_target_type', 'pa_resource_operation_condition'] as $table) {
-                    $this->updateByIds($table, $this->foreignIds($table, 'resource_operation_id', $missing), ['status' => 'retired']);
-                }
-                $this->updateByIds('pa_resource_operation', $missing, ['status' => 'retired', 'updated_at' => $now]);
             }
             if ($invalidate) {
                 app(ModuleAuthorizationCatalogSynchronizer::class)->invalidateTenantAuthorization($moduleKeys);
@@ -274,7 +244,7 @@ final readonly class CatalogLifecycleService
     public function activeModuleKeys(): array
     {
         $keys = [];
-        foreach (['pa_permission', 'pa_protected_resource', 'pa_target_type', 'pa_data_condition_definition', 'pa_menu_definition'] as $table) {
+        foreach (['pa_permission', 'pa_system_menu'] as $table) {
             foreach (Db::table($table)->where('status', 'active')->distinct(true)->order('module_key')->column('module_key') as $key) {
                 if (!in_array((string) $key, self::NON_MODULE_OWNERS, true)) {
                     $keys[(string) $key] = true;
@@ -293,37 +263,23 @@ final readonly class CatalogLifecycleService
     public function plan(array $moduleKeys, bool $purge): array
     {
         $permissions = $this->ids('pa_permission', $moduleKeys);
-        $resources = $this->ids('pa_protected_resource', $moduleKeys);
-        $targets = $this->ids('pa_target_type', $moduleKeys);
-        $conditions = $this->ids('pa_data_condition_definition', $moduleKeys);
-        $operations = $this->foreignIds('pa_resource_operation', 'protected_resource_id', $resources);
         $removed = [];
         $preserved = [];
-        $blockers = $this->crossModuleBlockers($moduleKeys, $permissions, $targets, $conditions, $operations, !$purge);
-        $this->append($removed, 'pa_api_endpoint', 'soft_retire', $this->activeIds('pa_api_endpoint', $moduleKeys));
+        $blockers = $this->crossModuleBlockers($moduleKeys, $permissions);
+        $this->append($removed, 'pa_system_api', 'soft_retire', $this->activeIds('pa_system_api', $moduleKeys));
         if ($purge) {
             foreach ([
                 ['pa_role_permission', $this->roleBindingIds($permissions, false)],
                 ['pa_platform_role_permission', $this->roleBindingIds($permissions, true)],
                 ['pa_permission_api', $this->foreignIds('pa_permission_api', 'permission_id', $permissions)],
-                ['pa_menu_definition', $this->ids('pa_menu_definition', $moduleKeys)],
-                ['pa_resource_operation_permission', $this->foreignIds('pa_resource_operation_permission', 'resource_operation_id', $operations)],
-                ['pa_resource_operation_target_type', $this->foreignIds('pa_resource_operation_target_type', 'resource_operation_id', $operations)],
-                ['pa_resource_operation_condition', $this->foreignIds('pa_resource_operation_condition', 'resource_operation_id', $operations)],
-                ['pa_resource_operation', $operations], ['pa_protected_resource', $resources],
-                ['pa_target_type', $targets], ['pa_data_condition_definition', $conditions], ['pa_permission', $permissions],
+                ['pa_system_menu', $this->ids('pa_system_menu', $moduleKeys)],
+                ['pa_permission', $permissions],
             ] as [$table, $ids]) {
                 $this->append($removed, $table, 'delete', $ids);
             }
         } else {
             foreach ([
-                ['pa_menu_definition', $this->activeIds('pa_menu_definition', $moduleKeys)],
-                ['pa_resource_operation_target_type', $this->activeForeignIds('pa_resource_operation_target_type', 'resource_operation_id', $operations)],
-                ['pa_resource_operation_condition', $this->activeForeignIds('pa_resource_operation_condition', 'resource_operation_id', $operations)],
-                ['pa_resource_operation', $this->activeForeignIds('pa_resource_operation', 'protected_resource_id', $resources)],
-                ['pa_protected_resource', $this->activeIds('pa_protected_resource', $moduleKeys)],
-                ['pa_target_type', $this->activeIds('pa_target_type', $moduleKeys)],
-                ['pa_data_condition_definition', $this->activeIds('pa_data_condition_definition', $moduleKeys)],
+                ['pa_system_menu', $this->activeIds('pa_system_menu', $moduleKeys)],
                 ['pa_permission', $this->activeIds('pa_permission', $moduleKeys)],
             ] as [$table, $ids]) {
                 $this->append($removed, $table, 'soft_retire', $ids);
@@ -343,26 +299,16 @@ final readonly class CatalogLifecycleService
         Db::transaction(function () use ($moduleKeys, $invalidate): void {
             $now = $this->now();
             if ($moduleKeys !== []) {
-                Db::name('api_endpoint')->whereIn('module_key', $moduleKeys)->update([
+                Db::name('system_api')->whereIn('module_key', $moduleKeys)->update([
                     'status' => 'retired', 'retired_at' => $now, 'updated_at' => $now,
                 ]);
             }
             $permissions = $this->ids('pa_permission', $moduleKeys);
-            $resources = $this->ids('pa_protected_resource', $moduleKeys);
-            $operations = $this->foreignIds('pa_resource_operation', 'protected_resource_id', $resources);
             $this->updateByIds('pa_permission', $permissions, ['status' => 'retired', 'retired_at' => $now, 'updated_at' => $now]);
-            $this->updateByIds('pa_protected_resource', $resources, ['status' => 'retired', 'retired_at' => $now, 'updated_at' => $now]);
-            foreach (['pa_target_type', 'pa_data_condition_definition'] as $table) {
-                $this->updateByIds($table, $this->ids($table, $moduleKeys), ['status' => 'retired', 'updated_at' => $now]);
-            }
-            $this->updateByIds('pa_menu_definition', $this->ids('pa_menu_definition', $moduleKeys), [
+            $this->updateByIds('pa_system_menu', $this->ids('pa_system_menu', $moduleKeys), [
                 'status' => 'retired', 'updated_at' => $now,
                 'upstream_defaults_json' => Db::raw("JSON_SET(upstream_defaults_json, '$.status', 'retired')"),
             ]);
-            $this->updateByIds('pa_resource_operation', $operations, ['status' => 'retired', 'updated_at' => $now]);
-            foreach (['pa_resource_operation_target_type', 'pa_resource_operation_condition'] as $table) {
-                $this->updateByIds($table, $this->foreignIds($table, 'resource_operation_id', $operations), ['status' => 'retired']);
-            }
             if ($invalidate) {
                 app(ModuleAuthorizationCatalogSynchronizer::class)->invalidateTenantAuthorization($moduleKeys);
             }
@@ -374,25 +320,14 @@ final readonly class CatalogLifecycleService
     {
         Db::transaction(function () use ($moduleKeys, $invalidate): void {
             if ($moduleKeys !== []) {
-                Db::name('api_endpoint')->whereIn('module_key', $moduleKeys)->update([
+                Db::name('system_api')->whereIn('module_key', $moduleKeys)->update([
                     'status' => 'retired', 'retired_at' => $this->now(), 'updated_at' => $this->now(),
                 ]);
             }
             $permissions = $this->ids('pa_permission', $moduleKeys);
-            $resources = $this->ids('pa_protected_resource', $moduleKeys);
-            $targets = $this->ids('pa_target_type', $moduleKeys);
-            $conditions = $this->ids('pa_data_condition_definition', $moduleKeys);
-            $operations = $this->foreignIds('pa_resource_operation', 'protected_resource_id', $resources);
             $this->deleteByForeignIds('pa_role_permission', 'permission_id', $permissions);
             $this->deleteByForeignIds('pa_platform_role_permission', 'permission_id', $permissions);
-            $this->deleteByIds('pa_menu_definition', $this->ids('pa_menu_definition', $moduleKeys));
-            foreach (['pa_resource_operation_permission', 'pa_resource_operation_target_type', 'pa_resource_operation_condition'] as $table) {
-                $this->deleteByForeignIds($table, 'resource_operation_id', $operations);
-            }
-            $this->deleteByIds('pa_resource_operation', $operations);
-            $this->deleteByIds('pa_protected_resource', $resources);
-            $this->deleteByIds('pa_target_type', $targets);
-            $this->deleteByIds('pa_data_condition_definition', $conditions);
+            $this->deleteByIds('pa_system_menu', $this->ids('pa_system_menu', $moduleKeys));
             $this->deleteByIds('pa_permission', $permissions);
             if ($invalidate) {
                 app(ModuleAuthorizationCatalogSynchronizer::class)->invalidateTenantAuthorization($moduleKeys);
@@ -441,20 +376,11 @@ final readonly class CatalogLifecycleService
     }
 
     /** @return list<array{code:string,identifiers:list<string>}> */
-    private function crossModuleBlockers(array $moduleKeys, array $permissionIds, array $targetIds, array $conditionIds, array $operationIds, bool $activeOperationsOnly): array
+    private function crossModuleBlockers(array $moduleKeys, array $permissionIds): array
     {
         $checks = [];
         if ($moduleKeys !== [] && $permissionIds !== []) {
-            $checks['MODULE_CATALOG_EXTERNAL_MENU_REFERENCE'] = Db::table('pa_menu_definition')->whereNotIn('module_key', $moduleKeys)->whereIn('required_permission_id', $permissionIds)->order('id')->column('id');
-        }
-        if ($permissionIds !== []) {
-            $checks['MODULE_CATALOG_EXTERNAL_PERMISSION_REFERENCE'] = $this->externalOperationReferenceIds('pa_resource_operation_permission', 'permission_id', $permissionIds, $operationIds, $activeOperationsOnly);
-        }
-        if ($targetIds !== []) {
-            $checks['MODULE_CATALOG_EXTERNAL_TARGET_REFERENCE'] = $this->externalOperationReferenceIds('pa_resource_operation_target_type', 'target_type_id', $targetIds, $operationIds, $activeOperationsOnly);
-        }
-        if ($conditionIds !== []) {
-            $checks['MODULE_CATALOG_EXTERNAL_CONDITION_REFERENCE'] = $this->externalOperationReferenceIds('pa_resource_operation_condition', 'condition_definition_id', $conditionIds, $operationIds, $activeOperationsOnly);
+            $checks['MODULE_CATALOG_EXTERNAL_MENU_REFERENCE'] = Db::table('pa_system_menu')->whereNotIn('module_key', $moduleKeys)->whereIn('required_permission_id', $permissionIds)->order('id')->column('id');
         }
         $blockers = [];
         foreach ($checks as $code => $ids) {
@@ -465,39 +391,15 @@ final readonly class CatalogLifecycleService
         return $blockers;
     }
 
-    /** With no selected operations, every reference to a selected definition is external.
-     * @return list<string>
-     */
-    private function externalOperationReferenceIds(string $table, string $column, array $definitionIds, array $operationIds, bool $activeOperationsOnly): array
-    {
-        $query = Db::table($table)->alias('reference')->whereIn('reference.' . $column, $definitionIds);
-        if ($operationIds !== []) {
-            $query->whereNotIn('reference.resource_operation_id', $operationIds);
-        }
-        // Retiring keeps historical references; purging must still reject every physical reference.
-        if ($activeOperationsOnly) {
-            $query->join('pa_resource_operation operation', 'operation.id=reference.resource_operation_id')
-                ->where('operation.status', 'active');
-        }
-        return array_map('strval', $query->order('reference.id')->column('reference.id'));
-    }
-
     private function append(array &$entries, string $table, string $action, array $ids, bool $includeEmpty = false): void
     {
         sort($ids, SORT_STRING);
         if ($ids !== [] || $includeEmpty) {
             $resource = match ($table) {
-                'pa_api_endpoint' => 'api-endpoints',
+                'pa_system_api' => 'api-endpoints',
                 'pa_permission_api' => 'permission-api-bindings',
                 'pa_permission' => 'permissions',
-                'pa_protected_resource' => 'protected-resources',
-                'pa_target_type' => 'target-types',
-                'pa_data_condition_definition' => 'data-conditions',
-                'pa_menu_definition' => 'menu-definitions',
-                'pa_resource_operation' => 'resource-operations',
-                'pa_resource_operation_permission' => 'operation-permissions',
-                'pa_resource_operation_target_type' => 'operation-targets',
-                'pa_resource_operation_condition' => 'operation-conditions',
+                'pa_system_menu' => 'menu-definitions',
                 'pa_role_permission' => 'tenant-role-grants',
                 'pa_platform_role_permission' => 'platform-role-grants',
                 default => throw new \LogicException('IDENTITY_CATALOG_RESOURCE_UNDECLARED'),

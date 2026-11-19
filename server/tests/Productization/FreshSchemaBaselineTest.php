@@ -72,7 +72,7 @@ freshSchemaExpect(in_array('peanut.task', $mandatory, true)
 freshSchemaExpect(!in_array('peanut.article', $mandatory, true), 'optional business Modules must not enter the bootstrap composition');
 $selectedTables = InitialInstallationSource::tables($serverRoot, InitialInstallationSource::modules($serverRoot));
 $owners = [
-    'identity' => ['pa_jobs', 'pa_module_installation', 'pa_tenant_entry_binding', 'pa_tenant_owner_invitation'],
+    'identity' => ['pa_job', 'pa_module_installation', 'pa_tenant_entry_binding', 'pa_tenant_owner_invitation'],
     'task' => ['pa_task_job'],
     'integration' => ['pa_external_channel_binding'],
     'settings' => ['pa_tenant_setting'],

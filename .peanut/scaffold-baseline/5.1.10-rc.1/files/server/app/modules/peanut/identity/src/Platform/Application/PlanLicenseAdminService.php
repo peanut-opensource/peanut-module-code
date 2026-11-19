@@ -232,7 +232,7 @@ final readonly class PlanLicenseAdminService
             $requiredOwners[$owner] = true;
         }
         $apiRows = Db::name('permission_api')->alias('binding')->join('permission permission','permission.id=binding.permission_id')
-            ->join('api_endpoint api','api.id=binding.api_id')->whereIn('permission.key',$permissions)->where('api.status','active')
+            ->join('system_api api','api.id=binding.api_id')->whereIn('permission.key',$permissions)->where('api.status','active')
             ->field('api.module_key,api.audience,api.prerequisite_permission_keys')->select()->toArray();
         foreach ($apiRows as $api) {
             if ($api['audience'] !== 'tenant' || (!in_array($api['module_key'], ['core','peanut.admin'], true)

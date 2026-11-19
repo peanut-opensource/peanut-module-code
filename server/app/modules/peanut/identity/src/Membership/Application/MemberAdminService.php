@@ -155,7 +155,7 @@ final readonly class MemberAdminService
             ->where('tenant_member_id', $memberId)->order('job_id')->column('job_id'));
         if ($jobIds !== []) {
             // The job lock also serializes assignment against job deletion/status changes.
-            $jobs = Db::name('jobs')->where('tenant_id', $actor->tenantId)->whereIn('id', $jobIds)
+            $jobs = Db::name('job')->where('tenant_id', $actor->tenantId)->whereIn('id', $jobIds)
                 ->whereNull('delete_time')->order('id')->lock(true)->field('id,status')->select()->toArray();
             if (count($jobs) !== count($jobIds)) {
                 throw AdminAccessException::notFound();

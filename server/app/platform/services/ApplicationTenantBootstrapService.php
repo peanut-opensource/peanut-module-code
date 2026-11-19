@@ -13,7 +13,6 @@ use PeanutAdmin\Modules\Settings\Service\WebsiteConfigService;
 use app\common\services\decoration\DecorationPageDefaultsService;
 use app\common\model\decoration\DecorateTabbar;
 use app\common\model\decoration\DecorationTabbarSetting;
-use app\common\model\setting\CustomerServiceSetting;
 use PeanutAdmin\Modules\Settings\Contract\TenantSettingsQuery;
 use PeanutAdmin\Modules\Settings\Contract\TenantSettingsCommands;
 use PeanutAdmin\Kernel\Context\TenantSystemContext;
@@ -26,7 +25,6 @@ final readonly class ApplicationTenantBootstrapService
 {
     private const REQUIRED_TABLES = [
         'pa_crontab',
-        'pa_customer_service_setting',
         'pa_decorate_page',
         'pa_decorate_tabbar',
         'pa_decorate_tabbar_setting',
@@ -206,16 +204,6 @@ final readonly class ApplicationTenantBootstrapService
             if ($this->tenantSettings->get($context, $namespace)->revision === 0) {
                 $this->settingCommands->replace($context, $namespace, $document);
             }
-        }
-        if (CustomerServiceSetting::where([])->find() === null) {
-            CustomerServiceSetting::create([
-                'qr_file_id' => null,
-                'wechat' => '',
-                'phone' => '',
-                'service_time' => '',
-                'create_time' => 0,
-                'update_time' => 0,
-            ]);
         }
         if (DecorationTabbarSetting::where([])->find() === null) {
             DecorationTabbarSetting::create([

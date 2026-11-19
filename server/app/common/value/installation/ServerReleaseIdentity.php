@@ -14,12 +14,6 @@ final readonly class ServerReleaseIdentity
 {
     private function __construct(private array $document, private string $digest) {}
 
-    /** Only a deployment-owner admission record may supply this already verified declaration. */
-    public static function admitted(\app\common\infrastructure\installation\VerifiedServerDeployment $deployment): self
-    {
-        return new self($deployment->identityDocument(), $deployment->identityDigest());
-    }
-
     /** @return array<string,mixed> Complete declaration, verified by load(), for closed-traffic admission. */
     public function document(): array
     {

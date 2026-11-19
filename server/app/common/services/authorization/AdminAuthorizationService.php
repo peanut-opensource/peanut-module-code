@@ -87,18 +87,14 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
         } else {
             $principal = $this->principal($context);
         }
-        $request->withMiddleware([self::class => ['context' => $context, 'principal' => $principal]]);
         return $principal;
     }
 
-    /** Consume only the server-loaded identity for this exact Request and context. */
+    /** Consume only the server-loaded identity from the single request execution context. */
     public function decideForRequest(\think\Request $request, TenantContext $context, string $accessUri): PermissionDecision
     {
-        $handoff = $request->middleware(self::class);
-        $request->withMiddleware([self::class => null]);
-        $principal = is_array($handoff) ? ($handoff['principal'] ?? null) : null;
-        if (!is_array($handoff) || ($handoff['context'] ?? null) !== $context || !$principal instanceof AdminPrincipal
-            || !$this->validContext($context, $principal)) {
+        $principal = $this->admittedPrincipal($context);
+        if ($principal === null || !$this->validContext($context, $principal)) {
             return PermissionDecision::deny($accessUri, 'INVALID_TENANT_ADMIN_CONTEXT');
         }
         return $this->permissionDecision($context, $principal, $accessUri);
@@ -107,11 +103,8 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
     /** ALL prerequisites, then ANY granted bundle, each within the current license ceiling. */
     public function decideApiForRequest(\think\Request $request, TenantContext $context, array $endpoint, array $keys): PermissionDecision
     {
-        $handoff = $request->middleware(self::class);
-        $request->withMiddleware([self::class => null]);
-        $principal = is_array($handoff) ? ($handoff['principal'] ?? null) : null;
-        if (!is_array($handoff) || ($handoff['context'] ?? null) !== $context || !$principal instanceof AdminPrincipal
-            || !$this->validContext($context, $principal)) {
+        $principal = $this->admittedPrincipal($context);
+        if ($principal === null || !$this->validContext($context, $principal)) {
             return PermissionDecision::deny($endpoint['path'], 'INVALID_TENANT_ADMIN_CONTEXT');
         }
         $prerequisites = json_decode($endpoint['prerequisite_permission_keys'], true, 32, JSON_THROW_ON_ERROR);
@@ -476,6 +469,18 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
             && $current->authorizationRevision === $context->authorizationRevision
             ? $current
             : null;
+    }
+
+    private function admittedPrincipal(TenantContext $context): ?AdminPrincipal
+    {
+        try {
+            if ($this->executionContext->tenantAdmin() !== $context) {
+                return null;
+            }
+            return AdminPrincipal::fromArray($this->executionContext->tenantAdminPrincipal());
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
 }

@@ -39,7 +39,6 @@ use PeanutAdmin\Modules\Identity\Policy\DemoAccountPolicy;
 use PeanutAdmin\Modules\File\Service\FileService;
 use app\common\services\ProductAssetReferenceService;
 use app\common\services\authorization\MenuPermissionUsageQuery;
-use app\common\runtime\authorization\RoleAdministrationRuntime;
 use PeanutAdmin\Modules\Identity\Contract\AdminDirectoryQuery;
 use PeanutAdmin\Modules\Identity\Contract\TenantAuthorizationQuery;
 use PeanutAdmin\Modules\Identity\Authorization\ModuleAuthorizationCatalogSynchronizer;
@@ -47,8 +46,6 @@ use PeanutAdmin\Modules\Identity\Contract\TenantAuditDiagnosticQuery;
 use PeanutAdmin\Modules\Identity\Contract\PlatformAuditDiagnosticQuery;
 use PeanutAdmin\Modules\Identity\Contract\PlatformOperatorIdentityQuery;
 use PeanutAdmin\Modules\Task\Contract\TaskDiagnosticQuery;
-use PeanutAdmin\Modules\Identity\access\SourceRead\SourceReadCapabilityRegistry;
-use app\common\runtime\org\TenantAdminRuntime;
 use PeanutAdmin\Modules\Identity\Contract\TenantIdentityQuery;
 use PeanutAdmin\Modules\File\Composition\Storage\AliyunStorageClientFactory;
 use PeanutAdmin\Modules\File\Infrastructure\Storage\FailClosedStorageCredentialResolver;
@@ -92,11 +89,6 @@ use app\platform\infrastructure\module\ModuleLockResolver;
 use app\platform\infrastructure\module\ModuleCatalogApplier;
 use app\platform\services\module\ModuleCatalogSyncService;
 use app\platform\services\module\ModuleRuntimeGovernanceService;
-use app\platform\infrastructure\provider\NotificationQualificationContributor;
-use app\platform\infrastructure\provider\OauthQualificationContributor;
-use app\platform\infrastructure\provider\PaymentQualificationContributor;
-use app\platform\services\provider\PlatformProviderQualificationService;
-use app\platform\infrastructure\provider\StorageQualificationContributor;
 use think\Service;
 use think\Model;
 use think\facade\Config;
@@ -248,7 +240,6 @@ class AppService extends Service
                 $this->app->make(\PeanutAdmin\Kernel\Authorization\Persistence\AuthorizationCatalogRepository::class),
             ),
             $this->app->make(\PeanutAdmin\Kernel\Menu\MenuCatalogRepository::class),
-            $this->app->make(\PeanutAdmin\Modules\ReferenceCodes\Service\ReferenceCodeCatalogService::class),
             $this->app->make(\PeanutAdmin\Modules\Identity\Authorization\CatalogLifecycleService::class),
         ));
         $this->app->bind(IdempotentCommandExecutor::class, ThinkPhpIdempotentCommandExecutor::class);
@@ -257,7 +248,7 @@ class AppService extends Service
         ));
         $this->app->bind(
             InstallationConfigurationHost::class,
-            fn(): InstallationConfigurationHost => new InstallationConfigurationHost(dirname(__DIR__), deferPublication: \app\common\infrastructure\installation\ReadonlyHttpMount::active(dirname(__DIR__))),
+            fn(): InstallationConfigurationHost => new InstallationConfigurationHost(dirname(__DIR__)),
         );
         $this->app->bind(
             InstallationExecutionHost::class,
@@ -314,9 +305,6 @@ class AppService extends Service
     /** Wires current native Admin authorization services to their exact constructor contracts. */
     private function registerAuthorization(): void
     {
-        // Cross-Tenant read capabilities are server registrations supplied by source Modules.
-        // The base product intentionally starts empty, so unknown/wide scopes fail closed.
-        $this->app->bind(SourceReadCapabilityRegistry::class, fn(): SourceReadCapabilityRegistry => new SourceReadCapabilityRegistry([]));
         $this->app->bind(\PeanutAdmin\Kernel\Authorization\TenantAuthorizationRepository::class, ThinkPhpTenantAuthorizationRepository::class);
         $this->app->bind(
             \PeanutAdmin\Kernel\Authorization\Persistence\AuthorizationCatalogRepository::class,
@@ -332,20 +320,12 @@ class AppService extends Service
             $this->app->make(\PeanutAdmin\Modules\Identity\Menu\MenuAdministrationService::class),
             $this->app->make(\PeanutAdmin\Modules\Identity\Module\TenantEntitlementService::class),
         ));
-        $this->app->bind(RoleAdministrationRuntime::class, fn(): RoleAdministrationRuntime => new RoleAdministrationRuntime(
-            new RoleAdminService(
-                $this->app->make(AuditService::class),
-                $this->app->make(\PeanutAdmin\Modules\Identity\Module\TenantEntitlementService::class),
-            ),
-            $this->app->make(TenantAuthorizationQuery::class),
+        $this->app->bind(RoleAdminService::class, fn(): RoleAdminService => new RoleAdminService(
+            $this->app->make(AuditService::class),
+            $this->app->make(\PeanutAdmin\Modules\Identity\Module\TenantEntitlementService::class),
         ));
         $this->app->bind(AdminDirectoryQuery::class, fn(): AdminDirectoryQuery => new AdminDirectoryQuery(
             $this->app->make(CurrentExecutionContext::class),
-        ));
-        $this->app->bind(TenantAdminRuntime::class, fn(): TenantAdminRuntime => new TenantAdminRuntime(
-            $this->app->make(MemberAdminService::class),
-            $this->app->make(AccountSelfService::class),
-            $this->app->make(DemoAccountPolicy::class),
         ));
         $this->app->bind(AdminApiAccessRegistry::class, function (): AdminApiAccessRegistry {
             $routes = Config::get('admin_api_access', []);
@@ -514,32 +494,6 @@ class AppService extends Service
                 $this->app->make(ThinkPhpModuleGovernanceProvider::class),
             ));
         $this->app->bind(RuntimeStatusProvider::class, ApplicationRuntimeStatusProvider::class);
-        $this->app->bind(PlatformProviderQualificationService::class, function (): PlatformProviderQualificationService {
-            $contributors = [new StorageQualificationContributor(
-                $this->platformIdentifierHmacKey(),
-                $this->app->make(\PeanutAdmin\Modules\File\Contract\StorageQualificationQueries::class),
-            )];
-            $providerContributors = [
-                'peanut.payment' => PaymentQualificationContributor::class,
-                'peanut.notification' => NotificationQualificationContributor::class,
-                'peanut.oauth' => OauthQualificationContributor::class,
-            ];
-            foreach ($this->app->make(CompiledModuleRegistry::class)->modules as $manifest) {
-                $contributor = $providerContributors[$manifest->data['key']] ?? null;
-                if ($contributor !== null) {
-                    $contributors[] = new $contributor(
-                        $this->platformIdentifierHmacKey(),
-                        $this->app->make(AdminDirectoryQuery::class),
-                        $this->app->make(\PeanutAdmin\Modules\Integration\Contract\ExternalBindingQualificationQueries::class),
-                    );
-                }
-            }
-            return new PlatformProviderQualificationService(
-                $this->app->make(PlatformPermissionChecker::class),
-                $contributors,
-                $this->platformIdentifierHmacKey(),
-            );
-        });
         $this->app->bind(PlatformDiagnosticBundleService::class, function (): PlatformDiagnosticBundleService {
             $permissions = $this->app->make(PlatformPermissionChecker::class);
             return new PlatformDiagnosticBundleService(
@@ -702,24 +656,17 @@ class AppService extends Service
         if ($lockPath === '') {
             throw new \RuntimeException('PLUGIN_LOCK_INVALID');
         }
-        $releasePath = $serverRoot . '/.peanut/release-identity.json';
         if (\app\common\value\installation\ApplicationSourceIdentity::hasRuntime($serverRoot)
             && Config::get('peanut.environment', '') !== 'development') {
             throw new \RuntimeException('APPLICATION_DEVELOPMENT_RUNTIME_ENVIRONMENT_INVALID');
         }
-        $developmentReadonly = \app\common\value\installation\ApplicationSourceIdentity::hasRuntime($serverRoot)
-            && \app\common\infrastructure\installation\ReadonlyHttpMount::active($serverRoot);
         $factory = new ModuleDefinitionRegistryFactory($serverRoot);
         if (!$this->app->runningInConsole()) {
-            $registry = file_exists($releasePath) || is_link($releasePath)
-                || \app\common\infrastructure\installation\ReadonlyHttpMount::active($serverRoot)
-                ? $this->app->make(\app\common\infrastructure\installation\VerifiedServerDeployment::class)->registry()
-                : $factory->fromCompiled($config);
+            $registry = $factory->fromCompiled($config);
         } else {
             $resolver = ModuleLockResolver::forRuntime($serverRoot, $lockPath);
             $registry = $factory->fromModuleLock($resolver, $config, false);
-            if (PHP_SAPI === 'cli' && in_array((new \think\console\Input())->getFirstArgument(), ['run', 'module:compile'], true)
-                && !file_exists($releasePath) && !is_link($releasePath) && !$developmentReadonly) {
+            if (PHP_SAPI === 'cli' && in_array((new \think\console\Input())->getFirstArgument(), ['run', 'module:compile'], true)) {
                 $factory->publishCompiled($registry, $config, $resolver->all());
             }
         }

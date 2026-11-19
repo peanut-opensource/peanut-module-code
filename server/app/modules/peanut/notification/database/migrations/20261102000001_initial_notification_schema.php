@@ -103,9 +103,9 @@ CREATE TABLE `pa_notification_template` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `tenant_id` bigint unsigned NOT NULL,
   `template_key` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  `name` varchar(160) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `subject_template` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `body_template` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(160) COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `subject_template` varchar(255) COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `body_template` text COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `channels_json` json NOT NULL,
   `variable_keys_json` json NOT NULL,
   `status` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'active',
@@ -122,7 +122,7 @@ CREATE TABLE `pa_notification_template` (
   CONSTRAINT `chk_notification_template_key` CHECK (regexp_like(`template_key`,_utf8mb4'^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$')),
   CONSTRAINT `chk_notification_template_revision` CHECK ((`revision` >= 1)),
   CONSTRAINT `chk_notification_template_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'inactive')))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_notification_message' => <<<'SQL'
 CREATE TABLE `pa_notification_message` (
@@ -133,9 +133,9 @@ CREATE TABLE `pa_notification_message` (
   `template_revision` bigint unsigned NOT NULL,
   `recipient_member_id` bigint unsigned NOT NULL,
   `recipient_account_id` bigint unsigned NOT NULL,
-  `recipient_display_name` varchar(160) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `subject` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `body` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `recipient_display_name` varchar(160) COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `subject` varchar(255) COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `body` text COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `status` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'unread',
   `created_by_member_id` bigint unsigned NOT NULL,
   `revision` bigint unsigned NOT NULL DEFAULT '1',
@@ -143,11 +143,11 @@ CREATE TABLE `pa_notification_message` (
   `updated_at` datetime(3) NOT NULL,
   `read_at` datetime(3) DEFAULT NULL,
   `archived_at` datetime(3) DEFAULT NULL,
-  `producer_key` varchar(160) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `producer_event_key` varchar(160) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `producer_business_key` varchar(160) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `producer_digest` char(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `producer_payload_sha256` char(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `producer_key` varchar(160) COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `producer_event_key` varchar(160) COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `producer_business_key` varchar(160) COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `producer_digest` char(64) COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `producer_payload_sha256` char(64) COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_notification_message_key` (`message_key`),
   UNIQUE KEY `uk_notification_message_tenant_id` (`tenant_id`,`id`),
@@ -164,7 +164,7 @@ CREATE TABLE `pa_notification_message` (
   CONSTRAINT `chk_notification_message_revision` CHECK ((`revision` >= 1)),
   CONSTRAINT `chk_notification_message_status` CHECK ((`status` in (_ascii'unread',_ascii'read',_ascii'archived'))),
   CONSTRAINT `chk_notification_message_template_revision` CHECK ((`template_revision` >= 1))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_sms_rate_bucket' => <<<'SQL'
 CREATE TABLE `pa_sms_rate_bucket` (
@@ -178,7 +178,7 @@ CREATE TABLE `pa_sms_rate_bucket` (
   CONSTRAINT `fk_sms_rate_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `pa_tenant` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `chk_sms_rate_bucket` CHECK (regexp_like(`bucket_key`,_utf8mb4'^(tenant|recipient:[0-9a-f]{64})$')),
   CONSTRAINT `chk_sms_rate_window` CHECK ((`window_seconds` between 1 and 3600))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_notification_task_actor' => <<<'SQL'
 CREATE TABLE `pa_notification_task_actor` (
@@ -208,7 +208,7 @@ CREATE TABLE `pa_notification_attachment` (
   `tenant_id` bigint unsigned NOT NULL,
   `message_id` bigint unsigned NOT NULL,
   `file_key` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  `original_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `original_name` varchar(255) COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `media_type` varchar(127) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `size_bytes` bigint unsigned NOT NULL,
   `sha256` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -217,7 +217,7 @@ CREATE TABLE `pa_notification_attachment` (
   CONSTRAINT `fk_notification_attachment_message` FOREIGN KEY (`tenant_id`, `message_id`) REFERENCES `pa_notification_message` (`tenant_id`, `id`) ON DELETE RESTRICT,
   CONSTRAINT `chk_notification_attachment_file` CHECK (regexp_like(`file_key`,_utf8mb4'^file_[0-9a-f]{32}$')),
   CONSTRAINT `chk_notification_attachment_sha` CHECK (regexp_like(`sha256`,_utf8mb4'^[0-9a-f]{64}$'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_notification_outbox' => <<<'SQL'
 CREATE TABLE `pa_notification_outbox` (
@@ -250,7 +250,7 @@ CREATE TABLE `pa_notification_outbox` (
   CONSTRAINT `chk_notification_outbox_phone` CHECK (((`channel` = _utf8mb4'sms') = ((`recipient_phone_masked` is not null) and (`recipient_phone_digest` is not null)))),
   CONSTRAINT `chk_notification_outbox_revision` CHECK ((`revision` >= 1)),
   CONSTRAINT `chk_notification_outbox_status` CHECK ((`status` in (_utf8mb4'pending',_utf8mb4'queued',_utf8mb4'processing',_utf8mb4'retryable',_utf8mb4'delivered',_utf8mb4'permanent_failed')))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_notification_event' => <<<'SQL'
 CREATE TABLE `pa_notification_event` (
@@ -268,7 +268,7 @@ CREATE TABLE `pa_notification_event` (
   CONSTRAINT `fk_notification_event_member` FOREIGN KEY (`tenant_id`, `actor_member_id`) REFERENCES `pa_tenant_member` (`tenant_id`, `id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_notification_event_message` FOREIGN KEY (`tenant_id`, `message_id`) REFERENCES `pa_notification_message` (`tenant_id`, `id`) ON DELETE RESTRICT,
   CONSTRAINT `chk_notification_event_key` CHECK (regexp_like(`event_key`,_utf8mb4'^tenant\\.notification\\.[a-z_]+$'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
     ];
 
@@ -281,35 +281,15 @@ SQL,
         if (!$adapter instanceof PdoAdapter) {
             throw new RuntimeException('InitialNotificationSchema requires the native PDO adapter.');
         }
-        $pdo = $adapter->getConnection();
-        $pending = [];
         foreach (self::CREATE_SQL as $table => $definition) {
             if (!$adapter->hasTable($table)) {
-                $pending[] = $definition;
-                continue;
+                $this->execute($definition);
             }
-            $statement = $pdo->query('SHOW CREATE TABLE `' . $table . '`');
-            $existing = $statement->fetch(PDO::FETCH_NUM);
-            $statement->closeCursor();
-            if (!is_array($existing) || !is_string($existing[1] ?? null)
-                || $this->schemaDefinition($existing[1]) !== $this->schemaDefinition($definition)) {
-                throw new RuntimeException('INITIAL_SCHEMA_MISMATCH: ' . $table);
-            }
-        }
-        // Check existing definitions before creating missing tables in foreign-key order.
-        foreach ($pending as $definition) {
-            $this->execute($definition);
         }
     }
 
     public function down(): void
     {
         throw new IrreversibleMigrationException('Module data is retained. This initial schema migration cannot be rolled back.');
-    }
-
-    private function schemaDefinition(string $definition): string
-    {
-        // AUTO_INCREMENT is live row state rather than a schema difference.
-        return (string) preg_replace('/ AUTO_INCREMENT=\d+(?= |$)/', '', rtrim(trim($definition), ';'));
     }
 }

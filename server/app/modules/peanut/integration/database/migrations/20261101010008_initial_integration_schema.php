@@ -16,10 +16,10 @@ final class InitialIntegrationSchema extends Migrator
 CREATE TABLE `pa_external_channel_binding` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `tenant_id` bigint unsigned NOT NULL,
-  `provider` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `callback_key` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'server generated opaque callback route key',
-  `identity_hash` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'SHA-256 of canonical public provider identity',
-  `identity_hint` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'non-secret audit/display hint',
+  `provider` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `callback_key` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT 'server generated opaque callback route key',
+  `identity_hash` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT 'SHA-256 of canonical public provider identity',
+  `identity_hint` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'non-secret audit/display hint',
   `config_json` json NOT NULL COMMENT 'server-controlled provider verifier/transport config',
   `status` tinyint unsigned NOT NULL DEFAULT '1',
   `create_time` int unsigned NOT NULL DEFAULT '0',
@@ -30,7 +30,7 @@ CREATE TABLE `pa_external_channel_binding` (
   UNIQUE KEY `uk_external_tenant_provider` (`tenant_id`,`provider`),
   KEY `idx_external_tenant_status` (`tenant_id`,`status`,`id`),
   CONSTRAINT `fk_external_binding_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `pa_tenant` (`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Tenant-owned external provider binding and callback verifier configuration';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Tenant-owned external provider binding and callback verifier configuration';
 SQL,
         'pa_integration_machine_identity' => <<<'SQL'
 CREATE TABLE `pa_integration_machine_identity` (
@@ -174,51 +174,15 @@ SQL,
         if (!$adapter instanceof PdoAdapter) {
             throw new RuntimeException('InitialIntegrationSchema requires the native PDO adapter.');
         }
-        $pdo = $adapter->getConnection();
-        $pending = [];
         foreach (self::CREATE_SQL as $table => $definition) {
             if (!$adapter->hasTable($table)) {
-                $pending[] = $definition;
-                continue;
+                $this->execute($definition);
             }
-            $statement = $pdo->query('SHOW CREATE TABLE `' . $table . '`');
-            $existing = $statement->fetch(PDO::FETCH_NUM);
-            $statement->closeCursor();
-            if (!is_array($existing) || !is_string($existing[1] ?? null)
-                || $this->schemaDefinition($existing[1]) !== $this->schemaDefinition($definition)) {
-                throw new RuntimeException('INITIAL_SCHEMA_MISMATCH: ' . $table);
-            }
-        }
-        // Check existing definitions before creating missing tables in foreign-key order.
-        foreach ($pending as $definition) {
-            $this->execute($definition);
         }
     }
 
     public function down(): void
     {
         throw new IrreversibleMigrationException('Module data is retained. This initial schema migration cannot be rolled back.');
-    }
-
-    private function schemaDefinition(string $definition): string
-    {
-        // AUTO_INCREMENT is live row state rather than a schema difference.
-        $definition = (string) preg_replace('/ AUTO_INCREMENT=\d+(?= |$)/', '', rtrim(trim($definition), ';'));
-        $declarations = explode("\n", $definition);
-        $header = array_shift($declarations);
-        $options = array_pop($declarations);
-        foreach ($declarations as &$declaration) {
-            $declaration = rtrim(trim($declaration), ',');
-            // The retained collation already specifies utf8mb4 for these character columns.
-            $declaration = (string) preg_replace(
-                '/^(`[^`]+` (?:var)?char\(\d+\)) CHARACTER SET utf8mb4 COLLATE (utf8mb4_[a-z0-9_]+)(?= )/',
-                '$1 COLLATE $2',
-                $declaration
-            );
-        }
-        unset($declaration);
-        // Compare named declarations without changing the column order inside any index or constraint.
-        sort($declarations, SORT_STRING);
-        return $header . "\n" . implode("\n", $declarations) . "\n" . $options;
     }
 }

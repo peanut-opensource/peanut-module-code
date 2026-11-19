@@ -40,7 +40,7 @@ CREATE TABLE pa_document_source_grant (
   KEY idx_document_source_version (tenant_id,document_id,revision_id),
   KEY idx_document_source_expiry (tenant_id,expires_at),
   CONSTRAINT fk_document_source_document FOREIGN KEY (tenant_id,document_id) REFERENCES pa_document (tenant_id,id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 SQL);
     }
 

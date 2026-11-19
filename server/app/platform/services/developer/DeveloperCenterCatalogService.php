@@ -176,13 +176,6 @@ final readonly class DeveloperCenterCatalogService
     /** @return array{0:array{status:string,code:string,reason:string},1:array<string,string>} */
     private function discovery(string $projectRoot): array
     {
-        if (\app\common\infrastructure\installation\ReadonlyHttpMount::active($this->serverRoot)) {
-            return [$this->state(
-                'not_checked',
-                'MODULE_DEVELOPMENT_DISCOVERY_NOT_AVAILABLE',
-                'The production HTTP mount contains only server source; strict development discovery requires the full application source tree.',
-            ), []];
-        }
         try {
             $roots = (new DevelopmentModuleDiscovery($projectRoot))->moduleRoots();
             return [$this->state('discovered', 'MODULE_DISCOVERY_READY', count($roots) . ' Modules passed strict discovery.'), $roots];

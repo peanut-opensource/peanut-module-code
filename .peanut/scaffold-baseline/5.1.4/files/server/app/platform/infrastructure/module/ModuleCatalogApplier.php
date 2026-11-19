@@ -140,7 +140,7 @@ final readonly class ModuleCatalogApplier
         $rows = [];
         $rows['pa_permission'] = $this->authorization->revisionRows();
         $rows['api_permissions'] = (new \PeanutAdmin\Modules\Identity\Authorization\ApiPermissionCatalog())->revisionRows();
-        $rows['pa_menu_definition'] = (new MenuCatalogSynchronizer($this->menuCatalog))->revisionRows();
+        $rows['pa_system_menu'] = (new MenuCatalogSynchronizer($this->menuCatalog))->revisionRows();
         $rows['pa_setting_definition'] = $this->settings->revisionRows();
         $rows['pa_reference_code_set'] = $this->referenceCodes->revisionRows();
         return hash('sha256', json_encode($rows, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));

@@ -44,7 +44,7 @@ CREATE TABLE pa_document_change (
  PRIMARY KEY (id),
  KEY idx_document_change (tenant_id,document_id,id),
  CONSTRAINT fk_document_change_document FOREIGN KEY (tenant_id,document_id) REFERENCES pa_document (tenant_id,id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 SQL);
         }
     }

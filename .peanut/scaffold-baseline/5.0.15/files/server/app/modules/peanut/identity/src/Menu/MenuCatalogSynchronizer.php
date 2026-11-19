@@ -32,14 +32,14 @@ final readonly class MenuCatalogSynchronizer
      */
     public function revisionRows(): array
     {
-        return Db::name('menu_definition')
+        return Db::name('system_menu')
             ->field('id,key,module_key,status,manifest_digest')->order('id')->select()->toArray();
     }
 
     /** @param list<string> $moduleKeys */
     public function activeCount(array $moduleKeys): int
     {
-        return $moduleKeys === [] ? 0 : (int) Db::table('pa_menu_definition')
+        return $moduleKeys === [] ? 0 : (int) Db::table('pa_system_menu')
             ->whereIn('module_key', $moduleKeys)->where('status', 'active')->count();
     }
 
@@ -49,7 +49,7 @@ final readonly class MenuCatalogSynchronizer
      */
     public function activeKeysOutsideModules(array $moduleKeys): array
     {
-        return array_map('strval', Db::name('menu_definition')->where('status', 'active')
+        return array_map('strval', Db::name('system_menu')->where('status', 'active')
             ->whereNotIn('module_key', $moduleKeys)->order('key')->column('key'));
     }
 

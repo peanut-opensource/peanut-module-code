@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Identity;
 
 use PeanutAdmin\Modules\Identity\access\Infrastructure\ThinkPhpTargetSetConstraintApplier;
-use PeanutAdmin\Modules\Identity\access\SourceRead\ThinkPhpReadScopeAuthority;
 use PeanutAdmin\Modules\Identity\Audit\Diagnostic\ThinkPhpTenantAuditDiagnosticQuery;
 use PeanutAdmin\Modules\Identity\Audit\Diagnostic\ThinkPhpPlatformAuditDiagnosticQuery;
 use PeanutAdmin\Modules\Identity\Identity\Query\ThinkPhpPlatformOperatorIdentityQuery;
@@ -13,7 +12,6 @@ use PeanutAdmin\Modules\Identity\Contract\PlatformAuditDiagnosticQuery;
 use PeanutAdmin\Modules\Identity\Contract\PlatformOperatorIdentityQuery;
 use PeanutAdmin\Modules\Identity\Contract\TenantAuditDiagnosticQuery;
 use PeanutAdmin\DataPermission\Constraint\TargetSetConstraintApplier;
-use PeanutAdmin\DataPermission\Scope\ReadScopeAuthority;
 use PeanutAdmin\Modules\Identity\Audit\AuditService;
 use PeanutAdmin\DataPermission\Catalog\ResourceOperationCatalog;
 use PeanutAdmin\DataPermission\Policy\PolicyRepository;
@@ -39,10 +37,6 @@ final class ModuleProvider implements ModuleProviderContract
     public function bindings(): array
     {
         return [
-            \PeanutAdmin\Modules\Identity\Contract\DeviceCredentialEnrollment::class => \PeanutAdmin\Modules\Identity\Device\EnrollDeviceCredential::class,
-            \PeanutAdmin\Modules\Identity\Contract\DeviceCredentialBindings::class => \PeanutAdmin\Modules\Identity\Device\BindDeviceCredential::class,
-            \PeanutAdmin\Modules\Identity\Contract\DeviceCredentialBindingQueries::class => \PeanutAdmin\Modules\Identity\Device\BindDeviceCredential::class,
-            \PeanutAdmin\Modules\Identity\Contract\DeviceCredentialRevocations::class => \PeanutAdmin\Modules\Identity\Device\RevokeDeviceCredential::class,
             \PeanutAdmin\Modules\Identity\Contract\RevocationFacts::class => AuditService::class,
             AuditService::class => static fn(\think\App $app): AuditService => new AuditService(
                 $app->make(\app\common\execution\CurrentExecutionContext::class),
@@ -60,7 +54,6 @@ final class ModuleProvider implements ModuleProviderContract
             PolicyRepository::class => ThinkPhpPolicyRepository::class,
             ModuleAvailability::class => ModuleAvailabilityService::class,
             TargetSetConstraintApplier::class => ThinkPhpTargetSetConstraintApplier::class,
-            ReadScopeAuthority::class => ThinkPhpReadScopeAuthority::class,
             TenantAuditDiagnosticQuery::class => ThinkPhpTenantAuditDiagnosticQuery::class,
             PlatformAuditDiagnosticQuery::class => ThinkPhpPlatformAuditDiagnosticQuery::class,
             PlatformOperatorIdentityQuery::class => ThinkPhpPlatformOperatorIdentityQuery::class,

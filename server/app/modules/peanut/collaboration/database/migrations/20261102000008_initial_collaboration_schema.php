@@ -24,7 +24,7 @@ CREATE TABLE `pa_collaboration_service_nonce` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_collaboration_service_nonce` (`service_instance_id`,`key_id`,`nonce`),
   KEY `idx_collaboration_nonce_expiry` (`expires_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_collaboration_ticket' => <<<'SQL'
 CREATE TABLE `pa_collaboration_ticket` (
@@ -38,7 +38,7 @@ CREATE TABLE `pa_collaboration_ticket` (
   `mode` varchar(8) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `issued_identity_json` json NOT NULL,
   `owner_reference_json` json NOT NULL,
-  `authorization_revision` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `authorization_revision` varchar(255) COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `document_auth_revision` bigint unsigned NOT NULL,
   `issued_state_seq` bigint unsigned NOT NULL,
   `created_at` datetime(3) NOT NULL,
@@ -54,7 +54,7 @@ CREATE TABLE `pa_collaboration_ticket` (
   CONSTRAINT `fk_collaboration_ticket_document` FOREIGN KEY (`tenant_id`, `document_id`) REFERENCES `pa_document` (`tenant_id`, `id`),
   CONSTRAINT `chk_collaboration_ticket_edition` CHECK ((`edition` in (_utf8mb4'engine',_utf8mb4'standalone',_utf8mb4'multi-tenant'))),
   CONSTRAINT `chk_collaboration_ticket_mode` CHECK ((`mode` in (_utf8mb4'read',_utf8mb4'write')))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_collaboration_room' => <<<'SQL'
 CREATE TABLE `pa_collaboration_room` (
@@ -68,7 +68,7 @@ CREATE TABLE `pa_collaboration_room` (
   `service_instance_id` varchar(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `lease_epoch` bigint unsigned NOT NULL,
   `lease_expires_at` datetime(3) NOT NULL,
-  `status` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(16) COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `accepted_through` bigint unsigned NOT NULL DEFAULT '0',
   `persisted_through` bigint unsigned NOT NULL DEFAULT '0',
   `persisted_state_seq` bigint unsigned NOT NULL,
@@ -93,7 +93,7 @@ CREATE TABLE `pa_collaboration_room` (
   CONSTRAINT `fk_collaboration_room_document` FOREIGN KEY (`tenant_id`, `document_id`) REFERENCES `pa_document` (`tenant_id`, `id`),
   CONSTRAINT `chk_collaboration_room_sequence` CHECK (((`persisted_through` <= `accepted_through`) and (`lease_epoch` > 0))),
   CONSTRAINT `chk_collaboration_room_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'draining',_utf8mb4'recovery',_utf8mb4'closed')))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_collaboration_runtime' => <<<'SQL'
 CREATE TABLE `pa_collaboration_runtime` (
@@ -121,8 +121,8 @@ CREATE TABLE `pa_collaboration_connection` (
   `room_id` bigint unsigned NOT NULL,
   `lease_epoch` bigint unsigned NOT NULL,
   `mode` varchar(8) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `status` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `authorization_revision` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(16) COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `authorization_revision` varchar(255) COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `lease_expires_at` datetime(3) NOT NULL,
   `created_at` datetime(3) NOT NULL,
   `revoked_at` datetime(3) DEFAULT NULL,
@@ -135,7 +135,7 @@ CREATE TABLE `pa_collaboration_connection` (
   CONSTRAINT `fk_collaboration_connection_ticket` FOREIGN KEY (`tenant_id`, `ticket_id`) REFERENCES `pa_collaboration_ticket` (`tenant_id`, `id`),
   CONSTRAINT `chk_collaboration_connection_mode` CHECK ((`mode` in (_utf8mb4'read',_utf8mb4'write'))),
   CONSTRAINT `chk_collaboration_connection_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'revoked',_utf8mb4'closed')))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_collaboration_grant' => <<<'SQL'
 CREATE TABLE `pa_collaboration_grant` (
@@ -174,7 +174,7 @@ CREATE TABLE `pa_collaboration_grant` (
   CONSTRAINT `chk_collaboration_grant_mode` CHECK ((`mode` in (_utf8mb4'read',_utf8mb4'write'))),
   CONSTRAINT `chk_collaboration_grant_purpose` CHECK ((`purpose` in (_utf8mb4'connection',_utf8mb4'references'))),
   CONSTRAINT `chk_collaboration_grant_window` CHECK ((`expires_at_ms` > `issued_at_ms`))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_collaboration_admission' => <<<'SQL'
 CREATE TABLE `pa_collaboration_admission` (
@@ -209,7 +209,7 @@ CREATE TABLE `pa_collaboration_admission` (
   CONSTRAINT `fk_collaboration_admission_connection` FOREIGN KEY (`tenant_id`, `connection_id`) REFERENCES `pa_collaboration_connection` (`tenant_id`, `id`),
   CONSTRAINT `fk_collaboration_admission_room` FOREIGN KEY (`tenant_id`, `room_id`) REFERENCES `pa_collaboration_room` (`tenant_id`, `id`),
   CONSTRAINT `chk_collaboration_admission_size` CHECK (((`update_bytes` > 0) and (`update_bytes` = length(`update_binary`)) and (`lease_epoch` > 0) and (`accepted_seq` > 0)))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_collaboration_barrier' => <<<'SQL'
 CREATE TABLE `pa_collaboration_barrier` (
@@ -220,8 +220,8 @@ CREATE TABLE `pa_collaboration_barrier` (
   `barrier_key` varchar(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `lease_epoch` bigint unsigned NOT NULL,
   `target_accepted_seq` bigint unsigned DEFAULT NULL,
-  `purpose` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `status` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `purpose` varchar(16) COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `status` varchar(16) COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `input_sha256` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `committed_state_seq` bigint unsigned DEFAULT NULL,
   `committed_state_sha256` char(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
@@ -240,7 +240,7 @@ CREATE TABLE `pa_collaboration_barrier` (
   CONSTRAINT `fk_collaboration_barrier_room` FOREIGN KEY (`tenant_id`, `room_id`) REFERENCES `pa_collaboration_room` (`tenant_id`, `id`),
   CONSTRAINT `chk_collaboration_barrier_purpose` CHECK ((`purpose` in (_utf8mb4'version',_utf8mb4'archive',_utf8mb4'restore',_utf8mb4'shutdown'))),
   CONSTRAINT `chk_collaboration_barrier_status` CHECK ((`status` in (_utf8mb4'draining',_utf8mb4'committed',_utf8mb4'recovery')))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
     ];
 
@@ -253,51 +253,15 @@ SQL,
         if (!$adapter instanceof PdoAdapter) {
             throw new RuntimeException('InitialCollaborationSchema requires the native PDO adapter.');
         }
-        $pdo = $adapter->getConnection();
-        $pending = [];
         foreach (self::CREATE_SQL as $table => $definition) {
             if (!$adapter->hasTable($table)) {
-                $pending[] = $definition;
-                continue;
+                $this->execute($definition);
             }
-            $statement = $pdo->query('SHOW CREATE TABLE `' . $table . '`');
-            $existing = $statement->fetch(PDO::FETCH_NUM);
-            $statement->closeCursor();
-            if (!is_array($existing) || !is_string($existing[1] ?? null)
-                || $this->schemaDefinition($existing[1]) !== $this->schemaDefinition($definition)) {
-                throw new RuntimeException('INITIAL_SCHEMA_MISMATCH: ' . $table);
-            }
-        }
-        // Check existing definitions before creating missing tables in foreign-key order.
-        foreach ($pending as $definition) {
-            $this->execute($definition);
         }
     }
 
     public function down(): void
     {
         throw new IrreversibleMigrationException('Module data is retained. This initial schema migration cannot be rolled back.');
-    }
-
-    private function schemaDefinition(string $definition): string
-    {
-        // AUTO_INCREMENT is live row state rather than a schema difference.
-        $definition = (string) preg_replace('/ AUTO_INCREMENT=\d+(?= |$)/', '', rtrim(trim($definition), ';'));
-        $declarations = explode("\n", $definition);
-        $header = array_shift($declarations);
-        $options = array_pop($declarations);
-        foreach ($declarations as &$declaration) {
-            $declaration = rtrim(trim($declaration), ',');
-            // The retained collation already specifies utf8mb4 for these character columns.
-            $declaration = (string) preg_replace(
-                '/^(`[^`]+` (?:var)?char\(\d+\)) CHARACTER SET utf8mb4 COLLATE (utf8mb4_[a-z0-9_]+)(?= )/',
-                '$1 COLLATE $2',
-                $declaration
-            );
-        }
-        unset($declaration);
-        // Compare named declarations without changing the column order inside any index or constraint.
-        sort($declarations, SORT_STRING);
-        return $header . "\n" . implode("\n", $declarations) . "\n" . $options;
     }
 }

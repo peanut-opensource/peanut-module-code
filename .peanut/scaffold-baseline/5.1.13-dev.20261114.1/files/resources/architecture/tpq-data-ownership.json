@@ -1838,7 +1838,7 @@
     },
     {
       "model": "PeanutAdmin\\Modules\\Identity\\Persistence\\Model\\MenuDefinition",
-      "table": "pa_menu_definition",
+      "table": "pa_system_menu",
       "owner": "instance",
       "instance_review": {
         "classification": "deployment-instance",
@@ -1902,7 +1902,7 @@
     },
     {
       "model": "PeanutAdmin\\Modules\\Identity\\DataPermission\\Model\\DataPermissionPolicyRecord",
-      "table": "pa_data_permission_policy",
+      "table": "pa_data_permission",
       "owner": "tenant-gateway",
       "access_entry": "PeanutAdmin\\Modules\\Identity\\DataPermission\\Application\\DataPolicyAdminService"
     },
@@ -2446,7 +2446,7 @@
       "access_entry": "PeanutAdmin\\Modules\\Identity\\Membership\\Application\\MemberAdminService"
     },
     {
-      "table": "pa_data_permission_policy",
+      "table": "pa_data_permission",
       "owner": "tenant-gateway",
       "access_entry": "PeanutAdmin\\Modules\\Identity\\DataPermission\\Application\\DataPolicyAdminService"
     },

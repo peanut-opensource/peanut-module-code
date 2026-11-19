@@ -11,6 +11,6 @@ class Jobs extends TenantOwnedModel
 {
     use SoftDelete;
 
-    protected $name = 'jobs';
+    protected $name = 'job';
     protected $deleteTime = 'delete_time';
 }

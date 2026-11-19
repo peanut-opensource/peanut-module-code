@@ -10,7 +10,7 @@ final class ApiPermissionBundles extends Migrator
     public function up(): void
     {
         $this->execute(<<<'SQL'
-CREATE TABLE pa_api_endpoint (
+CREATE TABLE pa_system_api (
   id char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   method varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   path varchar(512) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -30,17 +30,7 @@ CREATE TABLE pa_api_endpoint (
   CONSTRAINT chk_api_endpoint_audience CHECK (audience IN ('tenant','platform','member','installation'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 SQL);
-        $this->execute(<<<'SQL'
-CREATE TABLE pa_permission_api_config (
-  permission_id bigint unsigned NOT NULL,
-  revision bigint unsigned NOT NULL DEFAULT 1,
-  configured tinyint unsigned NOT NULL DEFAULT 0,
-  updated_at datetime(3) NOT NULL,
-  PRIMARY KEY (permission_id),
-  CONSTRAINT fk_permission_api_config FOREIGN KEY (permission_id) REFERENCES pa_permission(id) ON DELETE CASCADE,
-  CONSTRAINT chk_permission_api_config CHECK (configured IN (0,1))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
-SQL);
+        $this->execute('ALTER TABLE pa_permission ADD COLUMN revision bigint unsigned NOT NULL DEFAULT 1, ADD COLUMN api_configured tinyint unsigned NOT NULL DEFAULT 0');
         $this->execute(<<<'SQL'
 CREATE TABLE pa_permission_api (
   id bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -51,7 +41,7 @@ CREATE TABLE pa_permission_api (
   UNIQUE KEY uk_permission_api (permission_id,api_id),
   KEY idx_permission_api_endpoint (api_id),
   CONSTRAINT fk_permission_api_permission FOREIGN KEY (permission_id) REFERENCES pa_permission(id) ON DELETE CASCADE,
-  CONSTRAINT fk_permission_api_endpoint FOREIGN KEY (api_id) REFERENCES pa_api_endpoint(id) ON DELETE RESTRICT
+  CONSTRAINT fk_permission_api_endpoint FOREIGN KEY (api_id) REFERENCES pa_system_api(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 SQL);
     }

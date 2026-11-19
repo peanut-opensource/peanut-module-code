@@ -14,7 +14,6 @@ use PeanutAdmin\Kernel\Menu\MenuCatalogRepository;
 use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
 use PeanutAdmin\Kernel\Module\ManifestDocument;
 use PeanutAdmin\Modules\Settings\Service\SettingCatalogService;
-use PeanutAdmin\Modules\ReferenceCodes\Service\ReferenceCodeCatalogService;
 use PeanutAdmin\Kernel\Module\ModuleException;
 use think\facade\Db;
 
@@ -25,7 +24,6 @@ final readonly class ModuleCatalogApplier
         private SettingCatalogService $settings,
         private ModuleAuthorizationCatalogSynchronizer $authorization,
         private MenuCatalogRepository $menuCatalog,
-        private ReferenceCodeCatalogService $referenceCodes,
         private CatalogLifecycleService $identityLifecycle,
     ) {}
 
@@ -70,7 +68,6 @@ final readonly class ModuleCatalogApplier
             );
             try {
                 $this->settings->synchronize($selected, $now);
-                $this->referenceCodes->synchronize($selected, $now);
             } catch (ModuleException $exception) {
                 // Keep the deployment-facing failure contract; the owner never exposes its storage.
                 throw new ModuleLifecycleException($exception->errorCode, $exception->getMessage());
@@ -128,23 +125,13 @@ final readonly class ModuleCatalogApplier
         return (new ModuleCatalogMutationRepository($this->settings, $this->identityLifecycle))->plan($moduleKeys, $purge);
     }
 
-    /**
-     * Complete native selected contributions, shared with the catalog writer.
-     * @param array<string, ManifestDocument> $manifests
-     */
-    public function referenceCodePlan(array $manifests): array
-    {
-        return $this->referenceCodes->definitionPlan($manifests);
-    }
-
     public function catalogRevision(): string
     {
         $rows = [];
         $rows['pa_permission'] = $this->authorization->revisionRows();
         $rows['api_permissions'] = (new \PeanutAdmin\Modules\Identity\Authorization\ApiPermissionCatalog())->revisionRows();
-        $rows['pa_menu_definition'] = (new MenuCatalogSynchronizer($this->menuCatalog))->revisionRows();
+        $rows['pa_system_menu'] = (new MenuCatalogSynchronizer($this->menuCatalog))->revisionRows();
         $rows['pa_setting_definition'] = $this->settings->revisionRows();
-        $rows['pa_reference_code_set'] = $this->referenceCodes->revisionRows();
         return hash('sha256', json_encode($rows, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
     }
 
@@ -218,7 +205,7 @@ final readonly class ModuleCatalogApplier
             'permissions' => $this->authorization->activeCount($moduleKeys),
         ];
         $counts['settings'] = $this->settings->activeCount($moduleKeys);
-        $counts['reference_codes'] = $this->referenceCodes->activeCount($moduleKeys);
+        $counts['reference_codes'] = 0;
         return $counts;
     }
 }

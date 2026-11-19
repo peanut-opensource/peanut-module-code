@@ -33,6 +33,7 @@ final class ThinkPhpMenuCatalogRepository implements \PeanutAdmin\Kernel\Menu\Me
         $now = $this->now();
         $data = [
             'module_key' => $definition->moduleKey,
+            'source' => 'module',
             'scope' => $definition->scope,
             'parent_key' => $definition->parentKey,
             'type' => $definition->type,
@@ -110,7 +111,7 @@ final class ThinkPhpMenuCatalogRepository implements \PeanutAdmin\Kernel\Menu\Me
             throw new DomainException('The active menu catalog cannot be empty.');
         }
         Db::transaction(function () use ($activeKeys): void {
-            foreach (MenuDefinitionRecord::where('status', 'active')->whereNotIn('key', $activeKeys)->lock(true)->select() as $row) {
+            foreach (MenuDefinitionRecord::where('source', 'module')->where('status', 'active')->whereNotIn('key', $activeKeys)->lock(true)->select() as $row) {
                 $baseline = $this->decodedJson($row->getAttr('upstream_defaults_json'));
                 // A user-created or customized menu is never retired by discovery.
                 if ($baseline === null || $this->metadata($row->toArray()) !== $baseline) {

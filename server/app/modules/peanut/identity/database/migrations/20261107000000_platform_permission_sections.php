@@ -58,7 +58,7 @@ final class PlatformPermissionSections extends Migrator
                 if ($source['module_key'] !== 'platform') {
                     throw new RuntimeException('PLATFORM_PERMISSION_SECTION_SOURCE_CONFLICT: ' . $sourceKey);
                 }
-                $config = $pdo->prepare('SELECT configured FROM pa_permission_api_config WHERE permission_id = ? FOR UPDATE');
+                $config = $pdo->prepare('SELECT api_configured FROM pa_permission WHERE id = ? FOR UPDATE');
                 $config->execute([$source['id']]);
                 $sourceConfigured = (int) $config->fetchColumn() === 1;
                 $config->execute([$target['id']]);

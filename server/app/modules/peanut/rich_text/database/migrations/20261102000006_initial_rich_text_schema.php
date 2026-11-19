@@ -47,35 +47,15 @@ SQL,
         if (!$adapter instanceof PdoAdapter) {
             throw new RuntimeException('InitialRichTextSchema requires the native PDO adapter.');
         }
-        $pdo = $adapter->getConnection();
-        $pending = [];
         foreach (self::CREATE_SQL as $table => $definition) {
             if (!$adapter->hasTable($table)) {
-                $pending[] = $definition;
-                continue;
+                $this->execute($definition);
             }
-            $statement = $pdo->query('SHOW CREATE TABLE `' . $table . '`');
-            $existing = $statement->fetch(PDO::FETCH_NUM);
-            $statement->closeCursor();
-            if (!is_array($existing) || !is_string($existing[1] ?? null)
-                || $this->schemaDefinition($existing[1]) !== $this->schemaDefinition($definition)) {
-                throw new RuntimeException('INITIAL_SCHEMA_MISMATCH: ' . $table);
-            }
-        }
-        // Check existing definitions before creating missing tables in foreign-key order.
-        foreach ($pending as $definition) {
-            $this->execute($definition);
         }
     }
 
     public function down(): void
     {
         throw new IrreversibleMigrationException('Module data is retained. This initial schema migration cannot be rolled back.');
-    }
-
-    private function schemaDefinition(string $definition): string
-    {
-        // AUTO_INCREMENT is live row state rather than a schema difference.
-        return (string) preg_replace('/ AUTO_INCREMENT=\d+(?= |$)/', '', rtrim(trim($definition), ';'));
     }
 }

@@ -5,14 +5,18 @@ declare(strict_types=1);
 namespace app\adminapi\services\auth;
 
 use app\common\http\PageResult;
-use app\common\runtime\authorization\RoleAdministrationRuntime;
 use app\common\support\PaginationInput;
 use PeanutAdmin\Kernel\Auth\TenantContext;
+use PeanutAdmin\Modules\Identity\Authorization\Application\RoleAdminService;
+use PeanutAdmin\Modules\Identity\Contract\TenantAuthorizationQuery;
 
 /** Role details are independent from menu visibility and permission assignment. */
 final class RoleApplicationService
 {
-    public function __construct(private readonly RoleAdministrationRuntime $runtime) {}
+    public function __construct(
+        private readonly RoleAdminService $roleAdmin,
+        private readonly TenantAuthorizationQuery $identityAuthorization,
+    ) {}
 
     public function validationRules(string $scene): array
     {
@@ -29,8 +33,8 @@ final class RoleApplicationService
     public function lists(TenantContext $context, array $params): PageResult
     {
         $pagination = PaginationInput::from($params);
-        $result = $this->service()->list($context->tenantId, $pagination->pageRequest);
-        $memberCounts = $this->runtime->batchMemberCounts(
+        $result = $this->roleAdmin->list($context->tenantId, $pagination->pageRequest);
+        $memberCounts = $this->identityAuthorization->batchRoleMemberCounts(
             $context->tenantId,
             array_map('intval', array_column($result['items'], 'id')),
         );
@@ -45,30 +49,28 @@ final class RoleApplicationService
 
     public function detail(TenantContext $context, int $id): array
     {
-        return $this->compat($context, $this->service()->get($context->tenantId, $id));
+        return $this->compat($context, $this->roleAdmin->get($context->tenantId, $id));
     }
 
     public function add(TenantContext $context, array $params): bool
     {
-        $this->service()->create($context, 'application.admin.' . bin2hex(random_bytes(8)),
+        $this->roleAdmin->create($context, 'application.admin.' . bin2hex(random_bytes(8)),
             (string) $params['name'], (string) ($params['desc'] ?? ''));
         return true;
     }
 
     public function edit(TenantContext $context, array $params): bool
     {
-        $service = $this->service();
-        $current = $service->get($context->tenantId, (int) $params['id']);
-        $service->update($context, (int) $params['id'], (string) $params['name'],
+        $current = $this->roleAdmin->get($context->tenantId, (int) $params['id']);
+        $this->roleAdmin->update($context, (int) $params['id'], (string) $params['name'],
             (string) ($params['desc'] ?? ''), (int) $current['revision']);
         return true;
     }
 
     public function delete(TenantContext $context, int $id): bool
     {
-        $service = $this->service();
-        $role = $service->get($context->tenantId, $id);
-        $service->archive($context, $id, (int) $role['revision']);
+        $role = $this->roleAdmin->get($context->tenantId, $id);
+        $this->roleAdmin->archive($context, $id, (int) $role['revision']);
         return true;
     }
 
@@ -79,12 +81,7 @@ final class RoleApplicationService
         $roleId = (int) $role['id'];
         return ['id' => $roleId, 'key' => (string) $role['key'], 'name' => $role['name'], 'desc' => $role['description'] ?? '', 'sort' => 0,
             'create_time' => (string) $role['created_at'], 'num' => $memberCounts === null
-                ? $this->runtime->memberCount($context->tenantId, $roleId) : ($memberCounts[$roleId] ?? 0),
+                ? $this->identityAuthorization->roleMemberCount($context->tenantId, $roleId) : ($memberCounts[$roleId] ?? 0),
             'permission_keys' => $keys, 'status' => $role['status'], 'revision' => (int) $role['revision']];
-    }
-
-    private function service(): \PeanutAdmin\Modules\Identity\Authorization\Application\RoleAdminService
-    {
-        return $this->runtime->service();
     }
 }

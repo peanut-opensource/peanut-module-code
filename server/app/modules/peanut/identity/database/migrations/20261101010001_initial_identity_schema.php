@@ -56,26 +56,6 @@ CREATE TABLE `pa_auth_security_event` (
   CONSTRAINT `chk_auth_event_outcome` CHECK ((`outcome` in (_utf8mb4'success',_utf8mb4'denied',_utf8mb4'error')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
-        'pa_data_condition_definition' => <<<'SQL'
-CREATE TABLE `pa_data_condition_definition` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `key` varchar(160) NOT NULL,
-  `module_key` varchar(96) NOT NULL,
-  `category` varchar(32) NOT NULL,
-  `target_mode` varchar(32) NOT NULL,
-  `config_schema_json` json DEFAULT NULL,
-  `status` varchar(16) NOT NULL DEFAULT 'active',
-  `manifest_version` varchar(32) NOT NULL,
-  `manifest_digest` char(64) NOT NULL,
-  `created_at` datetime(3) NOT NULL,
-  `updated_at` datetime(3) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_data_condition_key` (`key`),
-  CONSTRAINT `chk_data_condition_category` CHECK ((`category` in (_utf8mb4'tenant',_utf8mb4'self',_utf8mb4'department',_utf8mb4'selected',_utf8mb4'relation'))),
-  CONSTRAINT `chk_data_condition_definition_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'retired'))),
-  CONSTRAINT `chk_data_condition_target_mode` CHECK ((`target_mode` in (_utf8mb4'none',_utf8mb4'department',_utf8mb4'resource')))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-SQL,
         'pa_module_installation' => <<<'SQL'
 CREATE TABLE `pa_module_installation` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -164,72 +144,6 @@ CREATE TABLE `pa_platform_role` (
   KEY `idx_platform_role_status` (`status`,`id`),
   CONSTRAINT `chk_platform_role_builtin` CHECK ((`is_builtin` in (0,1))),
   CONSTRAINT `chk_platform_role_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'disabled',_utf8mb4'archived')))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-SQL,
-        'pa_protected_resource' => <<<'SQL'
-CREATE TABLE `pa_protected_resource` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `key` varchar(160) NOT NULL,
-  `module_key` varchar(96) NOT NULL,
-  `name` varchar(160) NOT NULL,
-  `ownership` varchar(32) NOT NULL,
-  `provider_key` varchar(160) NOT NULL,
-  `status` varchar(16) NOT NULL DEFAULT 'active',
-  `manifest_version` varchar(32) NOT NULL,
-  `manifest_digest` char(64) NOT NULL,
-  `created_at` datetime(3) NOT NULL,
-  `updated_at` datetime(3) NOT NULL,
-  `retired_at` datetime(3) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_protected_resource_key` (`key`),
-  KEY `idx_protected_resource_module` (`module_key`,`status`),
-  CONSTRAINT `chk_protected_resource_ownership` CHECK ((`ownership` in (_utf8mb4'tenant_owned',_utf8mb4'business_target_owned',_utf8mb4'shared_master',_utf8mb4'global_reference',_utf8mb4'platform_internal'))),
-  CONSTRAINT `chk_protected_resource_retired` CHECK ((((`status` = _utf8mb4'retired') and (`retired_at` is not null)) or (`status` <> _utf8mb4'retired'))),
-  CONSTRAINT `chk_protected_resource_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'retired')))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-SQL,
-        'pa_system_menu' => <<<'SQL'
-CREATE TABLE `pa_system_menu` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `pid` int unsigned NOT NULL DEFAULT '0',
-  `type` char(1) NOT NULL DEFAULT 'C' COMMENT 'M目录 C菜单 A按钮',
-  `name` varchar(50) NOT NULL DEFAULT '',
-  `icon` varchar(100) NOT NULL DEFAULT '',
-  `sort` smallint NOT NULL DEFAULT '0',
-  `perms` varchar(100) NOT NULL DEFAULT '' COMMENT '权限标识',
-  `paths` varchar(200) NOT NULL DEFAULT '' COMMENT '路由路径',
-  `component` varchar(200) NOT NULL DEFAULT '' COMMENT '前端组件',
-  `is_cache` tinyint(1) NOT NULL DEFAULT '0',
-  `is_show` tinyint(1) NOT NULL DEFAULT '1',
-  `is_disable` tinyint(1) NOT NULL DEFAULT '0',
-  `upstream_defaults_json` json DEFAULT NULL,
-  `menu_conflict_json` json DEFAULT NULL,
-  `menu_key` varchar(160) NOT NULL,
-  `parent_key` varchar(160) DEFAULT NULL,
-  `module_key` varchar(96) NOT NULL DEFAULT 'application',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_system_menu_key` (`menu_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统菜单';
-SQL,
-        'pa_target_type' => <<<'SQL'
-CREATE TABLE `pa_target_type` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `key` varchar(160) NOT NULL,
-  `module_key` varchar(96) NOT NULL,
-  `name` varchar(160) NOT NULL,
-  `resolver_key` varchar(160) NOT NULL,
-  `catalog_provider_key` varchar(160) NOT NULL,
-  `id_format` varchar(16) NOT NULL,
-  `status` varchar(16) NOT NULL DEFAULT 'active',
-  `manifest_version` varchar(32) NOT NULL,
-  `manifest_digest` char(64) NOT NULL,
-  `created_at` datetime(3) NOT NULL,
-  `updated_at` datetime(3) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_target_type_key` (`key`),
-  KEY `idx_target_type_module` (`module_key`,`status`),
-  CONSTRAINT `chk_target_type_id_format` CHECK ((`id_format` in (_utf8mb4'decimal',_utf8mb4'uuid',_utf8mb4'ulid',_utf8mb4'string'))),
-  CONSTRAINT `chk_target_type_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'retired')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_tenant' => <<<'SQL'
@@ -336,7 +250,6 @@ CREATE TABLE `pa_department` (
   `parent_id` bigint unsigned DEFAULT NULL,
   `code` varchar(64) NOT NULL,
   `name` varchar(120) NOT NULL,
-  `leader` varchar(50) NOT NULL DEFAULT '',
   `leader_member_id` bigint unsigned DEFAULT NULL,
   `mobile` varchar(20) NOT NULL DEFAULT '',
   `sort_order` int NOT NULL DEFAULT '0',
@@ -355,15 +268,14 @@ CREATE TABLE `pa_department` (
   CONSTRAINT `chk_department_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'disabled',_utf8mb4'archived')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
-        'pa_jobs' => <<<'SQL'
-CREATE TABLE `pa_jobs` (
+        'pa_job' => <<<'SQL'
+CREATE TABLE `pa_job` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(50) NOT NULL DEFAULT '' COMMENT '岗位名称',
   `active_name` varchar(50) GENERATED ALWAYS AS (if((`delete_time` is null),`name`,NULL)) STORED,
   `code` varchar(64) NOT NULL DEFAULT '' COMMENT '岗位编码',
   `active_code` varchar(64) GENERATED ALWAYS AS (if((`delete_time` is null),`code`,NULL)) STORED,
   `sort` smallint NOT NULL DEFAULT '0' COMMENT '排序',
-  `is_disable` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否禁用：0启用 1禁用',
   `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态：0停用 1正常',
   `create_time` int unsigned NOT NULL DEFAULT '0',
   `update_time` int unsigned NOT NULL DEFAULT '0',
@@ -371,12 +283,12 @@ CREATE TABLE `pa_jobs` (
   `remark` varchar(200) NOT NULL DEFAULT '' COMMENT '备注',
   `tenant_id` bigint unsigned NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_jobs_tenant_id` (`tenant_id`,`id`),
-  UNIQUE KEY `uk_jobs_tenant_active_name` (`tenant_id`,`active_name`),
-  UNIQUE KEY `uk_jobs_tenant_active_code` (`tenant_id`,`active_code`),
+  UNIQUE KEY `uk_job_tenant_id` (`tenant_id`,`id`),
+  UNIQUE KEY `uk_job_tenant_active_name` (`tenant_id`,`active_name`),
+  UNIQUE KEY `uk_job_tenant_active_code` (`tenant_id`,`active_code`),
   KEY `idx_code` (`code`),
-  KEY `idx_jobs_tenant_code` (`tenant_id`,`code`),
-  CONSTRAINT `fk_jobs_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `pa_tenant` (`id`) ON DELETE RESTRICT
+  KEY `idx_job_tenant_code` (`tenant_id`,`code`),
+  CONSTRAINT `fk_job_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `pa_tenant` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='岗位';
 SQL,
         'pa_login_challenge' => <<<'SQL'
@@ -405,11 +317,12 @@ CREATE TABLE `pa_login_challenge` (
   CONSTRAINT `chk_login_challenge_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'used',_utf8mb4'revoked',_utf8mb4'expired')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
-        'pa_menu_definition' => <<<'SQL'
-CREATE TABLE `pa_menu_definition` (
+        'pa_system_menu' => <<<'SQL'
+CREATE TABLE `pa_system_menu` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `key` varchar(160) NOT NULL,
   `module_key` varchar(96) NOT NULL,
+  `source` varchar(16) NOT NULL DEFAULT 'module',
   `scope` varchar(16) NOT NULL,
   `parent_key` varchar(160) DEFAULT NULL,
   `type` varchar(16) NOT NULL,
@@ -431,15 +344,16 @@ CREATE TABLE `pa_menu_definition` (
   `is_cache` tinyint NOT NULL DEFAULT '0',
   `is_disable` tinyint NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_menu_definition_key` (`key`),
+  UNIQUE KEY `uk_system_menu_key` (`key`),
   UNIQUE KEY `uk_menu_route_name` (`scope`,`route_name`),
   KEY `idx_menu_module` (`module_key`,`scope`,`status`,`sort_order`),
   KEY `fk_menu_permission` (`required_permission_id`),
   CONSTRAINT `fk_menu_permission` FOREIGN KEY (`required_permission_id`) REFERENCES `pa_permission` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `chk_menu_page` CHECK (((`type` <> _utf8mb4'page') or ((`route_name` is not null) and (`component_key` is not null) and (`required_permission_id` is not null)))),
   CONSTRAINT `chk_menu_scope` CHECK ((`scope` in (_utf8mb4'platform',_utf8mb4'tenant'))),
+  CONSTRAINT `chk_menu_source` CHECK ((`source` in (_utf8mb4'system',_utf8mb4'module',_utf8mb4'custom'))),
   CONSTRAINT `chk_menu_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'retired'))),
-  CONSTRAINT `chk_menu_type` CHECK ((`type` in (_utf8mb4'group',_utf8mb4'page',_utf8mb4'link')))
+  CONSTRAINT `chk_menu_type` CHECK ((`type` in (_utf8mb4'group',_utf8mb4'page',_utf8mb4'link',_utf8mb4'action')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_platform_operator' => <<<'SQL'
@@ -472,29 +386,6 @@ CREATE TABLE `pa_platform_role_permission` (
   KEY `fk_platform_role_permission_permission` (`permission_id`),
   CONSTRAINT `fk_platform_role_permission_permission` FOREIGN KEY (`permission_id`) REFERENCES `pa_permission` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_platform_role_permission_role` FOREIGN KEY (`platform_role_id`) REFERENCES `pa_platform_role` (`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-SQL,
-        'pa_resource_operation' => <<<'SQL'
-CREATE TABLE `pa_resource_operation` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `protected_resource_id` bigint unsigned NOT NULL,
-  `operation` varchar(64) NOT NULL,
-  `access_mode` varchar(32) NOT NULL,
-  `target_cardinality` varchar(32) NOT NULL,
-  `permission_match` varchar(8) NOT NULL DEFAULT 'all',
-  `audit_level` varchar(32) NOT NULL DEFAULT 'deny_and_write',
-  `status` varchar(16) NOT NULL DEFAULT 'active',
-  `manifest_digest` char(64) NOT NULL,
-  `created_at` datetime(3) NOT NULL,
-  `updated_at` datetime(3) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_resource_operation` (`protected_resource_id`,`operation`),
-  CONSTRAINT `fk_resource_operation_resource` FOREIGN KEY (`protected_resource_id`) REFERENCES `pa_protected_resource` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `chk_resource_operation_access` CHECK ((`access_mode` in (_utf8mb4'tenant_wide',_utf8mb4'rule_filtered',_utf8mb4'explicit_targets',_utf8mb4'global_reference_read',_utf8mb4'system_internal'))),
-  CONSTRAINT `chk_resource_operation_audit` CHECK ((`audit_level` in (_utf8mb4'deny',_utf8mb4'write',_utf8mb4'deny_and_write',_utf8mb4'all'))),
-  CONSTRAINT `chk_resource_operation_cardinality` CHECK ((`target_cardinality` in (_utf8mb4'none',_utf8mb4'one_required',_utf8mb4'many_readable',_utf8mb4'aggregate_read',_utf8mb4'policy_publish',_utf8mb4'bulk_write'))),
-  CONSTRAINT `chk_resource_operation_permission_match` CHECK ((`permission_match` in (_utf8mb4'all',_utf8mb4'any'))),
-  CONSTRAINT `chk_resource_operation_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'retired')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_role' => <<<'SQL'
@@ -611,55 +502,6 @@ CREATE TABLE `pa_platform_session` (
   CONSTRAINT `chk_platform_session_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'revoked',_utf8mb4'expired')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
-        'pa_resource_operation_condition' => <<<'SQL'
-CREATE TABLE `pa_resource_operation_condition` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `resource_operation_id` bigint unsigned NOT NULL,
-  `condition_definition_id` bigint unsigned NOT NULL,
-  `selector_resource_key` varchar(160) DEFAULT NULL,
-  `selector_resource_key_norm` varchar(160) GENERATED ALWAYS AS (coalesce(`selector_resource_key`,_utf8mb4'')) STORED,
-  `status` varchar(16) NOT NULL DEFAULT 'active',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_resource_operation_condition` (`resource_operation_id`,`condition_definition_id`,`selector_resource_key_norm`),
-  KEY `fk_operation_condition_definition` (`condition_definition_id`),
-  CONSTRAINT `fk_operation_condition_definition` FOREIGN KEY (`condition_definition_id`) REFERENCES `pa_data_condition_definition` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_operation_condition_operation` FOREIGN KEY (`resource_operation_id`) REFERENCES `pa_resource_operation` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `chk_operation_condition_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'retired')))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-SQL,
-        'pa_resource_operation_permission' => <<<'SQL'
-CREATE TABLE `pa_resource_operation_permission` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `resource_operation_id` bigint unsigned NOT NULL,
-  `permission_id` bigint unsigned NOT NULL,
-  `sort_order` int NOT NULL DEFAULT '0',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_resource_operation_permission` (`resource_operation_id`,`permission_id`),
-  KEY `fk_operation_permission_permission` (`permission_id`),
-  CONSTRAINT `fk_operation_permission_operation` FOREIGN KEY (`resource_operation_id`) REFERENCES `pa_resource_operation` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_operation_permission_permission` FOREIGN KEY (`permission_id`) REFERENCES `pa_permission` (`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-SQL,
-        'pa_resource_operation_target_type' => <<<'SQL'
-CREATE TABLE `pa_resource_operation_target_type` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `resource_operation_id` bigint unsigned NOT NULL,
-  `target_type_id` bigint unsigned NOT NULL,
-  `target_role` varchar(64) NOT NULL DEFAULT 'primary',
-  `input_mode` varchar(16) NOT NULL DEFAULT 'explicit',
-  `policy_selection_permission_id` bigint unsigned DEFAULT NULL,
-  `status` varchar(16) NOT NULL DEFAULT 'active',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_resource_operation_target_type` (`resource_operation_id`,`target_role`,`target_type_id`),
-  KEY `fk_operation_target_type` (`target_type_id`),
-  KEY `fk_operation_target_selection_permission` (`policy_selection_permission_id`),
-  CONSTRAINT `fk_operation_target_operation` FOREIGN KEY (`resource_operation_id`) REFERENCES `pa_resource_operation` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_operation_target_selection_permission` FOREIGN KEY (`policy_selection_permission_id`) REFERENCES `pa_permission` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_operation_target_type` FOREIGN KEY (`target_type_id`) REFERENCES `pa_target_type` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `chk_operation_target_input` CHECK ((`input_mode` in (_utf8mb4'explicit',_utf8mb4'derived',_utf8mb4'either'))),
-  CONSTRAINT `chk_operation_target_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'retired')))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-SQL,
         'pa_tenant_member' => <<<'SQL'
 CREATE TABLE `pa_tenant_member` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -690,16 +532,15 @@ CREATE TABLE `pa_tenant_member` (
   CONSTRAINT `chk_tenant_member_type` CHECK ((`member_type` in (_utf8mb4'internal',_utf8mb4'external')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
-        'pa_data_permission_policy' => <<<'SQL'
-CREATE TABLE `pa_data_permission_policy` (
+        'pa_data_permission' => <<<'SQL'
+CREATE TABLE `pa_data_permission` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `tenant_id` bigint unsigned NOT NULL,
   `role_id` bigint unsigned NOT NULL,
-  `protected_resource_id` bigint unsigned NOT NULL,
-  `resource_operation_id` bigint unsigned NOT NULL,
+  `resource_key` varchar(160) NOT NULL DEFAULT 'default',
+  `scope_type` varchar(32) NOT NULL DEFAULT 'self',
+  `custom_targets_json` json DEFAULT NULL,
   `status` varchar(16) NOT NULL DEFAULT 'active',
-  `valid_from` datetime(3) DEFAULT NULL,
-  `valid_until` datetime(3) DEFAULT NULL,
   `revision` bigint unsigned NOT NULL DEFAULT '1',
   `reason` varchar(300) DEFAULT NULL,
   `created_by_member_id` bigint unsigned NOT NULL,
@@ -709,49 +550,17 @@ CREATE TABLE `pa_data_permission_policy` (
   `archived_at` datetime(3) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_data_policy_tenant_id` (`tenant_id`,`id`),
-  UNIQUE KEY `uk_data_policy` (`tenant_id`,`role_id`,`resource_operation_id`),
-  KEY `idx_data_policy_active` (`tenant_id`,`role_id`,`status`,`valid_until`),
-  KEY `fk_data_policy_resource` (`protected_resource_id`),
-  KEY `fk_data_policy_operation` (`resource_operation_id`),
+  UNIQUE KEY `uk_data_policy` (`tenant_id`,`role_id`,`resource_key`),
+  KEY `idx_data_policy_active` (`tenant_id`,`role_id`,`status`),
   KEY `fk_data_policy_creator` (`tenant_id`,`created_by_member_id`),
   KEY `fk_data_policy_updater` (`tenant_id`,`updated_by_member_id`),
   CONSTRAINT `fk_data_policy_creator` FOREIGN KEY (`tenant_id`, `created_by_member_id`) REFERENCES `pa_tenant_member` (`tenant_id`, `id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_data_policy_operation` FOREIGN KEY (`resource_operation_id`) REFERENCES `pa_resource_operation` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_data_policy_resource` FOREIGN KEY (`protected_resource_id`) REFERENCES `pa_protected_resource` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_data_policy_role` FOREIGN KEY (`tenant_id`, `role_id`) REFERENCES `pa_role` (`tenant_id`, `id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_data_policy_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `pa_tenant` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_data_policy_updater` FOREIGN KEY (`tenant_id`, `updated_by_member_id`) REFERENCES `pa_tenant_member` (`tenant_id`, `id`) ON DELETE RESTRICT,
   CONSTRAINT `chk_data_policy_archived` CHECK ((((`status` = _utf8mb4'archived') and (`archived_at` is not null)) or (`status` <> _utf8mb4'archived'))),
-  CONSTRAINT `chk_data_policy_dates` CHECK (((`valid_until` is null) or (`valid_from` is null) or (`valid_until` > `valid_from`))),
+  CONSTRAINT `chk_data_policy_scope` CHECK ((`scope_type` in (_utf8mb4'all',_utf8mb4'dept_and_sub',_utf8mb4'dept',_utf8mb4'custom_dept',_utf8mb4'self'))),
   CONSTRAINT `chk_data_policy_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'disabled',_utf8mb4'archived')))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-SQL,
-        'pa_data_permission_target_set' => <<<'SQL'
-CREATE TABLE `pa_data_permission_target_set` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `tenant_id` bigint unsigned NOT NULL,
-  `name` varchar(120) NOT NULL,
-  `target_mode` varchar(32) NOT NULL,
-  `target_resource_key` varchar(160) NOT NULL,
-  `status` varchar(16) NOT NULL DEFAULT 'active',
-  `revision` bigint unsigned NOT NULL DEFAULT '1',
-  `created_by_member_id` bigint unsigned NOT NULL,
-  `updated_by_member_id` bigint unsigned NOT NULL,
-  `created_at` datetime(3) NOT NULL,
-  `updated_at` datetime(3) NOT NULL,
-  `archived_at` datetime(3) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_data_target_set_tenant_id` (`tenant_id`,`id`),
-  KEY `idx_data_target_set_status` (`tenant_id`,`target_resource_key`,`status`,`id`),
-  KEY `fk_data_target_set_creator` (`tenant_id`,`created_by_member_id`),
-  KEY `fk_data_target_set_updater` (`tenant_id`,`updated_by_member_id`),
-  CONSTRAINT `fk_data_target_set_creator` FOREIGN KEY (`tenant_id`, `created_by_member_id`) REFERENCES `pa_tenant_member` (`tenant_id`, `id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_data_target_set_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `pa_tenant` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_data_target_set_updater` FOREIGN KEY (`tenant_id`, `updated_by_member_id`) REFERENCES `pa_tenant_member` (`tenant_id`, `id`) ON DELETE RESTRICT,
-  CONSTRAINT `chk_data_target_set_archived` CHECK ((((`status` = _utf8mb4'archived') and (`archived_at` is not null)) or (`status` <> _utf8mb4'archived'))),
-  CONSTRAINT `chk_data_target_set_mode` CHECK ((`target_mode` in (_utf8mb4'department',_utf8mb4'resource'))),
-  CONSTRAINT `chk_data_target_set_resource` CHECK ((((`target_mode` = _utf8mb4'department') and (`target_resource_key` = _utf8mb4'core.department')) or ((`target_mode` = _utf8mb4'resource') and (`target_resource_key` <> _utf8mb4'core.department')))),
-  CONSTRAINT `chk_data_target_set_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'disabled',_utf8mb4'archived')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_member_role' => <<<'SQL'
@@ -781,7 +590,7 @@ CREATE TABLE `pa_member_job` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_member_job` (`tenant_id`,`tenant_member_id`,`job_id`),
   KEY `idx_member_job_job` (`tenant_id`,`job_id`),
-  CONSTRAINT `fk_member_job_job` FOREIGN KEY (`tenant_id`, `job_id`) REFERENCES `pa_jobs` (`tenant_id`, `id`) ON DELETE RESTRICT,
+  CONSTRAINT `fk_member_job_job` FOREIGN KEY (`tenant_id`, `job_id`) REFERENCES `pa_job` (`tenant_id`, `id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_member_job_member` FOREIGN KEY (`tenant_id`, `tenant_member_id`) REFERENCES `pa_tenant_member` (`tenant_id`, `id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
@@ -825,45 +634,6 @@ CREATE TABLE `pa_role_permission` (
   CONSTRAINT `fk_role_permission_granter` FOREIGN KEY (`tenant_id`, `granted_by_member_id`) REFERENCES `pa_tenant_member` (`tenant_id`, `id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_role_permission_permission` FOREIGN KEY (`permission_id`) REFERENCES `pa_permission` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_role_permission_role` FOREIGN KEY (`tenant_id`, `role_id`) REFERENCES `pa_role` (`tenant_id`, `id`) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-SQL,
-        'pa_source_read_grant' => <<<'SQL'
-CREATE TABLE `pa_source_read_grant` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `source_tenant_id` bigint unsigned NOT NULL,
-  `recipient_tenant_id` bigint unsigned NOT NULL,
-  `capability` varchar(160) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  `action` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  `effect` varchar(8) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  `object_id` bigint unsigned DEFAULT NULL,
-  `object_key` bigint unsigned GENERATED ALWAYS AS (coalesce(`object_id`,0)) STORED,
-  `fields_json` json NOT NULL,
-  `status` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'active',
-  `valid_from` datetime(3) NOT NULL,
-  `valid_until` datetime(3) DEFAULT NULL,
-  `granted_by_member_id` bigint unsigned NOT NULL,
-  `revoked_by_member_id` bigint unsigned DEFAULT NULL,
-  `revision` bigint unsigned NOT NULL DEFAULT '1',
-  `created_at` datetime(3) NOT NULL,
-  `updated_at` datetime(3) NOT NULL,
-  `revoked_at` datetime(3) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_source_read_grant_identity` (`source_tenant_id`,`recipient_tenant_id`,`capability`,`action`,`effect`,`object_key`),
-  KEY `idx_source_read_grant_recipient` (`recipient_tenant_id`,`capability`,`action`,`status`,`source_tenant_id`),
-  KEY `fk_source_read_grant_creator` (`source_tenant_id`,`granted_by_member_id`),
-  KEY `fk_source_read_grant_revoker` (`source_tenant_id`,`revoked_by_member_id`),
-  CONSTRAINT `fk_source_read_grant_creator` FOREIGN KEY (`source_tenant_id`, `granted_by_member_id`) REFERENCES `pa_tenant_member` (`tenant_id`, `id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_source_read_grant_recipient_tenant` FOREIGN KEY (`recipient_tenant_id`) REFERENCES `pa_tenant` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_source_read_grant_revoker` FOREIGN KEY (`source_tenant_id`, `revoked_by_member_id`) REFERENCES `pa_tenant_member` (`tenant_id`, `id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_source_read_grant_source_tenant` FOREIGN KEY (`source_tenant_id`) REFERENCES `pa_tenant` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `chk_source_read_grant_action` CHECK (regexp_like(`action`,_utf8mb4'^[a-z][a-z0-9.-]{1,63}$')),
-  CONSTRAINT `chk_source_read_grant_capability` CHECK (regexp_like(`capability`,_utf8mb4'^[a-z][a-z0-9.-]{2,159}$')),
-  CONSTRAINT `chk_source_read_grant_effect` CHECK ((`effect` in (_utf8mb4'allow',_utf8mb4'deny'))),
-  CONSTRAINT `chk_source_read_grant_fields` CHECK ((((`effect` = _utf8mb4'allow') and (json_length(`fields_json`) > 0)) or ((`effect` = _utf8mb4'deny') and (json_length(`fields_json`) = 0)))),
-  CONSTRAINT `chk_source_read_grant_revoked` CHECK ((((`status` = _utf8mb4'revoked') and (`revoked_by_member_id` is not null) and (`revoked_at` is not null)) or ((`status` = _utf8mb4'active') and (`revoked_by_member_id` is null) and (`revoked_at` is null)))),
-  CONSTRAINT `chk_source_read_grant_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'revoked'))),
-  CONSTRAINT `chk_source_read_grant_tenants` CHECK ((`source_tenant_id` <> `recipient_tenant_id`)),
-  CONSTRAINT `chk_source_read_grant_window` CHECK (((`valid_until` is null) or (`valid_until` > `valid_from`)))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_tenant_owner_invitation' => <<<'SQL'
@@ -945,49 +715,6 @@ CREATE TABLE `pa_tenant_session` (
   CONSTRAINT `chk_tenant_session_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'revoked',_utf8mb4'expired')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
-        'pa_data_permission_group' => <<<'SQL'
-CREATE TABLE `pa_data_permission_group` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `tenant_id` bigint unsigned NOT NULL,
-  `data_permission_policy_id` bigint unsigned NOT NULL,
-  `name` varchar(120) NOT NULL,
-  `match_mode` varchar(8) NOT NULL DEFAULT 'all',
-  `sort_order` int NOT NULL DEFAULT '0',
-  `status` varchar(16) NOT NULL DEFAULT 'active',
-  `revision` bigint unsigned NOT NULL DEFAULT '1',
-  `created_at` datetime(3) NOT NULL,
-  `updated_at` datetime(3) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_data_group_tenant_id` (`tenant_id`,`id`),
-  UNIQUE KEY `uk_data_group_name` (`tenant_id`,`data_permission_policy_id`,`name`),
-  CONSTRAINT `fk_data_group_policy` FOREIGN KEY (`tenant_id`, `data_permission_policy_id`) REFERENCES `pa_data_permission_policy` (`tenant_id`, `id`) ON DELETE RESTRICT,
-  CONSTRAINT `chk_data_group_match` CHECK ((`match_mode` = _utf8mb4'all')),
-  CONSTRAINT `chk_data_group_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'disabled')))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-SQL,
-        'pa_data_permission_target' => <<<'SQL'
-CREATE TABLE `pa_data_permission_target` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `tenant_id` bigint unsigned NOT NULL,
-  `target_set_id` bigint unsigned NOT NULL,
-  `target_id` varchar(128) NOT NULL,
-  `status` varchar(16) NOT NULL DEFAULT 'active',
-  `added_by_member_id` bigint unsigned NOT NULL,
-  `removed_by_member_id` bigint unsigned DEFAULT NULL,
-  `added_at` datetime(3) NOT NULL,
-  `removed_at` datetime(3) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_data_target` (`tenant_id`,`target_set_id`,`target_id`),
-  KEY `idx_data_target_active` (`tenant_id`,`target_set_id`,`status`,`target_id`),
-  KEY `fk_data_target_adder` (`tenant_id`,`added_by_member_id`),
-  KEY `fk_data_target_remover` (`tenant_id`,`removed_by_member_id`),
-  CONSTRAINT `fk_data_target_adder` FOREIGN KEY (`tenant_id`, `added_by_member_id`) REFERENCES `pa_tenant_member` (`tenant_id`, `id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_data_target_remover` FOREIGN KEY (`tenant_id`, `removed_by_member_id`) REFERENCES `pa_tenant_member` (`tenant_id`, `id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_data_target_set` FOREIGN KEY (`tenant_id`, `target_set_id`) REFERENCES `pa_data_permission_target_set` (`tenant_id`, `id`) ON DELETE RESTRICT,
-  CONSTRAINT `chk_data_target_removed` CHECK ((((`status` = _utf8mb4'removed') and (`removed_at` is not null) and (`removed_by_member_id` is not null)) or (`status` <> _utf8mb4'removed'))),
-  CONSTRAINT `chk_data_target_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'removed')))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-SQL,
         'pa_tenant_session_token' => <<<'SQL'
 CREATE TABLE `pa_tenant_session_token` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -1013,29 +740,6 @@ CREATE TABLE `pa_tenant_session_token` (
   CONSTRAINT `chk_tenant_token_type` CHECK ((`token_type` in (_utf8mb4'access',_utf8mb4'refresh')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
-        'pa_data_permission_condition' => <<<'SQL'
-CREATE TABLE `pa_data_permission_condition` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `tenant_id` bigint unsigned NOT NULL,
-  `data_permission_group_id` bigint unsigned NOT NULL,
-  `condition_definition_id` bigint unsigned NOT NULL,
-  `target_set_id` bigint unsigned DEFAULT NULL,
-  `target_set_key` bigint unsigned GENERATED ALWAYS AS (coalesce(`target_set_id`,0)) STORED,
-  `config_json` json DEFAULT NULL,
-  `status` varchar(16) NOT NULL DEFAULT 'active',
-  `revision` bigint unsigned NOT NULL DEFAULT '1',
-  `created_at` datetime(3) NOT NULL,
-  `updated_at` datetime(3) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_data_condition` (`tenant_id`,`data_permission_group_id`,`condition_definition_id`,`target_set_key`),
-  KEY `fk_data_condition_definition` (`condition_definition_id`),
-  KEY `fk_data_condition_target_set` (`tenant_id`,`target_set_id`),
-  CONSTRAINT `fk_data_condition_definition` FOREIGN KEY (`condition_definition_id`) REFERENCES `pa_data_condition_definition` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_data_condition_group` FOREIGN KEY (`tenant_id`, `data_permission_group_id`) REFERENCES `pa_data_permission_group` (`tenant_id`, `id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_data_condition_target_set` FOREIGN KEY (`tenant_id`, `target_set_id`) REFERENCES `pa_data_permission_target_set` (`tenant_id`, `id`) ON DELETE RESTRICT,
-  CONSTRAINT `chk_data_permission_condition_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'disabled')))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-SQL,
     ];
 
     public function up(): void
@@ -1047,51 +751,15 @@ SQL,
         if (!$adapter instanceof PdoAdapter) {
             throw new RuntimeException('InitialIdentitySchema requires the native PDO adapter.');
         }
-        $pdo = $adapter->getConnection();
-        $pending = [];
         foreach (self::CREATE_SQL as $table => $definition) {
             if (!$adapter->hasTable($table)) {
-                $pending[] = $definition;
-                continue;
+                $this->execute($definition);
             }
-            $statement = $pdo->query('SHOW CREATE TABLE `' . $table . '`');
-            $existing = $statement->fetch(PDO::FETCH_NUM);
-            $statement->closeCursor();
-            if (!is_array($existing) || !is_string($existing[1] ?? null)
-                || $this->schemaDefinition($existing[1]) !== $this->schemaDefinition($definition)) {
-                throw new RuntimeException('INITIAL_SCHEMA_MISMATCH: ' . $table);
-            }
-        }
-        // Check existing definitions before creating missing tables in foreign-key order.
-        foreach ($pending as $definition) {
-            $this->execute($definition);
         }
     }
 
     public function down(): void
     {
         throw new IrreversibleMigrationException('Module data is retained. This initial schema migration cannot be rolled back.');
-    }
-
-    private function schemaDefinition(string $definition): string
-    {
-        // AUTO_INCREMENT is live row state rather than a schema difference.
-        $definition = (string) preg_replace('/ AUTO_INCREMENT=\d+(?= |$)/', '', rtrim(trim($definition), ';'));
-        $declarations = explode("\n", $definition);
-        $header = array_shift($declarations);
-        $options = array_pop($declarations);
-        foreach ($declarations as &$declaration) {
-            $declaration = rtrim(trim($declaration), ',');
-            // The retained collation already specifies utf8mb4 for these character columns.
-            $declaration = (string) preg_replace(
-                '/^(`[^`]+` (?:var)?char\(\d+\)) CHARACTER SET utf8mb4 COLLATE (utf8mb4_[a-z0-9_]+)(?= )/',
-                '$1 COLLATE $2',
-                $declaration
-            );
-        }
-        unset($declaration);
-        // Compare named declarations without changing the column order inside any index or constraint.
-        sort($declarations, SORT_STRING);
-        return $header . "\n" . implode("\n", $declarations) . "\n" . $options;
     }
 }

@@ -130,7 +130,6 @@ write_installing_env() {
 run_monitored_fpm() {
     phase="$1"
     rm -f "$CONTEXT"
-    php -r 'require "vendor/autoload.php"; app\common\infrastructure\installation\ReadonlyHttpMount::initialize(getcwd());'
     # The prepared image supplies OS files to the chroot; runtime DNS is container-specific.
     for file in hosts resolv.conf hostname; do
         cp "/etc/$file" "$HTTP_CHROOT/etc/$file"
@@ -147,14 +146,6 @@ run_monitored_fpm() {
     chmod 0600 /usr/local/etc/php-fpm.d/zzz-peanut-runtime.conf
     php-fpm -F &
     fpm_pid=$!
-    if ! php -r 'require "vendor/autoload.php"; app\common\infrastructure\installation\ReadonlyHttpMount::assertWorkers((int)$argv[1]);' "$fpm_pid"; then
-        rm -f "$CONTEXT"
-        close_startup_traffic
-        kill -TERM "$fpm_pid" 2>/dev/null || true
-        wait "$fpm_pid" 2>/dev/null || true
-        exit 1
-    fi
-    php -r 'require "vendor/autoload.php"; app\common\infrastructure\installation\ReadonlyHttpMount::publish(getcwd());'
     while kill -0 "$fpm_pid" 2>/dev/null; do
         if [ "$phase" = bootstrap ] && { [ -e private/resources/pending/configuration.json ] || [ -L private/resources/pending/configuration.json ]; }; then
             close_startup_traffic

@@ -121,8 +121,6 @@ TRUSTED_TENANT_KEY_FILES = {
     "server/app/common/services/org/AdminDirectoryQuery.php",
     "server/app/common/services/authorization/AdminAuthorizationService.php",
     "server/app/common/infrastructure/authorization/CoreTenantModuleAdminBridge.php",
-    "server/app/common/runtime/authorization/RoleAdministrationRuntime.php",
-    "server/app/common/runtime/org/DepartmentAdministrationRuntime.php",
     "server/app/common/model/dict/DictData.php",
     "server/app/common/model/dict/DictType.php",
     "server/app/common/model/dept/Jobs.php",
@@ -130,7 +128,6 @@ TRUSTED_TENANT_KEY_FILES = {
 }
 
 TENANT_JOIN_GLOBAL_TABLES = {
-    "system_menu",
     "system_dict_type",
     "system_dict_data",
     "permission",

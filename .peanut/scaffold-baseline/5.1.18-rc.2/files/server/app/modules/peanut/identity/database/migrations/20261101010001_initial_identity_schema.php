@@ -405,8 +405,8 @@ CREATE TABLE `pa_login_challenge` (
   CONSTRAINT `chk_login_challenge_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'used',_utf8mb4'revoked',_utf8mb4'expired')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
-        'pa_menu_definition' => <<<'SQL'
-CREATE TABLE `pa_menu_definition` (
+        'pa_system_menu' => <<<'SQL'
+CREATE TABLE `pa_system_menu` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `key` varchar(160) NOT NULL,
   `module_key` varchar(96) NOT NULL,
@@ -431,7 +431,7 @@ CREATE TABLE `pa_menu_definition` (
   `is_cache` tinyint NOT NULL DEFAULT '0',
   `is_disable` tinyint NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_menu_definition_key` (`key`),
+  UNIQUE KEY `uk_system_menu_key` (`key`),
   UNIQUE KEY `uk_menu_route_name` (`scope`,`route_name`),
   KEY `idx_menu_module` (`module_key`,`scope`,`status`,`sort_order`),
   KEY `fk_menu_permission` (`required_permission_id`),
@@ -690,8 +690,8 @@ CREATE TABLE `pa_tenant_member` (
   CONSTRAINT `chk_tenant_member_type` CHECK ((`member_type` in (_utf8mb4'internal',_utf8mb4'external')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
-        'pa_data_permission_policy' => <<<'SQL'
-CREATE TABLE `pa_data_permission_policy` (
+        'pa_data_permission' => <<<'SQL'
+CREATE TABLE `pa_data_permission` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `tenant_id` bigint unsigned NOT NULL,
   `role_id` bigint unsigned NOT NULL,
@@ -960,7 +960,7 @@ CREATE TABLE `pa_data_permission_group` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_data_group_tenant_id` (`tenant_id`,`id`),
   UNIQUE KEY `uk_data_group_name` (`tenant_id`,`data_permission_policy_id`,`name`),
-  CONSTRAINT `fk_data_group_policy` FOREIGN KEY (`tenant_id`, `data_permission_policy_id`) REFERENCES `pa_data_permission_policy` (`tenant_id`, `id`) ON DELETE RESTRICT,
+  CONSTRAINT `fk_data_group_policy` FOREIGN KEY (`tenant_id`, `data_permission_policy_id`) REFERENCES `pa_data_permission` (`tenant_id`, `id`) ON DELETE RESTRICT,
   CONSTRAINT `chk_data_group_match` CHECK ((`match_mode` = _utf8mb4'all')),
   CONSTRAINT `chk_data_group_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'disabled')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

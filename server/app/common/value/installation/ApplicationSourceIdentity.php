@@ -25,24 +25,8 @@ final readonly class ApplicationSourceIdentity
         return file_exists($serverRoot . '/' . self::RUNTIME_PATH) || is_link($serverRoot . '/' . self::RUNTIME_PATH);
     }
 
-    /** Only the original owner admission supplies this immutable declaration to FPM. */
-    public static function admitted(\app\common\infrastructure\installation\VerifiedServerDeployment $deployment): self
-    {
-        $value = $deployment->identityDocument();
-        if (!in_array($value['protocol'] ?? null, ['peanut.development-server-runtime.v1', 'peanut.application-source-identity.v1'], true)) {
-            throw new RuntimeException('APPLICATION_DEVELOPMENT_RUNTIME_INVALID');
-        }
-        return new self($value['application'], $value['versions'], $value['tenant_bootstrap'], $value, $deployment->identityDigest());
-    }
-
     public static function load(string $serverRoot): self
     {
-        if (\app\common\infrastructure\installation\ReadonlyHttpMount::active($serverRoot)) {
-            $app = \think\Container::getInstance();
-            if ($app instanceof \think\App && !$app->runningInConsole()) {
-                return self::admitted($app->make(\app\common\infrastructure\installation\VerifiedServerDeployment::class));
-            }
-        }
         if (self::hasRuntime($serverRoot)) {
             return self::loadRuntime($serverRoot);
         }

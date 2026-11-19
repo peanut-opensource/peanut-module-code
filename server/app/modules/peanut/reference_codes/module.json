@@ -18,7 +18,6 @@
     "provider": "PeanutAdmin\\Modules\\ReferenceCodes\\ModuleProvider",
     "menus": "resources/menus.json",
     "permissions": "resources/permissions.json",
-    "reference_code_sets": "resources/reference-code-sets.json",
     "migrations": "database/migrations"
   },
   "frontend": {
@@ -31,18 +30,14 @@
       "pa_system_dict_type",
       "pa_system_dict_data",
       "pa_dict_type_policy",
-      "pa_dict_entry_override",
-      "pa_reference_code_set",
-      "pa_reference_code_entry",
-      "pa_reference_code_entry_version"
+      "pa_dict_entry_override"
     ]
   },
   "contracts": {
     "exports": [
       "PeanutAdmin\\Modules\\ReferenceCodes\\Contract\\DictionaryQuery",
       "PeanutAdmin\\Modules\\ReferenceCodes\\Contract\\TenantDictionaryCommands",
-      "PeanutAdmin\\Modules\\ReferenceCodes\\Contract\\SystemReferenceCodeQuery",
-      "PeanutAdmin\\Modules\\ReferenceCodes\\Service\\ReferenceCodeCatalogService"
+      "PeanutAdmin\\Modules\\ReferenceCodes\\Contract\\SystemReferenceCodeQuery"
     ],
     "events": []
   },

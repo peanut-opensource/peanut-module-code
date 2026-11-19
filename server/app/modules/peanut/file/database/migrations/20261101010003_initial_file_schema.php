@@ -272,7 +272,7 @@ CREATE TABLE `pa_file_immutable_snapshot` (
   `verified_mime_type` varchar(127) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `created_by_member_id` bigint unsigned NOT NULL,
   `created_at` datetime(3) NOT NULL,
-  `status` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'captured',
+  `status` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'captured',
   `claimed_document_id` bigint unsigned DEFAULT NULL,
   `claimed_at` datetime(3) DEFAULT NULL,
   PRIMARY KEY (`file_key`),
@@ -280,7 +280,7 @@ CREATE TABLE `pa_file_immutable_snapshot` (
   CONSTRAINT `fk_file_immutable_target` FOREIGN KEY (`file_key`) REFERENCES `pa_file_object` (`file_key`) ON DELETE RESTRICT,
   CONSTRAINT `fk_file_immutable_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `pa_tenant` (`id`),
   CONSTRAINT `chk_file_immutable_status` CHECK ((`status` in (_utf8mb4'captured',_utf8mb4'claimed',_utf8mb4'cleanup_pending',_utf8mb4'abandoned')))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_file_visibility_item' => <<<'SQL'
 CREATE TABLE `pa_file_visibility_item` (
@@ -317,51 +317,15 @@ SQL,
         if (!$adapter instanceof PdoAdapter) {
             throw new RuntimeException('InitialFileSchema requires the native PDO adapter.');
         }
-        $pdo = $adapter->getConnection();
-        $pending = [];
         foreach (self::CREATE_SQL as $table => $definition) {
             if (!$adapter->hasTable($table)) {
-                $pending[] = $definition;
-                continue;
+                $this->execute($definition);
             }
-            $statement = $pdo->query('SHOW CREATE TABLE `' . $table . '`');
-            $existing = $statement->fetch(PDO::FETCH_NUM);
-            $statement->closeCursor();
-            if (!is_array($existing) || !is_string($existing[1] ?? null)
-                || $this->schemaDefinition($existing[1]) !== $this->schemaDefinition($definition)) {
-                throw new RuntimeException('INITIAL_SCHEMA_MISMATCH: ' . $table);
-            }
-        }
-        // Check existing definitions before creating missing tables in foreign-key order.
-        foreach ($pending as $definition) {
-            $this->execute($definition);
         }
     }
 
     public function down(): void
     {
         throw new IrreversibleMigrationException('Module data is retained. This initial schema migration cannot be rolled back.');
-    }
-
-    private function schemaDefinition(string $definition): string
-    {
-        // AUTO_INCREMENT is live row state rather than a schema difference.
-        $definition = (string) preg_replace('/ AUTO_INCREMENT=\d+(?= |$)/', '', rtrim(trim($definition), ';'));
-        $declarations = explode("\n", $definition);
-        $header = array_shift($declarations);
-        $options = array_pop($declarations);
-        foreach ($declarations as &$declaration) {
-            $declaration = rtrim(trim($declaration), ',');
-            // The retained collation already specifies utf8mb4 for these character columns.
-            $declaration = (string) preg_replace(
-                '/^(`[^`]+` (?:var)?char\(\d+\)) CHARACTER SET utf8mb4 COLLATE (utf8mb4_[a-z0-9_]+)(?= )/',
-                '$1 COLLATE $2',
-                $declaration
-            );
-        }
-        unset($declaration);
-        // Compare named declarations without changing the column order inside any index or constraint.
-        sort($declarations, SORT_STRING);
-        return $header . "\n" . implode("\n", $declarations) . "\n" . $options;
     }
 }

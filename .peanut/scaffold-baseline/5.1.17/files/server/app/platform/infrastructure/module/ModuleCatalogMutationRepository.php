@@ -86,13 +86,13 @@ final readonly class ModuleCatalogMutationRepository
     private function legacyIdentityEntry(array $entry): array
     {
         $label = match ($entry['resource']) {
-            'api-endpoints' => 'pa_api_endpoint',
+            'api-endpoints' => 'pa_system_api',
             'permission-api-bindings' => 'pa_permission_api',
             'permissions' => 'pa_permission',
             'protected-resources' => 'pa_protected_resource',
             'target-types' => 'pa_target_type',
             'data-conditions' => 'pa_data_condition_definition',
-            'menu-definitions' => 'pa_menu_definition',
+            'menu-definitions' => 'pa_system_menu',
             'resource-operations' => 'pa_resource_operation',
             'operation-permissions' => 'pa_resource_operation_permission',
             'operation-targets' => 'pa_resource_operation_target_type',

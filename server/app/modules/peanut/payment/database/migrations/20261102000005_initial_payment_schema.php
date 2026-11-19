@@ -29,10 +29,10 @@ SQL,
 CREATE TABLE `pa_payment_tenant_channel_grant` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `tenant_id` bigint unsigned NOT NULL,
-  `provider` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `provider` varchar(64) COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `external_binding_id` bigint unsigned NOT NULL,
-  `merchant_account_ref` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'non-secret merchant account reference',
-  `merchant_group_ref` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'non-secret merchant group reference',
+  `merchant_account_ref` varchar(191) COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'non-secret merchant account reference',
+  `merchant_group_ref` varchar(191) COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT 'non-secret merchant group reference',
   `status` tinyint unsigned NOT NULL DEFAULT '1',
   `revoked_at` int unsigned DEFAULT NULL,
   `create_time` int unsigned NOT NULL DEFAULT '0',
@@ -44,7 +44,7 @@ CREATE TABLE `pa_payment_tenant_channel_grant` (
   KEY `idx_payment_grant_binding_status` (`external_binding_id`,`status`,`id`),
   CONSTRAINT `fk_payment_grant_external_binding` FOREIGN KEY (`external_binding_id`) REFERENCES `pa_external_channel_binding` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_payment_grant_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `pa_tenant` (`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Payment-owned Tenant grant to use an external merchant channel';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Payment-owned Tenant grant to use an external merchant channel';
 SQL,
         'pa_recharge_order' => <<<'SQL'
 CREATE TABLE `pa_recharge_order` (
@@ -160,35 +160,15 @@ SQL,
         if (!$adapter instanceof PdoAdapter) {
             throw new RuntimeException('InitialPaymentSchema requires the native PDO adapter.');
         }
-        $pdo = $adapter->getConnection();
-        $pending = [];
         foreach (self::CREATE_SQL as $table => $definition) {
             if (!$adapter->hasTable($table)) {
-                $pending[] = $definition;
-                continue;
+                $this->execute($definition);
             }
-            $statement = $pdo->query('SHOW CREATE TABLE `' . $table . '`');
-            $existing = $statement->fetch(PDO::FETCH_NUM);
-            $statement->closeCursor();
-            if (!is_array($existing) || !is_string($existing[1] ?? null)
-                || $this->schemaDefinition($existing[1]) !== $this->schemaDefinition($definition)) {
-                throw new RuntimeException('INITIAL_SCHEMA_MISMATCH: ' . $table);
-            }
-        }
-        // Check existing definitions before creating missing tables in foreign-key order.
-        foreach ($pending as $definition) {
-            $this->execute($definition);
         }
     }
 
     public function down(): void
     {
         throw new IrreversibleMigrationException('Module data is retained. This initial schema migration cannot be rolled back.');
-    }
-
-    private function schemaDefinition(string $definition): string
-    {
-        // AUTO_INCREMENT is live row state rather than a schema difference.
-        return (string) preg_replace('/ AUTO_INCREMENT=\d+(?= |$)/', '', rtrim(trim($definition), ';'));
     }
 }

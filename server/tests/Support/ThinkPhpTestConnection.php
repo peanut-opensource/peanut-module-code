@@ -45,7 +45,6 @@ final class ThinkPhpTestConnection
                     new \PeanutAdmin\Kernel\Module\CompiledModuleRegistry([], [], [], [], 'fixture-catalog'),
                 ),
             ),
-            new \PeanutAdmin\Modules\ReferenceCodes\Service\ReferenceCodeCatalogService(),
             new \PeanutAdmin\Modules\Identity\Authorization\CatalogLifecycleService(),
         );
     }

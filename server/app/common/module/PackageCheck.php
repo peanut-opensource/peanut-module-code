@@ -68,7 +68,6 @@ final readonly class PackageCheck
             'target_types' => ['resources/target-types.json', 'file'],
             'data_conditions' => ['resources/data-conditions.json', 'file'],
             'setting_definitions' => ['resources/setting-definitions.json', 'file'],
-            'reference_code_sets' => ['resources/reference-code-sets.json', 'file'],
             'system_actors' => ['resources/system-actors.json', 'file'],
         ];
         if ($backend === null || array_key_exists('routes', $backend)) {

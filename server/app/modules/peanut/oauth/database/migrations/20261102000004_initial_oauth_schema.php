@@ -77,12 +77,12 @@ SQL,
         'pa_official_account_reply' => <<<'SQL'
 CREATE TABLE `pa_official_account_reply` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '规则名称',
-  `keyword` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '关键词',
+  `name` varchar(100) COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT '规则名称',
+  `keyword` varchar(255) COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT '关键词',
   `reply_type` tinyint unsigned NOT NULL COMMENT '1关注 2关键词 3默认',
   `matching_type` tinyint unsigned NOT NULL DEFAULT '1' COMMENT '1全匹配 2模糊匹配',
   `content_type` tinyint unsigned NOT NULL DEFAULT '1' COMMENT '1文本',
-  `content` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '回复内容',
+  `content` text COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '回复内容',
   `status` tinyint unsigned NOT NULL DEFAULT '1' COMMENT '0停用 1启用',
   `sort` int unsigned NOT NULL DEFAULT '0' COMMENT '匹配优先级，升序',
   `create_time` int unsigned NOT NULL DEFAULT '0',
@@ -96,7 +96,7 @@ CREATE TABLE `pa_official_account_reply` (
   KEY `idx_oa_reply_state` (`reply_type`,`status`,`delete_time`,`sort`,`id`),
   KEY `idx_oa_reply_tenant_state` (`tenant_id`,`reply_type`,`status`,`delete_time`,`sort`,`id`),
   CONSTRAINT `fk_oa_reply_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `pa_tenant` (`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='微信公众号自动回复';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='微信公众号自动回复';
 SQL,
         'pa_oauth_identity' => <<<'SQL'
 CREATE TABLE `pa_oauth_identity` (
@@ -134,35 +134,15 @@ SQL,
         if (!$adapter instanceof PdoAdapter) {
             throw new RuntimeException('InitialOauthSchema requires the native PDO adapter.');
         }
-        $pdo = $adapter->getConnection();
-        $pending = [];
         foreach (self::CREATE_SQL as $table => $definition) {
             if (!$adapter->hasTable($table)) {
-                $pending[] = $definition;
-                continue;
+                $this->execute($definition);
             }
-            $statement = $pdo->query('SHOW CREATE TABLE `' . $table . '`');
-            $existing = $statement->fetch(PDO::FETCH_NUM);
-            $statement->closeCursor();
-            if (!is_array($existing) || !is_string($existing[1] ?? null)
-                || $this->schemaDefinition($existing[1]) !== $this->schemaDefinition($definition)) {
-                throw new RuntimeException('INITIAL_SCHEMA_MISMATCH: ' . $table);
-            }
-        }
-        // Check existing definitions before creating missing tables in foreign-key order.
-        foreach ($pending as $definition) {
-            $this->execute($definition);
         }
     }
 
     public function down(): void
     {
         throw new IrreversibleMigrationException('Module data is retained. This initial schema migration cannot be rolled back.');
-    }
-
-    private function schemaDefinition(string $definition): string
-    {
-        // AUTO_INCREMENT is live row state rather than a schema difference.
-        return (string) preg_replace('/ AUTO_INCREMENT=\d+(?= |$)/', '', rtrim(trim($definition), ';'));
     }
 }

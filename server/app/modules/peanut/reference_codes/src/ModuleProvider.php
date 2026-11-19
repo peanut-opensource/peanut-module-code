@@ -15,10 +15,7 @@ use PeanutAdmin\Modules\ReferenceCodes\Infrastructure\ThinkPhpSystemDictionaryPr
 use PeanutAdmin\Modules\ReferenceCodes\Infrastructure\ThinkPhpTenantDictionaryProvider;
 use PeanutAdmin\Modules\ReferenceCodes\Infrastructure\ThinkPhpDictionaryCustomizationProvider;
 use PeanutAdmin\Modules\ReferenceCodes\Service\DictionaryRuntime;
-use PeanutAdmin\Modules\ReferenceCodes\Versioned\Definition\DeployedReferenceCodeSetRegistry;
-use PeanutAdmin\Modules\ReferenceCodes\Versioned\Definition\ReferenceCodeSetRegistry;
 use PeanutAdmin\Kernel\Module\ModuleProvider as ModuleProviderContract;
-use think\App;
 
 final class ModuleProvider implements ModuleProviderContract
 {
@@ -37,8 +34,6 @@ final class ModuleProvider implements ModuleProviderContract
             DictionaryQuery::class => DictionaryRuntime::class,
             TenantDictionaryCommands::class => DictionaryRuntime::class,
             SystemReferenceCodeQuery::class => DictionaryRuntime::class,
-            ReferenceCodeSetRegistry::class => fn(App $app): ReferenceCodeSetRegistry =>
-                $app->make(DeployedReferenceCodeSetRegistry::class)->build(),
         ];
     }
 }

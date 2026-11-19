@@ -309,17 +309,61 @@ final readonly class AdminDirectoryQuery
             ->distinct(true)->column('member.id'));
     }
 
-    /** @return list<array<string,mixed>> */
-    public function rows(array $filters): array
+    /** @return array{rows:list<array<string,mixed>>,total:int} */
+    public function paginateRows(array $filters, int $pageNo, int $pageSize): array
     {
         $context = $this->execution->tenantAdmin();
+        $total = $this->countRows($filters);
+        if ($total === 0) {
+            return ['rows' => [], 'total' => 0];
+        }
+        $offset = max(0, ($pageNo - 1) * $pageSize);
+        $rows = $this->buildMemberDirectoryQuery($context->tenantId, $filters)
+            ->group('member.id,member.account_id,member.display_name,member.primary_department_id,member.status,member.created_at,member.updated_at,account.avatar_uri,account.last_login_at,credential.identifier_normalized,department.name')
+            ->order('member.id', 'desc')
+            ->limit($offset, $pageSize)
+            ->select()
+            ->toArray();
+
+        return ['rows' => $this->attachJobs($context->tenantId, $rows), 'total' => $total];
+    }
+
+    public function countRows(array $filters): int
+    {
+        $context = $this->execution->tenantAdmin();
+        $query = $this->applyMemberFilters(
+            TenantMember::alias('member')
+                ->join('account account', 'account.id = member.account_id')
+                ->join('credential credential', "credential.account_id = account.id AND credential.identifier_type = 'email'")
+                ->where('member.tenant_id', $context->tenantId),
+            $filters,
+        );
+        return (int) $query->count('DISTINCT member.id');
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function rows(array $filters, ?int $limit = null): array
+    {
+        $context = $this->execution->tenantAdmin();
+        $query = $this->buildMemberDirectoryQuery($context->tenantId, $filters)
+            ->group('member.id,member.account_id,member.display_name,member.primary_department_id,member.status,member.created_at,member.updated_at,account.avatar_uri,account.last_login_at,credential.identifier_normalized,department.name')
+            ->order('member.id', 'desc');
+        if ($limit !== null && $limit > 0) {
+            $query->limit(0, $limit);
+        }
+        $rows = $query->select()->toArray();
+        return $this->attachJobs($context->tenantId, $rows);
+    }
+
+    private function buildMemberDirectoryQuery(int $tenantId, array $filters): \think\db\Query
+    {
         $query = TenantMember::alias('member')
             ->join('account account', 'account.id = member.account_id')
             ->join('credential credential', "credential.account_id = account.id AND credential.identifier_type = 'email'")
             ->leftJoin('department department', 'department.tenant_id = member.tenant_id AND department.id = member.primary_department_id')
             ->leftJoin('member_role membership', 'membership.tenant_id = member.tenant_id AND membership.tenant_member_id = member.id')
             ->leftJoin('role role', 'role.tenant_id = membership.tenant_id AND role.id = membership.role_id')
-            ->where('member.tenant_id', $context->tenantId)
+            ->where('member.tenant_id', $tenantId)
             ->field([
                 'member.id', 'member.account_id', 'member.display_name', 'member.primary_department_id', 'member.status',
                 'member.created_at', 'member.updated_at', 'account.avatar_uri', 'account.last_login_at',
@@ -329,6 +373,11 @@ final readonly class AdminDirectoryQuery
             ->fieldRaw("GROUP_CONCAT(DISTINCT role.id ORDER BY role.id SEPARATOR ',') AS role_ids")
             ->fieldRaw("GROUP_CONCAT(DISTINCT role.name ORDER BY role.`key` SEPARATOR '/') AS role_name")
             ->fieldRaw("MAX(CASE WHEN role.`key` = 'core.tenant-owner' AND role.is_builtin = 1 AND role.status = 'active' THEN 1 ELSE 0 END) AS root");
+        return $this->applyMemberFilters($query, $filters);
+    }
+
+    private function applyMemberFilters(\think\db\Query $query, array $filters): \think\db\Query
+    {
         if (!empty($filters['account'])) {
             $query->whereLike('credential.identifier_normalized', '%' . trim((string) $filters['account']) . '%');
         }
@@ -342,13 +391,17 @@ final readonly class AdminDirectoryQuery
             $query->join('member_role filter_membership', 'filter_membership.tenant_id = member.tenant_id AND filter_membership.tenant_member_id = member.id')
                 ->where('filter_membership.role_id', (int) $filters['role_id']);
         }
-        $rows = $query->group('member.id,member.account_id,member.display_name,member.primary_department_id,member.status,member.created_at,member.updated_at,account.avatar_uri,account.last_login_at,credential.identifier_normalized,department.name')
-            ->order('member.id', 'desc')->select()->toArray();
+        return $query;
+    }
+
+    /** @param list<array<string,mixed>> $rows @return list<array<string,mixed>> */
+    private function attachJobs(int $tenantId, array $rows): array
+    {
         $jobs = [];
         foreach (array_chunk(array_column($rows, 'id'), 500) as $memberIds) {
             $assignments = MemberJob::alias('assignment')
-                ->join('jobs job', 'job.tenant_id=assignment.tenant_id AND job.id=assignment.job_id')
-                ->where('assignment.tenant_id', $context->tenantId)
+                ->join('job job', 'job.tenant_id=assignment.tenant_id AND job.id=assignment.job_id')
+                ->where('assignment.tenant_id', $tenantId)
                 ->whereIn('assignment.tenant_member_id', $memberIds)
                 ->whereNull('job.delete_time')->order('job.id')
                 ->field('assignment.tenant_member_id,job.id,job.name')->select()->toArray();

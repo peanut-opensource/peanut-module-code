@@ -121,12 +121,7 @@ final class ModuleLockResolver
                 !== $this->absolutePath((string) ($config['module_lock'] ?? ''), $this->serverRoot)) {
                 throw new ModuleLifecycleException('PLUGIN_LOCK_INVALID', 'HTTP Plugin lock differs from its admitted application.');
             }
-            $release = $this->serverRoot . '/.peanut/release-identity.json';
-            $verified = file_exists($release) || is_link($release)
-                || \app\common\infrastructure\installation\ReadonlyHttpMount::active($this->serverRoot);
-            return $this->resolved = $verified
-                ? $app->make(\app\common\infrastructure\installation\VerifiedServerDeployment::class)->plugins()
-                : (new \app\platform\composition\module\ModuleDefinitionRegistryFactory($this->serverRoot))->pluginsFromCompiled($config);
+            return $this->resolved = (new \app\platform\composition\module\ModuleDefinitionRegistryFactory($this->serverRoot))->pluginsFromCompiled($config);
         }
         $lockPath = $this->absolutePath($this->lockPath, $this->serverRoot);
         $lock = $this->readJson($lockPath, 'PLUGIN_LOCK_INVALID');

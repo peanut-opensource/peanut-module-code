@@ -101,15 +101,15 @@ try {
     optionalMenuExpect(count(array_filter($articleOnly, static fn($menu) => $menu->type === 'page')) === 1, 'Article permission gained unrelated leaf pages');
     optionalMenuExpect(optionalMenuVisible($repository, $permissions, [], $licensed, 'platform') === [], 'Optional menus escaped client/scope/deployment filtering');
 
-    $oldIds = $pdo->query('SELECT `key`,id FROM pa_menu_definition')->fetchAll(PDO::FETCH_KEY_PAIR);
-    $pdo->exec("UPDATE pa_menu_definition SET name='我的文章',parent_key='core.organization',sort_order=997,icon='my-icon' WHERE `key`='peanut.article.articles'");
-    $pdo->exec("UPDATE pa_menu_definition SET route_path='/my-oauth' WHERE `key`='peanut.oauth.channels'");
-    $before = $pdo->query("SELECT id,name,parent_key,sort_order,icon,route_path,required_permission_id FROM pa_menu_definition WHERE `key`='peanut.article.articles'")->fetch(PDO::FETCH_ASSOC);
+    $oldIds = $pdo->query('SELECT `key`,id FROM pa_system_menu')->fetchAll(PDO::FETCH_KEY_PAIR);
+    $pdo->exec("UPDATE pa_system_menu SET name='我的文章',parent_key='core.organization',sort_order=997,icon='my-icon' WHERE `key`='peanut.article.articles'");
+    $pdo->exec("UPDATE pa_system_menu SET route_path='/my-oauth' WHERE `key`='peanut.oauth.channels'");
+    $before = $pdo->query("SELECT id,name,parent_key,sort_order,icon,route_path,required_permission_id FROM pa_system_menu WHERE `key`='peanut.article.articles'")->fetch(PDO::FETCH_ASSOC);
     $applier->apply($registry);
-    optionalMenuExpect($pdo->query("SELECT id,name,parent_key,sort_order,icon,route_path,required_permission_id FROM pa_menu_definition WHERE `key`='peanut.article.articles'")->fetch(PDO::FETCH_ASSOC) === $before, 'Reconcile overwrote customized Article identity or presentation');
-    optionalMenuExpect($pdo->query("SELECT route_path FROM pa_menu_definition WHERE `key`='peanut.oauth.channels'")->fetchColumn() === '/my-oauth', 'Reconcile overwrote customized OAuth path');
-    optionalMenuExpect($pdo->query("SELECT menu_conflict_json FROM pa_menu_definition WHERE `key`='peanut.article.articles'")->fetchColumn() !== null, 'Customized Article conflict was hidden');
-    optionalMenuExpect($pdo->query('SELECT `key`,id FROM pa_menu_definition')->fetchAll(PDO::FETCH_KEY_PAIR) === $oldIds, 'Reconcile changed menu IDs');
+    optionalMenuExpect($pdo->query("SELECT id,name,parent_key,sort_order,icon,route_path,required_permission_id FROM pa_system_menu WHERE `key`='peanut.article.articles'")->fetch(PDO::FETCH_ASSOC) === $before, 'Reconcile overwrote customized Article identity or presentation');
+    optionalMenuExpect($pdo->query("SELECT route_path FROM pa_system_menu WHERE `key`='peanut.oauth.channels'")->fetchColumn() === '/my-oauth', 'Reconcile overwrote customized OAuth path');
+    optionalMenuExpect($pdo->query("SELECT menu_conflict_json FROM pa_system_menu WHERE `key`='peanut.article.articles'")->fetchColumn() !== null, 'Customized Article conflict was hidden');
+    optionalMenuExpect($pdo->query('SELECT `key`,id FROM pa_system_menu')->fetchAll(PDO::FETCH_KEY_PAIR) === $oldIds, 'Reconcile changed menu IDs');
 
     $bridge = (new ReflectionClass(CoreTenantModuleAdminBridge::class))->newInstanceWithoutConstructor();
     (new ReflectionProperty($bridge, 'menuAdministration'))->setValue($bridge, new MenuAdministrationService());
@@ -169,11 +169,11 @@ try {
     optionalMenuExpect(count(array_filter($repository->activeDefinitions('tenant'), static fn($menu) => $menu->moduleKey === 'peanut.notification')) === 0, 'Retirement left active optional menus');
     $applier->apply($registry, ['peanut.notification']);
     optionalMenuExpect(count(array_filter($repository->activeDefinitions('tenant'), static fn($menu) => $menu->moduleKey === 'peanut.notification')) === 4, 'Reinstall did not restore current Notification contributions');
-    $customized = $pdo->query("SELECT id,name,parent_key FROM pa_menu_definition WHERE `key`='peanut.article.articles'")->fetch(PDO::FETCH_ASSOC);
+    $customized = $pdo->query("SELECT id,name,parent_key FROM pa_system_menu WHERE `key`='peanut.article.articles'")->fetch(PDO::FETCH_ASSOC);
     $applier->retire(['peanut.article']);
     optionalMenuExpect(count(array_filter($project(), static fn($row) => $row['module_key'] === 'peanut.article')) === 0, 'Retired Article menu re-entered through customized presentation');
     $applier->apply($registry, ['peanut.article']);
-    optionalMenuExpect($pdo->query("SELECT id,name,parent_key FROM pa_menu_definition WHERE `key`='peanut.article.articles' AND status='active'")->fetch(PDO::FETCH_ASSOC) === $customized, 'Reinstall lost customized Article presentation or ID');
+    optionalMenuExpect($pdo->query("SELECT id,name,parent_key FROM pa_system_menu WHERE `key`='peanut.article.articles' AND status='active'")->fetch(PDO::FETCH_ASSOC) === $customized, 'Reinstall lost customized Article presentation or ID');
     $applier->apply($registry);
     $snapshot = $management->records();
     $applier->apply($registry);

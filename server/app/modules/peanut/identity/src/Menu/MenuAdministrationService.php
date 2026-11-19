@@ -4,26 +4,66 @@ declare(strict_types=1);
 
 namespace PeanutAdmin\Modules\Identity\Menu;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use PeanutAdmin\Kernel\Authorization\Application\AdminAccessException;
 use PeanutAdmin\Modules\Identity\Authorization\CorePermissionCatalog;
 use PeanutAdmin\Modules\Identity\Platform\InstanceControlPlanePolicy;
 use PeanutAdmin\Modules\Identity\Persistence\Model\MenuDefinition;
 use think\facade\Db;
 
-/** Instance-owned presentation management; module identity and permissions stay immutable. */
+/** Single-table menu administration backed by pa_system_menu. */
 final class MenuAdministrationService
 {
     /** @return list<array<string,mixed>> */
     public function records(string $scope = 'tenant', bool $lock = false): array
     {
-        $query = MenuDefinition::alias('menu')->leftJoin('permission p', 'p.id=menu.required_permission_id')
+        $query = MenuDefinition::alias('menu')
+            ->leftJoin('permission p', 'p.id=menu.required_permission_id')
             ->leftJoin('permission custom', 'custom.id=menu.instance_permission_id')
-            ->where('menu.scope', $scope)->field('menu.*,p.key AS required_permission,custom.key AS instance_permission')
-            ->order('menu.sort_order')->order('menu.key');
+            ->where('menu.scope', $scope)
+            ->field('menu.*,p.key AS required_permission,custom.key AS instance_permission')
+            ->order('menu.sort_order')
+            ->order('menu.key');
         if ($lock) {
             $query->lock(true);
         }
         return $query->select()->toArray();
+    }
+
+    /** @param array<string,mixed> $attributes */
+    public function createCustom(array $attributes): void
+    {
+        Db::transaction(function () use ($attributes): void {
+            $key = (string) ($attributes['key'] ?? ('custom.' . bin2hex(random_bytes(16))));
+            $this->assertParent($key, $attributes['parent_key'] ?? null);
+            $now = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d H:i:s.000');
+            $type = $this->normalizeType((string) ($attributes['type'] ?? 'C'));
+            MenuDefinition::create([
+                'key' => $key,
+                'module_key' => 'application',
+                'source' => 'custom',
+                'scope' => 'tenant',
+                'parent_key' => $attributes['parent_key'] ?? null,
+                'type' => $type,
+                'name' => (string) ($attributes['name'] ?? ''),
+                'route_name' => $type === 'page' ? $key : null,
+                'route_path' => (string) ($attributes['paths'] ?? ''),
+                'component_key' => $type === 'page' ? (string) ($attributes['component'] ?? '') : null,
+                'icon' => (string) ($attributes['icon'] ?? ''),
+                'sort_order' => -(int) ($attributes['sort'] ?? 0),
+                'required_permission_id' => $attributes['required_permission_id'] ?? null,
+                'instance_permission_id' => $attributes['instance_permission_id'] ?? null,
+                'client_keys_json' => '[]',
+                'status' => 'active',
+                'manifest_digest' => str_repeat('0', 64),
+                'is_show' => (int) ($attributes['is_show'] ?? 1),
+                'is_cache' => (int) ($attributes['is_cache'] ?? 0),
+                'is_disable' => (int) ($attributes['is_disable'] ?? 0),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        });
     }
 
     /** @param array<string,mixed> $presentation */
@@ -34,28 +74,45 @@ final class MenuAdministrationService
             if ($menu === null) {
                 throw new \DomainException('ADMIN_MENU_NOT_FOUND');
             }
-            $parentKey = $presentation['parent_key'] ?? null;
-            $seen = [$key => true];
-            while ($parentKey !== null) {
-                if (isset($seen[$parentKey])) {
-                    throw new \DomainException('ADMIN_MENU_PARENT_CYCLE');
-                }
-                $seen[$parentKey] = true;
-                $parent = MenuDefinition::where('key', $parentKey)->where('scope', 'tenant')->lock(true)->find();
-                if ($parent === null || $parent->getAttr('type') !== 'group') {
-                    throw new \DomainException('ADMIN_MODULE_MENU_PARENT_INVALID');
-                }
-                $parentKey = $parent->getAttr('parent_key');
-            }
-            $menu->save([
-                'name' => $presentation['name'], 'icon' => $presentation['icon'] ?? '',
+            $this->assertParent($key, $presentation['parent_key'] ?? null);
+            $now = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d H:i:s.000');
+            $changes = [
+                'name' => $presentation['name'],
+                'icon' => $presentation['icon'] ?? '',
                 'sort_order' => -(int) ($presentation['sort'] ?? 0),
                 'parent_key' => $presentation['parent_key'] ?? null,
                 'is_show' => (int) ($presentation['is_show'] ?? 1),
                 'is_cache' => (int) ($presentation['is_cache'] ?? 0),
                 'is_disable' => (int) ($presentation['is_disable'] ?? 0),
                 'instance_permission_id' => $presentation['instance_permission_id'] ?? null,
-            ]);
+                'updated_at' => $now,
+            ];
+            if ($menu->getAttr('source') === 'custom') {
+                if (isset($presentation['type'])) {
+                    $changes['type'] = $this->normalizeType((string) $presentation['type']);
+                }
+                if (array_key_exists('paths', $presentation)) {
+                    $changes['route_path'] = (string) ($presentation['paths'] ?? '');
+                }
+                if (array_key_exists('component', $presentation)) {
+                    $changes['component_key'] = $presentation['component'] ?: null;
+                }
+            }
+            $menu->save($changes);
+        });
+    }
+
+    public function deleteCustom(string $key): void
+    {
+        Db::transaction(function () use ($key): void {
+            $menu = MenuDefinition::where('key', $key)->where('scope', 'tenant')->lock(true)->find();
+            if ($menu === null) {
+                throw new \DomainException('ADMIN_MENU_NOT_FOUND');
+            }
+            if ($menu->getAttr('source') !== 'custom') {
+                throw new \DomainException('MANAGED_MENU_DELETE_FORBIDDEN');
+            }
+            $menu->delete();
         });
     }
 
@@ -72,35 +129,22 @@ final class MenuAdministrationService
     /** Existing instance menu records; this does not grant a permission to a role. */
     public function permissionBindings(bool $lock = false): array
     {
-        $query = Db::name('system_menu')->order('id');
-        if ($lock) {
-            $query->lock(true);
-        }
-        $legacy = $query->select()->toArray();
-        $byId = array_column($legacy, null, 'id');
-        $legacyByKey = array_column($legacy, null, 'menu_key');
-        $native = array_column($this->records('tenant', $lock), null, 'key');
+        $records = $this->records('tenant', $lock);
         $rows = [];
-        foreach ($legacy as $row) {
-            $parent = $row['parent_key'] ?: ($byId[(int) $row['pid']]['menu_key'] ?? null);
-            $defaults = $row['upstream_defaults_json'];
-            if (is_string($defaults)) {
-                $defaults = json_decode($defaults, true, 512, JSON_THROW_ON_ERROR);
-            }
-            $rows[$row['menu_key']] = ['menu_key' => $row['menu_key'], 'parent_key' => $parent,
-                'type' => $row['type'], 'name' => $row['name'], 'path' => $row['paths'],
-                'permission_key' => $row['perms'],
-                'default_permission_key' => $defaults['perms'] ?? (str_starts_with($row['menu_key'], 'custom.') ? '' : null)];
-        }
-        foreach ($native as $row) {
-            $overrides = isset($legacyByKey[$row['key']])
-                ? $this->legacyPresentationOverrides($legacyByKey[$row['key']], $byId) : [];
-            $rows[$row['key']] = ['menu_key' => $row['key'],
-                'parent_key' => array_key_exists('parent_key', $overrides) ? $overrides['parent_key'] : $row['parent_key'],
-                'type' => $row['type'] === 'group' ? 'M' : 'C', 'name' => $overrides['name'] ?? $row['name'],
-                'path' => $overrides['paths'] ?? $row['route_path'] ?? '',
-                'permission_key' => $row['instance_permission'] ?? $overrides['perms'] ?? $row['required_permission'] ?? '',
-                'default_permission_key' => $row['required_permission'] ?? ''];
+        foreach ($records as $row) {
+            $rows[$row['key']] = [
+                'menu_key' => $row['key'],
+                'parent_key' => $row['parent_key'],
+                'type' => match ($row['type']) {
+                    'group' => 'M',
+                    'action' => 'A',
+                    default => 'C',
+                },
+                'name' => $row['name'],
+                'path' => $row['route_path'] ?? '',
+                'permission_key' => $row['instance_permission'] ?? $row['required_permission'] ?? '',
+                'default_permission_key' => $row['required_permission'] ?? '',
+            ];
         }
         $items = [];
         foreach ($rows as $row) {
@@ -111,109 +155,25 @@ final class MenuAdministrationService
             }
             $parent = $rows[$row['parent_key'] ?? ''] ?? null;
             $pagePath = $row['type'] === 'C' ? $row['path'] : (($parent['type'] ?? '') === 'C' ? $parent['path'] : '');
-            $item = ['menu_key' => $row['menu_key'], 'parent_key' => $row['parent_key'], 'type' => $row['type'],
-                'name' => $row['name'], 'page_path' => $pagePath, 'action_key' => $row['type'] === 'A' ? $row['path'] : '',
-                'permission_key' => $row['permission_key'], 'default_permission_key' => $row['default_permission_key']];
+            $item = [
+                'menu_key' => $row['menu_key'],
+                'parent_key' => $row['parent_key'],
+                'type' => $row['type'],
+                'name' => $row['name'],
+                'page_path' => $pagePath,
+                'action_key' => $row['type'] === 'A' ? $row['path'] : '',
+                'permission_key' => $row['permission_key'],
+                'default_permission_key' => $row['default_permission_key'],
+            ];
             $item['revision'] = hash('sha256', json_encode($item, JSON_THROW_ON_ERROR));
             $items[] = $item;
         }
         return $items;
     }
 
-    /** Only local fields that differ from a recorded legacy source baseline override native defaults.
-     * @param array<int,array<string,mixed>> $byId
-     * @return array<string,mixed>
-     */
-    public function legacyPresentationOverrides(array $row, array $byId): array
-    {
-        $fields = ['name', 'icon', 'sort', 'perms', 'paths', 'is_show', 'is_cache', 'is_disable'];
-        $numeric = ['sort', 'is_show', 'is_cache', 'is_disable'];
-        $baseline = $row['upstream_defaults_json'] ?? null;
-        if (is_string($baseline)) {
-            $baseline = json_decode($baseline, true, 512, JSON_THROW_ON_ERROR);
-        }
-        $overrides = [];
-        $unknown = [];
-        foreach ($fields as $field) {
-            $current = $row[$field] ?? null;
-            if (in_array($field, $numeric, true)) {
-                $current = (int) $current;
-            }
-            if (!is_array($baseline) || !array_key_exists($field, $baseline)) {
-                $overrides[$field] = $current;
-                $unknown[] = $field;
-                continue;
-            }
-            $expected = in_array($field, $numeric, true) ? (int) $baseline[$field] : $baseline[$field];
-            if ($current !== $expected) {
-                $overrides[$field] = $current;
-            }
-        }
-        $parent = $row['parent_key'] ?? ($byId[(int) ($row['pid'] ?? 0)]['menu_key'] ?? null);
-        $knownParent = is_array($baseline) && (array_key_exists('parent_key', $baseline)
-            || (array_key_exists('pid', $baseline) && ((int) $baseline['pid'] === 0 || isset($byId[(int) $baseline['pid']]))));
-        $expectedParent = is_array($baseline) && array_key_exists('parent_key', $baseline)
-            ? $baseline['parent_key'] : ($byId[(int) ($baseline['pid'] ?? 0)]['menu_key'] ?? null);
-        if (!$knownParent || $parent !== $expectedParent) {
-            $overrides['parent_key'] = $parent;
-            $overrides['pid'] = (int) ($row['pid'] ?? 0);
-        }
-        if (!$knownParent) {
-            $unknown[] = 'parent_key';
-        }
-        if ($unknown !== []) {
-            $overrides['conflict'] = json_encode(['reason' => 'unknown_defaults', 'fields' => $unknown], JSON_THROW_ON_ERROR);
-        }
-        return $overrides;
-    }
-
-    /** Rebase only fields being saved, and only when both source baselines are recorded.
-     * @param list<string> $fields
-     * @return array<string,mixed>|null
-     */
-    public function rebaseLegacyDefaults(array $legacy, array $native, array $fields): ?array
-    {
-        $baseline = $legacy['upstream_defaults_json'] ?? null;
-        $source = $native['upstream_defaults_json'] ?? null;
-        if (is_string($baseline)) {
-            $baseline = json_decode($baseline, true, 512, JSON_THROW_ON_ERROR);
-        }
-        if (is_string($source)) {
-            $source = json_decode($source, true, 512, JSON_THROW_ON_ERROR);
-        }
-        if (!is_array($baseline) || !is_array($source)) {
-            return null;
-        }
-        $mapping = ['name' => 'name', 'icon' => 'icon', 'sort' => 'sort_order',
-            'is_show' => 'is_show', 'is_cache' => 'is_cache', 'is_disable' => 'is_disable'];
-        foreach ($mapping as $field => $sourceField) {
-            if (!in_array($field, $fields, true) || !array_key_exists($field, $baseline) || !array_key_exists($sourceField, $source)) {
-                continue;
-            }
-            $baseline[$field] = match ($field) {
-                'sort' => -(int) $source[$sourceField],
-                'is_show', 'is_cache', 'is_disable' => (int) $source[$sourceField],
-                'icon' => $source[$sourceField] ?? '',
-                default => $source[$sourceField],
-            };
-        }
-        if (in_array('parent_key', $fields, true) && array_key_exists('parent_key', $source)
-            && (array_key_exists('parent_key', $baseline) || array_key_exists('pid', $baseline))) {
-            $baseline['parent_key'] = $source['parent_key'];
-        }
-        if (in_array('perms', $fields, true) && array_key_exists('perms', $baseline)
-            && array_key_exists('required_permission_id', $source)
-            && (string) ($source['required_permission_id'] ?? '') === (string) ($native['required_permission_id'] ?? '')
-            && ($source['required_permission_id'] === null || is_string($native['required_permission'] ?? null))) {
-            $baseline['perms'] = $source['required_permission_id'] === null ? '' : $native['required_permission'];
-        }
-        return $baseline;
-    }
-
     public function replacePermissionBinding(string $key, ?string $permission, ?string $action, string $revision, \app\common\contract\module\ModuleQualificationQuery $modules): array
     {
         return Db::transaction(function () use ($key, $permission, $action, $revision, $modules): array {
-            // Lock before reading the revision, including competing page/action identities.
             $items = $this->permissionBindings(true);
             $before = array_column($items, null, 'menu_key')[$key] ?? null;
             if ($before === null) {
@@ -222,17 +182,16 @@ final class MenuAdministrationService
             if (!hash_equals($before['revision'], $revision)) {
                 throw AdminAccessException::revisionMismatch();
             }
-            $legacy = Db::name('system_menu')->where('menu_key', $key)->lock(true)->find();
             $native = MenuDefinition::where('key', $key)->where('scope', 'tenant')->lock(true)->find();
+            if ($native === null) {
+                throw AdminAccessException::notFound();
+            }
             if (($before['type'] === 'A' && ($action === null || trim($action) === '' || $before['page_path'] === ''))
                 || ($before['type'] === 'C' && $action !== null)) {
                 throw AdminAccessException::invalid('MENU_BINDING_INVALID', 'An action needs a page and an action key.');
             }
             if ($before['type'] === 'A' && $before['action_key'] !== '' && $before['action_key'] !== $action) {
                 throw AdminAccessException::invalid('MENU_BINDING_INVALID', 'An existing action identity cannot be changed.');
-            }
-            if ($legacy !== null && $permission !== null && strlen($permission) > 100) {
-                throw AdminAccessException::invalid('MENU_BINDING_INVALID', 'The permission key is too long for this menu.');
             }
             $definition = null;
             if ($permission !== null) {
@@ -261,24 +220,42 @@ final class MenuAdministrationService
                     }
                 }
             }
-            if ($native !== null) {
-                $native->save(['instance_permission_id' => $permission === null || $permission === $before['default_permission_key'] ? null : (int) $definition['id']]);
+            $changes = [
+                'instance_permission_id' => $permission === null || $permission === $before['default_permission_key']
+                    ? null
+                    : (int) $definition['id'],
+            ];
+            if ($before['type'] === 'A' && $action !== null) {
+                $changes['route_path'] = $action;
             }
-            if ($legacy !== null) {
-                $changes = ['perms' => $effective];
-                if ($before['type'] === 'A') {
-                    $changes['paths'] = $action;
-                }
-                if ($native !== null) {
-                    $baseline = $this->rebaseLegacyDefaults($legacy,
-                        [...$native->toArray(), 'required_permission' => $before['default_permission_key']], ['perms']);
-                    if ($baseline !== null) {
-                        $changes['upstream_defaults_json'] = json_encode($baseline, JSON_THROW_ON_ERROR);
-                    }
-                }
-                Db::name('system_menu')->where('id', $legacy['id'])->update($changes);
-            }
+            $native->save($changes);
             return ['before' => $before, 'after' => array_column($this->permissionBindings(true), null, 'menu_key')[$key]];
         });
+    }
+
+    private function assertParent(string $key, ?string $parentKey): void
+    {
+        $seen = [$key => true];
+        while ($parentKey !== null) {
+            if (isset($seen[$parentKey])) {
+                throw new \DomainException('ADMIN_MENU_PARENT_CYCLE');
+            }
+            $seen[$parentKey] = true;
+            $parent = MenuDefinition::where('key', $parentKey)->where('scope', 'tenant')->lock(true)->find();
+            if ($parent === null || $parent->getAttr('type') === 'action') {
+                throw new \DomainException('ADMIN_MODULE_MENU_PARENT_INVALID');
+            }
+            $parentKey = $parent->getAttr('parent_key');
+        }
+    }
+
+    private function normalizeType(string $type): string
+    {
+        return match ($type) {
+            'M', 'group' => 'group',
+            'A', 'action' => 'action',
+            'link' => 'link',
+            default => 'page',
+        };
     }
 }

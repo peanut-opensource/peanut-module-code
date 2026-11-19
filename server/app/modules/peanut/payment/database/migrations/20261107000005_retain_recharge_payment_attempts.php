@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS pa_recharge_payment_attempt (
     pay_way tinyint NOT NULL,
     binding_id bigint unsigned NOT NULL,
     grant_id bigint unsigned NOT NULL,
-    merchant_identity_hash char(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+    merchant_identity_hash char(64) COLLATE utf8mb4_0900_ai_ci NOT NULL,
     merchant_order_sn varchar(64) COLLATE utf8mb4_0900_ai_ci NOT NULL,
     amount_cents bigint unsigned NOT NULL,
     currency char(3) NOT NULL,

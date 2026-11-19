@@ -241,7 +241,7 @@ final readonly class ModuleDefinitionRegistryFactory
     {
         $technical = [...array_diff(ModuleSchema::tableNames(), ['pa_module_migration']), ...IdempotencySchema::tableNames()];
         $transferredTechnicalOwners = [
-            'peanut.identity' => ['pa_menu_definition', 'pa_module_installation'],
+            'peanut.identity' => ['pa_system_menu', 'pa_module_installation'],
         ];
         $owners = [];
         $layout = ModuleHostLayoutFactory::pathLayout();

@@ -42,7 +42,7 @@ final class ApiPermissionCatalog
         if ($permissionKeys === []) {
             return [];
         }
-        $rows = Db::name('api_endpoint')->alias('endpoint')
+        $rows = Db::name('system_api')->alias('endpoint')
             ->join('permission_api binding', 'binding.api_id = endpoint.id')
             ->join('permission permission', 'permission.id = binding.permission_id')
             ->where('endpoint.audience', 'platform')->where('endpoint.status', 'active')
@@ -77,12 +77,10 @@ final class ApiPermissionCatalog
         Db::transaction(function () use ($catalog, $moduleKeys, $fullRegistry): void {
             $now = gmdate('Y-m-d H:i:s');
             $permissionsByKey = [];
-            foreach (Db::name('permission')->where('status', 'active')->field('id,key,module_key')->lock(true)->select()->toArray() as $perm) {
-                $permissionsByKey[(string) $perm['key']] = $perm;
-            }
             $configByPermissionId = [];
-            foreach (Db::name('permission_api_config')->field('permission_id,configured')->lock(true)->select()->toArray() as $cfg) {
-                $configByPermissionId[(int) $cfg['permission_id']] = (int) $cfg['configured'];
+            foreach (Db::name('permission')->where('status', 'active')->field('id,key,module_key,api_configured')->lock(true)->select()->toArray() as $perm) {
+                $permissionsByKey[(string) $perm['key']] = $perm;
+                $configByPermissionId[(int) $perm['id']] = (int) ($perm['api_configured'] ?? 0);
             }
             $existingBindings = [];
             foreach (Db::name('permission_api')->field('id,permission_id,api_id')->lock(true)->select()->toArray() as $row) {
@@ -90,7 +88,6 @@ final class ApiPermissionCatalog
             }
 
             $activeIds = [];
-            $newConfigs = [];
             $newBindings = [];
             $deleteBindingIds = [];
             $bumpedPermissionIds = [];
@@ -116,7 +113,7 @@ final class ApiPermissionCatalog
                     'default_permission_keys' => json_encode($defaults, JSON_THROW_ON_ERROR),
                     'prerequisite_permission_keys' => json_encode($endpoint['prerequisite_permission_keys'], JSON_THROW_ON_ERROR),
                     'updated_at' => $now, 'retired_at' => null];
-                Db::name('api_endpoint')->duplicate($data)->insert(['id' => $id, ...$data, 'created_at' => $now]);
+                Db::name('system_api')->duplicate($data)->insert(['id' => $id, ...$data, 'created_at' => $now]);
                 $activeIds[] = $id;
                 if (!in_array($mode, ['tenant_permission', 'platform_permission'], true)) {
                     $defaults = [];
@@ -129,13 +126,7 @@ final class ApiPermissionCatalog
                     }
                     $permissionId = (int) $permission['id'];
                     $desired[$permissionId] = true;
-                    if (!array_key_exists($permissionId, $configByPermissionId)) {
-                        $configByPermissionId[$permissionId] = 0;
-                        $newConfigs[$permissionId] = [
-                            'permission_id' => $permissionId, 'revision' => 1, 'configured' => 0, 'updated_at' => $now,
-                        ];
-                    }
-                    if ($configByPermissionId[$permissionId] === 0 && !isset($existingBindings[$id][$permissionId])) {
+                    if (($configByPermissionId[$permissionId] ?? 0) === 0 && !isset($existingBindings[$id][$permissionId])) {
                         $existingBindings[$id][$permissionId] = 0;
                         $newBindings[] = ['permission_id' => $permissionId, 'api_id' => $id, 'created_at' => $now];
                         $bumpedPermissionIds[$permissionId] = true;
@@ -147,11 +138,6 @@ final class ApiPermissionCatalog
                         $deleteBindingIds[] = $bindingId;
                         $bumpedPermissionIds[$permissionId] = true;
                     }
-                }
-            }
-            if ($newConfigs !== []) {
-                foreach (array_chunk(array_values($newConfigs), 200) as $chunk) {
-                    Db::name('permission_api_config')->insertAll($chunk);
                 }
             }
             if ($newBindings !== []) {
@@ -166,10 +152,10 @@ final class ApiPermissionCatalog
             }
             if ($bumpedPermissionIds !== []) {
                 foreach (array_chunk(array_keys($bumpedPermissionIds), 500) as $chunk) {
-                    Db::name('permission_api_config')->whereIn('permission_id', $chunk)->inc('revision')->update(['updated_at' => $now]);
+                    Db::name('permission')->whereIn('id', $chunk)->inc('revision')->update(['updated_at' => $now]);
                 }
             }
-            $retire = Db::name('api_endpoint')->where('status', 'active');
+            $retire = Db::name('system_api')->where('status', 'active');
             if (!$fullRegistry) {
                 $retire->whereIn('module_key', ['peanut.admin', 'platform', 'member', 'installation', ...$moduleKeys]);
             }
@@ -183,7 +169,7 @@ final class ApiPermissionCatalog
     public function revisionRows(): array
     {
         return [
-            'endpoints' => Db::name('api_endpoint')->field('id,method,path,audience,module_key,access_mode,status,default_permission_keys,prerequisite_permission_keys')->order('id')->select()->toArray(),
+            'endpoints' => Db::name('system_api')->field('id,method,path,audience,module_key,access_mode,status,default_permission_keys,prerequisite_permission_keys')->order('id')->select()->toArray(),
             'bindings' => Db::name('permission_api')->field('permission_id,api_id')->order('permission_id,api_id')->select()->toArray(),
         ];
     }
@@ -263,7 +249,7 @@ final class ApiPermissionCatalog
 
     private function endpointQuery(string $method, string $path, string $audience): \think\db\Query
     {
-        return Db::name('api_endpoint')->pk('id')->schema([
+        return Db::name('system_api')->pk('id')->schema([
             'id' => 'string', 'method' => 'string', 'path' => 'string', 'audience' => 'string',
             'module_key' => 'string', 'access_mode' => 'string', 'status' => 'string',
             'default_permission_keys' => 'json', 'prerequisite_permission_keys' => 'json',
@@ -316,19 +302,18 @@ final class ApiPermissionCatalog
         $total = (int) (clone $query)->count();
         $rows = $query->order('module_key,key')->limit($page->offset(), $page->pageSize)->select()->toArray();
         $ids = array_column($rows, 'id');
-        $configs = $ids === [] ? [] : array_column(Db::name('permission_api_config')->whereIn('permission_id', $ids)->select()->toArray(), null, 'permission_id');
         $bindings = [];
         if ($ids !== []) {
             foreach (Db::name('permission_api')->whereIn('permission_id', $ids)->order('api_id')->select()->toArray() as $binding) {
                 $bindings[$binding['permission_id']][] = $binding['api_id'];
             }
         }
-        return ['items' => array_map(fn(array $row): array => $this->bundleRow($row, $configs[$row['id']] ?? [], $bindings[$row['id']] ?? []), $rows), 'total' => $total];
+        return ['items' => array_map(fn(array $row): array => $this->bundleRow($row, $bindings[$row['id']] ?? []), $rows), 'total' => $total];
     }
 
     public function apis(PageRequest $page, string $audience, string $search, string $status): array
     {
-        $query = Db::name('api_endpoint')->where('audience', $audience);
+        $query = Db::name('system_api')->where('audience', $audience);
         if ($search !== '') {
             $query->whereLike('method|path|module_key', '%' . $search . '%');
         }
@@ -359,7 +344,7 @@ final class ApiPermissionCatalog
     {
         return Db::transaction(function () use ($key, $expectedRevision, $apiIds, $modules): array {
             // Serialize only this management dependency's invariant through native row locks.
-            $recoveryApis = Db::name('api_endpoint')->where('audience', 'platform')->where('status', 'active')
+            $recoveryApis = Db::name('system_api')->where('audience', 'platform')->where('status', 'active')
                 ->where(function ($query): void {
                     $query->where(function ($read): void {
                         $read->where('method', 'GET')->whereIn('path', [
@@ -383,7 +368,7 @@ final class ApiPermissionCatalog
                 throw AdminAccessException::revisionMismatch();
             }
             $apiIds = array_values(array_unique($apiIds));
-            $rows = $apiIds === [] ? [] : Db::name('api_endpoint')->whereIn('id', $apiIds)->lock(true)->select()->toArray();
+            $rows = $apiIds === [] ? [] : Db::name('system_api')->whereIn('id', $apiIds)->lock(true)->select()->toArray();
             if (count($rows) !== count($apiIds)) {
                 throw AdminAccessException::invalid('API_NOT_BINDABLE', 'All APIs must be registered.');
             }
@@ -402,8 +387,10 @@ final class ApiPermissionCatalog
                     'permission_id' => $permission['id'], 'api_id' => $id, 'created_at' => $now,
                 ], $apiIds));
             }
-            Db::name('permission_api_config')->duplicate(['revision' => $expectedRevision + 1, 'configured' => 1, 'updated_at' => $now])->insert([
-                'permission_id' => $permission['id'], 'revision' => $expectedRevision + 1, 'configured' => 1, 'updated_at' => $now,
+            Db::name('permission')->where('id', $permission['id'])->update([
+                'revision' => $expectedRevision + 1,
+                'api_configured' => 1,
+                'updated_at' => $now,
             ]);
             // These exact routes are the UI's repair path. Empty ordinary bundles remain valid.
             foreach ($recoveryApis as $api) {
@@ -448,10 +435,13 @@ final class ApiPermissionCatalog
             throw AdminAccessException::revisionMismatch();
         }
         $now = gmdate('Y-m-d H:i:s');
-        Db::name('permission')->where('id', $row['id'])->update(['name' => $name, 'status' => $status,
-            'retired_at' => $status === 'retired' ? $now : null, 'updated_at' => $now]);
-        Db::name('permission_api_config')->duplicate(['revision' => $revision + 1, 'updated_at' => $now])->insert([
-            'permission_id' => $row['id'], 'revision' => $revision + 1, 'configured' => 1, 'updated_at' => $now,
+        Db::name('permission')->where('id', $row['id'])->update([
+            'name' => $name,
+            'status' => $status,
+            'revision' => $revision + 1,
+            'api_configured' => 1,
+            'retired_at' => $status === 'retired' ? $now : null,
+            'updated_at' => $now,
         ]);
         if ($row['status'] !== $status) {
             $roleIds = Db::name('platform_role_permission')->where('permission_id', $row['id'])->column('platform_role_id');
@@ -471,7 +461,7 @@ final class ApiPermissionCatalog
 
     private function assertManagementRecovery(): void
     {
-        $apis = Db::name('api_endpoint')->where('audience', 'platform')->where('status', 'active')
+        $apis = Db::name('system_api')->where('audience', 'platform')->where('status', 'active')
             ->whereIn('path', ['/platformapi/permission/bundles', '/platformapi/permission/apis', '/platformapi/permission/apis/bindings'])
             ->lock(true)->select()->toArray();
         foreach ($apis as $api) {
@@ -481,14 +471,13 @@ final class ApiPermissionCatalog
         }
     }
 
-    private function bundleRow(array $row, ?array $config = null, ?array $apiIds = null): array
+    private function bundleRow(array $row, ?array $apiIds = null): array
     {
-        $config ??= Db::name('permission_api_config')->where('permission_id', $row['id'])->find();
         $apiIds ??= array_values(Db::name('permission_api')->where('permission_id', $row['id'])->order('api_id')->column('api_id'));
         return ['key' => $row['key'], 'name' => $row['name'], 'module_key' => $row['module_key'],
             'source' => str_starts_with($row['module_key'], 'instance.') ? 'custom' : (in_array($row['module_key'], ['core', 'peanut.admin', 'platform'], true) ? 'system' : 'module'),
             'audience' => self::permissionAudience($row), 'status' => $row['status'],
-            'revision' => (string) ($config['revision'] ?? 1), 'configured' => (bool) ($config['configured'] ?? false),
+            'revision' => (string) ($row['revision'] ?? 1), 'configured' => (bool) ($row['api_configured'] ?? false),
             'api_ids' => $apiIds];
     }
 }

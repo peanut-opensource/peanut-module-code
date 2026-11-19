@@ -15,7 +15,6 @@ use PeanutAdmin\Modules\Ops\Domain\Logs\RuntimeLogQuery;
 use PeanutAdmin\Modules\Ops\Domain\Application\OpsConsoleException;
 use PeanutAdmin\Modules\Ops\Domain\Application\PlatformPermissionChecker;
 use PeanutAdmin\Modules\Ops\Domain\Package;
-use app\platform\services\provider\PlatformProviderQualificationService;
 
 /** Container-owned application boundary for all Platform Ops use cases. */
 final readonly class PlatformOpsApplicationService
@@ -23,7 +22,6 @@ final readonly class PlatformOpsApplicationService
     public function __construct(
         private OpsStatusService $status,
         private ApplicationRuntimeStatusProvider $runtimeStatus,
-        private PlatformProviderQualificationService $providerQualifications,
         private MaintenanceService $maintenance,
         private PlatformDiagnosticBundleService $diagnostics,
         private AuditContractHost $audit,
@@ -49,7 +47,7 @@ final readonly class PlatformOpsApplicationService
     /** @return array<string,mixed> */
     public function providers(PlatformContext $context, int $page = 1, int $pageSize = 20): array
     {
-        return $this->providerQualifications->snapshot($context, $page, $pageSize);
+        return ['items' => [], 'total' => 0, 'page' => $page, 'page_size' => $pageSize];
     }
 
     /** @return array<string,mixed>|null */

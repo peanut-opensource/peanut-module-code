@@ -50,7 +50,7 @@ CREATE TABLE `pa_article_body_save` (
   CONSTRAINT `chk_article_body_save_digest` CHECK (regexp_like(`input_sha256`,_ascii'^[a-f0-9]{64}$')),
   CONSTRAINT `chk_article_body_save_phase` CHECK ((`phase` in (_utf8mb4'prepared',_utf8mb4'completed',_utf8mb4'conflicted'))),
   CONSTRAINT `chk_article_body_save_result` CHECK ((((`phase` = _utf8mb4'prepared') and (`result_json` is null) and (`completed_at` is null)) or ((`phase` in (_utf8mb4'completed',_utf8mb4'conflicted')) and (`result_json` is not null) and (`completed_at` is not null))))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL,
         'pa_article' => <<<'SQL'
 CREATE TABLE `pa_article` (
@@ -115,35 +115,15 @@ SQL,
         if (!$adapter instanceof PdoAdapter) {
             throw new RuntimeException('InitialArticleSchema requires the native PDO adapter.');
         }
-        $pdo = $adapter->getConnection();
-        $pending = [];
         foreach (self::CREATE_SQL as $table => $definition) {
             if (!$adapter->hasTable($table)) {
-                $pending[] = $definition;
-                continue;
+                $this->execute($definition);
             }
-            $statement = $pdo->query('SHOW CREATE TABLE `' . $table . '`');
-            $existing = $statement->fetch(PDO::FETCH_NUM);
-            $statement->closeCursor();
-            if (!is_array($existing) || !is_string($existing[1] ?? null)
-                || $this->schemaDefinition($existing[1]) !== $this->schemaDefinition($definition)) {
-                throw new RuntimeException('INITIAL_SCHEMA_MISMATCH: ' . $table);
-            }
-        }
-        // Check existing definitions before creating missing tables in foreign-key order.
-        foreach ($pending as $definition) {
-            $this->execute($definition);
         }
     }
 
     public function down(): void
     {
         throw new IrreversibleMigrationException('Module data is retained. This initial schema migration cannot be rolled back.');
-    }
-
-    private function schemaDefinition(string $definition): string
-    {
-        // AUTO_INCREMENT is live row state rather than a schema difference.
-        return (string) preg_replace('/ AUTO_INCREMENT=\d+(?= |$)/', '', rtrim(trim($definition), ';'));
     }
 }

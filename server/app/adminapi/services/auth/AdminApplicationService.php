@@ -8,14 +8,15 @@ use app\common\exception\BusinessException;
 use app\common\dto\authorization\AdminPrincipal;
 use app\common\execution\CurrentExecutionContext;
 use app\common\services\authorization\AdminAuthorizationService;
-use app\common\runtime\authorization\RoleAdministrationRuntime;
 use DateTimeImmutable;
 use DateTimeZone;
 use PeanutAdmin\Modules\File\Contract\FileReferences;
 use app\common\services\XlsxExportService;
+use PeanutAdmin\Modules\Identity\Authorization\Application\RoleAdminService;
 use PeanutAdmin\Modules\Identity\Contract\AdminDirectoryQuery;
+use PeanutAdmin\Modules\Identity\Identity\SelfService\AccountSelfService;
+use PeanutAdmin\Modules\Identity\Policy\DemoAccountPolicy;
 use PeanutAdmin\Kernel\Context\TenantContextRequirement;
-use app\common\runtime\org\TenantAdminRuntime;
 use app\common\support\ExportPageInfo;
 use app\common\support\PaginationInput;
 use PeanutAdmin\Kernel\Auth\TenantContext;
@@ -31,12 +32,14 @@ final class AdminApplicationService
     public function __construct(
         private readonly XlsxExportService $xlsxExport,
         private readonly AdminDirectoryQuery $directory,
-        private readonly TenantAdminRuntime $tenantAdmins,
+        private readonly MemberAdminService $members,
+        private readonly AccountSelfService $selfService,
+        private readonly DemoAccountPolicy $demoAccounts,
         private readonly FileReferences $files,
         private readonly PasswordPolicy $passwords,
         private readonly CurrentExecutionContext $executionContext,
         private readonly AdminAuthorizationService $authorization,
-        private readonly RoleAdministrationRuntime $roleAdministration,
+        private readonly RoleAdminService $roleAdmin,
     ) {}
 
     public function normalizeInput(array $params, bool $write = false): array
@@ -101,37 +104,34 @@ final class AdminApplicationService
 
     public function lists(TenantContext $context, array $params): array
     {
-        try {
-            $pageSize = max(1, min(
-                self::EXPORT_MAX_ROWS,
-                (int) ($params['page_size'] ?? $params['limit'] ?? 15),
-            ));
-            $rows = $this->rows($context, $params);
-            $count = count($rows);
-            if ((int) ($params['export'] ?? 0) === 1) {
-                return self::exportInfo($count, $pageSize);
-            }
-            if ((int) ($params['export'] ?? 0) === 2) {
-                return $this->export($context, $params, $rows);
-            }
-            $pagination = PaginationInput::from($params);
-            $pageNo = $pagination->page;
-            return [
-                'lists' => array_slice($rows, ($pageNo - 1) * $pageSize, $pageSize),
-                'count' => $count,
-                'pageNo' => $pageNo,
-                'pageSize' => $pageSize,
-            ];
-        } catch (\Throwable $e) {
-            throw $e;
+        $pageSize = max(1, min(
+            self::EXPORT_MAX_ROWS,
+            (int) ($params['page_size'] ?? $params['limit'] ?? 15),
+        ));
+        $exportMode = (int) ($params['export'] ?? 0);
+        if ($exportMode === 1) {
+            return self::exportInfo($this->directory->countRows($params), $pageSize);
         }
+        if ($exportMode === 2) {
+            $exportRaw = $this->directory->rows($params, self::EXPORT_MAX_ROWS);
+            return $this->export($context, $params, $this->hydrateRows($exportRaw));
+        }
+        $pagination = PaginationInput::from($params);
+        $pageNo = $pagination->page;
+        $page = $this->directory->paginateRows($params, $pageNo, $pageSize);
+        return [
+            'lists' => $this->hydrateRows($page['rows']),
+            'count' => (int) $page['total'],
+            'pageNo' => $pageNo,
+            'pageSize' => $pageSize,
+        ];
     }
 
     public function detail(TenantContext $context, int $id): array
     {
-        foreach ($this->rows($context, ['id' => $id]) as $row) {
-            if ($row['id'] === $id) {
-                return $row;
+        foreach ($this->directory->rows(['id' => $id]) as $rawRow) {
+            if ((int) ($rawRow['id'] ?? 0) === $id) {
+                return $this->hydrateRows([$rawRow])[0] ?? [];
             }
         }
         return [];
@@ -154,7 +154,7 @@ final class AdminApplicationService
                 $this->assertMemberPermission($context, 'activate');
             }
             $department = self::firstId($params['dept_id'] ?? []);
-            $service = $this->tenantAdmins->members();
+            $service = $this->members;
             $service->createAdministrator(
                 $context,
                 (string) $params['account'],
@@ -181,7 +181,7 @@ final class AdminApplicationService
                 throw BusinessException::forbidden('ADMIN_PASSWORD_SELF_SERVICE_REQUIRED', '密码只能由账号本人修改');
             }
             $roles = self::normalizeIds($params['role_id'] ?? []);
-            $service = $this->tenantAdmins->members();
+            $service = $this->members;
             $member = $service->get($context->tenantId, (int) $params['id']);
             $currentlyOwner = self::isTenantOwnerMember($member);
             $currentRoles = self::normalizeIds($member['role_ids']);
@@ -235,7 +235,7 @@ final class AdminApplicationService
     {
         $requestsOwner = false;
         foreach ($requestedRoleIds as $roleId) {
-            $role = $this->roleAdministration->service()->get($context->tenantId, $roleId);
+            $role = $this->roleAdmin->get($context->tenantId, $roleId);
             if (($role['key'] ?? null) === 'core.tenant-owner') {
                 $requestsOwner = true;
             }
@@ -253,7 +253,7 @@ final class AdminApplicationService
                     '不能通过成员编辑取消自己的租户所有者角色',
                 );
             }
-            $actor = $this->tenantAdmins->members()->get($context->tenantId, $context->memberId);
+            $actor = $this->members->get($context->tenantId, $context->memberId);
             if (($actor['status'] ?? null) !== 'active' || !self::isTenantOwnerMember($actor)) {
                 throw BusinessException::forbidden(
                     'TENANT_OWNER_ACTOR_REQUIRED',
@@ -270,7 +270,7 @@ final class AdminApplicationService
             throw BusinessException::forbidden('ADMIN_SELF_OPERATION_FORBIDDEN', '不能操作当前登录的管理员');
         }
         try {
-            $service = $this->tenantAdmins->members();
+            $service = $this->members;
             $member = $service->get($context->tenantId, $id);
             if (self::isTenantOwnerMember($member)) {
                 throw BusinessException::forbidden('TENANT_OWNER_STATUS_REQUIRES_PLATFORM_FLOW',
@@ -294,7 +294,7 @@ final class AdminApplicationService
             throw BusinessException::forbidden('ADMIN_SELF_OPERATION_FORBIDDEN', '不能操作当前登录的管理员');
         }
         try {
-            $service = $this->tenantAdmins->members();
+            $service = $this->members;
             $member = $service->get($context->tenantId, $id);
             if (self::isTenantOwnerMember($member)) {
                 throw BusinessException::forbidden('TENANT_OWNER_STATUS_REQUIRES_PLATFORM_FLOW',
@@ -318,7 +318,7 @@ final class AdminApplicationService
             if ($memberId !== $context->memberId) {
                 throw new \DomainException('TENANT_ADMIN_PRINCIPAL_INVALID');
             }
-            $service = $this->tenantAdmins->selfService();
+            $service = $this->selfService;
             $profile = $service->profile($context);
             $service->updateProfile(
                 $context,
@@ -328,7 +328,7 @@ final class AdminApplicationService
                     : ($profile['avatar_uri'] ?? null),
             );
             if (!empty($params['password'])) {
-                $this->tenantAdmins->assertPasswordChangeAllowed($context->accountId);
+                $this->demoAccounts->assertPasswordChangeAllowed($context->accountId);
                 $service->changePassword(
                     $context,
                     (string) ($params['password_old'] ?? ''),
@@ -343,21 +343,30 @@ final class AdminApplicationService
         }
     }
 
-    /** @return list<array<string,mixed>> */
-    private function rows(TenantContext $context, array $params): array
+    /** @param list<array<string,mixed>> $rawRows @return list<array<string,mixed>> */
+    private function hydrateRows(array $rawRows): array
     {
+        $avatarRefs = [];
+        foreach ($rawRows as $row) {
+            $ref = trim((string) ($row['avatar_uri'] ?? ''));
+            if ($ref !== '') {
+                $avatarRefs[] = $ref;
+            }
+        }
+        $avatarUrls = $avatarRefs === [] ? [] : $this->files->getFileUrls($avatarRefs);
         $rows = [];
-        foreach ($this->directory->rows($params) as $row) {
+        foreach ($rawRows as $row) {
             $roleIds = $row['role_ids'] === null || $row['role_ids'] === ''
                 ? []
                 : array_map('intval', explode(',', (string) $row['role_ids']));
+            $avatarUri = trim((string) ($row['avatar_uri'] ?? ''));
             $rows[] = [
                 'id' => (int) $row['id'],
                 'account' => (string) $row['username'],
                 'username' => (string) $row['username'],
                 'name' => (string) ($row['display_name'] ?: $row['username']),
                 'nickname' => (string) ($row['display_name'] ?: $row['username']),
-                'avatar' => $this->files->getFileUrl((string) ($row['avatar_uri'] ?? '')),
+                'avatar' => $avatarUri === '' ? '' : ($avatarUrls[$avatarUri] ?? ''),
                 'avatar_uri' => (string) ($row['avatar_uri'] ?? ''),
                 'root' => (int) $row['root'],
                 'disable' => $row['status'] === 'active' ? 0 : 1,
