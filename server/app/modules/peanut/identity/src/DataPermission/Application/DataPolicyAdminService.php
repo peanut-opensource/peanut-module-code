@@ -260,7 +260,7 @@ final readonly class DataPolicyAdminService
     {
         $scope = $row['scope_type'];
         $groups = $row['condition_groups_json'] === null
-            ? [] : json_decode($row['condition_groups_json'], true, flags: JSON_THROW_ON_ERROR);
+            ? [] : json_decode((string) $row['condition_groups_json'], true, flags: JSON_THROW_ON_ERROR);
         if ($groups === [] && isset(ThinkPhpPolicyRepository::CONDITION_KEYS[$scope])) {
             $groups = [[
                 'id' => 1,
@@ -270,7 +270,7 @@ final readonly class DataPolicyAdminService
                     'target_set_id' => $scope === 'custom_dept' ? 1 : null,
                     'target_resource_key' => $scope === 'custom_dept' ? 'core.department' : null,
                     'target_ids' => $row['custom_targets_json'] === null ? []
-                        : json_decode($row['custom_targets_json'], true, flags: JSON_THROW_ON_ERROR),
+                        : json_decode((string) $row['custom_targets_json'], true, flags: JSON_THROW_ON_ERROR),
                 ]],
             ]];
         }
