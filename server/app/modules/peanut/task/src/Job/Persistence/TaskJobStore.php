@@ -131,6 +131,28 @@ final class TaskJobStore
         return $this->map($row, $tenantId);
     }
 
+    /**
+     * @param non-empty-list<string> $jobKeys
+     * @return array<string,JobRecord>
+     */
+    public function getByKeys(int $tenantId, array $jobKeys): array
+    {
+        $this->assertStorageMode();
+        $rows = $this->query('task_job', $tenantId)->whereIn('job_key', $jobKeys)
+            ->field([
+                'id', 'job_key', 'tenant_id', 'task_type', 'status', 'attempt_count', 'max_attempts',
+                'revision', 'last_error_code', 'available_at', 'created_at', 'updated_at', 'completed_at',
+            ])
+            ->select()->toArray();
+
+        $jobs = [];
+        foreach ($rows as $row) {
+            $job = $this->map($row, $tenantId);
+            $jobs[$job->jobKey] = $job;
+        }
+        return $jobs;
+    }
+
 
     /** Task-internal signed evidence for a source grant; never export private job rows to consumers. */
     public function sourceSubmission(int $tenantId, string $jobKey): array

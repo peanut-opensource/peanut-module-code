@@ -35,6 +35,31 @@ final readonly class TaskJobService
         return $this->repository->get($context->tenantContext->tenantId, $jobKey);
     }
 
+    /**
+     * Returns visible jobs by key. Invalid and missing keys are omitted individually.
+     *
+     * @param list<string> $jobKeys Up to 200 keys.
+     * @return array<string,JobRecord>
+     */
+    public function detailsByKey(AuthorizedOperationContext $context, array $jobKeys): array
+    {
+        $this->assertOperation($context, 'read');
+        if (!array_is_list($jobKeys) || count($jobKeys) > 200) {
+            throw TaskJobException::invalid();
+        }
+
+        $keys = [];
+        foreach ($jobKeys as $jobKey) {
+            if (is_string($jobKey) && $this->isJobKey($jobKey)) {
+                $keys[$jobKey] = true;
+            }
+        }
+
+        return $keys === []
+            ? []
+            : $this->repository->getByKeys($context->tenantContext->tenantId, array_keys($keys));
+    }
+
     /** Locks a confirmed dead job in the caller's transaction; never exposes payload or envelope. */
     public function detailForRecovery(AuthorizedOperationContext $context, string $jobKey, int $expectedRevision): JobRecord
     {
@@ -83,9 +108,14 @@ final readonly class TaskJobService
 
     private function assertJobKey(string $jobKey): void
     {
-        if (preg_match('/^job_[0-9a-f]{32}$/D', $jobKey) !== 1) {
+        if (!$this->isJobKey($jobKey)) {
             throw TaskJobException::notFound();
         }
+    }
+
+    private function isJobKey(string $jobKey): bool
+    {
+        return preg_match('/^job_[0-9a-f]{32}$/D', $jobKey) === 1;
     }
 
 }

@@ -62,9 +62,10 @@ final class PublicArticleService implements PublicArticleQueries, MemberCollecti
                 ->column('article_id')
             : [];
         $collectIds = array_map('intval', $collectIds);
+        $imageUrls = $this->assets->forReadMany(array_column($lists, 'image'));
         foreach ($lists as &$row) {
             $row['click'] = (int) $row['click_actual'] + (int) $row['click_virtual'];
-            $row['image'] = $this->assets->forRead((string) ($row['image'] ?? ''));
+            $row['image'] = $imageUrls[trim((string) ($row['image'] ?? ''))] ?? '';
             $row['collect'] = in_array((int) $row['id'], $collectIds, true);
             unset($row['click_actual'], $row['click_virtual'], $row['sort']);
         }
@@ -97,9 +98,10 @@ final class PublicArticleService implements PublicArticleQueries, MemberCollecti
         $rows = Article::where([])->whereIn('id', array_values(array_unique($ids)))->where('is_show', 1)
             ->field(['id', 'cid', 'title', 'abstract', 'desc', 'image', 'author', 'create_time'])
             ->select()->toArray();
+        $imageUrls = $this->assets->forReadMany(array_column($rows, 'image'));
         $summaries = [];
         foreach ($rows as $row) {
-            $row['image'] = $this->assets->forRead((string) ($row['image'] ?? ''));
+            $row['image'] = $imageUrls[trim((string) ($row['image'] ?? ''))] ?? '';
             $summaries[(int) $row['id']] = $row;
         }
         return $summaries;
