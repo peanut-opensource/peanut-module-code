@@ -547,87 +547,69 @@
     "PeanutAdmin\\Modules\\Identity\\DataPermission\\Application\\DataPolicyAdminService": {
       "source": "application",
       "path": "server/app/modules/peanut/identity/src/DataPermission/Application/DataPolicyAdminService.php",
-      "sha256": "7cfa1d2e627ab929e9b1c3eb24733ab1efcbe70e32b3df00ca3e75735aa33824",
+      "sha256": "ef2544e0b9904dfc16f6d453c4efd0074e6828087ceea41efc6d1a22ddd8d6c6",
       "scope": "explicit-tenant-column",
       "tenant_operations": [
         "get",
         "targetCardinality",
+        "catalog",
         "replace"
       ],
       "other_operations": [],
       "pending_operations": [],
-      "reason": "五类策略记录及复合外键表达同租户策略/分组/条件/目标集合与目标关系。写入口锁租户角色并核修订，组和目标从受限输入构造；子删除带同租户条件，读取政策主键来自前序同租户查询。公开用例不同于私有PolicyRepository；后者生产绑定未获完整证据，此处不据此断言预览装配通过。 本登记只核数据归属、显式范围与结果边界，不证明直接调用时的人员权限；公开入口的授权完整性另交A核实，不以调用者身份对象或基类充当授权。",
+      "reason": "策略管理仅访问当前租户的 pa_data_permission。读取和写入按租户、角色及编译目录中的资源操作筛选；写入在事务内锁定有效租户和角色，校验修订，增加授权修订并记录审计。运行时策略仓储按同租户的有效成员角色、已声明条件及 UTC 有效期读取。归属登记不授予调用权限。",
       "support_sources": [
         {
           "source": "application",
           "path": "server/app/modules/peanut/identity/src/Audit/AuditService.php",
-          "sha256": "17e178939bd99a356fedef6a93ed5f6fe711be0c18807552144ab6044c4bf247"
+          "sha256": "1b89a57c13eacffcbb21df56bf7c28a9f1c43bc0a781c3edfac17b6ed15ecff5"
         },
         {
           "source": "application",
           "path": "server/app/modules/peanut/identity/src/ModuleProvider.php",
-          "sha256": "1b0eadb60e98c74dbdc7822f94fd84d5b941f456b8b29981b90b4110a9305524"
+          "sha256": "9fa523bd7486637c4687305073085f17c71f1649d49b40d78bccbebfd8e7ce1c"
         },
         {
           "source": "php-core",
           "path": "kernel/src/Persistence/Model/TenantModel.php",
-          "sha256": "f5cc6238bba129046d9a24ba30d2a1e96e5111b2d9d91d21d49b38b4229ffe5b"
+          "sha256": "e3a6126deb22e27db5fdd043aab7f488f7b70d1bed9b7b948e5c189faed5cae0"
         },
         {
           "source": "application",
-          "path": "server/app/modules/peanut/identity/src/DataPermission/Persistence/Schema/DataPermissionSchema.php",
-          "sha256": "c0739004724709c44a689ec586306e53c64041209f7804514f6b25a430583b0e"
+          "path": "server/app/modules/peanut/identity/database/migrations/20261120160500_adopt_canonical_identity_data_policies.php",
+          "sha256": "8bcfd81eee4eba5c905c74adf9944da734ec9ab07f4b6fdf8e914382cbddb33b"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/identity/src/DataPermission/Catalog/ThinkPhpResourceOperationCatalog.php",
+          "sha256": "9275547df88a58014d4e88e338eba58744f39af9a7c8c71462f362a114e31f0f"
         },
         {
           "source": "application",
           "path": "server/app/modules/peanut/identity/src/DataPermission/Policy/ThinkPhpPolicyRepository.php",
-          "sha256": "f7ff6fe377883c878da670ea199d301cd905091b015b5d94a471df6dffbbca7a"
+          "sha256": "d6734f1dcdbae6abfc6998d1cc75d8c24b893a97f3aed894f3ad3a147fc9ee62"
         },
         {
           "source": "application",
           "path": "server/app/modules/peanut/identity/src/DataPermission/Provider/ThinkPhpTargetSetMembershipProvider.php",
-          "sha256": "64d6b24c289b2510cbece8f04254b8f1d9d1ea9d0db7daa931fbb84208b2f3e5"
-        },
-        {
-          "source": "application",
-          "path": "server/app/modules/peanut/identity/src/DataPermission/Application/EffectiveAccessPreviewService.php",
-          "sha256": "5791dfc9c6ef0d3ed2cc55b5ff7348992d7c457e1f104def7fd80a3594d6110a"
+          "sha256": "ed111f3ffb9cff2564aef206ffb1fc0c781a82b672e7e92f0f17252e2bdea208"
         },
         {
           "source": "application",
           "path": "server/app/modules/peanut/identity/src/DataPermission/Model/DataPermissionPolicyRecord.php",
-          "sha256": "b0b583792181b60545092a9af3914230c555c281a0fcab95672a7b71369d4790"
-        },
-        {
-          "source": "application",
-          "path": "server/app/modules/peanut/identity/src/DataPermission/Model/DataPermissionGroupRecord.php",
-          "sha256": "5129f5f9e3c64ed111ff625d28c9ed322f7d51801cef668bae2dfe63f3aefdcb"
-        },
-        {
-          "source": "application",
-          "path": "server/app/modules/peanut/identity/src/DataPermission/Model/DataPermissionConditionRecord.php",
-          "sha256": "5838449f8817b00c28124b5826f0099086b421aa30289b5f5b0b3305c7fbab64"
-        },
-        {
-          "source": "application",
-          "path": "server/app/modules/peanut/identity/src/DataPermission/Model/DataPermissionTargetSetRecord.php",
-          "sha256": "70ba042f06479d38e5b961dea994b3c3badf153ed5cdb699f657973e8cacd204"
-        },
-        {
-          "source": "application",
-          "path": "server/app/modules/peanut/identity/src/DataPermission/Model/DataPermissionTargetRecord.php",
-          "sha256": "c4b2a89b88cbcb522b61a23ff3f921bc67823b4adb6ffcf2b2885fd997e020e2"
+          "sha256": "28c3829d9df1e119c2b638d2c975f5011a53b9a22268c15dc70646dc3501eff8"
         }
       ],
       "public_use_case": {
         "manifest_source": {
           "source": "application",
           "path": "server/app/modules/peanut/identity/module.json",
-          "sha256": "21dca8e696b1c61793443aa918101a3efda22d7348cb38cee77370dfecbb5774"
+          "sha256": "f0f227053dfcd2425a2418c8b6b3741c7a7d377d6da3b4c6ff558e85f364c376"
         },
         "method_results": {
           "get": "array",
           "targetCardinality": "string",
+          "catalog": "array",
           "replace": "array"
         },
         "reason": "现行module.json已公开的普通业务用例；逐方法核返回声明及实际固定结果，不把私表、模型或仓储公开。源码/清单变化必须重新审阅；数据范围登记不授予业务调用权限。"
@@ -2176,28 +2158,9 @@
       "access_entry": "PeanutAdmin\\Modules\\Identity\\DataPermission\\Application\\DataPolicyAdminService"
     },
     {
-      "model": "PeanutAdmin\\Modules\\Identity\\DataPermission\\Model\\DataPermissionGroupRecord",
-      "table": "pa_data_permission_group",
-      "owner": "tenant-gateway",
-      "access_entry": "PeanutAdmin\\Modules\\Identity\\DataPermission\\Application\\DataPolicyAdminService"
-    },
-    {
-      "model": "PeanutAdmin\\Modules\\Identity\\DataPermission\\Model\\DataPermissionConditionRecord",
-      "table": "pa_data_permission_condition",
-      "owner": "tenant-gateway",
-      "access_entry": "PeanutAdmin\\Modules\\Identity\\DataPermission\\Application\\DataPolicyAdminService"
-    },
-    {
-      "model": "PeanutAdmin\\Modules\\Identity\\DataPermission\\Model\\DataPermissionTargetSetRecord",
-      "table": "pa_data_permission_target_set",
-      "owner": "tenant-gateway",
-      "access_entry": "PeanutAdmin\\Modules\\Identity\\DataPermission\\Application\\DataPolicyAdminService"
-    },
-    {
-      "model": "PeanutAdmin\\Modules\\Identity\\DataPermission\\Model\\DataPermissionTargetRecord",
-      "table": "pa_data_permission_target",
-      "owner": "tenant-gateway",
-      "access_entry": "PeanutAdmin\\Modules\\Identity\\DataPermission\\Application\\DataPolicyAdminService"
+      "model": "PeanutAdmin\\Modules\\Identity\\Persistence\\Model\\DeviceCredential",
+      "table": "pa_device_credential",
+      "owner": "tenant-orm"
     },
     {
       "model": "PeanutAdmin\\Modules\\ReferenceCodes\\Versioned\\Persistence\\Model\\ReferenceCodeEntryVersionRecord",
@@ -3156,24 +3119,9 @@
       "access_entry": "PeanutAdmin\\Modules\\Identity\\DataPermission\\Application\\DataPolicyAdminService"
     },
     {
-      "table": "pa_data_permission_group",
-      "owner": "tenant-gateway",
-      "access_entry": "PeanutAdmin\\Modules\\Identity\\DataPermission\\Application\\DataPolicyAdminService"
-    },
-    {
-      "table": "pa_data_permission_condition",
-      "owner": "tenant-gateway",
-      "access_entry": "PeanutAdmin\\Modules\\Identity\\DataPermission\\Application\\DataPolicyAdminService"
-    },
-    {
-      "table": "pa_data_permission_target_set",
-      "owner": "tenant-gateway",
-      "access_entry": "PeanutAdmin\\Modules\\Identity\\DataPermission\\Application\\DataPolicyAdminService"
-    },
-    {
-      "table": "pa_data_permission_target",
-      "owner": "tenant-gateway",
-      "access_entry": "PeanutAdmin\\Modules\\Identity\\DataPermission\\Application\\DataPolicyAdminService"
+      "table": "pa_device_credential",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\Identity\\Persistence\\Model\\DeviceCredential"
     },
     {
       "table": "pa_reference_code_entry",
@@ -3537,10 +3485,10 @@
     }
   ],
   "counts": {
-    "concrete_models": 117,
-    "tenant_models": 84,
+    "concrete_models": 114,
+    "tenant_models": 81,
     "non_tenant_models": 33,
-    "tenant_tables": 86,
+    "tenant_tables": 83,
     "tenant_tables_without_model": 5
   }
 }
