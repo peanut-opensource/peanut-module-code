@@ -15,17 +15,35 @@ use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries;
 
 /** Shared commercial ceiling; it never grants a member a role or permission. */
-final readonly class TenantEntitlementService
+final class TenantEntitlementService
 {
+    /** @var array<int,?array> */
+    private array $licenseCache = [];
+
+    /** @var array<string,list<string>> */
+    private array $modulesForLicenseCache = [];
+
+    /** @var array<int,array{modules:list<string>,permissions:list<string>}> */
+    private array $permissionProjectionCache = [];
+
     public function __construct(
-        private CompiledModuleRegistry $registry,
-        private TenantModuleStateQueries $installations = new TenantModuleStateQueries(),
+        private readonly CompiledModuleRegistry $registry,
+        private readonly TenantModuleStateQueries $installations = new TenantModuleStateQueries(),
     ) {}
 
     public function license(int $tenantId, bool $lock = false, ?TenantContext $context = null): ?array
     {
+        if (!$lock && !$this->inTransaction()) {
+            if (array_key_exists($tenantId, $this->licenseCache)) {
+                return $this->licenseCache[$tenantId];
+            }
+        }
         if ($context === null || $context->tenantId !== $tenantId || $context->tenantAuthorizationRevision < 1 || $lock) {
-            return $this->licenseAndPlanRevision($tenantId, $lock)[0];
+            $result = $this->licenseAndPlanRevision($tenantId, $lock)[0];
+            if (!$lock && !$this->inTransaction()) {
+                $this->licenseCache[$tenantId] = $result;
+            }
+            return $result;
         }
         $pdo = Db::connect()->getPdo();
         if ($pdo !== false && $pdo->inTransaction()) {
@@ -36,14 +54,20 @@ final readonly class TenantEntitlementService
             fn(): array => $this->licenseAndPlanRevision($tenantId, false), 300);
         $license = $payload[0];
         if ($license === null) {
-            return null;
+            return $this->licenseCache[$tenantId] = null;
         }
         // Cache storage lifetime never extends the license's effective window.
         $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
         $state = $license['status'] === 'suspended' ? 'suspended'
             : (new DateTimeImmutable($license['effective_at']) > $now ? 'upcoming'
                 : ($license['expires_at'] !== null && new DateTimeImmutable($license['expires_at']) <= $now ? 'expired' : 'active'));
-        return [...$license, 'effective' => $state === 'active', 'state' => $state];
+        return $this->licenseCache[$tenantId] = [...$license, 'effective' => $state === 'active', 'state' => $state];
+    }
+
+    private function inTransaction(): bool
+    {
+        $pdo = Db::connect()->getPdo();
+        return $pdo !== false && $pdo->inTransaction();
     }
 
     /** The plan revision is already selected by the license join. @return array{0:?array,1:mixed} */
@@ -146,9 +170,16 @@ final readonly class TenantEntitlementService
      */
     public function permissionProjection(int $tenantId, bool $lock = false): array
     {
+        if (!$lock && !$this->inTransaction() && isset($this->permissionProjectionCache[$tenantId])) {
+            return $this->permissionProjectionCache[$tenantId];
+        }
         $license = $this->license($tenantId, $lock);
         $modules = $license !== null && $license['effective'] ? $this->modulesForLicense($license, $lock) : [];
-        return ['modules' => $modules, 'permissions' => $this->permissionsForLicense($license, $modules, $lock)];
+        $projection = ['modules' => $modules, 'permissions' => $this->permissionsForLicense($license, $modules, $lock)];
+        if (!$lock && !$this->inTransaction()) {
+            $this->permissionProjectionCache[$tenantId] = $projection;
+        }
+        return $projection;
     }
 
     /** @param list<string> $modules @return list<string> */
