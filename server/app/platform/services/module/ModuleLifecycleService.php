@@ -271,7 +271,6 @@ final class ModuleLifecycleService implements ModuleLifecycleCommands
                 'application_migrations' => $applicationMigrations,
                 'migration_scope' => $migrationPlan,
                 'missing_schema_tables' => $missingSchemaTables,
-                'reference_code_catalog' => $this->catalogs->referenceCodePlan($manifests),
                 'observation' => 'read-only interval; execution revalidates all native guards']);
             if ($recovery !== null) { $plan['install_recovery'] = $recovery; }
             return $consumePlan === null ? $plan : $consumePlan($plan);
@@ -707,7 +706,6 @@ final class ModuleLifecycleService implements ModuleLifecycleCommands
             'migration_scope' => $migrationPlan,
             'missing_schema_tables' => $missingSchemaTables,
             'modules' => $modules, 'may_apply' => $mayApply, 'planning_complete' => true,
-            'reference_code_catalog' => $this->catalogs->referenceCodePlan($manifests),
             'status' => $mayApply ? 'ready' : 'blocked', 'execution_admitted' => false,
             'rollback' => ['automatic' => false, 'requires_verified_backup' => $pending !== []],
             'trust' => $plugin->trustResult(),
