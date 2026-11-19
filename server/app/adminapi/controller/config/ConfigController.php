@@ -65,6 +65,7 @@ class ConfigController extends BaseAdminController
                 'tenant_b_email' => (string) Config::get('peanut.demo.tenant_b_email', ''),
                 'password' => (string) Config::get('peanut.demo.shared_password', ''),
             ]),
+            'login_enabled' => true,
         ];
         return $this->data($this->contexts->run(
             ConsumerExecutionContext::publicTenant($context),

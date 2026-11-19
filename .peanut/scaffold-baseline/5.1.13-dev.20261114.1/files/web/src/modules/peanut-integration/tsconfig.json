@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "../../..",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": [
+    "runtime/**/*.ts",
+    "runtime/**/*.vue",
+    "RuntimePage.vue",
+    "../../../src/env.d.ts"
+  ]
+}

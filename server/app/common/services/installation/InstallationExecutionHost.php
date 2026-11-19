@@ -41,14 +41,14 @@ final class InstallationExecutionHost
     /** The normal request gate checks only the physical completion lock. */
     public function isInstalled(): bool
     {
-        return $this->completionLockPresent();
+        return self::hasCompletionLock($this->serverRoot);
     }
 
     /** @return array{installed:bool,deployment_mode:string} */
     public function entryStatus(): array
     {
         return [
-            'installed' => $this->completionLockPresent(),
+            'installed' => $this->isInstalled(),
             'deployment_mode' => $this->deploymentMode(),
         ];
     }
@@ -58,7 +58,7 @@ final class InstallationExecutionHost
     {
         $report = (new InstallationPreflightHost($this->serverRoot))->inspect(false);
         return $report + ['stage' => 'environment', 'writes' => ['outcome' => 'none'],
-            'safe_retry' => true, 'completion_lock_present' => $this->completionLockPresent()];
+            'safe_retry' => true, 'completion_lock_present' => $this->isInstalled()];
     }
 
     /** Read-only database check and permission diagnostics on the actual master PDO. */
@@ -131,7 +131,7 @@ final class InstallationExecutionHost
     {
         $status = $this->inspectStatus();
         $code = (string) ($status['code'] ?? 'INSTALL_STATE_UNKNOWN');
-        $locked = $this->completionLockPresent();
+        $locked = $this->isInstalled();
         $localMarkers = file_exists($this->progressMarker()) || is_link($this->progressMarker());
         $resume = $code === 'INSTALL_RESUME_READY';
         $partial = $localMarkers
@@ -168,9 +168,9 @@ final class InstallationExecutionHost
             'deployment_mode' => $this->deploymentMode(),
             'tenant_bootstrap' => $tenantBootstrap,
             'preflight' => $preflight,
-            'official_modules' => $this->officialModules(!$this->completionLockPresent() && !is_file($this->progressMarker())),
+            'official_modules' => $this->officialModules(!$this->isInstalled() && !is_file($this->progressMarker())),
         ];
-        $complete = $this->completionLockPresent();
+        $complete = $this->isInstalled();
         if (($preflight['status'] ?? null) !== 'ready') {
             return [
                 ...$base,
@@ -243,7 +243,7 @@ final class InstallationExecutionHost
             ];
         }
         if ($database['state'] === 'uninstalled') {
-            if ($this->completionLockPresent()) {
+            if ($this->isInstalled()) {
                 return [
                     ...$base,
                     'state' => 'blocked',
@@ -319,7 +319,7 @@ final class InstallationExecutionHost
     {
         $lock = $this->acquireExecutionLock();
         try {
-            if ($this->completionLockPresent()) {
+            if ($this->isInstalled()) {
                 throw new InstallationExecutionException(
                     'INSTALL_ALREADY_COMPLETED',
                     '安装完成锁已经存在，重复执行已被拒绝。',
@@ -385,7 +385,7 @@ final class InstallationExecutionHost
                     ['category' => 'partial', 'stage' => $stage, 'reason' => 'INSTALL_EXECUTION_FAILED',
                         'remedy' => '修复具体失败后读取安装状态；仅 INSTALL_RESUME_READY 可通过原入口继续，保留数据库和身份。',
                         'writes' => ['progress_marker' => true, 'database' => 'may_have_partial_writes',
-                            'completion_lock_present' => $this->completionLockPresent()],
+                            'completion_lock_present' => $this->isInstalled()],
                         'safe_retry' => false,
                         ...\installationFailureDiagnostic($this->serverRoot, $stage, $exception, $this->currentInstallationModule)],
                 );
@@ -618,15 +618,14 @@ SQL);
             \app\platform\infrastructure\module\ModuleLockResolver::forRuntime($this->serverRoot, (string) $config['module_lock']),
         );
         $lifecycle = $governance->moduleLifecycle();
+        $prepared = $lifecycle->installPrepared($moduleKeys, function (string $key): void {
+            $this->currentInstallationModule = $key;
+        });
+        $this->currentInstallationModule = null;
         $operations = [];
         foreach ($moduleKeys as $moduleKey) {
-            $this->currentInstallationModule = $moduleKey;
-            $result = $lifecycle->install($moduleKey);
-            $this->currentInstallationModule = null;
-            $operations[] = [
-                'key' => $moduleKey,
-                'operation' => (string) ($result['operation'] ?? ''),
-            ];
+            $result = $prepared['packages'][$moduleKey];
+            $operations[] = ['key' => $moduleKey, 'operation' => (string) ($result['operation'] ?? '')];
         }
         $license = $this->licenses->initializeInstallation($moduleKeys, $tenantBootstrap['code']);
         return ['operations' => $operations, 'license' => $license];
@@ -808,8 +807,8 @@ SQL);
         if (isset($source['application_manifest_sha256'])) {
             $payload['application_manifest_sha256'] = $source['application_manifest_sha256'];
         }
-        $this->writeMarker($this->completionMarker(), $payload);
-        $receiptSha256 = hash_file('sha256', $this->completionMarker());
+        $this->writeMarker(self::completionMarker($this->serverRoot), $payload);
+        $receiptSha256 = hash_file('sha256', self::completionMarker($this->serverRoot));
         if (!is_string($receiptSha256)) {
             throw new RuntimeException('INSTALL_RELEASE_IDENTITY_UNAVAILABLE');
         }
@@ -897,14 +896,14 @@ SQL);
         return $this->serverRoot . '/private/installation/executing.json';
     }
 
-    private function completionMarker(): string
+    private static function completionMarker(string $serverRoot): string
     {
-        return $this->serverRoot . '/private/installation/installed.json';
+        return $serverRoot . '/private/installation/installed.json';
     }
 
-    private function completionLockPresent(): bool
+    public static function hasCompletionLock(string $serverRoot): bool
     {
-        $path = $this->completionMarker();
+        $path = self::completionMarker($serverRoot);
         return file_exists($path) || is_link($path);
     }
 

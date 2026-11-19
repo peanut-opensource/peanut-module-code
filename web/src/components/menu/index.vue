@@ -31,7 +31,7 @@
     },
     emits: ['collapse'],
     setup(props) {
-      const { t, te } = useI18n();
+      const { t, getLocaleMessage } = useI18n();
       const appStore = useAppStore();
       const router = useRouter();
       const route = useRoute();
@@ -134,7 +134,19 @@
           null,
           (() => {
             const locale = String(item.meta?.locale || '');
-            if (locale && te(locale)) return t(locale);
+            const translated =
+              locale &&
+              (Object.prototype.hasOwnProperty.call(
+                getLocaleMessage('zh-CN'),
+                locale
+              ) ||
+                Object.prototype.hasOwnProperty.call(
+                  getLocaleMessage('en-US'),
+                  locale
+                ))
+                ? t(locale)
+                : '';
+            if (translated && translated !== locale) return translated;
             return String(item.meta?.title || locale || item.name || '');
           })()
         ),

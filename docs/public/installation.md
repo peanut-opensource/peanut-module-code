@@ -6,7 +6,7 @@
 
 产品源码首次创建按[产品开发流程](README.md#产品开发与定版)执行：目标源码目录和产品数据库必须是新建空对象，使用 Peanut CLI `create` 生成项目。它不安装依赖、不建库、不启动服务，也不初始化产品 Git。随后按锁准备依赖、开发环境及必要构建，启动并通过安装页面向导安装，确认访问后同步自己的产品仓库，在 `dev` 继续开发。既有产品在原目录和专库上继续，不默认重建。
 
-MT 薄模板不携带官方模块作者源码。使用支持组合的 CLI，以明确的模块渠道和固定索引运行 `create --plan`，在返回的 staged consumer 内配置工具，按自身 `server/composer.lock` 安装起始依赖；然后复用同一 `--composition-stage` 取得原生计划，以审阅后的 `--plan-sha256` 采用完整源码。CLI 返回 `source-created` 后，在新应用初始化自己的 Git 开发目录，复核工具登记的根路径，再通过下文 `scripts/deploy-update.sh --prepare-release` 准备最终依赖、API、Admin/Platform 和 registry。全过程不连接数据库；缺少必选源码时 HTTP 明确返回 `INSTALL_MODULE_SOURCE_MISSING`，不能直接执行数据库安装。详细协议见[默认模块组合](../architecture/module-composition.md)。
+MT 薄模板不携带官方模块作者源码。使用支持组合的 CLI，以明确的模块渠道和固定索引运行 `create --plan`，在返回的 staged consumer 内配置工具，按自身 `server/composer.lock` 安装起始依赖；然后复用同一 `--composition-stage` 取得原生计划，以审阅后的 `--plan-sha256` 采用完整源码。CLI 返回 `source-created` 后，复核工具登记的根路径，运行 `python3 scripts/project-env run -- bash scripts/deploy-update.sh --prepare-first-install`（不要求产品 Git），准备最终依赖、API、Admin/Platform 和 registry。全过程不连接数据库；缺少必选源码时 HTTP 明确返回 `INSTALL_MODULE_SOURCE_MISSING`，不能直接执行数据库安装。详细协议见[默认模块组合](../architecture/module-composition.md)。
 
 生产首次安装从产品已定版 `main` 的固定提交取得程序和已受管的后台静态文件，在全新空目录、空库准备 PHP 锁定依赖和生产配置，启动后走同一安装页面向导。前端在开发／发行机器的定版环节构建并随 Git 提交；生产不需要 Node、npm、pnpm 或前端压缩包。正式准备／更新命令见[交付合同](application-release.md#1-产品定版与前端准备)。
 
@@ -70,7 +70,7 @@ server/private/installation/installed.json是完成回执和防重装身份。�
 
 安装完成后安装页面应关闭。数据库为空、不可达或回执损坏不产生重装授权；不得删锁、删账本、手填成功或用旧空库备份替代当前partial保全。原执行记录中的模块选择仍有效，且原生迁移、所选表、核心身份和种子健康已完成时，状态返回 `INSTALL_RESUME_READY` 和 `safe_retry=true`。修复具体失败后，通过同一安装向导或原自动安装入口继续模块安装、租户配置和完成回执；保留原数据库和账号，不再初始化身份或执行 Host `InitialSeeder`。尚未首次激活的模块会继续其声明的幂等初始种子，已激活模块不重跑种子。无法确认这些事实时继续保留现场，不自动续作。
 
-HTTP 安装只使用已安装的 PHP／模块依赖和已构建的客户端文件。开发／发行机器先运行 `scripts/deploy-update.sh --prepare-release`；生产从产品 Git 采用这些文件并按 PHP 锁准备依赖。缺少模块依赖或客户端入口时返回 `MODULE_RELEASE_PREPARATION_REQUIRED`，HTTP 不启动 Composer、Node 或前端构建。普通模块安装／升级仍通过 Ops 后台任务完成其原生依赖及前端采用。
+HTTP 安装只使用已安装的 PHP／模块依赖和已构建的客户端文件。首次开发安装按上文准备；产品 Git 定版运行 `scripts/deploy-update.sh --prepare-release`；生产从产品 Git 采用这些文件并按 PHP 锁准备依赖。缺少模块依赖或客户端入口时返回 `MODULE_RELEASE_PREPARATION_REQUIRED`，HTTP 不启动 Composer、Node 或前端构建。普通模块安装／升级仍通过 Ops 后台任务完成其原生依赖及前端采用。
 
 HTTP worker 的执行时限须覆盖首次迁移和所选模块安装；本地开发可为该实例设置有限的 PHP `max_execution_time`（本次八模块安装使用180秒），保留默认扩展加载，不修改其他实例的全局配置。超时后先核对原请求和 worker 已终止；结果未知时先对原执行对账，不重发。再读取原安装状态，仅 `INSTALL_RESUME_READY` 且 `safe_retry=true` 时继续原模块选择，不能清库或重置身份。模板 source apply 后仍须完成[模块运行准备](module-development.md)；仅 PHP/API 输入变化时可单独刷新最终 API 目录，复用未变客户端构建。
 

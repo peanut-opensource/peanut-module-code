@@ -25,10 +25,13 @@ tenantClient.interceptors.response.use(undefined, (error: unknown) => {
     if (typeof message === 'string' && message.trim() !== '') {
       error.message = message;
     } else if (!error.response) {
+      const translate = (
+        i18n.global as unknown as { t: (key: string) => string }
+      ).t;
       if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
-        error.message = i18n.global.t('tenantSession.requestTimeout');
+        error.message = translate('tenantSession.requestTimeout');
       } else if (error.code === 'ERR_NETWORK' || error.request) {
-        error.message = i18n.global.t('tenantSession.networkError');
+        error.message = translate('tenantSession.networkError');
       }
     }
   }

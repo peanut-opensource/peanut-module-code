@@ -41,7 +41,7 @@ final class ModuleLock extends ContextualCommand
                 $resolver = new \app\platform\infrastructure\module\ModuleLockResolver(
                     dirname(__DIR__, 2), (string) $config['module_lock'],
                 );
-                $registry = $factory->fromModuleLock($resolver, $config, false);
+                $registry = $factory->fromModuleLock($resolver, $config, false, true);
                 $factory->publishCompiled($registry, $config, $resolver->all());
             }
             $output->writeln((string) json_encode(['status' => $write ? 'written' : 'valid'] + $result, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));

@@ -239,7 +239,7 @@
   import { ElMessage } from 'element-plus';
   import FilePicker from '@/components/file-picker/index.vue';
   import usePublicImageReferences from '@/hooks/public-image-references';
-  import type { FileRecord } from '@/modules/peanut-file/api';
+  import type { FileRecord } from '@/api/file-provider';
   import {
     getDecorationTabbar,
     getDecorationArticleOptions,

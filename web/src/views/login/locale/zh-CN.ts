@@ -9,4 +9,5 @@ export default {
   'login.form.password.placeholder': '密码',
   'login.form.login': '登录',
   'login.form.tenant.placeholder': '请选择租户',
+  'login.form.disabled': '当前未启用登录功能',
 };

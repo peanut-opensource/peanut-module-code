@@ -35,6 +35,22 @@ final readonly class Dependencies
         return $this->prepare($plugin->moduleRoots, $resolver, $installed, verifyOnly: true);
     }
 
+    /** Verify the complete already prepared initial-install graph once without invoking package managers.
+     * @param list<string> $packageKeys
+     * @param array<string,array{version:string,status:string}> $installed
+     * @return array<string,mixed>
+     */
+    public function verifyPreparedSelection(ModuleLockResolver $resolver, array $packageKeys, array $installed): array
+    {
+        $roots = [];
+        foreach ($packageKeys as $key) {
+            foreach ($resolver->require($key)->moduleRoots as $moduleKey => $root) {
+                $roots[$moduleKey] = $root;
+            }
+        }
+        return $this->prepare($roots, $resolver, $installed, verifyOnly: true);
+    }
+
     /** Prepare admitted real Module nodes once; a native consumer may reuse that result under the same lock.
      * @param null|list<string> $selectedModuleKeys
      * @param null|callable(array<string,mixed>):array<string,mixed> $consume
@@ -105,7 +121,6 @@ final readonly class Dependencies
                 unset($composer['require-dev']);
             }
             $composerChanged = $composer !== $originalComposer;
-            if ($composerChanged) { $this->write($composerPath, $composer); }
             $lock = $this->json($this->serverRoot . '/composer.lock');
             $locked = array_column([...$lock['packages'], ...($lock['packages-dev'] ?? [])], 'name');
             $updates = array_values(array_intersect($names, $locked));
@@ -129,6 +144,9 @@ final readonly class Dependencies
                 }
             }
             $operations = [];
+            // Before changing any source manifest, diagnose exactly the native tools this removal needs.
+            $this->assertNativeToolchainReady(array_keys($clients), $composerChanged || $updates !== [] || $needsInstall);
+            if ($composerChanged) { $this->write($composerPath, $composer); }
             if ($composerChanged || $updates !== []) {
                 $operations[] = $this->run(['composer', 'update', ...($updates === [] ? ['--lock'] : $updates),
                     '--with-all-dependencies', '--minimal-changes', '--no-interaction', '--no-progress', '--no-scripts'], $this->serverRoot);
@@ -331,6 +349,8 @@ final readonly class Dependencies
         }
         $operations = [];
         $optionalPackages = [];
+        // Native scoped doctor must reject missing tools before any Composer/client manifest writes.
+        $this->assertNativeToolchainReady(array_keys($clients), $composerNames !== []);
         $this->write($composerPath, $composer);
         if ($composerNames !== []) {
             $operations[] = $this->run(['composer', 'update', ...array_keys($composerNames), '--with-all-dependencies', '--minimal-changes', '--no-interaction', '--no-progress', '--no-scripts'], $this->serverRoot);
@@ -573,6 +593,59 @@ final readonly class Dependencies
         return $packages;
     }
 
+    /** Use the APP's actual project-env protocol, not a second host/tool selector. */
+    private function usesAutomaticEnvironment(string $project): bool
+    {
+        $source = $project . '/tools/toolchain.json';
+        return is_file($source)
+            && ($this->json($source)['execution']['protocol'] ?? null) === 'peanut.project-env.v2';
+    }
+
+    private function automaticEnvironmentPython(): string
+    {
+        $explicit = getenv('PEANUT_TOOL_PYTHON3');
+        return is_string($explicit) && $explicit !== '' ? $explicit : 'python3';
+    }
+
+    private function automaticEnvironmentScope(string $tool): string
+    {
+        return match ($tool) {
+            'php' => 'php',
+            'composer', 'local-core-composer' => 'php,composer',
+            'pnpm', 'local-core-web' => 'node,pnpm',
+            'npm' => 'node,npm',
+            default => throw new ModulePackageException('MODULE_DEPENDENCY_TOOLCHAIN_REQUIRED',
+                'No declared project-env scope for the selected native dependency tool.'),
+        };
+    }
+
+    /** Read-only, once-per-graph diagnosis before the first native manifest mutation. */
+    private function assertNativeToolchainReady(array $clients, bool $composer): void
+    {
+        $project = dirname($this->serverRoot);
+        if (!$this->usesAutomaticEnvironment($project)) {
+            return; // Existing pre-v2 applications retain their explicit host/prepare/exec contract.
+        }
+        $tools = ['php'];
+        if ($composer || $this->localCoreSelection() !== null) {
+            $tools[] = 'composer';
+        }
+        if ($clients !== []) {
+            $tools[] = 'node';
+            if (in_array('web', $clients, true)) { $tools[] = 'pnpm'; }
+            if (array_diff($clients, ['web']) !== []) { $tools[] = 'npm'; }
+        }
+        $report = $this->execute([$this->automaticEnvironmentPython(),
+            $project . '/scripts/project-env', '--root', $project, '--state-root', $project,
+            '--tools', implode(',', $tools), 'doctor'], $project, 'project-env');
+        $observed = json_decode($report['output'], true);
+        if (!is_array($observed) || ($observed['status'] ?? null) !== 'ok'
+            || ($observed['writes'] ?? null) !== false || !is_array($observed['tools'] ?? null)) {
+            throw new ModulePackageException('MODULE_DEPENDENCY_TOOLCHAIN_REQUIRED',
+                'The native project-env doctor did not confirm a read-only selected tool scope.');
+        }
+    }
+
     private function run(array $command, string $directory): array
     {
         $project = dirname($this->serverRoot);
@@ -583,14 +656,24 @@ final readonly class Dependencies
                 '--core-dir', $selection['php_core_dir'], '--backend-env', $selection['backend_env']];
             $tool = 'local-core-composer';
         }
+        if ($this->usesAutomaticEnvironment($project)) {
+            // Only this APP's native helper path maps to the declared tool scope; keep argv unchanged.
+            if ($tool === $project . '/scripts/local-core-web') {
+                $tool = 'local-core-web';
+            }
+            // Same public invocation as CLI v2; prepare/reuse exactly once in this native run.
+            return $this->execute([$this->automaticEnvironmentPython(),
+                $project . '/scripts/project-env', '--root', $project, '--state-root', $project,
+                '--tools', $this->automaticEnvironmentScope($tool), 'run', '--', ...$command],
+                $directory, $tool);
+        }
+        // Historical APPs still bind the original private host and explicit prepared state.
         $host = $this->json($project . '/.local/toolchain/host.json');
         $python = $host['commands']['python3'] ?? null;
         if (!is_array($python) || !is_string($python[0] ?? null) || !str_starts_with($python[0], '/')) {
             throw new ModulePackageException('MODULE_DEPENDENCY_TOOLCHAIN_REQUIRED', 'Register the application Python command with project-env before installing module dependencies.');
         }
         $runner = [...$python, $project . '/scripts/project-env', '--root', $project];
-        // Prepare the registered tool environment; business dependency changes alone
-        // do not invalidate it. Never fall back to ambient tools.
         $this->execute([...$runner, 'prepare'], $project, 'project-env');
         return $this->execute([...$runner, 'exec', '--', ...$command], $directory, $tool);
     }

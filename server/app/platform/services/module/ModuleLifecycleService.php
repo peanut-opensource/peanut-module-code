@@ -27,15 +27,21 @@ use think\console\Output;
 use think\facade\Db;
 
 /** Deployment-scoped Plugin lifecycle; tenant license plans own commercial availability. */
-final readonly class ModuleLifecycleService implements ModuleLifecycleCommands
+final class ModuleLifecycleService implements ModuleLifecycleCommands
 {
+    private ?CompiledModuleRegistry $compiledRegistryCache = null;
+
+    private ?string $compiledRegistryLockDigest = null;
+
+    private bool $preparedBatchActive = false;
+
     public function __construct(
-        private ModuleLockResolver $resolver,
-        private ModuleDefinitionRegistryFactory $registries,
-        private array $moduleConfig,
-        private ModuleCatalogApplier $catalogs,
-        private TenantModuleStateQueries $tenantStates,
-        private ?CompiledModuleRegistry $applicationRegistry = null,
+        private readonly ModuleLockResolver $resolver,
+        private readonly ModuleDefinitionRegistryFactory $registries,
+        private readonly array $moduleConfig,
+        private readonly ModuleCatalogApplier $catalogs,
+        private readonly TenantModuleStateQueries $tenantStates,
+        private readonly ?CompiledModuleRegistry $applicationRegistry = null,
     ) {}
 
     /**
@@ -46,6 +52,33 @@ final readonly class ModuleLifecycleService implements ModuleLifecycleCommands
     public function install(string $pluginKey): array
     {
         return $this->withPackageLock($pluginKey, fn(): array => $this->installLocked($pluginKey));
+    }
+
+    /** Native initial installation: the product has already prepared the selected dependency graph. */
+    public function installPrepared(array $pluginKeys, ?callable $onPackageStarting = null): array
+    {
+        $dependencies = (new Dependencies(rtrim(app()->getRootPath(), '/')))->verifyPreparedSelection(
+            $this->resolver, $pluginKeys, $this->installedModules(),
+        );
+        // Compile once for the prepared batch; per-package locks still verify modules.lock is unchanged.
+        $this->compiledRegistry();
+        $results = [];
+        $this->preparedBatchActive = true;
+        try {
+            foreach ($pluginKeys as $pluginKey) {
+                if ($onPackageStarting !== null) {
+                    $onPackageStarting($pluginKey);
+                }
+                // Keep the existing per-package admission, lifecycle lock, seed and recovery contract.
+                $results[$pluginKey] = $this->withPackageLock(
+                    $pluginKey,
+                    fn(): array => $this->installLocked($pluginKey, $dependencies),
+                );
+            }
+        } finally {
+            $this->preparedBatchActive = false;
+        }
+        return ['dependencies' => $dependencies, 'packages' => $results];
     }
 
     private function installLocked(string $pluginKey, ?array $preparedDependencies = null): array
@@ -568,7 +601,11 @@ final readonly class ModuleLifecycleService implements ModuleLifecycleCommands
         try {
             return (new AdvisoryLockExecution())->run('pa:native-migration:' . substr(hash('sha256', $database), 0, 32), 0,
                 function () use ($plugin, $operation): mixed {
-                    $this->resolver->reload();
+                    if ($this->preparedBatchActive) {
+                        $this->resolver->assertLockFileUnchanged();
+                    } else {
+                        $this->resolver->reload();
+                    }
                     $selected = $this->resolver->require($plugin->key);
                     if ($selected->publicIdentity() !== $plugin->publicIdentity()) {
                         throw new ModuleLifecycleException('MODULE_MIGRATION_SOURCE_CHANGED', 'Locked package changed before migration.');
@@ -748,8 +785,19 @@ final readonly class ModuleLifecycleService implements ModuleLifecycleCommands
 
     private function compiledRegistry(): CompiledModuleRegistry
     {
-        // HTTP retains the caller's already verified immutable snapshot; CLI uses the existing pure compiler.
-        return $this->applicationRegistry ?? $this->registries->fromModuleLock($this->resolver, $this->moduleConfig);
+        // HTTP retains the caller's already verified immutable snapshot; CLI caches per lock digest.
+        if ($this->applicationRegistry !== null) {
+            return $this->applicationRegistry;
+        }
+        $plugins = $this->resolver->all();
+        $first = reset($plugins);
+        $lockDigest = $first instanceof ModuleDescriptor ? $first->lockDigest : '';
+        if ($this->compiledRegistryCache !== null && $this->compiledRegistryLockDigest === $lockDigest) {
+            return $this->compiledRegistryCache;
+        }
+        $compiled = $this->registries->fromModuleLock($this->resolver, $this->moduleConfig);
+        $this->compiledRegistryLockDigest = $lockDigest;
+        return $this->compiledRegistryCache = $compiled;
     }
 
     /** @param array<string,ManifestDocument> $manifests @return list<string> */
@@ -891,7 +939,11 @@ final readonly class ModuleLifecycleService implements ModuleLifecycleCommands
     {
         try {
             return (new AdvisoryLockExecution())->run($this->lockName($pluginKey), 0, function () use ($operation): array {
-                $this->resolver->reload();
+                if ($this->preparedBatchActive) {
+                    $this->resolver->assertLockFileUnchanged();
+                } else {
+                    $this->resolver->reload();
+                }
                 return $operation();
             });
         } catch (AdvisoryLockUnavailable) {

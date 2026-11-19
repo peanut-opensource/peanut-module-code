@@ -1,0 +1,11 @@
+[
+  {"key":"peanut.task.list","type":"api","name":"查看定时任务","risk_level":"normal"},
+  {"key":"peanut.task.detail","type":"api","name":"查看定时任务详情","risk_level":"normal"},
+  {"key":"peanut.task.expression","type":"api","name":"预览 Cron 表达式","risk_level":"normal"},
+  {"key":"peanut.task.add","type":"action","name":"新增定时任务","risk_level":"sensitive"},
+  {"key":"peanut.task.edit","type":"action","name":"编辑定时任务","risk_level":"sensitive"},
+  {"key":"peanut.task.delete","type":"action","name":"删除定时任务","risk_level":"critical"},
+  {"key":"peanut.task.operate","type":"action","name":"启停定时任务","risk_level":"critical"},
+  {"key":"peanut.task.jobs.read","type":"api","name":"查看任务执行队列","risk_level":"normal"},
+  {"key":"peanut.task.jobs.manage","type":"action","name":"取消或重试任务执行","risk_level":"sensitive"}
+]

@@ -30,7 +30,7 @@ Install dependencies with the relevant native lock and declared package manager 
 
 ## Changes, checks and upgrades
 
-For request-chain changes, read `python3 scripts/read-development-docs request-cache-contract` and trace the actual read and invalidation owners. Reuse ThinkPHP Model/Query/pagination/Cache and the existing identity, permission and data-scope contracts. Measure the real HTTP path before optimizing; avoid per-row queries, full-detail identity reads and full-table display aggregation. Keep low-frequency-write summaries in the owning module's transaction.
+For request-chain changes, read `docs/development/request-cache-contract.md` and trace the actual read and invalidation owners. Reuse ThinkPHP Model/Query/pagination/Cache and the existing identity, permission and data-scope contracts. Measure the real HTTP path before optimizing; avoid per-row queries, full-detail identity reads and full-table display aggregation. Keep low-frequency-write summaries in the owning module's transaction.
 
 Choose the smallest native workflow from `docs/public/module-development.md`: ordinary PHP method edits do not require release packaging, dependency installation, API generation or client builds. Run those producers only when their inputs change. Use selected installed modules and `--prepared-release` after necessary preparation; use `module sync` only within its admitted same-package identity. A scaffold upgrade is plan → resolve actual conflicts → apply; the CLI already verifies it. Preserve tracked/index/untracked work before writes, retain the recovery handle, and do not repeat whole-product tests or a full release for a small edit.
 

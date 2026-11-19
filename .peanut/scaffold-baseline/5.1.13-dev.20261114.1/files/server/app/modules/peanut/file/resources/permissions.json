@@ -1,0 +1,86 @@
+[
+  {
+    "key": "peanut.file.visibility.change",
+    "type": "action",
+    "name": "修改文件可见性",
+    "risk_level": "critical"
+  },
+  {
+    "key": "peanut.file.list",
+    "type": "api",
+    "name": "查看文件素材",
+    "risk_level": "normal"
+  },
+  {
+    "key": "peanut.file.move",
+    "type": "action",
+    "name": "移动文件素材",
+    "risk_level": "sensitive"
+  },
+  {
+    "key": "peanut.file.rename",
+    "type": "action",
+    "name": "重命名文件素材",
+    "risk_level": "sensitive"
+  },
+  {
+    "key": "peanut.file.delete",
+    "type": "action",
+    "name": "删除文件素材",
+    "risk_level": "critical"
+  },
+  {
+    "key": "peanut.file.category.list",
+    "type": "api",
+    "name": "查看素材分类",
+    "risk_level": "normal"
+  },
+  {
+    "key": "peanut.file.category.add",
+    "type": "action",
+    "name": "新增素材分类",
+    "risk_level": "sensitive"
+  },
+  {
+    "key": "peanut.file.category.edit",
+    "type": "action",
+    "name": "编辑素材分类",
+    "risk_level": "sensitive"
+  },
+  {
+    "key": "peanut.file.category.delete",
+    "type": "action",
+    "name": "删除素材分类",
+    "risk_level": "critical"
+  },
+  {
+    "key": "peanut.file.upload.image",
+    "type": "action",
+    "name": "上传图片",
+    "risk_level": "sensitive"
+  },
+  {
+    "key": "peanut.file.upload.video",
+    "type": "action",
+    "name": "上传视频",
+    "risk_level": "sensitive"
+  },
+  {
+    "key": "peanut.file.upload.file",
+    "type": "action",
+    "name": "上传文件",
+    "risk_level": "sensitive"
+  },
+  {
+    "key": "peanut.file.download-original",
+    "type": "action",
+    "name": "下载文件原件",
+    "risk_level": "sensitive"
+  },
+  {
+    "key": "peanut.file.manage",
+    "type": "action",
+    "name": "管理文件资源",
+    "risk_level": "critical"
+  }
+]

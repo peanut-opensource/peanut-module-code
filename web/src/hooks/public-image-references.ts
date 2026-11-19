@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import type { FileRecord } from '@/modules/peanut-file/api';
+import type { FileRecord } from '@/api/file-provider';
 
 /** Editors save stable references and keep delivery URLs only for preview. */
 export default function usePublicImageReferences() {

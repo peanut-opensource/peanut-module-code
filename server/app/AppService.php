@@ -150,8 +150,12 @@ class AppService extends Service
         // First-run admission precedes eager bindings to required Module types.
         // Source-only create/adopt uses server/module without this Service.
         $serverRoot = dirname(__DIR__);
-        if (!file_exists($serverRoot . '/private/installation/installed.json')
-            && !is_link($serverRoot . '/private/installation/installed.json')) {
+        if ((!file_exists($serverRoot . '/private/installation/installed.json')
+                && !is_link($serverRoot . '/private/installation/installed.json'))
+            && ModuleLockResolver::forRuntime(
+                $serverRoot,
+                (string) $this->app->config->get('modules.module_lock', '../modules.lock'),
+            )->all() !== []) {
             require_once $serverRoot . '/database/InitialInstallationSource.php';
             try {
                 \InitialInstallationSource::modules($serverRoot);

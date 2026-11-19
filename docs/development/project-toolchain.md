@@ -26,11 +26,11 @@ Code 源码仓不再保存 `packages/core-php` 或 `packages/core-web` 的归档
 
 Core 的 prepared 指纹绑定 Code state root、该 Core 的 host scope、解析后的工具要求、实际命令文件身份及登记观察项，不绑定临时 Core 副本的绝对源码路径。相同 Core scope 与相同声明内容可以复用 prepared 入口；PHP/Web scope相互独立，工具约束、执行配置或工具身份变化会产生新的指纹；业务 manifest 的 description、业务依赖及 host 中的 release/backups 等非执行字段不使环境失效。
 
-本地联合开发的源码选择由 `.local/core-dev.json` 独立保存；首次 `scripts/core-dev select` 可复用 host 中已明确选择的 Core 绝对路径，已有源码选择优先，显式 `--php-core-dir/--web-core-dir` 可覆盖本次选择。`peanut config` 不回写已有源码选择。`core-dev install/link --client web,platform` 只链接所列 Web 客户端，一次安装并构建所选 Web Core；默认仍为四端。Web Core 安装/构建和 PHP Core Composer 操作分别使用本 Code 的 Web/PHP scope，通过 `project-env exec` 调用登记的 pnpm/Composer，不借 Corepack 或固定的应用 Composer wrapper 更换工具。scope 未准备时先显式 config；安装/构建不会隐式 prepare 或安装工具。既有 Core watch 同样通过 Web scope 执行，完整命令见[当前开发生命周期](current-code-lifecycle.md#9-应用生成安装与升级)。
+本地联合开发使用 `.local/core-dev.json` 保存已选择的源码目录和后端环境。显式路径优先于已有选择，其次才用 host 和相邻 Core 仓。普通 `peanut config` 不回写选择；`peanut core path` 或 `peanut config --core-mode path` 才安装并链接，`core release` 恢复固定依赖。`core-dev install/link --client web,platform` 只链接所列 Web 客户端，默认仍为四端。有 Core host 时，安装和构建通过 `project-env run` 按需准备并使用对应 scope；没有 Core host 时使用应用选择的工具环境。Web Core watch 见[当前开发生命周期](current-code-lifecycle.md#9-应用生成安装与升级)。
 
 PHP 的 `local-core-composer` 仅在 ignored `.local/composer-core/composer.json` 中将 Core 依赖投影到所选源码的真实 Git 分支。已配置本地 path 模块若依赖 Core，其真实 manifest 元数据也在同一开发 manifest 内投影到该分支，模块版本保留原声明；Composer 通过原生 `package` 元数据和 `dist.type=path` 强制链接真实模块目录，不生成源码副本。局部 `update` 明确列出 Core 和这些受影响模块，其他包保持正式锁定版本；不使用 `-w/-W`、稳定版本 alias，也不修改正式 `server/composer.json`、锁或模块 manifest。此处复用 [Composer package repository](https://getcomposer.org/doc/05-repositories.md#package-2)、[path downloader](https://github.com/composer/composer/blob/2.10.2/src/Composer/Downloader/PathDownloader.php) 与[局部 update](https://getcomposer.org/doc/03-cli.md#update-u-upgrade)，只服务源码联调。
 
-原生模块生命周期的依赖准备同样读取本工程明确保存的 `.local/core-dev.json`：存在有效选择时，其 Composer 操作经正常 `project-env prepare/exec` 调用 `local-core-composer install`，沿用所选 PHP Core 和 backend env；helper 继续核对来源、锁与服务登记。不存在选择时保持正式 Composer 路径；无效或属于另一工程的选择明确失败，不回落固定包。该路由只处理 PHP 开发依赖，不隐式安装或重建 Web Core。
+原生模块生命周期的依赖准备必须消费当前 APP 已声明的 `project-env` 协议，不建立第二套工具发现。v2 在初次修改 Composer/客户端清单前按实际所需工具执行一次只读 scoped `doctor`；Composer、pnpm、npm、PHP 及原生 Core helper 随后各由既有 `project-env --tools <本次范围> run --` 自动准备或复用对应入口，不强制创建 `host.json`，也不在每条原生命令前重复 `prepare/exec`。不兼容 Node/PHP 或缺工具在写前拒绝；显式失效的 host/profile/解释器同样拒绝，不自动替换。旧版非 v2 APP 继续使用原有私有 host 和 `prepare/exec` 合同。有效的 `.local/core-dev.json` 仍通过原有 `local-core-composer install` 及现有原生 Core helper 使用所选源码、backend env 和自己的受控工具范围；无此选择保持正式 Composer 路径，错误或跨 APP 的选择立即拒绝。该路由只服务明确批准的 Module 依赖准备，不隐式安装工具、复制 vendor 或重建 Web Core。
 
 已准备依赖的只读核验也沿用这项显式选择：确认已安装 Core 路径为所选源码后，模块的 Core 约束取现有 `.local/composer-core/composer.json` 内对应模块的开发投影，再由 Composer Semver 核验实际安装版本。其他依赖、PHP 与扩展仍按模块原声明核验；没有本地 Core 选择时，全部保留正式约束。核验不生成投影、不运行 Composer；缺少对应投影须先走上述原生准备入口，不改正式约束或把开发分支伪装成发行版本。
 
@@ -67,7 +67,7 @@ python3 scripts/project-env exec -- peanut status
 
 上面保留了显式准备后的 `exec` 调用；正常自动路径使用 `run`。不支持 v2 的历史脚手架继续采用原 `config/prepare/exec` 合同，不能将新 CLI 当作已经替换旧应用的环境脚本。
 
-Peanut CLI 的 `peanut config [--path <project-root>] [--yes]` 会发现已安装工具并预览后写入 `.local/toolchain/host.json`，推荐版本不一致时显示实际版本。主项目缓存默认是 `.local/toolchain/cache/pnpm`、`.local/toolchain/cache/npm`、`.local/toolchain/cache/composer`；Core 缓存默认是 `.local/toolchain/cores/<php|web>/cache/<工具>`。只有确认后才创建缓存目录并调用 `project-env prepare` 建立本地薄命令入口；它不安装工具、不改变全局 PATH。`host.json` 的 `core.php`/`core.web` 可相对 Code 根输入但保存绝对路径，以固定绑定实际 Core 位置并避免 Code 工作目录变化后按另一基准解析；`.local` 配置不随 Git 合并；自动检测不要求重新 config，显式 Core/路径绑定变化时才需要重新选择。release、backups 及其他既有路径仍按 Code 项目根解析并保持可读相对路径。
+Peanut CLI 的 `peanut config [--path <project-root>] [--yes]` 会发现已安装工具并预览后写入 `.local/toolchain/host.json`，推荐版本不一致时显示实际版本。npm、pnpm、Composer 优先使用显式或已保存的缓存，再选已有可写系统缓存；找不到时使用当前项目或 Core scope 下的缓存。只有确认后才创建缓存目录并调用 `project-env prepare` 建立本地薄命令入口；它不安装工具、不改变全局 PATH。`host.json` 的 `core.php`/`core.web` 可相对 Code 根输入但保存绝对路径，以固定绑定实际 Core 位置并避免 Code 工作目录变化后按另一基准解析；`.local` 配置不随 Git 合并；自动检测不要求重新 config，显式 Core/路径绑定变化时才需要重新选择。release、backups 及其他既有路径仍按 Code 项目根解析并保持可读相对路径。
 
 `requirements` 不需要本机配置，可供 CI 读取。`doctor` 只读检查；`prepare` 只在登记的 state root 下建立薄命令入口及临时目录，不安装第三方包。`exec` 只使用已经准备好的登记，不自动 prepare；子进程继承同一工具 PATH 和缓存。工具缺失、manifest 声明的平台约束不兼容、原生锁拒绝或绑定文件变化时退出 2；推荐版本差异本身不会拒绝。成功 exec 后保留实际子命令退出码及原始标准输入/输出。首次 `prepare` 先创建临时目录，再执行工具版本探测；`doctor` 在临时目录缺失时使用系统临时目录只读探测；后续 run/ensure 自动准备自己所需状态。
 

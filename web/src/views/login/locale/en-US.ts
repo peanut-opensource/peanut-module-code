@@ -9,4 +9,5 @@ export default {
   'login.form.password.placeholder': 'Password',
   'login.form.login': 'login',
   'login.form.tenant.placeholder': 'Select a Tenant',
+  'login.form.disabled': 'Login is not enabled',
 };

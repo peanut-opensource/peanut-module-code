@@ -17,6 +17,7 @@ require_once $application->getThinkPath() . 'helper.php';
 if (!$application->initialized()) {
     $application->loadEnv((string) $application->env->get('env_name', ''));
 }
+require_once __DIR__ . '/resource-registry.php';
 
 function requiredEnvironment(string $name, string|false $default = false): string
 {

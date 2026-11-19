@@ -18,7 +18,10 @@ const staticRoutesByPath = new Map<string, RouteRecordRaw>();
 function indexStaticRoutes(routes: RouteRecordRaw[], parentPath = ''): void {
   routes.forEach((route) => {
     const fullPath = resolvePath(parentPath, route.path);
-    staticRoutesByPath.set(fullPath, route);
+    const indexedRoute = staticRoutesByPath.get(fullPath);
+    if (!indexedRoute || (indexedRoute.children?.length && !route.children?.length)) {
+      staticRoutesByPath.set(fullPath, route);
+    }
     if (route.children?.length) {
       indexStaticRoutes(route.children, fullPath);
     }
@@ -39,12 +42,17 @@ export default function mapServerMenu(
       const children = mapServerMenu(menu.children || []);
       if (menu.type === 'M') {
         if (children.length === 0) return null;
+        const staticRoute =
+          !menu.menu_key.startsWith('custom.')
+            ? staticRoutesByPath.get(normalizePath(menu.paths || ''))
+            : undefined;
         // Presentation-only containers are never registered with the router and
         // never load a component. Every leaf still resolves a static route below.
         return {
           path: normalizePath(menu.paths || `/menu-group/${menu.menu_key}`),
           name: `menu-group-${menu.menu_key}`,
           meta: {
+            ...staticRoute?.meta,
             title: menu.name,
             icon: menu.icon,
             requiresAuth: true,

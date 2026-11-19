@@ -15,9 +15,9 @@ interface ImportMetaEnv {
 declare const __PEANUT_INSTANCE_TOOLS_COMPILED__: boolean;
 
 declare module 'virtual:peanut-module-contributions' {
-  import type { ContentToolsContribution } from '@/modules/peanut-content-tools/src/contracts';
+  import type { ModuleFrontendContribution } from '@/module-contributions';
 
-  const contributions: ContentToolsContribution[];
+  const contributions: ModuleFrontendContribution[];
   export default contributions;
 }
 

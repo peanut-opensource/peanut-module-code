@@ -43,5 +43,6 @@ export function getPublicBrandConfig() {
     website: WebsiteConfig;
     tenantName: string;
     demo: DemoLoginConfig;
+    login_enabled: boolean;
   }>('/adminapi/config/brand');
 }

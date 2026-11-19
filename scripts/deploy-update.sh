@@ -11,6 +11,7 @@ main() {
   clients=''
   compose_project='-'
   prepare_release=false
+  prepare_first_install=false
   version=''
   branch=main
   for argument in "$@"; do
@@ -18,18 +19,26 @@ main() {
       --target=*) target="${argument#*=}" ;;
       --compose-project=*) compose_project="${argument#*=}" ;;
       --prepare-release) prepare_release=true ;;
+      --prepare-first-install) prepare_first_install=true ;;
       --version=*) version="${argument#*=}" ;;
       --branch=*) branch="${argument#*=}" ;;
-      *) fail 'usage: scripts/deploy-update.sh --prepare-release [--version=<app-version>] | --target=<commit> [--branch=<branch>] [--compose-project=<project>]' ;;
+      *) fail 'usage: scripts/deploy-update.sh --prepare-first-install | --prepare-release [--version=<app-version>] | --target=<commit> [--branch=<branch>] [--compose-project=<project>]' ;;
     esac
   done
   [[ -z "$target" || "$target" =~ ^[a-f0-9]{40}$ ]] || fail 'target must be a full commit hash'
   [[ "$compose_project" == - || "$compose_project" =~ ^[a-z0-9][a-z0-9_-]{0,62}$ ]] || fail 'invalid Compose project'
-  git check-ref-format "refs/heads/$branch" >/dev/null || fail 'invalid product branch'
+  if $prepare_first_install; then
+    [[ "$#" == 1 ]] || fail '--prepare-first-install takes no deployment or release options'
+    for marker in server/{private,runtime}/installation/{installed,executing}.json; do
+      [[ ! -e "$marker" && ! -L "$marker" ]] || fail 'first-install preparation requires an uninstalled application'
+    done
+  else
+    git check-ref-format "refs/heads/$branch" >/dev/null || fail 'invalid product branch'
+    [[ "$(git rev-parse --show-toplevel)" == "$ROOT" ]] || fail 'run from the product Git checkout'
+  fi
   edition="$(python3 -c 'import json; print(json.load(open(".peanut/application-manifest.json"))["application"]["edition"])')"
   case "$edition" in standalone) clients=admin ;; multi-tenant) clients=admin,platform ;; *) fail 'invalid application Edition' ;; esac
-  [[ "$(git rev-parse --show-toplevel)" == "$ROOT" ]] || fail 'run from the product Git checkout'
-  if $prepare_release; then
+  if $prepare_release || $prepare_first_install; then
     [[ -z "$target" && "$compose_project" == - && "$branch" == main ]] || fail 'release preparation runs on the development/release machine'
     declared_version="$(python3 -c 'import json; print(json.load(open(".peanut/application-manifest.json"))["application"]["version"])')"
     [[ -z "$version" || "$version" == "$declared_version" ]] || fail 'version differs from the product declaration'
@@ -81,7 +90,15 @@ try {
 }
 PHP
     check_php_lock after-prepare
+    if $prepare_first_install; then
+      # The module Composer update deliberately uses --no-scripts.
+      (cd server && composer run-script post-autoload-dump)
+    fi
     printf '%s\n' '{"operation":"compile","arguments":[]}' | php -d zend.exception_ignore_args=1 server/module
+    if $prepare_first_install; then
+      printf '[deploy-update] Prepared %s %s for first installation.\n' "$declared_version" "$edition"
+      return
+    fi
     printf '[deploy-update] Prepared %s %s static files; review and commit server/public/admin' "$declared_version" "$edition"
     [[ "$clients" != admin,platform ]] || printf ' and server/public/platform'
     printf ' with the product source before main/tag review.\n'
@@ -204,7 +221,7 @@ static_target() {
   local destination="server/public/$1"
   [[ ! -L server && ! -L server/public && ! -L "$destination" ]] || fail 'static destination must not be linked'
   [[ ! -e "$destination" || -d "$destination" ]] || fail 'static destination is not a directory'
-  if git check-ignore --quiet --no-index -- "$destination/index.html"; then
+  if $prepare_release && git check-ignore --quiet --no-index -- "$destination/index.html"; then
     fail 'remove the backend static directory ignore rule before preparing a Git release'
   fi
 }

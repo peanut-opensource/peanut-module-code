@@ -115,6 +115,9 @@ final readonly class ModuleComposition
         }
         $bindings = ModuleProviderBindings::collect(array_values($providers));
         // Validate optional contributions before publishing any container bindings.
+        if (isset($selectedModuleKeys['peanut.file']) && !class_exists(FileDocumentReferenceRegistry::class)) {
+            throw new ModuleException('MODULE_FILE_REFERENCE_UNAVAILABLE', 'The selected File Module is missing its document reference registry.');
+        }
         if (!isset($selectedModuleKeys['peanut.document'])
             && ($documentOwnerPolicies !== [] || $documentAcceptedProvider !== null)) {
             throw new ModuleException('MODULE_DOCUMENT_OWNER_UNAVAILABLE', 'Business owner contributions require the installed Document module.');
@@ -194,7 +197,9 @@ final readonly class ModuleComposition
         if ($contentRegistry !== null) {
             $this->app->instance(ContentToolRegistry::class, $contentRegistry);
         }
-        $this->app->instance(FileDocumentReferenceRegistry::class, new FileDocumentReferenceRegistry($this->app, $fileDocumentPolicy));
+        if (isset($selectedModuleKeys['peanut.file'])) {
+            $this->app->instance(FileDocumentReferenceRegistry::class, new FileDocumentReferenceRegistry($this->app, $fileDocumentPolicy));
+        }
         if (isset($selectedModuleKeys['peanut.document'])) {
             $this->app->instance(
                 \PeanutAdmin\Modules\Document\Service\DocumentOwnerRegistry::class,

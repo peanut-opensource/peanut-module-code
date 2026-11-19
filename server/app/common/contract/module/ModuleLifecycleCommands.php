@@ -9,6 +9,12 @@ interface ModuleLifecycleCommands
     /** @return array<string,mixed> */
     public function install(string $pluginKey): array;
 
+    /** Verify prebuilt dependencies once, then install/resume the selected packages in order.
+     * @param list<string> $pluginKeys
+     * @return array<string,mixed>
+     */
+    public function installPrepared(array $pluginKeys, ?callable $onPackageStarting = null): array;
+
     /** Reads the actual install/resume policy without changing lifecycle state.
      * Optional native consumer runs before the same package advisory lock is released.
      * @return array<string,mixed>

@@ -18,9 +18,8 @@
                 :label="$t('userSetting.label.avatar')"
               >
                 <el-upload
-                  :http-request="
-                    (options: UploadRequestOptions) => uploadFile(10, options)
-                  "
+                  v-if="fileProvider"
+                  :http-request="handleAvatarUpload"
                   :show-file-list="false"
                   accept="image/*"
                   :on-success="onAvatarSuccess"
@@ -29,6 +28,9 @@
                     <el-icon><Plus /></el-icon>
                   </el-avatar>
                 </el-upload>
+                <el-avatar v-else :size="88" shape="square" :src="avatarUrl">
+                  <el-icon><Plus /></el-icon>
+                </el-avatar>
               </el-form-item>
               <el-form-item
                 prop="username"
@@ -149,7 +151,7 @@
     passwordRequirementsHint,
     type PasswordPolicy,
   } from '@/api/password-policy';
-  import { uploadFile, type FileRecord } from '@/modules/peanut-file/api';
+  import { resolveFileProvider, type FileRecord } from '@/api/file-provider';
   import {
     getAdminSelf,
     editAdminSelf,
@@ -157,6 +159,11 @@
   } from '@/api/system/admin';
 
   const { t, locale } = useI18n();
+  const fileProvider = resolveFileProvider();
+  const handleAvatarUpload = (options: UploadRequestOptions) => {
+    if (!fileProvider) return Promise.reject(new Error('FILE_MODULE_UNAVAILABLE'));
+    return fileProvider.uploadFile(10, options);
+  };
   const userStore = useUserStore();
   const { loading, setLoading } = useLoading(true);
 

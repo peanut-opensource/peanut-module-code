@@ -1,6 +1,6 @@
 # 请求缓存与失效合同
 
-本页描述当前应用采用的请求链。使用 `python3 scripts/read-development-docs request-cache-contract` 获取全文；修改这里列出的写入口时，同时检查相应失效责任。缓存使用 ThinkPHP `Cache` 与当前配置的原生存储，业务查询使用 ThinkORM Model/Query/paginate；不新增缓存框架或通用 SQL 执行器。
+本页描述当前应用采用的请求链；修改这里列出的写入口时，同时检查相应失效责任。缓存使用 ThinkPHP `Cache` 与当前配置的原生存储，业务查询使用 ThinkORM Model/Query/paginate；不新增缓存框架或通用 SQL 执行器。
 
 ## 1. 请求顺序
 

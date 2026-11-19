@@ -12,79 +12,12 @@ use RuntimeException;
 final class EditionUpgradePackage
 {
     private const VERSION = '/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/D';
-    public const OWNERSHIP_ADOPTION_PATHS = [
-        'server/app/AppService.php',
-        'server/app/BaseController.php',
-        'server/app/middleware.php',
-        'server/app/adminapi/middleware.php',
-        'server/app/api/middleware.php',
-        'server/app/installation/middleware.php',
-        'server/app/platform/middleware.php',
-        'server/app/adminapi/http/middleware/AuthMiddleware.php',
-        'server/app/adminapi/http/middleware/LoginMiddleware.php',
-        'server/app/adminapi/http/middleware/OperationLogMiddleware.php',
-        'server/app/api/middleware/CheckTokenMiddleware.php',
-        'server/app/api/middleware/PublicTenantModuleMiddleware.php',
-        'server/app/common/http/middleware/InstallationStateMiddleware.php',
-        'server/app/common/http/middleware/MaintenanceWriteGateMiddleware.php',
-        'server/app/common/services/installation/InstallationExecutionHost.php',
-        'server/app/common/services/installation/InstallationPreflightHost.php',
-        'server/app/common/traits/ApiResponseTrait.php',
-        'server/app/common/traits/CrudTrait.php',
-        'server/app/common/validate/InputValidator.php',
-        'server/app/common/validate/ListsValidate.php',
-        'server/app/common/validate/MemberProfileSelfFieldValidate.php',
-        'server/app/common/validate/PageSizeRule.php',
-        'server/app/common/validate/TenantContextValidate.php',
-        'server/app/common/validate/ValidatedInput.php',
-        'server/app/installation/http/middleware/InstallationExecutionMiddleware.php',
-        'server/app/platform/http/middleware/PlatformHostMiddleware.php',
-        'server/app/platform/http/middleware/PlatformInstanceToolMiddleware.php',
-        'server/app/platform/http/middleware/PlatformLoginMiddleware.php',
-        'server/app/platform/http/middleware/PlatformPermissionMiddleware.php',
-        'server/app/common/contract/module/ModuleGovernanceProvider.php',
-        'server/app/common/contract/module/ModuleLifecycleCommands.php',
-        'server/app/common/contract/module/ModuleQualificationQuery.php',
-        'server/app/common/contract/module/ModuleQualification.php',
-        'server/app/common/contract/module/TenantModuleState.php',
-        'server/app/common/persistence/AdvisoryLockExecution.php',
-        'server/app/common/persistence/AdvisoryLockUnavailable.php',
-        'server/app/platform/infrastructure/module/ThinkPhpModuleGovernanceProvider.php',
-        'server/app/platform/infrastructure/module/DeployedTenantModuleRegistry.php',
-        'server/app/platform/services/module/ModuleQualificationQueryService.php',
-        'server/app/platform/validation/module/ModulePublicSurfacePolicy.php',
-        'server/app/platform/validation/module/OpisManifestSchemaValidator.php',
-        'server/app/platform/services/module/ModuleLifecycleService.php',
-        'server/app/platform/exception/module/ModuleLifecycleException.php',
-        'server/app/platform/value/module/ModuleDescriptor.php',
-        'server/app/platform/infrastructure/module/ModuleLockResolver.php',
-        'server/app/platform/exception/module/ModuleArtifactToolException.php',
-        'server/app/platform/exception/module/ModulePackageException.php',
-        'server/app/platform/value/module/ModuleFrontendLayout.php',
-        'server/app/platform/infrastructure/module/ModuleArtifactWriter.php',
-        'server/app/common/module/PackageCheck.php',
-        'server/app/platform/composition/module/ModuleModuleRegistryFactory.php',
-        'server/app/platform/composition/module/ModuleDefinitionRegistryFactory.php',
-        'server/app/platform/policy/module/ModuleLifecyclePolicy.php',
-        'server/app/platform/infrastructure/module/ModuleCatalogApplier.php',
-        'server/app/platform/infrastructure/module/ScopedMenuCatalogRepository.php',
-        'server/app/platform/infrastructure/module/ModuleCatalogMutationRepository.php',
-        'server/database/install.php',
-    ];
 
     /** @return array{from_manifest:string,to_manifest:string,package:array<string,mixed>} */
     public function prepare(string $projectRoot, string $packageRoot, ?string $modeManifestPath = null): array
     {
         $prepared = $this->authenticate($projectRoot, $packageRoot, true);
         $prepared['from_manifest'] = ScaffoldManifest::writeRecordedBaseline($prepared['project_root'], $modeManifestPath);
-        unset($prepared['project_root'], $prepared['application']);
-        return $prepared;
-    }
-
-    /** Authenticate a formal package without writing source-baseline metadata. */
-    public function prepareAdoption(string $projectRoot, string $packageRoot): array
-    {
-        $prepared = $this->authenticate($projectRoot, $packageRoot, true);
         unset($prepared['project_root'], $prepared['application']);
         return $prepared;
     }
@@ -253,13 +186,9 @@ final class EditionUpgradePackage
             throw new RuntimeException('EDITION_UPGRADE_TARGET_IDENTITY_MISMATCH');
         }
         $this->assertOwnership($manifest);
-        $adoption = $requireSourceCompatibility
-            ? $this->assertAdoption($package, $files, $manifest, $application, $targetManifest)
-            : null;
 
         return [
             'to_manifest' => $targetManifest->path,
-            'adoption' => $adoption,
             'project_root' => $project,
             'application' => $application,
             'package' => $manifest + [
@@ -295,58 +224,6 @@ final class EditionUpgradePackage
             throw new RuntimeException('EDITION_UPGRADE_EDITION_CONTRACT_INVALID');
         }
         return $edition;
-    }
-
-    /** @return array<string,mixed>|null */
-    private function assertAdoption(
-        string $package,
-        array $inventory,
-        array $manifest,
-        array $application,
-        ScaffoldManifest $target,
-    ): ?array {
-        $adoption = $manifest['ownership']['adoption'] ?? null;
-        if ($adoption === null) {
-            return null;
-        }
-        $source = $adoption['source'] ?? null;
-        $entries = $adoption['files'] ?? null;
-        if (!is_array($source) || !is_array($entries)
-            || ($adoption['protocol'] ?? null) !== 'peanut.ownership-adoption.v1'
-            || ($source['version'] ?? null) !== ($application['template']['version'] ?? null)
-            || ScaffoldSourceIdentity::from($source, true) !== ScaffoldSourceIdentity::from($application['template'] ?? [])) {
-            throw new RuntimeException('EDITION_UPGRADE_ADOPTION_SOURCE_INVALID');
-        }
-        $targetFiles = $target->files();
-        $actualPaths = [];
-        foreach ($entries as $entry) {
-            $path = is_array($entry) ? (string) ($entry['path'] ?? '') : '';
-            ScaffoldManifest::path($path);
-            $relative = is_array($entry) ? (string) ($entry['source'] ?? '') : '';
-            ScaffoldManifest::path($relative);
-            $digest = is_array($entry) ? (string) ($entry['sha256'] ?? '') : '';
-            if (isset($actualPaths[$path]) || !isset($inventory[$relative])
-                || preg_match('/^[a-f0-9]{64}$/D', $digest) !== 1
-                || !hash_equals($digest, $inventory[$relative])
-                || !in_array($entry['mode'] ?? null, [0644, 0755], true)
-                || ($entry['classification'] ?? null) !== 'managed'
-                || ($entry['owner'] ?? null) !== 'scaffold'
-                || !isset($targetFiles[$path])
-                || ($targetFiles[$path]['classification'] ?? null) !== 'managed') {
-                throw new RuntimeException('EDITION_UPGRADE_ADOPTION_FILE_INVALID: ' . $path);
-            }
-            $absolute = ScaffoldPathGuard::existingFileWithin($package, $package . '/' . $relative, 'EDITION_UPGRADE_ADOPTION_SOURCE_INVALID');
-            $actualPaths[$path] = $entry + ['absolute_source' => $absolute];
-        }
-        $expected = self::OWNERSHIP_ADOPTION_PATHS;
-        sort($expected, SORT_STRING);
-        $paths = array_keys($actualPaths);
-        sort($paths, SORT_STRING);
-        if ($paths !== $expected) {
-            throw new RuntimeException('EDITION_UPGRADE_ADOPTION_SCOPE_INVALID');
-        }
-        ksort($actualPaths, SORT_STRING);
-        return ['source' => $source, 'files' => $actualPaths];
     }
 
     /** @return array<string,string> */

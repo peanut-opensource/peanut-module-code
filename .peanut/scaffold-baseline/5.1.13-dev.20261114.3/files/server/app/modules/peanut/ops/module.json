@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "key": "peanut.ops",
+  "name": "Platform Operations",
+  "description": "Platform-owned maintenance windows, persistent operations tasks, safe diagnostics, backup, restore and upgrade orchestration.",
+  "version": "1.0.34",
+  "kernel_constraint": "^1.0",
+  "license": "Apache-2.0",
+  "php_package": "peanut-business/peanut-ops",
+  "web_package": null,
+  "dependencies": [
+    {
+      "module_key": "peanut.task",
+      "version": "^1.0"
+    },
+    {
+      "module_key": "peanut.identity",
+      "version": "^4.0.0-rc.32"
+    }
+  ],
+  "lifecycle": {
+    "protected": true
+  },
+  "backend": {
+    "provider": "PeanutAdmin\\Modules\\Ops\\ModuleProvider",
+    "migrations": "database/migrations"
+  },
+  "frontend": {
+    "clients": {
+      "platform-web": {
+        "entry": "platform/src/modules/peanut-ops/contribution.ts"
+      }
+    }
+  },
+  "database": {
+    "owned_tables": [
+      "pa_ops_task",
+      "pa_ops_maintenance_window",
+      "pa_ops_backup_evidence",
+      "pa_ops_restore_evidence",
+      "pa_ops_module_execution",
+      "pa_ops_module_request",
+      "pa_ops_upgrade_execution",
+      "pa_ops_upgrade_step"
+    ]
+  },
+  "contracts": {
+    "exports": [
+      "PeanutAdmin\\Modules\\Ops\\Domain\\Application\\PlatformPermissionChecker",
+      "PeanutAdmin\\Modules\\Ops\\Contract\\InstanceSafetyQueries",
+      "PeanutAdmin\\Modules\\Ops\\Contract\\DeploymentModuleRequests",
+      "PeanutAdmin\\Modules\\Ops\\Contract\\BackupTaskExecution",
+      "PeanutAdmin\\Modules\\Ops\\Contract\\RestoreTaskExecution",
+      "PeanutAdmin\\Modules\\Ops\\Contract\\ModuleTaskExecution",
+      "PeanutAdmin\\Modules\\Ops\\Contract\\UpgradeTaskExecution",
+      "PeanutAdmin\\Modules\\Ops\\Domain\\Maintenance\\MaintenanceService",
+      "PeanutAdmin\\Modules\\Ops\\Domain\\Status\\OpsStatusService",
+      "PeanutAdmin\\Modules\\Ops\\Domain\\Task\\OpsTaskService",
+      "PeanutAdmin\\Modules\\Ops\\Domain\\Application\\OpsConsoleException",
+      "PeanutAdmin\\Modules\\Ops\\Domain\\Logs\\TenantDiagnosticAttributes",
+      "PeanutAdmin\\Modules\\Ops\\Domain\\Maintenance\\MaintenanceWindow",
+      "PeanutAdmin\\Modules\\Ops\\Domain\\Status\\OpsStatusSnapshot",
+      "PeanutAdmin\\Modules\\Ops\\Domain\\Task\\OpsTask",
+      "PeanutAdmin\\Modules\\Ops\\Domain\\Task\\BackupRestoreProvider",
+      "PeanutAdmin\\Modules\\Ops\\Infrastructure\\PairedBackupProvider",
+      "PeanutAdmin\\Modules\\Ops\\Service\\PlatformOpsApplicationService"
+    ],
+    "events": []
+  },
+  "tenant": {
+    "enableable": false,
+    "requires": [
+      "peanut.identity"
+    ]
+  }
+}

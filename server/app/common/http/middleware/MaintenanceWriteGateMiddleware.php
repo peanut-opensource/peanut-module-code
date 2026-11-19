@@ -16,9 +16,7 @@ final class MaintenanceWriteGateMiddleware
     private const WRITE_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
 
     public function __construct(
-        private readonly AuditContractHost $audit,
         private readonly CurrentExecutionContext $executionContext,
-        private readonly InstanceSafetyQueries $instanceSafety,
     ) {}
 
     public function handle($request, \Closure $next)
@@ -31,9 +29,9 @@ final class MaintenanceWriteGateMiddleware
 
         $requestId = RequestTrace::id($this->executionContext, $request, 'maintenance');
         try {
-            $window = $this->instanceSafety->blockingMaintenanceWindow();
+            $window = app(InstanceSafetyQueries::class)->blockingMaintenanceWindow();
             if ($window !== null) {
-                $this->audit->recordPlatform(
+                app(AuditContractHost::class)->recordPlatform(
                     'platform.maintenance.write-blocked',
                     'maintenance.write',
                     $requestId,

@@ -117,6 +117,8 @@ app/event.php保留AppInit、HttpRun、HttpEnd、LogLevel和LogWrite项，但默
 
 维护者首次在无消费者、所选 Core 无编译写者的窗口执行 `scripts/core-dev select --php-core-dir /absolute/php-core --web-core-dir /absolute/web-core --backend-env /absolute/server/.env`，再执行 `scripts/core-dev install --client web,platform`。`--client` 接受逗号分隔的 `web`、`platform`、`pc`、`uniapp`，省略时为 `all`；`install/link/status/link-status` 只处理所选 Web 客户端，PHP 仍使用所选本地 Core。多个客户端共用一次 Web Core 依赖安装和构建，客户端自身依赖须事先按各端原生锁准备。选择保存在当前工程忽略的 `.local/core-dev.json`，不含凭据；显式源码路径优先，其次复用已保存的源码选择。首次 `select` 缺少源码路径时，可复用 `peanut config` 已明确保存在 `.local/toolchain/host.json` 的 `core.php/core.web` 绝对路径，不推断相邻仓或私有 Project。host 的 Core 路径服务工具配置和本地发行输入，`core-dev.json` 服务源码联调；二者不互相回写，后续 config 不会改变已有源码选择。`select` 只保存选择，`install` 才通过原生 Composer path 和现有 Web 链接入口激活依赖，初次生成 Web dist；两步均不连接或迁移数据库。`scripts/core-dev status --client web,platform` 核实际链接。切换 Core 或刷新依赖前重新核运行消费者和 Core 写者，不能替换在途候选现场。
 
+切回固定包使用 `peanut core release --client web,platform`（脚本入口 `scripts/core-dev reset`）。PHP 按 `server/composer.lock` 恢复；若 Composer 记录已匹配但包文件仍缺失，只重装 `peanut-admin/core`。所选 Web 端逐一核对，已匹配固定包的端跳过安装；未选择的端保持原状。PHP 和所选端全部就绪后才清除本工程的源码选择；中途失败保留选择，已完成的恢复不会回滚。本地 Composer 投影只调整业务模块对 Core 的依赖，保留模块自身版本和应用对模块的版本约束；两者不兼容时由 Composer 报错。
+
 Core 安装和构建复用当前 Code 的 `project-env` 独立 PHP/Web scope，工具来自 `peanut config` 已准备的 `.local/toolchain/cores/php|web/host.json`。PHP 入口的环境文件检查、manifest 解析、Composer、服务登记与登记验证统一使用该 PHP scope，避免前后阶段使用不同解释器。入口不再以 Corepack 选择或下载 pnpm，也不固定调用应用的 Composer wrapper；缺少 scope、工具或 prepared 状态时明确失败，先显式配置准备。所选 Core manifest 的要求仍由 `project-env` 核对。源码选择可独立于发行 Core 路径，但更换来源或工具要求后需重新核对对应 scope 的配置与准备状态。
 
 从 Code 根使用已准备的 Web Core 工具启动现有 watch（只启动一个）：

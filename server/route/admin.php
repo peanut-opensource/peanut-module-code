@@ -8,6 +8,7 @@ use app\adminapi\controller\auth\MenuController;
 use app\adminapi\controller\auth\RoleController;
 use app\adminapi\controller\WorkbenchController;
 use app\adminapi\controller\config\ConfigController;
+use app\adminapi\controller\config\HostBrandController;
 use app\adminapi\controller\config\ReadinessController;
 use app\adminapi\controller\dept\DeptController;
 use app\adminapi\controller\dept\JobsController;
@@ -29,7 +30,11 @@ if (($peanutRouteApplication ?? null) !== 'adminapi') {
 }
 
 // Anonymous Admin branding uses its own Host boundary, separate from Member APIs.
-Route::get('config/brand', [ConfigController::class, 'brand']);
+if (!isset($peanutRouteModules['peanut.identity'])) {
+    Route::get('config/brand', [HostBrandController::class, 'brand']);
+} else {
+    Route::get('config/brand', [ConfigController::class, 'brand']);
+}
 
 // ─── 管理端会话与菜单路由（仅需登录，不做 RBAC） ───────────────────────────
 Route::group(function () {

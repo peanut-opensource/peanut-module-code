@@ -39,9 +39,7 @@ final readonly class SourceSharedCredentialRecovery
         if ($admission['authority']['operation'] !== 'exclusive') { self::fail('WRITE_WINDOW_REQUIRED'); }
         $directory = $root . '/private/credential-maintenance';
         $credentials = $root . '/private/credentials';
-        $resources = \activeLeaseResources(\requiredMaintenanceEnvironment('PEANUT_RESOURCE_LEASE_PROOF'));
         foreach ([$directory, $credentials] as $path) {
-            if (!in_array($path, $resources['output-dir'] ?? [], true)) { self::fail('OUTPUT_LEASE_REQUIRED'); }
             $this->privateDirectory($path, $root);
         }
         $passwordRef = $options['password_file'];
@@ -75,7 +73,7 @@ final readonly class SourceSharedCredentialRecovery
                     'caller_origin' => $principal, 'admission' => $admission, 'database' => $database, 'package' => $package,
                     'tenant_code' => $options['tenant_code'], 'snapshot' => $snapshot, 'password_ref' => $passwordRef,
                     'password_sha256' => $passwordDigest, 'observed_at' => time(),
-                    'expires_at' => min(time() + 3600, (int) $admission['authority']['expires_at']),
+                    'expires_at' => time() + 3600,
                     'effects' => self::EFFECTS];
                 $bytes = $this->encode($plan);
                 $this->createPrivate($planPath, $bytes);
@@ -95,10 +93,9 @@ final readonly class SourceSharedCredentialRecovery
                 || ($plan['tenant_code'] ?? null) !== $options['tenant_code'] || ($plan['snapshot'] ?? null) !== $snapshot
                 || ($plan['password_ref'] ?? null) !== $passwordRef || ($plan['password_sha256'] ?? null) !== $passwordDigest
                 || !is_int($plan['observed_at'] ?? null) || $plan['observed_at'] > time()
-                || $plan['observed_at'] < (int) $admission['authority']['created_at'] || ($plan['effects'] ?? null) !== self::EFFECTS
+                || ($plan['effects'] ?? null) !== self::EFFECTS
                 || !is_int($plan['expires_at'] ?? null) || $plan['expires_at'] <= time()
-                || $plan['expires_at'] <= $plan['observed_at'] || $plan['expires_at'] > $plan['observed_at'] + 3600
-                || $plan['expires_at'] > (int) $admission['authority']['expires_at']) { self::fail('PLAN_BINDING_CHANGED'); }
+                || $plan['expires_at'] <= $plan['observed_at'] || $plan['expires_at'] > $plan['observed_at'] + 3600) { self::fail('PLAN_BINDING_CHANGED'); }
             $guard = function () use ($issuer, $actor, $admission, $pdo, $database, $package, $planPath, $digest, $passwordPath, $passwordDigest, $plan): void {
                 if ($issuer->capture($actor, false) !== $admission || Db::connect()->getPdo() !== $pdo
                     || $this->databaseIdentity($pdo) !== $database || $this->adoptedIdentity() !== $package

@@ -1,0 +1,46 @@
+<?php
+
+declare(strict_types=1);
+
+namespace PeanutAdmin\Modules\Integration\Contract;
+
+use DateTimeImmutable;
+use PeanutAdmin\Modules\Integration\Application\IntegrationSecurityPage;
+use PeanutAdmin\Modules\Integration\Application\MachineIdentity;
+use PeanutAdmin\Modules\Integration\Application\SessionDevice;
+use PeanutAdmin\Modules\Integration\Application\WebhookEndpoint;
+use PeanutAdmin\Modules\Integration\Webhook\TrustedWebhookEvent;
+use PeanutAdmin\Modules\Integration\Webhook\WebhookDelivery;
+use PeanutAdmin\Kernel\Auth\TenantContext;
+
+interface IntegrationSecurityRepository
+{
+    /** @param list<string> $scopes */
+    public function createMachine(TenantContext $context, string $identityKey, string $familyKey, string $name, array $scopes, string $tokenPrefix, string $tokenDigest, string $tokenLastFour, ?DateTimeImmutable $expiresAt): MachineIdentity;
+    /** @return list<MachineIdentity> */
+    public function machines(int $tenantId): array;
+    /** @return array{tenant_id:int, identity_key:string, scopes:list<string>, status:string, expires_at:?string}|null */
+    public function machineByDigest(string $tokenDigest): ?array;
+    public function touchMachine(string $tokenDigest, DateTimeImmutable $now): void;
+    /** @param list<string> $scopes */
+    public function rotateMachine(TenantContext $context, string $identityKey, int $expectedRevision, string $successorKey, string $name, array $scopes, string $tokenPrefix, string $tokenDigest, string $tokenLastFour, ?DateTimeImmutable $expiresAt): MachineIdentity;
+    public function revokeMachine(TenantContext $context, string $identityKey, int $expectedRevision): MachineIdentity;
+
+    /** @param list<string> $events */
+    public function createEndpoint(TenantContext $context, string $endpointKey, string $name, string $url, array $events, string $secretCiphertext, string $secretKeyId): WebhookEndpoint;
+    /** @return list<WebhookEndpoint> */
+    public function endpoints(int $tenantId): array;
+    public function rotateEndpointSecret(TenantContext $context, string $endpointKey, int $expectedRevision, string $secretCiphertext, string $secretKeyId): WebhookEndpoint;
+    public function disableEndpoint(TenantContext $context, string $endpointKey, int $expectedRevision): WebhookEndpoint;
+    /** @return list<array{endpoint_key:string}> */
+    public function activeEndpointKeysForEvent(int $tenantId, string $eventType): array;
+    public function enqueueDelivery(int $tenantId, string $endpointKey, TrustedWebhookEvent $event, DateTimeImmutable $now): string;
+    public function claimDelivery(int $tenantId, string $leaseDigest, int $leaseSeconds, DateTimeImmutable $now): ?WebhookDelivery;
+    public function completeDelivery(WebhookDelivery $delivery, int $statusCode, int $durationMs, DateTimeImmutable $now): void;
+    public function failDelivery(WebhookDelivery $delivery, string $safeCode, bool $retryable, ?int $statusCode, int $durationMs, DateTimeImmutable $now): void;
+    /** @return array{payloads_cleared: int, attempts_deleted: int, deliveries_deleted: int} */
+    public function purgeExpiredDeliveryData(DateTimeImmutable $payloadCutoff, DateTimeImmutable $evidenceCutoff, int $limit = 100): array;
+    public function deliveryRecords(int $tenantId, int $page, int $pageSize): IntegrationSecurityPage;
+    public function deliveryAttemptRecords(int $tenantId, string $deliveryKey, int $page, int $pageSize): IntegrationSecurityPage;
+
+}

@@ -18,7 +18,6 @@ final class InstallationController extends BaseController
 
     public function __construct(
         App $app,
-        private readonly InstallationExecutionHost $host,
         private readonly InstallationConfigurationHost $configuration,
     ) {
         parent::__construct($app);
@@ -32,7 +31,7 @@ final class InstallationController extends BaseController
     /** The PHP owner observes the original lock; the proxy needs no private mount. */
     public function page()
     {
-        if ($this->host->isInstalled()) {
+        if (InstallationExecutionHost::hasCompletionLock($this->app->getRootPath())) {
             return \think\Response::create('', 'html', 404)->header(['Cache-Control' => 'no-store']);
         }
         $html = file_get_contents($this->app->getRootPath() . 'public/install/index.html');
@@ -44,12 +43,12 @@ final class InstallationController extends BaseController
 
     public function environment()
     {
-        return $this->data($this->host->environment());
+        return $this->data($this->host()->environment());
     }
 
     public function databaseCheck()
     {
-        return $this->data($this->host->databaseCheck());
+        return $this->data($this->host()->databaseCheck());
     }
 
     /** Public limits only; shares the same resolved implementation as credential writes. */
@@ -75,18 +74,21 @@ final class InstallationController extends BaseController
 
     public function status()
     {
-        return $this->data($this->host->status());
+        return $this->data($this->host()->status());
     }
 
     public function entryStatus()
     {
-        return $this->data($this->host->entryStatus());
+        return $this->data([
+            'installed' => InstallationExecutionHost::hasCompletionLock($this->app->getRootPath()),
+            'deployment_mode' => (string) Config::get('deployment.mode', ''),
+        ]);
     }
 
     public function execute()
     {
         $this->assertSameOrigin();
-        return $this->data($this->host->executeGuided($this->setupToken(), $this->request->post()));
+        return $this->data($this->host()->executeGuided($this->setupToken(), $this->request->post()));
     }
 
     private function assertSameOrigin(): void
@@ -98,6 +100,11 @@ final class InstallationController extends BaseController
                 40300,
             );
         }
+    }
+
+    private function host(): InstallationExecutionHost
+    {
+        return $this->app->make(InstallationExecutionHost::class);
     }
 
     private function setupToken(): string

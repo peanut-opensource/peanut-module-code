@@ -42,10 +42,8 @@
           </template>
         </el-input>
         <el-upload
-          v-if="canUpload"
-          :http-request="
-            (options: UploadRequestOptions) => uploadFile(type, options)
-          "
+          v-if="canUpload && fileProvider"
+          :http-request="handleUpload"
           :data="{ cid: String(cid === '' ? 0 : cid) }"
           :accept="acceptMap[type]"
           :show-file-list="false"
@@ -119,14 +117,12 @@
   } from '@element-plus/icons-vue';
   import { hasPermission } from '@/hooks/permission';
   import {
-    getFileCateList,
-    getFileList,
-    uploadFile,
-    fileUploadAccept,
+    defaultFileUploadAccept,
+    resolveFileProvider,
     type FileCateRecord,
     type FileRecord,
     type FileType,
-  } from '@/modules/peanut-file/api';
+  } from '@/api/file-provider';
 
   const route = useRoute();
   const props = withDefaults(
@@ -156,8 +152,10 @@
     if (props.size === 'mini' || props.size === 'small') return 'small';
     return 'default';
   });
+  const fileProvider = resolveFileProvider();
   const canBrowse = computed(
     () =>
+      Boolean(fileProvider) &&
       hasPermission('peanut.file.list', route.path) &&
       hasPermission('peanut.file.category.list', route.path)
   );
@@ -166,8 +164,10 @@
     20: 'peanut.file.upload.video',
     30: 'peanut.file.upload.file',
   };
-  const canUpload = computed(() =>
-    hasPermission(uploadPermissionMap[props.type], route.path)
+  const canUpload = computed(
+    () =>
+      Boolean(fileProvider) &&
+      hasPermission(uploadPermissionMap[props.type], route.path)
   );
   const loading = ref(false);
   const categories = ref<FileCateRecord[]>([]);
@@ -178,7 +178,7 @@
   const name = ref('');
   const page = reactive({ current: 1, pageSize: 15, total: 0 });
   const effectiveLimit = computed(() => Math.max(1, props.limit));
-  const acceptMap = fileUploadAccept;
+  const acceptMap = fileProvider?.fileUploadAccept ?? defaultFileUploadAccept;
   const flatCategories = computed(() => {
     const result: Array<FileCateRecord & { depth: number }> = [];
     const walk = (items: FileCateRecord[], depth: number) => {
@@ -192,13 +192,23 @@
   });
 
   const fetchCategories = async () => {
-    const { data } = await getFileCateList(props.type);
+    if (!fileProvider) {
+      categories.value = [];
+      return;
+    }
+    const { data } = await fileProvider.getFileCateList(props.type);
     categories.value = data;
   };
   const fetchFiles = async (current = 1) => {
+    if (!fileProvider) {
+      files.value = [];
+      page.current = 1;
+      page.total = 0;
+      return;
+    }
     loading.value = true;
     try {
-      const { data } = await getFileList({
+      const { data } = await fileProvider.getFileList({
         type: props.type,
         cid: cid.value,
         source: source.value,
@@ -212,6 +222,10 @@
     } finally {
       loading.value = false;
     }
+  };
+  const handleUpload = (options: UploadRequestOptions) => {
+    if (!fileProvider) return Promise.reject(new Error('FILE_MODULE_UNAVAILABLE'));
+    return fileProvider.uploadFile(props.type, options);
   };
   const refresh = () => fetchFiles(1);
   const open = async () => {

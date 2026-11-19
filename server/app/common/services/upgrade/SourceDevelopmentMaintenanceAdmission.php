@@ -35,8 +35,8 @@ final readonly class SourceDevelopmentMaintenanceAdmission
         if (!\installationSourceDevelopmentMode($this->serverRoot)) { throw new RuntimeException('APPLICATION_SCHEMA_SOURCE_CONTEXT_REQUIRED'); }
         $owner = fileowner($root);
         if (!is_int($owner) || !function_exists('posix_geteuid') || !in_array(posix_geteuid(), [0, $owner], true)) { throw new RuntimeException('APPLICATION_SCHEMA_SOURCE_OWNER_REQUIRED'); }
-        $head = \leaseGit(['-C', $root, 'rev-parse', 'HEAD^{commit}']);
-        $dirty = \leaseGit(['-C', $root, 'status', '--porcelain', '--untracked-files=normal']);
+        $head = $this->git($root, ['rev-parse', 'HEAD^{commit}']);
+        $dirty = $this->git($root, ['status', '--porcelain', '--untracked-files=normal']);
         if ($dirty !== '') { throw new RuntimeException('APPLICATION_SCHEMA_SOURCE_DIRTY'); }
         $registry = \projectResourceRegistry($registrySha);
         $config = \guardedDatabaseConfig();
@@ -46,26 +46,7 @@ final readonly class SourceDevelopmentMaintenanceAdmission
             throw new RuntimeException('APPLICATION_SCHEMA_SOURCE_RESOURCE_REQUIRED');
         }
         $database = \registeredDatabase($registry, $config['resource_id']);
-        $endpoint = \registeredDatabaseEndpoint($database, $config['consumer']);
-        $schema = \mysqlSchemaLeaseResource($database, $endpoint, $config);
-        if ($schema === null) { throw new RuntimeException('APPLICATION_SCHEMA_NATIVE_SCHEMA_LEASE_REQUIRED'); }
-        $path = \requiredMaintenanceEnvironment('PEANUT_RESOURCE_LEASE_PROOF');
-        $meta = \activeLeaseMetadata($path, time(), $actor['gate']); $resources = \activeLeaseResources($path);
-        if ($meta['owner'] !== $actor['owner'] || $meta['thread'] !== $actor['thread'] || $meta['candidate'] !== $head
-            || $meta['gate'] !== ($database['lease_gate'] ?? null)
-            || !in_array($actor['session'], $resources['workflow-session'] ?? [], true)) { throw new RuntimeException('APPLICATION_SCHEMA_NATIVE_ACTOR_MISMATCH'); }
-        $nativeProof = \assertNativeMysqlSchemaLease($root, $path, $meta, $resources, $config['resource_id'], $schema, $config['endpoint_id'], $registrySha);
-        // Preserve the registered legacy-exclusive contract; shared DB1 uses its native access declaration.
-        $legacyExclusive = !isset($database['lease_policy']['shared_access']) && !isset($resources['mysql-access']);
-        $access = $legacyExclusive; $nativeOperation = $legacyExclusive ? 'exclusive' : null;
-        foreach ($resources['mysql-access'] ?? [] as $value) {
-            $value = json_decode($value, true, 64, JSON_THROW_ON_ERROR);
-            if (($value['schema'] ?? null) === $schema) { $nativeOperation = $value['operation'] ?? null; }
-            $access = $access || (($value['schema'] ?? null) === $schema && ($value['complete'] ?? null) === true
-                && in_array($value['operation'] ?? null, ['ddl', 'exclusive'], true) && ($value['tables'] ?? null) === []);
-        }
-        if ($ddl && !$access) { throw new RuntimeException('APPLICATION_SCHEMA_DDL_LEASE_REQUIRED'); }
-        if ($writeTables !== []) { self::assertWriteTables($resources, $schema, $writeTables, $legacyExclusive); }
+        \registeredDatabaseEndpoint($database, $config['consumer']);
         $sourceFiles = [];
         foreach (['release-versions.json', 'modules.lock', 'server/composer.lock', 'server/vendor/composer/installed.json'] as $file) { $sourceFiles[$file] = $this->fileDigest($root . '/' . $file); }
         $core = dirname((string) (new \ReflectionClass(\PeanutAdmin\Kernel\Module\ModuleProvider::class))->getFileName(), 4);
@@ -87,16 +68,35 @@ final readonly class SourceDevelopmentMaintenanceAdmission
         }
         $environmentName = (string) env('env_name', '');
         $environmentPath = $this->serverRoot . '/.env' . ($environmentName !== '' ? '.' . $environmentName : '');
-        return ['source' => ['root' => $root, 'head' => $head, 'tree' => \leaseGit(['-C', $root, 'rev-parse', 'HEAD^{tree}']),
+        return ['source' => ['root' => $root, 'head' => $head, 'tree' => $this->git($root, ['rev-parse', 'HEAD^{tree}']),
                 'files_sha256' => $sourceDigest, 'php_binary_sha256' => $this->fileDigest(PHP_BINARY)],
             'environment_sha256' => $this->fileDigest($environmentPath),
             'installation_originals' => $originals, 'registry_sha256' => $registrySha,
             'resource_id' => $config['resource_id'], 'endpoint_id' => $config['endpoint_id'],
-            'validation_only' => $database['lease_gate'] === 'migration-validation',
-            'authority' => ['lease' => $meta['lease'], 'owner' => $meta['owner'], 'thread' => $meta['thread'], 'gate' => $meta['gate'],
-                'session' => $actor['session'], 'created_at' => $meta['created_at'],
-                'expires_at' => $nativeProof['binding_expires_at'] ?? $meta['expires_at'],
-                'operation' => $nativeOperation, 'resources_sha256' => hash_file('sha256', $path . '/resources.tsv')]];
+            'validation_only' => ($database['lease_gate'] ?? null) === 'migration-validation',
+            'authority' => ['owner' => $actor['owner'], 'thread' => $actor['thread'], 'gate' => $actor['gate'],
+                'session' => $actor['session'], 'operation' => 'exclusive']];
+    }
+
+    private function git(string $root, array $arguments): string
+    {
+        $process = proc_open(
+            ['git', '-C', $root, ...$arguments],
+            [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+            $pipes,
+        );
+        if (!is_resource($process)) {
+            throw new RuntimeException('APPLICATION_SCHEMA_GIT_UNAVAILABLE');
+        }
+        fclose($pipes[0]);
+        $stdout = stream_get_contents($pipes[1]);
+        $stderr = stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        if (proc_close($process) !== 0 || trim((string) $stderr) !== '') {
+            throw new RuntimeException('APPLICATION_SCHEMA_GIT_FAILED');
+        }
+        return trim((string) $stdout);
     }
 
     private function fileDigest(string $path): string
@@ -104,31 +104,4 @@ final readonly class SourceDevelopmentMaintenanceAdmission
         if (!is_file($path) || is_link($path)) { throw new RuntimeException('APPLICATION_SCHEMA_SOURCE_FILE_INVALID'); }
         return (string) hash_file('sha256', $path);
     }
-
-    /** Called only after the native verifier has admitted this exact live declaration. */
-    private static function assertWriteTables(array $resources, string $schema, array $tables, bool $legacyExclusive): void
-    {
-        if (!array_is_list($tables) || $tables === [] || count(array_unique($tables)) !== count($tables)) {
-            throw new RuntimeException('PLUGIN_SOURCE_WRITE_SCOPE_INVALID');
-        }
-        foreach ($tables as $table) {
-            if (!is_string($table) || preg_match('/\A[a-z][a-z0-9_]{0,63}\z/D', $table) !== 1) {
-                throw new RuntimeException('PLUGIN_SOURCE_WRITE_SCOPE_INVALID');
-            }
-        }
-        if ($legacyExclusive) { return; }
-        foreach ($resources['mysql-access'] ?? [] as $raw) {
-            $scope = json_decode($raw, true, 64, JSON_THROW_ON_ERROR);
-            if (($scope['schema'] ?? null) !== $schema || ($scope['complete'] ?? null) !== true) { continue; }
-            if (in_array($scope['operation'] ?? null, ['ddl', 'exclusive'], true) && ($scope['tables'] ?? null) === []) { return; }
-            if (($scope['operation'] ?? null) !== 'transaction') { continue; }
-            $writes = [];
-            foreach ($scope['tables'] ?? [] as $entry) {
-                if (($entry['access'] ?? null) === 'write' && ($entry['rows'] ?? null) === '*') { $writes[] = $entry['table']; }
-            }
-            if (array_diff($tables, $writes) === []) { return; }
-        }
-        throw new RuntimeException('PLUGIN_SOURCE_CATALOG_WRITE_SCOPE_REQUIRED');
-    }
-
 }

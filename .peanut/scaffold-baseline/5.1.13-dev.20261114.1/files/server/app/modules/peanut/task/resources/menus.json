@@ -1,0 +1,4 @@
+[
+  {"key":"peanut.task.schedules","parent_key":"core.operations","scope":"tenant","type":"page","name":"定时任务","route_name":"SystemCrontab","route_path":"/system/crontab","component_key":"peanut.task.schedules","required_permission":"peanut.task.list","icon":"icon-clock-circle","sort_order":50,"client_keys":["admin-web"]},
+  {"key":"peanut.task.jobs","parent_key":"core.operations","scope":"tenant","type":"page","name":"任务作业","route_name":"OfficialTaskJobs","route_path":"/system/task-jobs","component_key":"peanut.task.jobs","required_permission":"peanut.task.jobs.read","icon":"icon-list","sort_order":51,"client_keys":["admin-web"]}
+]

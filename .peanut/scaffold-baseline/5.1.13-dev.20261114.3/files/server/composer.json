@@ -1,0 +1,102 @@
+{
+    "name": "peanut-business/peanut-module-code",
+    "description": "Peanut Module Code application backend",
+    "type": "project",
+    "keywords": [
+        "admin",
+        "scaffold",
+        "thinkphp",
+        "vue"
+    ],
+    "homepage": "https://github.com/peanut-business/peanut-admin-code",
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "application owner"
+        }
+    ],
+    "provide": {
+        "peanut-admin/module-composition-host": "1.0.0"
+    },
+    "require": {
+        "php": "^8.3",
+        "topthink/framework": "^8.0",
+        "topthink/think-multi-app": "^1.1.1",
+        "topthink/think-orm": "^3.0|^4.0",
+        "topthink/think-filesystem": "^2.0|^3.0",
+        "firebase/php-jwt": "^7.1",
+        "dragonmantank/cron-expression": "^3.3",
+        "qiniu/php-sdk": "^7.4",
+        "aws/aws-sdk-php": "^3.0",
+        "aliyuncs/oss-sdk-php": "^2.4",
+        "qcloud/cos-sdk-v5": "^2.5",
+        "peanut-admin/core": "5.1.0",
+        "symfony/html-sanitizer": "^7.3",
+        "composer/semver": "^3.4",
+        "opis/json-schema": "^2.6",
+        "topthink/think-migration": "3.1.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "app\\": "app"
+        },
+        "exclude-from-classmap": [
+            "app/modules/*/*/database/migrations/",
+            "app/modules/*/*/*/database/migrations/"
+        ]
+    },
+    "config": {
+        "preferred-install": "dist"
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "@php docker/scripts/prepare-vendor.php"
+        ]
+    },
+    "repositories": [
+        {
+            "type": "package",
+            "package": {
+                "name": "peanut-admin/core",
+                "description": "Peanut Admin technical kernel and ThinkPHP integration",
+                "type": "library",
+                "license": "Apache-2.0",
+                "support": {
+                    "source": "https://github.com/peanut-business/peanut-admin-core-php"
+                },
+                "require": {
+                    "composer/semver": "^3.4.4",
+                    "ext-fileinfo": "*",
+                    "ext-json": "*",
+                    "ext-openssl": "*",
+                    "ext-pdo": "*",
+                    "ext-sodium": "*",
+                    "opis/json-schema": "^2.6.0",
+                    "php": "^8.3",
+                    "topthink/think-orm": "^4.0.51"
+                },
+                "suggest": {
+                    "aliyuncs/oss-sdk-php": "Required by hosts that construct AliyunStorageDriver.",
+                    "qcloud/cos-sdk-v5": "Required by hosts that construct QcloudStorageDriver.",
+                    "qiniu/php-sdk": "Required by hosts that construct QiniuStorageDriver."
+                },
+                "autoload": {
+                    "psr-4": {
+                        "PeanutAdmin\\DataPermission\\": "data-permission/src/",
+                        "PeanutAdmin\\FileMedia\\": "file-media/src/",
+                        "PeanutAdmin\\IntegrationSecurity\\": "integration-security/src/",
+                        "PeanutAdmin\\Kernel\\": "kernel/src/",
+                        "PeanutAdmin\\Settings\\": "settings/src/"
+                    }
+                },
+                "version": "5.1.0",
+                "dist": {
+                    "type": "zip",
+                    "url": "../packages/core-php/peanut-admin-core-5.1.0.zip",
+                    "reference": "902ed10a45505cf6add1f90b70813a8bde28d841894e9a62a28d62bd58681e12",
+                    "shasum": "fedc94cba3a40767f064ff7f8db86833aefee8ab"
+                }
+            }
+        }
+    ]
+}

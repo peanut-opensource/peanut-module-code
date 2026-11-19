@@ -64,6 +64,7 @@ const useBrandStore = defineStore('brand', {
     entryTenantName: '',
     tenantName: '',
     demo: { enabled: false, email: '', password: '' } as DemoLoginConfig,
+    loginEnabled: true,
     loaded: false,
   }),
   actions: {
@@ -88,6 +89,7 @@ const useBrandStore = defineStore('brand', {
       try {
         const { data } = await getPublicBrandConfig();
         this.demo = data.demo || { enabled: false, email: '', password: '' };
+        this.loginEnabled = data.login_enabled !== false;
         this.entryWebsite = normalizeWebsite(data.website);
         this.setEntryTenantName(data.tenantName);
         if (!this.tenantName) this.replace(this.entryWebsite);
