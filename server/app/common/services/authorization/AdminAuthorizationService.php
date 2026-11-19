@@ -149,26 +149,28 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
         return $this->accessDataForPrincipal($tenantContext, $admin);
     }
 
+    /**
+     * @param list<string> $keys
+     * @return list<string>
+     */
+    public function grantedPermissions(TenantContext $context, array $keys): array
+    {
+        if ($keys === []) {
+            return [];
+        }
+        $inputs = $this->moduleAdmin->permissionInputs($context, $keys);
+        return array_values(array_intersect($inputs['owned'], $inputs['registered']));
+    }
+
     /** The caller has loaded and validated this principal in the current invocation. */
     private function accessDataForPrincipal(TenantContext $tenantContext, AdminPrincipal $admin, bool $includeShell = true): AdminAccessData
     {
         $bridge = $this->moduleAdmin;
         $native = $includeShell
-            ? $bridge->adminShellAccessData($tenantContext)
+            ? $bridge->userAccessData($tenantContext)
             : $bridge->accessData($tenantContext);
         $permissions = $native['permissions'];
-        $menus = $includeShell
-            ? array_values(array_replace(
-                array_column($this->compatibilityMenus(
-                    $tenantContext,
-                    $admin,
-                    $permissions,
-                    $native['registered_system_menu_permissions'],
-                    $native['managed_menu_keys'],
-                ), null, 'menu_key'),
-                array_column($native['menu'], null, 'menu_key'),
-            ))
-            : $native['menu'];
+        $menus = $native['menu'];
         if (!InstanceToolAccessGuard::fromConfiguredValue(config('deployment.mode'))->allows()) {
             $menus = array_values(array_filter(
                 $menus,

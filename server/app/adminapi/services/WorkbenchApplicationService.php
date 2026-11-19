@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\adminapi\services;
 
 use app\common\services\authorization\AdminAuthorizationService;
+use app\common\validation\instance\InstanceToolAccessGuard;
 use PeanutAdmin\Modules\File\Contract\FileReferences;
 use PeanutAdmin\Modules\Settings\Service\WebsiteConfigService;
 use PeanutAdmin\Kernel\Auth\TenantContext;
@@ -71,18 +72,27 @@ class WorkbenchApplicationService
     public function menu(TenantContext $context): array
     {
         $items = [
-            ['name' => '管理员', 'image' => 'menu_admin', 'url' => '/app/members'],
-            ['name' => '角色管理', 'image' => 'menu_role', 'url' => '/app/roles'],
-            ['name' => '部门管理', 'image' => 'menu_dept', 'url' => '/app/departments'],
-            ['name' => '字典管理', 'image' => 'menu_dict', 'url' => '/system/dict'],
-            ['name' => '素材中心', 'image' => 'menu_file', 'url' => '/system/file'],
-            ['name' => '菜单权限', 'image' => 'menu_auth', 'url' => '/system/menu'],
-            ['name' => '网站信息', 'image' => 'menu_web', 'url' => '/app-setting/website'],
+            ['name' => '管理员', 'image' => 'menu_admin', 'url' => '/app/members', 'permission' => 'core.member.read'],
+            ['name' => '角色管理', 'image' => 'menu_role', 'url' => '/app/roles', 'permission' => 'core.role.read'],
+            ['name' => '部门管理', 'image' => 'menu_dept', 'url' => '/app/departments', 'permission' => 'core.department.read'],
+            ['name' => '字典管理', 'image' => 'menu_dict', 'url' => '/system/dict', 'permission' => 'peanut.reference-codes.read'],
+            ['name' => '素材中心', 'image' => 'menu_file', 'url' => '/system/file', 'permission' => 'peanut.file.list'],
+            ['name' => '菜单权限', 'image' => 'menu_auth', 'url' => '/system/menu', 'permission' => 'core.menu.read'],
+            ['name' => '网站信息', 'image' => 'menu_web', 'url' => '/app-setting/website', 'permission' => 'peanut.settings.read'],
         ];
-        $authorizedMenus = $this->authorization->menusForAdminId($context, $context->memberId);
-        $items = array_values(array_filter(
-            $items,
-            static fn(array $item): bool => self::menuContainsPath($authorizedMenus, $item['url']),
+        $granted = array_flip($this->authorization->grantedPermissions($context, array_column($items, 'permission')));
+        $allowInstanceTools = InstanceToolAccessGuard::fromConfiguredValue(config('deployment.mode'))->allows();
+        $items = array_values(array_map(
+            static fn(array $item): array => [
+                'name' => $item['name'],
+                'image' => $item['image'],
+                'url' => $item['url'],
+            ],
+            array_filter(
+                $items,
+                static fn(array $item): bool => isset($granted[$item['permission']])
+                    && ($item['url'] !== '/system/menu' || $allowInstanceTools),
+            ),
         ));
 
         $imageRefs = [];
@@ -101,21 +111,6 @@ class WorkbenchApplicationService
         }, $items);
     }
 
-    /** @param list<array<string,mixed>> $menus */
-    private static function menuContainsPath(array $menus, string $path): bool
-    {
-        foreach ($menus as $menu) {
-            if (($menu['paths'] ?? null) === $path) {
-                return true;
-            }
-            $children = $menu['children'] ?? [];
-            if (is_array($children) && self::menuContainsPath($children, $path)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     public function support(TenantContext $context, ?array $website = null): array
     {
         $website ??= $this->website->get($context);
@@ -125,7 +120,7 @@ class WorkbenchApplicationService
                     (string) ($this->defaultImages['project_docs'] ?? ''),
                 ),
                 'title' => '项目文档',
-                'desc'  => '查看 Peanut Module Code 使用与开发文档',
+                'desc'  => '查看 Peanut Admin 使用与开发文档',
                 'url'   => (string) $website['official_url'],
             ],
             [
@@ -133,7 +128,7 @@ class WorkbenchApplicationService
                     (string) ($this->defaultImages['technical_support'] ?? ''),
                 ),
                 'title' => '技术支持',
-                'desc'  => '获取 Peanut Module Code 技术支持',
+                'desc'  => '获取 Peanut Admin 技术支持',
                 'url'   => (string) $website['github_url'],
             ],
         ];

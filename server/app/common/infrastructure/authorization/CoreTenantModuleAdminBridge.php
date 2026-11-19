@@ -81,6 +81,38 @@ final class CoreTenantModuleAdminBridge
     }
 
     /**
+     * Lightweight, revision-keyed cached payload for /adminapi/user/info.
+     * Skips unused registered_permissions / registered_system_menu_permissions calculations.
+     *
+     * @return array{menu:list<array<string,mixed>>,permissions:list<string>,system_menu_rows:list<array<string,mixed>>,managed_menu_keys:list<string>,assignable_menu_records:list<array<string,mixed>>}
+     */
+    public function userAccessData(TenantContext $tenantContext): array
+    {
+        if ($tenantContext->tenantId < 1 || $tenantContext->memberId < 1) {
+            return ['menu' => [], 'permissions' => [], 'system_menu_rows' => [], 'managed_menu_keys' => [], 'assignable_menu_records' => []];
+        }
+        $pdo = Db::connect()->getPdo();
+        if ($pdo !== false && $pdo->inTransaction()) {
+            return $this->accessProjection($tenantContext, false, true);
+        }
+        $license = $this->entitlements->license($tenantContext->tenantId, context: $tenantContext);
+        $cacheKey = implode(':', [
+            'admin:user-access:v1',
+            $tenantContext->tenantId,
+            $tenantContext->memberId,
+            $tenantContext->authorizationRevision,
+            $tenantContext->tenantAuthorizationRevision,
+            $license['state'] ?? 'missing',
+            (int) ($license['revision'] ?? 0),
+        ]);
+        return Cache::remember(
+            $cacheKey,
+            fn(): array => $this->accessProjection($tenantContext, false, true),
+            300,
+        );
+    }
+
+    /**
      * One read-only Admin Shell projection; all qualification inputs are read here.
      * @return array{menu:list<array<string,mixed>>,permissions:list<string>,registered_permissions:list<string>,registered_system_menu_permissions:list<string>,managed_menu_keys:list<string>,system_menu_rows:list<array<string,mixed>>,assignable_menu_records:list<array<string,mixed>>}
      */
@@ -90,7 +122,7 @@ final class CoreTenantModuleAdminBridge
     }
 
     /** Local values never survive this call or bypass a later independent qualification. */
-    private function accessProjection(mixed $tenantContext, bool $includeShell): array
+    private function accessProjection(mixed $tenantContext, bool $includeShell, bool $includeActionBindings = false): array
     {
         if (!$tenantContext instanceof TenantContext
             || $tenantContext->tenantId < 1
@@ -159,6 +191,10 @@ final class CoreTenantModuleAdminBridge
                 static fn(string $permission): bool => in_array($permission, $entitlements['permissions'], true),
             );
             $data['assignable_menu_records'] = $this->renderServerMenuRecords($assignable, $systemMenus, $nativeRecords, null);
+        } elseif ($includeActionBindings) {
+            $data['managed_menu_keys'] = array_column($nativeRecords, 'key');
+            $data['system_menu_rows'] = $systemMenus;
+            $data['assignable_menu_records'] = $data['menu'];
         }
         return $data;
     }
