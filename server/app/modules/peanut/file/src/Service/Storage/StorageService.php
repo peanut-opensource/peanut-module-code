@@ -397,21 +397,37 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         $this->evidenceContext($actor);
         $this->evidenceTransaction(true);
         Db::transaction(function () use ($actor, $fact, $authorizeFact): void {
-            $keys = $fact->fileKeys;
+            $keys = array_values(array_unique($fact->fileKeys));
             sort($keys, SORT_STRING);
+            $preloaded = [];
+            if ($keys !== []) {
+                foreach ($this->ownedObjects($actor->tenantId)->whereIn('file_key', $keys)->select()->toArray() as $row) {
+                    $preloaded[(string) $row['file_key']] = $row;
+                }
+            }
             $snapshots = [];
             foreach ($keys as $key) {
-                $object = $this->objectForTenant($actor->tenantId, $key);
+                $object = $preloaded[$key] ?? null;
                 if ($object === null) {
                     throw BusinessException::notFound('FILE_EVIDENCE_NOT_FOUND', '私有凭证不存在');
                 }
                 $snapshots[] = $this->evidenceFile($object);
             }
             $authorizeFact($snapshots); // Locks the persisted financial fact before File objects.
+            $lockedObjects = [];
+            $commandsByKey = [];
+            if ($keys !== []) {
+                foreach ($this->ownedObjects($actor->tenantId)->whereIn('file_key', $keys)->order('file_key', 'asc')->lock(true)->select()->toArray() as $row) {
+                    $lockedObjects[(string) $row['file_key']] = $row;
+                }
+                foreach (Db::name('file_evidence_command')->where('tenant_id', $actor->tenantId)
+                    ->where('module_key', $fact->moduleKey)->whereIn('file_key', $keys)->select()->toArray() as $cmd) {
+                    $commandsByKey[(string) $cmd['file_key']] = $cmd;
+                }
+            }
             foreach ($keys as $index => $key) {
-                $object = $this->find($this->ownedObjects($actor->tenantId)->where('file_key', $key)->lock(true));
-                $command = Db::name('file_evidence_command')->where('tenant_id', $actor->tenantId)
-                    ->where('module_key', $fact->moduleKey)->where('file_key', $key)->find();
+                $object = $lockedObjects[$key] ?? null;
+                $command = $commandsByKey[$key] ?? null;
                 if ($object === null || $object['status'] !== 'ready' || $object['access_type'] !== 'private'
                     || $object['purpose'] !== 'attachment.sensitive' || $command === null
                     || $this->evidenceMetadata($object) !== $this->evidenceMetadata($snapshots[$index])) {
@@ -433,10 +449,21 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             $query()->insert(['tenant_id' => $actor->tenantId, 'module_key' => $fact->moduleKey,
                 'owner_type' => $fact->ownerType, 'owner_key' => $fact->ownerKey,
                 'basis_digest' => $fact->basisDigest, 'files_digest' => $digest]);
+            $nowUtc = gmdate('Y-m-d H:i:s.v');
+            $refRows = [];
             foreach ($keys as $key) {
-                FileReference::create(['tenant_id' => $actor->tenantId, 'file_key' => $key,
-                    'owner_module_key' => $fact->moduleKey, 'owner_type' => 'evidence-fact:' . $fact->ownerType, 'owner_id' => $fact->ownerKey,
-                    'reference_digest' => $fact->basisDigest, 'updated_at' => new Raw('UTC_TIMESTAMP(3)')]);
+                $refRows[] = [
+                    'tenant_id' => $actor->tenantId,
+                    'file_key' => $key,
+                    'owner_module_key' => $fact->moduleKey,
+                    'owner_type' => 'evidence-fact:' . $fact->ownerType,
+                    'owner_id' => $fact->ownerKey,
+                    'reference_digest' => $fact->basisDigest,
+                    'updated_at' => $nowUtc,
+                ];
+            }
+            if ($refRows !== []) {
+                Db::name('file_reference')->insertAll($refRows);
             }
             $this->audit->appendTenantMember($actor, 'file.evidence.retained', 'file.evidence.retain', $fact->ownerType, $fact->ownerKey, null, null, count($keys), $fact->basisDigest);
         });
@@ -534,6 +561,89 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         return $object === null ? '' : $this->url($object);
     }
 
+    /**
+     * Batch-resolves public file_key references into delivery URLs in 1 SELECT + 1 INSERT.
+     *
+     * @param list<string> $references
+     * @return array<string, string>
+     */
+    public function publicUrls(array $references): array
+    {
+        $result = [];
+        $validKeys = [];
+        foreach ($references as $raw) {
+            $ref = trim((string) $raw);
+            if ($ref === '') {
+                continue;
+            }
+            if (preg_match('/^file_[0-9a-f]{32}$/D', $ref) !== 1) {
+                $result[$ref] = '';
+                continue;
+            }
+            $result[$ref] = '';
+            $validKeys[$ref] = true;
+        }
+        if ($validKeys === []) {
+            return $result;
+        }
+        $objects = $this->objectQuery(null)
+            ->whereIn('f.file_key', array_keys($validKeys))
+            ->where('f.access_type', 'public')
+            ->where('f.status', 'ready')
+            ->select()
+            ->toArray();
+        if ($objects === []) {
+            return $result;
+        }
+
+        $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+        $expiresAt = gmdate('Y-m-d H:i:s', time() + self::DELIVERY_URL_TTL);
+        $grantRows = [];
+        $origin = rtrim($this->applicationOrigin, '/');
+        foreach ($objects as $object) {
+            $fileKey = (string) $object['file_key'];
+            $tenantId = (int) $object['tenant_id'];
+            $tokenId = bin2hex(random_bytes(16));
+            $grantRows[] = [
+                'token_id_hash' => hash('sha256', $tokenId),
+                'subject_tenant_id' => $tenantId,
+                'file_key' => $fileKey,
+                'file_revision' => (int) $object['revision'],
+                'visibility' => 'public',
+                'source_file_key' => $fileKey,
+                'source_revision' => (int) $object['revision'],
+                'source_visibility' => 'public',
+                'operation' => 'public',
+                'document_id' => null,
+                'authorization_revision' => $this->authorization->authorizePublic($object),
+                'reference_digest' => null,
+                'subject_json' => null,
+                'expires_at' => $expiresAt,
+            ];
+            $token = $this->deliveryTokens->issue(
+                $tenantId,
+                $fileKey,
+                DeliveryVisibility::Public,
+                ReplayMode::Bounded,
+                $now,
+                self::DELIVERY_URL_TTL,
+                $tokenId,
+            );
+            $result[$fileKey] = $origin . '/api/storage/delivery?' . http_build_query([
+                'tenant_id' => $tenantId,
+                'file_key' => $fileKey,
+                'token' => $token,
+            ]);
+        }
+        if ($grantRows !== []) {
+            foreach (array_chunk($grantRows, 200) as $chunk) {
+                Db::name('file_delivery_grant')->insertAll($chunk);
+            }
+        }
+
+        return $result;
+    }
+
     public function normalizePublicReference(int $tenantId, string $reference): string
     {
         $reference = trim($reference);
@@ -548,6 +658,51 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             return $reference;
         }
         throw BusinessException::invalid('FILE_REFERENCE_INVALID', '仅允许稳定资源引用，不允许交付链接或外部地址');
+    }
+
+    /**
+     * Batch-validates tenant public references in a single SELECT.
+     *
+     * @param list<string> $references
+     * @return array<string, string>
+     */
+    public function normalizePublicReferences(int $tenantId, array $references): array
+    {
+        $result = [];
+        $keysToCheck = [];
+        foreach ($references as $raw) {
+            $ref = trim((string) $raw);
+            if ($ref === '') {
+                $result[''] = '';
+                continue;
+            }
+            if (preg_match('/^file_[0-9a-f]{32}$/D', $ref) !== 1) {
+                throw BusinessException::invalid('FILE_REFERENCE_INVALID', '仅允许稳定资源引用，不允许交付链接或外部地址');
+            }
+            $keysToCheck[$ref] = true;
+            $result[$ref] = $ref;
+        }
+        if ($keysToCheck === []) {
+            return $result;
+        }
+        $rows = $this->objectQuery($this->logicalTenantId($tenantId))
+            ->whereIn('f.file_key', array_keys($keysToCheck))
+            ->where('f.status', 'ready')
+            ->select()
+            ->toArray();
+        $found = [];
+        foreach ($rows as $object) {
+            if (($object['access_type'] ?? null) === 'public'
+                && StoragePurpose::allowsDocumentPreviewInheritance((string) ($object['purpose'] ?? ''))) {
+                $found[(string) $object['file_key']] = true;
+            }
+        }
+        foreach (array_keys($keysToCheck) as $key) {
+            if (!isset($found[$key])) {
+                throw BusinessException::invalid('FILE_REFERENCE_INVALID', '素材引用无效');
+            }
+        }
+        return $result;
     }
 
     /** File-internal metadata rollback only; absent from FileStorage and all HTTP actions. */

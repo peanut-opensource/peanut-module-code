@@ -156,13 +156,29 @@ final class NativeCollaborationProvider implements DocumentAcceptedWriteProvider
         foreach ($in['participants'] as $source) {
             $participantTimes[$source['connection_key'] . ':' . $source['authorization_revision']] = $source['authorized_at_ms'];
         }
-        foreach (array_merge($in['participants'], $in['changes']) as $source) {
+        $allSources = array_merge($in['participants'], $in['changes']);
+        $connectionKeys = array_values(array_unique(array_map(static fn(array $s): string => (string) $s['connection_key'], $allSources)));
+        $connectionsByKey = [];
+        $ticketsById = [];
+        if ($connectionKeys !== []) {
+            $ticketIds = [];
+            foreach (CollaborationConnection::whereIn('connection_key', $connectionKeys)->where('room_id', $room->id)->select() as $conn) {
+                $connectionsByKey[(string) $conn->connection_key] = $conn;
+                $ticketIds[] = (int) $conn->ticket_id;
+            }
+            if ($ticketIds !== []) {
+                foreach (CollaborationTicket::whereIn('id', array_values(array_unique($ticketIds)))->select() as $tk) {
+                    $ticketsById[(int) $tk->id] = $tk;
+                }
+            }
+        }
+        foreach ($allSources as $source) {
             $sourceKey = $source['connection_key'] . ':' . $source['authorization_revision'];
             if (!isset($participantTimes[$sourceKey]) || $source['authorized_at_ms'] > $participantTimes[$sourceKey]) {
                 throw BusinessException::forbidden('COLLABORATION_CHANGE_SOURCE_INVALID', '变更来源不在原保存批次参与者中');
             }
-            $connection = CollaborationConnection::where('connection_key', $source['connection_key'])->where('room_id', $room->id)->find();
-            $ticket = $connection === null ? null : CollaborationTicket::where('id', $connection->ticket_id)->find();
+            $connection = $connectionsByKey[(string) $source['connection_key']] ?? null;
+            $ticket = $connection === null ? null : ($ticketsById[(int) $connection->ticket_id] ?? null);
             $grant = $connection === null ? null : CollaborationGrant::where('connection_id', $connection->id)->where('room_id', $room->id)
                 ->where('purpose', 'connection')->where('mode', 'write')->where('lease_epoch', $in['lease_epoch'])
                 ->where('service_instance_id', $request->serviceInstanceId)->where('holder_key', $request->holderKey)
@@ -244,10 +260,29 @@ final class NativeCollaborationProvider implements DocumentAcceptedWriteProvider
             throw BusinessException::forbidden('DOCUMENT_TARGET_ACTOR_INVALID', '点击目标与当前原始人员、文档或代际不一致');
         }
         $reservations = [];
-        foreach (CollaborationGrant::where('room_id', $room->id)->where('lease_epoch', $room->lease_epoch)
-            ->where('purpose', 'references')->lock(true)->select() as $grant) {
-            $sourceTicket = CollaborationTicket::where('id', $grant->ticket_id)->find();
-            $sourceConnection = CollaborationConnection::where('id', $grant->connection_id)->where('room_id', $room->id)->find();
+        $refGrants = CollaborationGrant::where('room_id', $room->id)->where('lease_epoch', $room->lease_epoch)
+            ->where('purpose', 'references')->lock(true)->select();
+        $refTicketIds = [];
+        $refConnIds = [];
+        foreach ($refGrants as $grant) {
+            $refTicketIds[] = (int) $grant->ticket_id;
+            $refConnIds[] = (int) $grant->connection_id;
+        }
+        $refTicketsById = [];
+        $refConnsById = [];
+        if ($refTicketIds !== []) {
+            foreach (CollaborationTicket::whereIn('id', array_values(array_unique($refTicketIds)))->select() as $tk) {
+                $refTicketsById[(int) $tk->id] = $tk;
+            }
+        }
+        if ($refConnIds !== []) {
+            foreach (CollaborationConnection::whereIn('id', array_values(array_unique($refConnIds)))->where('room_id', $room->id)->select() as $cn) {
+                $refConnsById[(int) $cn->id] = $cn;
+            }
+        }
+        foreach ($refGrants as $grant) {
+            $sourceTicket = $refTicketsById[(int) $grant->ticket_id] ?? null;
+            $sourceConnection = $refConnsById[(int) $grant->connection_id] ?? null;
             if ($sourceTicket === null || $sourceConnection === null || (int) $sourceTicket->document_id !== $documentId
                 || (int) $grant->document_id !== $documentId || $grant->service_instance_id !== $room->service_instance_id
                 || $grant->holder_key !== $request->holderKey

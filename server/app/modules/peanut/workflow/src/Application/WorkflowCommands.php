@@ -686,13 +686,25 @@ final readonly class WorkflowCommands
                     $this->validateAssignments($c, $instance, $node, $definition, 'enter', $people);
                     $node->save(['people_json' => $people]);
                     $seats = $config['allocation_mode'] === 'claim' ? [null] : $people;
+                    $linkRows = [];
                     foreach ($seats as $seat => $person) {
                         $item = new Item();
                         $item->save(['tenant_id' => $instance['tenant_id'], 'instance_id' => $instance['id'], 'node_execution_id' => $node['id'], 'work_item_key' => 'work_' . bin2hex(random_bytes(16)), 'node_key' => $nodeKey, 'round_no' => $instance['cycle_no'], 'seat_no' => $seat + 1, 'assignment_source_kind' => $person['sources'][0]['source_kind'] ?? 'claim', 'assignment_source_key' => $person['sources'][0]['source_key'] ?? $nodeKey, 'sources_json' => $person['sources'] ?? [], 'assignee_member_id' => $person['member_id'] ?? null, 'owner_member_id' => $person['member_id'] ?? null, 'owner_source' => 'automatic', 'assignment_state' => $person === null ? 'unassigned' : 'assigned', 'status' => 'pending', 'revision' => 1, 'created_at' => $now, 'updated_at' => $now]);
                         foreach (['candidate' => $config['allocation_mode'] === 'claim' ? $people : [], 'participant' => $participants, 'watcher' => $watchers] as $relation => $members) {
                             foreach ($members as $member) {
-                                (new Link())->save(['tenant_id' => $instance['tenant_id'], 'work_item_id' => $item['id'], 'member_id' => $member['member_id'], 'relation_type' => $relation, 'sources_json' => $member['sources']]);
+                                $linkRows[] = [
+                                    'tenant_id' => $instance['tenant_id'],
+                                    'work_item_id' => $item['id'],
+                                    'member_id' => $member['member_id'],
+                                    'relation_type' => $relation,
+                                    'sources_json' => json_encode($member['sources'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+                                ];
                             }
+                        }
+                    }
+                    if ($linkRows !== []) {
+                        foreach (array_chunk($linkRows, 200) as $chunk) {
+                            Db::name('workflow_task_identity_link')->insertAll($chunk);
                         }
                     }
                     return;

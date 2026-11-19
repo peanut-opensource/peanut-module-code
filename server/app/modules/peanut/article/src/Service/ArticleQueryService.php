@@ -18,6 +18,20 @@ final class ArticleQueryService implements ArticleQueries
             ->isEmpty();
     }
 
+    /** @inheritDoc */
+    public function visibleIds(TenantContext $context, array $articleIds): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $articleIds), static fn(int $id): bool => $id > 0)));
+        if ($ids === []) {
+            return [];
+        }
+
+        return array_map(
+            'intval',
+            Article::where([])->whereIn('id', $ids)->where('is_show', 1)->column('id'),
+        );
+    }
+
     public function options(TenantContext $context, int $limit): array
     {
         return Article::where([])

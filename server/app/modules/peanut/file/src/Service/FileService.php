@@ -27,10 +27,24 @@ final readonly class FileService implements FileReferences
         return $this->storage->publicUrl($reference);
     }
 
+    /** @inheritDoc */
+    public function getFileUrls(array $references): array
+    {
+        return $this->storage->publicUrls($references);
+    }
+
     public function setTenantFileUrl(
         AuthenticatedMemberContext|TenantContext|TenantSystemContext $context,
         string $value = '',
     ): string {
         return $this->storage->normalizePublicReference($context->tenantId, $value);
+    }
+
+    /** @inheritDoc */
+    public function setTenantFileUrls(
+        AuthenticatedMemberContext|TenantContext|TenantSystemContext $context,
+        array $values,
+    ): array {
+        return $this->storage->normalizePublicReferences($context->tenantId, $values);
     }
 }
