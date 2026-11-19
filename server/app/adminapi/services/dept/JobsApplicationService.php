@@ -89,14 +89,15 @@ class JobsApplicationService
     public function lists(TenantContext $context, array $params): PageResult|array
     {
         $params = self::normalizeInput($params);
-        $count = self::buildListQuery($context, $params)->count();
         $pageSize = (int) ($params['page_size'] ?? $params['limit'] ?? 15);
         $pageSize = max(1, min(100, $pageSize));
+        $export = (int) ($params['export'] ?? 0);
 
-        if ((int) ($params['export'] ?? 0) === 1) {
-            return self::exportInfo($count, $pageSize);
-        }
-        if ((int) ($params['export'] ?? 0) === 2) {
+        if ($export === 1 || $export === 2) {
+            $count = self::buildListQuery($context, $params)->count();
+            if ($export === 1) {
+                return self::exportInfo($count, $pageSize);
+            }
             return $this->export($context, $params, $count, $pageSize);
         }
 
@@ -121,6 +122,7 @@ class JobsApplicationService
         return self::jobs($context)->where('status', 1)
             ->field('id,name,code,status')
             ->order(['sort' => 'desc', 'id' => 'desc'])
+            ->limit(500)
             ->select()
             ->toArray();
     }

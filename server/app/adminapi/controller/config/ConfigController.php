@@ -19,11 +19,8 @@ use PeanutAdmin\Modules\Identity\Policy\DemoAccountPolicy;
 use think\App;
 use think\facade\Config;
 
-/** @property-read ConfigApplicationService $configuration 当前 App 中声明式解析的控制器依赖。 */
 class ConfigController extends BaseAdminController
 {
-    protected string $configurationClass = ConfigApplicationService::class;
-
     public function __construct(
         App $app,
         private readonly ApplicationHostPolicy $hosts,
@@ -32,6 +29,7 @@ class ConfigController extends BaseAdminController
         private readonly TenantIdentityQuery $tenants,
         private readonly DemoAccountPolicy $demoAccounts,
         private readonly ExecutionContextStore $contexts,
+        private readonly ConfigApplicationService $configuration,
     ) {
         parent::__construct($app);
     }
@@ -80,9 +78,14 @@ class ConfigController extends BaseAdminController
 
     public function saveWebsite()
     {
+        $params = $this->validateInput(
+            $this->request->post(),
+            WebsiteValidate::class . '.website',
+            WebsiteValidate::WEBSITE_FIELDS,
+        )->writable();
         return $this->data($this->configuration->saveWebsite(
             $this->tenantAdminContext(),
-            $this->request->post(),
+            $params,
         ));
     }
 

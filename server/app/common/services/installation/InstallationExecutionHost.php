@@ -395,7 +395,11 @@ final class InstallationExecutionHost
                     if ($database['state'] === 'uninstalled') {
                         @unlink($this->progressMarker());
                     }
-                } catch (Throwable) {
+                } catch (Throwable $cleanupError) {
+                    \think\facade\Log::warning('INSTALLATION_PROGRESS_CLEANUP_FAILED', [
+                        'stage' => $stage,
+                        'error' => $cleanupError->getMessage(),
+                    ]);
                 }
                 throw $failure;
             }

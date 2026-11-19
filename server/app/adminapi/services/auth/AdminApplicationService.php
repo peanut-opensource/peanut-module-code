@@ -142,33 +142,29 @@ final class AdminApplicationService
     {
         $this->assertMemberPermission($context, 'create');
         $params = self::normalizeInput($params, true);
-        try {
-            $roles = self::normalizeIds($params['role_id'] ?? []);
-            if ($roles === []) {
-                throw BusinessException::invalid('ADMIN_ROLE_REQUIRED', '请选择角色');
-            }
-            $this->assertMemberPermission($context, 'role.assign');
-            // Ordinary member creation must never grant the protected owner identity.
-            $this->assertOrdinaryOwnerRoleBoundary($context, $roles, false, 0);
-            if ((int) $params['disable'] === 0) {
-                $this->assertMemberPermission($context, 'activate');
-            }
-            $department = self::firstId($params['dept_id'] ?? []);
-            $service = $this->members;
-            $service->createAdministrator(
-                $context,
-                (string) $params['account'],
-                (string) $params['name'],
-                (string) $params['password'],
-                $department,
-                $roles,
-                (int) $params['disable'] === 0,
-                self::jobIdsInput($params) ?? [],
-            );
-            return true;
-        } catch (\Throwable $e) {
-            throw $e;
+        $roles = self::normalizeIds($params['role_id'] ?? []);
+        if ($roles === []) {
+            throw BusinessException::invalid('ADMIN_ROLE_REQUIRED', '请选择角色');
         }
+        $this->assertMemberPermission($context, 'role.assign');
+        // Ordinary member creation must never grant the protected owner identity.
+        $this->assertOrdinaryOwnerRoleBoundary($context, $roles, false, 0);
+        if ((int) $params['disable'] === 0) {
+            $this->assertMemberPermission($context, 'activate');
+        }
+        $department = self::firstId($params['dept_id'] ?? []);
+        $service = $this->members;
+        $service->createAdministrator(
+            $context,
+            (string) $params['account'],
+            (string) $params['name'],
+            (string) $params['password'],
+            $department,
+            $roles,
+            (int) $params['disable'] === 0,
+            self::jobIdsInput($params) ?? [],
+        );
+        return true;
     }
 
     /** 先验证表单，再携带成员版本提交 Core 原子编辑；禁止代改账户密码。 */
@@ -176,38 +172,34 @@ final class AdminApplicationService
     {
         $this->assertMemberPermission($context, 'update');
         $params = self::normalizeInput($params, true);
-        try {
-            if (!empty($params['password'])) {
-                throw BusinessException::forbidden('ADMIN_PASSWORD_SELF_SERVICE_REQUIRED', '密码只能由账号本人修改');
-            }
-            $roles = self::normalizeIds($params['role_id'] ?? []);
-            $service = $this->members;
-            $member = $service->get($context->tenantId, (int) $params['id']);
-            $currentlyOwner = self::isTenantOwnerMember($member);
-            $currentRoles = self::normalizeIds($member['role_ids']);
-            if ($roles !== $currentRoles) {
-                $this->assertMemberPermission($context, 'role.assign');
-                $this->assertOrdinaryOwnerRoleBoundary($context, $roles, $currentlyOwner, (int) $member['id']);
-            }
-            if ($currentlyOwner && (int) $params['disable'] !== ($member['status'] === 'active' ? 0 : 1)) {
-                throw BusinessException::forbidden('TENANT_OWNER_STATUS_REQUIRES_PLATFORM_FLOW',
-                    '租户所有者状态仅能通过正式平台所有者流程变更');
-            }
-            $this->assertStatusPermission($context, $member, (int) $params['disable']);
-            $service->updateAdministrator(
-                $context,
-                (int) $member['id'],
-                (string) $params['name'],
-                self::firstId($params['dept_id'] ?? []),
-                $roles,
-                (int) $params['disable'] === 0,
-                (int) $member['revision'],
-                self::jobIdsInput($params),
-            );
-            return true;
-        } catch (\Throwable $e) {
-            throw $e;
+        if (!empty($params['password'])) {
+            throw BusinessException::forbidden('ADMIN_PASSWORD_SELF_SERVICE_REQUIRED', '密码只能由账号本人修改');
         }
+        $roles = self::normalizeIds($params['role_id'] ?? []);
+        $service = $this->members;
+        $member = $service->get($context->tenantId, (int) $params['id']);
+        $currentlyOwner = self::isTenantOwnerMember($member);
+        $currentRoles = self::normalizeIds($member['role_ids']);
+        if ($roles !== $currentRoles) {
+            $this->assertMemberPermission($context, 'role.assign');
+            $this->assertOrdinaryOwnerRoleBoundary($context, $roles, $currentlyOwner, (int) $member['id']);
+        }
+        if ($currentlyOwner && (int) $params['disable'] !== ($member['status'] === 'active' ? 0 : 1)) {
+            throw BusinessException::forbidden('TENANT_OWNER_STATUS_REQUIRES_PLATFORM_FLOW',
+                '租户所有者状态仅能通过正式平台所有者流程变更');
+        }
+        $this->assertStatusPermission($context, $member, (int) $params['disable']);
+        $service->updateAdministrator(
+            $context,
+            (int) $member['id'],
+            (string) $params['name'],
+            self::firstId($params['dept_id'] ?? []),
+            $roles,
+            (int) $params['disable'] === 0,
+            (int) $member['revision'],
+            self::jobIdsInput($params),
+        );
+        return true;
     }
 
     /** @param array<string,mixed> $member Current Identity-owned member projection. */
@@ -234,8 +226,9 @@ final class AdminApplicationService
     ): void
     {
         $requestsOwner = false;
-        foreach ($requestedRoleIds as $roleId) {
-            $role = $this->roleAdmin->get($context->tenantId, $roleId);
+        $roleService = $this->roleAdmin;
+        foreach (array_values(array_unique($requestedRoleIds)) as $roleId) {
+            $role = $roleService->get($context->tenantId, $roleId);
             if (($role['key'] ?? null) === 'core.tenant-owner') {
                 $requestsOwner = true;
             }
@@ -269,22 +262,18 @@ final class AdminApplicationService
         if ($id === $selfId) {
             throw BusinessException::forbidden('ADMIN_SELF_OPERATION_FORBIDDEN', '不能操作当前登录的管理员');
         }
-        try {
-            $service = $this->members;
-            $member = $service->get($context->tenantId, $id);
-            if (self::isTenantOwnerMember($member)) {
-                throw BusinessException::forbidden('TENANT_OWNER_STATUS_REQUIRES_PLATFORM_FLOW',
-                    '租户所有者状态仅能通过正式平台所有者流程变更');
-            }
-            $service->leave(
-                $context,
-                $id,
-                (int) $member['revision'],
-            );
-            return true;
-        } catch (\Throwable $e) {
-            throw $e;
+        $service = $this->members;
+        $member = $service->get($context->tenantId, $id);
+        if (self::isTenantOwnerMember($member)) {
+            throw BusinessException::forbidden('TENANT_OWNER_STATUS_REQUIRES_PLATFORM_FLOW',
+                '租户所有者状态仅能通过正式平台所有者流程变更');
         }
+        $service->leave(
+            $context,
+            $id,
+            (int) $member['revision'],
+        );
+        return true;
     }
 
     public function updateStatus(TenantContext $context, int $id, int $disable, int $selfId = 0): bool
@@ -293,18 +282,14 @@ final class AdminApplicationService
         if ($id === $selfId) {
             throw BusinessException::forbidden('ADMIN_SELF_OPERATION_FORBIDDEN', '不能操作当前登录的管理员');
         }
-        try {
-            $service = $this->members;
-            $member = $service->get($context->tenantId, $id);
-            if (self::isTenantOwnerMember($member)) {
-                throw BusinessException::forbidden('TENANT_OWNER_STATUS_REQUIRES_PLATFORM_FLOW',
-                    '租户所有者状态仅能通过正式平台所有者流程变更');
-            }
-            $this->transitionStatus($service, $context, $member, $disable);
-            return true;
-        } catch (\Throwable $e) {
-            throw $e;
+        $service = $this->members;
+        $member = $service->get($context->tenantId, $id);
+        if (self::isTenantOwnerMember($member)) {
+            throw BusinessException::forbidden('TENANT_OWNER_STATUS_REQUIRES_PLATFORM_FLOW',
+                '租户所有者状态仅能通过正式平台所有者流程变更');
         }
+        $this->transitionStatus($service, $context, $member, $disable);
+        return true;
     }
 
     public function editSelf(
@@ -314,38 +299,40 @@ final class AdminApplicationService
         string $ip,
         string $userAgent,
     ): bool {
-        try {
-            if ($memberId !== $context->memberId) {
-                throw new \DomainException('TENANT_ADMIN_PRINCIPAL_INVALID');
-            }
-            $service = $this->selfService;
-            $profile = $service->profile($context);
-            $service->updateProfile(
-                $context,
-                (string) ($params['name'] ?? $params['nickname'] ?? $profile['display_name']),
-                array_key_exists('avatar', $params)
-                    ? $this->files->setTenantFileUrl($context, (string) $params['avatar'])
-                    : ($profile['avatar_uri'] ?? null),
-            );
-            if (!empty($params['password'])) {
-                $this->demoAccounts->assertPasswordChangeAllowed($context->accountId);
-                $service->changePassword(
-                    $context,
-                    (string) ($params['password_old'] ?? ''),
-                    (string) $params['password'],
-                    $ip,
-                    $userAgent,
-                );
-            }
-            return true;
-        } catch (\Throwable $e) {
-            throw $e;
+        if ($memberId !== $context->memberId) {
+            throw new \DomainException('TENANT_ADMIN_PRINCIPAL_INVALID');
         }
+        $service = $this->selfService;
+        $profile = $service->profile($context);
+        $service->updateProfile(
+            $context,
+            (string) ($params['name'] ?? $params['nickname'] ?? $profile['display_name']),
+            array_key_exists('avatar', $params)
+                ? $this->files->setTenantFileUrl($context, (string) $params['avatar'])
+                : ($profile['avatar_uri'] ?? null),
+        );
+        if (!empty($params['password'])) {
+            $this->demoAccounts->assertPasswordChangeAllowed($context->accountId);
+            $service->changePassword(
+                $context,
+                (string) ($params['password_old'] ?? ''),
+                (string) $params['password'],
+                $ip,
+                $userAgent,
+            );
+        }
+        return true;
     }
 
-    /** @param list<array<string,mixed>> $rawRows @return list<array<string,mixed>> */
+    /**
+     * @param list<array<string,mixed>> $rawRows
+     * @return list<array<string,mixed>>
+     */
     private function hydrateRows(array $rawRows): array
     {
+        if ($rawRows === []) {
+            return [];
+        }
         $avatarRefs = [];
         foreach ($rawRows as $row) {
             $ref = trim((string) ($row['avatar_uri'] ?? ''));

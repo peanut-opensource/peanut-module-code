@@ -1,6 +1,7 @@
 import {
   ClientRequestError,
   createClient,
+  type Client,
   type ClientDecodeResult,
 } from '@peanut-admin/client';
 import { createUniAppClientTransport } from '@peanut-admin/uniapp';
@@ -111,9 +112,23 @@ const createSessionClient = (generation: number) => {
   });
 };
 
+let cachedSessionClient: {
+  generation: number;
+  client: Client<Record<string, unknown>>;
+} | null = null;
+
+const getSessionClient = (generation: number): Client<Record<string, unknown>> => {
+  if (cachedSessionClient && cachedSessionClient.generation === generation) {
+    return cachedSessionClient.client;
+  }
+  const client = createSessionClient(generation);
+  cachedSessionClient = { generation, client };
+  return client;
+};
+
 async function request<T = unknown>(options: RequestOptions): Promise<T> {
   try {
-    const client = createSessionClient(useUserStore().sessionGeneration);
+    const client = getSessionClient(useUserStore().sessionGeneration);
     return await client.request<T>({
       path: options.url,
       method: options.method,

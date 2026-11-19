@@ -119,13 +119,24 @@ class DecorationSchemaService
     /** Admin editors retain stable references; delivery URLs are presentation only. @return array<string,string> */
     public function resourceUrls(array $value): array
     {
-        $urls = [];
-        foreach ($value as $key => $child) {
-            if (is_array($child)) {
-                $urls += $this->resourceUrls($child);
-            } elseif (in_array((string) $key, self::IMAGE_KEYS, true) && is_string($child) && $child !== '') {
-                $urls[$child] = $this->assets->forRead($child);
+        $refs = [];
+        $collect = static function (array $node) use (&$collect, &$refs): void {
+            foreach ($node as $key => $child) {
+                if (is_array($child)) {
+                    $collect($child);
+                } elseif (in_array((string) $key, self::IMAGE_KEYS, true) && is_string($child) && $child !== '') {
+                    $refs[$child] = true;
+                }
             }
+        };
+        $collect($value);
+        if ($refs === []) {
+            return [];
+        }
+        $resolved = $this->assets->forReadMany(array_keys($refs));
+        $urls = [];
+        foreach (array_keys($refs) as $raw) {
+            $urls[$raw] = $resolved[trim($raw)] ?? '';
         }
         return $urls;
     }

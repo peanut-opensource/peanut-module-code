@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace app\platform\controller;
 
+use think\App;
+
 use PeanutAdmin\Modules\Identity\Platform\Application\TenantEntryBindingAdminService;
 use app\platform\validate\TenantEntryBindingValidate;
 
-/** @property-read TenantEntryBindingAdminService $entryBindings 当前 App 中声明式解析的控制器依赖。 */
 final class PlatformTenantEntryBindingController extends BasePlatformController
 {
-    protected string $entryBindingsClass = TenantEntryBindingAdminService::class;
-
+    public function __construct(App $app, protected readonly TenantEntryBindingAdminService $entryBindings)
+    {
+        parent::__construct($app);
+    }
     public function lists()
     {
         if ($this->platformContext === null) {

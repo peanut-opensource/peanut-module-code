@@ -78,7 +78,7 @@ Web Core 包有公开合同不等于每个产品宿主都已接入；确认某�
 
 `GET /installapi/password-policy` 在安装前后返回当前注入策略的 `minimum_length`、`maximum_length`、`length_unit: utf8_bytes` 和四个 `require_*` 布尔开关，只暴露公开要求。上下限可按应用配置覆盖（最大不超过散列实现允许的输入字节数）；全部开关关闭时，6～32 字节内的纯数字密码可用。开启对应开关后才要求至少一个 ASCII 大写字母 A-Z、小写字母 a-z、数字 0-9 或可打印 ASCII 标点（U+0021–002F、U+003A–0040、U+005B–0060、U+007B–007E；不含空格）。其他字符仍可使用，但不满足这些 ASCII 类别。Web/PC/UniApp 新密码表单使用有效策略；读取失败显示错误并阻止提交，没有写死的备用上下限。既有密码的登录验证不受新密码策略影响。HTTP/SDK metadata 不用 JSON Schema 的字符长度宣称运行时字节限制。自定义策略同时通过 `requirements()` 暴露实际复杂度要求。
 
-应用自有绑定、类及配置处于应用仓，Core 升级不直接改这些源码。若官方应用更新也触及自定义文件，沿既有基线摘要/冲突审阅流程处理，不能用升级覆盖定制。新依赖以 Composer manifest/lock 的固定源码提交为准；开发 `dev-dev#<commit>` 不是正式包发布。PHP 固定开发源码与 Web 已锁定 registry 制品可以独立组合，公开发行打包仍由 `scripts/package-release-files.py` 要求精确已发布 PHP 版本。历史发行快照与已安装实例不会因 dev 修改自动更新。
+应用自有绑定、类及配置处于应用仓，Core 升级不直接改这些源码。若官方应用更新也触及自定义文件，沿既有基线摘要/冲突审阅流程处理，不能用升级覆盖定制。新依赖以 Composer manifest/lock 的固定源码提交为准；开发 `dev-dev#<commit>` 不是正式包发布。PHP 固定开发源码与 Web 已锁定 registry 制品可以独立组合，公开发行打包通过现行发布编排要求精确已发布 PHP 版本。历史发行快照与已安装实例不会因 dev 修改自动更新。
 
 ## 6. 抽取准入
 

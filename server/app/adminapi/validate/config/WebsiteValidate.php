@@ -10,7 +10,52 @@ class WebsiteValidate extends Validate
 {
     protected $must = ['default_avatar'];
 
+    public const WEBSITE_FIELDS = [
+        'name',
+        'web_favicon',
+        'web_logo',
+        'login_image',
+        'shop_name',
+        'shop_logo',
+        'pc_logo',
+        'pc_title',
+        'pc_ico',
+        'pc_desc',
+        'pc_keywords',
+        'h5_favicon',
+        'slogan',
+        'copyright',
+        'official_url',
+        'github_url',
+        'sidebar_footer_enabled',
+        'sidebar_footer_title',
+        'sidebar_footer_settings',
+        'sidebar_footer_license',
+        'sidebar_footer_about',
+    ];
+
     protected $rule = [
+        'name' => 'max:60',
+        'web_favicon' => 'max:500',
+        'web_logo' => 'max:500',
+        'login_image' => 'max:500',
+        'shop_name' => 'max:60',
+        'shop_logo' => 'max:500',
+        'pc_logo' => 'max:500',
+        'pc_title' => 'max:120',
+        'pc_ico' => 'max:500',
+        'pc_desc' => 'max:500',
+        'pc_keywords' => 'max:500',
+        'h5_favicon' => 'max:500',
+        'slogan' => 'max:160',
+        'copyright' => 'max:200',
+        'official_url' => 'max:500',
+        'github_url' => 'max:500',
+        'sidebar_footer_enabled' => 'boolean',
+        'sidebar_footer_title' => 'max:60',
+        'sidebar_footer_settings' => 'boolean',
+        'sidebar_footer_license' => 'boolean',
+        'sidebar_footer_about' => 'boolean',
         'config' => 'array|checkCopyright',
         'service_title' => 'require|max:100',
         'service_content' => 'max:200000',
@@ -32,6 +77,7 @@ class WebsiteValidate extends Validate
     ];
 
     protected $scene = [
+        'website' => self::WEBSITE_FIELDS,
         'copyright' => ['config'],
         'agreement' => ['service_title', 'service_content', 'privacy_title', 'privacy_content'],
         'statistics' => ['clarity_code'],

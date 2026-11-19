@@ -165,6 +165,12 @@ final class NoticeChannelService
                 self::safeReceipt($provider, $delivery->receipt),
             );
         } catch (\Throwable $exception) {
+            \think\facade\Log::warning('SMS_DRIVER_SEND_UNKNOWN', [
+                'provider' => $provider,
+                'template_id' => $templateId,
+                'exception' => $exception::class,
+                'message' => self::sanitizeError($exception->getMessage(), $mobile, $config),
+            ]);
             return self::result(
                 SmsDriverResult::OUTCOME_UNKNOWN,
                 $provider,

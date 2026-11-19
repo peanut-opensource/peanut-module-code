@@ -67,12 +67,49 @@ final readonly class ModuleDefinitionRegistryFactory
         if (file_exists($journal) || is_link($journal)) {
             throw new ModuleException('MODULE_PACKAGE_RECOVERY_REQUIRED', 'Complete source adoption before serving application source.');
         }
+        $statFingerprint = $this->statFingerprint($deploymentConfig);
+        if (PHP_SAPI !== 'cli' && $statFingerprint !== null) {
+            $cached = self::processRecordCache($statFingerprint);
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
         $record = $this->runtimeStore()->get($this->runtimeKey($deploymentConfig));
         if (!is_array($record) || !($record['registry'] ?? null) instanceof CompiledModuleRegistry
             || !is_array($record['modules'] ?? null)) {
             throw new ModuleException('MODULE_REGISTRY_NOT_COMPILED', 'Run peanut module compile before serving application source.');
         }
+        if (PHP_SAPI !== 'cli' && $statFingerprint !== null) {
+            self::processRecordCache($statFingerprint, $record);
+        }
         return $record;
+    }
+
+    private function statFingerprint(array $deploymentConfig): ?string
+    {
+        $lock = (string) ($deploymentConfig['module_lock'] ?? '');
+        $lockPath = str_starts_with($lock, '/') ? $lock : $this->serverRoot . '/' . $lock;
+        $stat = @stat($lockPath);
+        if ($stat === false) {
+            return null;
+        }
+        return implode('|', [
+            $this->serverRoot,
+            json_encode($deploymentConfig, JSON_THROW_ON_ERROR),
+            implode(':', [(string) ($stat['ino'] ?? 0), (string) ($stat['mtime'] ?? 0), (string) ($stat['size'] ?? 0)]),
+        ]);
+    }
+
+    private static function processRecordCache(string $key, ?array $store = null): ?array
+    {
+        static $cachedKey = null;
+        static $cachedRecord = null;
+        if ($store !== null) {
+            $cachedKey = $key;
+            $cachedRecord = $store;
+            return $store;
+        }
+        return $cachedKey === $key && is_array($cachedRecord) ? $cachedRecord : null;
     }
 
     private function runtimeStore(): File

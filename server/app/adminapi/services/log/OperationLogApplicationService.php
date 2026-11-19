@@ -26,18 +26,17 @@ class OperationLogApplicationService
     /** 分页列表，支持按 用户名/URI/方法 过滤 */
     public function lists(TenantContext $context, array $params): PageResult|array
     {
-        $query = self::buildQuery($context, $params);
-        $count = $query->count();
-        $pageSize = min(self::EXPORT_MAX_ROWS, max(1, (int) ($params['page_size'] ?? $params['limit'] ?? 15)));
-        if ((int) ($params['export'] ?? 0) === 1) {
-            return self::exportInfo($count, $pageSize);
-        }
-        if ((int) ($params['export'] ?? 0) === 2) {
+        $export = (int) ($params['export'] ?? 0);
+        if ($export === 1 || $export === 2) {
+            $count = self::buildQuery($context, $params)->count();
+            $pageSize = min(self::EXPORT_MAX_ROWS, max(1, (int) ($params['page_size'] ?? $params['limit'] ?? 15)));
+            if ($export === 1) {
+                return self::exportInfo($count, $pageSize);
+            }
             return $this->export($context, $params, $count, $pageSize);
         }
 
-        $pageResult = PaginationInput::from($params)->result(self::buildQuery($context, $params)->order('id', 'desc'));
-        return $pageResult;
+        return PaginationInput::from($params)->result(self::buildQuery($context, $params)->order('id', 'desc'));
     }
 
     public function detail(TenantContext $context, int $id): array

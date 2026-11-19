@@ -4,21 +4,24 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\dept;
 
+use think\App;
+
 use app\adminapi\controller\BaseAdminController;
 use app\adminapi\services\dept\JobsApplicationService;
 use app\common\traits\CrudTrait;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use think\response\Json;
 
-/** @property-read JobsApplicationService $jobs 当前 App 中声明式解析的控制器依赖。 */
 class JobsController extends BaseAdminController
 {
     use CrudTrait;
 
     protected const CRUD_STATUS_FIELD = 'status';
 
-    protected string $jobsClass = JobsApplicationService::class;
-
+    public function __construct(App $app, protected readonly JobsApplicationService $jobs)
+    {
+        parent::__construct($app);
+    }
     protected function resolveCrudContext(): TenantContext
     {
         return $this->tenantAdminContext();

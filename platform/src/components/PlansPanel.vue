@@ -246,44 +246,56 @@
     modules.value = [];
     bundles.value = [];
     try {
-      const moduleFirst = await api.planModules(1);
-      if (!isCurrent()) return;
-      const moduleRows = [...moduleFirst.lists];
-      for (
-        let current = 2;
-        current <= Math.ceil(moduleFirst.count / 100);
-        current += 1
-      ) {
-        if (!isCurrent()) return;
-        const result = await api.planModules(current);
-        if (!isCurrent()) return;
-        if (result.count !== moduleFirst.count || !result.lists.length)
-          throw new Error('模块目录在读取期间变化，请重试');
-        moduleRows.push(...result.lists);
-      }
+      const loadAllPages = async <T>(
+        fetchPage: (page: number) => Promise<{ rows: T[]; total: number }>,
+        driftMessage: string
+      ): Promise<T[] | null> => {
+        const first = await fetchPage(1);
+        if (!isCurrent()) return null;
+        const pages = Math.min(100, Math.max(1, Math.ceil(first.total / 100)));
+        if (pages === 1) return [...first.rows];
+        const buckets: T[][] = new Array(pages);
+        buckets[0] = first.rows;
+        let nextPage = 2;
+        const worker = async () => {
+          while (nextPage <= pages) {
+            if (!isCurrent()) return;
+            const current = nextPage++;
+            const result = await fetchPage(current);
+            if (!isCurrent()) return;
+            if (result.total !== first.total || !result.rows.length)
+              throw new Error(driftMessage);
+            buckets[current - 1] = result.rows;
+          }
+        };
+        await Promise.all(Array.from({ length: Math.min(4, pages - 1) }, () => worker()));
+        if (!isCurrent()) return null;
+        return buckets.flat();
+      };
+
+      const [moduleRows, bundleRows] = await Promise.all([
+        loadAllPages(
+          async (page) => {
+            const res = await api.planModules(page);
+            return { rows: res.lists, total: res.count };
+          },
+          '模块目录在读取期间变化，请重试'
+        ),
+        loadAllPages(
+          async (page) => {
+            const res = await api.permissionBundles('tenant', page);
+            return { rows: res.items, total: res.total };
+          },
+          '权限组合目录在读取期间变化，请重试'
+        ),
+      ]);
+      if (moduleRows === null || bundleRows === null || !isCurrent()) return;
       if (
-        moduleRows.length !== moduleFirst.count ||
         new Set(moduleRows.map((item) => item.module_key)).size !==
-          moduleRows.length
+        moduleRows.length
       )
         throw new Error('模块目录分页不完整');
-      const bundleFirst = await api.permissionBundles('tenant', 1);
-      if (!isCurrent()) return;
-      const bundleRows = [...bundleFirst.items];
-      for (
-        let current = 2;
-        current <= Math.ceil(bundleFirst.total / 100);
-        current += 1
-      ) {
-        if (!isCurrent()) return;
-        const result = await api.permissionBundles('tenant', current);
-        if (!isCurrent()) return;
-        if (result.total !== bundleFirst.total || !result.items.length)
-          throw new Error('权限组合目录在读取期间变化，请重试');
-        bundleRows.push(...result.items);
-      }
       if (
-        bundleRows.length !== bundleFirst.total ||
         new Set(bundleRows.map((item) => item.key)).size !==
           bundleRows.length ||
         bundleRows.some((item) => item.audience !== 'tenant')

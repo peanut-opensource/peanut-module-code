@@ -381,20 +381,35 @@
     permissionError.value = '';
     permissionOptions.value = [];
     try {
-      const items: RolePermissionOption[] = [];
-      let page = 1;
-      while (true) {
-        const { data } = await getRolePermissionCatalog({
-          page_no: page,
+      const first = (
+        await getRolePermissionCatalog({
+          page_no: 1,
           page_size: 100,
-        });
-        if (!data.items.length && items.length < data.total)
-          throw new Error(t('systemMenu.field.perms.error'));
-        items.push(...data.items);
-        if (items.length >= data.total) break;
-        page += 1;
+        })
+      ).data;
+      const pages = Math.min(100, Math.max(1, Math.ceil(first.total / 100)));
+      const buckets: RolePermissionOption[][] = new Array(pages);
+      buckets[0] = first.items;
+      if (pages > 1) {
+        let nextPage = 2;
+        const worker = async () => {
+          while (nextPage <= pages) {
+            if (request !== permissionRequest) return;
+            const page = nextPage++;
+            const { data } = await getRolePermissionCatalog({
+              page_no: page,
+              page_size: 100,
+            });
+            if (!data.items.length && page < pages)
+              throw new Error(t('systemMenu.field.perms.error'));
+            buckets[page - 1] = data.items;
+          }
+        };
+        await Promise.all(
+          Array.from({ length: Math.min(4, pages - 1) }, () => worker())
+        );
       }
-      if (request === permissionRequest) permissionOptions.value = items;
+      if (request === permissionRequest) permissionOptions.value = buckets.flat();
     } catch (error) {
       if (request === permissionRequest)
         permissionError.value =

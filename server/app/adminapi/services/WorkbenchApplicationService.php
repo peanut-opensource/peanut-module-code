@@ -85,10 +85,18 @@ class WorkbenchApplicationService
             static fn(array $item): bool => self::menuContainsPath($authorizedMenus, $item['url']),
         ));
 
-        return array_map(function (array $item): array {
-            $item['image'] = $this->files->getFileUrl(
-                (string) ($this->defaultImages[$item['image']] ?? ''),
-            );
+        $imageRefs = [];
+        foreach ($items as $item) {
+            $ref = trim((string) ($this->defaultImages[$item['image']] ?? ''));
+            if ($ref !== '') {
+                $imageRefs[] = $ref;
+            }
+        }
+        $resolvedUrls = $imageRefs === [] ? [] : $this->files->getFileUrls($imageRefs);
+
+        return array_map(function (array $item) use ($resolvedUrls): array {
+            $ref = trim((string) ($this->defaultImages[$item['image']] ?? ''));
+            $item['image'] = $ref === '' ? '' : ($resolvedUrls[$ref] ?? '');
             return $item;
         }, $items);
     }

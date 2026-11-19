@@ -638,20 +638,67 @@
       "path": "server/app/modules/peanut/reference_codes/src/Versioned/Persistence/ReferenceCodeStore.php",
       "sha256": "6525c84d2a7a9229a2472207f7248b33bb63c7dfa14aace2e9e69da57323bee3",
       "scope": "explicit-tenant-column",
-      "tenant_operations": ["create", "replace", "retire", "snapshot", "pageSnapshot"],
-      "other_operations": ["atomically", "synchronize", "assertCurrentDefinition", "definitionSummaries"],
+      "tenant_operations": [
+        "create",
+        "replace",
+        "retire",
+        "snapshot",
+        "pageSnapshot"
+      ],
+      "other_operations": [
+        "atomically",
+        "synchronize",
+        "assertCurrentDefinition",
+        "definitionSummaries"
+      ],
       "pending_operations": [],
       "reason": "租户条目按可信TenantContext、set_id和code读取；修改前核活动读取者/写入者的账号与授权修订，事务内锁同租户条目并核预期修订。历史版本通过父条目的同租户/集合/可选代码联查读取，历史署名先校验并去重，再由Identity公开目录按既有上限分批核同租户存在；不强加历史作者当前活动状态，空显示名仍可用，非法或缺失成员拒绝。pageSnapshot先以200父条目有界批次和同租户/集合版本关联调用Query的纯历史校验，再以相同身份/时刻求有效版本、计数和取至多100条当前页；页外损坏历史仍拒绝，校验异常向上传播，成员键集只存在本事务。HTTP入口另核当前执行身份、模块与固定权限，再处理幂等。目录同步/事务辅助不是租户授权；本登记不证明业务扫描、分页性能或数据库资格，不将无tenant_id的历史版本模型归为共享/实例数据。",
       "support_sources": [
-        {"source": "php-core", "path": "kernel/src/Persistence/Model/TenantModel.php", "sha256": "f5cc6238bba129046d9a24ba30d2a1e96e5111b2d9d91d21d49b38b4229ffe5b"},
-        {"source": "application", "path": "server/app/modules/peanut/identity/src/Contract/AdminDirectoryQuery.php", "sha256": "700697f97f99c69d035991f99a5237c0c9bf7d349388515ea290a02805118fd5"},
-        {"source": "application", "path": "server/app/modules/peanut/identity/src/Contract/TenantMemberDirectory.php", "sha256": "9690b17d69036a03842b67dcc0782e19e9b306be1e427b68b10a82f95d9d949c"},
-        {"source": "application", "path": "server/app/modules/peanut/identity/src/Membership/Query/ThinkPhpTenantMemberDirectory.php", "sha256": "c7537eb12985558c1ebdde43d97b9dd8e7298ff99036afd17873a993a69639bf"},
-        {"source": "application", "path": "server/app/modules/peanut/reference_codes/src/ModuleProvider.php", "sha256": "ee78d1774f273c70914e740909e47d423746b49c1c6a4879b212e8cfb0bfdd10"},
-        {"source": "application", "path": "server/app/modules/peanut/reference_codes/src/Service/ReferenceCodesHttpApplicationService.php", "sha256": "8443efb882f8cf0ee2b99703cf8a4b86a5990fff8fb55a3122255635487b6130"},
-        {"source": "application", "path": "server/app/modules/peanut/reference_codes/src/Versioned/Application/ReferenceCodeAdminService.php", "sha256": "4bec30658cdb751affab594b0006418d62ed48790a786890b9bf4bb1360764cd"},
-        {"source": "application", "path": "server/app/modules/peanut/reference_codes/src/Versioned/Application/ReferenceCodeQuery.php", "sha256": "7e7f13f706c8f92668b1899da05bcb439ce234514fdb8df4058f029f5c04d6a2"},
-        {"source": "application", "path": "server/app/modules/peanut/reference_codes/src/Versioned/Database/Schema.php", "sha256": "5788d85ceee1eabd58657a39f949724367051be94b91e220aa3b958bffa2202d"}
+        {
+          "source": "php-core",
+          "path": "kernel/src/Persistence/Model/TenantModel.php",
+          "sha256": "f5cc6238bba129046d9a24ba30d2a1e96e5111b2d9d91d21d49b38b4229ffe5b"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/identity/src/Contract/AdminDirectoryQuery.php",
+          "sha256": "700697f97f99c69d035991f99a5237c0c9bf7d349388515ea290a02805118fd5"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/identity/src/Contract/TenantMemberDirectory.php",
+          "sha256": "9690b17d69036a03842b67dcc0782e19e9b306be1e427b68b10a82f95d9d949c"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/identity/src/Membership/Query/ThinkPhpTenantMemberDirectory.php",
+          "sha256": "c7537eb12985558c1ebdde43d97b9dd8e7298ff99036afd17873a993a69639bf"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/reference_codes/src/ModuleProvider.php",
+          "sha256": "ee78d1774f273c70914e740909e47d423746b49c1c6a4879b212e8cfb0bfdd10"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/reference_codes/src/Service/ReferenceCodesHttpApplicationService.php",
+          "sha256": "8443efb882f8cf0ee2b99703cf8a4b86a5990fff8fb55a3122255635487b6130"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/reference_codes/src/Versioned/Application/ReferenceCodeAdminService.php",
+          "sha256": "4bec30658cdb751affab594b0006418d62ed48790a786890b9bf4bb1360764cd"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/reference_codes/src/Versioned/Application/ReferenceCodeQuery.php",
+          "sha256": "7e7f13f706c8f92668b1899da05bcb439ce234514fdb8df4058f029f5c04d6a2"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/reference_codes/src/Versioned/Database/Schema.php",
+          "sha256": "5788d85ceee1eabd58657a39f949724367051be94b91e220aa3b958bffa2202d"
+        }
       ]
     },
     "PeanutAdmin\\Modules\\Settings\\Application\\SettingAdminService": {
@@ -659,19 +706,62 @@
       "path": "server/app/modules/peanut/settings/src/Application/SettingAdminService.php",
       "sha256": "cf4cc886211757e6cf2179170bcaf318f1ffe0e4724b19a180576e02712ab8c5",
       "scope": "explicit-edition-tenant",
-      "tenant_operations": ["replaceTenant", "unsetTenant", "replaceTarget", "unsetTarget"],
-      "other_operations": ["replaceDeployment", "unsetDeployment", "prepareStorage", "assertValidInterval", "emptyStorage"],
+      "tenant_operations": [
+        "replaceTenant",
+        "unsetTenant",
+        "replaceTarget",
+        "unsetTarget"
+      ],
+      "other_operations": [
+        "replaceDeployment",
+        "unsetDeployment",
+        "prepareStorage",
+        "assertValidInterval",
+        "emptyStorage"
+      ],
       "pending_operations": [],
       "reason": "租户/目标写入显式EditionTenantModel与TenantScope，核模式、活动成员及字段归属；目标操作核已授权的模块/资源/动作/单目标和幂等原子合同。读写在现有事务内核定义摘要、锁与预期修订；HTTP入口另核当前人员、租户一致性及固定权限。部署写入与纯存储/时间辅助方法属于其他职责，不获得租户授权，也不据此批准部署级原始模型。",
       "support_sources": [
-        {"source": "php-core", "path": "kernel/src/Persistence/Model/EditionTenantModel.php", "sha256": "5a1e55a9dacfa01d8c071b19e4a9f456f5029132ae900f5174e6cfa03ded18e8"},
-        {"source": "php-core", "path": "kernel/src/Persistence/Tenancy/TenantColumnScope.php", "sha256": "d5a50c48866888f4ae0eece820326ac322705ce64ef1ef4156a898a690b56eff"},
-        {"source": "php-core", "path": "kernel/src/Tenancy/TenantScope.php", "sha256": "b352bd2402502861929da57b591a86bf399e4fad80506d0a370be09ec77918d9"},
-        {"source": "application", "path": "server/app/modules/peanut/settings/src/Application/SettingResolver.php", "sha256": "eabeba7d1f9bd50e6073b0af379f40e859ecce74d464d46740533edb16b881cb"},
-        {"source": "application", "path": "server/app/modules/peanut/settings/src/Service/SettingsHttpApplicationService.php", "sha256": "34928b92a868c15b2740f3a95cff11913011b5d4beac0a86e4943a0d89ef2fe3"},
-        {"source": "application", "path": "server/app/modules/peanut/settings/src/Application/TargetSettingWriter.php", "sha256": "23ea51cc489e1f2572448bddd910f586feb95e1ce3ee100ccb7e79e591cda303"},
-        {"source": "application", "path": "server/app/modules/peanut/settings/src/ModuleProvider.php", "sha256": "63071f90a3cd7dc791a8eb7f2ff794cb1f8b9e6b528e33d8cfbf3ef0d4e14b4a"},
-        {"source": "application", "path": "server/app/modules/peanut/settings/src/Database/Schema.php", "sha256": "b75c75af47230385c992f5c83430a11a314a9a42cd70c8bbcdc92c7ec4acd73a"}
+        {
+          "source": "php-core",
+          "path": "kernel/src/Persistence/Model/EditionTenantModel.php",
+          "sha256": "5a1e55a9dacfa01d8c071b19e4a9f456f5029132ae900f5174e6cfa03ded18e8"
+        },
+        {
+          "source": "php-core",
+          "path": "kernel/src/Persistence/Tenancy/TenantColumnScope.php",
+          "sha256": "d5a50c48866888f4ae0eece820326ac322705ce64ef1ef4156a898a690b56eff"
+        },
+        {
+          "source": "php-core",
+          "path": "kernel/src/Tenancy/TenantScope.php",
+          "sha256": "b352bd2402502861929da57b591a86bf399e4fad80506d0a370be09ec77918d9"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/settings/src/Application/SettingResolver.php",
+          "sha256": "eabeba7d1f9bd50e6073b0af379f40e859ecce74d464d46740533edb16b881cb"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/settings/src/Service/SettingsHttpApplicationService.php",
+          "sha256": "34928b92a868c15b2740f3a95cff11913011b5d4beac0a86e4943a0d89ef2fe3"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/settings/src/Application/TargetSettingWriter.php",
+          "sha256": "23ea51cc489e1f2572448bddd910f586feb95e1ce3ee100ccb7e79e591cda303"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/settings/src/ModuleProvider.php",
+          "sha256": "63071f90a3cd7dc791a8eb7f2ff794cb1f8b9e6b528e33d8cfbf3ef0d4e14b4a"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/settings/src/Database/Schema.php",
+          "sha256": "b75c75af47230385c992f5c83430a11a314a9a42cd70c8bbcdc92c7ec4acd73a"
+        }
       ]
     },
     "PeanutAdmin\\Modules\\Settings\\Application\\SettingResolver": {
@@ -679,16 +769,41 @@
       "path": "server/app/modules/peanut/settings/src/Application/SettingResolver.php",
       "sha256": "eabeba7d1f9bd50e6073b0af379f40e859ecce74d464d46740533edb16b881cb",
       "scope": "explicit-edition-tenant",
-      "tenant_operations": ["resolveTenant", "resolveTarget"],
-      "other_operations": ["resolveDeployment"],
+      "tenant_operations": [
+        "resolveTenant",
+        "resolveTarget"
+      ],
+      "other_operations": [
+        "resolveDeployment"
+      ],
       "pending_operations": [],
       "reason": "租户/目标读取核租户存在、Edition存储形态、受限目标与定义摘要；查询使用显式tenant Scope，缓存键区分租户/目标/修订和生效阶段，秘密不进入该缓存。部署读取是独立非租户职责；公开授权及秘密响应脱敏仍由实际调用者负责。",
       "support_sources": [
-        {"source": "php-core", "path": "kernel/src/Persistence/Model/EditionTenantModel.php", "sha256": "5a1e55a9dacfa01d8c071b19e4a9f456f5029132ae900f5174e6cfa03ded18e8"},
-        {"source": "php-core", "path": "kernel/src/Persistence/Tenancy/TenantColumnScope.php", "sha256": "d5a50c48866888f4ae0eece820326ac322705ce64ef1ef4156a898a690b56eff"},
-        {"source": "application", "path": "server/app/modules/peanut/identity/src/Tenancy/Application/TenantWorkspaceQueryService.php", "sha256": "4b2eadd6e5c625b6a0090d41966bedde1abc7318137faabd970a0e4fe416d727"},
-        {"source": "application", "path": "server/app/modules/peanut/settings/src/Service/SettingsHttpApplicationService.php", "sha256": "34928b92a868c15b2740f3a95cff11913011b5d4beac0a86e4943a0d89ef2fe3"},
-        {"source": "application", "path": "server/app/modules/peanut/settings/src/ModuleProvider.php", "sha256": "63071f90a3cd7dc791a8eb7f2ff794cb1f8b9e6b528e33d8cfbf3ef0d4e14b4a"}
+        {
+          "source": "php-core",
+          "path": "kernel/src/Persistence/Model/EditionTenantModel.php",
+          "sha256": "5a1e55a9dacfa01d8c071b19e4a9f456f5029132ae900f5174e6cfa03ded18e8"
+        },
+        {
+          "source": "php-core",
+          "path": "kernel/src/Persistence/Tenancy/TenantColumnScope.php",
+          "sha256": "d5a50c48866888f4ae0eece820326ac322705ce64ef1ef4156a898a690b56eff"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/identity/src/Tenancy/Application/TenantWorkspaceQueryService.php",
+          "sha256": "4b2eadd6e5c625b6a0090d41966bedde1abc7318137faabd970a0e4fe416d727"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/settings/src/Service/SettingsHttpApplicationService.php",
+          "sha256": "34928b92a868c15b2740f3a95cff11913011b5d4beac0a86e4943a0d89ef2fe3"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/settings/src/ModuleProvider.php",
+          "sha256": "63071f90a3cd7dc791a8eb7f2ff794cb1f8b9e6b528e33d8cfbf3ef0d4e14b4a"
+        }
       ]
     },
     "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository": {
@@ -818,16 +933,50 @@
       "path": "server/app/modules/peanut/notification/src/Delivery/Persistence/NotificationStore.php",
       "sha256": "7479b0af1d403600997c9b3a68dac948fef0d62516504886844b877444bec1af",
       "scope": "explicit-tenant-column",
-      "tenant_operations": ["putTemplate", "activeTemplate", "createMessage", "inbox", "changeInbox", "bulkChangeInbox", "outboxForSubmission", "bindJob", "deliverInbox", "beginSms", "reserveSmsRate", "completeSms", "failSms"],
+      "tenant_operations": [
+        "putTemplate",
+        "activeTemplate",
+        "createMessage",
+        "inbox",
+        "changeInbox",
+        "bulkChangeInbox",
+        "outboxForSubmission",
+        "bindJob",
+        "deliverInbox",
+        "beginSms",
+        "reserveSmsRate",
+        "completeSms",
+        "failSms"
+      ],
       "other_operations": [],
       "pending_operations": [],
       "reason": "通知台账、模板、收件箱、投递状态和限频桶显式绑定tenant_id；收件箱同时绑定recipient_member_id，创建核当前人员与同租户收件人。后台投递由已授权任务上下文、租户一致性和租约检查后传入job/outbox身份。原子性由现有用例事务负责；此登记不发送短信，不声明自动全局Scope或渠道资格。",
       "support_sources": [
-        {"source": "php-core", "path": "kernel/src/Persistence/Model/TenantModel.php", "sha256": "f5cc6238bba129046d9a24ba30d2a1e96e5111b2d9d91d21d49b38b4229ffe5b"},
-        {"source": "application", "path": "server/app/modules/peanut/notification/src/Delivery/Application/NotificationService.php", "sha256": "946295e6e758c77ab836f99630719f15f6f2170b8116969880b5d041dd0146a1"},
-        {"source": "application", "path": "server/app/modules/peanut/notification/src/Delivery/Application/NotificationInboxService.php", "sha256": "0000ce4ff01eec27a9c5578cc618f7b9db8fdb1c9f7103d96493af2d9edd4305"},
-        {"source": "application", "path": "server/app/modules/peanut/notification/src/Delivery/Task/SmsTaskHandler.php", "sha256": "d830460e69cbd59aeab5708bd822eceb82c3b07992f46a03b12ee07647e0e34e"},
-        {"source": "application", "path": "server/app/modules/peanut/notification/src/Delivery/Task/InboxTaskHandler.php", "sha256": "cd35b8d77fdb868ef6a4e30f6c91b5125a9974823ecf856d7b16d1fedfd25ab1"}
+        {
+          "source": "php-core",
+          "path": "kernel/src/Persistence/Model/TenantModel.php",
+          "sha256": "f5cc6238bba129046d9a24ba30d2a1e96e5111b2d9d91d21d49b38b4229ffe5b"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/notification/src/Delivery/Application/NotificationService.php",
+          "sha256": "946295e6e758c77ab836f99630719f15f6f2170b8116969880b5d041dd0146a1"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/notification/src/Delivery/Application/NotificationInboxService.php",
+          "sha256": "0000ce4ff01eec27a9c5578cc618f7b9db8fdb1c9f7103d96493af2d9edd4305"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/notification/src/Delivery/Task/SmsTaskHandler.php",
+          "sha256": "d830460e69cbd59aeab5708bd822eceb82c3b07992f46a03b12ee07647e0e34e"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/notification/src/Delivery/Task/InboxTaskHandler.php",
+          "sha256": "cd35b8d77fdb868ef6a4e30f6c91b5125a9974823ecf856d7b16d1fedfd25ab1"
+        }
       ]
     },
     "PeanutAdmin\\Modules\\ArtifactRevision\\Persistence\\ThinkPhpArtifactRevisionRepository": {
@@ -835,14 +984,33 @@
       "path": "server/app/modules/peanut/artifact_revision/src/Persistence/ThinkPhpArtifactRevisionRepository.php",
       "sha256": "2016dd26f656021d9f4e1a3cdebadfe551f8c466765862b6657dc7e29ea45127",
       "scope": "explicit-tenant-column",
-      "tenant_operations": ["artifact", "lockOrCreateArtifact", "createPendingRevision", "revision", "revisionById", "finalizeRevision"],
+      "tenant_operations": [
+        "artifact",
+        "lockOrCreateArtifact",
+        "createPendingRevision",
+        "revision",
+        "revisionById",
+        "finalizeRevision"
+      ],
       "other_operations": [],
       "pending_operations": [],
       "reason": "私有制品聚合仓储显式scopeTenant；创建先读取并锁定同租户聚合，写入沿用该tenantId，版本CAS与不可变父系保持。公开用例核AuthorizedOperationContext目标并拥有幂等事务；不授权直接从外部调用仓储。",
       "support_sources": [
-        {"source": "php-core", "path": "kernel/src/Persistence/Model/TenantModel.php", "sha256": "f5cc6238bba129046d9a24ba30d2a1e96e5111b2d9d91d21d49b38b4229ffe5b"},
-        {"source": "php-core", "path": "kernel/src/Tenancy/TenantScope.php", "sha256": "b352bd2402502861929da57b591a86bf399e4fad80506d0a370be09ec77918d9"},
-        {"source": "application", "path": "server/app/modules/peanut/artifact_revision/src/Application/ArtifactRevisionService.php", "sha256": "ea20b0109a1b20e30b2450e40ea47fa5056633be1ea599c5a08611c5a77e2c7f"}
+        {
+          "source": "php-core",
+          "path": "kernel/src/Persistence/Model/TenantModel.php",
+          "sha256": "f5cc6238bba129046d9a24ba30d2a1e96e5111b2d9d91d21d49b38b4229ffe5b"
+        },
+        {
+          "source": "php-core",
+          "path": "kernel/src/Tenancy/TenantScope.php",
+          "sha256": "b352bd2402502861929da57b591a86bf399e4fad80506d0a370be09ec77918d9"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/artifact_revision/src/Application/ArtifactRevisionService.php",
+          "sha256": "ea20b0109a1b20e30b2450e40ea47fa5056633be1ea599c5a08611c5a77e2c7f"
+        }
       ]
     },
     "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository": {
@@ -850,14 +1018,38 @@
       "path": "server/app/modules/peanut/entitlement_quota/src/Persistence/ThinkPhpEntitlementQuotaRepository.php",
       "sha256": "0310ff0236d2dd8ed257b2e3f4dbcc6158158c92aa5e9723a969b952f4870b8c",
       "scope": "explicit-tenant-column",
-      "tenant_operations": ["grant", "lockOrCreatePolicyRevision", "policyRevision", "policyRevisionById", "usageWindow", "lockOrCreateUsageWindow", "livePendingAmount", "createReservation", "reservation", "settleReservation", "usageWindowById"],
+      "tenant_operations": [
+        "grant",
+        "lockOrCreatePolicyRevision",
+        "policyRevision",
+        "policyRevisionById",
+        "usageWindow",
+        "lockOrCreateUsageWindow",
+        "livePendingAmount",
+        "createReservation",
+        "reservation",
+        "settleReservation",
+        "usageWindowById"
+      ],
       "other_operations": [],
       "pending_operations": [],
       "reason": "私有配额仓储所有查询与状态更新显式TenantScope，创建前从同租户策略/窗口取回身份，账本沿用范围内预约。写操作要求调用方已有事务；过期预约仅作用于指定租户窗口。金额校验和锁/CAS不是HTTP授权替代。",
       "support_sources": [
-        {"source": "php-core", "path": "kernel/src/Persistence/Model/TenantModel.php", "sha256": "f5cc6238bba129046d9a24ba30d2a1e96e5111b2d9d91d21d49b38b4229ffe5b"},
-        {"source": "php-core", "path": "kernel/src/Tenancy/TenantScope.php", "sha256": "b352bd2402502861929da57b591a86bf399e4fad80506d0a370be09ec77918d9"},
-        {"source": "application", "path": "server/app/modules/peanut/entitlement_quota/src/Application/EntitlementQuotaService.php", "sha256": "736163dbe053d3170ebc2afafa367e33e67656041d5da14ccf0d6a79bca84bf3"}
+        {
+          "source": "php-core",
+          "path": "kernel/src/Persistence/Model/TenantModel.php",
+          "sha256": "f5cc6238bba129046d9a24ba30d2a1e96e5111b2d9d91d21d49b38b4229ffe5b"
+        },
+        {
+          "source": "php-core",
+          "path": "kernel/src/Tenancy/TenantScope.php",
+          "sha256": "b352bd2402502861929da57b591a86bf399e4fad80506d0a370be09ec77918d9"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/entitlement_quota/src/Application/EntitlementQuotaService.php",
+          "sha256": "736163dbe053d3170ebc2afafa367e33e67656041d5da14ccf0d6a79bca84bf3"
+        }
       ]
     },
     "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository": {
@@ -865,14 +1057,48 @@
       "path": "server/app/modules/peanut/workflow/src/Persistence/ThinkPhpWorkflowRepository.php",
       "sha256": "180a589824c52ada20960cf157afaa5aa1bc6244aeed1c60a133653ba9425266",
       "scope": "explicit-tenant-column",
-      "tenant_operations": ["definition", "saveDraft", "publishDefinition", "retireDefinition", "definitionVersion", "createInstance", "instance", "pendingWorkItems", "createWorkItems", "nextRound", "completeWorkItem", "cancelPendingWorkItems", "completedDecisions", "transitionInstance", "nextEventSequence", "appendEvent", "transitionTraversalCount", "definitions", "versions", "workItems", "events"],
+      "tenant_operations": [
+        "definition",
+        "saveDraft",
+        "publishDefinition",
+        "retireDefinition",
+        "definitionVersion",
+        "createInstance",
+        "instance",
+        "pendingWorkItems",
+        "createWorkItems",
+        "nextRound",
+        "completeWorkItem",
+        "cancelPendingWorkItems",
+        "completedDecisions",
+        "transitionInstance",
+        "nextEventSequence",
+        "appendEvent",
+        "transitionTraversalCount",
+        "definitions",
+        "versions",
+        "workItems",
+        "events"
+      ],
       "other_operations": [],
       "pending_operations": [],
       "reason": "私有工作流仓储查询/更新显式TenantScope。createInstance/createWorkItems/appendEvent不独立认证任意tenantId，依赖WorkflowRuntime先校验可信上下文、同租户定义/实例和业务授权再传身份，并参加其幂等事务；该调用方属于本次有效登记边界，不授权公开直接写模型。",
       "support_sources": [
-        {"source": "php-core", "path": "kernel/src/Persistence/Model/TenantModel.php", "sha256": "f5cc6238bba129046d9a24ba30d2a1e96e5111b2d9d91d21d49b38b4229ffe5b"},
-        {"source": "php-core", "path": "kernel/src/Tenancy/TenantScope.php", "sha256": "b352bd2402502861929da57b591a86bf399e4fad80506d0a370be09ec77918d9"},
-        {"source": "application", "path": "server/app/modules/peanut/workflow/src/Application/WorkflowRuntime.php", "sha256": "38269b7d2045c0f03d377167ea2cea1cee7f7e3777399a329881f154fe404c52"}
+        {
+          "source": "php-core",
+          "path": "kernel/src/Persistence/Model/TenantModel.php",
+          "sha256": "f5cc6238bba129046d9a24ba30d2a1e96e5111b2d9d91d21d49b38b4229ffe5b"
+        },
+        {
+          "source": "php-core",
+          "path": "kernel/src/Tenancy/TenantScope.php",
+          "sha256": "b352bd2402502861929da57b591a86bf399e4fad80506d0a370be09ec77918d9"
+        },
+        {
+          "source": "application",
+          "path": "server/app/modules/peanut/workflow/src/Application/WorkflowRuntime.php",
+          "sha256": "38269b7d2045c0f03d377167ea2cea1cee7f7e3777399a329881f154fe404c52"
+        }
       ]
     },
     "PeanutAdmin\\Kernel\\Idempotency\\IdempotencyService": {
@@ -880,14 +1106,34 @@
       "path": "kernel/src/Idempotency/IdempotencyService.php",
       "sha256": "e9a049d1000d60ad509c1b1ae656e95f191da83fa282d9ab0fd1fdad43f79432",
       "scope": "explicit-edition-tenant",
-      "tenant_operations": ["beginTenant", "completeTenant", "failTenant"],
-      "other_operations": ["beginPlatform", "completePlatform", "failPlatform"],
+      "tenant_operations": [
+        "beginTenant",
+        "completeTenant",
+        "failTenant"
+      ],
+      "other_operations": [
+        "beginPlatform",
+        "completePlatform",
+        "failPlatform"
+      ],
       "pending_operations": [],
       "reason": "租户操作经TenantScope及EditionTenantModel读写模式检查；平台动作是另一安全域，不由租户表登记授权。调用者仍负责可信上下文、操作授权和事务。",
       "support_sources": [
-        {"source": "php-core", "path": "kernel/src/Persistence/Model/EditionTenantModel.php", "sha256": "5a1e55a9dacfa01d8c071b19e4a9f456f5029132ae900f5174e6cfa03ded18e8"},
-        {"source": "php-core", "path": "kernel/src/Persistence/Tenancy/TenantColumnScope.php", "sha256": "d5a50c48866888f4ae0eece820326ac322705ce64ef1ef4156a898a690b56eff"},
-        {"source": "php-core", "path": "kernel/src/Idempotency/Model/TenantIdempotencyRecord.php", "sha256": "3ed4c7a091d63fef64aeb5675a7f00db43d99692049ed82596651451b343facf"}
+        {
+          "source": "php-core",
+          "path": "kernel/src/Persistence/Model/EditionTenantModel.php",
+          "sha256": "5a1e55a9dacfa01d8c071b19e4a9f456f5029132ae900f5174e6cfa03ded18e8"
+        },
+        {
+          "source": "php-core",
+          "path": "kernel/src/Persistence/Tenancy/TenantColumnScope.php",
+          "sha256": "d5a50c48866888f4ae0eece820326ac322705ce64ef1ef4156a898a690b56eff"
+        },
+        {
+          "source": "php-core",
+          "path": "kernel/src/Idempotency/Model/TenantIdempotencyRecord.php",
+          "sha256": "3ed4c7a091d63fef64aeb5675a7f00db43d99692049ed82596651451b343facf"
+        }
       ]
     },
     "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\TaskJobStore": {
@@ -895,14 +1141,37 @@
       "path": "server/app/modules/peanut/task/src/Job/Persistence/TaskJobStore.php",
       "sha256": "4b009ebfe886ac2da134df2e80905b0039a07e66658d7bed0eb31e7e581e0338",
       "scope": "explicit-tenant-column",
-      "tenant_operations": ["enqueue", "list", "get", "cancel", "retryDead", "claim", "renew", "assertExecutable", "succeed", "fail"],
+      "tenant_operations": [
+        "enqueue",
+        "list",
+        "get",
+        "cancel",
+        "retryDead",
+        "claim",
+        "renew",
+        "assertExecutable",
+        "succeed",
+        "fail"
+      ],
       "other_operations": [],
       "pending_operations": [],
       "reason": "内部任务状态存储。query/tenantData检查租户编号及Edition存储形态，读取结果复核归属；调用方仍负责模块、人员授权和任务可信信封。不是自动全局Scope。",
       "support_sources": [
-        {"source": "php-core", "path": "kernel/src/Persistence/Tenancy/TenantColumnScope.php", "sha256": "d5a50c48866888f4ae0eece820326ac322705ce64ef1ef4156a898a690b56eff"},
-        {"source": "php-core", "path": "kernel/src/Persistence/Tenancy/TenantPersistenceMode.php", "sha256": "b964354d0e787b0348e36d00a982f5396a5898ebb3008bc7ffa49f0a47f83bbb"},
-        {"source": "php-core", "path": "kernel/src/Persistence/Model/TenantModel.php", "sha256": "f5cc6238bba129046d9a24ba30d2a1e96e5111b2d9d91d21d49b38b4229ffe5b"}
+        {
+          "source": "php-core",
+          "path": "kernel/src/Persistence/Tenancy/TenantColumnScope.php",
+          "sha256": "d5a50c48866888f4ae0eece820326ac322705ce64ef1ef4156a898a690b56eff"
+        },
+        {
+          "source": "php-core",
+          "path": "kernel/src/Persistence/Tenancy/TenantPersistenceMode.php",
+          "sha256": "b964354d0e787b0348e36d00a982f5396a5898ebb3008bc7ffa49f0a47f83bbb"
+        },
+        {
+          "source": "php-core",
+          "path": "kernel/src/Persistence/Model/TenantModel.php",
+          "sha256": "f5cc6238bba129046d9a24ba30d2a1e96e5111b2d9d91d21d49b38b4229ffe5b"
+        }
       ]
     },
     "PeanutAdmin\\Modules\\ImportExport\\Engine\\Persistence\\ImportExportStore": {
@@ -1940,14 +2209,37 @@
         "parent_model": "PeanutAdmin\\Modules\\ReferenceCodes\\Versioned\\Persistence\\Model\\ReferenceCodeEntryRecord",
         "column": "entry_id",
         "parent_column": "id",
-        "operations": ["create", "replace", "retire", "snapshot", "pageSnapshot"],
+        "operations": [
+          "create",
+          "replace",
+          "retire",
+          "snapshot",
+          "pageSnapshot"
+        ],
         "reason": "历史版本通过非空entry_id外键属于已按租户限定的父条目，不是实例或共享数据。写入仅使用同事务内创建或锁定的父条目身份，读取先按TenantContext/set/code取父，再通过同样限定租户/集合/可选代码的父表JOIN读取版本；父记录缺失、移到其他租户或版本关系损坏不得返回其他租户数据。历史署名与当前执行者仍由各自公开身份合同核对；模型和关系源码变化使本证据失效。原生内存夹具验证了父不存在、父跨租户与错链拒绝，但不代表MySQL迁移、并发或全业务资格；pageSnapshot的扫描、有效版本与当前页版本均沿同租户/集合父条目获取；Query闭包继续执行完整历史校验，数据库计数/分页不掩盖页外损坏。该记录只复核本次分页增量，不代表全业务扫描或新的运行授权。",
-        "model_source": {"source": "application", "path": "server/app/modules/peanut/reference_codes/src/Versioned/Persistence/Model/ReferenceCodeEntryVersionRecord.php", "sha256": "0f905162e12466af511e0a36adf6da547ee1fc8146b11b006654d335462f0d8e"},
-        "parent_source": {"source": "application", "path": "server/app/modules/peanut/reference_codes/src/Versioned/Persistence/Model/ReferenceCodeEntryRecord.php", "sha256": "0aecb08a0122f52a4a391bc8347e7e9126b06abacad119f6c645a0ae29f31ba5"},
-        "schema_source": {"source": "application", "path": "server/app/modules/peanut/reference_codes/database/migrations/20260921-adopt-reference-codes-schema.sql", "sha256": "01809393f85e3945fc8832830ac45c5b17c542019b28ae30d3ebba2c990d01be"}
+        "model_source": {
+          "source": "application",
+          "path": "server/app/modules/peanut/reference_codes/src/Versioned/Persistence/Model/ReferenceCodeEntryVersionRecord.php",
+          "sha256": "0f905162e12466af511e0a36adf6da547ee1fc8146b11b006654d335462f0d8e"
+        },
+        "parent_source": {
+          "source": "application",
+          "path": "server/app/modules/peanut/reference_codes/src/Versioned/Persistence/Model/ReferenceCodeEntryRecord.php",
+          "sha256": "0aecb08a0122f52a4a391bc8347e7e9126b06abacad119f6c645a0ae29f31ba5"
+        },
+        "schema_source": {
+          "source": "application",
+          "path": "server/app/modules/peanut/reference_codes/database/migrations/20260921-adopt-reference-codes-schema.sql",
+          "sha256": "01809393f85e3945fc8832830ac45c5b17c542019b28ae30d3ebba2c990d01be"
+        }
       }
     },
-    {"model": "PeanutAdmin\\Modules\\ReferenceCodes\\Versioned\\Persistence\\Model\\ReferenceCodeEntryRecord", "table": "pa_reference_code_entry", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\ReferenceCodes\\Versioned\\Persistence\\ReferenceCodeStore"},
+    {
+      "model": "PeanutAdmin\\Modules\\ReferenceCodes\\Versioned\\Persistence\\Model\\ReferenceCodeEntryRecord",
+      "table": "pa_reference_code_entry",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\ReferenceCodes\\Versioned\\Persistence\\ReferenceCodeStore"
+    },
     {
       "model": "PeanutAdmin\\Modules\\Identity\\Authorization\\Model\\ProtectedResourceRecord",
       "table": "pa_protected_resource",
@@ -2277,13 +2569,41 @@
       "instance_review": {
         "classification": "deployment-instance",
         "reason": "按module_key与set_key唯一保存的部署定义目录，包含可变摘要、修订及生命周期，不是租户条目值，也非不可变共享数据。公开目录协作只同步已选模块声明，Store的synchronize保留锁与事务；本记录只核目录归属；Entry访问由独立租户入口登记核对，EntryVersion的间接租户归属仍需单独核验。EntryVersion无tenant_id但沿entry_id属于租户条目，不可复用本实例登记。",
-        "model_source": {"source": "application", "path": "server/app/modules/peanut/reference_codes/src/Versioned/Persistence/Model/ReferenceCodeSetRecord.php", "sha256": "f1d16d34e55853d3bcdd477b5e4fb693ed5dc6b5cdaec49b51497a94197bbda5"},
-        "schema_source": {"source": "application", "path": "server/app/modules/peanut/reference_codes/database/migrations/20260921-adopt-reference-codes-schema.sql", "sha256": "01809393f85e3945fc8832830ac45c5b17c542019b28ae30d3ebba2c990d01be"},
+        "model_source": {
+          "source": "application",
+          "path": "server/app/modules/peanut/reference_codes/src/Versioned/Persistence/Model/ReferenceCodeSetRecord.php",
+          "sha256": "f1d16d34e55853d3bcdd477b5e4fb693ed5dc6b5cdaec49b51497a94197bbda5"
+        },
+        "schema_source": {
+          "source": "application",
+          "path": "server/app/modules/peanut/reference_codes/database/migrations/20260921-adopt-reference-codes-schema.sql",
+          "sha256": "01809393f85e3945fc8832830ac45c5b17c542019b28ae30d3ebba2c990d01be"
+        },
         "access_sources": [
-          {"entry": "PeanutAdmin\\Modules\\ReferenceCodes\\Versioned\\Persistence\\ReferenceCodeStore", "source": "application", "path": "server/app/modules/peanut/reference_codes/src/Versioned/Persistence/ReferenceCodeStore.php", "sha256": "6525c84d2a7a9229a2472207f7248b33bb63c7dfa14aace2e9e69da57323bee3"},
-          {"entry": "PeanutAdmin\\Modules\\ReferenceCodes\\Service\\ReferenceCodeCatalogService", "source": "application", "path": "server/app/modules/peanut/reference_codes/src/Service/ReferenceCodeCatalogService.php", "sha256": "f14db56ac8b8c3dbcc578745fd24f87ac1875d04132dddca0c7311fb8020cd6b"},
-          {"entry": "PeanutAdmin\\Modules\\ReferenceCodes\\Versioned\\Definition\\ReferenceCodeSetRegistry", "source": "application", "path": "server/app/modules/peanut/reference_codes/src/Versioned/Definition/ReferenceCodeSetRegistry.php", "sha256": "9bdda89e582d9eef60e55f66eeebd444d79ac9942cdc0dacc14b954c8d618b24"},
-          {"entry": "PeanutAdmin\\Modules\\ReferenceCodes\\ModuleProvider", "source": "application", "path": "server/app/modules/peanut/reference_codes/src/ModuleProvider.php", "sha256": "ee78d1774f273c70914e740909e47d423746b49c1c6a4879b212e8cfb0bfdd10"}
+          {
+            "entry": "PeanutAdmin\\Modules\\ReferenceCodes\\Versioned\\Persistence\\ReferenceCodeStore",
+            "source": "application",
+            "path": "server/app/modules/peanut/reference_codes/src/Versioned/Persistence/ReferenceCodeStore.php",
+            "sha256": "6525c84d2a7a9229a2472207f7248b33bb63c7dfa14aace2e9e69da57323bee3"
+          },
+          {
+            "entry": "PeanutAdmin\\Modules\\ReferenceCodes\\Service\\ReferenceCodeCatalogService",
+            "source": "application",
+            "path": "server/app/modules/peanut/reference_codes/src/Service/ReferenceCodeCatalogService.php",
+            "sha256": "f14db56ac8b8c3dbcc578745fd24f87ac1875d04132dddca0c7311fb8020cd6b"
+          },
+          {
+            "entry": "PeanutAdmin\\Modules\\ReferenceCodes\\Versioned\\Definition\\ReferenceCodeSetRegistry",
+            "source": "application",
+            "path": "server/app/modules/peanut/reference_codes/src/Versioned/Definition/ReferenceCodeSetRegistry.php",
+            "sha256": "9bdda89e582d9eef60e55f66eeebd444d79ac9942cdc0dacc14b954c8d618b24"
+          },
+          {
+            "entry": "PeanutAdmin\\Modules\\ReferenceCodes\\ModuleProvider",
+            "source": "application",
+            "path": "server/app/modules/peanut/reference_codes/src/ModuleProvider.php",
+            "sha256": "ee78d1774f273c70914e740909e47d423746b49c1c6a4879b212e8cfb0bfdd10"
+          }
         ]
       }
     },
@@ -2294,13 +2614,41 @@
       "instance_review": {
         "classification": "deployment-instance",
         "reason": "部署设置按唯一definition_id保存，由平台operator身份更新；Schema无租户列及租户父记录外键。SettingAdminService的部署分支核平台操作员并在事务内执行修订条件写，租户与对象分支仍使用独立Edition模型。Resolver和转移服务只沿部署定义读取，目录生命周期保留独立授权责任；本记录仅确认数据归属，不授予替换、导入或清理权限。",
-        "model_source": {"source": "application", "path": "server/app/modules/peanut/settings/src/Model/DeploymentSettingValue.php", "sha256": "c19b9d5858499203d8f3b9c224ad9fccc799a289f754f406629e5a49e9cb87b2"},
-        "schema_source": {"source": "application", "path": "server/app/modules/peanut/settings/database/migrations/20260921-adopt-settings-schema.sql", "sha256": "74c07e8118dd83a20791300f2eeb63cff5718033d41dd8f1cba200ed6610255b"},
+        "model_source": {
+          "source": "application",
+          "path": "server/app/modules/peanut/settings/src/Model/DeploymentSettingValue.php",
+          "sha256": "c19b9d5858499203d8f3b9c224ad9fccc799a289f754f406629e5a49e9cb87b2"
+        },
+        "schema_source": {
+          "source": "application",
+          "path": "server/app/modules/peanut/settings/database/migrations/20260921-adopt-settings-schema.sql",
+          "sha256": "74c07e8118dd83a20791300f2eeb63cff5718033d41dd8f1cba200ed6610255b"
+        },
         "access_sources": [
-          {"entry": "PeanutAdmin\\Modules\\Settings\\Application\\SettingAdminService", "source": "application", "path": "server/app/modules/peanut/settings/src/Application/SettingAdminService.php", "sha256": "cf4cc886211757e6cf2179170bcaf318f1ffe0e4724b19a180576e02712ab8c5"},
-          {"entry": "PeanutAdmin\\Modules\\Settings\\Application\\SettingResolver", "source": "application", "path": "server/app/modules/peanut/settings/src/Application/SettingResolver.php", "sha256": "eabeba7d1f9bd50e6073b0af379f40e859ecce74d464d46740533edb16b881cb"},
-          {"entry": "PeanutAdmin\\Modules\\Settings\\Service\\DeploymentSettingsTransferService", "source": "application", "path": "server/app/modules/peanut/settings/src/Service/DeploymentSettingsTransferService.php", "sha256": "3fa5b3f9d92db6ef0082863a08a71a010f2f3ea9a54b54a761ce889b1458615f"},
-          {"entry": "PeanutAdmin\\Modules\\Settings\\Service\\SettingCatalogService", "source": "application", "path": "server/app/modules/peanut/settings/src/Service/SettingCatalogService.php", "sha256": "f7ef38f515141cdf8a7e816c8ee1d5cc850e70ba2475cb3fe40e276f3db11925"}
+          {
+            "entry": "PeanutAdmin\\Modules\\Settings\\Application\\SettingAdminService",
+            "source": "application",
+            "path": "server/app/modules/peanut/settings/src/Application/SettingAdminService.php",
+            "sha256": "cf4cc886211757e6cf2179170bcaf318f1ffe0e4724b19a180576e02712ab8c5"
+          },
+          {
+            "entry": "PeanutAdmin\\Modules\\Settings\\Application\\SettingResolver",
+            "source": "application",
+            "path": "server/app/modules/peanut/settings/src/Application/SettingResolver.php",
+            "sha256": "eabeba7d1f9bd50e6073b0af379f40e859ecce74d464d46740533edb16b881cb"
+          },
+          {
+            "entry": "PeanutAdmin\\Modules\\Settings\\Service\\DeploymentSettingsTransferService",
+            "source": "application",
+            "path": "server/app/modules/peanut/settings/src/Service/DeploymentSettingsTransferService.php",
+            "sha256": "3fa5b3f9d92db6ef0082863a08a71a010f2f3ea9a54b54a761ce889b1458615f"
+          },
+          {
+            "entry": "PeanutAdmin\\Modules\\Settings\\Service\\SettingCatalogService",
+            "source": "application",
+            "path": "server/app/modules/peanut/settings/src/Service/SettingCatalogService.php",
+            "sha256": "f7ef38f515141cdf8a7e816c8ee1d5cc850e70ba2475cb3fe40e276f3db11925"
+          }
         ]
       }
     },
@@ -2311,93 +2659,450 @@
       "instance_review": {
         "classification": "deployment-instance",
         "reason": "部署目录按module_key和setting_key唯一保存定义及修订，不是租户设置值，也非不可变共享字典。Synchronizer只同步已选模块的编译声明并拥有既有事务；公开Catalog仅固定目录字段及生命周期协作，调用者保留授权。定义退休不等于允许删除设置值。原生think Model无实例基类标记，故以模型、原生建表和实际访问源码逐项核归属，不放宽所有原生模型。",
-        "model_source": {"source": "application", "path": "server/app/modules/peanut/settings/src/Model/SettingDefinitionRecord.php", "sha256": "8d275687d2d3205730070f7c51cb327efea56cf039b4f9873aac4874f1dcd28e"},
-        "schema_source": {"source": "application", "path": "server/app/modules/peanut/settings/database/migrations/20260921-adopt-settings-schema.sql", "sha256": "74c07e8118dd83a20791300f2eeb63cff5718033d41dd8f1cba200ed6610255b"},
+        "model_source": {
+          "source": "application",
+          "path": "server/app/modules/peanut/settings/src/Model/SettingDefinitionRecord.php",
+          "sha256": "8d275687d2d3205730070f7c51cb327efea56cf039b4f9873aac4874f1dcd28e"
+        },
+        "schema_source": {
+          "source": "application",
+          "path": "server/app/modules/peanut/settings/database/migrations/20260921-adopt-settings-schema.sql",
+          "sha256": "74c07e8118dd83a20791300f2eeb63cff5718033d41dd8f1cba200ed6610255b"
+        },
         "access_sources": [
-          {"entry": "PeanutAdmin\\Modules\\Settings\\Definition\\SettingDefinitionSynchronizer", "source": "application", "path": "server/app/modules/peanut/settings/src/Definition/SettingDefinitionSynchronizer.php", "sha256": "3ee5a1c4f87c53af76222ba98b77c3946171e08015745e3f34453fbd39cead1c"},
-          {"entry": "PeanutAdmin\\Modules\\Settings\\Service\\SettingCatalogService", "source": "application", "path": "server/app/modules/peanut/settings/src/Service/SettingCatalogService.php", "sha256": "f7ef38f515141cdf8a7e816c8ee1d5cc850e70ba2475cb3fe40e276f3db11925"},
-          {"entry": "PeanutAdmin\\Modules\\Settings\\Application\\SettingAdminService", "source": "application", "path": "server/app/modules/peanut/settings/src/Application/SettingAdminService.php", "sha256": "cf4cc886211757e6cf2179170bcaf318f1ffe0e4724b19a180576e02712ab8c5"},
-          {"entry": "PeanutAdmin\\Modules\\Settings\\Application\\SettingResolver", "source": "application", "path": "server/app/modules/peanut/settings/src/Application/SettingResolver.php", "sha256": "eabeba7d1f9bd50e6073b0af379f40e859ecce74d464d46740533edb16b881cb"},
-          {"entry": "PeanutAdmin\\Modules\\Settings\\Service\\DeploymentSettingsTransferService", "source": "application", "path": "server/app/modules/peanut/settings/src/Service/DeploymentSettingsTransferService.php", "sha256": "3fa5b3f9d92db6ef0082863a08a71a010f2f3ea9a54b54a761ce889b1458615f"}
+          {
+            "entry": "PeanutAdmin\\Modules\\Settings\\Definition\\SettingDefinitionSynchronizer",
+            "source": "application",
+            "path": "server/app/modules/peanut/settings/src/Definition/SettingDefinitionSynchronizer.php",
+            "sha256": "3ee5a1c4f87c53af76222ba98b77c3946171e08015745e3f34453fbd39cead1c"
+          },
+          {
+            "entry": "PeanutAdmin\\Modules\\Settings\\Service\\SettingCatalogService",
+            "source": "application",
+            "path": "server/app/modules/peanut/settings/src/Service/SettingCatalogService.php",
+            "sha256": "f7ef38f515141cdf8a7e816c8ee1d5cc850e70ba2475cb3fe40e276f3db11925"
+          },
+          {
+            "entry": "PeanutAdmin\\Modules\\Settings\\Application\\SettingAdminService",
+            "source": "application",
+            "path": "server/app/modules/peanut/settings/src/Application/SettingAdminService.php",
+            "sha256": "cf4cc886211757e6cf2179170bcaf318f1ffe0e4724b19a180576e02712ab8c5"
+          },
+          {
+            "entry": "PeanutAdmin\\Modules\\Settings\\Application\\SettingResolver",
+            "source": "application",
+            "path": "server/app/modules/peanut/settings/src/Application/SettingResolver.php",
+            "sha256": "eabeba7d1f9bd50e6073b0af379f40e859ecce74d464d46740533edb16b881cb"
+          },
+          {
+            "entry": "PeanutAdmin\\Modules\\Settings\\Service\\DeploymentSettingsTransferService",
+            "source": "application",
+            "path": "server/app/modules/peanut/settings/src/Service/DeploymentSettingsTransferService.php",
+            "sha256": "3fa5b3f9d92db6ef0082863a08a71a010f2f3ea9a54b54a761ce889b1458615f"
+          }
         ]
       }
     },
-    {"model": "PeanutAdmin\\Modules\\Settings\\Model\\TenantSettingValue", "table": "pa_setting_tenant_value", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Settings\\Application\\SettingAdminService"},
-    {"model": "PeanutAdmin\\Modules\\Settings\\Model\\TargetSettingValue", "table": "pa_setting_target_value", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Settings\\Application\\SettingAdminService"},
-    {"model": "PeanutAdmin\\Modules\\Integration\\Model\\IntegrationMachineIdentityRecord", "table": "pa_integration_machine_identity", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"},
-    {"model": "PeanutAdmin\\Modules\\Integration\\Model\\IntegrationWebhookEndpointRecord", "table": "pa_integration_webhook_endpoint", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"},
-    {"model": "PeanutAdmin\\Modules\\Integration\\Model\\IntegrationWebhookDeliveryRecord", "table": "pa_integration_webhook_delivery", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"},
-    {"model": "PeanutAdmin\\Modules\\Integration\\Model\\IntegrationWebhookAttemptRecord", "table": "pa_integration_webhook_attempt", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"},
-    {"model": "PeanutAdmin\\Modules\\Integration\\Model\\IntegrationSecurityEventRecord", "table": "pa_integration_security_event", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"},
-    {"model": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\Model\\NotificationTemplateRecord", "table": "pa_notification_template", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"},
-    {"model": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\Model\\NotificationMessageRecord", "table": "pa_notification_message", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"},
-    {"model": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\Model\\NotificationAttachmentRecord", "table": "pa_notification_attachment", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"},
-    {"model": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\Model\\NotificationOutboxRecord", "table": "pa_notification_outbox", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"},
-    {"model": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\Model\\NotificationEventRecord", "table": "pa_notification_event", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"},
-    {"model": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\Model\\SmsRateBucketRecord", "table": "pa_sms_rate_bucket", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"},
-    {"model": "PeanutAdmin\\Modules\\ArtifactRevision\\Persistence\\Model\\ArtifactRecord", "table": "pa_artifact", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\ArtifactRevision\\Persistence\\ThinkPhpArtifactRevisionRepository"},
-    {"model": "PeanutAdmin\\Modules\\ArtifactRevision\\Persistence\\Model\\ArtifactRevisionRecord", "table": "pa_artifact_revision", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\ArtifactRevision\\Persistence\\ThinkPhpArtifactRevisionRepository"},
-    {"model": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\Model\\EntitlementGrantRecord", "table": "pa_entitlement_grant", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"},
-    {"model": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\Model\\EntitlementPolicyRevisionRecord", "table": "pa_entitlement_policy_revision", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"},
-    {"model": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\Model\\EntitlementReservationRecord", "table": "pa_entitlement_reservation", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"},
-    {"model": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\Model\\EntitlementUsageLedgerRecord", "table": "pa_entitlement_usage_ledger", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"},
-    {"model": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\Model\\EntitlementUsageWindowRecord", "table": "pa_entitlement_usage_window", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"},
-    {"model": "PeanutAdmin\\Modules\\Workflow\\Persistence\\Model\\WorkflowDefinitionRecord", "table": "pa_workflow_definition", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"},
-    {"model": "PeanutAdmin\\Modules\\Workflow\\Persistence\\Model\\WorkflowDefinitionVersionRecord", "table": "pa_workflow_definition_version", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"},
-    {"model": "PeanutAdmin\\Modules\\Workflow\\Persistence\\Model\\WorkflowInstanceRecord", "table": "pa_workflow_instance", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"},
-    {"model": "PeanutAdmin\\Modules\\Workflow\\Persistence\\Model\\WorkflowWorkItemRecord", "table": "pa_workflow_work_item", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"},
-    {"model": "PeanutAdmin\\Modules\\Workflow\\Persistence\\Model\\WorkflowEventRecord", "table": "pa_workflow_event", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"},
-    {"model": "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\Model\\TaskJobRecord", "table": "pa_task_job", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\TaskJobStore"},
-    {"model": "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\Model\\TaskJobAttemptRecord", "table": "pa_task_job_attempt", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\TaskJobStore"},
-    {"model": "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\Model\\TaskJobEventRecord", "table": "pa_task_job_event", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\TaskJobStore"},
-    {"model": "PeanutAdmin\\Modules\\ImportExport\\Engine\\Persistence\\Model\\ImportExportOperationRecord", "table": "pa_import_export_operation", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\ImportExport\\Engine\\Persistence\\ImportExportStore"},
-    {"model": "PeanutAdmin\\Modules\\ImportExport\\Engine\\Persistence\\Model\\ImportExportRowErrorRecord", "table": "pa_import_export_row_error", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\ImportExport\\Engine\\Persistence\\ImportExportStore"},
-    {"model": "PeanutAdmin\\Fixtures\\DeliveryRecord\\Model\\DeliveryRecord", "table": "pa_fixture_delivery_record", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\Article\\Model\\Article", "table": "pa_article", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\Article\\Model\\ArticleCate", "table": "pa_article_cate", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\Article\\Model\\ArticleCollect", "table": "pa_article_collect", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\File\\Model\\File", "table": "pa_file", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\File\\Model\\FileCate", "table": "pa_file_cate", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\File\\Model\\Storage\\FileObject", "table": "pa_file_object", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\File\\Model\\Storage\\FileImageAsset", "table": "pa_file_image_asset", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\File\\Model\\Storage\\FileDerivative", "table": "pa_file_derivative", "owner": "tenant-orm"},
-    {"model": "app\\common\\model\\setting\\CustomerServiceSetting", "table": "pa_customer_service_setting", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\Member\\Model\\Member", "table": "pa_member", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\Member\\Model\\MemberSession", "table": "pa_member_session", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\Member\\Model\\MemberBalanceLog", "table": "pa_member_balance_log", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\Member\\Model\\MemberTag", "table": "pa_member_tag", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\Member\\Model\\MemberTagRelation", "table": "pa_member_tag_relation", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\Notification\\Model\\NoticeLog", "table": "pa_notice_log", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\Notification\\Model\\NoticeScene", "table": "pa_notice_scene", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\OAuth\\Model\\OAuthAttempt", "table": "pa_oauth_attempt", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\OAuth\\Model\\OAuthCompletionTicket", "table": "pa_oauth_completion_ticket", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\OAuth\\Model\\OAuthIdentity", "table": "pa_oauth_identity", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\OAuth\\Model\\OAuthPrincipal", "table": "pa_oauth_principal", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\OAuth\\Model\\OfficialAccountReply", "table": "pa_official_account_reply", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\Payment\\Model\\RechargeOrder", "table": "pa_recharge_order", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\Payment\\Model\\PaymentTenantChannelGrant", "table": "pa_payment_tenant_channel_grant", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\Payment\\Model\\RefundLog", "table": "pa_refund_log", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\Payment\\Model\\RefundRecord", "table": "pa_refund_record", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\RichText\\Model\\RichTextDocument", "table": "pa_rich_text_document", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\Task\\Model\\Crontab", "table": "pa_crontab", "owner": "tenant-orm"},
-    {"model": "app\\common\\model\\decoration\\DecoratePage", "table": "pa_decorate_page", "owner": "tenant-orm"},
-    {"model": "app\\common\\model\\decoration\\DecorateTabbar", "table": "pa_decorate_tabbar", "owner": "tenant-orm"},
-    {"model": "app\\common\\model\\decoration\\DecorationTabbarSetting", "table": "pa_decorate_tabbar_setting", "owner": "tenant-orm"},
-    {"model": "app\\common\\model\\dept\\Jobs", "table": "pa_jobs", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\ReferenceCodes\\Model\\DictData", "table": "pa_dict_data", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\ReferenceCodes\\Model\\DictType", "table": "pa_dict_type", "owner": "tenant-orm"},
-    {"model": "app\\common\\model\\log\\OperationLog", "table": "pa_operation_log", "owner": "tenant-orm"},
-    {"model": "app\\common\\model\\setting\\HotSearch", "table": "pa_hot_search", "owner": "tenant-orm"},
-    {"model": "app\\common\\model\\setting\\TransactionSetting", "table": "pa_transaction_setting", "owner": "tenant-orm"},
-    {"model": "PeanutAdmin\\Modules\\Payment\\Model\\PaymentScene", "table": "pa_payment_scene", "owner": "shared"},
-    {"model": "app\\common\\model\\auth\\SystemMenu", "table": "pa_system_menu", "owner": "shared"},
-    {"model": "app\\common\\model\\generator\\GeneratorColumn", "table": "pa_generator_column", "owner": "instance"},
-    {"model": "app\\common\\model\\generator\\GeneratorDownload", "table": "pa_generator_download", "owner": "instance"},
-    {"model": "app\\common\\model\\generator\\GeneratorTable", "table": "pa_generator_table", "owner": "instance"},
-    {"model": "PeanutAdmin\\Modules\\File\\Model\\Storage\\StorageAccount", "table": "pa_storage_account", "owner": "instance"},
-    {"model": "PeanutAdmin\\Modules\\File\\Model\\Storage\\StorageSpace", "table": "pa_storage_space", "owner": "instance"},
-    {"model": "PeanutAdmin\\Modules\\File\\Model\\Storage\\StorageRoute", "table": "pa_storage_route", "owner": "instance"},
-    {"model": "app\\common\\model\\provider\\ProviderQualificationEvidence", "table": "pa_provider_qualification_evidence", "owner": "instance"}
+    {
+      "model": "PeanutAdmin\\Modules\\Settings\\Model\\TenantSettingValue",
+      "table": "pa_setting_tenant_value",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Settings\\Application\\SettingAdminService"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Settings\\Model\\TargetSettingValue",
+      "table": "pa_setting_target_value",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Settings\\Application\\SettingAdminService"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Integration\\Model\\IntegrationMachineIdentityRecord",
+      "table": "pa_integration_machine_identity",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Integration\\Model\\IntegrationWebhookEndpointRecord",
+      "table": "pa_integration_webhook_endpoint",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Integration\\Model\\IntegrationWebhookDeliveryRecord",
+      "table": "pa_integration_webhook_delivery",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Integration\\Model\\IntegrationWebhookAttemptRecord",
+      "table": "pa_integration_webhook_attempt",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Integration\\Model\\IntegrationSecurityEventRecord",
+      "table": "pa_integration_security_event",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\Model\\NotificationTemplateRecord",
+      "table": "pa_notification_template",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\Model\\NotificationMessageRecord",
+      "table": "pa_notification_message",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\Model\\NotificationAttachmentRecord",
+      "table": "pa_notification_attachment",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\Model\\NotificationOutboxRecord",
+      "table": "pa_notification_outbox",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\Model\\NotificationEventRecord",
+      "table": "pa_notification_event",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\Model\\SmsRateBucketRecord",
+      "table": "pa_sms_rate_bucket",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\ArtifactRevision\\Persistence\\Model\\ArtifactRecord",
+      "table": "pa_artifact",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\ArtifactRevision\\Persistence\\ThinkPhpArtifactRevisionRepository"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\ArtifactRevision\\Persistence\\Model\\ArtifactRevisionRecord",
+      "table": "pa_artifact_revision",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\ArtifactRevision\\Persistence\\ThinkPhpArtifactRevisionRepository"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\Model\\EntitlementGrantRecord",
+      "table": "pa_entitlement_grant",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\Model\\EntitlementPolicyRevisionRecord",
+      "table": "pa_entitlement_policy_revision",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\Model\\EntitlementReservationRecord",
+      "table": "pa_entitlement_reservation",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\Model\\EntitlementUsageLedgerRecord",
+      "table": "pa_entitlement_usage_ledger",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\Model\\EntitlementUsageWindowRecord",
+      "table": "pa_entitlement_usage_window",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Workflow\\Persistence\\Model\\WorkflowDefinitionRecord",
+      "table": "pa_workflow_definition",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Workflow\\Persistence\\Model\\WorkflowDefinitionVersionRecord",
+      "table": "pa_workflow_definition_version",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Workflow\\Persistence\\Model\\WorkflowInstanceRecord",
+      "table": "pa_workflow_instance",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Workflow\\Persistence\\Model\\WorkflowWorkItemRecord",
+      "table": "pa_workflow_work_item",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Workflow\\Persistence\\Model\\WorkflowEventRecord",
+      "table": "pa_workflow_event",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\Model\\TaskJobRecord",
+      "table": "pa_task_job",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\TaskJobStore"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\Model\\TaskJobAttemptRecord",
+      "table": "pa_task_job_attempt",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\TaskJobStore"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\Model\\TaskJobEventRecord",
+      "table": "pa_task_job_event",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\TaskJobStore"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\ImportExport\\Engine\\Persistence\\Model\\ImportExportOperationRecord",
+      "table": "pa_import_export_operation",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\ImportExport\\Engine\\Persistence\\ImportExportStore"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\ImportExport\\Engine\\Persistence\\Model\\ImportExportRowErrorRecord",
+      "table": "pa_import_export_row_error",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\ImportExport\\Engine\\Persistence\\ImportExportStore"
+    },
+    {
+      "model": "PeanutAdmin\\Fixtures\\DeliveryRecord\\Model\\DeliveryRecord",
+      "table": "pa_fixture_delivery_record",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Article\\Model\\Article",
+      "table": "pa_article",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Article\\Model\\ArticleCate",
+      "table": "pa_article_cate",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Article\\Model\\ArticleCollect",
+      "table": "pa_article_collect",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\File\\Model\\File",
+      "table": "pa_file",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\File\\Model\\FileCate",
+      "table": "pa_file_cate",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\File\\Model\\Storage\\FileObject",
+      "table": "pa_file_object",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\File\\Model\\Storage\\FileImageAsset",
+      "table": "pa_file_image_asset",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\File\\Model\\Storage\\FileDerivative",
+      "table": "pa_file_derivative",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Member\\Model\\Member",
+      "table": "pa_member",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Member\\Model\\MemberSession",
+      "table": "pa_member_session",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Member\\Model\\MemberBalanceLog",
+      "table": "pa_member_balance_log",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Member\\Model\\MemberTag",
+      "table": "pa_member_tag",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Member\\Model\\MemberTagRelation",
+      "table": "pa_member_tag_relation",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Notification\\Model\\NoticeLog",
+      "table": "pa_notice_log",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Notification\\Model\\NoticeScene",
+      "table": "pa_notice_scene",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\OAuth\\Model\\OAuthAttempt",
+      "table": "pa_oauth_attempt",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\OAuth\\Model\\OAuthCompletionTicket",
+      "table": "pa_oauth_completion_ticket",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\OAuth\\Model\\OAuthIdentity",
+      "table": "pa_oauth_identity",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\OAuth\\Model\\OAuthPrincipal",
+      "table": "pa_oauth_principal",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\OAuth\\Model\\OfficialAccountReply",
+      "table": "pa_official_account_reply",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Payment\\Model\\RechargeOrder",
+      "table": "pa_recharge_order",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Payment\\Model\\PaymentTenantChannelGrant",
+      "table": "pa_payment_tenant_channel_grant",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Payment\\Model\\RefundLog",
+      "table": "pa_refund_log",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Payment\\Model\\RefundRecord",
+      "table": "pa_refund_record",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\RichText\\Model\\RichTextDocument",
+      "table": "pa_rich_text_document",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Task\\Model\\Crontab",
+      "table": "pa_crontab",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "app\\common\\model\\decoration\\DecoratePage",
+      "table": "pa_decorate_page",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "app\\common\\model\\decoration\\DecorateTabbar",
+      "table": "pa_decorate_tabbar",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "app\\common\\model\\decoration\\DecorationTabbarSetting",
+      "table": "pa_decorate_tabbar_setting",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "app\\common\\model\\dept\\Jobs",
+      "table": "pa_job",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\ReferenceCodes\\Model\\DictData",
+      "table": "pa_dict_data",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\ReferenceCodes\\Model\\DictType",
+      "table": "pa_dict_type",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "app\\common\\model\\log\\OperationLog",
+      "table": "pa_operation_log",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "app\\common\\model\\setting\\HotSearch",
+      "table": "pa_hot_search",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "app\\common\\model\\setting\\TransactionSetting",
+      "table": "pa_transaction_setting",
+      "owner": "tenant-orm"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\Payment\\Model\\PaymentScene",
+      "table": "pa_payment_scene",
+      "owner": "shared"
+    },
+    {
+      "model": "app\\common\\model\\generator\\GeneratorColumn",
+      "table": "pa_generator_column",
+      "owner": "instance"
+    },
+    {
+      "model": "app\\common\\model\\generator\\GeneratorDownload",
+      "table": "pa_generator_download",
+      "owner": "instance"
+    },
+    {
+      "model": "app\\common\\model\\generator\\GeneratorTable",
+      "table": "pa_generator_table",
+      "owner": "instance"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\File\\Model\\Storage\\StorageAccount",
+      "table": "pa_storage_account",
+      "owner": "instance"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\File\\Model\\Storage\\StorageSpace",
+      "table": "pa_storage_space",
+      "owner": "instance"
+    },
+    {
+      "model": "PeanutAdmin\\Modules\\File\\Model\\Storage\\StorageRoute",
+      "table": "pa_storage_route",
+      "owner": "instance"
+    },
+    {
+      "model": "app\\common\\model\\provider\\ProviderQualificationEvidence",
+      "table": "pa_provider_qualification_evidence",
+      "owner": "instance"
+    }
   ],
   "tenant_tables": [
     {
@@ -2470,87 +3175,372 @@
       "owner": "tenant-gateway",
       "access_entry": "PeanutAdmin\\Modules\\Identity\\DataPermission\\Application\\DataPolicyAdminService"
     },
-    {"table": "pa_reference_code_entry", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\ReferenceCodes\\Versioned\\Persistence\\ReferenceCodeStore"},
-    {"table": "pa_integration_machine_identity", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"},
-    {"table": "pa_integration_webhook_endpoint", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"},
-    {"table": "pa_integration_webhook_delivery", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"},
-    {"table": "pa_integration_webhook_attempt", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"},
-    {"table": "pa_integration_security_event", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"},
-    {"table": "pa_notification_template", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"},
-    {"table": "pa_notification_message", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"},
-    {"table": "pa_notification_attachment", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"},
-    {"table": "pa_notification_outbox", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"},
-    {"table": "pa_notification_event", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"},
-    {"table": "pa_sms_rate_bucket", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"},
-    {"table": "pa_artifact", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\ArtifactRevision\\Persistence\\ThinkPhpArtifactRevisionRepository"},
-    {"table": "pa_artifact_revision", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\ArtifactRevision\\Persistence\\ThinkPhpArtifactRevisionRepository"},
-    {"table": "pa_entitlement_grant", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"},
-    {"table": "pa_entitlement_policy_revision", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"},
-    {"table": "pa_entitlement_usage_window", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"},
-    {"table": "pa_entitlement_reservation", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"},
-    {"table": "pa_entitlement_usage_ledger", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"},
-    {"table": "pa_workflow_definition", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"},
-    {"table": "pa_workflow_definition_version", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"},
-    {"table": "pa_workflow_instance", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"},
-    {"table": "pa_workflow_work_item", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"},
-    {"table": "pa_workflow_event", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"},
-    {"table": "pa_operation_log", "owner": "tenant-orm", "access_entry": "app\\common\\model\\log\\OperationLog"},
-    {"table": "pa_jobs", "owner": "tenant-orm", "access_entry": "app\\common\\model\\dept\\Jobs"},
-    {"table": "pa_dict_type", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\ReferenceCodes\\Model\\DictType"},
-    {"table": "pa_dict_data", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\ReferenceCodes\\Model\\DictData"},
-    {"table": "pa_file_cate", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\File\\Model\\FileCate"},
-    {"table": "pa_file", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\File\\Model\\File"},
-    {"table": "pa_crontab", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\Task\\Model\\Crontab"},
-    {"table": "pa_member", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\Member\\Model\\Member"},
-    {"table": "pa_member_session", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\Member\\Model\\MemberSession"},
-    {"table": "pa_member_tag", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\Member\\Model\\MemberTag"},
-    {"table": "pa_member_tag_relation", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\Member\\Model\\MemberTagRelation"},
-    {"table": "pa_member_balance_log", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\Member\\Model\\MemberBalanceLog"},
-    {"table": "pa_notice_template", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Notification\\Service\\NotificationApplicationService"},
-    {"table": "pa_notice_scene", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\Notification\\Model\\NoticeScene"},
-    {"table": "pa_notice_log", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\Notification\\Model\\NoticeLog"},
-    {"table": "pa_hot_search", "owner": "tenant-orm", "access_entry": "app\\common\\model\\setting\\HotSearch"},
-    {"table": "pa_article_cate", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\Article\\Model\\ArticleCate"},
-    {"table": "pa_article", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\Article\\Model\\Article"},
-    {"table": "pa_article_collect", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\Article\\Model\\ArticleCollect"},
-    {"table": "pa_rich_text_document", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\RichText\\Model\\RichTextDocument"},
-    {"table": "pa_recharge_order", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\Payment\\Model\\RechargeOrder"},
-    {"table": "pa_refund_record", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\Payment\\Model\\RefundRecord"},
-    {"table": "pa_decorate_page", "owner": "tenant-orm", "access_entry": "app\\common\\model\\decoration\\DecoratePage"},
-    {"table": "pa_decorate_tabbar", "owner": "tenant-orm", "access_entry": "app\\common\\model\\decoration\\DecorateTabbar"},
-    {"table": "pa_official_account_reply", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\OAuth\\Model\\OfficialAccountReply"},
-    {"table": "pa_oauth_principal", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\OAuth\\Model\\OAuthPrincipal"},
-    {"table": "pa_oauth_identity", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\OAuth\\Model\\OAuthIdentity"},
-    {"table": "pa_oauth_attempt", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\OAuth\\Model\\OAuthAttempt"},
-    {"table": "pa_tenant_setting", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Settings\\Infrastructure\\ThinkPhpTenantSettingsProvider"},
-    {"table": "pa_tenant_entry_binding", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Identity\\Platform\\Application\\TenantEntryBindingAdminService"},
-    {"table": "pa_tenant_owner_invitation", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Identity\\Invitation\\TenantOwnerInvitationAdminService"},
-    {"table": "pa_tenant_idempotency_record", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Kernel\\Idempotency\\IdempotencyService"},
-    {"table": "pa_customer_service_setting", "owner": "tenant-orm", "access_entry": "app\\common\\model\\setting\\CustomerServiceSetting"},
-    {"table": "pa_decorate_tabbar_setting", "owner": "tenant-orm", "access_entry": "app\\common\\model\\decoration\\DecorationTabbarSetting"},
-    {"table": "pa_task_job", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\TaskJobStore"},
-    {"table": "pa_task_job_attempt", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\TaskJobStore"},
-    {"table": "pa_task_job_event", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\TaskJobStore"},
-    {"table": "pa_import_export_operation", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\ImportExport\\Engine\\Persistence\\ImportExportStore"},
-    {"table": "pa_import_export_row_error", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\ImportExport\\Engine\\Persistence\\ImportExportStore"},
-    {"table": "pa_file_object", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\File\\Model\\Storage\\FileObject"},
-    {"table": "pa_file_image_asset", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\File\\Model\\Storage\\FileImageAsset"},
-    {"table": "pa_file_derivative", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\File\\Model\\Storage\\FileDerivative"},
-    {"table": "pa_transaction_setting", "owner": "tenant-orm", "access_entry": "app\\common\\model\\setting\\TransactionSetting"},
-    {"table": "pa_external_channel_binding", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Integration\\Service\\ExternalChannelBindingService"},
-    {"table": "pa_setting_tenant_value", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Settings\\Application\\SettingAdminService"},
-    {"table": "pa_setting_target_value", "owner": "tenant-gateway", "access_entry": "PeanutAdmin\\Modules\\Settings\\Application\\SettingAdminService"},
-    {"table": "pa_refund_log", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\Payment\\Model\\RefundLog"},
-    {"table": "pa_oauth_completion_ticket", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\OAuth\\Model\\OAuthCompletionTicket"},
-    {"table": "pa_payment_tenant_channel_grant", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Modules\\Payment\\Model\\PaymentTenantChannelGrant"},
-    {"table": "pa_provider_qualification_evidence", "owner": "tenant-gateway", "access_entry": "app\\common\\model\\provider\\ProviderQualificationEvidence"},
-    {"table": "pa_fixture_delivery_record", "owner": "tenant-orm", "access_entry": "PeanutAdmin\\Fixtures\\DeliveryRecord\\Model\\DeliveryRecord"}
+    {
+      "table": "pa_reference_code_entry",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\ReferenceCodes\\Versioned\\Persistence\\ReferenceCodeStore"
+    },
+    {
+      "table": "pa_integration_machine_identity",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"
+    },
+    {
+      "table": "pa_integration_webhook_endpoint",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"
+    },
+    {
+      "table": "pa_integration_webhook_delivery",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"
+    },
+    {
+      "table": "pa_integration_webhook_attempt",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"
+    },
+    {
+      "table": "pa_integration_security_event",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Integration\\Infrastructure\\Persistence\\ThinkPhpIntegrationSecurityRepository"
+    },
+    {
+      "table": "pa_notification_template",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"
+    },
+    {
+      "table": "pa_notification_message",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"
+    },
+    {
+      "table": "pa_notification_attachment",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"
+    },
+    {
+      "table": "pa_notification_outbox",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"
+    },
+    {
+      "table": "pa_notification_event",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"
+    },
+    {
+      "table": "pa_sms_rate_bucket",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Notification\\Delivery\\Persistence\\NotificationStore"
+    },
+    {
+      "table": "pa_artifact",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\ArtifactRevision\\Persistence\\ThinkPhpArtifactRevisionRepository"
+    },
+    {
+      "table": "pa_artifact_revision",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\ArtifactRevision\\Persistence\\ThinkPhpArtifactRevisionRepository"
+    },
+    {
+      "table": "pa_entitlement_grant",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"
+    },
+    {
+      "table": "pa_entitlement_policy_revision",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"
+    },
+    {
+      "table": "pa_entitlement_usage_window",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"
+    },
+    {
+      "table": "pa_entitlement_reservation",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"
+    },
+    {
+      "table": "pa_entitlement_usage_ledger",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\EntitlementQuota\\Persistence\\ThinkPhpEntitlementQuotaRepository"
+    },
+    {
+      "table": "pa_workflow_definition",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"
+    },
+    {
+      "table": "pa_workflow_definition_version",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"
+    },
+    {
+      "table": "pa_workflow_instance",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"
+    },
+    {
+      "table": "pa_workflow_work_item",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"
+    },
+    {
+      "table": "pa_workflow_event",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Workflow\\Persistence\\ThinkPhpWorkflowRepository"
+    },
+    {
+      "table": "pa_operation_log",
+      "owner": "tenant-orm",
+      "access_entry": "app\\common\\model\\log\\OperationLog"
+    },
+    {
+      "table": "pa_dict_type",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\ReferenceCodes\\Model\\DictType"
+    },
+    {
+      "table": "pa_dict_data",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\ReferenceCodes\\Model\\DictData"
+    },
+    {
+      "table": "pa_file_cate",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\File\\Model\\FileCate"
+    },
+    {
+      "table": "pa_file",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\File\\Model\\File"
+    },
+    {
+      "table": "pa_crontab",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\Task\\Model\\Crontab"
+    },
+    {
+      "table": "pa_member",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\Member\\Model\\Member"
+    },
+    {
+      "table": "pa_member_session",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\Member\\Model\\MemberSession"
+    },
+    {
+      "table": "pa_member_tag",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\Member\\Model\\MemberTag"
+    },
+    {
+      "table": "pa_member_tag_relation",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\Member\\Model\\MemberTagRelation"
+    },
+    {
+      "table": "pa_member_balance_log",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\Member\\Model\\MemberBalanceLog"
+    },
+    {
+      "table": "pa_notice_template",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Notification\\Service\\NotificationApplicationService"
+    },
+    {
+      "table": "pa_notice_scene",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\Notification\\Model\\NoticeScene"
+    },
+    {
+      "table": "pa_notice_log",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\Notification\\Model\\NoticeLog"
+    },
+    {
+      "table": "pa_hot_search",
+      "owner": "tenant-orm",
+      "access_entry": "app\\common\\model\\setting\\HotSearch"
+    },
+    {
+      "table": "pa_article_cate",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\Article\\Model\\ArticleCate"
+    },
+    {
+      "table": "pa_article",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\Article\\Model\\Article"
+    },
+    {
+      "table": "pa_article_collect",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\Article\\Model\\ArticleCollect"
+    },
+    {
+      "table": "pa_rich_text_document",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\RichText\\Model\\RichTextDocument"
+    },
+    {
+      "table": "pa_recharge_order",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\Payment\\Model\\RechargeOrder"
+    },
+    {
+      "table": "pa_refund_record",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\Payment\\Model\\RefundRecord"
+    },
+    {
+      "table": "pa_decorate_page",
+      "owner": "tenant-orm",
+      "access_entry": "app\\common\\model\\decoration\\DecoratePage"
+    },
+    {
+      "table": "pa_decorate_tabbar",
+      "owner": "tenant-orm",
+      "access_entry": "app\\common\\model\\decoration\\DecorateTabbar"
+    },
+    {
+      "table": "pa_official_account_reply",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\OAuth\\Model\\OfficialAccountReply"
+    },
+    {
+      "table": "pa_oauth_principal",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\OAuth\\Model\\OAuthPrincipal"
+    },
+    {
+      "table": "pa_oauth_identity",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\OAuth\\Model\\OAuthIdentity"
+    },
+    {
+      "table": "pa_oauth_attempt",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\OAuth\\Model\\OAuthAttempt"
+    },
+    {
+      "table": "pa_tenant_setting",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Settings\\Infrastructure\\ThinkPhpTenantSettingsProvider"
+    },
+    {
+      "table": "pa_tenant_entry_binding",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Identity\\Platform\\Application\\TenantEntryBindingAdminService"
+    },
+    {
+      "table": "pa_tenant_owner_invitation",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Identity\\Invitation\\TenantOwnerInvitationAdminService"
+    },
+    {
+      "table": "pa_tenant_idempotency_record",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Kernel\\Idempotency\\IdempotencyService"
+    },
+    {
+      "table": "pa_decorate_tabbar_setting",
+      "owner": "tenant-orm",
+      "access_entry": "app\\common\\model\\decoration\\DecorationTabbarSetting"
+    },
+    {
+      "table": "pa_task_job",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\TaskJobStore"
+    },
+    {
+      "table": "pa_task_job_attempt",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\TaskJobStore"
+    },
+    {
+      "table": "pa_task_job_event",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Task\\Job\\Persistence\\TaskJobStore"
+    },
+    {
+      "table": "pa_import_export_operation",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\ImportExport\\Engine\\Persistence\\ImportExportStore"
+    },
+    {
+      "table": "pa_import_export_row_error",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\ImportExport\\Engine\\Persistence\\ImportExportStore"
+    },
+    {
+      "table": "pa_file_object",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\File\\Model\\Storage\\FileObject"
+    },
+    {
+      "table": "pa_file_image_asset",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\File\\Model\\Storage\\FileImageAsset"
+    },
+    {
+      "table": "pa_file_derivative",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\File\\Model\\Storage\\FileDerivative"
+    },
+    {
+      "table": "pa_transaction_setting",
+      "owner": "tenant-orm",
+      "access_entry": "app\\common\\model\\setting\\TransactionSetting"
+    },
+    {
+      "table": "pa_external_channel_binding",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Integration\\Service\\ExternalChannelBindingService"
+    },
+    {
+      "table": "pa_setting_tenant_value",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Settings\\Application\\SettingAdminService"
+    },
+    {
+      "table": "pa_setting_target_value",
+      "owner": "tenant-gateway",
+      "access_entry": "PeanutAdmin\\Modules\\Settings\\Application\\SettingAdminService"
+    },
+    {
+      "table": "pa_refund_log",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\Payment\\Model\\RefundLog"
+    },
+    {
+      "table": "pa_oauth_completion_ticket",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\OAuth\\Model\\OAuthCompletionTicket"
+    },
+    {
+      "table": "pa_payment_tenant_channel_grant",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Modules\\Payment\\Model\\PaymentTenantChannelGrant"
+    },
+    {
+      "table": "pa_fixture_delivery_record",
+      "owner": "tenant-orm",
+      "access_entry": "PeanutAdmin\\Fixtures\\DeliveryRecord\\Model\\DeliveryRecord"
+    }
   ],
   "counts": {
-    "concrete_models": 119,
-    "tenant_models": 85,
-    "non_tenant_models": 34,
-    "tenant_tables": 89,
+    "concrete_models": 117,
+    "tenant_models": 84,
+    "non_tenant_models": 33,
+    "tenant_tables": 86,
     "tenant_tables_without_model": 5
   }
 }

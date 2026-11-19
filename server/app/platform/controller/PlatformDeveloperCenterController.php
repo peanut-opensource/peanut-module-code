@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace app\platform\controller;
 
+use think\App;
+
 use app\platform\services\developer\DeveloperCenterCatalogService;
 
-/** @property-read DeveloperCenterCatalogService $developerCatalog */
 final class PlatformDeveloperCenterController extends BasePlatformController
 {
-    protected string $developerCatalogClass = DeveloperCenterCatalogService::class;
-
+    public function __construct(App $app, protected readonly DeveloperCenterCatalogService $developerCatalog)
+    {
+        parent::__construct($app);
+    }
     public function catalog()
     {
         $moduleKey = trim((string) $this->request->get('module_key', ''));

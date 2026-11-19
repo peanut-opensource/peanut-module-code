@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\generator;
 
+use think\App;
+
 use app\adminapi\controller\BaseAdminController;
 use app\adminapi\services\generator\GeneratorService;
 use app\adminapi\services\generator\GeneratorArchiveService;
@@ -12,11 +14,12 @@ use app\common\validation\instance\InstanceToolAccessGuard;
 use app\common\http\JsonResponseFactory;
 use think\response\Json;
 
-/** @property-read GeneratorService $generator 当前 App 中声明式解析的控制器依赖。 */
 class GeneratorController extends BaseAdminController
 {
-    protected string $generatorClass = GeneratorService::class;
-
+    public function __construct(App $app, protected readonly GeneratorService $generator)
+    {
+        parent::__construct($app);
+    }
     public function sourceTables()
     {
         $denial = $this->instanceToolAccessDenial();

@@ -35,11 +35,27 @@ final readonly class ModuleCatalogSyncService
         $selected = $moduleKey === null ? array_keys($registered) : [$moduleKey];
         $plugins = $factory->pluginsFromCompiled($this->moduleConfig);
         return Db::transaction(function () use ($compiled, $selected, $plugins, $moduleKey): array {
-            $owned = [];
+            $matchedPlugins = [];
+            $matchedKeys = [];
             foreach ($plugins as $plugin) {
                 $keys = array_intersect($selected, array_keys($plugin->moduleRoots));
-                if ($keys === []) { continue; }
-                $current = Db::name('module_installation')->where('module_key', $plugin->key)->lock(true)->find();
+                if ($keys === []) {
+                    continue;
+                }
+                $matchedPlugins[] = [$plugin, $keys];
+                $matchedKeys[] = $plugin->key;
+            }
+            $installations = [];
+            if ($matchedKeys !== []) {
+                $uniqueKeys = array_values(array_unique($matchedKeys));
+                sort($uniqueKeys, SORT_STRING);
+                foreach (Db::name('module_installation')->whereIn('module_key', $uniqueKeys)->order('module_key', 'asc')->lock(true)->select()->toArray() as $row) {
+                    $installations[(string) $row['module_key']] = $row;
+                }
+            }
+            $owned = [];
+            foreach ($matchedPlugins as [$plugin, $keys]) {
+                $current = $installations[$plugin->key] ?? null;
                 if ($current === null || $current['status'] !== 'active'
                     || !ModuleLifecycleService::sameIdentity($plugin, $current)
                     || $current['source'] !== $plugin->source['type'] . ':' . $plugin->source['reference']) {

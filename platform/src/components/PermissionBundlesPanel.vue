@@ -532,14 +532,25 @@
     read: (page: number) => Promise<{ items: T[]; total: number }>
   ): Promise<T[]> {
     const first = await read(1);
-    const items = [...first.items];
-    const pages = Math.ceil(first.total / 100);
-    for (let page = 2; page <= pages; page += 1) {
-      const next = await read(page);
-      if (next.total !== first.total || !next.items.length)
-        throw new Error('权限目录在读取期间变化，请刷新后重试');
-      items.push(...next.items);
+    const pages = Math.min(100, Math.max(1, Math.ceil(first.total / 100)));
+    if (pages === 1) {
+      if (first.items.length !== first.total) throw new Error('权限目录未完整加载');
+      return [...first.items];
     }
+    const buckets: T[][] = new Array(pages);
+    buckets[0] = first.items;
+    let nextPage = 2;
+    const worker = async () => {
+      while (nextPage <= pages) {
+        const page = nextPage++;
+        const next = await read(page);
+        if (next.total !== first.total || !next.items.length)
+          throw new Error('权限目录在读取期间变化，请刷新后重试');
+        buckets[page - 1] = next.items;
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(4, pages - 1) }, () => worker()));
+    const items = buckets.flat();
     if (items.length !== first.total) throw new Error('权限目录未完整加载');
     return items;
   }

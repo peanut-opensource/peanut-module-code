@@ -88,7 +88,11 @@ class IndexApplicationService
                 return '';
             }
             return $this->tenantIdentities->activeName($tenantId);
-        } catch (\Throwable) {
+        } catch (\Throwable $error) {
+            \think\facade\Log::warning('ENTRY_TENANT_NAME_LOOKUP_FAILED', [
+                'tenant_id' => $tenantId,
+                'error' => $error->getMessage(),
+            ]);
             return '';
         }
     }

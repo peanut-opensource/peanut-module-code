@@ -14,6 +14,9 @@
 
 <script setup lang="ts">
   import { ref } from 'vue';
+  // #ifdef H5
+  import { onMounted, onUnmounted } from 'vue';
+  // #endif
   import { onLoad, onUnload } from '@dcloudio/uni-app';
   import { getPolicy } from '@/api/index';
   import type { PolicyData } from '@/api/index';
@@ -23,22 +26,49 @@
   const loading = ref(true);
   const errorMessage = ref('');
   let requestRevision = 0;
+  let activeType: 'privacy' | 'service' | null = null;
 
-  onLoad((options) => {
+  function selectPolicy(input: unknown) {
     try {
-      const type = policyKind(options?.type);
+      const type = policyKind(input);
+      if (activeType === type) return;
+      activeType = type;
+      policy.value = null;
       uni.setNavigationBarTitle({
         title: type === 'privacy' ? '隐私政策' : '用户协议',
       });
       void loadPolicy(type);
     } catch {
+      activeType = null;
+      requestRevision += 1;
+      policy.value = null;
       loading.value = false;
       errorMessage.value = '协议类型无效';
     }
-  });
+  }
+
+  onLoad((options) => selectPolicy(options?.type));
   onUnload(() => {
     requestRevision += 1;
+    activeType = null;
+    policy.value = null;
   });
+
+  // #ifdef H5
+  // The H5 hash router can keep this page mounted when only ?type changes.
+  function syncHashPolicy() {
+    const hash = window.location.hash.slice(1);
+    if (!/^\/pages\/agreement\/agreement(?:\?|$)/.test(hash)) return;
+    const query = hash.includes('?') ? hash.slice(hash.indexOf('?') + 1) : '';
+    selectPolicy(new URLSearchParams(query).get('type') ?? undefined);
+  }
+
+  onMounted(() => {
+    window.addEventListener('hashchange', syncHashPolicy);
+    syncHashPolicy();
+  });
+  onUnmounted(() => window.removeEventListener('hashchange', syncHashPolicy));
+  // #endif
 
   async function loadPolicy(type: 'privacy' | 'service') {
     const revision = ++requestRevision;

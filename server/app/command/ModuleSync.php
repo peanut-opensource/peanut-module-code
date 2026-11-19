@@ -33,7 +33,8 @@ final class ModuleSync extends ModuleContextualCommand
         } catch (ModuleLifecycleException $exception) {
             $output->writeln((string) json_encode(['error' => $exception->errorCode], JSON_THROW_ON_ERROR));
             return 1;
-        } catch (\Throwable) {
+        } catch (\Throwable $exception) {
+            $this->getApp()->make(\think\exception\Handle::class)->report($exception);
             $output->writeln('{"error":"MODULE_SYNC_FAILED"}');
             return 1;
         }

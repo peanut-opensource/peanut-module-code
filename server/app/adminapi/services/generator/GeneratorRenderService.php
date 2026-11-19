@@ -568,20 +568,24 @@ use app\common\traits\CrudTrait;
 use {{namespace}}Service\{{entity}}Service;
 use {{namespace}}Validation\{{entity}}Validate;
 use PeanutAdmin\Kernel\Auth\TenantContext;
+use think\App;
 use think\response\Json;
 
-/** @property-read {{entity}}Service $crud 当前 App 中的 {{title}} CRUD 用例。 */
 final class {{entity}}Controller extends BaseAdminController
 {
     use CrudTrait;
 
-    protected string $crudClass = {{entity}}Service::class;
     protected const CRUD_VALIDATE = {{entity}}Validate::class;
     protected const CRUD_VALIDATE_LISTS = true;
 {{softDeleteDeclaration}}    protected const CRUD_PRIMARY_KEY = '{{primary}}';
     protected const CRUD_PRIMARY_KEY_TYPE = '{{primaryType}}';
     protected const CRUD_INPUT_FIELDS = {{inputFields}};
     protected const CRUD_WRITABLE_FIELDS = {{writableFields}};
+
+    public function __construct(App $app, protected readonly {{entity}}Service $crud)
+    {
+        parent::__construct($app);
+    }
 
     protected function resolveCrudContext(): TenantContext
     {
@@ -622,13 +626,13 @@ PHP, $c + self::controllerFieldPolicies($c) + compact('listResponse', 'softDelet
             . "        }\n"
             . "        return \$this->project(\$model, self::DETAIL_FIELDS);";
         if ($c['tree'] !== []) {
-            $listBody = "        \$rows = \$query{$withCode}->order(['{$c['primary']}' => 'desc'])->select()\n"
+            $listBody = "        \$rows = \$query->field(self::LIST_FIELDS){$withCode}->order(['{$c['primary']}' => 'desc'])->limit(2000)->select()\n"
                 . "            ->map(fn(\$item): array => \$this->project(\$item, self::LIST_FIELDS))->toArray();\n"
                 . "        return linear_to_tree(\$rows, 'children', '{$c['primary']}', '{$c['tree']['parent']}');";
             $childGuard = "            if ({$c['entity']}::where('{$c['tree']['parent']}', \$id)->count() > 0) {\n"
                 . "                throw BusinessException::conflict('{$c['errorPrefix']}_HAS_CHILDREN', '请先删除下级节点');\n            }\n";
         } else {
-            $listBody = "        \$page = PaginationInput::from(\$params)->result(\$query{$withCode}->order(['{$c['primary']}' => 'desc']));\n"
+            $listBody = "        \$page = PaginationInput::from(\$params)->result(\$query->field(self::LIST_FIELDS){$withCode}->order(['{$c['primary']}' => 'desc']));\n"
                 . "        return \$page->map(fn(\$item): array => \$this->project(\$item, self::LIST_FIELDS));";
             $childGuard = '';
         }
@@ -847,13 +851,17 @@ PHP, $c + $policies + [
     public function restore(TenantContext $context, array $ids): array
     {
         $this->assertPermission($context, '{{permissionPrefix}}.restore');
-        return $this->batch($ids, 'restored', function (int|string $id): string {
-            return Db::transaction(function () use ($id): string {
-                $model = {{entity}}::withTrashed()->where('{{primary}}', $id)->lock(true)->findOrEmpty();
-                if ($model->isEmpty()) {
+        return $this->batch($ids, 'restored', function (array $models, array $normalizedIds): array {
+            $outcomes = [];
+            foreach ($normalizedIds as $id) {
+                $model = $models[$id] ?? null;
+                if (!$model instanceof {{entity}}) {
                     throw BusinessException::notFound('{{errorPrefix}}_NOT_FOUND', '{{title}}不存在');
                 }
-                if (!$model->trashed()) return 'already_active';
+                if (!$model->trashed()) {
+                    $outcomes[$id] = 'already_active';
+                    continue;
+                }
                 $this->assertRestoreRelations($model);
                 $this->assertRestoreBusinessState($model);
                 try {
@@ -865,18 +873,20 @@ PHP, $c + $policies + [
                         '已有未删除记录占用唯一值，不能恢复',
                     );
                 }
-                return 'restored';
-            });
+                $outcomes[$id] = 'restored';
+            }
+            return $outcomes;
         });
     }
 
     public function purge(TenantContext $context, array $ids): array
     {
         $this->assertPermission($context, '{{permissionPrefix}}.purge');
-        return $this->batch($ids, 'purged', function (int|string $id): string {
-            return Db::transaction(function () use ($id): string {
-                $model = {{entity}}::withTrashed()->where('{{primary}}', $id)->lock(true)->findOrEmpty();
-                if ($model->isEmpty()) {
+        return $this->batch($ids, 'purged', function (array $models, array $normalizedIds): array {
+            $outcomes = [];
+            foreach ($normalizedIds as $id) {
+                $model = $models[$id] ?? null;
+                if (!$model instanceof {{entity}}) {
                     throw BusinessException::notFound('{{errorPrefix}}_NOT_FOUND', '{{title}}不存在');
                 }
                 if (!$model->trashed()) {
@@ -884,8 +894,9 @@ PHP, $c + $policies + [
                 }
                 $this->assertPurgeRelations($model);
                 if ($model->force(true)->delete() === false) throw new \LogicException('{{errorPrefix}}_PURGE_FAILED');
-                return 'purged';
-            });
+                $outcomes[$id] = 'purged';
+            }
+            return $outcomes;
         });
     }
 
@@ -913,13 +924,18 @@ PHP, $c + $policies + [
     private function batch(array $ids, string $successKey, callable $operation): array
     {
         $ids = $this->normalizeBatchIds($ids);
+        $sortedIds = $ids;
+        sort($sortedIds);
         $result = ['requested' => $ids, $successKey => [], 'already_active' => [], 'failed' => []];
-        foreach ($ids as $id) {
-            try {
-                $result[$operation($id)][] = $id;
-            } catch (BusinessException $exception) {
-                $result['failed'][] = ['{{primary}}' => $id, 'code' => $exception->errorCode, 'message' => $exception->getMessage()];
+        $outcomes = Db::transaction(function () use ($sortedIds, $ids, $operation): array {
+            $models = [];
+            foreach ({{entity}}::withTrashed()->whereIn('{{primary}}', $sortedIds)->order('{{primary}}', 'asc')->lock(true)->select() as $model) {
+                $models[$model->getAttr('{{primary}}')] = $model;
             }
+            return $operation($models, $ids);
+        });
+        foreach ($outcomes as $id => $bucket) {
+            $result[$bucket][] = $id;
         }
         return $result;
     }

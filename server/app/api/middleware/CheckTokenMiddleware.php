@@ -50,8 +50,15 @@ class CheckTokenMiddleware
                 $requestId,
                 $verifiedToken['tenant_id'],
             );
-        } catch (\Throwable) {
+        } catch (\DomainException|\UnexpectedValueException|\InvalidArgumentException) {
             throw \app\common\http\ApiProblem::fromEnvelope('租户上下文不可用', null, 40300);
+        } catch (\Throwable $exception) {
+            \think\facade\Log::error('MEMBER_TENANT_CONTEXT_RESOLVE_FAILED', [
+                'member_id' => $memberId,
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
+            throw $exception;
         }
 
         return $this->executionContexts->run(

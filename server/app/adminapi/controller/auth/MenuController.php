@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\auth;
 
+use think\App;
+
 use app\adminapi\controller\BaseAdminController;
 use app\adminapi\services\auth\MenuApplicationService;
 use app\adminapi\validate\auth\MenuValidate;
@@ -11,11 +13,12 @@ use app\common\validation\instance\InstanceToolAccessGuard;
 use app\common\http\JsonResponseFactory;
 use think\response\Json;
 
-/** @property-read MenuApplicationService $menus 当前 App 中声明式解析的控制器依赖。 */
 class MenuController extends BaseAdminController
 {
-    protected string $menusClass = MenuApplicationService::class;
-
+    public function __construct(App $app, protected readonly MenuApplicationService $menus)
+    {
+        parent::__construct($app);
+    }
     public function route()
     {
         return $this->data($this->menus->getMenuByAdminId($this->executionContext()->tenantAdmin(), $this->adminId));
@@ -43,8 +46,12 @@ class MenuController extends BaseAdminController
         if ($denial = $this->instanceMenuDenial()) {
             return $denial;
         }
-        $this->validate($this->request->post(), MenuValidate::class . '.add');
-        $this->menus->add($this->request->post());
+        $params = $this->validateInput(
+            $this->request->post(),
+            MenuValidate::class . '.add',
+            ['name', 'type', 'parent_key', 'icon', 'sort', 'perms', 'paths', 'component', 'is_cache', 'is_show', 'is_disable'],
+        )->writable();
+        $this->menus->add($params);
         return $this->success('操作成功');
     }
 
@@ -53,8 +60,12 @@ class MenuController extends BaseAdminController
         if ($denial = $this->instanceMenuDenial()) {
             return $denial;
         }
-        $this->validate($this->request->post(), MenuValidate::class . '.edit');
-        $this->menus->edit($this->request->post());
+        $params = $this->validateInput(
+            $this->request->post(),
+            MenuValidate::class . '.edit',
+            ['menu_key', 'name', 'type', 'parent_key', 'icon', 'sort', 'perms', 'paths', 'component', 'is_cache', 'is_show', 'is_disable'],
+        )->writable();
+        $this->menus->edit($params);
         return $this->success('操作成功');
     }
 

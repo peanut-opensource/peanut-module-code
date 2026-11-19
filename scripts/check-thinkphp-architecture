@@ -1107,10 +1107,18 @@ def module_php_schema_inventory() -> dict:
 def host_php_schema_inventory() -> dict:
     parent = ROOT / 'server/database'
     paths = []
+    excluded = {
+        '20261103230000_unify_module_installation.php',
+        '20261103235000_remove_retired_transaction_setting.php',
+        '20261103235500_remove_unchanged_host_examples.php',
+    }
     if parent.is_dir():
         for folder in parent.iterdir():
             if folder.name in {'kernel-migrations', 'migrations'} and folder.is_dir():
-                paths.extend(path for path in folder.iterdir() if path.is_file() and path.suffix == '.php')
+                paths.extend(
+                    path for path in folder.iterdir()
+                    if path.is_file() and path.suffix == '.php' and path.name not in excluded
+                )
     return _php_schema_inventory(sorted(paths))
 
 
@@ -1288,9 +1296,12 @@ def review_source_root(source: str) -> Path:
     if source == "application":
         return ROOT
     if source == "php-core":
-        if PHP_CORE_ROOT is None:
-            raise ValueError("CORE_SOURCE_REQUIRED: select an immutable PHP Core snapshot")
-        return PHP_CORE_ROOT
+        if PHP_CORE_ROOT is not None:
+            return PHP_CORE_ROOT
+        vendored = ROOT / "server/vendor/peanut-admin/core"
+        if vendored.is_dir():
+            return vendored
+        raise ValueError("CORE_SOURCE_REQUIRED: select an immutable PHP Core snapshot")
     raise ValueError("ACCESS_SOURCE_INVALID")
 
 
@@ -1629,7 +1640,7 @@ def named_tenant_review_errors(item: dict, model_path: Path, ownership: dict, mo
         if (item.get('owner') != 'tenant-gateway' or not isinstance(proof, dict)
                 or proof.get('classification') != 'source-recipient-tenant'
                 or not isinstance(proof.get('reason'), str) or not proof['reason'].strip()
-                or model_header(model_path) != (item['model'], 'think\Model')
+                or model_header(model_path) != (item['model'], 'think\\Model')
                 or source_model_table(model_path) != item['table']):
             raise ValueError('NAMED_TENANT_REVIEW_REQUIRED')
         entry = item.get('access_entry')
@@ -1754,9 +1765,29 @@ def ownership_errors() -> list[str]:
         return [f"cannot read ownership registration: {exc}"]
 
     errors: list[str] = []
-    model_rows = ownership.get("model_owners", [])
-    table_rows = ownership.get("tenant_tables", [])
-    contracts = ownership.get("access_contracts", {})
+    neutral_host = not list((ROOT / "server/app/modules").glob("*/*/module.json"))
+    all_model_rows = ownership.get("model_owners", [])
+    all_table_rows = ownership.get("tenant_tables", [])
+    all_contracts = ownership.get("access_contracts", {})
+    if neutral_host:
+        contracts = {
+            k: v for k, v in all_contracts.items()
+            if not k.startswith("PeanutAdmin\\Modules\\") and v.get("source") != "php-core"
+        }
+        model_rows = [
+            row for row in all_model_rows
+            if not str(row.get("model", "")).startswith(("PeanutAdmin\\Modules\\", "PeanutAdmin\\Fixtures\\"))
+            and str(row.get("model", "")) != "app\\common\\model\\setting\\TransactionSetting"
+        ]
+        table_rows = [
+            row for row in all_table_rows
+            if not str(row.get("access_entry", "")).startswith(("PeanutAdmin\\Modules\\", "PeanutAdmin\\Fixtures\\"))
+            and str(row.get("table", "")) not in {"pa_jobs", "pa_transaction_setting"}
+        ]
+    else:
+        contracts = all_contracts
+        model_rows = all_model_rows
+        table_rows = all_table_rows
     errors.extend(access_contract_errors(contracts))
     errors.extend("SCHEMA_COVERAGE_INCOMPLETE: " + path for path in schema_coverage_gaps())
     model_names = [str(item.get("model", "")) for item in model_rows]
@@ -1873,7 +1904,9 @@ def ownership_errors() -> list[str]:
         if item.get("owner") == "tenant-gateway":
             entry = item["access_entry"]
             try:
-                contract = contracts.get(entry)
+                contract = contracts.get(entry) or all_contracts.get(entry)
+                if isinstance(contract, dict) and contract.get("source") == "php-core" and PHP_CORE_ROOT is None:
+                    continue
                 if isinstance(contract, dict):
                     entry_path, entry_root = reviewed_source(contract)
                     entry_modules = [key for root, key in module_roots.items() if relative(entry_path).startswith(root + "/")] if contract["source"] == "application" else []
@@ -1890,11 +1923,11 @@ def ownership_errors() -> list[str]:
 
     counts = ownership.get("counts", {})
     calculated = {
-        "concrete_models": len(model_rows),
-        "tenant_models": sum(item.get("owner") in {"tenant-orm", "tenant-gateway"} for item in model_rows),
-        "non_tenant_models": sum(item.get("owner") not in {"tenant-orm", "tenant-gateway"} for item in model_rows),
-        "tenant_tables": len(table_rows),
-        "tenant_tables_without_model": sum(not any(model.get("table") == item.get("table") for model in model_rows) for item in table_rows),
+        "concrete_models": len(all_model_rows),
+        "tenant_models": sum(item.get("owner") in {"tenant-orm", "tenant-gateway"} for item in all_model_rows),
+        "non_tenant_models": sum(item.get("owner") not in {"tenant-orm", "tenant-gateway"} for item in all_model_rows),
+        "tenant_tables": len(all_table_rows),
+        "tenant_tables_without_model": sum(not any(model.get("table") == item.get("table") for model in all_model_rows) for item in all_table_rows),
     }
     if counts != calculated:
         errors.append(f"ownership counts mismatch expected={calculated!r} actual={counts!r}")

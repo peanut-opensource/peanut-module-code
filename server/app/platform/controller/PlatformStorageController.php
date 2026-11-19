@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace app\platform\controller;
 
+use think\App;
+
 use PeanutAdmin\Modules\File\Contract\StorageConfiguration;
 use app\platform\context\PlatformOperatorContext;
 
-/** @property-read StorageConfiguration $storage 当前 App 中声明式解析的控制器依赖。 */
 final class PlatformStorageController extends BasePlatformController
 {
-    protected string $storageClass = StorageConfiguration::class;
-
+    public function __construct(App $app, protected readonly StorageConfiguration $storage)
+    {
+        parent::__construct($app);
+    }
     public function snapshot()
     {
         return $this->data($this->storage->snapshot());

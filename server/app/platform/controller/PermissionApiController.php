@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\platform\controller;
 
+use think\App;
+
 use PeanutAdmin\Modules\Identity\Authorization\ApiPermissionCatalog;
 use PeanutAdmin\Kernel\Authorization\Application\AdminAccessException;
 use PeanutAdmin\Kernel\Authorization\Application\PageRequest;
@@ -11,17 +13,16 @@ use PeanutAdmin\Modules\Identity\Audit\AuditService;
 use PeanutAdmin\Modules\Identity\Menu\MenuAdministrationService;
 use think\facade\Db;
 
-/**
- * @property-read ApiPermissionCatalog $catalog
- * @property-read AuditService $audit
- * @property-read MenuAdministrationService $menus
- */
 final class PermissionApiController extends BasePlatformController
 {
-    protected string $catalogClass = ApiPermissionCatalog::class;
-    protected string $auditClass = AuditService::class;
-    protected string $menusClass = MenuAdministrationService::class;
-
+    public function __construct(
+        App $app,
+        protected readonly ApiPermissionCatalog $catalog,
+        protected readonly AuditService $audit,
+        protected readonly MenuAdministrationService $menus,
+    ) {
+        parent::__construct($app);
+    }
     public function menus()
     {
         $this->fields($this->request->get(), []);

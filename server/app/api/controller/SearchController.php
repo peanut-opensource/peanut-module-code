@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace app\api\controller;
 
+use think\App;
+
 use app\api\services\SearchApplicationService;
 
-/** @property-read SearchApplicationService $search 当前 App 中声明式解析的控制器依赖。 */
 class SearchController extends BaseApiController
 {
-    protected string $searchClass = SearchApplicationService::class;
-
-
+    public function __construct(App $app, protected readonly SearchApplicationService $search)
+    {
+        parent::__construct($app);
+    }
     /** 热门搜索 */
     public function hotLists()
     {

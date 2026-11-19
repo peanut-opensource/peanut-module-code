@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\auth;
 
+use think\App;
+
 use app\adminapi\controller\BaseAdminController;
 use app\adminapi\services\auth\AdminApplicationService;
 use app\adminapi\validate\auth\AdminValidate;
 use app\adminapi\validate\auth\EditSelfValidate;
 
-/** @property-read AdminApplicationService $admins 当前 App 中声明式解析的控制器依赖。 */
 class AdminController extends BaseAdminController
 {
-    protected string $adminsClass = AdminApplicationService::class;
-
+    public function __construct(App $app, protected readonly AdminApplicationService $admins)
+    {
+        parent::__construct($app);
+    }
     public function lists()
     {
         $params = $this->admins->normalizeInput($this->request->get());

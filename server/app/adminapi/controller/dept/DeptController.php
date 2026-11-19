@@ -4,21 +4,24 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\dept;
 
+use think\App;
+
 use app\adminapi\controller\BaseAdminController;
 use app\adminapi\services\dept\DeptApplicationService;
 use app\common\traits\CrudTrait;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use think\response\Json;
 
-/** @property-read DeptApplicationService $departments 当前 App 中声明式解析的控制器依赖。 */
 class DeptController extends BaseAdminController
 {
     use CrudTrait;
 
     protected const CRUD_STATUS_FIELD = 'status';
 
-    protected string $departmentsClass = DeptApplicationService::class;
-
+    public function __construct(App $app, protected readonly DeptApplicationService $departments)
+    {
+        parent::__construct($app);
+    }
     protected function resolveCrudContext(): TenantContext
     {
         return $this->tenantAdminContext();

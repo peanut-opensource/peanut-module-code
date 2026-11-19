@@ -33,7 +33,12 @@ final class AdvisoryLockExecution
         } finally {
             try {
                 $connection->query('SELECT RELEASE_LOCK(?)', [$name], true);
-            } catch (\Throwable) {
+            } catch (\Throwable $exception) {
+                \think\facade\Log::warning('DATABASE_ADVISORY_LOCK_RELEASE_FAILED', [
+                    'lock_name' => $name,
+                    'exception' => $exception::class,
+                    'message' => $exception->getMessage(),
+                ]);
             }
         }
     }

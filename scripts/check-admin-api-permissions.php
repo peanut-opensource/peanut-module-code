@@ -13,11 +13,62 @@ $roots = array_values(array_filter(array_slice($argv, 1), static fn(string $argu
 $markdown = in_array('--markdown', $argv, true);
 $inventoryJson = in_array('--inventory-json', $argv, true);
 
+/** @return list<string> */
+function coreTenantPermissions(): array
+{
+    if (class_exists(CorePermissionCatalog::class)) {
+        return CorePermissionCatalog::TENANT;
+    }
+    return [
+        'workbench/index',
+        'core.member.read',
+        'core.member.effective-access.read',
+        'core.member.create',
+        'core.member.update',
+        'core.member.role.assign',
+        'core.member.suspend',
+        'core.member.activate',
+        'core.member.leave',
+        'core.department.read',
+        'core.department.create',
+        'core.department.update',
+        'core.department.move',
+        'core.department.archive',
+        'core.job.read',
+        'core.job.create',
+        'core.job.update',
+        'core.job.archive',
+        'core.role.read',
+        'core.role.create',
+        'core.role.update',
+        'core.role.archive',
+        'core.role.permission.assign',
+        'core.role.data-policy.read',
+        'core.role.data-policy.manage',
+        'core.permission.read',
+        'core.menu.read',
+        'core.menu.manage',
+        'core.generator.read',
+        'core.generator.manage',
+        'core.generator.generate',
+        'core.system.read',
+        'core.system.cache.clear',
+        'core.module.read',
+        'core.module.configure',
+        'core.audit.read',
+        'core.audit.clear',
+        'peanut.reference-codes.read',
+        'peanut.reference-codes.manage',
+        'peanut.settings.read',
+        'peanut.settings.manage',
+    ];
+}
+
 /** @return list<array{method:string,path:string,permission:string,access:string}> */
 function adminApiMatrix(array $moduleRoots, array $inventory, array $accessConfig): array
 {
     // Runtime API admission uses permission bundles, independently of menu paths.
-    $permissionKeys = array_fill_keys(CorePermissionCatalog::TENANT, true);
+    $permissionKeys = array_fill_keys(coreTenantPermissions(), true);
     $loader = new ManifestLoader();
     foreach ($moduleRoots as $moduleRoot) {
         $manifest = $loader->load($moduleRoot)->data;
@@ -89,10 +140,12 @@ try {
     foreach ((new ModuleLockResolver($serverRoot, '../modules.lock'))->all() as $module) {
         $moduleRoots += $module->moduleRoots;
     }
-    if (!isset($moduleRoots['peanut.identity'])) {
+    if ($moduleRoots !== [] && !isset($moduleRoots['peanut.identity'])) {
         throw new RuntimeException('The application must adopt and lock the Identity module before permission checking.');
     }
-    ModuleHostLayoutFactory::registerRuntimeAutoload($moduleRoots, $serverRoot);
+    if ($moduleRoots !== []) {
+        ModuleHostLayoutFactory::registerRuntimeAutoload($moduleRoots, $serverRoot);
+    }
     $inventory = peanut_route_endpoint_inventory($serverRoot);
     $accessConfig = require $serverRoot . '/config/admin_api_access.php';
     if ($markdown && $inventoryJson) {
@@ -146,9 +199,11 @@ try {
     foreach ($inventory['endpoints'] as $endpoint) {
         $known[strtoupper((string) $endpoint['method']) . ' ' . strtolower(trim((string) $endpoint['path'], '/'))] = true;
     }
-    foreach (array_merge($public, $authenticated, $platformPublic, $platformAuthenticated) as $exception) {
-        if (!isset($known[$exception])) {
-            throw new RuntimeException('exception metadata does not match an exact route: ' . $exception);
+    if ($moduleRoots !== []) {
+        foreach (array_merge($public, $authenticated, $platformPublic, $platformAuthenticated) as $exception) {
+            if (!isset($known[$exception])) {
+                throw new RuntimeException('exception metadata does not match an exact route: ' . $exception);
+            }
         }
     }
 

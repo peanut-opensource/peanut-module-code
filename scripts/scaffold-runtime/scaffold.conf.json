@@ -236,7 +236,6 @@
         "scripts/export-release-database",
         "scripts/package-scaffold-template.py",
         "scripts/check-test-integrity",
-        "scripts/consumer-module-reference-chain",
         "scripts/check-release-consistency",
         "scripts/generate-release-legal.mjs",
         "scripts/publish-github-release",

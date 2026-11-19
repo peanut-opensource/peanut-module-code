@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 namespace app\platform\controller;
 
+use think\App;
+
 use app\common\http\PageResult;
 use app\platform\http\PlatformRequest;
 use PeanutAdmin\Modules\Identity\Invitation\TenantOwnerInvitationAdminService;
 use app\platform\validate\TenantOwnerInvitationValidate;
 use PeanutAdmin\Kernel\Authorization\Application\PageRequest;
 
-/** @property-read TenantOwnerInvitationAdminService $invitations 当前 App 中声明式解析的控制器依赖。 */
 final class PlatformTenantInvitationController extends BasePlatformController
 {
-    protected string $invitationsClass = TenantOwnerInvitationAdminService::class;
-
+    public function __construct(App $app, protected readonly TenantOwnerInvitationAdminService $invitations)
+    {
+        parent::__construct($app);
+    }
     public function provision()
     {
         return $this->mutate('provision', function (array $params): array {

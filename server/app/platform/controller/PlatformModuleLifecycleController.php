@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\platform\controller;
 
+use think\App;
+
 use app\common\http\PageResult;
 use app\platform\services\module\PlatformModuleRuntimeService;
 use app\platform\services\module\OfficialModuleReleaseService;
@@ -11,15 +13,15 @@ use app\platform\infrastructure\module\DeterministicTarArchive;
 use app\platform\exception\module\ModuleLifecycleException;
 use app\platform\exception\module\ModulePackageException;
 
-/**
- * @property-read PlatformModuleRuntimeService $moduleRuntime 当前 App 中声明式解析的控制器依赖。
- * @property-read OfficialModuleReleaseService $officialReleases
- */
 final class PlatformModuleLifecycleController extends BasePlatformController
 {
-    protected string $moduleRuntimeClass = PlatformModuleRuntimeService::class;
-    protected string $officialReleasesClass = OfficialModuleReleaseService::class;
-
+    public function __construct(
+        App $app,
+        protected readonly PlatformModuleRuntimeService $moduleRuntime,
+        protected readonly OfficialModuleReleaseService $officialReleases,
+    ) {
+        parent::__construct($app);
+    }
     public function updates()
     {
         $channel = $this->request->get('channel', 'stable');

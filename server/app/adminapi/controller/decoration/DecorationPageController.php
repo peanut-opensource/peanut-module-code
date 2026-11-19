@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\decoration;
 
+use think\App;
+
 use app\adminapi\controller\BaseAdminController;
 use app\adminapi\services\decoration\DecorationPageApplicationService;
 use app\adminapi\validate\decoration\DecorationPageValidate;
 use app\common\enum\decoration\DecorationEnum;
 
-/** @property-read DecorationPageApplicationService $decorationPages 当前 App 中声明式解析的控制器依赖。 */
 class DecorationPageController extends BaseAdminController
 {
-    protected string $decorationPagesClass = DecorationPageApplicationService::class;
-
+    public function __construct(App $app, protected readonly DecorationPageApplicationService $decorationPages)
+    {
+        parent::__construct($app);
+    }
     public function mobileLists()
     {
         return $this->data($this->decorationPages->lists(

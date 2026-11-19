@@ -648,7 +648,12 @@ final class ModuleLifecycleService implements ModuleLifecycleCommands
                 $this->catalogs->markPackageDeploymentFailed(array_keys($manifests), $errorCode, $now);
 
             });
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            \think\facade\Log::error('MODULE_LIFECYCLE_MARK_FAILED_ERROR', [
+                'module_key' => $plugin->key,
+                'error_code' => $errorCode,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 

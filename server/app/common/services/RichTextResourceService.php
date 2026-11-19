@@ -36,35 +36,57 @@ final readonly class RichTextResourceService
             return '';
         }
 
-        $convert = function (string $url) use ($forRead, $context): string {
-            $url = trim($url);
-            if ($url === '' || preg_match('/^(?:mailto:|tel:|#)/i', $url)) {
-                return $url;
-            }
-            if ($forRead) {
-                return $this->files->getFileUrl($url);
-            }
-            return $context === null
-                ? throw new \DomainException('FILE_REFERENCE_TRUSTED_CONTEXT_REQUIRED')
-                : $this->files->setTenantFileUrl($context, $url);
+        $pattern = '~(\b(?:src|href|poster)\s*=\s*)(["\'])(.*?)\2~is';
+        $isExternalHref = static function (string $attr, string $value): bool {
+            return str_starts_with(strtolower(trim($attr)), 'href')
+                && filter_var($value, FILTER_VALIDATE_URL) !== false
+                && in_array(strtolower((string) parse_url($value, PHP_URL_SCHEME)), ['http', 'https'], true)
+                && !str_contains((string) parse_url($value, PHP_URL_PATH), '/storage/')
+                && !str_contains((string) parse_url($value, PHP_URL_PATH), '/api/storage/delivery');
         };
 
-        $html = preg_replace_callback(
-            '~(\b(?:src|href|poster)\s*=\s*)(["\'])(.*?)\2~is',
-            static function (array $match) use ($convert): string {
-                // A normal hyperlink does not acquire a File grant. Media src/poster always do.
+        $toResolve = [];
+        if (preg_match_all($pattern, $html, $matches, PREG_SET_ORDER) > 0) {
+            foreach ($matches as $match) {
                 $value = html_entity_decode($match[3], ENT_QUOTES | ENT_HTML5, 'UTF-8');
-                if (str_starts_with(strtolower(trim($match[1])), 'href')
-                    && filter_var($value, FILTER_VALIDATE_URL) !== false
-                    && in_array(strtolower((string) parse_url($value, PHP_URL_SCHEME)), ['http', 'https'], true)
-                    && !str_contains((string) parse_url($value, PHP_URL_PATH), '/storage/')
-                    && !str_contains((string) parse_url($value, PHP_URL_PATH), '/api/storage/delivery')) {
+                if ($isExternalHref($match[1], $value)) {
+                    continue;
+                }
+                $trimmed = trim($value);
+                if ($trimmed === '' || preg_match('/^(?:mailto:|tel:|#)/i', $trimmed)) {
+                    continue;
+                }
+                $toResolve[$trimmed] = true;
+            }
+        }
+        if ($toResolve === []) {
+            return $html;
+        }
+
+        $keys = array_keys($toResolve);
+        if ($forRead) {
+            $resolved = $this->files->getFileUrls($keys);
+        } else {
+            if ($context === null) {
+                throw new \DomainException('FILE_REFERENCE_TRUSTED_CONTEXT_REQUIRED');
+            }
+            $resolved = $this->files->setTenantFileUrls($context, $keys);
+        }
+
+        return preg_replace_callback(
+            $pattern,
+            static function (array $match) use ($isExternalHref, $resolved): string {
+                $value = html_entity_decode($match[3], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                if ($isExternalHref($match[1], $value)) {
                     return $match[0];
                 }
-                return $match[1] . $match[2] . htmlspecialchars($convert($value), ENT_QUOTES | ENT_HTML5, 'UTF-8') . $match[2];
+                $trimmed = trim($value);
+                $mapped = ($trimmed === '' || preg_match('/^(?:mailto:|tel:|#)/i', $trimmed))
+                    ? $trimmed
+                    : ($resolved[$trimmed] ?? '');
+                return $match[1] . $match[2] . htmlspecialchars($mapped, ENT_QUOTES | ENT_HTML5, 'UTF-8') . $match[2];
             },
             $html,
         ) ?? $html;
-        return $html;
     }
 }

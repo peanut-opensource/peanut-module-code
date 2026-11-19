@@ -18,13 +18,13 @@
   definePageMeta({ layout: 'default' });
 
   const route = useRoute();
-  const type = route.params.type as string;
+  const type = computed(() => route.params.type as string);
   const apiBase = useRuntimeConfig().public.apiBase;
 
   const { data, pending, error } = await useFetch<{
     code: number;
     data: { title: string; content: string };
-  }>(`${apiBase}/api/index/policy?type=${type}`);
+  }>(() => `${apiBase}/api/index/policy?type=${type.value}`);
   const policy = computed(() => data.value?.data || null);
   const safePolicyContent = computed(() =>
     sanitizeRichText(policy.value?.content)
@@ -32,7 +32,11 @@
   const pageTitle = computed(
     () =>
       policy.value?.title ||
-      (type === 'privacy' ? '隐私政策' : type === 'service' ? '用户协议' : '政策')
+      (type.value === 'privacy'
+        ? '隐私政策'
+        : type.value === 'service'
+          ? '用户协议'
+          : '政策')
   );
 
   useHead({ title: pageTitle });

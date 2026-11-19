@@ -89,8 +89,11 @@ class DecorationPageApplicationService
             return [];
         }
         $rows = ($this->articles ?? throw new \DomainException('ARTICLE_MODULE_UNAVAILABLE'))->options($context, $limit);
+        $imageRefs = array_map(static fn(array $row): string => (string) ($row['image'] ?? ''), $rows);
+        $resolved = $this->assets->forReadMany($imageRefs);
         foreach ($rows as &$row) {
-            $row['image'] = $this->assets->forRead((string) ($row['image'] ?? ''));
+            $ref = trim((string) ($row['image'] ?? ''));
+            $row['image'] = $ref === '' ? '' : ($resolved[$ref] ?? '');
         }
         unset($row);
         return $rows;

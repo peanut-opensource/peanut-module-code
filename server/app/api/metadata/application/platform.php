@@ -435,7 +435,6 @@ $add($paths, 'GET', '/platformapi/tenants/owner', $operation(
     $responses('PlatformTenantOwner'),
     [$query('tenant_id', $positiveId, true)],
 ));
-
 // Platform operator 与角色写入；请求字段严格对应 PlatformAccessValidate scenes。
 $operatorRequests = [
     'create' => [

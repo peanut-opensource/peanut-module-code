@@ -26,6 +26,10 @@ app.mount('#app');
 
 // A shared identity transition invalidates the entire tenant UI. Token-only
 // refreshes keep the current menu and page state.
-window.addEventListener('storage', (event) => {
+const onStorage = (event: StorageEvent) => {
   if (event.key === SESSION_KEY || event.key === null) window.location.reload();
+};
+window.addEventListener('storage', onStorage);
+import.meta.hot?.dispose(() => {
+  window.removeEventListener('storage', onStorage);
 });

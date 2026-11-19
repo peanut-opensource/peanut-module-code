@@ -661,10 +661,14 @@ export function onPlatformSessionChange(
 }
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (event) => {
+  const onStorage = (event: StorageEvent) => {
     if (event.key === sessionKey || event.key === null) {
       window.location.reload();
     }
+  };
+  window.addEventListener('storage', onStorage);
+  import.meta.hot?.dispose(() => {
+    window.removeEventListener('storage', onStorage);
   });
 }
 

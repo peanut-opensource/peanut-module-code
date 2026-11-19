@@ -356,8 +356,14 @@ function moduleBoundaryInventory(string $root, bool $includeHost = false): array
             'exports' => array_fill_keys($manifest['contracts']['exports'] ?? [], true),
         ];
     }
-    if ($modules === []) {
-        throw new RuntimeException('MODULE_BOUNDARY_NO_MODULES');
+    if ($modules === [] && !$includeHost) {
+        $lockFile = $root . '/modules.lock';
+        $locked = is_file($lockFile)
+            ? (json_decode((string) file_get_contents($lockFile), true, 512, JSON_THROW_ON_ERROR)['modules'] ?? null)
+            : null;
+        if ($locked !== []) {
+            throw new RuntimeException('MODULE_BOUNDARY_NO_MODULES');
+        }
     }
     uksort($namespaces, static fn(string $left, string $right): int => strlen($right) <=> strlen($left));
     $ownerOf = static function (string $name) use ($namespaces): ?string {

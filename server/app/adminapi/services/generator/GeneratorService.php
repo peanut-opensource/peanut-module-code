@@ -77,9 +77,13 @@ class GeneratorService
 
     public function sync(int $adminId, int $id): bool
     {
-        Db::transaction(function () use ($adminId, $id): void {
+        $table = $this->ownedTableModel($adminId, $id, false);
+        $tableName = (string) $table->table_name;
+        $metadata = $this->metadata->columns($tableName);
+        $tableComment = (string) $this->metadata->table($tableName)['table_comment'];
+
+        Db::transaction(function () use ($adminId, $id, $metadata, $tableComment): void {
             $table = $this->ownedTableModel($adminId, $id, true);
-            $metadata = $this->metadata->columns((string) $table->table_name);
             $existing = [];
             foreach ($this->imports->columns($id)->select() as $row) {
                 $existing[(string) $row->column_name] = $row;
@@ -111,7 +115,7 @@ class GeneratorService
                 $delete->whereNotIn('column_name', $seen);
             }
             $delete->delete();
-            $table->save(['table_comment' => (string) $this->metadata->table((string) $table->table_name)['table_comment']]);
+            $table->save(['table_comment' => $tableComment]);
         });
         return true;
     }

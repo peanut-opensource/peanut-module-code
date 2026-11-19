@@ -24,17 +24,32 @@ use think\facade\Db;
  * The bridge is read-only: Plugin installation owns deployment state, the platform
  * owns tenant licenses, and Core RBAC owns member Permission grants.
  */
-final readonly class CoreTenantModuleAdminBridge
+final class CoreTenantModuleAdminBridge
 {
     private const APPLICATION_PERMISSION_OWNER = 'peanut.admin';
 
+    /** @var array<string,array{key:string,module_key:string|null,status:string}|null> */
+    private array $permissionStateCache = [];
+
+    /** @var array<int,array{modules:list<string>,permissions:list<string>}> */
+    private array $entitlementProjectionCache = [];
+
+    /** @var array<int,list<string>> */
+    private array $tenantModuleKeysCache = [];
+
+    /** @var list<string>|null */
+    private ?array $deploymentModulesCache = null;
+
+    /** @var list<array<string,mixed>>|null */
+    private ?array $menuRecordsCache = null;
+
     public function __construct(
-        private ThinkPhpModuleGovernanceProvider $moduleGovernance,
-        private TenantAuthorizationRepository $authorization,
-        private MenuCatalogRepository $menuCatalog,
-        private TenantAuthorizationQuery $identityAuthorization,
-        private MenuAdministrationService $menuAdministration,
-        private TenantEntitlementService $entitlements,
+        private readonly ThinkPhpModuleGovernanceProvider $moduleGovernance,
+        private readonly TenantAuthorizationRepository $authorization,
+        private readonly MenuCatalogRepository $menuCatalog,
+        private readonly TenantAuthorizationQuery $identityAuthorization,
+        private readonly MenuAdministrationService $menuAdministration,
+        private readonly TenantEntitlementService $entitlements,
     ) {}
 
     /** @return list<string> */
@@ -87,15 +102,13 @@ final readonly class CoreTenantModuleAdminBridge
 
         $permissions = $this->basePermissions($tenantContext);
         $tenantOwner = $this->isTenantOwner($tenantContext);
-        $qualification = $this->moduleGovernance->qualification();
-        $deploymentModules = array_map(
-            static fn($module): string => $module->moduleKey,
-            $qualification->installedModules(),
-        );
-        $tenantModules = $this->entitlements->moduleKeys($tenantContext->tenantId);
+        $deploymentModules = $this->cachedDeploymentModules();
         $entitlements = ($tenantOwner || $includeShell)
-            ? $this->entitlements->permissionProjection($tenantContext->tenantId)
+            ? $this->cachedEntitlementProjection($tenantContext->tenantId)
             : ['modules' => [], 'permissions' => []];
+        $tenantModules = ($tenantOwner || $includeShell)
+            ? $entitlements['modules']
+            : $this->cachedTenantModuleKeys($tenantContext->tenantId);
         $installed = array_fill_keys($deploymentModules, true);
         $activeOwners = array_values(array_unique([
             self::APPLICATION_PERMISSION_OWNER,
@@ -116,7 +129,7 @@ final readonly class CoreTenantModuleAdminBridge
             static fn(string $moduleKey): bool => in_array($moduleKey, $tenantModules, true),
             static fn(string $permission): bool => in_array($permission, $permissions, true),
         );
-        $nativeRecords = ($includeShell || $visible !== []) ? $this->menuAdministration->records() : [];
+        $nativeRecords = ($includeShell || $visible !== []) ? $this->cachedMenuRecords() : [];
         $systemMenus = [];
         $data = [
             'menu' => $visible === [] ? [] : $this->renderServerMenuRecords(
@@ -131,7 +144,7 @@ final readonly class CoreTenantModuleAdminBridge
             $data['registered_permissions'] = $registeredPermissions;
             $data['registered_system_menu_permissions'] = $this->registeredLicensedSubset(
                 array_values(array_intersect(
-                    $this->registeredSystemMenuPermissionsForOwners($activeOwners, $corePermissions),
+                    $this->registeredSystemMenuPermissionsForOwners($activeOwners, $corePermissions, $nativeRecords),
                     $entitlements['permissions'],
                 )),
                 $entitlements['modules'],
@@ -273,7 +286,7 @@ final readonly class CoreTenantModuleAdminBridge
         if ($permissions === []) {
             return [];
         }
-        $states ??= $this->identityAuthorization->permissionStates(array_values(array_unique($permissions)));
+        $states ??= $this->cachedPermissionStates(array_values(array_unique($permissions)));
         $owners = [];
         $registered = [];
         foreach ($permissions as $permission) {
@@ -356,20 +369,36 @@ final readonly class CoreTenantModuleAdminBridge
         ]));
     }
 
-    /** @param list<string> $activeOwners @param list<string> $corePermissions @return list<string> */
-    private function registeredSystemMenuPermissionsForOwners(array $activeOwners, array $corePermissions): array
+    /** @param list<string> $activeOwners @param list<string> $corePermissions @param list<array<string,mixed>>|null $menuRecords @return list<string> */
+    private function registeredSystemMenuPermissionsForOwners(array $activeOwners, array $corePermissions, ?array $menuRecords = null): array
     {
         $active = array_fill_keys($activeOwners, true);
         $permissions = [];
-        $menuPermissions = array_map('strval', Db::table('pa_system_menu')
-            ->alias('menu')
-            ->join('pa_permission permission', 'permission.id = COALESCE(menu.instance_permission_id, menu.required_permission_id)')
-            ->where('menu.scope', 'tenant')
-            ->where('menu.status', 'active')
-            ->where('menu.is_disable', 0)
-            ->distinct(true)
-            ->column('permission.key'));
-        $states = $this->identityAuthorization->permissionStates($menuPermissions);
+        if ($menuRecords !== null) {
+            $menuPermissions = [];
+            foreach ($menuRecords as $row) {
+                if (($row['scope'] ?? null) !== 'tenant'
+                    || ($row['status'] ?? null) !== 'active'
+                    || (int) ($row['is_disable'] ?? 0) !== 0) {
+                    continue;
+                }
+                $key = $row['instance_permission'] ?? $row['required_permission'] ?? null;
+                if (is_string($key) && $key !== '') {
+                    $menuPermissions[] = $key;
+                }
+            }
+            $menuPermissions = array_values(array_unique($menuPermissions));
+        } else {
+            $menuPermissions = array_map('strval', Db::table('pa_system_menu')
+                ->alias('menu')
+                ->join('pa_permission permission', 'permission.id = COALESCE(menu.instance_permission_id, menu.required_permission_id)')
+                ->where('menu.scope', 'tenant')
+                ->where('menu.status', 'active')
+                ->where('menu.is_disable', 0)
+                ->distinct(true)
+                ->column('permission.key'));
+        }
+        $states = $this->cachedPermissionStates($menuPermissions);
         $registeredCorePermissions = array_fill_keys(
             $corePermissions,
             true,
@@ -401,7 +430,7 @@ final readonly class CoreTenantModuleAdminBridge
     private function registeredCoreTenantPermissions(): array
     {
         $permissionKeys = CorePermissionCatalog::TENANT;
-        $states = $this->identityAuthorization->permissionStates($permissionKeys);
+        $states = $this->cachedPermissionStates($permissionKeys);
         $registered = [];
         foreach ($permissionKeys as $permission) {
             $state = $states[$permission] ?? null;
@@ -412,6 +441,72 @@ final readonly class CoreTenantModuleAdminBridge
             }
         }
         return $registered;
+    }
+
+    /**
+     * @param list<string> $keys
+     * @return array<string,array{key:string,module_key:string|null,status:string}>
+     */
+    private function cachedPermissionStates(array $keys): array
+    {
+        $missing = [];
+        foreach ($keys as $key) {
+            if (!array_key_exists($key, $this->permissionStateCache)) {
+                $missing[] = $key;
+            }
+        }
+        if ($missing !== []) {
+            $fetched = $this->identityAuthorization->permissionStates(array_values(array_unique($missing)));
+            foreach ($missing as $key) {
+                $this->permissionStateCache[$key] = $fetched[$key] ?? null;
+            }
+        }
+        $result = [];
+        foreach ($keys as $key) {
+            if (($this->permissionStateCache[$key] ?? null) !== null) {
+                $result[$key] = $this->permissionStateCache[$key];
+            }
+        }
+        return $result;
+    }
+
+    /** @return array{modules:list<string>,permissions:list<string>} */
+    private function cachedEntitlementProjection(int $tenantId): array
+    {
+        if (!isset($this->entitlementProjectionCache[$tenantId])) {
+            $projection = $this->entitlements->permissionProjection($tenantId);
+            $this->entitlementProjectionCache[$tenantId] = $projection;
+            $this->tenantModuleKeysCache[$tenantId] = $projection['modules'];
+        }
+        return $this->entitlementProjectionCache[$tenantId];
+    }
+
+    /** @return list<string> */
+    private function cachedTenantModuleKeys(int $tenantId): array
+    {
+        if (!isset($this->tenantModuleKeysCache[$tenantId])) {
+            $this->tenantModuleKeysCache[$tenantId] = $this->entitlements->moduleKeys($tenantId);
+        }
+        return $this->tenantModuleKeysCache[$tenantId];
+    }
+
+    /** @return list<string> */
+    private function cachedDeploymentModules(): array
+    {
+        if ($this->deploymentModulesCache === null) {
+            $qualification = $this->moduleGovernance->qualification();
+            $this->deploymentModulesCache = array_map(
+                static fn($module): string => $module->moduleKey,
+                $qualification->installedModules(),
+            );
+        }
+        return $this->deploymentModulesCache;
+    }
+
+    /** @return list<array<string,mixed>> */
+    private function cachedMenuRecords(): array
+    {
+        return $this->menuRecordsCache ??= $this->menuAdministration->records();
     }
 
     /**

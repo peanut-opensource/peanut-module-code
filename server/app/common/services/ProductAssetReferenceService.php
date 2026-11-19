@@ -39,4 +39,44 @@ final readonly class ProductAssetReferenceService
         return $this->files->getFileUrl($value);
     }
 
+    /**
+     * @param list<string> $values
+     * @return array<string, string>
+     */
+    public function forReadMany(array $values): array
+    {
+        $refs = [];
+        foreach ($values as $value) {
+            $trimmed = trim((string) $value);
+            if ($trimmed !== '') {
+                $refs[] = $trimmed;
+            }
+        }
+        return $refs === [] ? [] : $this->files->getFileUrls($refs);
+    }
+
+    /**
+     * @param list<string> $values
+     * @return array<string, string>
+     */
+    public function forStorageMany(
+        array $values,
+        AuthenticatedMemberContext|TenantContext|TenantSystemContext|null $context = null,
+    ): array {
+        $refs = [];
+        foreach ($values as $value) {
+            $trimmed = trim((string) $value);
+            if ($trimmed !== '') {
+                $refs[] = $trimmed;
+            }
+        }
+        if ($refs === []) {
+            return [];
+        }
+        if ($context === null) {
+            throw new \DomainException('FILE_REFERENCE_TRUSTED_CONTEXT_REQUIRED');
+        }
+        return $this->files->setTenantFileUrls($context, $refs);
+    }
+
 }
