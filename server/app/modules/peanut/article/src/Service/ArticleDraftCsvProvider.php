@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace PeanutAdmin\Modules\ImportExport\Infrastructure\Provider;
+namespace PeanutAdmin\Modules\Article\Service;
 
 use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 use PeanutAdmin\Modules\Article\Contract\ArticleDraftImport;
 use PeanutAdmin\Modules\ImportExport\Engine\Application\ImportExportException;
-use PeanutAdmin\Modules\ImportExport\Engine\Application\ImportExportService;
 use PeanutAdmin\Modules\ImportExport\Engine\Contract\ColumnDefinition;
 use PeanutAdmin\Modules\ImportExport\Engine\Contract\DataProvider;
+use PeanutAdmin\Modules\ImportExport\Engine\Contract\DataProviderRegistry;
 use PeanutAdmin\Modules\ImportExport\Engine\Contract\ExportBatch;
 use PeanutAdmin\Modules\ImportExport\Engine\Contract\RowIssue;
 use PeanutAdmin\Modules\ImportExport\Engine\Contract\SchemaDefinition;
@@ -34,7 +34,7 @@ final readonly class ArticleDraftCsvProvider implements DataProvider
 
     public function validateImport(AuthorizedOperationContext $context, array $row): array
     {
-        ImportExportService::assertOperation($context, 'create');
+        DataProviderRegistry::assertOperation($context, 'create');
         $fields = $this->articles->invalidDraftFields($context->tenantContext, [
             'title' => $row['title'],
             'cid' => $row['cid'],
@@ -45,7 +45,7 @@ final readonly class ArticleDraftCsvProvider implements DataProvider
 
     public function importRow(AuthorizedOperationContext $context, array $row, string $idempotencyKey): void
     {
-        ImportExportService::assertOperation($context, 'create');
+        DataProviderRegistry::assertOperation($context, 'create');
         $this->articles->importDraft($context->tenantContext, $row['title'], (int) $row['cid'], $row['body'] ?? '', $idempotencyKey);
     }
 

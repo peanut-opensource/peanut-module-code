@@ -8,7 +8,6 @@ use app\common\services\audit\AuditContractHost;
 use PeanutAdmin\Modules\Identity\Audit\AuditService;
 use app\common\services\authorization\AdminAuthorizationService;
 use app\common\infrastructure\export\OperationLogExportProvider;
-use PeanutAdmin\Modules\Article\Contract\ArticleDraftImport;
 use PeanutAdmin\Modules\ImportExport\Service\ConfigurationTransferApplicationService;
 use PeanutAdmin\Modules\ImportExport\Service\ImportExportApplicationService;
 use PeanutAdmin\Modules\ImportExport\Service\ImportExportTaskWorkerDefinition;
@@ -24,7 +23,6 @@ use PeanutAdmin\Modules\ImportExport\Infrastructure\configuration\CoreSettingsCo
 use PeanutAdmin\Modules\ImportExport\Infrastructure\configuration\ExternalBindingConfigurationAdapter;
 use PeanutAdmin\Modules\ImportExport\Infrastructure\configuration\TenantSettingsConfigurationAdapter;
 use PeanutAdmin\Modules\ImportExport\Infrastructure\File\AppFileMediaGateway;
-use PeanutAdmin\Modules\ImportExport\Infrastructure\Provider\ArticleDraftCsvProvider;
 use PeanutAdmin\Modules\Task\Contract\TaskJobRuntime;
 use PeanutAdmin\Modules\Task\Contract\TaskWorkerContributor;
 use PeanutAdmin\Modules\ImportExport\Engine\Application\ImportExportService;
@@ -53,8 +51,8 @@ final class ModuleProvider extends \think\Service implements ModuleProviderContr
         return [
             DataProviderRegistry::class => static function (App $app): DataProviderRegistry {
                 $providers = [$app->make(OperationLogExportProvider::class)];
-                if ($app->bound(ArticleDraftImport::class)) {
-                    $providers[] = $app->make(ArticleDraftCsvProvider::class);
+                foreach (DataProviderRegistry::contributedClasses() as $providerClass) {
+                    $providers[] = $app->make($providerClass);
                 }
                 return new DataProviderRegistry($providers);
             },

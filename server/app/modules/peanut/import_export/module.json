@@ -30,12 +30,7 @@
       "version": "^4.0.0-rc.32"
     }
   ],
-  "optional_dependencies": [
-    {
-      "module_key": "peanut.article",
-      "version": "^1.0.21-rc.1"
-    }
-  ],
+  "optional_dependencies": [],
   "backend": {
     "provider": "PeanutAdmin\\Modules\\ImportExport\\ModuleProvider",
     "menus": "resources/menus.json",
@@ -62,6 +57,7 @@
       "PeanutAdmin\\Modules\\ImportExport\\Contract\\Dto\\AsyncExportOperation",
       "PeanutAdmin\\Modules\\ImportExport\\Contract\\Dto\\CsvExportOperation",
       "PeanutAdmin\\Modules\\ImportExport\\Engine\\Contract\\DataProvider",
+      "PeanutAdmin\\Modules\\ImportExport\\Engine\\Contract\\DataProviderRegistry",
       "PeanutAdmin\\Modules\\ImportExport\\Engine\\Contract\\ColumnDefinition",
       "PeanutAdmin\\Modules\\ImportExport\\Engine\\Contract\\SchemaDefinition",
       "PeanutAdmin\\Modules\\ImportExport\\Engine\\Contract\\ExportBatch",

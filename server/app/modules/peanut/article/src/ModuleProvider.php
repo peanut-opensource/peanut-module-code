@@ -29,6 +29,11 @@ final class ModuleProvider implements ModuleProviderContract, \PeanutAdmin\Modul
 
     public function bindings(): array
     {
+        if (class_exists(\PeanutAdmin\Modules\ImportExport\Engine\Contract\DataProviderRegistry::class)) {
+            \PeanutAdmin\Modules\ImportExport\Engine\Contract\DataProviderRegistry::contribute(
+                \PeanutAdmin\Modules\Article\Service\ArticleDraftCsvProvider::class,
+            );
+        }
         return [
             ArticleQueries::class => ArticleQueryService::class,
             PublicArticleQueries::class => PublicArticleService::class,
