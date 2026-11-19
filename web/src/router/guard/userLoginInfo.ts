@@ -49,30 +49,27 @@ export default function setupUserLoginInfoGuard(router: Router) {
         return to.name === 'login'
           ? loginDestination(router, to.query.redirect, from.fullPath)
           : true;
-      } else {
-        try {
-          await userStore.info();
-          return to.name === 'login'
-            ? loginDestination(router, to.query.redirect, from.fullPath)
-            : true;
-        } catch (error) {
-          // Definitive authentication failure is cleared by the shared recovery.
-          // A failed profile read alone (network/403/cancel) is not a logout.
-          if (getSessionSnapshot().token === null) {
-            return to.name === 'login'
-              ? true
-              : {
-                  name: 'login',
-                  query: loginQuery(to),
-                };
-          } else {
-            NProgress.done();
-            return false;
-          }
-        }
       }
-    } else {
-      return { name: 'login', query: loginQuery(to) };
+      try {
+        await userStore.info();
+        return to.name === 'login'
+          ? loginDestination(router, to.query.redirect, from.fullPath)
+          : true;
+      } catch (error) {
+        // Definitive authentication failure is cleared by the shared recovery.
+        // A failed profile read alone (network/403/cancel) is not a logout.
+        if (getSessionSnapshot().token === null) {
+          return to.name === 'login'
+            ? true
+            : {
+                name: 'login',
+                query: loginQuery(to),
+              };
+        }
+        NProgress.done();
+        return false;
+      }
     }
+    return { name: 'login', query: loginQuery(to) };
   });
 }
