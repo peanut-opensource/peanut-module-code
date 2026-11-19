@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Custom\Modules\AiAssistant\Service;
 
-use PeanutAdmin\DataPermission\Provider\{ResourceQueryPolicyProvider,ResourceTargetPolicyProvider,ResourceCreatePolicyProvider,StandardResourcePolicyProvider,ProviderColumnMap,DepartmentHierarchyProvider,TargetSetMembershipProvider};
+use PeanutAdmin\DataPermission\Provider\{ResourcePolicyProvider,StandardResourcePolicyProvider,ProviderColumnMap,DepartmentHierarchyProvider,TargetSetMembershipProvider};
 use PeanutAdmin\DataPermission\Constraint\{ColumnReference,QueryConstraint};
 use PeanutAdmin\DataPermission\Catalog\ResourceOperation;
 use PeanutAdmin\DataPermission\Context\AuthorizationContext;
@@ -12,7 +12,7 @@ use PeanutAdmin\DataPermission\Policy\EffectivePolicySet;
 use PeanutAdmin\DataPermission\Target\TypedResourceTargetCollection;
 use PeanutAdmin\DataPermission\Decision\AuthorizationDecision;
 
-final readonly class AiScopeProvider implements ResourceQueryPolicyProvider, ResourceTargetPolicyProvider, ResourceCreatePolicyProvider
+final readonly class AiScopeProvider implements ResourcePolicyProvider
 {
     private StandardResourcePolicyProvider $native;
     public function __construct(DepartmentHierarchyProvider $departments, TargetSetMembershipProvider $targets)
