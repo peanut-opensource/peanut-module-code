@@ -219,7 +219,7 @@ function assertCurrentDatabase(PDO $pdo): array
         'pa_tenant' => ['id', 'code', 'status', 'authorization_revision'],
         'pa_tenant_member' => ['tenant_id', 'account_id', 'status', 'authorization_revision'],
         'pa_permission' => ['key', 'module_key', 'status'],
-        'pa_system_menu' => ['id', 'type', 'perms', 'component'],
+        'pa_system_menu' => ['id', 'key', 'scope', 'type', 'component_key', 'required_permission_id'],
         'pa_config' => ['type', 'name', 'value'],
         $migrationTable => ['version', 'migration_name', 'start_time', 'end_time', 'breakpoint'],
     ]);

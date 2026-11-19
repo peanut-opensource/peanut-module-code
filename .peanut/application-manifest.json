@@ -36,13 +36,13 @@
         }
     },
     "installation_migrations": {
-        "server/database/installation/20261101020000_initial_scaffold_baseline.php": "8e06a94922c68927bcef71bed60f2298f9eb0bca4d023f4ce0048e3b977a8664",
+        "server/database/installation/20261101020000_initial_scaffold_baseline.php": "f09d9c2f71169aba7054319cd0d8d7008cbc76d726bbf918a496582bf8c70675",
         "server/database/migrations/20261103230000_unify_module_installation.php": "5e0b994e51c401dd8abb9a82db82efa8fbf8c39682d3acd20e099f5d409256dc",
         "server/database/migrations/20261103235000_remove_retired_transaction_setting.php": "6ae6e84f2c3d5d29919a21377f01ae942765141bd9d46a0c6280d55a84622f4d",
         "server/database/migrations/20261103235500_remove_unchanged_host_examples.php": "e5aa0df3c21c64d95641a3894954336b9e081c37592f9ca136a2c6ba564d18c1",
         "server/database/schema/baseline-data.sql": "6afda1a08f185862be9e94eddd15d77ac3ca24ff9825a24c0841a4132f825931",
-        "server/database/schema/baseline-schema.sql": "d86d77048c00f343fe02522401411e7a77e7eca9fab2ab89cd4e537940357abd",
-        "server/database/seeds/InitialSeeder.php": "bc8e54ffc810b08c10732334fc994c52205c23c1c85374ab1416cbd0f172e0d8"
+        "server/database/schema/baseline-schema.sql": "afcc0bd5ccc908fc1839dc888185795fb7b0a55621d2137f1563bade89dc8cbd",
+        "server/database/seeds/InitialSeeder.php": "f4f313ff18146d63647b012dc20071c9a72c4a81d5a2123b0284a8469888c575"
     },
     "template": {
         "version": "5.1.18-rc.2",
@@ -10912,7 +10912,7 @@
         },
         {
             "path": "server/database/installation/20261101020000_initial_scaffold_baseline.php",
-            "sha256": "8e06a94922c68927bcef71bed60f2298f9eb0bca4d023f4ce0048e3b977a8664",
+            "sha256": "f09d9c2f71169aba7054319cd0d8d7008cbc76d726bbf918a496582bf8c70675",
             "mode": 420,
             "classification": "app-owned",
             "owner": "application",
@@ -10974,7 +10974,7 @@
         },
         {
             "path": "server/database/schema/baseline-schema.sql",
-            "sha256": "d86d77048c00f343fe02522401411e7a77e7eca9fab2ab89cd4e537940357abd",
+            "sha256": "afcc0bd5ccc908fc1839dc888185795fb7b0a55621d2137f1563bade89dc8cbd",
             "mode": 420,
             "classification": "app-owned",
             "owner": "application",
@@ -10993,7 +10993,7 @@
         },
         {
             "path": "server/database/seeds/InitialSeeder.php",
-            "sha256": "bc8e54ffc810b08c10732334fc994c52205c23c1c85374ab1416cbd0f172e0d8",
+            "sha256": "f4f313ff18146d63647b012dc20071c9a72c4a81d5a2123b0284a8469888c575",
             "mode": 420,
             "classification": "app-owned",
             "owner": "application",

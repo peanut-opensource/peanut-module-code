@@ -16,7 +16,6 @@ use app\common\execution\CurrentExecutionContext;
 use think\facade\Db;
 use think\facade\Cache;
 use PeanutAdmin\Modules\Identity\Auth\TenantAuthService;
-use app\common\model\auth\SystemMenu;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Context\AuthorizationDecision;
 use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
@@ -421,20 +420,8 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
             return [];
         }
 
-        $visiblePermissions = array_values(array_intersect($permissions, $registered));
-        $query = SystemMenu::where('type', 'in', ['M', 'C'])
-            ->where('is_disable', 0)
-            ->whereNotIn('perms', InstanceControlPlanePolicy::tenantAdminPermissions())
-            ->whereNotIn('paths', InstanceControlPlanePolicy::tenantAdminPaths())
-            ->where(static function ($query) use ($visiblePermissions): void {
-                $query->where('perms', '')->whereOr('perms', 'in', $visiblePermissions ?: ['__none__']);
-            });
-
-        $nativeKeys = array_fill_keys($managedMenuKeys, true);
-        return array_values(array_filter(
-            $query->order(['sort' => 'desc', 'id' => 'asc'])->select()->toArray(),
-            static fn(array $row): bool => !isset($nativeKeys[$row['menu_key']]),
-        ));
+        // Dual-table menu records are unified in pa_system_menu; no standalone legacy SystemMenu rows remain.
+        return [];
     }
 
     private function validContext(?TenantContext $context, AdminPrincipal $admin): bool
@@ -474,10 +461,10 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
     private function admittedPrincipal(TenantContext $context): ?AdminPrincipal
     {
         try {
-            if ($this->executionContext->tenantAdmin() !== $context) {
+            if ($this->execution->tenantAdmin() !== $context) {
                 return null;
             }
-            return AdminPrincipal::fromArray($this->executionContext->tenantAdminPrincipal());
+            return AdminPrincipal::fromArray($this->execution->tenantAdminPrincipal());
         } catch (\Throwable) {
             return null;
         }

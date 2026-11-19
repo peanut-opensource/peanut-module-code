@@ -2,8 +2,12 @@
 
 declare(strict_types=1);
 
+$contractPath = __DIR__ . '/../../resources/device-credential-contract.json';
+if (!is_file($contractPath)) {
+    return [];
+}
 $contracts = json_decode(
-    (string) file_get_contents(__DIR__ . '/../../resources/device-credential-contract.json'),
+    (string) file_get_contents($contractPath),
     true,
     flags: JSON_THROW_ON_ERROR,
 );

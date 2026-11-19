@@ -25,12 +25,6 @@ export interface ModuleApiOperations {
   updateLegacyDictionaryEntry: paths['/adminapi/dict/data/edit']['post'];
   deleteLegacyDictionaryEntry: paths['/adminapi/dict/data/delete']['post'];
   setLegacyDictionaryEntryStatus: paths['/adminapi/dict/data/status']['post'];
-  listReferenceCodeSets: paths['/adminapi/api/v1/reference-code-sets']['get'];
-  listReferenceCodes: paths['/adminapi/api/v1/reference-code-sets/{moduleKey}/{setKey}/codes']['get'];
-  createReferenceCode: paths['/adminapi/api/v1/reference-code-sets/{moduleKey}/{setKey}/codes']['post'];
-  getReferenceCode: paths['/adminapi/api/v1/reference-code-sets/{moduleKey}/{setKey}/codes/{code}']['get'];
-  replaceReferenceCode: paths['/adminapi/api/v1/reference-code-sets/{moduleKey}/{setKey}/codes/{code}']['put'];
-  retireReferenceCode: paths['/adminapi/api/v1/reference-code-sets/{moduleKey}/{setKey}/codes/{code}']['delete'];
 }
 
 export function createModuleApi(client: Client<paths>) {
@@ -57,12 +51,6 @@ export function createModuleApi(client: Client<paths>) {
     updateLegacyDictionaryEntry: pathClient['/adminapi/dict/data/edit'].POST,
     deleteLegacyDictionaryEntry: pathClient['/adminapi/dict/data/delete'].POST,
     setLegacyDictionaryEntryStatus: pathClient['/adminapi/dict/data/status'].POST,
-    listReferenceCodeSets: pathClient['/adminapi/api/v1/reference-code-sets'].GET,
-    listReferenceCodes: pathClient['/adminapi/api/v1/reference-code-sets/{moduleKey}/{setKey}/codes'].GET,
-    createReferenceCode: pathClient['/adminapi/api/v1/reference-code-sets/{moduleKey}/{setKey}/codes'].POST,
-    getReferenceCode: pathClient['/adminapi/api/v1/reference-code-sets/{moduleKey}/{setKey}/codes/{code}'].GET,
-    replaceReferenceCode: pathClient['/adminapi/api/v1/reference-code-sets/{moduleKey}/{setKey}/codes/{code}'].PUT,
-    retireReferenceCode: pathClient['/adminapi/api/v1/reference-code-sets/{moduleKey}/{setKey}/codes/{code}'].DELETE,
   };
 }
 

@@ -29,7 +29,7 @@ final readonly class DepartmentAdminService
     {
         $query = Department::where('tenant_id', $tenantId);
         $total = (int) (clone $query)->count();
-        $rows = $query->field('id,parent_id,code,name,leader,leader_member_id,mobile,sort_order,status,revision,created_at,updated_at')
+        $rows = $query->field('id,parent_id,code,name,leader_member_id,mobile,sort_order,status,revision,created_at,updated_at')
             ->order('sort_order')->order('id')->limit($page->offset(), $page->pageSize)->select()->toArray();
 
         return ['items' => array_values(array_map($this->normalize(...), $rows)), 'total' => $total];
@@ -39,7 +39,7 @@ final readonly class DepartmentAdminService
     public function get(int $tenantId, int $departmentId): array
     {
         $row = Department::where('tenant_id', $tenantId)->where('id', $departmentId)
-            ->field('id,parent_id,code,name,leader,leader_member_id,mobile,sort_order,status,revision,created_at,updated_at')->find()?->toArray();
+            ->field('id,parent_id,code,name,leader_member_id,mobile,sort_order,status,revision,created_at,updated_at')->find()?->toArray();
 
         return $row === null ? throw AdminAccessException::notFound() : $this->normalize($row);
     }
@@ -63,7 +63,7 @@ final readonly class DepartmentAdminService
         }
         if ($flat) { $query->where('status', 'active'); }
         $total = (int) (clone $query)->count();
-        $rows = $query->field('id,parent_id,code,name,leader,leader_member_id,mobile,sort_order,status,revision,created_at,updated_at')
+        $rows = $query->field('id,parent_id,code,name,leader_member_id,mobile,sort_order,status,revision,created_at,updated_at')
             ->order('sort_order')->order('id')->limit($page->offset(), $page->pageSize)->select()->toArray();
         $matches = array_column($rows, null, 'id');
         $known = $matches;
@@ -115,7 +115,7 @@ final readonly class DepartmentAdminService
                 'name' => $row['name'], 'status' => $row['status'], 'sort_order' => (int) $row['sort_order'],
                 'structuralOnly' => $structural, 'selectable' => !$structural && $row['status'] === 'active',
                 'hasChildren' => isset($children[(int) $row['id']])];
-            return $structural ? $item : $item + array_intersect_key($row, array_flip(['code', 'leader', 'leader_member_id', 'mobile', 'revision', 'created_at', 'updated_at']));
+            return $structural ? $item : $item + array_intersect_key($row, array_flip(['code', 'leader_member_id', 'mobile', 'revision', 'created_at', 'updated_at']));
         };
         return ['items' => array_values(array_map(fn(array $r): array => $project($r, $activeOnly && $r['status'] !== 'active'), $matches)),
             'ancestors' => array_values(array_map(fn(array $r): array => $project($r, true), array_diff_key($known, $matches))), 'total' => $total];

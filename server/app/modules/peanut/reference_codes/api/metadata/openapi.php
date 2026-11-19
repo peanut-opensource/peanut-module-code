@@ -150,52 +150,6 @@ return [
             'tags' => ['ReferenceCodes'], 'operationId' => 'setLegacyDictionaryEntryStatus', 'requestBody' => $legacyBody('ReferenceCodeLegacyStatusRequest'),
             'responses' => ['200' => $legacySuccess('ReferenceCodeLegacyMutationResponse', '字典数据状态更新成功。'), '400' => $error, '401' => $error, '403' => $error, '500' => $error],
         ]],
-        '/adminapi/api/v1/reference-code-sets' => ['get' => [
-            'tags' => ['ReferenceCodes'], 'operationId' => 'listReferenceCodeSets',
-            'responses' => [
-                '200' => ['description' => 'Registered reference-code sets.', 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/ReferenceCodeSetsResponse']]]],
-                '401' => $error, '403' => $error,
-            ],
-        ]],
-        '/adminapi/api/v1/reference-code-sets/{moduleKey}/{setKey}/codes' => [
-            'get' => [
-                'tags' => ['ReferenceCodes'], 'operationId' => 'listReferenceCodes',
-                'parameters' => [$moduleKey, $setKey,
-                    ['name' => 'as_of', 'in' => 'query', 'required' => true, 'schema' => ['type' => 'string', 'format' => 'date-time']],
-                    ['name' => 'effective_status', 'in' => 'query', 'required' => true, 'schema' => ['type' => 'string', 'enum' => ['active', 'inactive', 'all']]],
-                    ['name' => 'include_retired', 'in' => 'query', 'required' => true, 'schema' => ['type' => 'boolean']],
-                    ['name' => 'page', 'in' => 'query', 'required' => true, 'schema' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 10000]],
-                    ['name' => 'page_size', 'in' => 'query', 'required' => true, 'schema' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100]],
-                ],
-                'responses' => ['200' => ['description' => 'Reference-code snapshot.', 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/ReferenceCodeListResponse']]]], '401' => $error, '403' => $error, '404' => $error, '422' => $error],
-            ],
-            'post' => [
-                'tags' => ['ReferenceCodes'], 'operationId' => 'createReferenceCode',
-                'parameters' => [$moduleKey, $setKey, $idempotency, [
-                    'name' => 'If-None-Match', 'in' => 'header', 'required' => true, 'schema' => ['type' => 'string', 'enum' => ['*']],
-                ]],
-                'requestBody' => ['required' => true, 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/ReferenceCodeCreateRequest']]]],
-                'responses' => ['200' => $entryResponse, '401' => $error, '403' => $error, '404' => $error, '409' => $error, '412' => $error, '422' => $error, '428' => $error, '500' => $error],
-            ],
-        ],
-        '/adminapi/api/v1/reference-code-sets/{moduleKey}/{setKey}/codes/{code}' => [
-            'get' => [
-                'tags' => ['ReferenceCodes'], 'operationId' => 'getReferenceCode',
-                'parameters' => [$moduleKey, $setKey, $code, ['name' => 'as_of', 'in' => 'query', 'required' => true, 'schema' => ['type' => 'string', 'format' => 'date-time']]],
-                'responses' => ['200' => $entryResponse, '401' => $error, '403' => $error, '404' => $error, '422' => $error],
-            ],
-            'put' => [
-                'tags' => ['ReferenceCodes'], 'operationId' => 'replaceReferenceCode',
-                'parameters' => [$moduleKey, $setKey, $code, $idempotency, $ifMatch],
-                'requestBody' => ['required' => true, 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/ReferenceCodeVersionRequest']]]],
-                'responses' => ['200' => $entryResponse, '401' => $error, '403' => $error, '404' => $error, '409' => $error, '412' => $error, '422' => $error, '428' => $error, '500' => $error],
-            ],
-            'delete' => [
-                'tags' => ['ReferenceCodes'], 'operationId' => 'retireReferenceCode',
-                'parameters' => [$moduleKey, $setKey, $code, $idempotency, $ifMatch],
-                'responses' => ['200' => $entryResponse, '401' => $error, '403' => $error, '404' => $error, '409' => $error, '412' => $error, '422' => $error, '428' => $error, '500' => $error],
-            ],
-        ],
     ],
     'components' => ['schemas' => [
         'ReferenceCodeDictionaryModeRequest' => [

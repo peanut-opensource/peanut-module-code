@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace app\common\infrastructure\authorization;
 
-use app\common\model\auth\SystemMenu;
 use app\platform\infrastructure\module\ThinkPhpModuleGovernanceProvider;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Authorization\TenantAuthorizationRepository;
@@ -17,6 +16,7 @@ use PeanutAdmin\Modules\Identity\Menu\MenuAdministrationService;
 use PeanutAdmin\Modules\Identity\Module\TenantEntitlementService;
 use PeanutAdmin\Modules\Identity\Auth\TenantAuthService;
 use think\facade\Cache;
+use think\facade\Db;
 
 /**
  * Adapts the deployment catalog and tenant license to the Admin Shell menu payload.
@@ -117,7 +117,7 @@ final readonly class CoreTenantModuleAdminBridge
             static fn(string $permission): bool => in_array($permission, $permissions, true),
         );
         $nativeRecords = ($includeShell || $visible !== []) ? $this->menuAdministration->records() : [];
-        $systemMenus = ($includeShell || $visible !== []) ? SystemMenu::order('id')->select()->toArray() : [];
+        $systemMenus = [];
         $data = [
             'menu' => $visible === [] ? [] : $this->renderServerMenuRecords(
                 $visible,
@@ -361,8 +361,14 @@ final readonly class CoreTenantModuleAdminBridge
     {
         $active = array_fill_keys($activeOwners, true);
         $permissions = [];
-        $menuPermissions = array_map('strval', SystemMenu::where('is_disable', 0)
-            ->where('perms', '<>', '')->distinct(true)->column('perms'));
+        $menuPermissions = array_map('strval', Db::table('pa_system_menu')
+            ->alias('menu')
+            ->join('pa_permission permission', 'permission.id = COALESCE(menu.instance_permission_id, menu.required_permission_id)')
+            ->where('menu.scope', 'tenant')
+            ->where('menu.status', 'active')
+            ->where('menu.is_disable', 0)
+            ->distinct(true)
+            ->column('permission.key'));
         $states = $this->identityAuthorization->permissionStates($menuPermissions);
         $registeredCorePermissions = array_fill_keys(
             $corePermissions,
@@ -419,7 +425,7 @@ final readonly class CoreTenantModuleAdminBridge
         }
         return $this->renderServerMenuRecords(
             $definitions,
-            SystemMenu::order('id')->select()->toArray(),
+            [],
             $this->menuAdministration->records(),
             $permissions,
         );

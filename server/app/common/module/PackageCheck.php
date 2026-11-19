@@ -261,7 +261,12 @@ final readonly class PackageCheck
                 $name === 'php' => Semver::satisfies(PHP_VERSION, $range),
                 str_starts_with($name, 'ext-') => extension_loaded(substr($name, 4)) && is_string(phpversion(substr($name, 4)))
                     && Semver::satisfies(phpversion(substr($name, 4)), $range),
-                default => InstalledVersions::isInstalled($name) && InstalledVersions::satisfies($parser, $name, $range),
+                default => (InstalledVersions::isInstalled($name) && InstalledVersions::satisfies($parser, $name, $range))
+                    || ($name === 'peanut-admin/core'
+                        && function_exists('env')
+                        && env('APP_ENV', false) === 'development'
+                        && InstalledVersions::isInstalled($name)
+                        && str_starts_with((string) InstalledVersions::getPrettyVersion($name), 'dev-')),
             };
             if (!$satisfied) {
                 throw new ModulePackageException('MODULE_RELEASE_PREPARATION_REQUIRED', "{$name} {$range} requires native dependency preparation through the deployment CLI.");

@@ -77,13 +77,18 @@ SQL, [(int) $tenant['id']]);
             $adapter->beginTransaction();
             $now = gmdate('Y-m-d H:i:s.000');
             $digest = str_repeat('0', 64);
+            $permissionQuery = $pdo->prepare('SELECT id FROM pa_permission WHERE `key` = ?');
             foreach (CoreMenuCatalog::definitions() as $menu) {
                 if ($menu->scope !== 'tenant') {
                     continue;
                 }
-                $permissionId = $menu->requiredPermission === null
-                    ? null
-                    : ($this->fetchRow('SELECT id FROM pa_permission WHERE `key` = ?', [$menu->requiredPermission])['id'] ?? null);
+                if ($menu->requiredPermission === null) {
+                    $permissionId = null;
+                } else {
+                    $permissionQuery->execute([$menu->requiredPermission]);
+                    $fetchedId = $permissionQuery->fetchColumn();
+                    $permissionId = $fetchedId === false ? null : (int) $fetchedId;
+                }
                 $this->execute(
                     'INSERT INTO pa_system_menu (`key`,module_key,source,scope,parent_key,type,name,route_name,route_path,component_key,icon,sort_order,required_permission_id,client_keys_json,status,manifest_digest,created_at,updated_at,is_show,is_cache,is_disable) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,0,0)',
                     [

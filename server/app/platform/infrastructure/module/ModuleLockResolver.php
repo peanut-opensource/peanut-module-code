@@ -19,6 +19,8 @@ final class ModuleLockResolver
     /** @var array<string,ModuleDescriptor>|null */
     private ?array $resolved = null;
 
+    private ?string $resolvedLockDigest = null;
+
     public function __construct(
         private readonly string $serverRoot,
         private readonly string $lockPath,
@@ -241,7 +243,22 @@ final class ModuleLockResolver
         if (file_exists($journal) || is_link($journal) || hash_file('sha256', $lockPath) !== $lockDigest) {
             throw new ModuleLifecycleException('MODULE_PACKAGE_RECOVERY_REQUIRED', 'Application source changed during resolution.');
         }
+        $this->resolvedLockDigest = $lockDigest;
         return $this->resolved = $plugins;
+    }
+
+    /** Fast check for batch operations: only reload if modules.lock changed on disk. */
+    public function assertLockFileUnchanged(): void
+    {
+        if ($this->resolved === null || $this->resolvedLockDigest === null) {
+            $this->reload();
+            return;
+        }
+        $lockPath = $this->absolutePath($this->lockPath, $this->serverRoot);
+        $current = is_file($lockPath) ? hash_file('sha256', $lockPath) : false;
+        if (!is_string($current) || !hash_equals($this->resolvedLockDigest, $current)) {
+            $this->reload();
+        }
     }
 
     public function require(string $pluginKey): ModuleDescriptor
@@ -254,6 +271,7 @@ final class ModuleLockResolver
     public function reload(): void
     {
         $this->resolved = null;
+        $this->resolvedLockDigest = null;
     }
 
     /** @return list<string> */

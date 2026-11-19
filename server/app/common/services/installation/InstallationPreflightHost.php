@@ -260,7 +260,12 @@ final class InstallationPreflightHost
                 return $value;
             };
             $manifest = $read($this->serverRoot . '/composer.json');
-            $lock = $read($this->serverRoot . '/composer.lock');
+            $localCoreLockPath = dirname($this->serverRoot) . '/.local/composer-core/composer.lock';
+            $isLocalCoreDev = function_exists('env')
+                && env('APP_ENV', false) === 'development'
+                && is_file($localCoreLockPath)
+                && !is_link($localCoreLockPath);
+            $lock = $read($isLocalCoreDev ? $localCoreLockPath : $this->serverRoot . '/composer.lock');
             $installed = $read($this->serverRoot . '/vendor/composer/installed.json');
             if (!is_array($manifest['require'] ?? null)
                 || !is_array($lock['packages'] ?? null) || !array_is_list($lock['packages'])
@@ -269,15 +274,17 @@ final class InstallationPreflightHost
                 return $blocked();
             }
             $coreIdentity = null;
-            foreach ($lock['packages'] as $package) {
-                if (($package['name'] ?? null) !== 'peanut-admin/core') { continue; }
-                $coreIdentity = ApplicationReleaseVersions::load(
-                    dirname($this->serverRoot) . '/release-versions.json',
-                )->toArray()['core_php'];
-                if ($coreIdentity['source_type'] !== (isset($package['source']) ? 'git' : 'local')) {
-                    return $blocked();
+            if (!$isLocalCoreDev) {
+                foreach ($lock['packages'] as $package) {
+                    if (($package['name'] ?? null) !== 'peanut-admin/core') { continue; }
+                    $coreIdentity = ApplicationReleaseVersions::load(
+                        dirname($this->serverRoot) . '/release-versions.json',
+                    )->toArray()['core_php'];
+                    if ($coreIdentity['source_type'] !== (isset($package['source']) ? 'git' : 'local')) {
+                        return $blocked();
+                    }
+                    ReleaseDependencyIdentity::phpComposerReference($package, $coreIdentity, 'Composer Core identity invalid');
                 }
-                ReleaseDependencyIdentity::phpComposerReference($package, $coreIdentity, 'Composer Core identity invalid');
             }
             $modulePackages = [];
             $moduleConfig = require $this->serverRoot . '/config/modules.php';
@@ -291,7 +298,8 @@ final class InstallationPreflightHost
                         'require' => $package['require-dev'] ?? []];
                 }
             }
-            $identity = static function (array $package) use ($coreIdentity, $modulePackages): array {
+            $serverRoot = $this->serverRoot;
+            $identity = static function (array $package) use ($coreIdentity, $modulePackages, $isLocalCoreDev, $serverRoot): array {
                 $name = $package['name'] ?? null;
                 $version = $package['version'] ?? null;
                 if (isset($modulePackages[$name])) {
@@ -301,7 +309,10 @@ final class InstallationPreflightHost
                     }
                     if (isset($module['url'])) {
                         $dist = $package['dist'] ?? [];
-                        if (($dist['type'] ?? null) !== 'path' || ($dist['url'] ?? null) !== $module['url']) {
+                        $url = $dist['url'] ?? null;
+                        $validUrl = $url === $module['url']
+                            || ($isLocalCoreDev && $url === $serverRoot . '/' . $module['url']);
+                        if (($dist['type'] ?? null) !== 'path' || !$validUrl) {
                             throw new RuntimeException('Composer Module path identity invalid');
                         }
                         return [$name, $version, $dist];
@@ -312,13 +323,23 @@ final class InstallationPreflightHost
                     }
                     return [$name, $version, $module['require']];
                 }
-                if ($name === 'peanut-admin/core' && $coreIdentity !== null) {
-                    $reference = ReleaseDependencyIdentity::phpComposerReference($package, $coreIdentity, 'Composer Core identity invalid');
-                    if ($coreIdentity['source_type'] === 'git') {
-                        return [$name, $version, $reference];
+                if ($name === 'peanut-admin/core') {
+                    if ($isLocalCoreDev) {
+                        $dist = $package['dist'] ?? [];
+                        if (!is_string($version) || !str_starts_with($version, 'dev-')
+                            || ($dist['type'] ?? null) !== 'path' || !is_string($dist['url'] ?? null) || $dist['url'] === '') {
+                            throw new RuntimeException('Composer local Core identity invalid');
+                        }
+                        return [$name, $version, [$dist['type'], $dist['url'], $dist['reference'] ?? '']];
                     }
-                    // Compare the installed local archive with the lock; its ZIP was verified when prepared.
-                    return [$name, $version, [$reference, $package['dist']['type'], $package['dist']['url'], $package['dist']['shasum']]];
+                    if ($coreIdentity !== null) {
+                        $reference = ReleaseDependencyIdentity::phpComposerReference($package, $coreIdentity, 'Composer Core identity invalid');
+                        if ($coreIdentity['source_type'] === 'git') {
+                            return [$name, $version, $reference];
+                        }
+                        // Compare the installed local archive with the lock; its ZIP was verified when prepared.
+                        return [$name, $version, [$reference, $package['dist']['type'], $package['dist']['url'], $package['dist']['shasum']]];
+                    }
                 }
                 $source = $package['source']['reference'] ?? null;
                 $dist = $package['dist']['reference'] ?? null;
@@ -346,10 +367,15 @@ final class InstallationPreflightHost
             $runtime = $map($lock['packages']);
             $development = $map($lock['packages-dev']);
             $actual = $map($installed['packages']);
-            $pinned = static function (string $name) use ($manifest, $runtime): bool {
+            $pinned = static function (string $name) use ($manifest, $runtime, $isLocalCoreDev): bool {
                 $constraint = $manifest['require'][$name] ?? null;
-                return ReleaseDependencyIdentity::fixed($constraint)
-                    && in_array($runtime[$name][0] ?? null, [$constraint, 'v' . $constraint], true);
+                if (!ReleaseDependencyIdentity::fixed($constraint)) {
+                    return false;
+                }
+                if ($isLocalCoreDev && $name === 'peanut-admin/core') {
+                    return str_starts_with((string) ($runtime[$name][0] ?? ''), 'dev-');
+                }
+                return in_array($runtime[$name][0] ?? null, [$constraint, 'v' . $constraint], true);
             };
             if (!$runtime || array_intersect_key($runtime, $development)
                 || !$pinned('peanut-admin/core') || !$pinned('topthink/think-migration')) {

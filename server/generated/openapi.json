@@ -141,9 +141,6 @@
             "name": "Storage"
         },
         {
-            "name": "Identity"
-        },
-        {
             "name": "Integration"
         },
         {
@@ -972,7 +969,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 201
+                        "line": 198
                     }
                 },
                 "x-peanut-permissions": [
@@ -1050,7 +1047,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 154
+                        "line": 151
                     }
                 },
                 "x-peanut-permissions": [
@@ -1128,7 +1125,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 198
+                        "line": 195
                     }
                 },
                 "x-peanut-permissions": [
@@ -1206,7 +1203,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 195
+                        "line": 192
                     }
                 },
                 "x-peanut-permissions": [
@@ -1310,7 +1307,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 157
+                        "line": 154
                     }
                 },
                 "x-peanut-permissions": [
@@ -1388,7 +1385,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 160
+                        "line": 157
                     }
                 },
                 "x-peanut-permissions": [
@@ -1500,7 +1497,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 168
+                        "line": 165
                     }
                 },
                 "x-peanut-permissions": [
@@ -1606,7 +1603,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 171
+                        "line": 168
                     }
                 },
                 "x-peanut-permissions": [
@@ -1707,7 +1704,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 179
+                        "line": 176
                     }
                 },
                 "x-peanut-permissions": [
@@ -1819,7 +1816,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 182
+                        "line": 179
                     }
                 },
                 "x-peanut-permissions": [
@@ -1913,7 +1910,7 @@
                     "permission": "platform.ops.upgrade.manage",
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 185
+                        "line": 182
                     }
                 },
                 "x-peanut-permissions": [
@@ -2018,7 +2015,7 @@
                     "permission": "platform.ops.module.manage",
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 190
+                        "line": 187
                     }
                 },
                 "x-peanut-permissions": [
@@ -2110,7 +2107,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 204
+                        "line": 201
                     }
                 },
                 "x-peanut-permissions": [
@@ -12428,7 +12425,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 235
+                        "line": 232
                     }
                 },
                 "x-peanut-permissions": [
@@ -12601,7 +12598,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 210
+                        "line": 207
                     }
                 },
                 "x-peanut-permissions": [
@@ -12689,7 +12686,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 213
+                        "line": 210
                     }
                 },
                 "x-peanut-permissions": [
@@ -12777,7 +12774,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 216
+                        "line": 213
                     }
                 },
                 "x-peanut-permissions": [
@@ -12886,7 +12883,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 87
+                        "line": 84
                     }
                 },
                 "x-peanut-permissions": [
@@ -12995,7 +12992,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 90
+                        "line": 87
                     }
                 },
                 "x-peanut-permissions": [
@@ -13104,7 +13101,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 93
+                        "line": 90
                     }
                 },
                 "x-peanut-permissions": [
@@ -13213,7 +13210,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 96
+                        "line": 93
                     }
                 },
                 "x-peanut-permissions": [
@@ -13331,7 +13328,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 99
+                        "line": 96
                     }
                 },
                 "x-peanut-permissions": [
@@ -13423,109 +13420,6 @@
                     {
                         "kind": "platform_action",
                         "key": "platform.tenant.read"
-                    }
-                ]
-            }
-        },
-        "/platformapi/tenants/owner/revoke": {
-            "post": {
-                "tags": [
-                    "PlatformTenants"
-                ],
-                "operationId": "revokePlatformTenantOwner",
-                "parameters": [],
-                "responses": {
-                    "200": {
-                        "description": "成功",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                        "code",
-                                        "msg",
-                                        "data"
-                                    ],
-                                    "properties": {
-                                        "code": {
-                                            "type": "integer",
-                                            "enum": [
-                                                20000
-                                            ]
-                                        },
-                                        "msg": {
-                                            "type": "string"
-                                        },
-                                        "data": {
-                                            "$ref": "#/components/schemas/PlatformTenantOwnerRevocation"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "409": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "412": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/PlatformTenantOwnerRevocationRequest"
-                            }
-                        }
-                    }
-                },
-                "x-peanut-errors": [
-                    "CHANGE_REASON_REQUIRED",
-                    "PLATFORM_OPERATOR_INVALID",
-                    "TENANT_NOT_ACTIVE",
-                    "REVISION_MISMATCH",
-                    "TENANT_OWNER_STATE_CONFLICT",
-                    "LAST_ACTIVE_OWNER_REQUIRED"
-                ],
-                "description": "Requires an authenticated platform operator with platform.tenant.provision-owner. Removes only the selected owner role and suspends that membership; preserves the global account and other tenants. Identity rejects stale revisions and removal of the last active owner. Requires Identity 4.0.1-rc.1 or a later release containing revokeOwner.",
-                "security": [
-                    {
-                        "bearerAuth": {}
-                    }
-                ],
-                "x-peanut-route": {
-                    "application": "platform",
-                    "owner": {
-                        "type": "application",
-                        "key": "platform"
-                    },
-                    "controller": "app\\platform\\controller\\PlatformTenantController",
-                    "action": "revokeOwner",
-                    "permission": null,
-                    "source": {
-                        "file": "server/route/platform.php",
-                        "line": 84
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "platform_action",
-                        "key": "platform.tenant.provision-owner"
                     }
                 ]
             }
@@ -13624,7 +13518,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 238
+                        "line": 235
                     }
                 },
                 "x-peanut-permissions": [
@@ -13734,7 +13628,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 241
+                        "line": 238
                     }
                 },
                 "x-peanut-permissions": [
@@ -13848,7 +13742,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 244
+                        "line": 241
                     }
                 },
                 "x-peanut-permissions": [
@@ -13953,7 +13847,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 247
+                        "line": 244
                     }
                 },
                 "x-peanut-permissions": [
@@ -14058,7 +13952,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 250
+                        "line": 247
                     }
                 },
                 "x-peanut-permissions": [
@@ -14163,7 +14057,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 253
+                        "line": 250
                     }
                 },
                 "x-peanut-permissions": [
@@ -14268,7 +14162,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 256
+                        "line": 253
                     }
                 },
                 "x-peanut-permissions": [
@@ -14382,7 +14276,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 259
+                        "line": 256
                     }
                 },
                 "x-peanut-permissions": [
@@ -14487,7 +14381,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 262
+                        "line": 259
                     }
                 },
                 "x-peanut-permissions": [
@@ -14600,7 +14494,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 265
+                        "line": 262
                     }
                 },
                 "x-peanut-permissions": [
@@ -15230,7 +15124,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 145
+                        "line": 142
                     }
                 },
                 "x-peanut-permissions": [
@@ -15350,7 +15244,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 148
+                        "line": 145
                     }
                 },
                 "x-peanut-permissions": [
@@ -15455,7 +15349,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 207
+                        "line": 204
                     }
                 },
                 "x-peanut-permissions": [
@@ -15549,7 +15443,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 110
+                        "line": 107
                     }
                 },
                 "x-peanut-permissions": [
@@ -15694,7 +15588,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 114
+                        "line": 111
                     }
                 },
                 "x-peanut-permissions": [
@@ -15812,7 +15706,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 102
+                        "line": 99
                     }
                 },
                 "x-peanut-permissions": [
@@ -15918,7 +15812,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 122
+                        "line": 119
                     }
                 },
                 "x-peanut-permissions": [
@@ -16037,7 +15931,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 126
+                        "line": 123
                     }
                 },
                 "x-peanut-permissions": [
@@ -16125,7 +16019,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 130
+                        "line": 127
                     }
                 },
                 "x-peanut-permissions": [
@@ -16235,7 +16129,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 118
+                        "line": 115
                     }
                 },
                 "x-peanut-permissions": [
@@ -16336,7 +16230,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 137
+                        "line": 134
                     }
                 },
                 "x-peanut-permissions": [
@@ -16428,7 +16322,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 141
+                        "line": 138
                     }
                 },
                 "x-peanut-permissions": [
@@ -16601,7 +16495,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 133
+                        "line": 130
                     }
                 },
                 "x-peanut-permissions": [
@@ -16686,7 +16580,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 107
+                        "line": 104
                     }
                 },
                 "x-peanut-permissions": [
@@ -16764,7 +16658,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 151
+                        "line": 148
                     }
                 },
                 "x-peanut-permissions": [
@@ -16895,7 +16789,7 @@
                     "permission": "platform.ops.logs.read",
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 163
+                        "line": 160
                     }
                 },
                 "x-peanut-permissions": [
@@ -16995,7 +16889,7 @@
                     "permission": "platform.ops.logs.read",
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 174
+                        "line": 171
                     }
                 },
                 "x-peanut-permissions": [
@@ -17113,7 +17007,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 220
+                        "line": 217
                     }
                 },
                 "x-peanut-permissions": [
@@ -17202,7 +17096,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 223
+                        "line": 220
                     }
                 },
                 "x-peanut-permissions": [
@@ -17291,7 +17185,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 226
+                        "line": 223
                     }
                 },
                 "x-peanut-permissions": [
@@ -17382,7 +17276,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 229
+                        "line": 226
                     }
                 },
                 "x-peanut-permissions": [
@@ -17471,7 +17365,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 232
+                        "line": 229
                     }
                 },
                 "x-peanut-permissions": [
@@ -32767,284 +32661,6 @@
                 ]
             }
         },
-        "/adminapi/api/v1/identity/device-credentials": {
-            "x-peanut-required-modules": [
-                "peanut.identity"
-            ],
-            "post": {
-                "tags": [
-                    "Identity"
-                ],
-                "operationId": "identityEnrollDeviceCredential",
-                "summary": "登记设备公钥凭据",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/IdentityEnrollDeviceCredentialRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "设备凭据登记结果。",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/IdentityEnrollDeviceCredentialResponse"
-                                }
-                            }
-                        }
-                    },
-                    "202": {
-                        "description": "设备凭据登记结果。",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/IdentityEnrollDeviceCredentialResponse"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "设备凭据登记结果。",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/IdentityEnrollDeviceCredentialResponse"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "设备凭据登记结果。",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/IdentityEnrollDeviceCredentialResponse"
-                                }
-                            }
-                        }
-                    },
-                    "409": {
-                        "description": "设备凭据登记结果。",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/IdentityEnrollDeviceCredentialResponse"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "设备凭据登记结果。",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/IdentityEnrollDeviceCredentialResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "403": {
-                        "description": "当前办理身份或设备凭据登记权限不可用。",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "oneOf": [
-                                        {
-                                            "$ref": "#/components/schemas/ErrorEnvelope"
-                                        },
-                                        {
-                                            "$ref": "#/components/schemas/IdentityEnrollDeviceCredentialResponse"
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": {}
-                    }
-                ],
-                "x-peanut-route": {
-                    "application": "adminapi",
-                    "owner": {
-                        "type": "module",
-                        "key": "peanut.identity"
-                    },
-                    "controller": "PeanutAdmin\\Modules\\Identity\\Controller\\DeviceCredentialController",
-                    "action": "enroll",
-                    "permission": "peanut.identity.device-credential.enroll",
-                    "source": {
-                        "file": "server/app/modules/peanut/identity/route/app.php",
-                        "line": 15
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.identity"
-                    },
-                    {
-                        "kind": "tenant_action",
-                        "key": "peanut.identity.device-credential.enroll"
-                    }
-                ]
-            }
-        },
-        "/adminapi/api/v1/identity/device-credentials/{key}/revoke": {
-            "x-peanut-required-modules": [
-                "peanut.identity"
-            ],
-            "post": {
-                "tags": [
-                    "Identity"
-                ],
-                "operationId": "identityRevokeDeviceCredential",
-                "summary": "撤销设备凭据",
-                "parameters": [
-                    {
-                        "name": "key",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid",
-                            "pattern": "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/IdentityRevokeDeviceCredentialRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "设备凭据撤销结果。",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/IdentityRevokeDeviceCredentialResponse"
-                                }
-                            }
-                        }
-                    },
-                    "202": {
-                        "description": "设备凭据撤销结果。",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/IdentityRevokeDeviceCredentialResponse"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "设备凭据撤销结果。",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/IdentityRevokeDeviceCredentialResponse"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "设备凭据撤销结果。",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/IdentityRevokeDeviceCredentialResponse"
-                                }
-                            }
-                        }
-                    },
-                    "409": {
-                        "description": "设备凭据撤销结果。",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/IdentityRevokeDeviceCredentialResponse"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "设备凭据撤销结果。",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/IdentityRevokeDeviceCredentialResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "403": {
-                        "description": "当前办理身份或设备凭据撤销权限不可用。",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "oneOf": [
-                                        {
-                                            "$ref": "#/components/schemas/ErrorEnvelope"
-                                        },
-                                        {
-                                            "$ref": "#/components/schemas/IdentityRevokeDeviceCredentialResponse"
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": {}
-                    }
-                ],
-                "x-peanut-route": {
-                    "application": "adminapi",
-                    "owner": {
-                        "type": "module",
-                        "key": "peanut.identity"
-                    },
-                    "controller": "PeanutAdmin\\Modules\\Identity\\Controller\\DeviceCredentialController",
-                    "action": "revoke",
-                    "permission": "peanut.identity.device-credential.revoke",
-                    "source": {
-                        "file": "server/app/modules/peanut/identity/route/app.php",
-                        "line": 17
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.identity"
-                    },
-                    {
-                        "kind": "tenant_action",
-                        "key": "peanut.identity.device-credential.revoke"
-                    }
-                ]
-            }
-        },
         "/adminapi/peanut.import-export.operation-log.export": {
             "post": {
                 "tags": [
@@ -41208,7 +40824,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                        "line": 18
+                        "line": 17
                     }
                 },
                 "x-peanut-permissions": [
@@ -41287,7 +40903,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                        "line": 22
+                        "line": 21
                     }
                 },
                 "x-peanut-permissions": [
@@ -41338,7 +40954,7 @@
                     "permission": "peanut.reference-codes.read",
                     "source": {
                         "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                        "line": 34
+                        "line": 33
                     }
                 },
                 "x-peanut-permissions": [
@@ -41408,7 +41024,7 @@
                     "permission": "peanut.reference-codes.read",
                     "source": {
                         "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                        "line": 36
+                        "line": 35
                     }
                 },
                 "x-peanut-permissions": [
@@ -41488,7 +41104,7 @@
                     "permission": "peanut.reference-codes.manage",
                     "source": {
                         "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                        "line": 38
+                        "line": 37
                     }
                 },
                 "x-peanut-permissions": [
@@ -41571,7 +41187,7 @@
                     "permission": "peanut.reference-codes.manage",
                     "source": {
                         "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                        "line": 40
+                        "line": 39
                     }
                 },
                 "x-peanut-permissions": [
@@ -41648,7 +41264,7 @@
                     "permission": "peanut.reference-codes.manage",
                     "source": {
                         "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                        "line": 42
+                        "line": 41
                     }
                 },
                 "x-peanut-permissions": [
@@ -42674,713 +42290,6 @@
                     }
                 },
                 "x-peanut-permissions": [
-                    {
-                        "kind": "tenant_action",
-                        "key": "peanut.reference-codes.manage"
-                    }
-                ]
-            }
-        },
-        "/adminapi/api/v1/reference-code-sets": {
-            "get": {
-                "tags": [
-                    "ReferenceCodes"
-                ],
-                "operationId": "listReferenceCodeSets",
-                "responses": {
-                    "200": {
-                        "description": "Registered reference-code sets.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ReferenceCodeSetsResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": {}
-                    }
-                ],
-                "x-peanut-route": {
-                    "application": "adminapi",
-                    "owner": {
-                        "type": "module",
-                        "key": "peanut.reference-codes"
-                    },
-                    "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\ReferenceCodesController",
-                    "action": "sets",
-                    "permission": "peanut.reference-codes.read",
-                    "source": {
-                        "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                        "line": 44
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.reference-codes"
-                    },
-                    {
-                        "kind": "tenant_action",
-                        "key": "peanut.reference-codes.read"
-                    }
-                ]
-            }
-        },
-        "/adminapi/api/v1/reference-code-sets/{moduleKey}/{setKey}/codes": {
-            "get": {
-                "tags": [
-                    "ReferenceCodes"
-                ],
-                "operationId": "listReferenceCodes",
-                "parameters": [
-                    {
-                        "name": "moduleKey",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 96,
-                            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*$"
-                        }
-                    },
-                    {
-                        "name": "setKey",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 64,
-                            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
-                        }
-                    },
-                    {
-                        "name": "as_of",
-                        "in": "query",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "date-time"
-                        }
-                    },
-                    {
-                        "name": "effective_status",
-                        "in": "query",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "active",
-                                "inactive",
-                                "all"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "include_retired",
-                        "in": "query",
-                        "required": true,
-                        "schema": {
-                            "type": "boolean"
-                        }
-                    },
-                    {
-                        "name": "page",
-                        "in": "query",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 10000
-                        }
-                    },
-                    {
-                        "name": "page_size",
-                        "in": "query",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 100
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Reference-code snapshot.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ReferenceCodeListResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": {}
-                    }
-                ],
-                "x-peanut-route": {
-                    "application": "adminapi",
-                    "owner": {
-                        "type": "module",
-                        "key": "peanut.reference-codes"
-                    },
-                    "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\ReferenceCodesController",
-                    "action": "index",
-                    "permission": "peanut.reference-codes.read",
-                    "source": {
-                        "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                        "line": 46
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.reference-codes"
-                    },
-                    {
-                        "kind": "tenant_action",
-                        "key": "peanut.reference-codes.read"
-                    }
-                ]
-            },
-            "post": {
-                "tags": [
-                    "ReferenceCodes"
-                ],
-                "operationId": "createReferenceCode",
-                "parameters": [
-                    {
-                        "name": "moduleKey",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 96,
-                            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*$"
-                        }
-                    },
-                    {
-                        "name": "setKey",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 64,
-                            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
-                        }
-                    },
-                    {
-                        "name": "Idempotency-Key",
-                        "in": "header",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "minLength": 16,
-                            "maxLength": 128,
-                            "pattern": "^[!-~]+$"
-                        }
-                    },
-                    {
-                        "name": "If-None-Match",
-                        "in": "header",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "*"
-                            ]
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ReferenceCodeCreateRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Reference-code entry and strong ETag.",
-                        "headers": {
-                            "ETag": {
-                                "required": true,
-                                "schema": {
-                                    "type": "string",
-                                    "pattern": "^\"rev-[1-9][0-9]*\"$"
-                                }
-                            }
-                        },
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ReferenceCodeEntryResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "409": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "412": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "428": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": {}
-                    }
-                ],
-                "x-peanut-route": {
-                    "application": "adminapi",
-                    "owner": {
-                        "type": "module",
-                        "key": "peanut.reference-codes"
-                    },
-                    "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\ReferenceCodesController",
-                    "action": "create",
-                    "permission": "peanut.reference-codes.manage",
-                    "source": {
-                        "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                        "line": 48
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.reference-codes"
-                    },
-                    {
-                        "kind": "tenant_action",
-                        "key": "peanut.reference-codes.manage"
-                    }
-                ]
-            }
-        },
-        "/adminapi/api/v1/reference-code-sets/{moduleKey}/{setKey}/codes/{code}": {
-            "get": {
-                "tags": [
-                    "ReferenceCodes"
-                ],
-                "operationId": "getReferenceCode",
-                "parameters": [
-                    {
-                        "name": "moduleKey",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 96,
-                            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*$"
-                        }
-                    },
-                    {
-                        "name": "setKey",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 64,
-                            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
-                        }
-                    },
-                    {
-                        "name": "code",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 64,
-                            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
-                        }
-                    },
-                    {
-                        "name": "as_of",
-                        "in": "query",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "date-time"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Reference-code entry and strong ETag.",
-                        "headers": {
-                            "ETag": {
-                                "required": true,
-                                "schema": {
-                                    "type": "string",
-                                    "pattern": "^\"rev-[1-9][0-9]*\"$"
-                                }
-                            }
-                        },
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ReferenceCodeEntryResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": {}
-                    }
-                ],
-                "x-peanut-route": {
-                    "application": "adminapi",
-                    "owner": {
-                        "type": "module",
-                        "key": "peanut.reference-codes"
-                    },
-                    "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\ReferenceCodesController",
-                    "action": "detail",
-                    "permission": "peanut.reference-codes.read",
-                    "source": {
-                        "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                        "line": 50
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.reference-codes"
-                    },
-                    {
-                        "kind": "tenant_action",
-                        "key": "peanut.reference-codes.read"
-                    }
-                ]
-            },
-            "put": {
-                "tags": [
-                    "ReferenceCodes"
-                ],
-                "operationId": "replaceReferenceCode",
-                "parameters": [
-                    {
-                        "name": "moduleKey",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 96,
-                            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*$"
-                        }
-                    },
-                    {
-                        "name": "setKey",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 64,
-                            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
-                        }
-                    },
-                    {
-                        "name": "code",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 64,
-                            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
-                        }
-                    },
-                    {
-                        "name": "Idempotency-Key",
-                        "in": "header",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "minLength": 16,
-                            "maxLength": 128,
-                            "pattern": "^[!-~]+$"
-                        }
-                    },
-                    {
-                        "name": "If-Match",
-                        "in": "header",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "pattern": "^\"rev-[1-9][0-9]*\"$"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ReferenceCodeVersionRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Reference-code entry and strong ETag.",
-                        "headers": {
-                            "ETag": {
-                                "required": true,
-                                "schema": {
-                                    "type": "string",
-                                    "pattern": "^\"rev-[1-9][0-9]*\"$"
-                                }
-                            }
-                        },
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ReferenceCodeEntryResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "409": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "412": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "428": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": {}
-                    }
-                ],
-                "x-peanut-route": {
-                    "application": "adminapi",
-                    "owner": {
-                        "type": "module",
-                        "key": "peanut.reference-codes"
-                    },
-                    "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\ReferenceCodesController",
-                    "action": "replace",
-                    "permission": "peanut.reference-codes.manage",
-                    "source": {
-                        "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                        "line": 52
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.reference-codes"
-                    },
-                    {
-                        "kind": "tenant_action",
-                        "key": "peanut.reference-codes.manage"
-                    }
-                ]
-            },
-            "delete": {
-                "tags": [
-                    "ReferenceCodes"
-                ],
-                "operationId": "retireReferenceCode",
-                "parameters": [
-                    {
-                        "name": "moduleKey",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 96,
-                            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*$"
-                        }
-                    },
-                    {
-                        "name": "setKey",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 64,
-                            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
-                        }
-                    },
-                    {
-                        "name": "code",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "maxLength": 64,
-                            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
-                        }
-                    },
-                    {
-                        "name": "Idempotency-Key",
-                        "in": "header",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "minLength": 16,
-                            "maxLength": 128,
-                            "pattern": "^[!-~]+$"
-                        }
-                    },
-                    {
-                        "name": "If-Match",
-                        "in": "header",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "pattern": "^\"rev-[1-9][0-9]*\"$"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Reference-code entry and strong ETag.",
-                        "headers": {
-                            "ETag": {
-                                "required": true,
-                                "schema": {
-                                    "type": "string",
-                                    "pattern": "^\"rev-[1-9][0-9]*\"$"
-                                }
-                            }
-                        },
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ReferenceCodeEntryResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "409": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "412": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "428": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    },
-                    "500": {
-                        "$ref": "#/components/responses/ErrorResponse"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": {}
-                    }
-                ],
-                "x-peanut-route": {
-                    "application": "adminapi",
-                    "owner": {
-                        "type": "module",
-                        "key": "peanut.reference-codes"
-                    },
-                    "controller": "PeanutAdmin\\Modules\\ReferenceCodes\\Controller\\ReferenceCodesController",
-                    "action": "retire",
-                    "permission": "peanut.reference-codes.manage",
-                    "source": {
-                        "file": "server/app/modules/peanut/reference_codes/route/app.php",
-                        "line": 54
-                    }
-                },
-                "x-peanut-permissions": [
-                    {
-                        "kind": "module_capability",
-                        "key": "peanut.reference-codes"
-                    },
                     {
                         "kind": "tenant_action",
                         "key": "peanut.reference-codes.manage"
@@ -51841,78 +50750,6 @@
                         "$ref": "#/components/schemas/PlatformOpsTask"
                     }
                 ]
-            },
-            "PlatformTenantOwnerRevocationRequest": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "tenant_id",
-                    "member_id",
-                    "expected_revision",
-                    "change_reason"
-                ],
-                "properties": {
-                    "tenant_id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "member_id": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "expected_revision": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "description": "Target membership authorization revision, not the tenant revision."
-                    },
-                    "change_reason": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 500
-                    }
-                }
-            },
-            "PlatformTenantOwnerRevocation": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "tenant_id",
-                    "member_id",
-                    "account_id",
-                    "status",
-                    "revision",
-                    "owner_revoked"
-                ],
-                "properties": {
-                    "tenant_id": {
-                        "type": "string",
-                        "pattern": "^[1-9][0-9]*$"
-                    },
-                    "member_id": {
-                        "type": "string",
-                        "pattern": "^[1-9][0-9]*$"
-                    },
-                    "account_id": {
-                        "type": "string",
-                        "pattern": "^[1-9][0-9]*$"
-                    },
-                    "status": {
-                        "type": "string",
-                        "enum": [
-                            "suspended"
-                        ]
-                    },
-                    "revision": {
-                        "type": "string",
-                        "pattern": "^[1-9][0-9]*$"
-                    },
-                    "owner_revoked": {
-                        "type": "boolean",
-                        "enum": [
-                            true
-                        ]
-                    }
-                }
             },
             "TenantPlan": {
                 "type": "object",
@@ -60905,424 +59742,6 @@
                         }
                     }
                 }
-            },
-            "IdentityEnrollDeviceCredentialRequest": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                    "client_key": {
-                        "type": "string",
-                        "pattern": "^[a-z][a-z0-9-]{0,63}$"
-                    },
-                    "device_fingerprint_hash": {
-                        "type": "string",
-                        "pattern": "^[0-9a-f]{64}$"
-                    },
-                    "credential_public_key": {
-                        "type": "string",
-                        "pattern": "^[0-9a-f]{64}$"
-                    },
-                    "credential_signature": {
-                        "type": "string",
-                        "pattern": "^[0-9a-f]{128}$"
-                    },
-                    "command_key": {
-                        "type": "string",
-                        "format": "uuid",
-                        "pattern": "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
-                    }
-                },
-                "required": [
-                    "client_key",
-                    "device_fingerprint_hash",
-                    "credential_public_key",
-                    "credential_signature",
-                    "command_key"
-                ]
-            },
-            "IdentityEnrollDeviceCredentialResponse": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                    "outcome": {
-                        "enum": [
-                            "accepted",
-                            "pending",
-                            "rejected",
-                            "repair_required"
-                        ]
-                    },
-                    "correlation_id": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 96
-                    },
-                    "resource_key": {
-                        "anyOf": [
-                            {
-                                "type": "string",
-                                "format": "uuid",
-                                "pattern": "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
-                            },
-                            {
-                                "type": "object",
-                                "nullable": true,
-                                "enum": [
-                                    null
-                                ]
-                            }
-                        ]
-                    },
-                    "resource_revision": {
-                        "anyOf": [
-                            {
-                                "type": "string",
-                                "pattern": "^[1-9][0-9]*$",
-                                "maxLength": 20
-                            },
-                            {
-                                "type": "object",
-                                "nullable": true,
-                                "enum": [
-                                    null
-                                ]
-                            }
-                        ]
-                    },
-                    "data": {
-                        "anyOf": [
-                            {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                    "status_code": {
-                                        "enum": [
-                                            "enrolled"
-                                        ]
-                                    },
-                                    "changed_refs": {
-                                        "type": "array",
-                                        "minItems": 1,
-                                        "maxItems": 1,
-                                        "items": {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "properties": {
-                                                "module": {
-                                                    "enum": [
-                                                        "peanut.identity"
-                                                    ]
-                                                },
-                                                "resource_type": {
-                                                    "enum": [
-                                                        "device_credential"
-                                                    ]
-                                                },
-                                                "key": {
-                                                    "type": "string",
-                                                    "format": "uuid",
-                                                    "pattern": "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
-                                                },
-                                                "revision": {
-                                                    "enum": [
-                                                        "1"
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "module",
-                                                "resource_type",
-                                                "key",
-                                                "revision"
-                                            ]
-                                        }
-                                    },
-                                    "next_actions": {
-                                        "type": "array",
-                                        "maxItems": 0,
-                                        "items": {
-                                            "type": "string"
-                                        }
-                                    }
-                                },
-                                "required": [
-                                    "status_code",
-                                    "changed_refs",
-                                    "next_actions"
-                                ]
-                            },
-                            {
-                                "type": "object",
-                                "nullable": true,
-                                "enum": [
-                                    null
-                                ]
-                            }
-                        ]
-                    },
-                    "problem": {
-                        "anyOf": [
-                            {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                    "code": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "maxLength": 96
-                                    },
-                                    "message_zh": {
-                                        "type": "string"
-                                    },
-                                    "retryable": {
-                                        "type": "boolean"
-                                    },
-                                    "recovery_action": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "code",
-                                    "message_zh",
-                                    "retryable",
-                                    "recovery_action"
-                                ]
-                            },
-                            {
-                                "type": "object",
-                                "nullable": true,
-                                "enum": [
-                                    null
-                                ]
-                            }
-                        ]
-                    }
-                },
-                "required": [
-                    "outcome",
-                    "correlation_id",
-                    "resource_key",
-                    "resource_revision",
-                    "data",
-                    "problem"
-                ]
-            },
-            "IdentityRevokeDeviceCredentialRequest": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                    "reason_note": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 1000,
-                        "pattern": "^[^\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]*[^\\s\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f][^\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]*$"
-                    },
-                    "command_key": {
-                        "type": "string",
-                        "format": "uuid",
-                        "pattern": "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
-                    },
-                    "expected_revision": {
-                        "type": "string",
-                        "pattern": "^[1-9][0-9]*$",
-                        "maxLength": 20
-                    }
-                },
-                "required": [
-                    "reason_note",
-                    "command_key",
-                    "expected_revision"
-                ]
-            },
-            "IdentityRevokeDeviceCredentialResponse": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                    "outcome": {
-                        "enum": [
-                            "accepted",
-                            "pending",
-                            "rejected",
-                            "repair_required"
-                        ]
-                    },
-                    "correlation_id": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 96
-                    },
-                    "resource_key": {
-                        "anyOf": [
-                            {
-                                "type": "string",
-                                "format": "uuid",
-                                "pattern": "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
-                            },
-                            {
-                                "type": "object",
-                                "nullable": true,
-                                "enum": [
-                                    null
-                                ]
-                            }
-                        ]
-                    },
-                    "resource_revision": {
-                        "anyOf": [
-                            {
-                                "type": "string",
-                                "pattern": "^[1-9][0-9]*$",
-                                "maxLength": 20
-                            },
-                            {
-                                "type": "object",
-                                "nullable": true,
-                                "enum": [
-                                    null
-                                ]
-                            }
-                        ]
-                    },
-                    "data": {
-                        "anyOf": [
-                            {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                    "status_code": {
-                                        "enum": [
-                                            "revoked"
-                                        ]
-                                    },
-                                    "changed_refs": {
-                                        "type": "array",
-                                        "minItems": 1,
-                                        "maxItems": 1,
-                                        "items": {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "properties": {
-                                                "module": {
-                                                    "enum": [
-                                                        "peanut.identity"
-                                                    ]
-                                                },
-                                                "resource_type": {
-                                                    "enum": [
-                                                        "device_credential"
-                                                    ]
-                                                },
-                                                "key": {
-                                                    "type": "string",
-                                                    "format": "uuid",
-                                                    "pattern": "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
-                                                },
-                                                "revision": {
-                                                    "type": "string",
-                                                    "pattern": "^[1-9][0-9]*$",
-                                                    "maxLength": 20
-                                                }
-                                            },
-                                            "required": [
-                                                "module",
-                                                "resource_type",
-                                                "key",
-                                                "revision"
-                                            ]
-                                        }
-                                    },
-                                    "next_actions": {
-                                        "type": "array",
-                                        "maxItems": 0,
-                                        "items": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "revocation_epoch": {
-                                        "enum": [
-                                            "1"
-                                        ]
-                                    },
-                                    "installation_key": {
-                                        "anyOf": [
-                                            {
-                                                "type": "string",
-                                                "format": "uuid",
-                                                "pattern": "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
-                                            },
-                                            {
-                                                "type": "object",
-                                                "nullable": true,
-                                                "enum": [
-                                                    null
-                                                ]
-                                            }
-                                        ]
-                                    }
-                                },
-                                "required": [
-                                    "status_code",
-                                    "changed_refs",
-                                    "next_actions",
-                                    "revocation_epoch",
-                                    "installation_key"
-                                ]
-                            },
-                            {
-                                "type": "object",
-                                "nullable": true,
-                                "enum": [
-                                    null
-                                ]
-                            }
-                        ]
-                    },
-                    "problem": {
-                        "anyOf": [
-                            {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                    "code": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "maxLength": 96
-                                    },
-                                    "message_zh": {
-                                        "type": "string"
-                                    },
-                                    "retryable": {
-                                        "type": "boolean"
-                                    },
-                                    "recovery_action": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "code",
-                                    "message_zh",
-                                    "retryable",
-                                    "recovery_action"
-                                ]
-                            },
-                            {
-                                "type": "object",
-                                "nullable": true,
-                                "enum": [
-                                    null
-                                ]
-                            }
-                        ]
-                    }
-                },
-                "required": [
-                    "outcome",
-                    "correlation_id",
-                    "resource_key",
-                    "resource_revision",
-                    "data",
-                    "problem"
-                ]
             },
             "ImportExportOperation": {
                 "type": "object",
