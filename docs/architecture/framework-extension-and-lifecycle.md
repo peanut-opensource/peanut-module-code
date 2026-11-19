@@ -156,7 +156,7 @@ HTTP运行顺序还包含原生多应用选择、全局/应用/路由Middleware�
 
 当前上下文栈证明的是现有串行/FPM 和显式嵌套调用合同；未验证的协程/并行 worker 不能沿用进程单例隔离结论。新增并发运行方式须先明确 task-local 生命周期与真实验证，不把全局可变对象共享给多个租户。
 
-Server 发行的完整文件、Plugin canonical内容和模块声明校验由部署 owner 在原生 `initialize-traffic`、更新及恢复后的闭流阶段负责，完成之后才能授予流量。`VerifiedServerDeployment` 是该生命周期的薄 Host 适配器：使用 ThinkPHP 原生 File driver 保存纯 JSON 声明，以不可变内容键写入、同步文件并原子发布指针。程序及依赖必须对 Web 用户不可写；索引目录由部署 owner 控制，普通应用缓存不承担来源信任。
+HTTP 请求路径统一通过 `ModuleDefinitionRegistryFactory::fromCompiled()` 读取 CLI 预编译好的模块注册表（位于 `runtime/module-registry`），不再在每次请求时通过 `VerifiedServerDeployment` 执行全量文件 SHA-256 校验。程序源码目录应对 Web 运行用户保持最小必要权限。
 
 声明绑定发行身份、投影锁、Composer依赖、模块配置和安装/部署状态，模块根使用Server相对路径。普通HTTP通过 `app/provider.php` 读取受保护结果、核对绑定并恢复模块autoload，再交给原生容器和Service注册；不执行完整文件树扫描或模块编译。索引缺失、损坏、绑定变化或仍在更新时拒绝，不由Web进程懒惰重建。任何程序、模块或发行变更必须先闭流、停止旧FPM，再完整校验、重建声明并重启授流；失败撤销流量与运行证明。
 
