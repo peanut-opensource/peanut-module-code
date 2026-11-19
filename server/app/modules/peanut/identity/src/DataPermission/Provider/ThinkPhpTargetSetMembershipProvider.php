@@ -8,8 +8,8 @@ use PeanutAdmin\DataPermission\Provider\TargetSetMembershipProvider;
 
 final class ThinkPhpTargetSetMembershipProvider implements TargetSetMembershipProvider
 {
-    public function memberTargets(int $tenantId, array $targetSetIds): array
+    public function containsAll(int $tenantId, int $targetSetId, array $targetIds): bool
     {
-        return [];
+        return false;
     }
 }

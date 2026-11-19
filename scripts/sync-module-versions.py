@@ -56,7 +56,7 @@ def main() -> int:
             if entry.get('version') != ver:
                 entry['version'] = ver
                 lock_changed = True
-            for bucket in ('npm', 'composer'):
+            for bucket in ('npm', 'composer', 'frontend'):
                 for pkg in entry.get(bucket) or []:
                     if isinstance(pkg, dict) and pkg.get('version') != ver:
                         pkg['version'] = ver
