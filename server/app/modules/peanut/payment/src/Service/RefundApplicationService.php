@@ -82,6 +82,10 @@ class RefundApplicationService
             : (array) $item);
         $lists = $pageResult->items;
 
+        $avatarMap = $this->files->getFileUrls(array_map(
+            static fn(array $item): string => (string) ($item['avatar'] ?? ''),
+            $lists,
+        ));
         foreach ($lists as &$item) {
             $item['id'] = (int) $item['id'];
             $item['user_id'] = (int) $item['user_id'];
@@ -92,7 +96,8 @@ class RefundApplicationService
             $item['refund_type_text'] = RefundEnum::getTypeDesc($item['refund_type']);
             $item['refund_status_text'] = RefundEnum::getStatusDesc($item['refund_status']);
             $item['refund_way_text'] = RefundEnum::getWayDesc($item['refund_way']);
-            $item['avatar'] = $this->files->getFileUrl((string) ($item['avatar'] ?? ''));
+            $rawAvatar = (string) ($item['avatar'] ?? '');
+            $item['avatar'] = $avatarMap[$rawAvatar] ?? '';
             $item['create_time'] = self::formatTime($item['create_time'] ?? 0);
             unset($item['refund_msg']);
         }

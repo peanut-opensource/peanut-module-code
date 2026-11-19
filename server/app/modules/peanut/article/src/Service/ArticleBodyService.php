@@ -113,7 +113,7 @@ final readonly class ArticleBodyService
     {
         // The existing current-authorization transaction locks this owner before the callback.
         // Metadata and its CAS revision therefore describe the same Article row; no view grant is needed.
-        return $this->commands->runOwnerVersionSave($context, self::owner($id), function (TenantContext $current, DocumentOwnerState $state) use ($id): array {
+        $result = $this->commands->runOwnerVersionSave($context, self::owner($id), function (TenantContext $current, DocumentOwnerState $state) use ($id): array {
             $article = Article::where('id', $id)->lock(true)->find();
             if ($article === null || $article->body_document_id === null) {
                 throw BusinessException::conflict('ARTICLE_DOCUMENT_REQUIRED', '请先接入既有资讯正文');
@@ -122,11 +122,13 @@ final readonly class ArticleBodyService
                 'article_id' => $id,'owner_revision' => $state->revision,'saved_binding' => self::binding($article),
                 'article_metadata' => ['cid' => (int) $article->cid,'title' => (string) $article->title,
                     'desc' => (string) $article->desc,'abstract' => (string) $article->abstract,'image' => (string) $article->image,
-                    'image_url' => $this->assets->forRead((string) $article->image),
+                    'image_url' => '',
                     'author' => (string) $article->author,'click_virtual' => (int) $article->click_virtual,
                     'sort' => (int) $article->sort,'is_show' => (int) $article->is_show],
             ];
         });
+        $result['article_metadata']['image_url'] = $this->assets->forRead((string) ($result['article_metadata']['image'] ?? ''));
+        return $result;
     }
 
     public function transport(TenantContext $context, int $id): array

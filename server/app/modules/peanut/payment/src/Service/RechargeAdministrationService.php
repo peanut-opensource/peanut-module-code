@@ -177,11 +177,11 @@ class RechargeAdministrationService
         $log = $prepared['log'];
 
         // 渠道调用必须发生在本地原子业务事务提交后，避免渠道已受理而本地整体回滚。
-        return $this->requestGatewayRefund($order, $record, $log, $idempotency, $lease);
+        return $this->requestGatewayRefund($context, $adminId, $order, $record, $log, $idempotency, $lease);
     }
 
     /**
-     * 失败退款重试：复用 record，只新建 log，不再调整任何账户金额。
+     * 失败退款重试：复用 record，重新核验可退额度并扣减余额，新建 log。
      */
     public function refundAgain(object $context, array $params, int $adminId): string
     {
@@ -206,6 +206,26 @@ class RechargeAdministrationService
                     }
 
                     $this->gatewayForOriginalPayment($order);
+                    $amountCents = $this->requestedRefundAmountCents(
+                        $context,
+                        $order,
+                        Money::toCents((string) $record->refund_amount),
+                    );
+                    $this->memberBalances->applyInTransaction(
+                        $context,
+                        new MemberBalanceMutation(
+                            (int) $order->user_id,
+                            AccountLogEnum::USER_MONEY_DEC_RECHARGE_REFUND,
+                            AccountLogEnum::DEC,
+                            $amountCents,
+                            (string) $record->sn,
+                            '充值订单退款重试',
+                            [],
+                            $adminId,
+                            -$amountCents,
+                            '退款失败:用户余额已不足退款金额',
+                        ),
+                    );
                     $record->refund_status = RefundEnum::REFUND_ING;
                     $record->refund_msg = '';
                     $record->save();
@@ -221,7 +241,7 @@ class RechargeAdministrationService
                 });
 
                 // 重试同样先提交 ERROR -> ING 和本次日志，再在事务外请求渠道。
-                return $this->requestGatewayRefund($order, $record, $log);
+                return $this->requestGatewayRefund($context, $adminId, $order, $record, $log);
             });
         } catch (AdvisoryLockUnavailable) {
             throw BusinessException::conflict('REFUND_IN_PROGRESS', '退款正在处理中，请勿重复操作');
@@ -244,6 +264,7 @@ class RechargeAdministrationService
         $refundedCents = Money::toCents((string) (RefundRecord::where([])
             ->where('order_type', RefundEnum::ORDER_TYPE_RECHARGE)
             ->where('order_id', (int) $order->id)
+            ->whereIn('refund_status', [RefundEnum::REFUND_ING, RefundEnum::REFUND_SUCCESS])
             ->sum('refund_amount') ?? 0));
         $remainingCents = $orderCents - $refundedCents;
         if ($remainingCents <= 0) {
@@ -319,6 +340,8 @@ class RechargeAdministrationService
     }
 
     private function requestGatewayRefund(
+        object $context,
+        int $adminId,
         object $order,
         object $record,
         object $log,
@@ -358,6 +381,8 @@ class RechargeAdministrationService
 
         // 渠道请求完成后使用新的短事务锁定本次记录和日志，原子落下业务结果和幂等回执。
         Db::transaction(function () use (
+            $context,
+            $adminId,
             $record,
             $log,
             $order,
@@ -379,6 +404,23 @@ class RechargeAdministrationService
                 $lockedLog->refund_status = RefundEnum::REFUND_ERROR;
                 $lockedRecord->refund_status = RefundEnum::REFUND_ERROR;
                 $message = $gatewayError;
+                $refundCents = Money::toCents((string) $lockedRecord->refund_amount);
+                if ($refundCents > 0) {
+                    $this->memberBalances->applyInTransaction(
+                        $context,
+                        new MemberBalanceMutation(
+                            (int) $lockedOrder->user_id,
+                            AccountLogEnum::USER_MONEY_INC_ADMIN,
+                            AccountLogEnum::INC,
+                            $refundCents,
+                            (string) $lockedRecord->sn,
+                            '充值退款渠道失败回退余额',
+                            [],
+                            $adminId,
+                            $refundCents,
+                        ),
+                    );
+                }
             } else {
                 $message = self::encodeGatewayResult($result['receipt'] ?? []);
                 if (($result['status'] ?? '') === RefundGatewayInterface::STATUS_SUCCESS) {
@@ -469,6 +511,7 @@ class RechargeAdministrationService
         $amounts = $orderIds === [] ? [] : RefundRecord::where([])
             ->where('order_type', RefundEnum::ORDER_TYPE_RECHARGE)
             ->whereIn('order_id', $orderIds)
+            ->whereIn('refund_status', [RefundEnum::REFUND_ING, RefundEnum::REFUND_SUCCESS])
             ->group('order_id')
             ->column('SUM(refund_amount)', 'order_id');
         foreach ($rows as &$row) {
@@ -480,6 +523,10 @@ class RechargeAdministrationService
 
     private function formatRows(array $rows): array
     {
+        $avatarMap = $this->files->getFileUrls(array_map(
+            static fn(array $row): string => (string) ($row['avatar'] ?? ''),
+            $rows,
+        ));
         foreach ($rows as &$row) {
             $row['id'] = (int) $row['id'];
             $row['pay_way'] = (int) $row['pay_way'];
@@ -498,7 +545,8 @@ class RechargeAdministrationService
                 RechargeOrder::PAY_STATUS_UNPAID => '未支付',
                 RechargeOrder::PAY_STATUS_PAID => '已支付',
             ][$row['pay_status']] ?? '';
-            $row['avatar'] = $this->files->getFileUrl((string) ($row['avatar'] ?? ''));
+            $rawAvatar = (string) ($row['avatar'] ?? '');
+            $row['avatar'] = $avatarMap[$rawAvatar] ?? '';
             $row['pay_time'] = self::formatTime($row['pay_time'] ?? 0);
             $row['create_time'] = self::formatTime($row['create_time'] ?? 0);
         }

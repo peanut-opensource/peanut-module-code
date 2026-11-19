@@ -190,6 +190,10 @@ final class MemberAdministrationService implements MemberAdministration
     private function formatRows(array $rows): array
     {
         $sexDesc = [0 => '未知', 1 => '男', 2 => '女'];
+        $avatarMap = $this->files->getFileUrls(array_map(
+            static fn(array $row): string => (string) ($row['avatar'] ?? ''),
+            $rows,
+        ));
         foreach ($rows as &$row) {
             $sex = (int) ($row['sex'] ?? 0);
             $channel = (int) ($row['channel'] ?? 0);
@@ -202,7 +206,8 @@ final class MemberAdministrationService implements MemberAdministration
             $row['is_disable'] = $row['status'] === 1 ? 0 : 1;
             $row['user_money'] = (float) ($row['user_money'] ?? 0);
             $row['balance'] = $row['user_money'];
-            $row['avatar'] = $this->files->getFileUrl((string) ($row['avatar'] ?? ''));
+            $rawAvatar = (string) ($row['avatar'] ?? '');
+            $row['avatar'] = $avatarMap[$rawAvatar] ?? '';
             $row['total_recharge_amount'] = (float) ($row['total_recharge_amount'] ?? 0);
             $row['create_time'] = self::formatTime($row['create_time'] ?? 0);
             $row['update_time'] = self::formatTime($row['update_time'] ?? 0);
@@ -306,8 +311,13 @@ final class MemberAdministrationService implements MemberAdministration
             : (array) $item);
         $rows = $pageResult->items;
 
+        $avatarMap = $this->files->getFileUrls(array_map(
+            static fn(array $row): string => (string) ($row['avatar'] ?? ''),
+            $rows,
+        ));
         foreach ($rows as &$row) {
-            $row['avatar'] = $this->files->getFileUrl((string) ($row['avatar'] ?? ''));
+            $rawAvatar = (string) ($row['avatar'] ?? '');
+            $row['avatar'] = $avatarMap[$rawAvatar] ?? '';
             $row['change_type_desc'] = AccountLogEnum::getChangeTypeDesc((int) $row['change_type']);
             $symbol = (int) $row['action'] === AccountLogEnum::INC ? '+' : '-';
             $row['change_amount'] = $symbol . number_format((float) $row['change_amount'], 2, '.', '');

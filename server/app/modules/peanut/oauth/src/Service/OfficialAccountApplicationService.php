@@ -42,6 +42,14 @@ class OfficialAccountApplicationService implements OfficialAccountCallbacks
         } catch (\runtimeException) {
             throw BusinessException::forbidden('OFFICIAL_ACCOUNT_MESSAGE_INVALID', 'callback rejected');
         }
+        $msgId = trim((string) ($message['MsgId'] ?? ''));
+        if ($msgId !== '') {
+            $dedupKey = sprintf('peanut:oauth:oa:msgid:%d:%s', $context->tenantId, $msgId);
+            if (\think\facade\Cache::has($dedupKey)) {
+                return 'success';
+            }
+            \think\facade\Cache::set($dedupKey, 1, 300);
+        }
         $reply = $this->replies->resolve($context, $message);
         if ($reply === null || trim((string) ($reply['content'] ?? '')) === '') {
             return 'success';

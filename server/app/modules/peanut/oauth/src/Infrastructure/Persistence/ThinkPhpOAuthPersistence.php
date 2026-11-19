@@ -47,6 +47,19 @@ final class ThinkPhpOAuthPersistence
         OAuthCompletionTicket::create($data);
     }
 
+    public function findCompletion(TenantContext|TenantSystemContext $context, string $tokenHash): ?OAuthCompletionRecord
+    {
+        $model = OAuthCompletionTicket::where('token_hash', $tokenHash)->findOrEmpty();
+        return $model->isEmpty() ? null : new OAuthCompletionRecord(
+            (int) $model->id,
+            (int) $model->member_id,
+            (int) $model->need_profile === 1,
+            (int) $model->need_mobile === 1,
+            (int) $model->expires_at,
+            empty($model->used_at) ? null : (int) $model->used_at,
+        );
+    }
+
     public function completionForUpdate(TenantContext|TenantSystemContext $context, string $tokenHash): ?OAuthCompletionRecord
     {
         $model = OAuthCompletionTicket::where('token_hash', $tokenHash)->lock(true)->findOrEmpty();

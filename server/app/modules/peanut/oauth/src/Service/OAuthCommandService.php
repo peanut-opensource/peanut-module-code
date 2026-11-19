@@ -149,7 +149,7 @@ final class OAuthCommandService implements OAuthCommands
         }
 
         $tokenHash = hash('sha256', $rawTicket);
-        $precheckTicket = $this->persistence->completionForUpdate($context, $tokenHash);
+        $precheckTicket = $this->persistence->findCompletion($context, $tokenHash);
         if ($precheckTicket === null || $precheckTicket->usedAt !== null || $precheckTicket->expiresAt < time()) {
             throw BusinessException::invalid('OAUTH_COMPLETION_TICKET_INVALID', '登录补全票据无效或已过期');
         }

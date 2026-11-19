@@ -234,27 +234,33 @@ final class FileAdministrationService implements FileAdministration
         }
 
         $tenantId = $this->executionContext->tenantId();
-        $deleted = 0;
+        $now = time();
+        \think\facade\Db::transaction(static function () use ($ids, $now): void {
+            $lockedCount = File::where([])->whereIn('id', $ids)->order(['id' => 'asc'])->lock(true)->count();
+            if ($lockedCount !== count($ids)) {
+                throw new \InvalidArgumentException('包含不存在的素材');
+            }
+            $updated = File::where([])->whereIn('id', $ids)->update(['delete_time' => $now]);
+            if ($updated !== count($ids)) {
+                throw new \runtimeException('素材批量软删失败');
+            }
+        });
+
+        $deleted = count($ids);
         $storageDeleted = 0;
         foreach ($rows as $row) {
             $fileId = (int) $row['id'];
             $fileKey = (string) $row['file_key'];
-            if (File::where([])->where('id', $fileId)->update(['delete_time' => time()]) !== 1) {
-                throw new \runtimeException('素材 ' . $fileId . ' 记录删除失败');
-            }
             try {
                 $this->storage->delete($tenantId, $fileKey);
-                $deleted++;
                 $storageDeleted++;
             } catch (\Throwable $e) {
-                if ((new File())->withTrashed()->where('id', $fileId)->update(['delete_time' => null]) !== 1) {
-                    throw new \runtimeException(
-                        '素材 ' . $fileId . ' 删除失败且记录恢复失败：' . $e->getMessage(),
-                        0,
-                        $e,
-                    );
-                }
-                throw new \runtimeException('素材 ' . $fileId . ' 删除失败：' . $e->getMessage(), 0, $e);
+                \think\facade\Log::warning('FILE_STORAGE_DELETE_DEFERRED', [
+                    'tenant_id' => $tenantId,
+                    'file_id' => $fileId,
+                    'file_key' => $fileKey,
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
 
