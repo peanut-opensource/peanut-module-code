@@ -1954,14 +1954,6 @@
             "baseline_mode": 493
         },
         {
-            "path": "scripts/local-core-links.mjs",
-            "sha256": null,
-            "mode": null,
-            "classification": "app-owned",
-            "owner": "application",
-            "source": "scripts/local-core-links.mjs"
-        },
-        {
             "path": "scripts/local-core-web",
             "sha256": "79cdac85f20cee0c34193b09850041cb28b2f419cf692318afd22009c83c6352",
             "mode": 493,
