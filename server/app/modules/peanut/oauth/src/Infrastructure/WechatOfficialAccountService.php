@@ -39,9 +39,13 @@ final class WechatOfficialAccountService
         }
     }
 
-    public static function verifySignature(string $token, string $timestamp, string $nonce, string $signature): bool
+    public static function verifySignature(string $token, string $timestamp, string $nonce, string $signature, ?int $now = null): bool
     {
-        if ($token === '' || $timestamp === '' || $nonce === '' || $signature === '') {
+        if ($token === '' || $timestamp === '' || $nonce === '' || $signature === '' || !ctype_digit($timestamp)) {
+            return false;
+        }
+        $currentTime = $now ?? time();
+        if (abs($currentTime - (int) $timestamp) > 300) {
             return false;
         }
         $parts = [$token, $timestamp, $nonce];

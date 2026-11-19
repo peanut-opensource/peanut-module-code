@@ -535,7 +535,7 @@ final class ArticleAdministrationService implements ArticleAdministration, Artic
         try {
             $current = $this->executionContext->tenantAdmin();
             $actor = AdminPrincipal::fromArray($this->executionContext->tenantAdminPrincipal());
-        } catch (\Throwable) {
+        } catch (\DomainException) {
             throw BusinessException::forbidden('ARTICLE_ADMIN_PERMISSION_DENIED', '无权管理资讯');
         }
         if ($current->tenantId !== $context->tenantId

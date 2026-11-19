@@ -89,12 +89,18 @@ final readonly class WorkflowQueries
             foreach (['withdraw', 'terminate', 'retry', 'reassign'] as $action) {
                 if ($action === 'terminate') {
                     $unknownEffect = false;
+                    $taskManageable = null;
                     foreach ($active as $execution) {
                         if ($execution['task_job_key'] !== null && $execution['effect_receipt_json'] === null && !str_starts_with((string) $execution['blocked_reason'], 'TASK_CANCELLED:')) {
                             $unknownEffect = true;
+                            break;
                         }
-                        if ($execution['task_job_key'] !== null && $execution['effect_receipt_json'] === null && !$this->taskManagementAllowed($c)) {
-                            $unknownEffect = true;
+                        if ($execution['task_job_key'] !== null && $execution['effect_receipt_json'] === null) {
+                            $taskManageable ??= $this->taskManagementAllowed($c);
+                            if (!$taskManageable) {
+                                $unknownEffect = true;
+                                break;
+                            }
                         }
                     }
                     if ($unknownEffect) {

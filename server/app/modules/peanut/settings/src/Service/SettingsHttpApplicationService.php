@@ -39,12 +39,26 @@ final readonly class SettingsHttpApplicationService
     public function list(TenantContext $context): array
     {
         $this->assertPermission($context, 'peanut.settings.read');
-        $items = [];
         $asOf = self::now();
+        $moduleEnabledCache = [];
+        $eligible = [];
         foreach ($this->definitions->all() as $definition) {
-            if ($definition->allows('tenant') && $this->moduleEnabled($context, $definition->moduleKey, $asOf)) {
-                $items[] = $this->record($definition, $this->resolver->resolveTenant($definition, $context->tenantId, $asOf));
+            if (!$definition->allows('tenant')) {
+                continue;
             }
+            $moduleKey = $definition->moduleKey;
+            if (!array_key_exists($moduleKey, $moduleEnabledCache)) {
+                $moduleEnabledCache[$moduleKey] = $this->moduleEnabled($context, $moduleKey, $asOf);
+            }
+            if ($moduleEnabledCache[$moduleKey]) {
+                $eligible[] = $definition;
+            }
+        }
+        $resolved = $this->resolver->resolveTenantBatch($eligible, $context->tenantId, $asOf);
+        $items = [];
+        foreach ($eligible as $definition) {
+            $composite = $definition->moduleKey . ':' . $definition->key;
+            $items[] = $this->record($definition, $resolved[$composite]);
         }
         return ['items' => $items];
     }

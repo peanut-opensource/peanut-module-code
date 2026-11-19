@@ -74,74 +74,110 @@ final class ApiPermissionCatalog
         if (($catalog['schema_version'] ?? null) !== 1 || !is_array($catalog['endpoints'] ?? null)) {
             throw new \DomainException('API_CATALOG_INVALID');
         }
-        $now = gmdate('Y-m-d H:i:s');
-        $activeIds = [];
-        foreach ($catalog['endpoints'] as $endpoint) {
-            $owner = $endpoint['owner']['type'] === 'module'
-                ? (string) $endpoint['owner']['key']
-                : match ($endpoint['application']) {
-                    'adminapi' => 'peanut.admin', 'platform' => 'platform', 'api' => 'member', default => 'installation',
-                };
-            if ($endpoint['owner']['type'] === 'module' && !in_array($owner, $moduleKeys, true)) {
-                continue;
+        Db::transaction(function () use ($catalog, $moduleKeys, $fullRegistry): void {
+            $now = gmdate('Y-m-d H:i:s');
+            $permissionsByKey = [];
+            foreach (Db::name('permission')->where('status', 'active')->field('id,key,module_key')->lock(true)->select()->toArray() as $perm) {
+                $permissionsByKey[(string) $perm['key']] = $perm;
             }
-            $audience = (string) ($endpoint['audience'] ?? '');
-            $id = (string) ($endpoint['api_id'] ?? '');
-            if (!preg_match('/^[a-f0-9]{64}$/D', $id) || !in_array($audience, ['tenant', 'platform', 'member', 'installation'], true)) {
-                throw new \DomainException('API_CATALOG_REGENERATION_REQUIRED');
+            $configByPermissionId = [];
+            foreach (Db::name('permission_api_config')->field('permission_id,configured')->lock(true)->select()->toArray() as $cfg) {
+                $configByPermissionId[(int) $cfg['permission_id']] = (int) $cfg['configured'];
             }
-            $defaults = $endpoint['default_permission_keys'];
-            $mode = (string) $endpoint['auth']['mode'];
-            $data = ['method' => $endpoint['method'], 'path' => strtolower($endpoint['path']), 'audience' => $audience,
-                'module_key' => $owner, 'access_mode' => $mode, 'status' => 'active',
-                'default_permission_keys' => json_encode($defaults, JSON_THROW_ON_ERROR),
-                'prerequisite_permission_keys' => json_encode($endpoint['prerequisite_permission_keys'], JSON_THROW_ON_ERROR),
-                'updated_at' => $now, 'retired_at' => null];
-            Db::name('api_endpoint')->duplicate($data)->insert(['id' => $id, ...$data, 'created_at' => $now]);
-            $activeIds[] = $id;
-            if (!in_array($mode, ['tenant_permission', 'platform_permission'], true)) {
-                $defaults = [];
+            $existingBindings = [];
+            foreach (Db::name('permission_api')->field('id,permission_id,api_id')->lock(true)->select()->toArray() as $row) {
+                $existingBindings[(string) $row['api_id']][(int) $row['permission_id']] = (int) $row['id'];
             }
-            $desired = [];
-            foreach ($defaults as $key) {
-                $permission = Db::name('permission')->where('key', $key)->where('status', 'active')->lock(true)->find();
-                if ($permission === null || self::permissionAudience($permission) !== $audience) {
+
+            $activeIds = [];
+            $newConfigs = [];
+            $newBindings = [];
+            $deleteBindingIds = [];
+            $bumpedPermissionIds = [];
+
+            foreach ($catalog['endpoints'] as $endpoint) {
+                $owner = $endpoint['owner']['type'] === 'module'
+                    ? (string) $endpoint['owner']['key']
+                    : match ($endpoint['application']) {
+                        'adminapi' => 'peanut.admin', 'platform' => 'platform', 'api' => 'member', default => 'installation',
+                    };
+                if ($endpoint['owner']['type'] === 'module' && !in_array($owner, $moduleKeys, true)) {
                     continue;
                 }
-                $permissionId = (int) $permission['id'];
-                $desired[] = $permissionId;
-                Db::name('permission_api_config')->duplicate(['permission_id'])->insert([
-                    'permission_id' => $permissionId, 'revision' => 1, 'configured' => 0, 'updated_at' => $now,
-                ]);
-                $config = Db::name('permission_api_config')->where('permission_id', $permissionId)->lock(true)->find();
-                if ((int) $config['configured'] === 0) {
-                    $exists = Db::name('permission_api')->where('permission_id', $permissionId)->where('api_id', $id)->value('id');
-                    if ($exists === null) {
-                        Db::name('permission_api')->insert(['permission_id' => $permissionId, 'api_id' => $id, 'created_at' => $now]);
-                        Db::name('permission_api_config')->where('permission_id', $permissionId)->inc('revision')->update(['updated_at' => $now]);
+                $audience = (string) ($endpoint['audience'] ?? '');
+                $id = (string) ($endpoint['api_id'] ?? '');
+                if (!preg_match('/^[a-f0-9]{64}$/D', $id) || !in_array($audience, ['tenant', 'platform', 'member', 'installation'], true)) {
+                    throw new \DomainException('API_CATALOG_REGENERATION_REQUIRED');
+                }
+                $defaults = $endpoint['default_permission_keys'];
+                $mode = (string) $endpoint['auth']['mode'];
+                $data = ['method' => $endpoint['method'], 'path' => strtolower($endpoint['path']), 'audience' => $audience,
+                    'module_key' => $owner, 'access_mode' => $mode, 'status' => 'active',
+                    'default_permission_keys' => json_encode($defaults, JSON_THROW_ON_ERROR),
+                    'prerequisite_permission_keys' => json_encode($endpoint['prerequisite_permission_keys'], JSON_THROW_ON_ERROR),
+                    'updated_at' => $now, 'retired_at' => null];
+                Db::name('api_endpoint')->duplicate($data)->insert(['id' => $id, ...$data, 'created_at' => $now]);
+                $activeIds[] = $id;
+                if (!in_array($mode, ['tenant_permission', 'platform_permission'], true)) {
+                    $defaults = [];
+                }
+                $desired = [];
+                foreach ($defaults as $key) {
+                    $permission = $permissionsByKey[(string) $key] ?? null;
+                    if ($permission === null || self::permissionAudience($permission) !== $audience) {
+                        continue;
+                    }
+                    $permissionId = (int) $permission['id'];
+                    $desired[$permissionId] = true;
+                    if (!array_key_exists($permissionId, $configByPermissionId)) {
+                        $configByPermissionId[$permissionId] = 0;
+                        $newConfigs[$permissionId] = [
+                            'permission_id' => $permissionId, 'revision' => 1, 'configured' => 0, 'updated_at' => $now,
+                        ];
+                    }
+                    if ($configByPermissionId[$permissionId] === 0 && !isset($existingBindings[$id][$permissionId])) {
+                        $existingBindings[$id][$permissionId] = 0;
+                        $newBindings[] = ['permission_id' => $permissionId, 'api_id' => $id, 'created_at' => $now];
+                        $bumpedPermissionIds[$permissionId] = true;
+                    }
+                }
+                // Source-default sets follow the current declaration; explicit instance sets never do.
+                foreach ($existingBindings[$id] ?? [] as $permissionId => $bindingId) {
+                    if ($bindingId > 0 && ($configByPermissionId[$permissionId] ?? 1) === 0 && !isset($desired[$permissionId])) {
+                        $deleteBindingIds[] = $bindingId;
+                        $bumpedPermissionIds[$permissionId] = true;
                     }
                 }
             }
-            // Source-default sets follow the current declaration; explicit instance sets never do.
-            $obsolete = Db::name('permission_api')->alias('binding')
-                ->join('permission_api_config config', 'config.permission_id=binding.permission_id')
-                ->where('binding.api_id', $id)->where('config.configured', 0);
-            if ($desired !== []) {
-                $obsolete->whereNotIn('binding.permission_id', $desired);
+            if ($newConfigs !== []) {
+                foreach (array_chunk(array_values($newConfigs), 200) as $chunk) {
+                    Db::name('permission_api_config')->insertAll($chunk);
+                }
             }
-            foreach ($obsolete->field('binding.id,binding.permission_id')->lock(true)->select()->toArray() as $binding) {
-                Db::name('permission_api')->where('id', $binding['id'])->delete();
-                Db::name('permission_api_config')->where('permission_id', $binding['permission_id'])->inc('revision')->update(['updated_at' => $now]);
+            if ($newBindings !== []) {
+                foreach (array_chunk($newBindings, 200) as $chunk) {
+                    Db::name('permission_api')->insertAll($chunk);
+                }
             }
-        }
-        $retire = Db::name('api_endpoint')->where('status', 'active');
-        if (!$fullRegistry) {
-            $retire->whereIn('module_key', ['peanut.admin', 'platform', 'member', 'installation', ...$moduleKeys]);
-        }
-        if ($activeIds !== []) {
-            $retire->whereNotIn('id', $activeIds);
-        }
-        $retire->update(['status' => 'retired', 'retired_at' => $now, 'updated_at' => $now]);
+            if ($deleteBindingIds !== []) {
+                foreach (array_chunk(array_values(array_unique($deleteBindingIds)), 500) as $chunk) {
+                    Db::name('permission_api')->whereIn('id', $chunk)->delete();
+                }
+            }
+            if ($bumpedPermissionIds !== []) {
+                foreach (array_chunk(array_keys($bumpedPermissionIds), 500) as $chunk) {
+                    Db::name('permission_api_config')->whereIn('permission_id', $chunk)->inc('revision')->update(['updated_at' => $now]);
+                }
+            }
+            $retire = Db::name('api_endpoint')->where('status', 'active');
+            if (!$fullRegistry) {
+                $retire->whereIn('module_key', ['peanut.admin', 'platform', 'member', 'installation', ...$moduleKeys]);
+            }
+            if ($activeIds !== []) {
+                $retire->whereNotIn('id', $activeIds);
+            }
+            $retire->update(['status' => 'retired', 'retired_at' => $now, 'updated_at' => $now]);
+        });
     }
 
     public function revisionRows(): array

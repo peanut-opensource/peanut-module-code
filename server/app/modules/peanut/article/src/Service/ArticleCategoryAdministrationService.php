@@ -369,7 +369,7 @@ final class ArticleCategoryAdministrationService implements ArticleCategoryAdmin
         try {
             $current = $this->executionContext->tenantAdmin();
             $actor = AdminPrincipal::fromArray($this->executionContext->tenantAdminPrincipal());
-        } catch (\Throwable) {
+        } catch (\DomainException) {
             throw BusinessException::forbidden('ARTICLE_CATEGORY_ADMIN_PERMISSION_DENIED', '无权管理资讯分类');
         }
         if ($current->tenantId !== $context->tenantId

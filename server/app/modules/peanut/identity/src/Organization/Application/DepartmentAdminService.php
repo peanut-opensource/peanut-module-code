@@ -246,20 +246,22 @@ final readonly class DepartmentAdminService
         int $expectedRevision,
     ): array {
         return $this->transaction(function () use ($actor, $departmentId, $newParentId, $expectedRevision): array {
+            $this->lockTenant($actor->tenantId);
             $department = $this->requireDepartment($actor->tenantId, $departmentId, true);
             $this->assertRevision($department, $expectedRevision);
             if ($newParentId === $departmentId) {
                 throw AdminAccessException::invalid('DEPARTMENT_CYCLE', 'A department cannot be its own parent.');
             }
+            $tree = $this->tenantTreeGraph($actor->tenantId);
             $parentDepth = 0;
             if ($newParentId !== null) {
                 $this->requireActive($actor->tenantId, $newParentId, true);
-                if ($this->isDescendant($actor->tenantId, $departmentId, $newParentId)) {
+                if ($this->isDescendantInGraph($tree['children'], $departmentId, $newParentId)) {
                     throw AdminAccessException::invalid('DEPARTMENT_CYCLE', 'Department moves cannot create a cycle.');
                 }
-                $parentDepth = $this->depth($actor->tenantId, $newParentId);
+                $parentDepth = $this->depthInGraph($tree['parents'], $newParentId);
             }
-            if ($parentDepth + $this->subtreeDepth($actor->tenantId, $departmentId) > self::MAX_DEPTH) {
+            if ($parentDepth + $this->subtreeDepthInGraph($tree['children'], $departmentId) > self::MAX_DEPTH) {
                 throw AdminAccessException::invalid('DEPARTMENT_DEPTH_EXCEEDED', 'Department depth cannot exceed 10.');
             }
             $now = $this->now();
@@ -282,6 +284,7 @@ final readonly class DepartmentAdminService
     public function archive(TenantContext $actor, int $departmentId, int $expectedRevision): array
     {
         return $this->transaction(function () use ($actor, $departmentId, $expectedRevision): array {
+            $this->lockTenant($actor->tenantId);
             $department = $this->requireDepartment($actor->tenantId, $departmentId, true);
             $this->assertRevision($department, $expectedRevision);
             if ($department['status'] === 'archived') {
@@ -378,39 +381,85 @@ final readonly class DepartmentAdminService
 
     private function depth(int $tenantId, int $departmentId): int
     {
+        return $this->depthInGraph($this->tenantTreeGraph($tenantId)['parents'], $departmentId);
+    }
+
+    /** @return array{parents: array<int, ?int>, children: array<int, list<int>>} */
+    private function tenantTreeGraph(int $tenantId): array
+    {
+        $parents = [];
+        $children = [];
+        $rows = Department::where('tenant_id', $tenantId)->field('id,parent_id')->select()->toArray();
+        foreach ($rows as $row) {
+            $id = (int) $row['id'];
+            $parentId = $row['parent_id'] === null ? null : (int) $row['parent_id'];
+            $parents[$id] = $parentId;
+            if ($parentId !== null) {
+                $children[$parentId][] = $id;
+            }
+        }
+
+        return ['parents' => $parents, 'children' => $children];
+    }
+
+    /** @param array<int, ?int> $parents */
+    private function depthInGraph(array $parents, int $departmentId): int
+    {
         $depth = 0;
         $current = $departmentId;
-        while ($current !== 0 && $depth <= self::MAX_DEPTH) {
-            $parent = Department::where('tenant_id', $tenantId)->where('id', $current)->value('parent_id');
+        $seen = [];
+        while ($current !== 0 && $depth <= self::MAX_DEPTH && !isset($seen[$current])) {
+            $seen[$current] = true;
             ++$depth;
-            $current = $parent === null ? 0 : (int) $parent;
+            $parent = $parents[$current] ?? null;
+            $current = $parent === null ? 0 : $parent;
         }
 
         return $depth;
     }
 
-    private function subtreeDepth(int $tenantId, int $departmentId): int
+    /** @param array<int, list<int>> $children */
+    private function subtreeDepthInGraph(array $children, int $departmentId): int
     {
         $depth = 0;
         $frontier = [$departmentId];
+        $seen = [$departmentId => true];
         while ($frontier !== [] && $depth <= self::MAX_DEPTH) {
             ++$depth;
-            $frontier = array_map('intval', Department::where('tenant_id', $tenantId)
-                ->whereIn('parent_id', $frontier)->column('id'));
+            $next = [];
+            foreach ($frontier as $nodeId) {
+                foreach ($children[$nodeId] ?? [] as $childId) {
+                    if (!isset($seen[$childId])) {
+                        $seen[$childId] = true;
+                        $next[] = $childId;
+                    }
+                }
+            }
+            $frontier = $next;
         }
 
         return $depth;
     }
 
-    private function isDescendant(int $tenantId, int $departmentId, int $possibleDescendantId): bool
+    /** @param array<int, list<int>> $children */
+    private function isDescendantInGraph(array $children, int $departmentId, int $possibleDescendantId): bool
     {
         $frontier = [$departmentId];
+        $seen = [$departmentId => true];
         for ($depth = 0; $depth <= self::MAX_DEPTH && $frontier !== []; ++$depth) {
             if (in_array($possibleDescendantId, $frontier, true)) {
                 return true;
             }
-            $frontier = array_map('intval', Department::where('tenant_id', $tenantId)
-                ->whereIn('parent_id', $frontier)->column('id'));
+            $next = [];
+            foreach ($frontier as $nodeId) {
+                foreach ($children[$nodeId] ?? [] as $childId) {
+                    if (!isset($seen[$childId])) {
+                        $seen[$childId] = true;
+                        $next[] = $childId;
+                    }
+                }
+            }
+            $frontier = $next;
         }
 
         return false;

@@ -1,3 +1,4 @@
+import { tenantSessionFetch } from '@/api/tenant-session-fetch';
 import type { WorkflowTransport } from './transport';
 import type {
   EditorDocument,
@@ -221,17 +222,24 @@ export async function resolveWorkflowAttachment(
   token: string | null,
   signal: AbortSignal
 ): Promise<Record<string, unknown>> {
-  const response = await fetch('/adminapi/api/v1/files/resolve', {
-    method: 'POST',
-    credentials: 'same-origin',
-    signal,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ file_key: attachment.file_key, operation }),
-  });
-  const envelope = record(await response.json(), 'File access');
+  const response = await tenantSessionFetch(
+    new Request('/adminapi/api/v1/files/resolve', {
+      method: 'POST',
+      credentials: 'same-origin',
+      signal,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ file_key: attachment.file_key, operation }),
+    })
+  );
+  let rawJson: unknown = null;
+  try {
+    rawJson = await response.json();
+  } catch {
+    throw new Error('当前文件权限不可用');
+  }
+  const envelope = record(rawJson, 'File access');
   if (!response.ok || envelope.code !== 20000)
     throw new Error('当前文件权限不可用');
   const data = record(envelope.data, 'File access data');

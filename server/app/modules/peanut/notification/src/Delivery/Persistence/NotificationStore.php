@@ -250,45 +250,75 @@ final class NotificationStore
 
     public function bulkChangeInbox(TenantContext $context, array $messageKeys, string $action): int
     {
-        $changed = 0;
+        if ($messageKeys === []) {
+            return 0;
+        }
+        $uniqueKeys = array_values(array_unique(array_map('strval', $messageKeys)));
+        sort($uniqueKeys, SORT_STRING);
+
+        $rows = NotificationMessageRecord::where('tenant_id', $context->tenantId)
+            ->where('recipient_member_id', $context->memberId)
+            ->whereIn('message_key', $uniqueKeys)
+            ->order('id', 'asc')
+            ->lock(true)
+            ->select()
+            ->toArray();
+        if (count($rows) !== count($uniqueKeys)) {
+            throw NotificationException::notFound();
+        }
+
         $now = $this->now();
-        foreach ($messageKeys as $messageKey) {
-            $row = $this->messageRow($context->tenantId, $context->memberId, $messageKey, true);
-            if ($row === null) {
-                throw NotificationException::notFound();
-            }
-            $newStatus = $action === 'archive' ? 'archived' : 'read';
+        $newStatus = $action === 'archive' ? 'archived' : 'read';
+        $eventName = $action === 'archive' ? 'tenant.notification.archived' : 'tenant.notification.read';
+        $changedIds = [];
+        $readAtAlreadySetIds = [];
+        $readAtNullIds = [];
+
+        foreach ($rows as $row) {
             if ($row['status'] === $newStatus || ($action === 'read' && $row['status'] === 'archived')) {
                 continue;
             }
-            $data = [
-                'status' => $newStatus,
-                'read_at' => $row['read_at'] ?? $now,
-                'updated_at' => $now,
-                'revision' => new Raw('revision + 1'),
-            ];
-            if ($newStatus === 'archived') {
-                $data['archived_at'] = $now;
+            $id = (int) $row['id'];
+            $changedIds[] = $id;
+            if ($row['read_at'] === null) {
+                $readAtNullIds[] = $id;
+            } else {
+                $readAtAlreadySetIds[] = $id;
             }
-            $updated = NotificationMessageRecord::where('id', $row['id'])
-                ->where('tenant_id', $context->tenantId)
-                ->where('recipient_member_id', $context->memberId)
-                ->where('revision', $row['revision'])
-                ->update($data);
-            if ($updated !== 1) {
-                throw NotificationException::conflict();
-            }
-            ++$changed;
-            $this->event(
-                $context->tenantId,
-                (int) $row['id'],
-                $action === 'archive' ? 'tenant.notification.archived' : 'tenant.notification.read',
-                $context->memberId,
-                ['bulk' => true],
-            );
+        }
+        if ($changedIds === []) {
+            return 0;
         }
 
-        return $changed;
+        $baseData = [
+            'status' => $newStatus,
+            'updated_at' => $now,
+            'revision' => new Raw('revision + 1'),
+        ];
+        if ($newStatus === 'archived') {
+            $baseData['archived_at'] = $now;
+        }
+        $updatedTotal = 0;
+        if ($readAtNullIds !== []) {
+            $updatedTotal += NotificationMessageRecord::where('tenant_id', $context->tenantId)
+                ->where('recipient_member_id', $context->memberId)
+                ->whereIn('id', $readAtNullIds)
+                ->update([...$baseData, 'read_at' => $now]);
+        }
+        if ($readAtAlreadySetIds !== []) {
+            $updatedTotal += NotificationMessageRecord::where('tenant_id', $context->tenantId)
+                ->where('recipient_member_id', $context->memberId)
+                ->whereIn('id', $readAtAlreadySetIds)
+                ->update($baseData);
+        }
+        if ($updatedTotal !== count($changedIds)) {
+            throw NotificationException::conflict();
+        }
+        foreach ($changedIds as $id) {
+            $this->event($context->tenantId, $id, $eventName, $context->memberId, ['bulk' => true]);
+        }
+
+        return count($changedIds);
     }
 
     public function outboxState(int $tenantId, string $outboxKey, bool $lock = false): OutboxRecord

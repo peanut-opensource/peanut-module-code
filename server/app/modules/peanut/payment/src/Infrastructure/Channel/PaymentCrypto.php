@@ -9,20 +9,31 @@ final class PaymentCrypto
     public static function resolveFile(string $path): string
     {
         $path = trim($path);
-        if ($path === '') {
+        if ($path === '' || str_contains($path, "\0") || str_contains($path, 'BEGIN') || str_contains($path, '..')) {
             return '';
         }
-        $candidates = [$path];
-        if (!str_starts_with($path, DIRECTORY_SEPARATOR)) {
-            if (function_exists('root_path')) {
-                $candidates[] = root_path() . ltrim($path, '/\\');
-            }
-            if (function_exists('public_path')) {
-                $candidates[] = public_path() . ltrim($path, '/\\');
-            }
+        // Reject arbitrary absolute filesystem paths; only allow relative paths inside managed cert directories.
+        if (str_starts_with($path, '/') || str_starts_with($path, '\\') || preg_match('/^[A-Za-z]:/', $path) === 1) {
+            return '';
         }
-        foreach ($candidates as $candidate) {
-            if (is_file($candidate) && is_readable($candidate)) {
+        $allowedRoots = [];
+        if (function_exists('root_path')) {
+            $root = rtrim(root_path(), '/\\');
+            $allowedRoots[] = $root . DIRECTORY_SEPARATOR . 'private' . DIRECTORY_SEPARATOR . 'certs';
+            $allowedRoots[] = $root . DIRECTORY_SEPARATOR . 'runtime' . DIRECTORY_SEPARATOR . 'certs';
+        }
+        $relative = ltrim(str_replace('\\', '/', $path), '/');
+        foreach ($allowedRoots as $allowedRoot) {
+            $realRoot = realpath($allowedRoot);
+            if ($realRoot === false || !is_dir($realRoot)) {
+                continue;
+            }
+            $candidate = realpath($realRoot . DIRECTORY_SEPARATOR . $relative);
+            if ($candidate === false || !is_file($candidate) || !is_readable($candidate)) {
+                continue;
+            }
+            $prefix = rtrim($realRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            if (str_starts_with($candidate, $prefix)) {
                 return $candidate;
             }
         }

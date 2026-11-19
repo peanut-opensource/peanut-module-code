@@ -265,6 +265,14 @@ final readonly class FileVisibilityService implements FileVisibility
                         });
                     } catch (\Throwable $failure) {
                         $code = $failure instanceof BusinessException ? $failure->errorCode : 'FILE_VISIBILITY_STORAGE_FAILED';
+                        if (!$failure instanceof BusinessException) {
+                            \think\facade\Log::warning('FILE_VISIBILITY_ADVANCE_FAILED', [
+                                'batch_key' => $batchKey,
+                                'file_key' => $fileKey,
+                                'exception' => $failure::class,
+                                'message' => $failure->getMessage(),
+                            ]);
+                        }
                         Db::transaction(function () use ($context, $batchKey, $fileKey, $code): void {
                             FileObject::where('file_key', $fileKey)->where('visibility_batch_key', $batchKey)
                                 ->whereIn('status', ['restricting','verifying','restricted_attention'])

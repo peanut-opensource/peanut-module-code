@@ -440,7 +440,7 @@ final class TaskJobStore
             $query->where('job_key', $jobKey);
         }
         $rows = $query
-            ->where('lease_expires_at', '<=', new Raw('UTC_TIMESTAMP(3)'))->order('id')->lock(true)->select()->toArray();
+            ->where('lease_expires_at', '<=', new Raw('UTC_TIMESTAMP(3)'))->order('id')->limit(100)->lock(true)->select()->toArray();
         foreach ($rows as $row) {
             $attempt = $this->query('task_job_attempt', $tenantId)->where('job_id', (int) $row['id'])
                 ->where('attempt_number', (int) $row['attempt_count'])->where('status', 'running')->lock(true)->find()?->toArray();

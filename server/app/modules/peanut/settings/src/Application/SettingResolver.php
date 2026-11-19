@@ -52,6 +52,88 @@ final readonly class SettingResolver
         return $this->resolve($definition, $tenantId, null, null, 'tenant', $asOf, $snapshot);
     }
 
+    /**
+     * Batch-resolves multiple tenant-scoped settings in 4 fixed queries instead of N transactions.
+     *
+     * @param list<SettingDefinition> $definitions
+     * @return array<string, EffectiveSetting> keyed by "{moduleKey}:{key}"
+     */
+    public function resolveTenantBatch(
+        array $definitions,
+        int $tenantId,
+        DateTimeImmutable $asOf,
+    ): array {
+        if ($tenantId < 1) {
+            throw SettingException::notFound();
+        }
+        if ($definitions === []) {
+            return [];
+        }
+        $this->tenantColumnScope->assertStorageMode([
+            'pa_setting_tenant_value',
+            'pa_setting_target_value',
+        ]);
+        $scope = $this->tenantScope($tenantId);
+        try {
+            $this->tenants->tenant($scope->tenantId());
+        } catch (AdminAccessException) {
+            throw SettingException::notFound();
+        }
+
+        $moduleKeys = array_values(array_unique(array_map(
+            static fn(SettingDefinition $d): string => $d->moduleKey,
+            $definitions,
+        )));
+        $settingKeys = array_values(array_unique(array_map(
+            static fn(SettingDefinition $d): string => $d->key,
+            $definitions,
+        )));
+        $definitionRows = [];
+        $definitionIds = [];
+        foreach (SettingDefinitionRecord::whereIn('module_key', $moduleKeys)
+            ->whereIn('setting_key', $settingKeys)
+            ->where('status', 'active')
+            ->select() as $record) {
+            $data = $record->getData();
+            $composite = $data['module_key'] . ':' . $data['setting_key'];
+            $definitionRows[$composite] = $data;
+            $definitionIds[] = (int) $data['id'];
+        }
+
+        $deploymentByDef = [];
+        $tenantByDef = [];
+        if ($definitionIds !== []) {
+            $uniqueIds = array_values(array_unique($definitionIds));
+            foreach (DeploymentSettingValue::whereIn('definition_id', $uniqueIds)->select() as $row) {
+                $data = $row->getData();
+                $deploymentByDef[(int) $data['definition_id']] = $data;
+            }
+            foreach (TenantSettingValue::scope('tenant', $scope)->whereIn('definition_id', $uniqueIds)->select() as $row) {
+                $data = $row->getData();
+                $tenantByDef[(int) $data['definition_id']] = $data;
+            }
+        }
+
+        $resolved = [];
+        foreach ($definitions as $definition) {
+            $composite = $definition->moduleKey . ':' . $definition->key;
+            $defRow = $definitionRows[$composite] ?? null;
+            if ($defRow === null || !hash_equals((string) ($defRow['definition_digest'] ?? ''), $definition->digest)) {
+                throw SettingException::notFound();
+            }
+            $defId = (int) $defRow['id'];
+            $snapshot = [
+                'definition' => $defRow,
+                'deployment' => $definition->allows('deployment') ? ($deploymentByDef[$defId] ?? null) : null,
+                'tenant' => $definition->allows('tenant') ? ($tenantByDef[$defId] ?? null) : null,
+                'target' => null,
+            ];
+            $resolved[$composite] = $this->resolve($definition, $tenantId, null, null, 'tenant', $asOf, $snapshot);
+        }
+
+        return $resolved;
+    }
+
     public function resolveDeployment(
         SettingDefinition $definition,
         DateTimeImmutable $asOf,
@@ -523,7 +605,11 @@ final readonly class SettingResolver
         }
         try {
             $this->cache->put($key, $setting);
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            \think\facade\Log::warning('SETTING_CACHE_PUT_FAILED', [
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
         }
     }
 

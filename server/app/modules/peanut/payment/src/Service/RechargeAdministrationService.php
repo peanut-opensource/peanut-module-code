@@ -52,16 +52,16 @@ class RechargeAdministrationService
      */
     public function lists(object $context, array $params): PageResult|array
     {
-        $count = self::buildListQuery($context, $params)->count();
-        $pageSize = max(1, min(
-            self::EXPORT_MAX_ROWS,
-            (int) ($params['page_size'] ?? $params['limit'] ?? 25),
-        ));
-
-        if ((int) ($params['export'] ?? 0) === 1) {
-            return self::exportInfo($count, $pageSize);
-        }
-        if ((int) ($params['export'] ?? 0) === 2) {
+        $export = (int) ($params['export'] ?? 0);
+        if ($export === 1 || $export === 2) {
+            $count = self::buildListQuery($context, $params)->count();
+            $pageSize = max(1, min(
+                self::EXPORT_MAX_ROWS,
+                (int) ($params['page_size'] ?? $params['limit'] ?? 25),
+            ));
+            if ($export === 1) {
+                return self::exportInfo($count, $pageSize);
+            }
             return $this->export($context, $params, $count, $pageSize);
         }
 
@@ -69,9 +69,9 @@ class RechargeAdministrationService
         $pageNo = $pageType === 0
             ? 1
             : PaginationInput::from($params)->page;
-        if ($pageType === 0) {
-            $pageSize = self::EXPORT_MAX_ROWS;
-        }
+        $pageSize = $pageType === 0
+            ? 200
+            : max(1, min(200, (int) ($params['page_size'] ?? $params['limit'] ?? 25)));
 
         $query = self::buildListQuery($context, $params)->order('ro.id', 'desc');
         $pageResult = $pageType === 0

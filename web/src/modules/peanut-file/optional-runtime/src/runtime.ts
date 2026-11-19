@@ -1,5 +1,5 @@
 import { reactive } from 'vue';
-import { getToken } from '@/utils/auth';
+import { tenantSessionFetch } from '@/api/tenant-session-fetch';
 import { parseAssetList } from './contracts';
 import type { AssetCandidate } from './contracts';
 
@@ -44,18 +44,17 @@ const defaultRequest = (
   page: number,
   pageSize: number,
   signal: AbortSignal
-): Promise<Response> => {
-  const token = getToken();
-  return fetch(
-    `/adminapi/api/v1/files/assets?page_no=${page}&page_size=${pageSize}`,
-    {
-      method: 'GET',
-      credentials: 'same-origin',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      signal,
-    }
+): Promise<Response> =>
+  tenantSessionFetch(
+    new Request(
+      `/adminapi/api/v1/files/assets?page_no=${page}&page_size=${pageSize}`,
+      {
+        method: 'GET',
+        credentials: 'same-origin',
+        signal,
+      }
+    )
   );
-};
 
 export const createFileAssetRuntime = (
   options: FileAssetRuntimeOptions

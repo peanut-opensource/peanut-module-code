@@ -56,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue';
+  import { ref, onMounted, onBeforeUnmount } from 'vue';
   import { useUserStore } from '@/store/user';
   import {
     getUserInfo,
@@ -78,6 +78,14 @@
     email: '',
   });
   const initialSexIndex = ref(0);
+  let navigateBackTimer: ReturnType<typeof setTimeout> | null = null;
+
+  onBeforeUnmount(() => {
+    if (navigateBackTimer !== null) {
+      clearTimeout(navigateBackTimer);
+      navigateBackTimer = null;
+    }
+  });
 
   onMounted(async () => {
     try {
@@ -172,13 +180,26 @@
       ];
       for (const update of updates) {
         await setUserInfo(update);
+        if (update.field === 'nickname') {
+          initialForm.value.nickname = String(update.value);
+          userStore.setUserInfo({ nickname: String(update.value) });
+        } else if (update.field === 'avatar') {
+          initialForm.value.avatar = String(update.value);
+          userStore.setUserInfo({ avatar: String(update.value) });
+        } else if (update.field === 'sex') {
+          initialSexIndex.value = Number(update.value);
+        } else if (update.field === 'birthday') {
+          initialForm.value.birthday = String(update.value);
+        } else if (update.field === 'email') {
+          initialForm.value.email = String(update.value);
+        }
       }
-      userStore.setUserInfo({
-        nickname: form.value.nickname,
-        avatar: form.value.avatar,
-      });
       uni.showToast({ title: '保存成功' });
-      setTimeout(() => uni.navigateBack(), 800);
+      if (navigateBackTimer !== null) clearTimeout(navigateBackTimer);
+      navigateBackTimer = setTimeout(() => {
+        navigateBackTimer = null;
+        uni.navigateBack();
+      }, 800);
     } catch (error) {
       uni.showToast({
         title: error instanceof Error ? error.message : '保存失败，请稍后重试',

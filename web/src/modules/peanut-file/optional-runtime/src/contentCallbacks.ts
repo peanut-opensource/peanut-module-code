@@ -1,4 +1,4 @@
-import { getToken } from '@/utils/auth';
+import { tenantSessionFetch } from '@/api/tenant-session-fetch';
 import parseSurfaceCapabilities from '@/modules/peanut-content-tools/src/capabilities';
 import type {
   FileResourceContent,
@@ -49,31 +49,31 @@ export const createFileContentCallbacks = (
     operation: 'preview' | 'download_original',
     signal: AbortSignal
   ): Promise<Record<string, unknown>> => {
-    const token = getToken();
-    const response = await fetch('/adminapi/api/v1/files/resolve', {
-      method: 'POST',
-      credentials: 'same-origin',
-      signal,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({
-        file_key: content.fileKey,
-        operation,
-        ...(operation === 'preview'
-          ? {
-              viewer_adapter_id: options.viewerAdapterId,
-              ...(options.variantKey == null
-                ? {}
-                : { variant_key: options.variantKey }),
-              ...(options.documentId === undefined
-                ? {}
-                : { document_id: options.documentId }),
-            }
-          : {}),
-      }),
-    });
+    const response = await tenantSessionFetch(
+      new Request('/adminapi/api/v1/files/resolve', {
+        method: 'POST',
+        credentials: 'same-origin',
+        signal,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          file_key: content.fileKey,
+          operation,
+          ...(operation === 'preview'
+            ? {
+                viewer_adapter_id: options.viewerAdapterId,
+                ...(options.variantKey == null
+                  ? {}
+                  : { variant_key: options.variantKey }),
+                ...(options.documentId === undefined
+                  ? {}
+                  : { document_id: options.documentId }),
+              }
+            : {}),
+        }),
+      })
+    );
     const envelope = record(await response.json());
     if (!response.ok || envelope.code !== 20000)
       throw new Error('FILE_ACCESS_DENIED');

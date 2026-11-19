@@ -83,24 +83,19 @@ final class PublicArticleService implements PublicArticleQueries, MemberCollecti
 
     public function detail(int $id, int $memberId = 0): array
     {
-        $fixed = false;
-        $article = \think\facade\Db::transaction(function () use ($id, &$fixed): array {
-            $body = Article::where('id', $id)->where('is_show', 1)->field(['body_document_id'])->lock(true)->find();
-            if ($body === null) {
-                return [];
-            }
-            $fixed = $body->body_document_id !== null;
-            $content = $fixed ? $this->bodies->render($this->documents->publicationBody(
-                new \PeanutAdmin\Modules\Document\Contract\DocumentOwnerReference('peanut.article', 'article', (string) $id, 'body'),
-            )) : null;
-            $result = Article::getArticleDetailArr($id);
-            if ($fixed && $result !== []) {
-                $result['content'] = $content;
-            }
-            return $result;
-        });
+        $body = Article::where('id', $id)->where('is_show', 1)->field(['body_document_id'])->find();
+        if ($body === null) {
+            return [];
+        }
+        $fixed = $body->body_document_id !== null;
+        $article = Article::getArticleDetailArr($id);
         if ($article === []) {
             return [];
+        }
+        if ($fixed) {
+            $article['content'] = $this->bodies->render($this->documents->publicationBody(
+                new \PeanutAdmin\Modules\Document\Contract\DocumentOwnerReference('peanut.article', 'article', (string) $id, 'body'),
+            ));
         }
         $article['image'] = $this->assets->forRead((string) ($article['image'] ?? ''));
         if (!$fixed) {
