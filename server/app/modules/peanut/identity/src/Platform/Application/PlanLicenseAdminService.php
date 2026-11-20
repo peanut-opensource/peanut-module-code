@@ -26,8 +26,29 @@ final readonly class PlanLicenseAdminService
         if ($page < 1 || $pageSize < 1 || $pageSize > 100) {
             throw AdminAccessException::invalid('PLAN_PAGE_INVALID', 'Invalid pagination.');
         }
-        $rows = Db::name('plan')->order('id')->limit(($page - 1) * $pageSize, $pageSize)->select()->toArray();
-        return ['lists' => array_map(fn(array $row): array => $this->plan((int) $row['id']), $rows), 'count' => (int) Db::name('plan')->count()];
+        $rows = Db::name('plan')->field('id,code,name,status,revision')
+            ->order('id')->limit(($page - 1) * $pageSize, $pageSize)->select()->toArray();
+        $count = (int) Db::name('plan')->count();
+        if ($rows === []) {
+            return ['lists' => [], 'count' => $count];
+        }
+        $ids = array_column($rows, 'id');
+        $modules = [];
+        foreach (Db::name('plan_module')->whereIn('plan_id', $ids)->field('plan_id,module_key')
+            ->order(['plan_id' => 'asc', 'module_key' => 'asc'])->select() as $row) {
+            $modules[(int) $row['plan_id']][] = $row['module_key'];
+        }
+        $permissions = [];
+        foreach (Db::name('plan_permission')->whereIn('plan_id', $ids)->field('plan_id,permission_key')
+            ->order(['plan_id' => 'asc', 'permission_key' => 'asc'])->select() as $row) {
+            $permissions[(int) $row['plan_id']][] = $row['permission_key'];
+        }
+        $plans = [];
+        foreach ($rows as $row) {
+            $id = (int) $row['id'];
+            $plans[] = self::planProjection($row, $modules[$id] ?? [], $permissions[$id] ?? []);
+        }
+        return ['lists' => $plans, 'count' => $count];
     }
 
     public function savePlan(PlatformContext $actor, array $input, bool $create): array
@@ -255,9 +276,18 @@ final readonly class PlanLicenseAdminService
     private function plan(int $id): array
     {
         $row = Db::name('plan')->where('id',$id)->find() ?? throw AdminAccessException::notFound();
-        return ['id'=>(int)$row['id'],'code'=>$row['code'],'name'=>$row['name'],'status'=>$row['status'],'revision'=>(int)$row['revision'],
-            'module_keys'=>Db::name('plan_module')->where('plan_id',$id)->order('module_key')->column('module_key'),
-            'permission_keys'=>Db::name('plan_permission')->where('plan_id',$id)->order('permission_key')->column('permission_key')];
+        return self::planProjection(
+            $row,
+            Db::name('plan_module')->where('plan_id', $id)->order('module_key')->column('module_key'),
+            Db::name('plan_permission')->where('plan_id', $id)->order('permission_key')->column('permission_key'),
+        );
+    }
+
+    private static function planProjection(array $row, array $modules, array $permissions): array
+    {
+        return ['id' => (int) $row['id'], 'code' => $row['code'], 'name' => $row['name'],
+            'status' => $row['status'], 'revision' => (int) $row['revision'],
+            'module_keys' => $modules, 'permission_keys' => $permissions];
     }
 
     private function replaceDetails(int $id,array $modules,array $permissions): void

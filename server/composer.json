@@ -259,7 +259,7 @@
         "opis/json-schema": "^2.6",
         "topthink/think-migration": "3.1.1",
         "peanut-business/peanut-content-tools": "1.0.3",
-        "peanut-business/peanut-identity": "4.0.1-rc.5",
+        "peanut-business/peanut-identity": "4.0.1-rc.6",
         "peanut-business/peanut-file": "1.0.50-rc.3",
         "peanut-business/peanut-task": "1.0.36-rc.4",
         "peanut-business/peanut-integration": "1.0.31-rc.2",
