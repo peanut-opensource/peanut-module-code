@@ -38,6 +38,7 @@ final class BusinessEvidenceTest extends TestCase
     private string $root;
     private string $server;
     private array $deniedPermissions = [];
+    private int $fileDecisionBatches = 0;
     private bool $businessAllowed = true;
     private bool $moduleEnabled = true;
     private int $liveRevision = 1;
@@ -92,6 +93,16 @@ final class BusinessEvidenceTest extends TestCase
             'id' => $context->memberId, 'account_id' => $context->accountId, 'tenant_id' => $context->tenantId]));
         $authorization->method('decide')->willReturnCallback(fn($context, $principal, string $permission): PermissionDecision =>
             in_array($permission, $this->deniedPermissions, true) ? PermissionDecision::deny($permission, 'synthetic role revoked') : PermissionDecision::allow($permission));
+        $authorization->method('decisions')->willReturnCallback(function (TenantContext $actor, array $permissions): array {
+            $this->fileDecisionBatches++;
+            $results = [];
+            foreach ($permissions as $permission) {
+                $results[$permission] = in_array($permission, $this->deniedPermissions, true)
+                    ? PermissionDecision::deny($permission, 'synthetic role revoked')
+                    : PermissionDecision::allow($permission);
+            }
+            return $results;
+        });
         $modules = $this->createStub(ModuleRuntimeRepository::class);
         $modules->method('installation')->willReturn(new ModuleInstallationRecord('peanut.file', '1.0.45', 'active', 1, str_repeat('a', 64)));
         $modules->method('tenantModule')->willReturnCallback(fn(int $tenant, string $key): TenantModuleRecord =>
@@ -352,6 +363,34 @@ final class BusinessEvidenceTest extends TestCase
             $this->drivers->duringPut = function (): void { $this->deniedPermissions = ['peanut.file.upload.file']; };
             $this->denied(fn() => $this->store(), 'FILE_ACCESS_DENIED');
             self::assertSame('pending_write', Db::name('file_object')->value('status'));
+        });
+    }
+
+    public function testPreviewPageChecksMissingObjectsAndPermissionsInInputOrder(): void
+    {
+        $this->within(function (): void {
+            $first = $this->store()->fileKey;
+            $missing = str_repeat('A', 26);
+            $this->deniedPermissions = ['peanut.file.list'];
+            $this->denied(fn() => $this->storage->resolvePreviewPage($this->actor, [$missing, $first], null), 'FILE_NOT_FOUND');
+            self::assertSame(0, $this->fileDecisionBatches);
+            $this->denied(fn() => $this->storage->resolvePreviewPage($this->actor, [$first, $missing], null), 'FILE_ACCESS_DENIED');
+            self::assertSame(1, $this->fileDecisionBatches);
+        });
+    }
+
+    public function testPreviewPageUsesOneDecisionBatchAndNeverExposesOriginalWithoutPermission(): void
+    {
+        $this->within(function (): void {
+            $first = $this->store()->fileKey;
+            $second = $this->store($this->command('upload-2'))->fileKey;
+            $this->deniedPermissions = ['peanut.file.download-original'];
+            $previews = $this->storage->resolvePreviewPage($this->actor, [3 => $first, 5 => $second], null);
+            self::assertSame([
+                3 => ['file_key' => $first, 'state' => 'preview_unavailable', 'can_download_original' => false, 'url' => null],
+                5 => ['file_key' => $second, 'state' => 'preview_unavailable', 'can_download_original' => false, 'url' => null],
+            ], $previews);
+            self::assertSame(1, $this->fileDecisionBatches);
         });
     }
 
