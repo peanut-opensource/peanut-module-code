@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\File\Service;
 
 use app\common\contract\authorization\AdminAuthorizationQuery;
+use app\common\dto\authorization\AdminPrincipal;
 use app\common\exception\BusinessException;
 use app\common\execution\AdminExecutionContext;
 use app\common\execution\ExecutionContextStore;
@@ -16,6 +17,7 @@ use PeanutAdmin\Kernel\Module\ModuleGuard;
 use PeanutAdmin\Kernel\Module\ModuleInstallationRecord;
 use PeanutAdmin\Kernel\Module\ModuleRuntimeRepository;
 use PeanutAdmin\Kernel\Module\TenantModuleRecord;
+use PeanutAdmin\Modules\File\Value\Storage\StoragePurpose;
 use PeanutAdmin\Modules\Identity\Contract\TenantSessionAccess;
 
 /** Live identity/RBAC/Module and contextual policy, never a parallel resource ACL. */
@@ -120,7 +122,7 @@ final readonly class FileAuthorizationService
         });
     }
 
-    private function requireOperationPermission(TenantContext $context, \app\common\dto\authorization\AdminPrincipal $principal, string $operation): void
+    private function requireOperationPermission(TenantContext $context, AdminPrincipal $principal, string $operation): void
     {
         $permission = match ($operation) {
             'preview' => self::PREVIEW_PERMISSION,
@@ -138,7 +140,7 @@ final readonly class FileAuthorizationService
         try {
             return $this->authorize($context, $object, 'preview');
         } catch (BusinessException $error) {
-            if ($error->errorCode !== 'FILE_ACCESS_DENIED' || !\PeanutAdmin\Modules\File\Value\Storage\StoragePurpose::allowsDocumentPreviewInheritance($object['purpose'])) {
+            if ($error->errorCode !== 'FILE_ACCESS_DENIED' || !StoragePurpose::allowsDocumentPreviewInheritance($object['purpose'])) {
                 throw $error;
             }
             return $this->authorize($context, $object, 'preview', $documentId);
@@ -154,6 +156,33 @@ final readonly class FileAuthorizationService
         $this->assertReadableObject($context, $object);
         $current = $this->currentContext($context);
         $principal = $this->authorization->principal($current);
+        return $this->authorizeCurrentOperation($current, $principal, $object, $operation, $documentId);
+    }
+
+    /** Contextual preview and independent original permission for one locked snapshot. */
+    public function authorizeDocumentSnapshotPreview(TenantContext $context, array $object, int $documentId): array
+    {
+        $this->assertReadableObject($context, $object);
+        $current = $this->currentContext($context);
+        $principal = $this->authorization->principal($current);
+        // For sensitive snapshots, the metadata check still denies missing direct File access first.
+        if (!StoragePurpose::allowsDocumentPreviewInheritance($object['purpose'])) {
+            $this->authorizeCurrentOperation($current, $principal, $object, 'preview', null);
+        }
+        $grant = $this->authorizeCurrentOperation($current, $principal, $object, 'preview', $documentId);
+        $canDownload = false;
+        try {
+            $this->authorizeCurrentOperation($current, $principal, $object, 'download_original', null);
+            $canDownload = true;
+        } catch (BusinessException) {
+            // Document preview authority never confers the independent original-download right.
+        }
+        return ['grant' => $grant, 'can_download_original' => $canDownload];
+    }
+
+    /** @return array{authorization_revision:string,reference_digest:?string,context:TenantContext} */
+    private function authorizeCurrentOperation(TenantContext $current, AdminPrincipal $principal, array $object, string $operation, ?int $documentId): array
+    {
         return $this->execution->run(new AdminExecutionContext($current, 'file.' . $operation, $principal->toArray()), function () use ($current, $principal, $object, $operation, $documentId): array {
             $guard = new ModuleGuard($this->modules);
             $installation = $guard->assertDeployment('peanut.file');
@@ -161,7 +190,7 @@ final readonly class FileAuthorizationService
             $referenceDigest = null;
             $documentRevision = '';
             if ($documentId !== null) {
-                if ($operation !== 'preview' || $documentId < 1 || !\PeanutAdmin\Modules\File\Value\Storage\StoragePurpose::allowsDocumentPreviewInheritance($object['purpose'])) {
+                if ($operation !== 'preview' || $documentId < 1 || !StoragePurpose::allowsDocumentPreviewInheritance($object['purpose'])) {
                     throw BusinessException::forbidden('FILE_CONTEXTUAL_ACCESS_DENIED', '此资源需要独立授权');
                 }
                 $documentInstallation = $guard->assertDeployment('peanut.document');

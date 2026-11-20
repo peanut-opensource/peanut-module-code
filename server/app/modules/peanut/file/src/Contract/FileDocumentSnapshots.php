@@ -13,6 +13,8 @@ interface FileDocumentSnapshots
     public function describeForDocument(TenantContext $context, string $fileKey): array;
     /** Lock and authorize a claimed immutable version's File-owned metadata; no delivery or provider I/O. */
     public function assertDocumentSnapshotReadable(TenantContext $context, int $documentId, string $fileKey, string $sha256, string $verifiedMimeType): void;
+    /** Validate and issue a contextual preview of the claimed snapshot in the owner's existing transaction. */
+    public function previewDocumentSnapshot(TenantContext $context, int $documentId, string $fileKey, string $sha256, string $verifiedMimeType): array;
     /** Durable capture before the owner's outer transaction; that transaction later claims the reference.
      * @return array{file_key:string,verified_mime_type:string,sha256:string,source_file_key:string,capture_id:string} */
     public function captureForDocument(TenantContext $context, string $fileKey, string $expectedSha256, int $expectedRevision, string $captureId): array;

@@ -14,10 +14,14 @@ use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Module\ModuleRuntimeRepository;
 use PeanutAdmin\Kernel\Module\ModuleInstallationRecord;
 use PeanutAdmin\Kernel\Module\TenantModuleRecord;
+use PeanutAdmin\Modules\ContentTools\Contract\SurfaceAdapterRegistration;
+use PeanutAdmin\Modules\ContentTools\Service\ContentCapabilitiesService;
+use PeanutAdmin\Modules\ContentTools\Service\ContentToolRegistry;
 use PeanutAdmin\Modules\File\Contract\Dto\BusinessEvidenceCommand;
 use PeanutAdmin\Modules\File\Contract\Dto\BusinessEvidenceFile;
 use PeanutAdmin\Modules\File\Contract\Dto\BusinessEvidenceFact;
 use PeanutAdmin\Modules\File\Contract\Dto\UploadFile;
+use PeanutAdmin\Modules\File\Contract\FileDocumentReferencePolicy;
 use PeanutAdmin\Modules\File\Service\FileAuthorizationService;
 use PeanutAdmin\Modules\File\Service\Storage\StorageService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
@@ -39,6 +43,10 @@ final class BusinessEvidenceTest extends TestCase
     private string $server;
     private array $deniedPermissions = [];
     private int $fileDecisionBatches = 0;
+    private int $fileSessionChecks = 0;
+    private array $filePermissionChecks = [];
+    private array $documentPreviewChecks = [];
+    private bool $documentPreviewAllowed = true;
     private bool $businessAllowed = true;
     private bool $moduleEnabled = true;
     private int $liveRevision = 1;
@@ -68,7 +76,8 @@ final class BusinessEvidenceTest extends TestCase
         $this->actor = $this->actor();
         $this->connect();
         SnapshotRecoveryReceiptFixture\schema($server . '/app/modules/peanut/file/database/migrations/20261101010003_initial_file_schema.php',
-            ['storage_account', 'storage_space', 'storage_route', 'file_object', 'file_immutable_snapshot', 'file_reference', 'file', 'file_derivative']);
+            ['storage_account', 'storage_space', 'storage_route', 'file_object', 'file_immutable_snapshot', 'file_reference', 'file', 'file_derivative',
+                'file_delivery_grant', 'file_delivery_nonce']);
         // SQLite RTRIM reproduces ascii_bin's PAD SPACE equality for the original reference identity.
         $referenceSchema = Db::query("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'file_reference'")[0]['sql'];
         $referenceSchema = preg_replace('/(`(?:file_key|owner_module_key|owner_type|owner_id)` TEXT)/', '$1 COLLATE RTRIM', $referenceSchema);
@@ -86,13 +95,18 @@ final class BusinessEvidenceTest extends TestCase
         Db::execute('CREATE TABLE business_fact (owner_key TEXT PRIMARY KEY, digest TEXT)');
         Db::execute('CREATE TABLE business_outbox (command_key TEXT PRIMARY KEY, file_key TEXT)');
         $sessions = $this->createStub(PeanutAdmin\Modules\Identity\Contract\TenantSessionAccess::class);
-        $sessions->method('revalidateSession')->willReturnCallback(fn(int $tenant, int $account, int $member, string $session, string $client, string $request): TenantContext =>
-            $this->actor($tenant, $account, $member, $this->liveRevision, $this->liveTenantRevision));
+        $sessions->method('revalidateSession')->willReturnCallback(function (int $tenant, int $account, int $member): TenantContext {
+            $this->fileSessionChecks++;
+            return $this->actor($tenant, $account, $member, $this->liveRevision, $this->liveTenantRevision);
+        });
         $authorization = $this->createStub(AdminAuthorizationQuery::class);
         $authorization->method('principal')->willReturnCallback(fn(TenantContext $context): AdminPrincipal => AdminPrincipal::fromArray([
             'id' => $context->memberId, 'account_id' => $context->accountId, 'tenant_id' => $context->tenantId]));
-        $authorization->method('decide')->willReturnCallback(fn($context, $principal, string $permission): PermissionDecision =>
-            in_array($permission, $this->deniedPermissions, true) ? PermissionDecision::deny($permission, 'synthetic role revoked') : PermissionDecision::allow($permission));
+        $authorization->method('decide')->willReturnCallback(function ($context, $principal, string $permission): PermissionDecision {
+            $this->filePermissionChecks[] = $permission;
+            return in_array($permission, $this->deniedPermissions, true)
+                ? PermissionDecision::deny($permission, 'synthetic role revoked') : PermissionDecision::allow($permission);
+        });
         $authorization->method('decisions')->willReturnCallback(function (TenantContext $actor, array $permissions): array {
             $this->fileDecisionBatches++;
             $results = [];
@@ -104,18 +118,30 @@ final class BusinessEvidenceTest extends TestCase
             return $results;
         });
         $modules = $this->createStub(ModuleRuntimeRepository::class);
-        $modules->method('installation')->willReturn(new ModuleInstallationRecord('peanut.file', '1.0.45', 'active', 1, str_repeat('a', 64)));
+        $modules->method('installation')->willReturnCallback(static fn(string $key): ModuleInstallationRecord =>
+            new ModuleInstallationRecord($key, '1.0.45', 'active', 1, str_repeat('a', 64)));
         $modules->method('tenantModule')->willReturnCallback(fn(int $tenant, string $key): TenantModuleRecord =>
             new TenantModuleRecord($tenant, $key, $this->moduleEnabled ? 'enabled' : 'disabled', null, null, 1));
         $db = think\Container::getInstance()->make(think\DbManager::class);
         $app = new think\App($this->root . '/');
         $app->instance(think\DbManager::class, $db);
-        $registry = new PeanutAdmin\Modules\File\Service\FileDocumentReferenceRegistry($app, null);
+        $documentPolicy = $this->createStub(FileDocumentReferencePolicy::class);
+        $documentPolicy->method('authorizePreview')->willReturnCallback(function (TenantContext $context, int $documentId, string $fileKey): array {
+            $this->documentPreviewChecks[] = [$context->tenantId, $context->memberId, $documentId, $fileKey];
+            if (!$this->documentPreviewAllowed) {
+                throw BusinessException::forbidden('DOCUMENT_FILE_REFERENCE_DENIED', 'Synthetic document reference denied');
+            }
+            return ['inherit_preview' => true, 'authorization_revision' => 'synthetic-document-revision', 'reference_digest' => 'synthetic-document-reference'];
+        });
+        $app->instance(FileDocumentReferencePolicy::class, $documentPolicy);
+        $registry = new PeanutAdmin\Modules\File\Service\FileDocumentReferenceRegistry($app, FileDocumentReferencePolicy::class);
         $fileAuthorization = new FileAuthorizationService($authorization, $sessions, $modules, $this->contexts, $registry);
         $directory = new BusinessEvidenceFixture\Directory();
         $this->drivers = new Drivers($this->root);
         $this->audit = new BusinessEvidenceFixture\Audit();
-        $capabilities = (new ReflectionClass(PeanutAdmin\Modules\ContentTools\Service\ContentCapabilitiesService::class))->newInstanceWithoutConstructor();
+        $tools = ContentToolRegistry::withBuiltins();
+        $tools->register(new SurfaceAdapterRegistration('fixture.text', 'peanut.content-tools', '1.0.0', ['file_resource'], ['text/plain'], ['view']));
+        $capabilities = new ContentCapabilitiesService($tools);
         $this->storage = new StorageService($this->drivers, str_repeat('s', 32), 'https://synthetic.invalid', $directory, $fileAuthorization,
             new CurrentExecutionContext($this->contexts), $this->audit, $capabilities, $registry);
         Db::name('storage_account')->insert(['id' => 1, 'account_key' => 'synthetic-local', 'driver' => 'local', 'name' => 'test', 'status' => 'active']);
@@ -392,6 +418,86 @@ final class BusinessEvidenceTest extends TestCase
             ], $previews);
             self::assertSame(1, $this->fileDecisionBatches);
         });
+    }
+
+    public function testFixedSnapshotIssuesTheExistingContextualGrantThroughOneFileSessionCheck(): void
+    {
+        $this->within(function (): void {
+            $snapshot = $this->claimedSnapshot();
+            $this->deniedPermissions = ['peanut.file.list'];
+            $preview = Db::transaction(fn() => $this->storage->previewDocumentSnapshot($this->actor, 42, ...$snapshot));
+            self::assertSame(1, $this->fileSessionChecks);
+            self::assertSame(['peanut.file.download-original'], $this->filePermissionChecks);
+            self::assertSame([[1, 11, 42, $snapshot[0]]], $this->documentPreviewChecks);
+            self::assertSame(['available', 'original', true], [$preview['state'], $preview['bytes'], $preview['can_download_original']]);
+            $grant = Db::name('file_delivery_grant')->where('file_key', $snapshot[0])->find();
+            self::assertSame([42, 'preview', 'synthetic-document-reference', $preview['authorization_revision']],
+                [$grant['document_id'], $grant['operation'], $grant['reference_digest'], $grant['authorization_revision']]);
+
+            $existing = Db::transaction(fn() => $this->storage->resolveAuthorized($this->actor, $snapshot[0], 'preview', 42));
+            $volatile = array_flip(['url', 'expires_at']);
+            self::assertSame(array_diff_key($existing, $volatile), array_diff_key($preview, $volatile));
+            parse_str((string) parse_url($preview['url'], PHP_URL_QUERY), $delivery);
+            $opened = $this->storage->authorizedDownload(1, $snapshot[0], $delivery['token']);
+            self::assertSame(file_get_contents($this->root . '/source.txt'), file_get_contents($opened['path']));
+
+            $pending = Db::transaction(fn() => $this->storage->previewDocumentSnapshot($this->actor, 42, ...$snapshot));
+            $this->documentPreviewAllowed = false;
+            parse_str((string) parse_url($pending['url'], PHP_URL_QUERY), $delivery);
+            $this->denied(fn() => $this->storage->authorizedDownload(1, $snapshot[0], $delivery['token']), 'DOCUMENT_FILE_REFERENCE_DENIED');
+            $this->denied(fn() => Db::transaction(fn() => $this->storage->previewDocumentSnapshot($this->actor, 42, ...$snapshot)), 'DOCUMENT_FILE_REFERENCE_DENIED');
+            self::assertSame(3, Db::name('file_delivery_grant')->count());
+        });
+    }
+
+    public function testFixedSnapshotVerifiesActorAndClaimBeforeGrantAndKeepsOriginalPermissionIndependent(): void
+    {
+        $this->within(function (): void {
+            $snapshot = $this->claimedSnapshot();
+            $preview = fn(int $documentId, array $expected, ?TenantContext $context = null): array =>
+                $this->storage->previewDocumentSnapshot($context ?? $this->actor, $documentId, ...$expected);
+            $this->denied(fn() => $preview(42, $snapshot), 'FILE_REFERENCE_TRANSACTION_REQUIRED');
+            Db::transaction(function () use ($preview, $snapshot): void {
+                // A matching document context cannot bypass the immutable snapshot's exact binding facts.
+                $this->denied(fn() => $preview(43, $snapshot), 'FILE_DOCUMENT_SNAPSHOT_CHANGED');
+                $this->denied(fn() => $preview(42, [$snapshot[0], str_repeat('a', 64), $snapshot[2]]), 'FILE_DOCUMENT_SNAPSHOT_CHANGED');
+                $this->denied(fn() => $preview(42, [$snapshot[0], $snapshot[1], 'application/pdf']), 'FILE_DOCUMENT_SNAPSHOT_CHANGED');
+                $this->denied(fn() => $preview(42, $snapshot, $this->actor(member: 12)), 'FILE_REFERENCE_CONTEXT_MISMATCH');
+                self::assertSame([], $this->documentPreviewChecks);
+                $this->deniedPermissions = ['peanut.file.download-original'];
+                self::assertSame(['file_key' => $snapshot[0], 'state' => 'preview_unavailable', 'can_download_original' => false, 'url' => null], $preview(42, $snapshot));
+                self::assertSame(0, Db::name('file_delivery_grant')->count());
+            });
+        });
+    }
+
+    public function testFixedSnapshotKeepsSensitivePreviewDenialsInOrder(): void
+    {
+        $this->within(function (): void {
+            $snapshot = $this->claimedSnapshot('document.snapshot-sensitive');
+            $preview = fn(): array => Db::transaction(fn() => $this->storage->previewDocumentSnapshot($this->actor, 42, ...$snapshot));
+            $this->deniedPermissions = ['peanut.file.list'];
+            $this->denied($preview, 'FILE_ACCESS_DENIED');
+            $this->deniedPermissions = [];
+            $this->denied($preview, 'FILE_CONTEXTUAL_ACCESS_DENIED');
+            self::assertSame([], $this->documentPreviewChecks);
+            self::assertSame(0, Db::name('file_delivery_grant')->count());
+        });
+    }
+
+    private function claimedSnapshot(string $purpose = 'document.snapshot'): array
+    {
+        $stored = $this->storage->storePath(1, 11, $purpose, $this->root . '/source.txt', 'snapshot.txt', 'text/plain');
+        $key = $stored['file_key'];
+        $this->fileSessionChecks = 0;
+        $this->filePermissionChecks = [];
+        $sha = hash_file('sha256', $this->root . '/source.txt');
+        Db::name('file_immutable_snapshot')->insert([
+            'file_key' => $key, 'tenant_id' => 1, 'capture_id' => str_repeat('b', 64), 'source_file_key' => 'fixture-source',
+            'source_revision' => 1, 'source_sha256' => $sha, 'verified_mime_type' => 'text/plain', 'created_by_member_id' => 11,
+            'created_at' => '2026-11-20 00:00:00', 'status' => 'claimed', 'claimed_document_id' => 42,
+        ]);
+        return [$key, $sha, 'text/plain'];
     }
 
     public function testCrossTenantAndOtherActorCannotObserveOrRetainOriginal(): void

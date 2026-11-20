@@ -890,6 +890,19 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
 
     public function assertDocumentSnapshotReadable(TenantContext $context, int $documentId, string $fileKey, string $sha256, string $verifiedMimeType): void
     {
+        $object = $this->lockedDocumentSnapshot($context, $documentId, $fileKey, $sha256, $verifiedMimeType);
+        $this->authorization->authorizeDocumentReference($context, $object, $documentId);
+    }
+
+    public function previewDocumentSnapshot(TenantContext $context, int $documentId, string $fileKey, string $sha256, string $verifiedMimeType): array
+    {
+        $object = $this->lockedDocumentSnapshot($context, $documentId, $fileKey, $sha256, $verifiedMimeType);
+        $access = $this->authorization->authorizeDocumentSnapshotPreview($context, $object, $documentId);
+        return $this->describeAuthorizedObject($context, $object, 'preview', $documentId, null, null, $access['grant'], $access['can_download_original']);
+    }
+
+    private function lockedDocumentSnapshot(TenantContext $context, int $documentId, string $fileKey, string $sha256, string $verifiedMimeType): array
+    {
         $actor = $this->execution->tenantAdmin();
         if ($actor->tenantId !== $context->tenantId || $actor->accountId !== $context->accountId || $actor->memberId !== $context->memberId
             || $actor->clientKey !== $context->clientKey || !hash_equals($actor->sessionKey, $context->sessionKey)) {
@@ -906,7 +919,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             || $verifiedMimeType !== $object['media_type'] || $verifiedMimeType !== $capture->verified_mime_type) {
             throw BusinessException::conflict('FILE_DOCUMENT_SNAPSHOT_CHANGED', '不可变文件快照与文档版本不一致');
         }
-        $this->authorization->authorizeDocumentReference($context, $object, $documentId);
+        return $object;
     }
 
 
