@@ -13,7 +13,8 @@ final class TenantEntryBindingValidate extends Validate
         'binding_id' => 'require|positiveInteger',
         'host' => 'require|max:253',
         'client_key' => 'require|in:admin-web,member-api',
-        'change_reason' => 'require|max:500',
+        // The change reason is stored in the platform audit reason_code column.
+        'change_reason' => 'require|string|max:96',
     ];
 
     protected $scene = [

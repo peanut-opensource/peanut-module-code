@@ -15218,7 +15218,7 @@
                                     "change_reason": {
                                         "type": "string",
                                         "minLength": 1,
-                                        "maxLength": 500
+                                        "maxLength": 96
                                     }
                                 }
                             }
@@ -15325,7 +15325,7 @@
                                     "change_reason": {
                                         "type": "string",
                                         "minLength": 1,
-                                        "maxLength": 500
+                                        "maxLength": 96
                                     }
                                 }
                             }
