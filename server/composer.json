@@ -258,7 +258,7 @@
         "composer/semver": "^3.4",
         "opis/json-schema": "^2.6",
         "topthink/think-migration": "3.1.1",
-        "peanut-business/peanut-content-tools": "1.0.3",
+        "peanut-business/peanut-content-tools": "1.0.4-rc.1",
         "peanut-business/peanut-identity": "4.0.1-rc.9",
         "peanut-business/peanut-file": "1.0.50-rc.10",
         "peanut-business/peanut-task": "1.0.36-rc.4",
