@@ -14,7 +14,7 @@
             <el-button :disabled="form?.locked" @click="returnToList">
               {{ $t('article.edit.back') }}
             </el-button>
-            <el-button v-if="article && !active" @click="enter">
+            <el-button v-if="article" v-show="!active" @click="enter">
               {{ $t('article.edit.focus') }}
             </el-button>
             <el-button
