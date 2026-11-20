@@ -1,0 +1,18 @@
+#!/usr/bin/env php
+<?php
+
+use think\App;
+
+require __DIR__ . '/vendor/autoload.php';
+
+// 应用初始化
+$app = new App();
+try {
+    $app->console->run();
+} catch (Throwable $exception) {
+    // Console construction initializes the application before run() can catch failures.
+    $handler = $app->make(\think\exception\Handle::class);
+    $handler->report($exception);
+    $handler->renderForConsole(new \think\console\Output(), $exception);
+    exit(1);
+}

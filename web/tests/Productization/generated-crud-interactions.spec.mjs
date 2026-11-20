@@ -2,7 +2,8 @@
 // permission grants are synthetic. Launched by generated-crud-consumer.test.mjs.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
-import { nextTick } from 'vue';
+import { cloneVNode, defineComponent, h, KeepAlive, nextTick, ref } from 'vue';
+import { createMemoryHistory, createRouter, RouterView } from 'vue-router';
 import axios from 'axios';
 import {
   ElAlert,
@@ -14,6 +15,8 @@ import {
 } from 'element-plus';
 import Page from 'generated:crud-view';
 import permission from '../../src/directive/permission/index';
+import useCrudModal from '../../src/hooks/useCrudModal';
+import useCrudTable from '../../src/hooks/useCrudTable';
 
 const policy = vi.hoisted(() => ({ allow: true, observed: [] }));
 vi.mock('@/hooks/permission', () => ({
@@ -21,6 +24,11 @@ vi.mock('@/hooks/permission', () => ({
     policy.observed.push([...keys]);
     return policy.allow;
   },
+}));
+// The directive uses the host router singleton. Tab behavior uses the actual
+// memory router installed on the mounted page below.
+vi.mock('@/router', () => ({
+  default: { currentRoute: { value: { path: '/records' } } },
 }));
 const example = process.env.PEANUT_CRUD_CASE;
 if (
@@ -51,10 +59,11 @@ const drain = async () => {
   await nextTick();
   await flushPromises();
 };
-function open() {
-  const wrapper = mount(Page, {
+function open(component = Page, plugins = []) {
+  const wrapper = mount(component, {
     attachTo: document.body,
     global: {
+      plugins,
       directives: { permission },
       config: { warnHandler: (message) => warnings.push(message) },
     },
@@ -181,6 +190,7 @@ describe(`native generated ${example}`, () => {
     await drain();
     pagination.vm.$emit('current-change', 3);
     await drain();
+    expect(pending[1].config.signal.aborted).toBe(true);
     pending[2].resolve(result([row('newest page')]));
     await drain();
     pending[1].reject(new Error('late failure'));
@@ -194,6 +204,7 @@ describe(`native generated ${example}`, () => {
     const old = open();
     await drain();
     old.unmount();
+    expect(pending[0].config.signal.aborted).toBe(true);
     wrappers = [];
     const fresh = open();
     await drain();
@@ -205,7 +216,55 @@ describe(`native generated ${example}`, () => {
     expect(fresh.text()).not.toContain('late old scope');
   });
 
+  it('aborts the previous KeepAlive tab and reloads its interrupted page on return', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/records', component: Page }],
+    });
+    const tabLayout = defineComponent(
+      () => () =>
+        h(RouterView, null, {
+          default: ({ Component, route }) =>
+            h(KeepAlive, null, {
+              default: () =>
+                Component && cloneVNode(Component, { key: route.fullPath }),
+            }),
+        })
+    );
+    await router.push('/records?tab=a');
+    const wrapper = open(tabLayout, [router]);
+    await drain();
+    await router.push('/records?tab=b');
+    await drain();
+    expect(pending[0].config.signal.aborted).toBe(true);
+    pending[1].resolve(result([row('second tab')]));
+    pending[0].resolve(result([row('stale first tab')]));
+    await drain();
+    expect(wrapper.text()).toContain('second tab');
+    expect(wrapper.text()).not.toContain('stale first tab');
+
+    await router.push('/records?tab=a');
+    await drain();
+    expect(pending).toHaveLength(3);
+    pending[2].resolve(result([row('first tab reloaded')]));
+    await drain();
+    expect(wrapper.text()).toContain('first tab reloaded');
+  });
+
   if (recycle) {
+    it('aborts the ordinary-list transport when opening the recycle bin', async () => {
+      const wrapper = open();
+      await drain();
+      await button(wrapper, '回收站').trigger('click');
+      await drain();
+      expect(pending[0].config.signal.aborted).toBe(true);
+      pending[1].resolve(result([row('recycled row')]));
+      pending[0].resolve(result([row('old ordinary row')]));
+      await drain();
+      expect(wrapper.text()).toContain('recycled row');
+      expect(wrapper.text()).not.toContain('old ordinary row');
+    });
+
     it('uses native row slots and preserves recycle, restore and purge permission keys', async () => {
       const wrapper = await recycled();
       expect(button(wrapper, '恢复').exists()).toBe(true);
@@ -376,3 +435,164 @@ describe(`native generated ${example}`, () => {
     });
   }
 });
+
+if (example === 'string-plain') {
+  it('keeps search/reset at page one and submits the delete command once', async () => {
+    let table;
+    let completeDelete;
+    const load = vi.fn(async ({ page, pageSize }) => ({
+      items: [row()],
+      total: 1,
+      page,
+      pageSize,
+    }));
+    const deleteRecord = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          completeDelete = resolve;
+        })
+    );
+    open(
+      defineComponent(() => {
+        table = useCrudTable({
+          initialFilters: { q: '' },
+          initialPageSize: 15,
+          load,
+          deleteRecord,
+          errorMessage: String,
+        });
+        return () => null;
+      })
+    );
+    await table.fetchList(2);
+    table.searchForm.value.q = 'new filter';
+    await table.handleSearch();
+    expect(load.mock.lastCall[0]).toMatchObject({
+      page: 1,
+      filters: { q: 'new filter' },
+    });
+    await table.handleReset();
+    expect(load.mock.lastCall[0]).toMatchObject({
+      page: 1,
+      filters: { q: '' },
+    });
+    const selected = table.data.value[0];
+    const deletion = table.handleDelete(selected);
+    expect(await table.handleDelete(selected)).toBe(false);
+    expect(deleteRecord).toHaveBeenCalledExactlyOnceWith(
+      selected,
+      expect.any(AbortSignal)
+    );
+    completeDelete();
+    expect(await deletion).toBe(true);
+    expect(load).toHaveBeenCalledTimes(4);
+  });
+
+  it('loads options only for an authorized open and aborts stale dialog requests', async () => {
+    let modal;
+    const authorized = ref(false);
+    const optionsAuthorized = ref(true);
+    const optionsPending = [];
+    const loadOptions = vi.fn(
+      (signal) =>
+        new Promise((resolve) => {
+          optionsPending.push({ signal, resolve });
+        })
+    );
+    open(
+      defineComponent(() => {
+        modal = useCrudModal({
+          canOpen: () => authorized.value,
+          canLoadOptions: (mode) => mode !== 'view' && optionsAuthorized.value,
+          createForm: () => ({ name: '' }),
+          editForm: (record) => ({ name: record.title }),
+          loadOptions,
+          save: vi.fn(),
+        });
+        return () => null;
+      })
+    );
+    expect(loadOptions).not.toHaveBeenCalled();
+    expect(await modal.create()).toBe(false);
+    expect(modal.visible.value).toBe(false);
+    authorized.value = true;
+    expect(await modal.view(row('reading'))).toBe(true);
+    expect(await modal.submit()).toBe(false);
+    expect(loadOptions).not.toHaveBeenCalled();
+
+    const firstRow = row('first');
+    const secondRow = { ...row('second'), [primary]: 'second-key' };
+    const first = modal.edit(firstRow);
+    const repeated = modal.edit(firstRow);
+    expect(loadOptions).toHaveBeenCalledTimes(1);
+    const second = modal.edit(secondRow);
+    expect(loadOptions).toHaveBeenCalledTimes(2);
+    expect(optionsPending[0].signal.aborted).toBe(true);
+    optionsPending[0].resolve(['first row options']);
+    expect(await first).toBe(false);
+    expect(await repeated).toBe(false);
+    expect(modal.options.value).toBeUndefined();
+    expect(modal.form.value.name).toBe('second');
+    optionsPending[1].resolve(['second row options']);
+    expect(await second).toBe(true);
+    expect(modal.options.value).toEqual(['second row options']);
+
+    const closing = modal.edit(firstRow);
+    modal.visible.value = false;
+    expect(optionsPending[2].signal.aborted).toBe(true);
+    const reopened = modal.edit(firstRow);
+    optionsPending[2].resolve(['closed dialog options']);
+    expect(await closing).toBe(false);
+    optionsAuthorized.value = false;
+    expect(optionsPending[3].signal.aborted).toBe(true);
+    optionsPending[3].resolve(['withdrawn options']);
+    expect(await reopened).toBe(false);
+    expect(modal.options.value).toBeUndefined();
+    expect(modal.optionsLoading.value).toBe(false);
+    expect(modal.visible.value).toBe(true);
+    authorized.value = false;
+    expect(modal.visible.value).toBe(false);
+  });
+
+  it('blocks a second submit and a new modal intent while a save is running', async () => {
+    let modal;
+    let completeSave;
+    const save = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          completeSave = resolve;
+        })
+    );
+    const onSaved = vi.fn();
+    open(
+      defineComponent(() => {
+        modal = useCrudModal({
+          canOpen: () => true,
+          createForm: () => ({ name: 'new' }),
+          editForm: () => ({ name: 'changed' }),
+          save,
+          onSaved,
+        });
+        modal.formRef.value = {
+          validate: async () => true,
+          clearValidate() {},
+        };
+        return () => null;
+      })
+    );
+    await modal.create();
+    const first = modal.submit();
+    expect(modal.submitLoading.value).toBe(true);
+    expect(await modal.submit()).toBe(false);
+    expect(await modal.edit(row())).toBe(false);
+    expect(save).toHaveBeenCalledExactlyOnceWith(
+      { name: 'new' },
+      'create',
+      expect.any(AbortSignal)
+    );
+    completeSave();
+    expect(await first).toBe(true);
+    expect(onSaved).toHaveBeenCalledOnce();
+    expect(modal.visible.value).toBe(false);
+  });
+}

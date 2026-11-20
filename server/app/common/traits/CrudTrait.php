@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace app\common\traits;
 
-use app\common\http\PageResult;
 use app\common\exception\BusinessException;
+use app\common\http\PageResult;
+use app\common\validate\CrudValidationException;
 use LogicException;
+use think\exception\ValidateException;
 use think\response\Json;
 
 /**
@@ -20,20 +22,22 @@ trait CrudTrait
     final public function lists(): Json
     {
         $context = $this->resolveCrudContext();
-        return $this->renderLists($this->performLists($context, $this->listsInput($context)));
+        $params = $this->readCrudInput(fn() => $this->listsInput($context));
+        return $this->renderLists($this->assembleListResult($this->performLists($context, $params), $context));
     }
 
     final public function detail(): Json
     {
         $context = $this->resolveCrudContext();
-        return $this->renderDetail($this->performDetail($context, $this->detailInput($context)));
+        $params = $this->readCrudInput(fn() => $this->detailInput($context));
+        return $this->renderDetail($this->assembleDetailResult($this->performDetail($context, $params), $context));
     }
 
     final public function add(): Json
     {
         $context = $this->resolveCrudContext();
         return $this->renderMutation(
-            $this->performAdd($context, $this->addInput($context)),
+            $this->performAdd($context, $this->readCrudInput(fn() => $this->addInput($context))),
             $this->crudAddSuccessMessage(),
         );
     }
@@ -42,7 +46,7 @@ trait CrudTrait
     {
         $context = $this->resolveCrudContext();
         return $this->renderMutation(
-            $this->performEdit($context, $this->editInput($context)),
+            $this->performEdit($context, $this->readCrudInput(fn() => $this->editInput($context))),
             $this->crudEditSuccessMessage(),
         );
     }
@@ -51,7 +55,7 @@ trait CrudTrait
     {
         $context = $this->resolveCrudContext();
         return $this->renderMutation(
-            $this->performDelete($context, $this->deleteInput($context)),
+            $this->performDelete($context, $this->readCrudInput(fn() => $this->deleteInput($context))),
             $this->crudDeleteSuccessMessage(),
         );
     }
@@ -60,7 +64,7 @@ trait CrudTrait
     {
         $context = $this->resolveCrudContext();
         return $this->renderMutation(
-            $this->performStatusUpdate($context, $this->statusInput($context)),
+            $this->performStatusUpdate($context, $this->readCrudInput(fn() => $this->statusInput($context))),
             $this->crudStatusSuccessMessage(),
         );
     }
@@ -70,20 +74,16 @@ trait CrudTrait
     {
         $this->assertCrudSoftDeleteEnabled();
         $context = $this->resolveCrudContext();
-        return $this->renderLists($this->performRecycleLists(
-            $context,
-            $this->validatedInput($context, 'recycle', $this->request->get()),
-        ));
+        $params = $this->readCrudInput(fn() => $this->validatedInput($context, 'recycle', $this->request->get()));
+        return $this->renderLists($this->assembleListResult($this->performRecycleLists($context, $params), $context));
     }
 
     final public function recycleDetail(): Json
     {
         $this->assertCrudSoftDeleteEnabled();
         $context = $this->resolveCrudContext();
-        return $this->renderDetail($this->performRecycleDetail(
-            $context,
-            $this->validatedInput($context, 'recycleDetail', $this->request->get()),
-        ));
+        $params = $this->readCrudInput(fn() => $this->validatedInput($context, 'recycleDetail', $this->request->get()));
+        return $this->renderDetail($this->assembleDetailResult($this->performRecycleDetail($context, $params), $context));
     }
 
     final public function restore(): Json
@@ -92,7 +92,7 @@ trait CrudTrait
         $context = $this->resolveCrudContext();
         return $this->renderSoftDeleteMutation($this->performRestore(
             $context,
-            $this->validatedInput($context, 'restore', $this->request->post()),
+            $this->readCrudInput(fn() => $this->validatedInput($context, 'restore', $this->request->post())),
         ), '恢复成功');
     }
 
@@ -102,7 +102,7 @@ trait CrudTrait
         $context = $this->resolveCrudContext();
         return $this->renderSoftDeleteMutation($this->performForceDelete(
             $context,
-            $this->validatedInput($context, 'forceDelete', $this->request->post()),
+            $this->readCrudInput(fn() => $this->validatedInput($context, 'forceDelete', $this->request->post())),
         ), '永久删除成功');
     }
 
@@ -113,7 +113,7 @@ trait CrudTrait
         $context = $this->resolveCrudContext();
         return $this->renderSoftDeleteMutation($this->performPurge(
             $context,
-            $this->validatedInput($context, 'purge', $this->request->post()),
+            $this->readCrudInput(fn() => $this->validatedInput($context, 'purge', $this->request->post())),
         ), '永久删除成功');
     }
 
@@ -212,10 +212,14 @@ trait CrudTrait
 
     protected function performStatusUpdate(mixed $context, array $params): bool
     {
+        $status = $params[$this->crudStatusField()] ?? null;
+        if ((!is_int($status) && !is_string($status)) || filter_var($status, FILTER_VALIDATE_INT) === false) {
+            throw new CrudValidationException('状态值错误');
+        }
         return $this->crudService()->updateStatus(
             $context,
             $this->crudPrimaryKeyValue($params[$this->crudPrimaryKey()] ?? null),
-            (int) $params[$this->crudStatusField()],
+            (int) $status,
         );
     }
 
@@ -247,6 +251,37 @@ trait CrudTrait
         return $this->crudService()->purge($context, $this->crudTargetIds($params));
     }
 
+    /**
+     * Receives all authorized page rows together for optional batched response assembly.
+     *
+     * @param list<mixed> $items
+     * @return list<mixed>
+     */
+    protected function assembleListItems(mixed $context, array $items): array
+    {
+        return $items;
+    }
+
+    /** Receives an existing authorized record before rendering. */
+    protected function assembleDetail(mixed $context, array $record): array
+    {
+        return $record;
+    }
+
+    private function assembleListResult(PageResult|array $result, mixed $context): PageResult|array
+    {
+        if (!$result instanceof PageResult || $result->items === []) {
+            return $result;
+        }
+
+        return $result->withItems($this->assembleListItems($context, $result->items));
+    }
+
+    private function assembleDetailResult(array $result, mixed $context): array
+    {
+        return $result === [] ? $result : $this->assembleDetail($context, $result);
+    }
+
     protected function renderLists(PageResult|array $result): Json
     {
         return $this->data($result);
@@ -273,6 +308,15 @@ trait CrudTrait
         return is_array($result)
             ? $this->data($result)
             : $this->renderMutation($result, $successMessage);
+    }
+
+    private function readCrudInput(callable $read): array
+    {
+        try {
+            return $read();
+        } catch (ValidateException $exception) {
+            throw new CrudValidationException($exception->getError(), $exception->getKey());
+        }
     }
 
     protected function validatedInput(
@@ -457,17 +501,18 @@ trait CrudTrait
     {
         if ($this->crudPrimaryKeyType() === 'string') {
             if (!is_string($value) && !is_int($value)) {
-                throw BusinessException::invalid('CRUD_PRIMARY_KEY_INVALID', '主键格式错误');
+                throw new BusinessException('CRUD_PRIMARY_KEY_INVALID', 422, '主键格式错误');
             }
             $key = trim((string) $value);
             if ($key === '') {
-                throw BusinessException::invalid('CRUD_PRIMARY_KEY_INVALID', '主键格式错误');
+                throw new BusinessException('CRUD_PRIMARY_KEY_INVALID', 422, '主键格式错误');
             }
             return $key;
         }
 
-        if (filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) {
-            throw BusinessException::invalid('CRUD_PRIMARY_KEY_INVALID', '主键格式错误');
+        if ((!is_int($value) && !is_string($value))
+            || filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) {
+            throw new BusinessException('CRUD_PRIMARY_KEY_INVALID', 422, '主键格式错误');
         }
         return (int) $value;
     }
@@ -475,9 +520,10 @@ trait CrudTrait
     /** @return list<int|string> */
     private function crudTargetIds(array $params): array
     {
-        $ids = isset($params['ids']) && is_array($params['ids'])
-            ? $params['ids']
-            : [$params[$this->crudPrimaryKey()] ?? null];
+        if (isset($params['ids']) && (!is_array($params['ids']) || $params['ids'] === [])) {
+            throw new CrudValidationException('操作对象格式错误');
+        }
+        $ids = $params['ids'] ?? [$params[$this->crudPrimaryKey()] ?? null];
         $parsed = array_map(fn(mixed $id): int|string => $this->crudPrimaryKeyValue($id), $ids);
         return array_values(array_unique($parsed, SORT_REGULAR));
     }

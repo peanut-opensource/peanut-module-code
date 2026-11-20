@@ -9,6 +9,7 @@ use app\common\exception\module\ModuleScaffoldException;
 use app\common\exception\installation\InstallationExecutionException;
 use app\common\exception\http\OutboundHttpException;
 use app\common\exception\storage\StorageProviderException;
+use app\common\validate\CrudValidationException;
 use PeanutAdmin\Modules\Identity\Invitation\TenantOwnerInvitationException;
 use app\platform\exception\PlatformRefreshCredentialException;
 use app\platform\exception\module\ModuleLifecycleException;
@@ -54,6 +55,12 @@ final class ApiProblemMapper
                 $exception->errorCode,
                 $exception->httpStatus,
                 $exception->getMessage(),
+            ),
+            $exception instanceof CrudValidationException => new ApiProblem(
+                'API_ERROR_40000',
+                422,
+                $exception->getMessage(),
+                responseCode: 40000,
             ),
             $exception instanceof ValidateException => ApiProblem::fromEnvelope(
                 (string) $exception->getError(),

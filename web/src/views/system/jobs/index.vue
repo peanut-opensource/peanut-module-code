@@ -146,12 +146,12 @@
         >
       </el-table>
       <el-pagination
-        v-model:current-page="pagination.current"
-        v-model:page-size="pagination.pageSize"
+        :current-page="pagination.page"
+        :page-size="pagination.pageSize"
         :total="pagination.total"
         layout="total, prev, pager, next"
         style="margin-top: 16px; justify-content: flex-end"
-        @current-change="onPageChange"
+        @current-change="fetchList"
       />
     </el-card>
 
@@ -290,10 +290,12 @@
   import { PageContent, PageHeader, PageToolbar } from '@peanut-admin/ui-vue';
   import { computed, ref, reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRoute } from 'vue-router';
   import { ElMessage } from 'element-plus';
-  import type { FormInstance } from 'element-plus';
   import { Download, Plus, Refresh, Search } from '@element-plus/icons-vue';
-  import useLoading from '@/hooks/loading';
+  import { hasPermission } from '@/hooks/permission';
+  import useCrudModal from '@/hooks/useCrudModal';
+  import useCrudTable from '@/hooks/useCrudTable';
   import {
     getJobsList,
     getJobsExportInfo,
@@ -309,59 +311,43 @@
   } from '@/api/system/jobs';
 
   const { t } = useI18n();
-  const { loading, setLoading } = useLoading(true);
-  const renderData = ref<JobsRecord[]>([]);
+  const route = useRoute();
+  const canAccess = (permission: string) => hasPermission(permission, route.path);
 
-  const generateFormModel = () => ({
+  const initialFilters = {
     name: '',
     code: '',
     status: '' as number | '',
+  };
+  const {
+    data: records,
+    loading,
+    pagination,
+    searchForm: formModel,
+    fetchList,
+    handleSearch: search,
+    handleReset: reset,
+    handleDelete: remove,
+  } = useCrudTable<JobsRecord, typeof initialFilters>({
+    initialFilters,
+    initialPageSize: 15,
+    load: async ({ filters, page, pageSize, signal }) => {
+      const params = { ...filters, page_no: page, page_size: pageSize };
+      const { data } = await getJobsList(params, signal);
+      return { items: reactive(data.lists), total: data.count, page: data.pageNo, pageSize };
+    },
+    deleteRecord: (record, signal) => deleteJobs(record.id, signal),
+    errorMessage: (error) => error instanceof Error ? error.message : String(error),
   });
-  const formModel = ref(generateFormModel());
-
-  const pagination = reactive({
-    current: 1,
-    pageSize: 15,
-    total: 0,
-    showTotal: true,
-  });
+  const renderData = computed(() => [...records.value]);
+  fetchList();
 
   const statusOptions = computed(() => [
     { label: t('systemJobs.status.normal'), value: 1 },
     { label: t('systemJobs.status.stopped'), value: 0 },
   ]);
 
-  const fetchData = async (page = 1) => {
-    setLoading(true);
-    try {
-      const params: JobsListParams = {
-        ...formModel.value,
-        page_no: page,
-        page_size: pagination.pageSize,
-      };
-      const { data } = await getJobsList(params);
-      renderData.value = data.lists;
-      pagination.current = data.pageNo;
-      pagination.total = data.count;
-    } finally {
-      setLoading(false);
-    }
-  };
-  fetchData();
-
-  const search = () => fetchData(1);
-  const onPageChange = (current: number) => fetchData(current);
-  const reset = () => {
-    formModel.value = generateFormModel();
-    fetchData(1);
-  };
-
   // ---- 弹窗 & 表单 ----
-  const modalVisible = ref(false);
-  const isEdit = ref(false);
-  const submitLoading = ref(false);
-  const formRef = ref<FormInstance>();
-
   const defaultForm = (): JobsForm => ({
     id: undefined,
     name: '',
@@ -370,7 +356,34 @@
     status: 1,
     remark: '',
   });
-  const form = reactive<JobsForm>(defaultForm());
+  const {
+    create: handleAdd,
+    edit: handleEdit,
+    submit: handleSubmit,
+    visible: modalVisible,
+    form,
+    formRef,
+    mode,
+    submitLoading,
+  } = useCrudModal<JobsForm, JobsRecord>({
+    canOpen: (intent) => {
+      if (intent === 'view') return false;
+      return canAccess(intent === 'create' ? 'core.job.create' : 'core.job.update');
+    },
+    createForm: defaultForm,
+    editForm: (record) => ({ ...defaultForm(), ...record }),
+    save: async (values, intent, signal) => {
+      const { name, code, sort, status, remark, id } = values;
+      const payload = { name, code, sort, status, remark };
+      if (intent === 'edit') await editJobs({ ...payload, id }, signal);
+      else await addJobs(payload, signal);
+    },
+    onSaved: async () => {
+      ElMessage.success(t('systemJobs.tip.success'));
+      await fetchList();
+    },
+  });
+  const isEdit = computed(() => mode.value === 'edit');
 
   const rules = {
     name: [
@@ -384,49 +397,10 @@
     code: [{ required: true, message: t('systemJobs.field.code.required') }],
   };
 
-  const resetForm = (patch: Partial<JobsForm> = {}) => {
-    Object.assign(form, defaultForm(), patch);
-  };
-
-  const handleAdd = () => {
-    isEdit.value = false;
-    resetForm();
-    modalVisible.value = true;
-  };
-
-  const handleEdit = (record: JobsRecord) => {
-    isEdit.value = true;
-    resetForm({ ...record });
-    modalVisible.value = true;
-  };
-
-  const handleSubmit = async () => {
-    const valid = await formRef.value?.validate().catch(() => false);
-    if (!valid) return false;
-    submitLoading.value = true;
-    try {
-      const payload = {
-        name: form.name,
-        code: form.code,
-        sort: form.sort,
-        status: form.status,
-        remark: form.remark,
-      };
-      if (isEdit.value) await editJobs({ ...payload, id: form.id });
-      else await addJobs(payload);
-      ElMessage.success(t('systemJobs.tip.success'));
-      modalVisible.value = false;
-      await fetchData(pagination.current);
-      return true;
-    } finally {
-      submitLoading.value = false;
-    }
-  };
-
   const handleDelete = async (record: JobsRecord) => {
-    await deleteJobs(record.id);
-    ElMessage.success(t('systemJobs.tip.success'));
-    await fetchData(pagination.current);
+    if (canAccess('core.job.archive') && await remove(record)) {
+      ElMessage.success(t('systemJobs.tip.success'));
+    }
   };
 
   const handleStatus = async (record: JobsRecord, enabled: boolean) => {
@@ -440,7 +414,7 @@
   };
 
   // ---- 两阶段导出 ----
-  const listParams = (page = pagination.current): JobsListParams => ({
+  const listParams = (page = pagination.page): JobsListParams => ({
     name: formModel.value.name || undefined,
     code: formModel.value.code || undefined,
     status: formModel.value.status === '' ? undefined : formModel.value.status,

@@ -1,0 +1,246 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+die() { printf 'ops-backup-worker: %s\n' "$1" >&2; exit 1; }
+
+[[ $# -eq 1 && "$1" == '--once' ]] || die 'usage: scripts/ops-backup-worker --once'
+command -v jq >/dev/null || die 'jq is required'
+command -v gzip >/dev/null || die 'gzip is required'
+command -v sha256sum >/dev/null || die 'sha256sum is required'
+
+project_root="$(pwd -P)"
+[[ -f "$project_root/server/docker/compose.yaml" && -f "$project_root/server/think" ]] || die 'run from an APP mounted deployment root'
+backend_env="$project_root/server/.env"
+[[ -f "$backend_env" && ! -L "$backend_env" && "$(stat -c '%a %h' "$backend_env")" == '600 1' ]] || die 'private backend environment is unsafe'
+registry="${PEANUT_RESOURCE_REGISTRY:-}"
+if [[ -z "$registry" ]]; then
+  if [[ -f "$project_root/server/.peanut/release-identity.json" ]]; then
+    registry="$project_root/server/resources/project-resources.json"
+    [[ ! -e "$project_root/server/private/resources/project-resources.json" ]] || registry="$project_root/server/private/resources/project-resources.json"
+  else
+    registry="$project_root/resources/project-resources.json"
+  fi
+fi
+[[ "$registry" == /* && -f "$registry" && ! -L "$registry" ]] || die 'explicit ordinary APP resource registry is required'
+resource_json() {
+  jq -ce --arg id "$1" '[.. | objects | select(.stable_resource_id? == $id)] | if length == 1 then .[0] else error("resource missing or ambiguous") end' "$registry"
+}
+deployment_json="$(jq -ce --arg root "$project_root" \
+  '[.. | objects | select(.deployment_root? == $root and .compose_file? == "server/docker/compose.yaml")] | if length == 1 then .[0] else error("deployment missing or ambiguous") end' "$registry")"
+deployment_id="$(jq -er .stable_resource_id <<<"$deployment_json")"
+database_id="$(jq -er .database_resource_id <<<"$deployment_json")"
+application_id="$(jq -er .application_resource_id <<<"$deployment_json")"
+backup_resource_id="$(jq -er .backup_resource_id <<<"$deployment_json")"
+compose_project="$(jq -er .compose_project <<<"$deployment_json")"
+database_json="$(resource_json "$database_id")"
+database_name="$(jq -er .database <<<"$database_json")"
+backup_json="$(resource_json "$backup_resource_id")"
+backup_root="$(jq -er .path <<<"$backup_json")"
+http_json="$(resource_json "$(jq -er .http_resource_id <<<"$deployment_json")")"
+http_port="$(jq -er .port <<<"$http_json")"
+[[ "$compose_project" =~ ^[a-z0-9][a-z0-9_-]{0,62}$ && "$database_name" =~ ^[A-Za-z0-9_]{1,64}$ \
+  && "$backup_root" == "$project_root/backups" && "$http_port" =~ ^[0-9]{4,5}$ ]] || die 'registered APP backup tuple is invalid'
+jq -e --arg project "$compose_project" --arg root "$project_root" --arg deployment "$deployment_id" \
+  '.compose_project == $project and .namespace == ($root + "/server/docker/mysql")
+   and .container_endpoint.host == "mysql" and .container_endpoint.port == 3306
+   and .application_runtime == true and .fallback == "none"' <<<"$database_json" >/dev/null || die 'database mount registration differs'
+jq -e --arg deployment "$deployment_id" '.deployment_resource_id == $deployment and .fallback == "none"' \
+  <<<"$backup_json" >/dev/null || die 'backup ownership differs'
+jq -e '.fallback == "none" and (.environments | index("production") != null)' \
+  <<<"$deployment_json" >/dev/null || die 'registered production deployment is required'
+database_endpoint_id="$(jq -er .container_endpoint.endpoint_id <<<"$database_json")"
+[[ ! -L "$backup_root" && ! -L "$project_root/server/docker" ]] || die 'backup/runtime parent is linked'
+compose=(sudo -n docker compose --env-file "$project_root/server/docker/.env" -p "$compose_project" -f "$project_root/server/docker/compose.yaml")
+maintenance=("${compose[@]}" run -T --rm --no-deps \
+  -e "PEANUT_DATABASE_RESOURCE_ID=$database_id" -e "PEANUT_DATABASE_ENDPOINT_ID=$database_endpoint_id" \
+  -e PEANUT_DATABASE_CONSUMER=container -e PEANUT_DEPLOYMENT_TARGET=production --entrypoint php php)
+"${maintenance[@]}" database/environment-guard.php --validate-config >/dev/null || die 'APP database configuration differs from registered production resource'
+think=("${maintenance[@]}" think ops-backup:task)
+claim_json="$("${think[@]}" claim </dev/null)" || die 'task claim failed'
+jq -e '.ok == true' <<<"$claim_json" >/dev/null || die 'task claim was rejected'
+if [[ "$(jq -r '.result == null' <<<"$claim_json")" == true ]]; then
+  printf 'ops-backup-worker: no queued backup task\n'
+  exit 0
+fi
+
+task_key="$(jq -r '.result.task_key' <<<"$claim_json")"
+backup_reference_key="$(jq -r '.result.backup_reference_key' <<<"$claim_json")"
+provider_key="$(jq -r '.result.provider_key' <<<"$claim_json")"
+execution_revision="$(jq -r '.result.execution_revision' <<<"$claim_json")"
+[[ "$task_key" =~ ^job_[a-f0-9]{32}$ ]] || die 'claimed task key is invalid'
+[[ "$backup_reference_key" =~ ^backup_[a-f0-9]{32}$ ]] || die 'claimed backup reference is invalid'
+[[ "$provider_key" == 'peanut.paired-db-files' ]] || die 'claimed provider is invalid'
+[[ "$execution_revision" =~ ^[1-9][0-9]*$ && "$execution_revision" -ge 2 ]] || die 'claimed execution revision is invalid'
+
+stopped=0
+failure_code='OPS_BACKUP_RUNTIME_FAILED'
+backup_dir=''
+heartbeat_pid=''
+worker_pid=$$
+stop_heartbeat() {
+  if [[ -n "$heartbeat_pid" ]]; then
+    kill "$heartbeat_pid" >/dev/null 2>&1 || true
+    wait "$heartbeat_pid" >/dev/null 2>&1 || true
+    heartbeat_pid=''
+  fi
+}
+resume_stack() {
+  if [[ "$stopped" -eq 1 ]]; then
+    if "${compose[@]}" start --wait --wait-timeout 120 php nginx >/dev/null 2>&1; then
+      stopped=0
+      return 0
+    fi
+    return 1
+  fi
+}
+mark_failed() {
+  local exit_status="${1:-1}"
+  local recovery_failed=0
+  trap - ERR INT TERM
+  stop_heartbeat
+  resume_stack || recovery_failed=1
+  "${think[@]}" fail --task-key "$task_key" --revision "$execution_revision" --error-code "$failure_code" </dev/null >/dev/null 2>&1 || true
+  if [[ "$recovery_failed" -eq 1 ]]; then
+    printf 'ops-backup-worker: CRITICAL application writers could not be restored\n' >&2
+  fi
+  [[ "$exit_status" -ne 0 ]] || exit_status=1
+  exit "$exit_status"
+}
+heartbeat_once() {
+  "${think[@]}" heartbeat --task-key "$task_key" --revision "$execution_revision" </dev/null >/dev/null
+}
+heartbeat_loop() {
+  while sleep 60; do
+    heartbeat_once || { kill -TERM "$worker_pid"; return 1; }
+  done
+}
+trap 'mark_failed $?' ERR
+trap 'mark_failed 130' INT TERM
+heartbeat_once
+heartbeat_loop &
+heartbeat_pid=$!
+
+deployment_receipt="$project_root/server/.peanut/release-identity.json"
+[[ -f "$deployment_receipt" && ! -L "$deployment_receipt" ]] || { failure_code='OPS_BACKUP_RUNTIME_FAILED'; false; }
+jq -e '.protocol == "peanut.server-release.v1" and .application.kind == "application"
+  and (.application.commit | test("^[a-f0-9]{40}$")) and (.application.tree | test("^[a-f0-9]{40}$"))
+  and (.application.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' "$deployment_receipt" >/dev/null || false
+host_receipt="$(cat "$deployment_receipt")"
+container_receipt="$("${compose[@]}" exec -T php cat .peanut/release-identity.json)"
+[[ "$host_receipt" == "$container_receipt" ]] || { failure_code='OPS_BACKUP_RUNTIME_FAILED'; false; }
+"${compose[@]}" exec -T -e "PEANUT_DATABASE_RESOURCE_ID=$database_id" \
+  -e "PEANUT_DATABASE_ENDPOINT_ID=$database_endpoint_id" -e PEANUT_DATABASE_CONSUMER=container \
+  -e PEANUT_DEPLOYMENT_TARGET=production php php database/environment-guard.php --current >/dev/null
+source_commit="$(jq -r .application.commit "$deployment_receipt")"
+source_tree="$(jq -r .application.tree "$deployment_receipt")"
+release_key="v$(jq -r .application.version "$deployment_receipt")"
+mysql_mount="$project_root/server/docker/mysql"
+storage_mount="$project_root/server/public"
+private_storage_mount="$project_root/server/private/storage"
+installation_mount="$project_root/server/private/installation"
+for data_path in "$mysql_mount" "$storage_mount/storage" "$private_storage_mount" "$installation_mount"; do
+  [[ -d "$data_path" && ! -L "$data_path" && "$(realpath -e "$data_path")" == "$data_path" ]] || false
+  [[ -z "$(sudo -n find "$data_path" -type l -print -quit)" ]] || false
+  [[ -z "$(sudo -n find "$data_path" -type f -links +1 -print -quit)" ]] || false
+done
+[[ ! -L "$storage_mount/uploads" ]] || false
+[[ ! -d "$storage_mount/uploads" || -z "$(sudo -n find "$storage_mount/uploads" -type l -print -quit)" ]] || false
+[[ ! -d "$storage_mount/uploads" || -z "$(sudo -n find "$storage_mount/uploads" -type f -links +1 -print -quit)" ]] || false
+
+for marker in installed.json baseline.json; do
+  sudo -n test -f "$installation_mount/$marker" \
+    && ! sudo -n test -L "$installation_mount/$marker" \
+    || { failure_code='OPS_BACKUP_RUNTIME_FAILED'; false; }
+done
+public_data_bytes="$(sudo -n du -sb "$storage_mount/storage" | awk '{print $1}')"
+[[ ! -d "$storage_mount/uploads" ]] || public_data_bytes="$(( public_data_bytes + $(sudo -n du -sb "$storage_mount/uploads" | awk '{print $1}') ))"
+source_bytes="$(( $(sudo -n du -sb "$mysql_mount" | awk '{print $1}') + public_data_bytes + $(sudo -n du -sb "$private_storage_mount" | awk '{print $1}') + $(sudo -n du -sb "$installation_mount" | awk '{print $1}') ))"
+required_bytes="$(( source_bytes * 2 + 1073741824 ))"
+available_bytes="$(df -PB1 "$project_root" | awk 'NR==2 {print $4}')"
+available_inodes="$(df -Pi "$project_root" | awk 'NR==2 {print $4}')"
+if [[ ! "$available_bytes" =~ ^[0-9]+$ || ! "$available_inodes" =~ ^[0-9]+$ || "$available_bytes" -le "$required_bytes" || "$available_inodes" -le 1024 ]]; then
+  failure_code='OPS_BACKUP_CAPACITY_INSUFFICIENT'
+  false
+fi
+
+backup_id="$(date -u +%Y%m%dT%H%M%SZ)-${source_commit:0:12}"
+backup_dir="$backup_root/$backup_id"
+sudo -n install -d -m 0700 "$backup_root"
+sudo -n mkdir -m 0700 -- "$backup_dir"
+
+image_json='[]'
+for role in php nginx mysql; do
+  container="$("${compose[@]}" ps -q "$role")"
+  [[ -n "$container" ]] || false
+  reference="$(sudo -n docker inspect "$container" --format '{{.Config.Image}}')"
+  digest="$(sudo -n docker inspect "$container" --format '{{.Image}}')"
+  [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] || { failure_code='OPS_BACKUP_RUNTIME_FAILED'; false; }
+  registered_image="$(jq -er --arg role "$role" '.runtime_images[$role]' <<<"$deployment_json")"
+  [[ "$(sudo -n docker image inspect "$registered_image" --format '{{.Id}}')" == "$digest" ]] || false
+  image_json="$(jq -c --arg role "$role" --arg reference "$reference" --arg digest "$digest" '. + [{role:$role,reference:$reference,digest:$digest}]' <<<"$image_json")"
+done
+
+started_at="$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)"
+stopped=1
+if ! "${compose[@]}" stop --timeout 60 nginx php >/dev/null; then
+  failure_code='OPS_BACKUP_QUIESCENCE_FAILED'
+  false
+fi
+running_services="$("${compose[@]}" ps --status running --services | sort)"
+[[ "$running_services" == mysql ]] || { failure_code='OPS_BACKUP_QUIESCENCE_FAILED'; false; }
+
+failure_code='OPS_BACKUP_DATABASE_FAILED'
+"${compose[@]}" exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysqldump --single-transaction --quick --routines --events --triggers --hex-blob --set-gtid-purged=OFF -uroot "$1"' sh "$database_name" \
+  | gzip -9 | sudo -n tee "$backup_dir/database.sql.gz" >/dev/null
+
+failure_code='OPS_BACKUP_FILES_FAILED'
+public_paths=(storage)
+[[ ! -d "$storage_mount/uploads" ]] || public_paths+=(uploads)
+sudo -n tar --one-file-system --numeric-owner -C "$storage_mount" -czf "$backup_dir/php-storage.tar.gz" "${public_paths[@]}"
+sudo -n tar --one-file-system --numeric-owner -C "$private_storage_mount" -czf "$backup_dir/php-private-storage.tar.gz" .
+sudo -n tar --one-file-system --numeric-owner -C "$installation_mount" -czf "$backup_dir/php-installation.tar.gz" .
+completed_at="$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)"
+
+database_bytes="$(sudo -n stat -c %s "$backup_dir/database.sql.gz")"
+files_bytes="$(sudo -n stat -c %s "$backup_dir/php-storage.tar.gz")"
+private_files_bytes="$(sudo -n stat -c %s "$backup_dir/php-private-storage.tar.gz")"
+installation_bytes="$(sudo -n stat -c %s "$backup_dir/php-installation.tar.gz")"
+database_sha="$(sudo -n sha256sum "$backup_dir/database.sql.gz" | awk '{print $1}')"
+files_sha="$(sudo -n sha256sum "$backup_dir/php-storage.tar.gz" | awk '{print $1}')"
+private_files_sha="$(sudo -n sha256sum "$backup_dir/php-private-storage.tar.gz" | awk '{print $1}')"
+installation_sha="$(sudo -n sha256sum "$backup_dir/php-installation.tar.gz" | awk '{print $1}')"
+
+failure_code='OPS_BACKUP_MANIFEST_INVALID'
+jq -c -n \
+  --arg backup_reference_key "$backup_reference_key" \
+  --arg provider_key "$provider_key" \
+  --arg deployment "$deployment_id" --arg database "$database_id" --arg application "$application_id" --arg backup "$backup_resource_id" \
+  --arg project "$compose_project" --arg dbname "$database_name" \
+  --arg commit "$source_commit" --arg tree "$source_tree" --arg release_key "$release_key" \
+  --arg started_at "$started_at" --arg completed_at "$completed_at" \
+  --argjson source_bytes "$source_bytes" --argjson required_bytes "$required_bytes" \
+  --argjson available_bytes "$available_bytes" --argjson available_inodes "$available_inodes" \
+  --argjson images "$image_json" \
+  --argjson database_bytes "$database_bytes" --arg database_sha "$database_sha" \
+  --argjson files_bytes "$files_bytes" --arg files_sha "$files_sha" \
+  --argjson private_files_bytes "$private_files_bytes" --arg private_files_sha "$private_files_sha" \
+  --argjson installation_bytes "$installation_bytes" --arg installation_sha "$installation_sha" \
+  '{schema_version:4,backup_reference_key:$backup_reference_key,provider_key:$provider_key,
+    source:{commit:$commit,tree:$tree,release_key:(if $release_key=="" then null else $release_key end)},
+    resources:{deployment:$deployment,database:$database,application:$application,backup:$backup},
+    runtime:{compose_project:$project,compose_file:"server/docker/compose.yaml",compose_profile:"default",database_name:$dbname,public_storage_directory:"server/public",private_storage_directory:"server/private/storage",installation_directory:"server/private/installation",images:$images},
+    consistency_window:{mode:"application-write-quiescence",started_at:$started_at,completed_at:$completed_at},
+    capacity_preflight:{source_bytes:$source_bytes,required_bytes:$required_bytes,available_bytes:$available_bytes,available_inodes:$available_inodes},
+    artifacts:[{kind:"database",filename:"database.sql.gz",bytes:$database_bytes,sha256:$database_sha},{kind:"public_files",filename:"php-storage.tar.gz",bytes:$files_bytes,sha256:$files_sha},{kind:"private_files",filename:"php-private-storage.tar.gz",bytes:$private_files_bytes,sha256:$private_files_sha},{kind:"installation_state",filename:"php-installation.tar.gz",bytes:$installation_bytes,sha256:$installation_sha}],
+    responsibility:{retention_owner:"peanut.production-deployment",cleanup_owner:"peanut.production-deployment",restore_owner:"peanut.production-recovery"}}' \
+  | sudo -n tee "$backup_dir/manifest.json" >/dev/null
+
+failure_code='OPS_BACKUP_INTEGRITY_FAILED'
+sudo -n bash -c 'cd "$1" && sha256sum database.sql.gz php-storage.tar.gz php-private-storage.tar.gz php-installation.tar.gz manifest.json > SHA256SUMS && sha256sum -c SHA256SUMS >/dev/null && gzip -t database.sql.gz && tar -tzf php-storage.tar.gz >/dev/null && tar -tzf php-private-storage.tar.gz >/dev/null && tar -tzf php-installation.tar.gz >/dev/null' bash "$backup_dir"
+resume_stack
+curl -fsS "http://127.0.0.1:$http_port/healthz" >/dev/null
+
+stop_heartbeat
+sudo -n cat "$backup_dir/manifest.json" | "${think[@]}" succeed --task-key "$task_key" --revision "$execution_revision" >/dev/null
+trap - ERR INT TERM
+printf 'ops-backup-worker: succeeded task=%s backup_reference=%s\n' "$task_key" "$backup_reference_key"

@@ -60,8 +60,8 @@ export interface JobsExportResult {
 }
 
 /** 分页列表（含禁用项，供后台管理） */
-export function getJobsList(params: JobsListParams) {
-  return axios.get<JobsListRes>('/adminapi/jobs/lists', { params });
+export function getJobsList(params: JobsListParams, signal?: AbortSignal) {
+  return axios.get<JobsListRes>('/adminapi/jobs/lists', { params, signal });
 }
 
 export function getJobsExportInfo(params: JobsListParams) {
@@ -85,16 +85,16 @@ export function getJobsDetail(id: number) {
   return axios.get<JobsRecord>('/adminapi/jobs/detail', { params: { id } });
 }
 
-export function addJobs(data: JobsForm) {
-  return axios.post('/adminapi/jobs/add', data);
+export function addJobs(data: JobsForm, signal?: AbortSignal) {
+  return axios.post('/adminapi/jobs/add', data, { signal });
 }
 
-export function editJobs(data: JobsForm) {
-  return axios.post('/adminapi/jobs/edit', data);
+export function editJobs(data: JobsForm, signal?: AbortSignal) {
+  return axios.post('/adminapi/jobs/edit', data, { signal });
 }
 
-export function deleteJobs(id: number) {
-  return axios.post('/adminapi/jobs/delete', { id });
+export function deleteJobs(id: number, signal?: AbortSignal) {
+  return axios.post('/adminapi/jobs/delete', { id }, { signal });
 }
 
 export function updateJobsStatus(id: number, status: number) {

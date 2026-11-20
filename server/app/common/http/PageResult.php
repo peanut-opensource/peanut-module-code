@@ -27,13 +27,17 @@ final readonly class PageResult
 
     public function map(callable $transform): self
     {
-        return new self(
-            array_values(array_map($transform, $this->items)),
-            $this->total,
-            $this->page,
-            $this->pageSize,
-            $this->metadata,
-        );
+        return $this->withItems(array_values(array_map($transform, $this->items)));
+    }
+
+    /** @param list<mixed> $items */
+    public function withItems(array $items): self
+    {
+        if ($items === $this->items) {
+            return $this;
+        }
+
+        return new self($items, $this->total, $this->page, $this->pageSize, $this->metadata);
     }
 
     public static function fromPaginator(Paginator $paginator, ?int $requestedPage = null): self

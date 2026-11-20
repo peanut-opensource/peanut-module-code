@@ -11,6 +11,8 @@ use app\common\model\dept\Jobs;
 use app\common\services\XlsxExportService;
 use app\common\support\ExportPageInfo;
 use app\common\support\PaginationInput;
+use app\common\validate\CrudValidationException;
+use app\common\validate\ListsValidate;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Modules\Identity\Persistence\Model\MemberJob;
 
@@ -34,7 +36,7 @@ class JobsApplicationService
             default => throw new \LogicException('JOB_INPUT_SCENE_INVALID'),
         };
         if (array_diff(array_keys($params), $allowed) !== []) {
-            throw BusinessException::invalid('JOB_INPUT_INVALID', '岗位请求包含未声明字段');
+            throw new BusinessException('JOB_INPUT_INVALID', 422, '岗位请求包含未声明字段');
         }
         $defaults = $scene === 'lists' ? ['name'=>'','code'=>'']
             : (in_array($scene,['add','edit'],true) ? ['sort'=>0,'remark'=>''] : []);
@@ -47,7 +49,10 @@ class JobsApplicationService
         if ($scene === 'lists' && ($params['status'] ?? null) === '') { unset($params['status']); }
         $rules = $this->validationRules($scene);
         if ($scene === 'lists' && !array_key_exists('status',$params)) { unset($rules['status']); }
-        (new \think\Validate())->rule($rules)->failException(true)->check($params);
+        $validator = (new \think\Validate())->rule($rules);
+        if (!$validator->check($params)) {
+            throw new CrudValidationException($validator->getError());
+        }
         foreach (['id','status','sort'] as $field) {
             if (isset($params[$field])) { $params[$field] = (int) $params[$field]; }
         }
@@ -101,19 +106,19 @@ class JobsApplicationService
             return $this->export($context, $params, $count, $pageSize);
         }
 
+        $validator = new ListsValidate();
+        if (!$validator->check([
+            'page_no' => $params['page_no'] ?? null,
+            'page_size' => $params['page_size'] ?? $params['limit'] ?? null,
+        ])) {
+            throw new CrudValidationException($validator->getError());
+        }
         $pagination = PaginationInput::from($params);
         $pageResult = $pagination->result(self::buildListQuery($context, $params));
         $pageResult = $pageResult->map(static fn(mixed $item): array => $item instanceof Jobs
             ? $item->toArray()
             : (array) $item);
-        $rows = $pageResult->items;
-
-        return new PageResult(
-            self::formatRows($rows),
-            $pageResult->total,
-            $pageResult->page,
-            $pageResult->pageSize,
-        );
+        return $pageResult->withItems(self::formatRows($pageResult->items));
     }
 
     /** 全部正常岗位（供选择器使用）。 */

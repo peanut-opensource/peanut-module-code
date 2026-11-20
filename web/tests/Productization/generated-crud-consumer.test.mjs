@@ -136,6 +136,10 @@ for (const relative of [
   'web/tsconfig.json',
   'web/src/main.ts',
   'web/src/env.d.ts',
+  'web/src/directive/globals.d.ts',
+  'web/src/hooks/useCrudTable.ts',
+  'web/src/hooks/useCrudModal.ts',
+  'web/src/hooks/useCrudTab.ts',
 ]) {
   assert.equal(
     sha256(readFileSync(path.join(root, relative))),
@@ -217,6 +221,16 @@ if (selectedCore) {
     const runtime = exactFile(path.resolve(packageRoot, entry.import));
     assert.ok(within(packageRoot, types) && within(packageRoot, runtime));
     corePaths[manifest.name] = [types];
+    if (name === 'ui-vue') {
+      const tabs = manifest.exports['./tabs'];
+      corePaths[`${manifest.name}/tabs`] = [
+        exactFile(path.resolve(packageRoot, tabs.types)),
+      ];
+      runtimeAliases.push({
+        find: `${manifest.name}/tabs`,
+        replacement: exactFile(path.resolve(packageRoot, tabs.import)),
+      });
+    }
     runtimeAliases.push({ find: manifest.name, replacement: runtime });
     coreIdentity.packages[manifest.name] = {
       version: manifest.version,
@@ -433,7 +447,12 @@ test('real generated Vue/API files pass native strict vue-tsc with actual compon
       paths: { '@/*': [path.join(webRoot, 'src/*')], ...corePaths },
     },
     vueCompilerOptions: { strictTemplates: true },
-    files: [...files, path.join(webRoot, 'src/env.d.ts'), globalTypes],
+    files: [
+      ...files,
+      path.join(webRoot, 'src/env.d.ts'),
+      path.join(webRoot, 'src/directive/globals.d.ts'),
+      globalTypes,
+    ],
     include: [],
     exclude: [],
   };
@@ -542,6 +561,14 @@ test('the generated page passes actual Element Plus interaction regressions', ()
         name
       );
       const manifest = JSON.parse(read(path.join(packageRoot, 'package.json')));
+      if (name === 'ui-vue') {
+        aliases.push({
+          find: `${manifest.name}/tabs`,
+          replacement: exactFile(
+            path.resolve(packageRoot, manifest.exports['./tabs'].import)
+          ),
+        });
+      }
       aliases.push({
         find: manifest.name,
         replacement: exactFile(
