@@ -3,7 +3,7 @@
     <Breadcrumb :items="['menu.member', 'menu.member.tag']" />
     <el-card class="general-card">
       <template #header>{{ $t('menu.member.tag') }}</template>
-      <el-row style="margin-bottom: 16px">
+      <el-row v-if="canAdd" style="margin-bottom: 16px">
         <el-col :span="12">
           <el-button type="primary" @click="handleAdd">
             <template #icon><Plus /></template>
@@ -18,20 +18,32 @@
           :label="$t('memberTag.columns.remark')"
         />
         <el-table-column
+          v-if="canEdit || canDelete"
           :label="$t('memberTag.columns.operations')"
           width="160"
         >
           <template #default="{ row }">
             <el-space>
-              <el-button link size="small" @click="handleEdit(row)">
+              <el-button
+                v-if="canEdit"
+                link
+                size="small"
+                @click="handleEdit(row)"
+              >
                 {{ $t('memberTag.operation.edit') }}
               </el-button>
               <el-popconfirm
+                v-if="canDelete"
                 :title="$t('memberTag.delete.confirm')"
                 @confirm="handleDelete(row)"
               >
                 <template #reference>
-                  <el-button link type="danger" size="small">
+                  <el-button
+                    link
+                    type="danger"
+                    size="small"
+                    :disabled="deleting"
+                  >
                     {{ $t('memberTag.operation.delete') }}
                   </el-button>
                 </template>
@@ -45,7 +57,7 @@
     <el-dialog
       v-model="modalVisible"
       :title="
-        isEdit
+        mode === 'edit'
           ? $t('memberTag.modal.editTitle')
           : $t('memberTag.modal.addTitle')
       "
@@ -82,12 +94,14 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref, reactive } from 'vue';
+  import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRoute } from 'vue-router';
   import { Plus } from '@element-plus/icons-vue';
   import { ElMessage } from 'element-plus';
-  import type { FormInstance } from 'element-plus';
-  import useLoading from '@/hooks/loading';
+  import { hasPermission } from '@/hooks/permission';
+  import useCrudModal from '@/hooks/useCrudModal';
+  import useCrudTable from '@/hooks/useCrudTable';
   import {
     getMemberTagList,
     addMemberTag,
@@ -98,69 +112,75 @@
   } from '@/modules/peanut-member/api';
 
   const { t } = useI18n();
-  const { loading, setLoading } = useLoading(true);
-  const renderData = ref<MemberTagRecord[]>([]);
+  const route = useRoute();
+  const canAdd = computed(() =>
+    hasPermission('peanut.member.tag.add', route.path)
+  );
+  const canEdit = computed(() =>
+    hasPermission('peanut.member.tag.edit', route.path)
+  );
+  const canDelete = computed(() =>
+    hasPermission('peanut.member.tag.delete', route.path)
+  );
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const { data } = await getMemberTagList();
-      renderData.value = data;
-    } finally {
-      setLoading(false);
-    }
-  };
-  fetchData();
-
-  const modalVisible = ref(false);
-  const isEdit = ref(false);
-  const submitLoading = ref(false);
-  const formRef = ref<FormInstance>();
-  const defaultForm = (): MemberTagForm => ({
-    id: undefined,
-    name: '',
-    remark: '',
+  const {
+    data: renderData,
+    loading,
+    deleting,
+    fetchList,
+    handleDelete: remove,
+  } = useCrudTable<MemberTagRecord, Record<string, never>>({
+    initialFilters: {},
+    initialPageSize: 1,
+    load: async ({ signal }) => {
+      const { data } = await getMemberTagList(signal);
+      return {
+        items: data,
+        total: data.length,
+        page: 1,
+        pageSize: Math.max(1, data.length),
+      };
+    },
+    deleteRecord: (record, signal) => deleteMemberTag(record.id, signal),
+    errorMessage: (error) =>
+      error instanceof Error ? error.message : String(error),
   });
-  const form = reactive<MemberTagForm>(defaultForm());
+  fetchList();
+
+  const {
+    create: handleAdd,
+    edit: handleEdit,
+    submit: handleSubmit,
+    visible: modalVisible,
+    form,
+    formRef,
+    mode,
+    submitLoading,
+  } = useCrudModal<MemberTagForm, MemberTagRecord>({
+    canOpen: (intent) => {
+      if (intent === 'view') return false;
+      return intent === 'create' ? canAdd.value : canEdit.value;
+    },
+    createForm: () => ({ name: '', remark: '' }),
+    editForm: ({ id, name, remark }) => ({ id, name, remark }),
+    save: (values, intent, signal) =>
+      intent === 'edit'
+        ? editMemberTag(values, signal)
+        : addMemberTag(values, signal),
+    onSaved: async () => {
+      ElMessage.success(t('memberTag.tip.success'));
+      await fetchList();
+    },
+  });
+
   const rules = {
     name: [{ required: true, message: t('memberTag.field.name.required') }],
   };
 
-  const resetForm = (patch: Partial<MemberTagForm> = {}) =>
-    Object.assign(form, defaultForm(), patch);
-  const handleAdd = () => {
-    isEdit.value = false;
-    resetForm();
-    modalVisible.value = true;
-  };
-  const handleEdit = (record: MemberTagRecord) => {
-    isEdit.value = true;
-    resetForm({ ...record });
-    modalVisible.value = true;
-  };
-
-  const handleSubmit = async () => {
-    const valid = await formRef.value?.validate().catch(() => false);
-    if (!valid) return;
-    submitLoading.value = true;
-    try {
-      if (isEdit.value) {
-        await editMemberTag(form);
-      } else {
-        await addMemberTag(form);
-      }
-      ElMessage.success(t('memberTag.tip.success'));
-      modalVisible.value = false;
-      await fetchData();
-    } finally {
-      submitLoading.value = false;
-    }
-  };
-
   const handleDelete = async (record: MemberTagRecord) => {
-    await deleteMemberTag(record.id);
-    ElMessage.success(t('memberTag.tip.success'));
-    await fetchData();
+    if (canDelete.value && (await remove(record))) {
+      ElMessage.success(t('memberTag.tip.success'));
+    }
   };
 </script>
 

@@ -142,7 +142,7 @@ $memberContract = [
             'tenant_admin',
             requestSchema: 'MemberTagCreateRequest',
             errors: ['MEMBER_TAG_NAME_EXISTS'],
-            statuses: [400, 403, 409],
+            statuses: [403, 409, 422],
         )],
         '/adminapi/peanut.member.tag.list' => ['get' => $operation(
             'listMemberTags',
@@ -158,7 +158,7 @@ $memberContract = [
             'tenant_admin',
             requestSchema: 'MemberTagUpdateRequest',
             errors: ['MEMBER_TAG_NAME_EXISTS', 'MEMBER_TAG_NOT_FOUND'],
-            statuses: [400, 403, 404, 409],
+            statuses: [403, 404, 409, 422],
         )],
         '/adminapi/peanut.member.tag.delete' => ['post' => $operation(
             'deleteMemberTag',
@@ -167,7 +167,7 @@ $memberContract = [
             'tenant_admin',
             requestSchema: 'MemberIdentifierRequest',
             errors: ['MEMBER_TAG_NOT_FOUND'],
-            statuses: [400, 403, 404],
+            statuses: [403, 404, 422],
         )],
         '/adminapi/peanut.member.account-log.list' => ['get' => $operation(
             'listAdminMemberBalanceLogs',
@@ -389,13 +389,17 @@ $memberContract = [
             ],
             'MemberTagCreateRequest' => [
                 'type' => 'object', 'additionalProperties' => false, 'required' => ['name'],
-                'properties' => ['name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 50]],
+                'properties' => [
+                    'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 50],
+                    'remark' => ['type' => 'string', 'maxLength' => 255, 'nullable' => true],
+                ],
             ],
             'MemberTagUpdateRequest' => [
                 'type' => 'object', 'additionalProperties' => false, 'required' => ['id', 'name'],
                 'properties' => [
                     'id' => $schema('MemberPositiveIntegerInput'),
                     'name' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 50],
+                    'remark' => ['type' => 'string', 'maxLength' => 255, 'nullable' => true, 'description' => '省略或传 null 时保留原备注，空字符串清除备注。'],
                 ],
             ],
             'MemberAdminListTag' => [

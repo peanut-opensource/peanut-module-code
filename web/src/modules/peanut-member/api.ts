@@ -96,7 +96,11 @@ export interface MemberForm {
   status?: number;
   tag_ids?: number[];
 }
-export type MemberTagForm = Partial<MemberTagRecord> & { id?: number };
+export interface MemberTagForm {
+  id?: number;
+  name: string;
+  remark?: string | null;
+}
 
 export interface MemberListParams {
   keyword?: string;
@@ -204,16 +208,16 @@ export function getMemberTagList(signal?: AbortSignal) {
   });
 }
 
-export function addMemberTag(data: MemberTagForm) {
-  return axios.post('/adminapi/peanut.member.tag.add', data);
+export function addMemberTag(data: MemberTagForm, signal?: AbortSignal) {
+  return axios.post('/adminapi/peanut.member.tag.add', data, { signal });
 }
 
-export function editMemberTag(data: MemberTagForm) {
-  return axios.post('/adminapi/peanut.member.tag.edit', data);
+export function editMemberTag(data: MemberTagForm, signal?: AbortSignal) {
+  return axios.post('/adminapi/peanut.member.tag.edit', data, { signal });
 }
 
-export function deleteMemberTag(id: number) {
-  return axios.post('/adminapi/peanut.member.tag.delete', { id });
+export function deleteMemberTag(id: number, signal?: AbortSignal) {
+  return axios.post('/adminapi/peanut.member.tag.delete', { id }, { signal });
 }
 
 export function getAccountLogList(params: AccountLogParams) {
