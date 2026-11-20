@@ -63,12 +63,12 @@ final readonly class WorkflowQueries
 
     public function instance(AuthorizedOperationContext $c, string $instanceKey): array
     {
-        [$row, $graph] = $this->visibleInstance($c, $instanceKey);
+        [$row, $graph, $subjectContext] = $this->visibleInstance($c, $instanceKey);
         $active = Node::scope('tenant', $this->scope($c))->where('instance_id', $row['id'])->whereIn('status', ['pending', 'active', 'blocked'])->order('sequence_no')->select();
         $nodes = array_map(static fn($n): array => ['node_execution_key' => $n['node_execution_key'], 'node_key' => $n['node_key'], 'label' => $graph->node($n['node_key'])['label'], 'type' => $n['node_type'], 'status' => $n['status'], 'revision' => (int) $n['revision'], 'cycle_no' => (int) $n['cycle_no'], 'task_termination_evidence_required' => $n['effect_key'] !== null && $n['effect_receipt_json'] === null && $n['task_job_key'] !== null], $active->all());
         $items = $this->itemQuery($c)->where('i.id', $row['id']);
         $this->own($c, $items, null);
-        $own = array_map(fn(array $item): array => $this->itemSummary($c, $item), $items->order('w.id')->select()->toArray());
+        $own = array_map(fn(array $item): array => $this->itemSummary($c, $subjectContext, $item), $items->order('w.id')->select()->toArray());
         $reassignable = [];
         if (in_array($row['status'], ['running', 'blocked'], true)
             && $this->allowed($c, $graph, $row['subject_key'], 'reassign', ['peanut.workflow.diagnostics.reassign'])) {
@@ -378,7 +378,7 @@ final readonly class WorkflowQueries
         $this->authorization->applyVisibleScopes($c, $query);
     }
 
-    private function itemSummary(AuthorizedOperationContext $c, array $row): array
+    private function itemSummary(AuthorizedOperationContext $c, AuthorizedOperationContext $subjectContext, array $row): array
     {
         $graph = WorkflowGraph::fromArray(self::decode($row['graph_json']));
         $node = $graph->node($row['node_key']);
@@ -392,10 +392,10 @@ final readonly class WorkflowQueries
             if (!$selfApproval) {
                 if ($row['assignee_member_id'] === null && in_array('candidate', $relations, true)) {
                     $candidate = array_values(array_filter($links, static fn(array $l): bool => $l['relation_type'] === 'candidate'))[0];
-                    if ($this->assignments->eligible($c, $member, self::decode($candidate['sources_json'])) && $this->allowed($c, $graph, $row['subject_key'], 'read', ['peanut.workflow.task.claim'])) {
+                    if ($this->assignments->eligible($subjectContext, $member, self::decode($candidate['sources_json'])) && $this->allowed($c, $graph, $row['subject_key'], 'read', ['peanut.workflow.task.claim'])) {
                         $actions[] = 'claim';
                     }
-                } elseif ((int) $row['assignee_member_id'] === $member && $this->assignments->eligible($c, $member, $sources)) {
+                } elseif ((int) $row['assignee_member_id'] === $member && $this->assignments->eligible($subjectContext, $member, $sources)) {
                     if ($node['config']['allocation_mode'] === 'claim' && $this->allowed($c, $graph, $row['subject_key'], 'read', ['peanut.workflow.task.release'])) {
                         $actions[] = 'release';
                     }
@@ -433,10 +433,9 @@ final readonly class WorkflowQueries
         if (!hash_equals($graph->sha256, $version['graph_sha256'])) {
             throw WorkflowException::internal();
         }
-        if (!$this->allowed($c, $graph, $row['subject_key'], $graph->data['subject_read_operation'], ['peanut.workflow.instance.read'])) {
-            throw WorkflowException::subjectNotFound();
-        }
-        return [$row, $graph];
+        $subjectContext = $this->authorizedSubject($c, $graph, $row['subject_key'], $graph->data['subject_read_operation'], ['peanut.workflow.instance.read'])
+            ?? throw WorkflowException::subjectNotFound();
+        return [$row, $graph, $subjectContext];
     }
 
     /** Batch operations fail closed if any requested instance is missing or no longer readable. */
@@ -504,32 +503,42 @@ final readonly class WorkflowQueries
 
     private function allowed(AuthorizedOperationContext $basis, WorkflowGraph $graph, string $subject, string $operation, array $permissions): bool
     {
+        return $this->authorizedSubject($basis, $graph, $subject, $operation, $permissions) !== null;
+    }
+
+    private function authorizedSubject(AuthorizedOperationContext $basis, WorkflowGraph $graph, string $subject, string $operation, array $permissions): ?AuthorizedOperationContext
+    {
         try {
             $c = $this->authorization->authorize($basis, $graph->data['subject_resource_key'], $operation, array_values(array_unique($permissions)), $subject);
-            return $c->tenantContext === $basis->tenantContext && $c->resourceKey === $graph->data['subject_resource_key'] && $c->operation === $operation && count($c->targets) === 1 && $c->targets[0]->targetIds === [$subject] && $c->targets[0]->targetResourceKey === $c->resourceKey && $c->targets[0]->targetRole === 'primary';
+            if ($c->tenantContext !== $basis->tenantContext || $c->resourceKey !== $graph->data['subject_resource_key']
+                || $c->operation !== $operation || count($c->targets) !== 1 || $c->targets[0]->targetIds !== [$subject]
+                || $c->targets[0]->targetResourceKey !== $c->resourceKey || $c->targets[0]->targetRole !== 'primary') {
+                return null;
+            }
+            return $c;
         } catch (\PeanutAdmin\DataPermission\Exception\DataAuthorizationException $e) {
             if ($e->errorCode === 'AUTHZ_PERMISSION_DENIED') {
-                return false;
+                return null;
             }
             throw $e;
         } catch (\app\common\exception\BusinessException $e) {
             if (in_array($e->errorCode, ['ARTICLE_MATERIAL_PERMISSION_DENIED', 'ARTICLE_MATERIAL_READ_DENIED', 'ARTICLE_NOT_FOUND', 'ARTICLE_MATERIAL_AUTHORIZATION_STALE'], true)) {
-                return false;
+                return null;
             }
             throw $e;
         } catch (\PeanutAdmin\Modules\Identity\Contract\TenantSessionAccessException $e) {
             if (in_array($e->problemCode, ['TENANT_SESSION_ACCESS_DENIED', 'TENANT_SESSION_NOT_FOUND'], true)) {
-                return false;
+                return null;
             }
             throw $e;
         } catch (WorkflowException $e) {
             if (in_array($e->errorCode, ['WORKFLOW_ASSIGNMENT_DENIED', 'WORKFLOW_SUBJECT_NOT_FOUND'], true)) {
-                return false;
+                return null;
             }
             throw $e;
         } catch (\PeanutAdmin\Kernel\Authorization\Application\AdminAccessException $e) {
             if (in_array($e->errorCode, ['RESOURCE_NOT_FOUND', 'WORKFLOW_BUSINESS_ACCESS_DENIED'], true)) {
-                return false;
+                return null;
             }
             throw $e;
         }

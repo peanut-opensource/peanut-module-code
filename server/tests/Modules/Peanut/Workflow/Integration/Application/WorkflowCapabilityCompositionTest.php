@@ -13,11 +13,14 @@ use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 use PeanutAdmin\Kernel\Context\RequestedTargetSet;
 use PeanutAdmin\Kernel\Module\ModuleAvailability;
 use PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries;
+use PeanutAdmin\Modules\Identity\Contract\WorkflowOrganizationQuery;
 use PeanutAdmin\Modules\Workflow\Adapter\WorkflowAssignmentResolver;
 use PeanutAdmin\Modules\Workflow\Adapter\WorkflowScenarioProvider;
 use PeanutAdmin\Modules\Workflow\Application\WorkflowException;
 use PeanutAdmin\Modules\Workflow\Application\WorkflowLifecycleQueries;
 use PeanutAdmin\Modules\Workflow\Application\WorkflowQueries;
+use PeanutAdmin\Modules\Workflow\Definition\WorkflowGraph;
+use PeanutAdmin\Modules\Workflow\Integration\IdentityWorkflowAssignmentResolver;
 use PeanutAdmin\Modules\Workflow\Integration\ScenarioWorkflowAuthorizationResolver;
 use PeanutAdmin\Modules\Workflow\Integration\WorkflowScenarioAccess;
 use PeanutAdmin\Modules\Workflow\Integration\WorkflowScenarioRegistry;
@@ -125,13 +128,8 @@ final class WorkflowCapabilityCompositionTest extends TestCase
             $this->createStub(WorkflowScenarioProvider::class));
         // This projection takes the selected row as input, independent of the MySQL inbox query.
         $projection = new \ReflectionMethod(WorkflowQueries::class, 'itemSummary');
-        $row = [
-            'work_item_key' => 'item-1', 'instance_key' => 'instance-1', 'node_execution_key' => 'node-1',
-            'node_key' => 'review', 'subject_key' => 'subject-1', 'revision' => 1, 'instance_revision' => 1, 'node_revision' => 1,
-            'status' => 'pending', 'node_status' => 'active', 'instance_status' => 'running',
-            'initiated_by_member_id' => 11, 'owner_member_id' => 11, 'assignee_member_id' => 12,
-            'sources_json' => '[]', 'own_links_json' => '[]', 'assignment_state' => 'assigned', 'decision' => null,
-        ];
+        $row = self::workItemRow();
+        $subjectContext = self::subjectContext($basis);
         foreach ([
             [true, 'review', $reviewKeys, ['approve', 'reject'], false],
             [false, 'review', $reviewKeys, [], false],
@@ -152,13 +150,105 @@ final class WorkflowCapabilityCompositionTest extends TestCase
             }
             unset($edge);
             $row['graph_json'] = $graph;
-            self::assertSame($actions, $projection->invoke($queries, $basis, $row)['available_actions']);
+            self::assertSame($actions, $projection->invoke($queries, $basis, $subjectContext, $row)['available_actions']);
             $expected = [[$basis, 'subject.item', 'review', [$decision, ...$reviewKeys], 'subject-1']];
             if ($separate) {
                 $expected[] = [$basis, 'subject.item', $rejectOperation, [$decision, ...$rejectKeys], 'subject-1'];
             }
             self::assertSame($expected, $calls);
         }
+    }
+
+    public function testSubjectOwnerEligibilityUsesTheValidatedReadReceiptOnlyForAssignment(): void
+    {
+        $basis = self::context('peanut.workflow.instance', 'read', member: 12);
+        $readReceipt = self::subjectContext($basis);
+        $providerReceipt = $readReceipt;
+        $reviewAllowed = true;
+        $actionChecks = [];
+        $access = $this->createStub(WorkflowScenarioAccess::class);
+        $access->method('authorize')->willReturnCallback(static function ($context, $resource, $operation, $keys, $subject) use ($basis, &$providerReceipt, &$reviewAllowed, &$actionChecks): AuthorizedOperationContext {
+            self::assertSame($basis, $context);
+            self::assertSame(['subject.item', 'subject-1'], [$resource, $subject]);
+            if ($operation === 'read') {
+                self::assertSame(['peanut.workflow.instance.read'], $keys);
+                return $providerReceipt ?? throw WorkflowException::assignmentDenied();
+            }
+            $actionChecks[] = [$operation, $keys];
+            return $reviewAllowed ? self::subjectContext($basis, $subject, $operation) : throw WorkflowException::assignmentDenied();
+        });
+        $owner = 12;
+        $ownerChecks = 0;
+        $provider = $this->createStub(WorkflowScenarioProvider::class);
+        $provider->method('subjectOwner')->willReturnCallback(static function ($context, $resource, $subject) use ($readReceipt, &$owner, &$ownerChecks): int {
+            self::assertSame($readReceipt, $context);
+            self::assertSame(['subject.item', 'subject-1'], [$resource, $subject]);
+            $ownerChecks++;
+            return $owner;
+        });
+        $memberEligible = true;
+        $organization = $this->createStub(WorkflowOrganizationQuery::class);
+        $organization->method('eligible')->willReturnCallback(static function ($context, $memberId, $sources) use ($basis, &$memberEligible): bool {
+            return $memberEligible && $context === $basis->tenantContext && $memberId === 12
+                && $sources === [['source_kind' => 'member', 'source_key' => '12']];
+        });
+        $queries = new WorkflowQueries($this->resolver($access), new IdentityWorkflowAssignmentResolver($organization, $provider),
+            new WorkflowLifecycleQueries(new TenantModuleStateQueries(), $this->createStub(ModuleAvailability::class)), $provider);
+        $authorize = new \ReflectionMethod(WorkflowQueries::class, 'authorizedSubject');
+        $projection = new \ReflectionMethod(WorkflowQueries::class, 'itemSummary');
+        $graph = WorkflowGraph::fromArray(WorkflowGraphTest::validGraph());
+        $row = self::workItemRow();
+        $row['graph_json'] = $graph->data;
+        $row['sources_json'] = '[{"source_kind":"subject_owner","source_key":"12"}]';
+        $subjectContext = $authorize->invoke($queries, $basis, $graph, 'subject-1', 'read', ['peanut.workflow.instance.read']);
+        self::assertSame($readReceipt, $subjectContext);
+
+        self::assertSame(['approve', 'reject'], $projection->invoke($queries, $basis, $subjectContext, $row)['available_actions']);
+        self::assertSame([
+            ['approve', ['peanut.workflow.task.decide', 'subject.item.approve']],
+            ['reject', ['peanut.workflow.task.decide', 'subject.item.reject']],
+        ], $actionChecks);
+        $actionChecks = [];
+        $reviewAllowed = false;
+        self::assertSame([], $projection->invoke($queries, $basis, $subjectContext, $row)['available_actions']);
+        self::assertCount(2, $actionChecks);
+        $actionChecks = [];
+        $owner = 13;
+        $reviewAllowed = true;
+        self::assertSame([], $projection->invoke($queries, $basis, $subjectContext, $row)['available_actions']);
+        self::assertSame([], $actionChecks);
+        $owner = 12;
+        $memberEligible = false;
+        self::assertSame([], $projection->invoke($queries, $basis, $subjectContext, $row)['available_actions']);
+        self::assertSame([], $actionChecks);
+        $memberEligible = true;
+        $row['status'] = 'completed';
+        self::assertSame([], $projection->invoke($queries, $basis, $subjectContext, $row)['available_actions']);
+        self::assertSame(4, $ownerChecks);
+        self::assertSame([], $actionChecks);
+
+        foreach ([
+            self::subjectContext($basis, 'other-subject'),
+            self::subjectContext(self::context(tenant: 2, member: 12)),
+            self::subjectContext($basis, operation: 'approve'),
+            AuthorizedOperationContext::fromDecision(AuthorizationDecision::allow(
+                $basis->tenantContext, 'subject.item', 'read',
+                [new RequestedTargetSet('subject.item', ['subject-1'], 'related')], hash('sha256', 'workflow-test'))),
+            null,
+        ] as $providerReceipt) {
+            self::assertNull($authorize->invoke($queries, $basis, $graph, 'subject-1', 'read', ['peanut.workflow.instance.read']));
+        }
+    }
+
+    private static function workItemRow(): array
+    {
+        return [
+            'work_item_key' => 'item-1', 'instance_key' => 'instance-1', 'node_execution_key' => 'node-1',
+            'node_key' => 'review', 'subject_key' => 'subject-1', 'revision' => 1, 'instance_revision' => 1, 'node_revision' => 1,
+            'status' => 'pending', 'node_status' => 'active', 'instance_status' => 'running',
+            'initiated_by_member_id' => 11, 'owner_member_id' => 11, 'assignee_member_id' => 12,
+            'sources_json' => '[]', 'own_links_json' => '[]', 'assignment_state' => 'assigned', 'decision' => null,
+        ];
     }
 
     private function resolver(WorkflowScenarioAccess $access): ScenarioWorkflowAuthorizationResolver
