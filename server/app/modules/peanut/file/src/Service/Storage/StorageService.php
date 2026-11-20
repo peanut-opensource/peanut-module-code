@@ -1297,7 +1297,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             $this->authorization->assertReadableObject($context, $source);
             $access ??= $this->authorization->authorizePreviewPage($context);
             if ($batch === null) {
-                $batch = (object) ['variants' => [], 'targets' => [], 'modules' => null];
+                $batch = ['variants' => [], 'targets' => []];
                 if (!$access['can_download_original'] || $variantKeys !== []) {
                     $variants = Db::name('file_derivative')->where('tenant_id', $context->tenantId)
                         ->whereIn('source_file_key', array_values(array_unique($fileKeys)))
@@ -1306,14 +1306,14 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
                     foreach ($variants as $variant) {
                         $sourceKey = (string) $variant['source_file_key'];
                         $key = (string) $variant['variant_key'];
-                        $batch->variants[$sourceKey][$key] ??= $variant;
+                        $batch['variants'][$sourceKey][$key] ??= $variant;
                         $targetKeys[] = (string) $variant['derivative_file_key'];
                     }
                     if ($targetKeys !== []) {
                         $targets = $this->objectQuery($tenantId)->whereIn('f.file_key', array_values(array_unique($targetKeys)))
                             ->where('f.status', 'ready')->select()->toArray();
                         if ($targets !== [] && $this->directory->tenantStatus($tenantId) === 'active') {
-                            $batch->targets = array_column($targets, null, 'file_key');
+                            $batch['targets'] = array_column($targets, null, 'file_key');
                         }
                     }
                 }
@@ -1336,7 +1336,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         return $this->describeAuthorizedObject($context, $source, $operation, $documentId, $variantKey, $viewerAdapterId, $grant, $canDownload);
     }
 
-    private function describeAuthorizedObject(TenantContext $context, array $source, string $operation, ?int $documentId, ?string $variantKey, ?string $viewerAdapterId, array $grant, bool $canDownload, ?\stdClass $batch = null): array
+    private function describeAuthorizedObject(TenantContext $context, array $source, string $operation, ?int $documentId, ?string $variantKey, ?string $viewerAdapterId, array $grant, bool $canDownload, ?array $batch = null): array
     {
         $fileKey = (string) $source['file_key'];
         if ($operation === 'manage') {
@@ -1346,9 +1346,9 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         $selectedVariantKey = null;
         if ($operation === 'preview' && (!$canDownload || $variantKey !== null)) {
             if ($batch !== null) {
-                $variants = $batch->variants[$fileKey] ?? [];
+                $variants = $batch['variants'][$fileKey] ?? [];
                 $variant = $variantKey === null ? (reset($variants) ?: null) : ($variants[$variantKey] ?? null);
-                $target = is_array($variant) ? ($batch->targets[(string) $variant['derivative_file_key']] ?? null) : null;
+                $target = is_array($variant) ? ($batch['targets'][(string) $variant['derivative_file_key']] ?? null) : null;
             } else {
                 $query = Db::name('file_derivative')->where('source_file_key', $fileKey);
                 $query->where('tenant_id', $context->tenantId);
@@ -1372,8 +1372,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             $canDownload,
             $grant['authorization_revision'],
             'browser',
-            $batch === null ? $this->authorization->contentProviderModules($context)
-                : ($batch->modules ??= $this->authorization->contentProviderModules($context)),
+            $this->authorization->contentProviderModules($context),
         ), 'view', $viewerAdapterId, null);
         if ($operation === 'preview' && !$capability['canView']) {
             return ['file_key' => $fileKey, 'state' => $capability['state'], 'capabilities' => $capability, 'can_download_original' => $canDownload, 'url' => null];
