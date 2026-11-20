@@ -20,86 +20,82 @@
         :title="formAction.error.value"
         style="margin-bottom: 16px"
       />
-      <el-button
-        v-permission="['peanut.article.category.add']"
-        type="primary"
-        :icon="Plus"
-        style="margin-bottom: 16px"
-        @click="openAdd"
-      >
-        {{ $t('articleCate.button.add') }}
-      </el-button>
-      <el-table
-        v-loading="categoryList.loading.value"
-        row-key="id"
+      <CrudPage
+        :loading="categoryList.loading.value"
         :data="tableRows"
+        :pagination="categoryList.pagination"
+        :fields="tableFields"
+        column-storage-key="peanut.article.category.columns"
+        row-key="id"
         border
+        pagination-layout="total, prev, pager, next"
+        @page-change="categoryList.fetchList"
       >
-        <el-table-column
-          v-for="column in articleCategoryResource.columns.slice(0, 2)"
-          :key="column.key"
-          :prop="column.key"
-          :label="$t(column.labelKey)"
-          :width="column.width"
-        />
-        <el-table-column :label="$t('articleCate.columns.isShow')" width="100">
-          <template #default="{ row }">
-            <el-switch
-              v-permission="['peanut.article.category.update-status']"
-              :model-value="row.is_show === 1"
-              @change="(value: boolean) => onStatusChange(row, value)"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column
-          :prop="articleCategoryResource.columns[2].key"
-          :label="$t(articleCategoryResource.columns[2].labelKey)"
-          :width="articleCategoryResource.columns[2].width"
-        />
-        <el-table-column
-          :label="$t('articleCate.columns.operations')"
-          width="160"
-          fixed="right"
-        >
-          <template #default="{ row }">
-            <el-space>
-              <el-button
-                v-if="canEdit"
-                link
-                type="primary"
-                size="small"
-                @click="openEdit(row)"
-              >
-                {{ $t('articleCate.button.edit') }}
-              </el-button>
-              <el-popconfirm
-                :title="$t('articleCate.confirm.delete')"
-                @confirm="onDelete(row)"
-              >
-                <template #reference>
-                  <el-button
-                    v-permission="['peanut.article.category.delete']"
-                    link
-                    type="danger"
-                    size="small"
-                  >
-                    {{ $t('articleCate.button.delete') }}
-                  </el-button>
-                </template>
-              </el-popconfirm>
-            </el-space>
-          </template>
-        </el-table-column>
-      </el-table>
-      <div class="pagination-wrapper">
-        <el-pagination
-          :current-page="categoryList.pagination.page"
-          :page-size="categoryList.pagination.pageSize"
-          :total="categoryList.pagination.total"
-          layout="total, prev, pager, next"
-          @current-change="categoryList.fetchList"
-        />
-      </div>
+        <template #toolbar>
+          <el-button
+            v-permission="['peanut.article.category.add']"
+            type="primary"
+            :icon="Plus"
+            style="margin-bottom: 16px"
+            @click="openAdd"
+          >
+            {{ $t('articleCate.button.add') }}
+          </el-button>
+        </template>
+        <template #columns>
+          <el-table-column
+            :label="$t('articleCate.columns.isShow')"
+            width="100"
+          >
+            <template #default="{ row }">
+              <el-switch
+                v-permission="['peanut.article.category.update-status']"
+                :model-value="row.is_show === 1"
+                @change="(value: boolean) => onStatusChange(row, value)"
+              />
+            </template>
+          </el-table-column>
+          <el-table-column
+            :prop="articleCategoryResource.columns[2].key"
+            :label="$t(articleCategoryResource.columns[2].labelKey)"
+            :width="articleCategoryResource.columns[2].width"
+          />
+          <el-table-column
+            :label="$t('articleCate.columns.operations')"
+            width="160"
+            fixed="right"
+          >
+            <template #default="{ row }">
+              <el-space>
+                <el-button
+                  v-if="canEdit"
+                  link
+                  type="primary"
+                  size="small"
+                  @click="openEdit(row)"
+                >
+                  {{ $t('articleCate.button.edit') }}
+                </el-button>
+                <el-popconfirm
+                  :title="$t('articleCate.confirm.delete')"
+                  @confirm="onDelete(row)"
+                >
+                  <template #reference>
+                    <el-button
+                      v-permission="['peanut.article.category.delete']"
+                      link
+                      type="danger"
+                      size="small"
+                    >
+                      {{ $t('articleCate.button.delete') }}
+                    </el-button>
+                  </template>
+                </el-popconfirm>
+              </el-space>
+            </template>
+          </el-table-column>
+        </template>
+      </CrudPage>
 
       <el-dialog
         v-model="modalVisible"
@@ -147,10 +143,7 @@
         </el-form>
         <template #footer>
           <el-button @click="modalVisible = false">取消</el-button>
-          <el-button
-            type="primary"
-            :loading="submitLoading"
-            @click="onSubmit"
+          <el-button type="primary" :loading="submitLoading" @click="onSubmit"
             >确定</el-button
           >
         </template>
@@ -167,6 +160,7 @@
   import { Plus } from '@element-plus/icons-vue';
   import { getTabKey } from '@peanut-admin/ui-vue/tabs';
   import { registerTenantDisposer, useAsyncAction } from '@peanut-admin/vue';
+  import CrudPage from '@/components/crud/CrudPage.vue';
   import { hasPermission } from '@/hooks/permission';
   import useCrudModal from '@/hooks/useCrudModal';
   import useCrudTab from '@/hooks/useCrudTab';
@@ -191,13 +185,23 @@
     load: articleCategoryResource.list,
     errorMessage,
   });
+  const tableFields = computed(() =>
+    articleCategoryResource.columns.slice(0, 2).map((column) => ({
+      key: column.key,
+      label: t(column.labelKey),
+      width: column.width,
+    }))
+  );
   const tableRows = computed(() => reactive([...categoryList.data.value]));
   categoryList.fetchList();
 
   const formAction = useAsyncAction(errorMessage);
   const currentTab = useCrudTab(formAction.cancel);
   const generateForm = () => ({ id: 0, name: '', sort: 0, is_show: 1 });
-  const modal = useCrudModal<ReturnType<typeof generateForm>, ArticleCateRecord>({
+  const modal = useCrudModal<
+    ReturnType<typeof generateForm>,
+    ArticleCateRecord
+  >({
     canOpen: (mode) => {
       if (mode === 'edit') return canEdit.value;
       return (
@@ -328,11 +332,5 @@
     color: var(--el-text-color-secondary);
     font-size: 12px;
     line-height: 20px;
-  }
-
-  .pagination-wrapper {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 16px;
   }
 </style>
