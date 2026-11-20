@@ -46,6 +46,33 @@ final class ThinkPhpTenantAuthorizationRepository implements \PeanutAdmin\Kernel
     /** Native authority inputs only; the caller retains the existing permission decision. */
     public function readFence(TenantContext $context, array $permissionKeys, array $moduleKeys, bool $lock): string
     {
+        return self::fenceDigest($this->fenceFacts($context, $permissionKeys, $moduleKeys, $lock));
+    }
+
+    public static function fenceDigest(array $facts): string
+    {
+        return hash('sha256', json_encode($facts, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+    }
+
+    /** Keep the existing grant digest wire format when projecting full installation rows. */
+    public static function installationFacts(array $rows): array
+    {
+        return [
+            'packages' => array_map(static fn(array $r): array => [
+                'module_key' => $r['module_key'], 'status' => $r['status'], 'revision' => $r['revision'],
+            ], $rows),
+            'installations' => array_map(static fn(array $r): array => [
+                'module_key' => $r['module_key'], 'status' => $r['status'], 'revision' => $r['revision'],
+                'installed_version' => $r['installed_version'], 'manifest_digest' => $r['manifest_digest'],
+            ], $rows),
+            'mapping' => array_map(static fn(array $r): array => [
+                'module_key' => $r['module_key'], 'manifest_digest' => $r['manifest_digest'],
+            ], $rows),
+        ];
+    }
+
+    public function fenceFacts(TenantContext $context, array $permissionKeys, array $moduleKeys, bool $lock, ?array &$planModuleKeys = null): array
+    {
         if (count($permissionKeys) < 1 || count($permissionKeys) > 32 || count($moduleKeys) < 1 || count($moduleKeys) > 16) {
             throw new \InvalidArgumentException('IDENTITY_AUTHORIZATION_FENCE_INPUT_INVALID');
         }
@@ -59,27 +86,10 @@ final class ThinkPhpTenantAuthorizationRepository implements \PeanutAdmin\Kernel
         sort($permissionKeys, SORT_STRING);
         sort($moduleKeys, SORT_STRING);
         $read = static fn($query): array => $query->lock($lock)->select()->toArray();
-        $mappingQuery = static fn() => Db::name('module_installation')->whereIn('module_key', $moduleKeys)
-            ->field('module_key,module_key,manifest_digest')->order('module_key');
-        $mapping = $mappingQuery()->select()->toArray();
-        $packages = array_values(array_unique(array_column($mapping, 'module_key')));
-        sort($packages, SORT_STRING);
-        // lockAndAssert first holds the existing lifecycle package -> installation locks.
-        $facts = [
-            'packages' => $read(Db::name('module_installation')->whereIn('module_key', $packages)
-                ->field('module_key,status,revision')->order('module_key')),
-            'installations' => $read(Db::name('module_installation')->whereIn('module_key', $moduleKeys)
-                ->field('module_key,status,revision,installed_version,manifest_digest')->order('module_key')),
-        ];
-        if ($lock) {
-            $mapping = $read($mappingQuery());
-            $currentPackages = array_values(array_unique(array_column($mapping, 'module_key')));
-            sort($currentPackages, SORT_STRING);
-            if ($packages !== $currentPackages) {
-                throw new \DomainException('IDENTITY_AUTHORIZATION_PROOF_STALE');
-            }
-        }
-        $facts['mapping'] = $mapping;
+        // Package and installation now share the same unique module_key and lifecycle row.
+        $installations = $read(Db::name('module_installation')->whereIn('module_key', $moduleKeys)
+            ->field('module_key,status,revision,installed_version,manifest_digest')->order('module_key'));
+        $facts = self::installationFacts($installations);
         $facts['tenant'] = $read(Tenant::where('id', $context->tenantId)->field('id,status,security_revision,authorization_revision'));
         $facts['account'] = $read(Account::where('id', $context->accountId)->field('id,status,security_revision'));
         $facts['member'] = $read(TenantMember::where('tenant_id', $context->tenantId)->where('id', $context->memberId)
@@ -97,19 +107,19 @@ final class ThinkPhpTenantAuthorizationRepository implements \PeanutAdmin\Kernel
         $facts['grants'] = $read(RolePermission::where('tenant_id', $context->tenantId)->whereIn('role_id', $roleIds)
             ->whereIn('permission_id', array_column($facts['permissions'], 'id'))
             ->field('role_id,permission_id')->order('role_id,permission_id'));
-        $facts['license'] = $this->entitlements->revisionFacts($context->tenantId, $lock);
+        $facts['license'] = $this->entitlements->revisionFacts($context->tenantId, $lock, $planModuleKeys);
         $sessionQuery = static fn() => TenantSession::where('tenant_id', $context->tenantId)
             ->where('account_id', $context->accountId)->where('tenant_member_id', $context->memberId)
             ->where('session_key', $context->sessionKey)->where('client_key', $context->clientKey);
         $facts['session'] = $read($sessionQuery()
             ->field('id,status,client_key,account_security_revision,tenant_security_revision,member_security_revision,idle_expires_at,absolute_expires_at'));
         // The live license window detects expiry without requiring a stored revision change.
-        $facts['effective_modules'] = $this->entitlements->moduleKeys($context->tenantId, $lock);
+        $facts['effective_modules'] = $facts['license'][2] ?? $this->entitlements->moduleKeys($context->tenantId, $lock);
         $facts['session_current'] = $read($sessionQuery()->where('status', 'active')
             ->where('idle_expires_at', '>', new Raw('UTC_TIMESTAMP(3)'))
             ->where('absolute_expires_at', '>', new Raw('UTC_TIMESTAMP(3)'))->field('id'));
 
-        return hash('sha256', json_encode($facts, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+        return $facts;
     }
 
     public function member(int $tenantId, int $memberId): ?array

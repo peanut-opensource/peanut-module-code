@@ -24,6 +24,7 @@ interface DocumentQueries
     /** Owner edit authorization, never implicit ordinary view/detail authority. */
     public function ownerEditor(TenantContext $context, int $documentId, DocumentOwnerReference $owner): array;
     /** Read a Save-capable editor and its business metadata under the same locked owner and current Admin session.
+     * Owner policy action editor.open must admit both edit and version.create. The binding callback is read-only.
      * @param callable(DocumentOwnerState):array{document_id:int,...} $readBinding
      */
     public function ownerEditorContext(TenantContext $context, DocumentOwnerReference $owner, callable $readBinding): array;

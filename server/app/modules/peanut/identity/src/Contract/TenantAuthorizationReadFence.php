@@ -43,6 +43,91 @@ final readonly class TenantAuthorizationReadFence
         return $this->repository->readFence($context, $permissionKeys, $moduleKeys, false);
     }
 
+    /** Compare unlocked and locked IAM inputs before exposing them to a single read-only operation.
+     * The version digest covers its original keys, independently of the owner's required modules.
+     */
+    public function withLockedRead(TenantContext $context, array $permissionKeys, array $requiredModules,
+        array $revisionPermissions, array $revisionModules, array $optionalModules, callable $read): mixed
+    {
+        $this->assertScope($context);
+        $pdo = Db::connect()->getPdo();
+        if (!$pdo instanceof \PDO || !$pdo->inTransaction()) {
+            throw new \DomainException('IDENTITY_GRANT_TRANSACTION_REQUIRED');
+        }
+        $permissions = array_values(array_unique([...$permissionKeys, ...$revisionPermissions]));
+        $before = $this->repository->readFence($context, $permissions, $requiredModules, false);
+        $this->moduleStates->lockLifecycleRows($requiredModules);
+        $facts = $this->repository->fenceFacts($context, $permissions, $requiredModules, true, $planKeys);
+        if (!hash_equals($before, $this->repository::fenceDigest($facts))) {
+            throw new \DomainException('IDENTITY_AUTHORIZATION_PROOF_STALE');
+        }
+        $keys = array_values(array_unique([...$requiredModules, ...$revisionModules, ...$optionalModules]));
+        $rows = $this->moduleStates->installationIdentities($keys);
+        if ($facts['session_current'] === [] || $facts['session'] === []) {
+            throw new \DomainException('IDENTITY_AUTHORIZATION_SESSION_ENDED');
+        }
+        $session = $facts['session'][0];
+        $snapshot = ['actor' => $context, 'execution' => $this->execution, 'pdo' => $pdo, 'license' => $facts['license'],
+            'member_revision' => (int) ($facts['member'][0]['authorization_revision'] ?? 0),
+            'tenant_revision' => (int) ($facts['tenant'][0]['authorization_revision'] ?? 0),
+            'session_deadline' => new \DateTimeImmutable(min($session['idle_expires_at'], $session['absolute_expires_at']), new \DateTimeZone('UTC')),
+            'effective_modules' => $facts['effective_modules'], 'plan_module_keys' => $planKeys ?? [],
+            'installations' => $rows + array_fill_keys($keys, null)];
+        $revisionRows = array_values(array_intersect_key($rows, array_flip($revisionModules)));
+        $facts = array_replace($facts, $this->repository::installationFacts($revisionRows));
+        $facts['permissions'] = array_values(array_filter($facts['permissions'], static fn(array $r): bool => in_array($r['key'], $revisionPermissions, true)));
+        $permissionIds = array_column($facts['permissions'], 'id');
+        $facts['grants'] = array_values(array_filter($facts['grants'], static fn(array $r): bool => in_array($r['permission_id'], $permissionIds, true)));
+        $request = app()->request;
+        $previous = $request->middleware(self::class);
+        $request->withMiddleware([self::class => $snapshot]);
+        try {
+            $result = $read($this->repository::fenceDigest($facts));
+            self::assertReadWindow($snapshot);
+            return $result;
+        } finally {
+            $request->withMiddleware([self::class => $previous]);
+        }
+    }
+
+    /** Only nonlocking reads of this transaction's fixed facts may use the current projection. */
+    public static function activeRead(?int $tenantId = null): ?array
+    {
+        $snapshot = app()->request->middleware(self::class);
+        if (!is_array($snapshot)) {
+            return null;
+        }
+        $root = $snapshot['execution']->current();
+        $actor = $snapshot['actor'];
+        if (!$root instanceof AdminExecutionContext || ($tenantId !== null && $actor->tenantId !== $tenantId)
+            || $root->tenant->tenantId !== $actor->tenantId || $root->tenant->memberId !== $actor->memberId
+            || $root->tenant->accountId !== $actor->accountId || $root->tenant->clientKey !== $actor->clientKey
+            || $root->tenant->authorizationRevision !== $snapshot['member_revision']
+            || $root->tenant->tenantAuthorizationRevision !== $snapshot['tenant_revision']
+            || !hash_equals($root->tenant->sessionKey, $actor->sessionKey)
+            || Db::connect()->getPdo() !== $snapshot['pdo'] || !$snapshot['pdo']->inTransaction()) {
+            return null;
+        }
+        self::assertReadWindow($snapshot);
+        return $snapshot;
+    }
+
+    private static function assertReadWindow(array $snapshot): void
+    {
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+        if ($snapshot['session_deadline'] <= $now) {
+            throw new \DomainException('IDENTITY_AUTHORIZATION_SESSION_ENDED');
+        }
+        $license = $snapshot['license'][0] ?? null;
+        if ($license !== null) {
+            $effective = $license['status'] !== 'suspended' && new \DateTimeImmutable($license['effective_at']) <= $now
+                && ($license['expires_at'] === null || new \DateTimeImmutable($license['expires_at']) > $now);
+            if ($license['effective'] !== $effective) {
+                throw new \DomainException('IDENTITY_AUTHORIZATION_PROOF_STALE');
+            }
+        }
+    }
+
     /** Grants no Admin context. Only the already claimed immutable fact's own member may be compared. */
     public function assertRevocationScope(TenantContext $context, string $factId, string $factHash): void
     {

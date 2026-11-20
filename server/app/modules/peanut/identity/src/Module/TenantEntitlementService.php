@@ -13,6 +13,7 @@ use think\facade\Db;
 use think\facade\Cache;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries;
+use PeanutAdmin\Modules\Identity\Contract\TenantAuthorizationReadFence;
 
 /** Shared commercial ceiling; it never grants a member a role or permission. */
 final class TenantEntitlementService
@@ -33,6 +34,9 @@ final class TenantEntitlementService
 
     public function license(int $tenantId, bool $lock = false, ?TenantContext $context = null): ?array
     {
+        if (!$lock && ($read = TenantAuthorizationReadFence::activeRead($tenantId)) !== null) {
+            return $read['license'][0] ?? null;
+        }
         if (!$lock && !$this->inTransaction()) {
             if (array_key_exists($tenantId, $this->licenseCache)) {
                 return $this->licenseCache[$tenantId];
@@ -101,6 +105,9 @@ final class TenantEntitlementService
     /** @return list<string> */
     public function moduleKeys(int $tenantId, bool $lock = false): array
     {
+        if (!$lock && ($read = TenantAuthorizationReadFence::activeRead($tenantId)) !== null) {
+            return $read['effective_modules'];
+        }
         return $this->modulesForLicense($this->license($tenantId, $lock), $lock);
     }
 
@@ -144,8 +151,19 @@ final class TenantEntitlementService
     }
 
     /** @return list<string> */
-    private function modulesForLicense(?array $license, bool $lock): array
+    private function modulesForLicense(?array $license, bool $lock, ?array &$selected = null): array
     {
+        if (!$lock && ($license['effective'] ?? false)) {
+            $compiled = $this->registry->moduleKeys();
+            $foundation = array_values(array_filter($compiled, $this->registry->isRequiredTenantFoundation(...)));
+            $planId = (int) $license['plan_id'];
+            return Db::name('module_installation')->alias('installation')
+                ->leftJoin('plan_module selection', 'BINARY selection.module_key = BINARY installation.module_key AND selection.plan_id = ' . $planId)
+                ->where('installation.status', 'active')->whereIn('installation.module_key', $compiled)
+                ->where(static fn($query) => $query->whereIn('installation.module_key', $foundation)->whereNotNull('selection.module_key', 'OR'))
+                ->order('installation.module_key')->column('installation.module_key');
+        }
+        // The locked path retains the plan membership rows, independently of deployment status.
         $selected = $license !== null && $license['effective']
             ? Db::name('plan_module')->where('plan_id', $license['plan_id'])->lock($lock)->column('module_key') : [];
         $keys = [];
@@ -170,6 +188,11 @@ final class TenantEntitlementService
      */
     public function permissionProjection(int $tenantId, bool $lock = false): array
     {
+        if (!$lock && ($read = TenantAuthorizationReadFence::activeRead($tenantId)) !== null) {
+            $license = $read['license'];
+            return ['modules' => ($license[0]['effective'] ?? false) ? $license[2] : [],
+                'permissions' => $license[3] ?? CorePermissionCatalog::TENANT];
+        }
         if (!$lock && !$this->inTransaction() && isset($this->permissionProjectionCache[$tenantId])) {
             return $this->permissionProjectionCache[$tenantId];
         }
@@ -213,6 +236,10 @@ final class TenantEntitlementService
     /** Only the plan membership fact is cached; callers still enforce the live license window. */
     public function planIncludesModule(int $tenantId, int $planId, string $moduleKey, bool $lock = false, ?TenantContext $context = null): bool
     {
+        if (!$lock && ($snapshot = TenantAuthorizationReadFence::activeRead($tenantId)) !== null
+            && ($snapshot['license'][0]['plan_id'] ?? null) === $planId && ($snapshot['license'][0]['effective'] ?? false)) {
+            return in_array($moduleKey, $snapshot['plan_module_keys'], true);
+        }
         $read = static fn(): bool => Db::name('plan_module')->pk(['plan_id', 'module_key'])
             ->schema(['plan_id' => 'bigint', 'module_key' => 'string'])
             ->where('plan_id', $planId)->where('module_key', $moduleKey)->lock($lock)->find() !== null;
@@ -228,13 +255,13 @@ final class TenantEntitlementService
     }
 
     /** A shared plan revision and the live time state invalidate existing authorization caches. */
-    public function revisionFacts(int $tenantId, bool $lock = false): array
+    public function revisionFacts(int $tenantId, bool $lock = false, ?array &$planModuleKeys = null): array
     {
         [$license, $planRevision] = $this->licenseAndPlanRevision($tenantId, $lock);
         if ($license === null) {
             return [];
         }
-        $modules = $this->modulesForLicense($license, $lock);
+        $modules = $this->modulesForLicense($license, $lock, $planModuleKeys);
         return [$license, $planRevision,
             $modules, $this->permissionsForLicense($license, $modules, $lock)];
     }

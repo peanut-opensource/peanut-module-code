@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6c5faefeb225ba8357e5809e8aa137be",
+    "content-hash": "737b8e2686f79fc40c2c519aa954a6ee",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2276,14 +2276,14 @@
         },
         {
             "name": "peanut-business/peanut-article",
-            "version": "1.0.21-rc.9",
+            "version": "1.0.21-rc.10",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/article",
-                "reference": "2171f06c07b44cd03edeef82404bc85d8fd64a94"
+                "reference": "a24e2ae3f7d5edfae6292ae8c59d83a2ef8cebd8"
             },
             "require": {
-                "peanut-business/peanut-document": "^1.0.28-rc.4",
+                "peanut-business/peanut-document": "^1.0.28-rc.5",
                 "peanut-business/peanut-identity": "^4.0.0-rc.32",
                 "peanut-business/peanut-member": "^1.0",
                 "peanut-business/peanut-rich-text": "^1.0.16"
@@ -2437,15 +2437,15 @@
         },
         {
             "name": "peanut-business/peanut-document",
-            "version": "1.0.28-rc.4",
+            "version": "1.0.28-rc.6",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/document",
-                "reference": "c93263a7f44e1bd345e6bdbfe93479fe137ee1b3"
+                "reference": "532b4a2dda9759fa72205d8168297e57fe5bb5c5"
             },
             "require": {
                 "peanut-business/peanut-file": "^1.0.44",
-                "peanut-business/peanut-identity": "^4.0.0-rc.32",
+                "peanut-business/peanut-identity": "^4.0.1-rc.8",
                 "peanut-business/peanut-rich-text": "^1.0.17"
             },
             "type": "peanut-admin-module",
@@ -2510,11 +2510,11 @@
         },
         {
             "name": "peanut-business/peanut-identity",
-            "version": "4.0.1-rc.6",
+            "version": "4.0.1-rc.8",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/identity",
-                "reference": "a9ae6338c8ca2f775718f80e6ed445efb50258ad"
+                "reference": "9e2d81b08dae5b7713a64326da63512619d6c234"
             },
             "require": {
                 "ext-bcmath": "*",

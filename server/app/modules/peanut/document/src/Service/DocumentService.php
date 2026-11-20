@@ -1097,48 +1097,60 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
         $this->outsideTransaction();
         return Db::transaction(function () use ($context, $owner, $readBinding): array {
             $policy = $this->owners->requirePolicy($owner);
-            $permissions = array_values(array_unique([...$policy->authorizationPermissionKeys('version.create'), ...$policy->authorizationPermissionKeys('edit')]));
+            $permissions = $policy->authorizationPermissionKeys('editor.open');
             $modules = $this->ownerSaveModules($owner);
-            // Lock IAM inputs before checking the live session, both actions and the business owner.
             try {
-                $this->authorizationFence->captureGrant($context, $permissions, $modules);
+                return $this->authorizationFence->withLockedRead($context, $permissions, $modules,
+                    $policy->authorizationPermissionKeys('edit'), ['peanut.document','peanut.collaboration',$owner->moduleKey],
+                    ['peanut.content-tools','peanut.rich-text'],
+                    fn(string $digest): array => $this->lockedOwnerEditor($context, $owner, $readBinding, $modules, $digest));
             } catch (\DomainException $error) {
+                if ($error->getMessage() === 'IDENTITY_AUTHORIZATION_SESSION_ENDED') {
+                    throw BusinessException::forbidden('DOCUMENT_SESSION_DENIED', '原文档会话已失效');
+                }
                 if ($error->getMessage() !== 'IDENTITY_AUTHORIZATION_PROOF_STALE') {
                     throw $error;
                 }
                 throw BusinessException::conflict('DOCUMENT_AUTHORIZATION_CHANGED', '当前授权输入已改变');
             }
-            return $this->authorization->run($context, function (TenantContext $current) use ($owner, $readBinding, $modules, $policy): array {
-                // run() admits Document and owner() admits the owner module.
-                foreach (array_diff($modules, ['peanut.document', $owner->moduleKey]) as $key) {
-                    $this->authorization->requireModule($current, $key);
-                }
-                $state = $this->authorization->owner($current, $owner, 'version.create', true);
-                $policy->authorize($current, 'edit', $state);
-                $pdo = Db::connect()->getPdo();
-                $binding = $readBinding($state);
-                if ($pdo !== Db::connect()->getPdo() || !$pdo->inTransaction()) {
-                    throw new \LogicException('DOCUMENT_OWNER_TRANSACTION_CHANGED');
-                }
-                $doc = Document::where('id', $binding['document_id'])->find();
-                if ($doc === null) {
-                    throw BusinessException::notFound('DOCUMENT_NOT_FOUND', '文档不存在');
-                }
-                if (DocumentAuthorizationService::reference($doc) != $owner || $doc->content_kind !== 'rich_text') {
-                    throw BusinessException::forbidden('DOCUMENT_OWNER_MISMATCH', '正文编辑归属不一致');
-                }
-                if ($doc->status !== 'active' || $state->archived) {
-                    throw BusinessException::forbidden('DOCUMENT_STATE_DENIED', '当前业务或文档状态不允许此操作');
-                }
-                $revision = $this->authorization->lockedEditorRevision($current, $doc, $state);
-                return $this->editorProjection($current, $doc, $owner, $revision) + $binding;
-            });
         });
     }
 
-    private function editorProjection(TenantContext $current, Document $doc, DocumentOwnerReference $owner, string $revision): array
+    private function lockedOwnerEditor(TenantContext $context, DocumentOwnerReference $owner, callable $readBinding, array $modules, string $digest): array
     {
-        $state = DocumentState::where('document_id', $doc->id)->find();
+        return $this->authorization->run($context, function (TenantContext $current) use ($owner, $readBinding, $modules, $digest): array {
+            // run() admits Document and owner() admits the owner module.
+            foreach (array_diff($modules, ['peanut.document', $owner->moduleKey]) as $key) {
+                $this->authorization->requireModule($current, $key);
+            }
+            $state = $this->authorization->owner($current, $owner, 'editor.open', true);
+            $pdo = Db::connect()->getPdo();
+            $binding = $readBinding($state);
+            if ($pdo !== Db::connect()->getPdo() || !$pdo->inTransaction()) {
+                throw new \LogicException('DOCUMENT_OWNER_TRANSACTION_CHANGED');
+            }
+            $doc = Document::where('id', $binding['document_id'])->lock('FOR SHARE')->find();
+            if ($doc === null) {
+                throw BusinessException::notFound('DOCUMENT_NOT_FOUND', '文档不存在');
+            }
+            if (DocumentAuthorizationService::reference($doc) != $owner || $doc->content_kind !== 'rich_text') {
+                throw BusinessException::forbidden('DOCUMENT_OWNER_MISMATCH', '正文编辑归属不一致');
+            }
+            if ($doc->status !== 'active' || $state->archived) {
+                throw BusinessException::forbidden('DOCUMENT_STATE_DENIED', '当前业务或文档状态不允许此操作');
+            }
+            if ($doc->collaboration_enabled && !in_array('peanut.collaboration', $modules, true)) {
+                throw BusinessException::conflict('DOCUMENT_AUTHORIZATION_CHANGED', '协作模式已改变，请重新打开正文');
+            }
+            $revision = $this->authorization->lockedEditorRevision($current, $doc, $state, $digest);
+            return $this->editorProjection($current, $doc, $owner, $revision, true) + $binding;
+        });
+    }
+
+    private function editorProjection(TenantContext $current, Document $doc, DocumentOwnerReference $owner, string $revision, bool $lockedOwner = false): array
+    {
+        // A locked Article and Document must see the current state even after waiting for a concurrent save.
+        $state = DocumentState::where('document_id', $doc->id)->lock($lockedOwner ? 'FOR SHARE' : false)->find();
         if ($state === null || (int) $state->state_seq !== (int) $doc->state_seq) {
             throw BusinessException::conflict('DOCUMENT_STATE_MISSING', '正文持久水位不一致');
         }

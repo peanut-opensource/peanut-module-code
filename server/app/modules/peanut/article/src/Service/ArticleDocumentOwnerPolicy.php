@@ -72,7 +72,7 @@ final readonly class ArticleDocumentOwnerPolicy implements DocumentOwnerPolicy, 
     {
         $permission = match ($action) {
             'view' => 'peanut.article.detail', 'archive.read' => 'peanut.article.recycle.detail',
-            'create','edit','version.create' => 'peanut.article.edit', 'archive' => 'peanut.article.delete',
+            'create','edit','version.create','editor.open' => 'peanut.article.edit', 'archive' => 'peanut.article.delete',
             'restore','restore.prepare' => 'peanut.article.restore', 'archive.prepare' => 'peanut.article.delete','purge' => 'peanut.article.force-delete', default => throw BusinessException::forbidden('ARTICLE_DOCUMENT_ACTION_DENIED', '不支持的资讯文档操作'),
         };
         return [$permission];
@@ -83,7 +83,7 @@ final readonly class ArticleDocumentOwnerPolicy implements DocumentOwnerPolicy, 
         if (!$this->authorization->decide($context, $this->authorization->principal($context), $permission)->allowed) {
             throw BusinessException::forbidden('ARTICLE_DOCUMENT_DENIED', '无权操作资讯文档');
         }
-        if (in_array($action, ['view','create','edit','version.create'], true) && $owner->archived
+        if (in_array($action, ['view','create','edit','version.create','editor.open'], true) && $owner->archived
             || in_array($action, ['archive','archive.read','purge'], true) && !$owner->archived
             || in_array($action, ['restore','archive.prepare'], true) && $owner->archived
             || $action === 'restore.prepare' && !$owner->archived) {

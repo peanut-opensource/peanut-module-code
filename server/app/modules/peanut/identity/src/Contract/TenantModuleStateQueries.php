@@ -128,6 +128,9 @@ final readonly class TenantModuleStateQueries
      */
     public function installationRecord(string $moduleKey, bool $lock = false, bool $readIfMissing = true): ?array
     {
+        if (!$lock && ($read = TenantAuthorizationReadFence::activeRead()) !== null && array_key_exists($moduleKey, $read['installations'])) {
+            return $read['installations'][$moduleKey];
+        }
         $pdo = Db::connect()->getPdo();
         $request = !$lock && !app()->runningInConsole() && app()->request->isGet()
             && ($pdo === false || !$pdo->inTransaction()) ? app()->request : null;
@@ -169,7 +172,7 @@ final readonly class TenantModuleStateQueries
      * Read current installation identities in module-key order for a deployment-wide qualification.
      * Missing keys remain absent so the registry can reject them in the caller's original order.
      * @param list<string> $moduleKeys
-     * @return array<string,array{installed_version:mixed,manifest_schema_version:mixed,manifest_digest:mixed,status:mixed}>
+     * @return array<string,array{module_key:mixed,installed_version:mixed,manifest_schema_version:mixed,manifest_digest:mixed,status:mixed,revision:mixed}>
      */
     public function installationIdentities(array $moduleKeys, bool $lock = false): array
     {
@@ -177,7 +180,7 @@ final readonly class TenantModuleStateQueries
             return [];
         }
         $query = Db::name('module_installation')->whereIn('module_key', $moduleKeys)
-            ->field('module_key,installed_version,manifest_schema_version,manifest_digest,status')
+            ->field('module_key,installed_version,manifest_schema_version,manifest_digest,status,revision')
             ->order('module_key');
         if ($lock) {
             $query->lock(true);
