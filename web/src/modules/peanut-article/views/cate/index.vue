@@ -32,7 +32,7 @@
       <el-table
         v-loading="categoryList.loading.value"
         row-key="id"
-        :data="categoryList.items.value"
+        :data="tableRows"
         border
       >
         <el-table-column
@@ -97,7 +97,7 @@
           :page-size="categoryList.pagination.pageSize"
           :total="categoryList.pagination.total"
           layout="total, prev, pager, next"
-          @current-change="onPageChange"
+          @current-change="categoryList.fetchList"
         />
       </div>
 
@@ -109,10 +109,10 @@
         width="520px"
       >
         <el-alert
-          v-if="formAction.error.value"
+          v-if="submitError"
           type="error"
           :closable="false"
-          :title="formAction.error.value"
+          :title="submitError"
           style="margin-bottom: 16px"
         />
         <el-form ref="formRef" :model="form" :rules="rules" label-width="auto">
@@ -149,7 +149,7 @@
           <el-button @click="modalVisible = false">取消</el-button>
           <el-button
             type="primary"
-            :loading="formAction.loading.value"
+            :loading="submitLoading"
             @click="onSubmit"
             >确定</el-button
           >
@@ -160,15 +160,17 @@
 </template>
 
 <script lang="ts" setup>
-  import { nextTick, onUnmounted, ref } from 'vue';
+  import { computed, onScopeDispose, reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
+  import { useRoute } from 'vue-router';
+  import { ElMessage, type FormRules } from 'element-plus';
   import { Plus } from '@element-plus/icons-vue';
-  import {
-    registerTenantDisposer,
-    useAsyncAction,
-    useAsyncList,
-  } from '@peanut-admin/vue';
+  import { getTabKey } from '@peanut-admin/ui-vue/tabs';
+  import { registerTenantDisposer, useAsyncAction } from '@peanut-admin/vue';
+  import { hasPermission } from '@/hooks/permission';
+  import useCrudModal from '@/hooks/useCrudModal';
+  import useCrudTab from '@/hooks/useCrudTab';
+  import useCrudTable from '@/hooks/useCrudTable';
   import {
     articleCategoryResource,
     type ArticleCategoryFilters,
@@ -176,22 +178,59 @@
   import { type ArticleCateRecord } from '@/modules/peanut-article/api';
 
   const { t } = useI18n();
+  const route = useRoute();
+  const canEdit = () =>
+    hasPermission('peanut.article.category.edit', route.path);
   const errorMessage = () => t('articleCate.error.request');
-  const categoryList = useAsyncList<ArticleCateRecord, ArticleCategoryFilters>({
+  const categoryList = useCrudTable<ArticleCateRecord, ArticleCategoryFilters>({
     initialFilters: {},
     initialPageSize: 25,
     load: articleCategoryResource.list,
     errorMessage,
   });
+  const tableRows = computed(() => reactive([...categoryList.data.value]));
+  categoryList.fetchList();
+
   const formAction = useAsyncAction(errorMessage);
-  categoryList.load();
-
-  const onPageChange = (current: number) => categoryList.load(current);
-
-  const formRef = ref<FormInstance>();
-  const modalVisible = ref(false);
+  const currentTab = useCrudTab(formAction.cancel);
   const generateForm = () => ({ id: 0, name: '', sort: 0, is_show: 1 });
-  const form = ref(generateForm());
+  const modal = useCrudModal<ReturnType<typeof generateForm>, ArticleCateRecord>({
+    canOpen: (mode) => {
+      if (mode === 'edit') return canEdit();
+      return (
+        mode === 'create' &&
+        hasPermission('peanut.article.category.add', route.path)
+      );
+    },
+    createForm: generateForm,
+    editForm: (record) => ({
+      id: record.id,
+      name: record.name,
+      sort: record.sort,
+      is_show: record.is_show,
+    }),
+    save: (record, mode, signal) =>
+      mode === 'edit'
+        ? articleCategoryResource.update(record, signal)
+        : articleCategoryResource.create(
+            { name: record.name, sort: record.sort, is_show: record.is_show },
+            signal
+          ),
+    errorMessage,
+    onSaved: async () => {
+      ElMessage.success(t('articleCate.message.success'));
+      await categoryList.fetchList();
+    },
+  });
+  const {
+    visible: modalVisible,
+    form,
+    formRef,
+    submitError,
+    submitLoading,
+  } = modal;
+  const canRun = () =>
+    currentTab.value && !formAction.loading.value && !submitLoading.value;
 
   const rules: FormRules = {
     name: [
@@ -219,66 +258,37 @@
     ],
   };
 
-  const openAdd = async () => {
-    form.value = generateForm();
-    modalVisible.value = true;
-    await nextTick();
-    formRef.value?.clearValidate();
-  };
+  const openAdd = () => canRun() && modal.create();
 
   const openEdit = async (record: ArticleCateRecord) => {
+    if (!canRun() || !canEdit()) return;
     const result = await formAction.run(({ signal }) =>
       articleCategoryResource.detail(record.id, signal)
     );
-    if (result.status !== 'completed') return;
-    const { data } = result;
-    form.value = {
-      id: data.id,
-      name: data.name,
-      sort: data.sort,
-      is_show: data.is_show,
-    };
-    modalVisible.value = true;
-    await nextTick();
-    formRef.value?.clearValidate();
+    if (result.status === 'completed' && currentTab.value)
+      await modal.edit(result.data);
   };
 
-  const onSubmit = async () => {
-    const valid = await formRef.value?.validate().catch(() => false);
-    if (!valid) return;
-    const result = await formAction.run(({ signal }) =>
-      form.value.id
-        ? articleCategoryResource.update(form.value, signal)
-        : articleCategoryResource.create(
-            {
-              name: form.value.name,
-              sort: form.value.sort,
-              is_show: form.value.is_show,
-            },
-            signal
-          )
-    );
-    if (result.status !== 'completed') return;
-    ElMessage.success(t('articleCate.message.success'));
-    modalVisible.value = false;
-    await categoryList.reload();
-  };
+  const onSubmit = () => canRun() && modal.submit();
 
   const onDelete = async (record: ArticleCateRecord) => {
+    if (!canRun()) return;
     const result = await formAction.run(({ signal }) =>
       articleCategoryResource.remove(record.id, signal)
     );
-    if (result.status !== 'completed') return;
+    if (result.status !== 'completed' || !currentTab.value) return;
     ElMessage.success(t('articleCate.message.success'));
-    await categoryList.reload();
+    await categoryList.fetchList();
   };
 
   const onStatusChange = async (record: ArticleCateRecord, val: unknown) => {
+    if (!canRun()) return;
     const previousStatus = record.is_show;
     const nextStatus = val ? 1 : 0;
     const result = await formAction.run(({ signal }) =>
       articleCategoryResource.updateStatus(record.id, nextStatus, signal)
     );
+    if (!currentTab.value) return;
     if (result.status !== 'completed') {
       record.is_show = previousStatus;
       return;
@@ -288,7 +298,7 @@
   };
 
   const unregisterTenantDisposer = registerTenantDisposer(
-    'peanut.article.category.page',
+    `peanut.article.category.page:${getTabKey(route)}`,
     () => {
       categoryList.clear();
       formAction.cancel();
@@ -296,7 +306,7 @@
       form.value = generateForm();
     }
   );
-  onUnmounted(unregisterTenantDisposer);
+  onScopeDispose(unregisterTenantDisposer);
 </script>
 
 <script lang="ts">
