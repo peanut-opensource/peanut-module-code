@@ -227,9 +227,28 @@ try {
     fileAccessDenied(fn() => $storage->authorizedDownload($tenant + 1, $old['file_key'], $old['token']), 'cross-tenant old grant rejected');
     $fresh = $run(fn() => $access->resolve($context, $source['file_key'], 'download_original'));
     parse_str((string) parse_url($fresh['url'], PHP_URL_QUERY), $old);
-    $pdo->exec("UPDATE pa_tenant_license SET status='suspended',revision=revision+1 WHERE tenant_id={$tenant}");
-    fileAccessDenied(fn() => $storage->authorizedDownload($tenant, $old['file_key'], $old['token']), 'disabled File rejects old grant');
-    $pdo->exec("UPDATE pa_tenant_license SET status='active',revision=revision+1 WHERE tenant_id={$tenant}");
+    $transitionLicense = static function (string $status) use ($pdo, $tenant): void {
+        // Mirror the fixture transition's production authorization revision.
+        \think\facade\Db::transaction(static function () use ($pdo, $tenant, $status): void {
+            $pdo->prepare('UPDATE pa_tenant_license SET status=?,revision=revision+1 WHERE tenant_id=?')->execute([$status, $tenant]);
+            $pdo->prepare('UPDATE pa_tenant SET authorization_revision=authorization_revision+1 WHERE id=?')->execute([$tenant]);
+        });
+    };
+    $transitionLicense('suspended');
+    // Grant delivery is a separate HTTP request with its own entitlement cache.
+    $deliveryApp = new \think\App($serverRoot);
+    $deliveryApp->env->set($app->env->get());
+    $deliveryApp->initialize();
+    ThinkPhpTestConnection::fromPdo($pdo);
+    try {
+        $freshStorage = $deliveryApp->make(StorageService::class);
+        fileAccessDenied(fn() => $freshStorage->authorizedDownload($tenant, $old['file_key'], $old['token']), 'disabled File rejects old grant');
+    } finally {
+        \think\Container::setInstance($app);
+    }
+    $transitionLicense('active');
+    $context = $sessions->revalidateSession($tenant, $account, $member, $sessionKey, 'admin-web', 'r0-reactivated');
+    $run = fn(callable $call) => $stack->run(new AdminExecutionContext($context, 'r0.file'), $call);
     $fresh = $run(fn() => $access->resolve($context, $source['file_key'], 'download_original'));
     parse_str((string) parse_url($fresh['url'],PHP_URL_QUERY),$old);
     $pdo->exec("UPDATE pa_tenant_session SET status='revoked',revoked_at=UTC_TIMESTAMP(3) WHERE session_key='{$sessionKey}'");

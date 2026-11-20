@@ -13,7 +13,7 @@ final class RegisteredMysqlTestResource
     /** @var array<string,array{database:string,created:bool,lease_id:string,lease_owner:string}> */
     private static array $ownedDatabases = [];
 
-    /** @var array<string,int> owning process for each preallocated fixture */
+    /** @var array<string,array{pid:int,connection_id:int}> owners of preallocated fixtures */
     private static array $ownedFixtures = [];
 
     public static function configuredDatabaseName(): string
@@ -46,7 +46,7 @@ final class RegisteredMysqlTestResource
         self::assertMysqlVersion($pdo, $authorization['version']);
         if (isset($authorization['server_uuid'])) {
             self::openFixture($pdo, $authorization);
-            self::$ownedFixtures[$database] = getmypid();
+            self::$ownedFixtures[$database] = ['pid' => getmypid(), 'connection_id' => self::fixtureLockOwner($pdo, $database)];
             return [$pdo, false];
         }
 
@@ -73,6 +73,24 @@ final class RegisteredMysqlTestResource
         return [$pdo, $created];
     }
 
+    /** A worker reconnects to its parent's existing fixture without taking ownership. */
+    public static function connectFixtureWorker(string $database): PDO
+    {
+        $authorization = self::assertAuthorized($database);
+        $pdo = self::connect($authorization);
+        self::assertMysqlVersion($pdo, $authorization['version']);
+        if (isset($authorization['server_uuid'])) {
+            self::assertFixtureConnection($pdo, $authorization);
+            $owner = self::$ownedFixtures[$database]['connection_id'] ?? null;
+            if ($owner === null || self::fixtureLockOwner($pdo, $database) !== $owner) {
+                throw new RuntimeException('REGISTERED_MYSQL_FIXTURE_LOCK_LOST');
+            }
+        }
+        $pdo->exec('USE `' . $database . '`');
+        self::assertSelectedDatabase($pdo, $database);
+        return $pdo;
+    }
+
     public static function assertSelectedDatabase(PDO $pdo, string $database): void
     {
         self::assertDatabaseNameSyntax($database);
@@ -85,13 +103,16 @@ final class RegisteredMysqlTestResource
     {
         $authorization = self::assertAuthorized($database);
         if (isset($authorization['server_uuid'])) {
-            if ($created || (self::$ownedFixtures[$database] ?? null) !== getmypid()) {
+            $owner = self::$ownedFixtures[$database] ?? null;
+            if ($created || ($owner['pid'] ?? null) !== getmypid()) {
                 throw new RuntimeException('REGISTERED_MYSQL_CLEANUP_NOT_OWNED');
             }
             self::assertSelectedDatabase($pdo, $database);
             self::assertFixtureConnection($pdo, $authorization);
-            // Workflow's forked test reconnects after its children exit.
-            self::lockFixture($pdo, $database);
+            if ((int) $pdo->query('SELECT CONNECTION_ID()')->fetchColumn() !== $owner['connection_id']
+                || self::fixtureLockOwner($pdo, $database) !== $owner['connection_id']) {
+                throw new RuntimeException('REGISTERED_MYSQL_FIXTURE_LOCK_LOST');
+            }
             try {
                 self::dropFixtureObjects($pdo, $database);
             } finally {
@@ -184,12 +205,18 @@ final class RegisteredMysqlTestResource
 
     private static function lockFixture(PDO $pdo, string $database): void
     {
-        $key = hash('sha256', $database);
-        $statement = $pdo->prepare('SELECT IF(IS_USED_LOCK(?) = CONNECTION_ID(), 1, GET_LOCK(?, 0))');
-        $statement->execute([$key, $key]);
+        $statement = $pdo->prepare('SELECT GET_LOCK(?, 0)');
+        $statement->execute([hash('sha256', $database)]);
         if ((int) $statement->fetchColumn() !== 1) {
             throw new RuntimeException('REGISTERED_MYSQL_FIXTURE_BUSY');
         }
+    }
+
+    private static function fixtureLockOwner(PDO $pdo, string $database): int
+    {
+        $statement = $pdo->prepare('SELECT IS_USED_LOCK(?)');
+        $statement->execute([hash('sha256', $database)]);
+        return (int) $statement->fetchColumn();
     }
 
     private static function releaseFixtureLock(PDO $pdo, string $database): void

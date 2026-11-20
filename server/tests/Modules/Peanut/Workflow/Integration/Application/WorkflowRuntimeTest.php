@@ -630,7 +630,7 @@ final class WorkflowRuntimeTest extends TestCase
 
     public function testConcurrentHumanTransitionHasExactlyOneWinner(): void
     {
-        if (!function_exists('pcntl_fork')) {
+        if (!function_exists('pcntl_fork') || !function_exists('pcntl_exec')) {
             self::markTestSkipped('The concurrent MySQL assertion requires native pcntl.');
         }
         $this->publish();
@@ -657,21 +657,21 @@ final class WorkflowRuntimeTest extends TestCase
                     }
                     try {
                         // The parent already proved this exact registry-backed database is owned.
-                        $pdo = $this->reconnect();
+                        $pdo = \RegisteredMysqlTestResource::connectFixtureWorker($this->database);
                         \ThinkPhpTestConnection::fromPdo($pdo);
                         fwrite($pair[1], "ready\n");
                         if (fgets($pair[1]) !== "go\n") {
-                            exit(1);
+                            self::exitFixtureWorker(1);
                         }
                         $this->commands->decide($this->context(member: 12), $item, $request, 'workflow-concurrent-' . $index);
                         fwrite($pair[1], "success\n");
-                        exit(0);
+                        self::exitFixtureWorker(0);
                     } catch (WorkflowException $exception) {
                         fwrite($pair[1], $exception->errorCode . "\n");
-                        exit(0);
+                        self::exitFixtureWorker(0);
                     } catch (Throwable $exception) {
                         fwrite($pair[1], get_class($exception) . ':' . $exception->getCode() . "\n");
-                        exit(1);
+                        self::exitFixtureWorker(1);
                     }
                 }
                 fclose($pair[1]);
@@ -696,9 +696,6 @@ final class WorkflowRuntimeTest extends TestCase
                 $waited = pcntl_waitpid($pid, $status);
                 $exitCodes[] = $waited === $pid && pcntl_wifexited($status) ? pcntl_wexitstatus($status) : null;
             }
-            // Forked PDO destruction closes inherited server sessions even after early failure.
-            $this->pdo = $this->reconnect();
-            \ThinkPhpTestConnection::fromPdo($this->pdo);
         }
         self::assertSame([0, 0], $exitCodes);
         sort($outcomes);
@@ -707,11 +704,11 @@ final class WorkflowRuntimeTest extends TestCase
         self::assertSame(2, (int) Db::name('workflow_event')->count());
     }
 
-    private function reconnect(): PDO
+    private static function exitFixtureWorker(int $code): never
     {
-        $pdo = new PDO('mysql:host=' . env('DB_HOST') . ';port=' . env('DB_PORT') . ';dbname=' . \RegisteredMysqlTestResource::configuredDatabaseName() . ';charset=utf8mb4', (string) env('DB_USER'), (string) env('DB_PASS'), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_EMULATE_PREPARES => false]);
-        \RegisteredMysqlTestResource::assertSelectedDatabase($pdo, \RegisteredMysqlTestResource::configuredDatabaseName());
-        return $pdo;
+        // Replacing the child avoids PDO destructors closing the parent's session.
+        pcntl_exec(PHP_BINARY, ['-r', 'exit(' . $code . ');']);
+        exit(1);
     }
 
     public function testQueriesAreTenantBoundPaginatedAndFieldMinimized(): void

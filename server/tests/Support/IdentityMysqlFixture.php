@@ -20,7 +20,11 @@ final class IdentityMysqlFixture
             ]],
             'environments' => [
                 'default_migration_table' => 'pa_migrations',
-                'testing' => ['name' => $pdo->query('SELECT DATABASE()')->fetchColumn(), 'connection' => $pdo],
+                'testing' => [
+                    'name' => $pdo->query('SELECT DATABASE()')->fetchColumn(),
+                    'connection' => $pdo,
+                    'table_prefix' => 'pa_',
+                ],
             ],
         ]);
         (new Manager($config, new Input([]), new Output('buffer')))->migrate('testing');
