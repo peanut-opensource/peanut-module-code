@@ -122,11 +122,10 @@ final class A1CompositionRegressionTest extends TestCase
         $result = ['url' => '/fixture/download', 'file_name' => 'fixture.xlsx'];
         $service = $this->createMock(RechargeAdministrationService::class);
         $service->expects(self::once())->method('lists')->with($tenant, ['export' => 2])->willReturn($result);
-        $app->instance(RechargeAdministrationService::class, $service);
         try {
             $response = $contexts->run(
                 new AdminExecutionContext($tenant, 'fixture.export', ['id' => 301]),
-                static fn() => (new RechargeController($app))->lists(),
+                static fn() => (new RechargeController($app, $service))->lists(),
             );
             self::assertSame(200, $response->getCode());
             self::assertSame(['code' => 20000, 'msg' => '', 'data' => $result], $response->getData());
