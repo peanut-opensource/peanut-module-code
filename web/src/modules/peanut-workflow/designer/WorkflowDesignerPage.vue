@@ -35,8 +35,8 @@
   const fixedWorkflowKey = props.workflowKey;
   const route = useRoute();
   const api = createHostWorkflowApi();
-  const moduleKey = ref(fixedModuleKey ?? '');
-  const workflowKey = ref(fixedWorkflowKey ?? '');
+  const selectedModuleKey = ref(fixedModuleKey ?? '');
+  const selectedWorkflowKey = ref(fixedWorkflowKey ?? '');
   const definition = shallowRef<WorkflowDefinition | null>(null);
   const definitionScope = ref('');
   const scenarioCapabilities = ref<string[]>([]);
@@ -95,8 +95,8 @@
   const scopeKey = () =>
     `peanut.workflow.draft:${window.location.origin}:${
       import.meta.env.VITE_API_BASE_URL
-    }:${user.tenantName}:${user.id}:${identity}:${moduleKey.value}:${
-      workflowKey.value
+    }:${user.tenantName}:${user.id}:${identity}:${selectedModuleKey.value}:${
+      selectedWorkflowKey.value
     }`;
   const selected = computed(() =>
     state.value.graph.nodes.find((node) => node.key === selectedKey.value)
@@ -108,8 +108,8 @@
     () =>
       allowedRead.value &&
       hasPermission('peanut.workflow.definition.write', route.path) &&
-      !!moduleKey.value &&
-      !!workflowKey.value
+      !!selectedModuleKey.value &&
+      !!selectedWorkflowKey.value
   );
   const allowedPublish = computed(
     () =>
@@ -131,8 +131,8 @@
     epoch += 1;
     history.replace(initial);
     sync();
-    moduleKey.value = '';
-    workflowKey.value = '';
+    selectedModuleKey.value = '';
+    selectedWorkflowKey.value = '';
     definition.value = null;
     definitionScope.value = '';
     scenarioCapabilities.value = [];
@@ -193,7 +193,7 @@
     previewSummary.value = '';
   }
   function saveLocal() {
-    if (!lifecycle.valid() || !moduleKey.value || !workflowKey.value) return;
+    if (!lifecycle.valid() || !selectedModuleKey.value || !selectedWorkflowKey.value) return;
     sessionStorage.setItem(
       scopeKey(),
       JSON.stringify({ document: state.value, revision: revision.value })
@@ -243,8 +243,8 @@
       busy.value ||
       !allowedRead.value ||
       !lifecycle.valid() ||
-      !moduleKey.value ||
-      !workflowKey.value
+      !selectedModuleKey.value ||
+      !selectedWorkflowKey.value
     )
       return;
     if (changed.value) {
@@ -266,16 +266,16 @@
     controller = new AbortController();
     epoch += 1;
     const current = epoch;
-    const requestedScope = `${moduleKey.value}:${workflowKey.value}`;
+    const requestedScope = `${selectedModuleKey.value}:${selectedWorkflowKey.value}`;
     try {
       const [result, scenario] = await Promise.all([
-        api.definition(moduleKey.value, workflowKey.value, controller.signal),
-        api.scenario(moduleKey.value, workflowKey.value, controller.signal),
+        api.definition(selectedModuleKey.value, selectedWorkflowKey.value, controller.signal),
+        api.scenario(selectedModuleKey.value, selectedWorkflowKey.value, controller.signal),
       ]);
       if (
         current !== epoch ||
         !lifecycle.valid() ||
-        requestedScope !== `${moduleKey.value}:${workflowKey.value}`
+        requestedScope !== `${selectedModuleKey.value}:${selectedWorkflowKey.value}`
       )
         return;
       definition.value = result;
@@ -330,8 +330,8 @@
     selectedKey.value = 'start';
     step.value = 0;
     instanceId.value = `workflow-${crypto.randomUUID()}`;
-    moduleKey.value = fixedModuleKey ?? '';
-    workflowKey.value = fixedWorkflowKey ?? '';
+    selectedModuleKey.value = fixedModuleKey ?? '';
+    selectedWorkflowKey.value = fixedWorkflowKey ?? '';
   }
   async function save() {
     if (
@@ -341,8 +341,8 @@
       !lifecycle.valid()
     )
       return;
-    const requestedModule = moduleKey.value;
-    const requestedWorkflow = workflowKey.value;
+    const requestedModule = selectedModuleKey.value;
+    const requestedWorkflow = selectedWorkflowKey.value;
     const requestedScope = `${requestedModule}:${requestedWorkflow}`;
     if (revision.value !== null && definitionScope.value !== requestedScope) {
       error.value = '定义已切换，请先读取其草稿修订';
@@ -353,7 +353,7 @@
     const valid = () =>
       lifecycle.valid() &&
       current === epoch &&
-      requestedScope === `${moduleKey.value}:${workflowKey.value}`;
+      requestedScope === `${selectedModuleKey.value}:${selectedWorkflowKey.value}`;
     busy.value = true;
     error.value = '';
     try {
@@ -420,8 +420,8 @@
     try {
       if (simulate) {
         const result = await api.preview(
-          moduleKey.value,
-          workflowKey.value,
+          selectedModuleKey.value,
+          selectedWorkflowKey.value,
           state.value,
           {
             initiator_member_id: previewInitiator.value,
@@ -438,8 +438,8 @@
         }
       } else {
         const result = await api.validate(
-          moduleKey.value,
-          workflowKey.value,
+          selectedModuleKey.value,
+          selectedWorkflowKey.value,
           state.value
         );
         if (lifecycle.valid()) issues.value = result;
@@ -450,13 +450,28 @@
       if (lifecycle.valid()) busy.value = false;
     }
   }
+  async function refreshPublishedDefinition() {
+    // Publish/activation increments the same CAS revision used by draft saves.
+    // Keep writes blocked if the command succeeded but the fresh read failed.
+    conflict.value = true;
+    const result = await api.definition(selectedModuleKey.value, selectedWorkflowKey.value);
+    if (!lifecycle.valid()) return;
+    definition.value = result;
+    revision.value = result.draft_revision;
+    history.replace({ graph: result.graph, layout: result.layout });
+    sync();
+    issues.value = graphIssues(result.graph);
+    conflict.value = false;
+    activationVersion.value = null;
+    emit('definition', result);
+  }
   async function publish() {
     if (
       busy.value ||
       changed.value ||
       conflict.value ||
       revision.value === null ||
-      definitionScope.value !== `${moduleKey.value}:${workflowKey.value}` ||
+      definitionScope.value !== `${selectedModuleKey.value}:${selectedWorkflowKey.value}` ||
       !allowedPublish.value ||
       !lifecycle.valid()
     )
@@ -465,8 +480,8 @@
     error.value = '';
     try {
       await api.publish(
-        moduleKey.value,
-        workflowKey.value,
+        selectedModuleKey.value,
+        selectedWorkflowKey.value,
         revision.value,
         crypto.randomUUID()
       );
@@ -478,21 +493,6 @@
     } finally {
       if (lifecycle.valid()) busy.value = false;
     }
-  }
-  async function refreshPublishedDefinition() {
-    // Publish/activation increments the same CAS revision used by draft saves.
-    // Keep writes blocked if the command succeeded but the fresh read failed.
-    conflict.value = true;
-    const result = await api.definition(moduleKey.value, workflowKey.value);
-    if (!lifecycle.valid()) return;
-    definition.value = result;
-    revision.value = result.draft_revision;
-    history.replace({ graph: result.graph, layout: result.layout });
-    sync();
-    issues.value = graphIssues(result.graph);
-    conflict.value = false;
-    activationVersion.value = null;
-    emit('definition', result);
   }
   async function activate() {
     if (
@@ -512,8 +512,8 @@
     error.value = '';
     try {
       await api.activate(
-        moduleKey.value,
-        workflowKey.value,
+        selectedModuleKey.value,
+        selectedWorkflowKey.value,
         revision.value,
         version,
         crypto.randomUUID()
@@ -683,7 +683,7 @@
     <el-form v-if="step <= 1" label-position="top" class="basics">
       <el-form-item label="业务模块键"
         ><el-input
-          v-model="moduleKey"
+          v-model="selectedModuleKey"
           placeholder="例如 peanut.application"
           :disabled="
             fixedModuleKey !== undefined || busy || changed || !!definitionScope
@@ -691,7 +691,7 @@
           aria-label="业务模块键" /></el-form-item
       ><el-form-item label="流程用途键"
         ><el-input
-          v-model="workflowKey"
+          v-model="selectedWorkflowKey"
           placeholder="例如 approval"
           :disabled="
             fixedWorkflowKey !== undefined ||
@@ -703,7 +703,7 @@
       /></el-form-item>
       <el-button
         :loading="busy"
-        :disabled="!moduleKey || !workflowKey"
+        :disabled="!selectedModuleKey || !selectedWorkflowKey"
         @click="load"
         >读取服务器定义</el-button
       >
@@ -972,7 +972,7 @@
       ><el-button
         type="primary"
         :loading="busy"
-        :disabled="!allowedWrite || conflict || !moduleKey || !workflowKey"
+        :disabled="!allowedWrite || conflict || !selectedModuleKey || !selectedWorkflowKey"
         @click="save"
         >保存服务器草稿</el-button
       ><el-button

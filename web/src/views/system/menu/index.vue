@@ -376,7 +376,8 @@
   });
 
   const loadPermissions = async () => {
-    const request = ++permissionRequest;
+    permissionRequest += 1;
+    const request = permissionRequest;
     permissionLoading.value = true;
     permissionError.value = '';
     permissionOptions.value = [];
@@ -393,17 +394,17 @@
       if (pages > 1) {
         let nextPage = 2;
         const worker = async () => {
-          while (nextPage <= pages) {
-            if (request !== permissionRequest) return;
-            const page = nextPage++;
-            const { data } = await getRolePermissionCatalog({
-              page_no: page,
-              page_size: 100,
-            });
-            if (!data.items.length && page < pages)
-              throw new Error(t('systemMenu.field.perms.error'));
-            buckets[page - 1] = data.items;
-          }
+          if (nextPage > pages || request !== permissionRequest) return;
+          const page = nextPage;
+          nextPage += 1;
+          const { data } = await getRolePermissionCatalog({
+            page_no: page,
+            page_size: 100,
+          });
+          if (!data.items.length && page < pages)
+            throw new Error(t('systemMenu.field.perms.error'));
+          buckets[page - 1] = data.items;
+          await worker();
         };
         await Promise.all(
           Array.from({ length: Math.min(4, pages - 1) }, () => worker())
