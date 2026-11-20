@@ -54,7 +54,7 @@
     passwordWithinPolicy,
     passwordRequirementsHint,
     type PasswordPolicy,
-  } from '@/api/password-policy';
+  } from '@/modules/peanut-member/api/password-policy';
 
   const loading = ref(false);
   const passwordPolicy = ref<PasswordPolicy | null>(null);

@@ -53,7 +53,7 @@
     passwordWithinPolicy,
     passwordRequirementsHint,
     type PasswordPolicy,
-  } from '@/api/password-policy';
+  } from '@/modules/peanut-member/api/password-policy';
   import { register } from '@/modules/peanut-member/api/account';
 
   const loading = ref(false);

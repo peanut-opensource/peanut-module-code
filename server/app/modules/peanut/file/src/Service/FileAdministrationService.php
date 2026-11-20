@@ -22,6 +22,8 @@ use think\facade\Db;
 /** Application use cases for File media and categories. */
 final class FileAdministrationService implements FileAdministration
 {
+    private const PREVIEW_BLOCKED_STATES = ['restricting', 'verifying', 'restricted_attention'];
+
     public function __construct(
         private readonly StorageService $storage,
         private readonly CurrentExecutionContext $executionContext,
@@ -75,12 +77,25 @@ final class FileAdministrationService implements FileAdministration
                 $objects[(string) $object['file_key']] = $object;
             }
         }
-        foreach ($lists as &$item) {
+        $viewer = match ($type) {
+            FileEnum::IMAGE => 'builtin.image', FileEnum::VIDEO => 'builtin.video', default => null,
+        };
+        $previewKeys = array_filter($fileKeys, static fn(string $key): bool => !in_array(
+            $objects[$key]['status'] ?? null,
+            self::PREVIEW_BLOCKED_STATES,
+            true,
+        ));
+        $previews = $previewKeys === [] ? [] : $this->storage->resolvePreviewPage(
+            $this->executionContext->tenantAdmin(),
+            $previewKeys,
+            $viewer,
+        );
+        foreach ($lists as $index => &$item) {
             $object = $objects[(string) $item['file_key']] ?? null;
             $item['visibility_state'] = $object['status'] ?? null;
             $item['access_type'] = $object['access_type'] ?? null;
             $item['file_revision'] = isset($object['revision']) ? (int) $object['revision'] : null;
-            if (in_array($object['status'] ?? null, ['restricting','verifying','restricted_attention'], true)) {
+            if (in_array($object['status'] ?? null, self::PREVIEW_BLOCKED_STATES, true)) {
                 $item['url'] = '';
                 $item['preview_state'] = 'preview_unavailable';
                 $item['can_download_original'] = false;
@@ -91,10 +106,7 @@ final class FileAdministrationService implements FileAdministration
                 $item['authorization_revision'] = null;
                 continue;
             }
-            $viewer = match ($type) {
-                FileEnum::IMAGE => 'builtin.image', FileEnum::VIDEO => 'builtin.video', default => null
-            };
-            $preview = $this->storage->resolveAuthorized($this->executionContext->tenantAdmin(), (string) $item['file_key'], 'preview', null, null, $viewer);
+            $preview = $previews[$index];
             $item['url'] = $preview['url'] ?? '';
             $item['preview_state'] = $preview['state'];
             $item['can_download_original'] = $preview['can_download_original'];

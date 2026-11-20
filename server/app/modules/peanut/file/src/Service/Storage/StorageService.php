@@ -1256,6 +1256,32 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         if ($source === null) {
             throw BusinessException::notFound('FILE_NOT_FOUND', '资源不存在');
         }
+        return $this->resolveAuthorizedObject($context, $source, $operation, $documentId, $variantKey, $viewerAdapterId);
+    }
+
+    /** File administration preloads only same-tenant ready objects. Each preview keeps its live authorization. */
+    public function resolvePreviewPage(TenantContext $context, array $fileKeys, ?string $viewerAdapterId): array
+    {
+        if ($fileKeys === []) {
+            return [];
+        }
+        $tenantId = $this->logicalTenantId($context->tenantId);
+        $rows = $this->objectQuery($tenantId)->whereIn('f.file_key', array_values(array_unique($fileKeys)))
+            ->where('f.status', 'ready')->select()->toArray();
+        $objects = $rows !== [] && $this->directory->tenantStatus($tenantId) === 'active'
+            ? array_column($rows, null, 'file_key')
+            : [];
+        $previews = [];
+        foreach ($fileKeys as $index => $fileKey) {
+            $object = $objects[$fileKey] ?? throw BusinessException::notFound('FILE_NOT_FOUND', '资源不存在');
+            $previews[$index] = $this->resolveAuthorizedObject($context, $object, 'preview', null, null, $viewerAdapterId);
+        }
+        return $previews;
+    }
+
+    private function resolveAuthorizedObject(TenantContext $context, array $source, string $operation, ?int $documentId, ?string $variantKey, ?string $viewerAdapterId): array
+    {
+        $fileKey = (string) $source['file_key'];
         $grant = $this->authorization->authorize($context, $source, $operation, $documentId);
         $canDownload = false;
         try {

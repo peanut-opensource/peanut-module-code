@@ -48,7 +48,7 @@
     passwordWithinPolicy,
     passwordRequirementsHint,
     type PasswordPolicy,
-  } from '@/api/password-policy';
+  } from '@/modules/peanut-member/api/password-policy';
   import { changePassword } from '@/modules/peanut-member/api/user';
 
   const loading = ref(false);

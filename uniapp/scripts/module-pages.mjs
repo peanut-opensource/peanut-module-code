@@ -61,7 +61,8 @@ export async function prepareModulePages(configEnv, targetRoot = defaultRoot) {
   const contributions = [];
   for (const entry of entries) {
     // A thin template has no Module contributions to transpile.
-    const { loadConfigFromFile } = await import('vite');
+    const vite = await import('vite');
+    const loadConfigFromFile = vite.loadConfigFromFile ?? vite.default?.loadConfigFromFile;
     const loaded = await loadConfigFromFile(configEnv, entry, root);
     if (!loaded)
       throw new Error(`Module contribution cannot be loaded: ${entry}`);
