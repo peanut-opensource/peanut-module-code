@@ -12,6 +12,8 @@ interface DocumentQueries
     public function publicationBody(DocumentOwnerReference $owner): array;
     /** Metadata/projection only: no Yjs binary, storage address or collaboration ticket. */
     public function detail(TenantContext $context, int $documentId, ?int $revisionId = null): array;
+    /** Current authorized file-resource owner. The caller checks immutable File snapshots separately. */
+    public function readableFileOwner(TenantContext $context, int $documentId): DocumentOwnerReference;
     /** Committed summaries only; fresh view/archive.read authorization on every bounded page. Rejects outer transactions. */
     public function versions(TenantContext $context, int $documentId, int $limit = 20, ?int $beforeRevisionNo = null): array;
     /** Observed authenticated submissions only; no authorship inferred for older history. */

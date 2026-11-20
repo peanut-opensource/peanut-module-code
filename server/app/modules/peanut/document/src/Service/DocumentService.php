@@ -1067,6 +1067,18 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
         });
     }
 
+    public function readableFileOwner(TenantContext $context, int $documentId): DocumentOwnerReference
+    {
+        return $this->authorization->run($context, function (TenantContext $current) use ($documentId): DocumentOwnerReference {
+            $document = $this->authorization->document($current, $documentId, 'view');
+            if ($document->content_kind !== 'file_resource') {
+                throw BusinessException::invalid('DOCUMENT_KIND_MISMATCH', '文档类型不允许此操作');
+            }
+            $this->binding($document);
+            return DocumentAuthorizationService::reference($document);
+        });
+    }
+
     public function runOwnerVersionSave(TenantContext $context, DocumentOwnerReference $owner, callable $commitOwner): mixed
     {
         return $this->businessTransaction($context, $owner, 'version.create', function (TenantContext $current) use ($owner, $commitOwner): mixed {
