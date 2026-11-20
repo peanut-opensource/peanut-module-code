@@ -3,17 +3,18 @@
 declare(strict_types=1);
 
 /**
- * Fail-closed access to a lease-owned, registry-backed MySQL 8.4 test database.
+ * Fail-closed access to a registered, isolated MySQL 8.4 test schema.
  *
- * Resource identity, endpoint, environment, exact database name, scope, lease owner,
- * candidate and worktree are inputs because they vary between local runs and CI. None
- * of those inputs authorizes itself: the resource registry and the existing
- * project-resource-lease record must independently contain the same values.
+ * Development fixtures use an exact, preallocated schema, schema-only credentials
+ * and a MySQL advisory lock. Historical qualification retains its existing proof.
  */
 final class RegisteredMysqlTestResource
 {
     /** @var array<string,array{database:string,created:bool,lease_id:string,lease_owner:string}> */
     private static array $ownedDatabases = [];
+
+    /** @var array<string,int> owning process for each preallocated fixture */
+    private static array $ownedFixtures = [];
 
     public static function configuredDatabaseName(): string
     {
@@ -29,6 +30,11 @@ final class RegisteredMysqlTestResource
         $authorization = self::assertAuthorized($database);
         $pdo = self::connect($authorization);
         self::assertMysqlVersion($pdo, $authorization['version']);
+        if (isset($authorization['server_uuid'])) {
+            self::openFixture($pdo, $authorization);
+            self::releaseFixtureLock($pdo, $database);
+            return;
+        }
         self::assertEmptyOrAbsent($pdo, $database);
     }
 
@@ -38,6 +44,11 @@ final class RegisteredMysqlTestResource
         $authorization = self::assertAuthorized($database);
         $pdo = self::connect($authorization);
         self::assertMysqlVersion($pdo, $authorization['version']);
+        if (isset($authorization['server_uuid'])) {
+            self::openFixture($pdo, $authorization);
+            self::$ownedFixtures[$database] = getmypid();
+            return [$pdo, false];
+        }
 
         $exists = $pdo->prepare('SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?');
         $exists->execute([$database]);
@@ -73,6 +84,22 @@ final class RegisteredMysqlTestResource
     public static function cleanup(PDO $pdo, string $database, bool $created): void
     {
         $authorization = self::assertAuthorized($database);
+        if (isset($authorization['server_uuid'])) {
+            if ($created || (self::$ownedFixtures[$database] ?? null) !== getmypid()) {
+                throw new RuntimeException('REGISTERED_MYSQL_CLEANUP_NOT_OWNED');
+            }
+            self::assertSelectedDatabase($pdo, $database);
+            self::assertFixtureConnection($pdo, $authorization);
+            // Workflow's forked test reconnects after its children exit.
+            self::lockFixture($pdo, $database);
+            try {
+                self::dropFixtureObjects($pdo, $database);
+            } finally {
+                self::releaseFixtureLock($pdo, $database);
+                unset(self::$ownedFixtures[$database]);
+            }
+            return;
+        }
         self::assertCleanupOwnership(self::$ownedDatabases[$database] ?? null, $database, $created, $authorization);
         self::assertSelectedDatabase($pdo, $database);
 
@@ -82,10 +109,13 @@ final class RegisteredMysqlTestResource
             return;
         }
 
-        // Preflight proved this lease-exclusive schema was empty. Every object now
-        // present was therefore created by this test after ownership was recorded.
-        // Events and stored routines also make a schema non-empty. They are
-        // removed only after the same lease and empty-baseline ownership checks.
+        self::dropFixtureObjects($pdo, $database);
+        unset(self::$ownedDatabases[$database]);
+    }
+
+    private static function dropFixtureObjects(PDO $pdo, string $database): void
+    {
+        // Every object belongs to this test because the guarded schema was empty.
         $events = $pdo->prepare('SELECT EVENT_NAME FROM information_schema.EVENTS WHERE EVENT_SCHEMA = ?');
         $events->execute([$database]);
         foreach ($events->fetchAll(PDO::FETCH_COLUMN) as $name) {
@@ -115,7 +145,57 @@ final class RegisteredMysqlTestResource
         } finally {
             $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
         }
-        unset(self::$ownedDatabases[$database]);
+    }
+
+    private static function openFixture(PDO $pdo, array $authorization): void
+    {
+        $database = $authorization['database'];
+        self::assertFixtureConnection($pdo, $authorization);
+        $pdo->exec('USE `' . $database . '`');
+        self::assertSelectedDatabase($pdo, $database);
+        self::lockFixture($pdo, $database);
+        self::assertEmptyOrAbsent($pdo, $database);
+    }
+
+    private static function assertFixtureConnection(PDO $pdo, array $authorization): void
+    {
+        $database = $authorization['database'];
+        $identity = $pdo->query('SELECT @@server_uuid AS server_uuid, @@version AS version, CURRENT_USER() AS account')->fetch();
+        if ($identity['server_uuid'] !== $authorization['server_uuid'] || $identity['version'] !== $authorization['version']
+            || !str_starts_with($identity['account'], $authorization['username'] . '@')) {
+            throw new RuntimeException('REGISTERED_MYSQL_FIXTURE_CONNECTION_MISMATCH');
+        }
+        $exactSchemaGrant = ' ON `' . $database . '`.* TO ';
+        $schemaGranted = false;
+        foreach ($pdo->query('SHOW GRANTS')->fetchAll(PDO::FETCH_COLUMN) as $grant) {
+            if (str_starts_with($grant, 'GRANT USAGE ON *.* TO ')
+                && !str_contains($grant, ' WITH GRANT OPTION')) {
+                continue;
+            }
+            if (!str_contains($grant, $exactSchemaGrant) || str_contains($grant, ' WITH GRANT OPTION')) {
+                throw new RuntimeException('REGISTERED_MYSQL_FIXTURE_GRANT_MISMATCH');
+            }
+            $schemaGranted = true;
+        }
+        if (!$schemaGranted) {
+            throw new RuntimeException('REGISTERED_MYSQL_FIXTURE_GRANT_MISMATCH');
+        }
+    }
+
+    private static function lockFixture(PDO $pdo, string $database): void
+    {
+        $key = hash('sha256', $database);
+        $statement = $pdo->prepare('SELECT IF(IS_USED_LOCK(?) = CONNECTION_ID(), 1, GET_LOCK(?, 0))');
+        $statement->execute([$key, $key]);
+        if ((int) $statement->fetchColumn() !== 1) {
+            throw new RuntimeException('REGISTERED_MYSQL_FIXTURE_BUSY');
+        }
+    }
+
+    private static function releaseFixtureLock(PDO $pdo, string $database): void
+    {
+        $statement = $pdo->prepare('SELECT RELEASE_LOCK(?)');
+        $statement->execute([hash('sha256', $database)]);
     }
 
     private static function assertFixtureObjectName(string $name): void
@@ -391,6 +471,17 @@ final class RegisteredMysqlTestResource
         if (!is_array($registry)) {
             throw new RuntimeException('REGISTERED_MYSQL_REGISTRY_INVALID');
         }
+        $resourceId = self::required('PEANUT_DATABASE_RESOURCE_ID');
+        $fixtures = array_values(array_filter(
+            $registry['resources']['databases'] ?? [],
+            static fn(mixed $resource): bool => is_array($resource) && ($resource['stable_resource_id'] ?? null) === $resourceId,
+        ));
+        if (count($fixtures) === 1 && ($fixtures[0]['database_privilege_scope'] ?? null) === 'exact-schema') {
+            $environment = self::contractEnvironment(true);
+            $authorization = self::fixtureAuthorization($registry, $fixtures[0], $environment);
+            self::assertRegistryToolResolution($root, $registryTool, $registryPath, $environment, true);
+            return $authorization;
+        }
         $environment = self::contractEnvironment();
         $lease = self::lease($root, $environment['PEANUT_DATABASE_LEASE_ID'], $registryTool);
         $authorization = self::validateContract(
@@ -415,6 +506,32 @@ final class RegisteredMysqlTestResource
         }
         self::assertRegistryToolResolution($root, $registryTool, $registryPath, $environment);
         return $authorization;
+    }
+
+    /** @return array{host:string,port:int,database:string,version:string,server_uuid:string,username:string} */
+    private static function fixtureAuthorization(array $registry, array $resource, array $environment): array
+    {
+        $database = $environment['DB_NAME'];
+        if (($registry['schema_version'] ?? null) !== 1
+            || ($registry['authority']['role'] ?? null) !== 'maintainer'
+            || ($registry['project_id'] ?? null) !== 'peanut-admin'
+            || ($resource['environments'] ?? null) !== ['development-test']
+            || $environment['PEANUT_DATABASE_ENVIRONMENT'] !== 'development-test'
+            || ($resource['application_runtime'] ?? null) !== false
+            || ($resource['lifecycle'] ?? null) !== 'ephemeral'
+            || ($resource['service_type'] ?? null) !== 'mysql'
+            || ($resource['fallback'] ?? null) !== 'none'
+            || ($resource['database'] ?? null) !== $database
+            || !preg_match('/^[a-z0-9]{1,64}$/D', $database)
+            || ($resource['username'] ?? null) !== self::required('DB_USER')
+            || !preg_match('/^8\.4\.[0-9]+$/D', $resource['version'] ?? '')
+            || !preg_match('/^[a-f0-9-]{36}$/D', $resource['server_uuid'] ?? '')) {
+            throw new RuntimeException('REGISTERED_MYSQL_FIXTURE_RESOURCE_MISMATCH');
+        }
+        return [
+            'host' => $environment['DB_HOST'], 'port' => (int) $environment['DB_PORT'], 'database' => $database,
+            'version' => $resource['version'], 'server_uuid' => $resource['server_uuid'], 'username' => $resource['username'],
+        ];
     }
 
     /** @param array{host:string,port:int} $authorization */
@@ -460,16 +577,16 @@ final class RegisteredMysqlTestResource
     }
 
     /** @return array<string,string> */
-    private static function contractEnvironment(): array
+    private static function contractEnvironment(bool $fixture = false): array
     {
         $environment = [];
-        foreach ([
-            'DB_NAME', 'DB_HOST', 'DB_PORT', 'PEANUT_DATABASE_RESOURCE_ID',
-            'PEANUT_DATABASE_ENDPOINT_ID', 'PEANUT_DATABASE_CONSUMER',
-            'PEANUT_DATABASE_ENVIRONMENT', 'PEANUT_DATABASE_RESOURCE_SCOPE',
-            'PEANUT_DATABASE_LEASE_ID', 'PEANUT_DATABASE_LEASE_OWNER',
-            'PEANUT_DATABASE_LEASE_GATE',
-        ] as $key) {
+        $keys = ['DB_NAME', 'DB_HOST', 'DB_PORT', 'PEANUT_DATABASE_RESOURCE_ID',
+            'PEANUT_DATABASE_ENDPOINT_ID', 'PEANUT_DATABASE_CONSUMER', 'PEANUT_DATABASE_ENVIRONMENT'];
+        if (!$fixture) {
+            array_push($keys, 'PEANUT_DATABASE_RESOURCE_SCOPE', 'PEANUT_DATABASE_LEASE_ID',
+                'PEANUT_DATABASE_LEASE_OWNER', 'PEANUT_DATABASE_LEASE_GATE');
+        }
+        foreach ($keys as $key) {
             $environment[$key] = self::required($key);
         }
         if ($environment['PEANUT_DATABASE_RESOURCE_ID'] === 'peanut-admin-p0e-mysql84-gate') {
@@ -538,7 +655,7 @@ final class RegisteredMysqlTestResource
     }
 
     /** @param array<string,string> $environment */
-    private static function assertRegistryToolResolution(string $root, string $registryTool, string $registryPath, array $environment): void
+    private static function assertRegistryToolResolution(string $root, string $registryTool, string $registryPath, array $environment, bool $fixture = false): void
     {
         $arguments = [
             $registryTool, 'database-env',
@@ -571,7 +688,7 @@ final class RegisteredMysqlTestResource
             'PEANUT_DATABASE_RESOURCE_ID', 'PEANUT_DATABASE_ENDPOINT_ID',
             'PEANUT_DATABASE_CONSUMER', 'DB_HOST', 'DB_PORT',
         ];
-        if ($environment['PEANUT_DATABASE_RESOURCE_ID'] === 'peanut-admin-p0e-mysql84-gate') {
+        if ($fixture || $environment['PEANUT_DATABASE_RESOURCE_ID'] === 'peanut-admin-p0e-mysql84-gate') {
             $resolvedKeys[] = 'DB_NAME';
         }
         foreach ($resolvedKeys as $key) {
