@@ -6,7 +6,7 @@
         placeholder="搜索资讯..."
         class="search-input"
         confirm-type="search"
-        @confirm="doSearch"
+        @confirm="confirmSearch"
       />
       <button class="search-btn" size="mini" @click="doSearch">搜索</button>
     </view>
@@ -131,6 +131,11 @@
     } catch {
       if (generation === hotGeneration) hotError.value = true;
     }
+  }
+
+  function confirmSearch(event: { detail: { value: string } }) {
+    keyword.value = event.detail.value;
+    return doSearch();
   }
 
   function doSearch() {
