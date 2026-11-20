@@ -10760,6 +10760,25 @@ export interface components {
             tenant_id: number;
             children: components["schemas"]["FileCategoryRecord"][];
         };
+        /** @description An already issued short-lived preview for the listed object. Delivery still revalidates current authorization. */
+        FilePreviewAccessReceipt: {
+            file_key: string;
+            delivery_file_key: string;
+            source_sha256: string;
+            media_type: string;
+            /** @enum {string} */
+            state: "available";
+            /** @enum {string} */
+            purpose: "preview";
+            /** @enum {string} */
+            bytes: "original" | "derivative";
+            variant_key: string | null;
+            expires_at: number;
+            url: string;
+            capabilities: {
+                [key: string]: unknown;
+            };
+        };
         FileListRecord: {
             id: number;
             cid: number;
@@ -10776,6 +10795,7 @@ export interface components {
             file_key: string;
             url: string;
             preview_state?: string;
+            preview_access?: components["schemas"]["FilePreviewAccessReceipt"];
             can_download_original?: boolean;
             verified_mime_type?: string | null;
             source_sha256?: string | null;
