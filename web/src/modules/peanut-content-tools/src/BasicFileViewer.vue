@@ -147,6 +147,7 @@
             'audio/mpeg',
             'audio/ogg',
             'audio/wav',
+            'audio/x-wav',
             'audio/webm',
             'audio/mp4',
             'video/mp4',
