@@ -1259,7 +1259,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         return $this->resolveAuthorizedObject($context, $source, $operation, $documentId, $variantKey, $viewerAdapterId);
     }
 
-    /** File administration preloads only same-tenant ready objects. Each preview keeps its live authorization. */
+    /** File administration shares one live authorization across this tenant's ready page objects. */
     public function resolvePreviewPage(TenantContext $context, array $fileKeys, ?string $viewerAdapterId): array
     {
         if ($fileKeys === []) {
@@ -1271,17 +1271,19 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         $objects = $rows !== [] && $this->directory->tenantStatus($tenantId) === 'active'
             ? array_column($rows, null, 'file_key')
             : [];
+        $access = null;
         $previews = [];
         foreach ($fileKeys as $index => $fileKey) {
-            $object = $objects[$fileKey] ?? throw BusinessException::notFound('FILE_NOT_FOUND', '资源不存在');
-            $previews[$index] = $this->resolveAuthorizedObject($context, $object, 'preview', null, null, $viewerAdapterId);
+            $source = $objects[$fileKey] ?? throw BusinessException::notFound('FILE_NOT_FOUND', '资源不存在');
+            $this->authorization->assertReadableObject($context, $source);
+            $access ??= $this->authorization->authorizePreviewPage($context);
+            $previews[$index] = $this->describeAuthorizedObject($context, $source, 'preview', null, null, $viewerAdapterId, $access['grant'], $access['can_download_original']);
         }
         return $previews;
     }
 
     private function resolveAuthorizedObject(TenantContext $context, array $source, string $operation, ?int $documentId, ?string $variantKey, ?string $viewerAdapterId): array
     {
-        $fileKey = (string) $source['file_key'];
         $grant = $this->authorization->authorize($context, $source, $operation, $documentId);
         $canDownload = false;
         try {
@@ -1290,6 +1292,12 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         } catch (BusinessException) {
             // Preview never inherits an independent original-download right.
         }
+        return $this->describeAuthorizedObject($context, $source, $operation, $documentId, $variantKey, $viewerAdapterId, $grant, $canDownload);
+    }
+
+    private function describeAuthorizedObject(TenantContext $context, array $source, string $operation, ?int $documentId, ?string $variantKey, ?string $viewerAdapterId, array $grant, bool $canDownload): array
+    {
+        $fileKey = (string) $source['file_key'];
         if ($operation === 'manage') {
             return ['file_key' => $fileKey, 'revision' => (int) $source['revision'], 'can_manage' => true];
         }

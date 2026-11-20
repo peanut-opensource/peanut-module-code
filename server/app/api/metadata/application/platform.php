@@ -15,6 +15,11 @@ $dynamicMap = ['type' => 'object', 'additionalProperties' => $ref('ApplicationDy
 $nullableDynamicMap = ['type' => 'object', 'additionalProperties' => $ref('ApplicationDynamicValue'), 'nullable' => true];
 $stringList = ['type' => 'array', 'items' => ['type' => 'string']];
 $positiveId = ['type' => 'integer', 'minimum' => 1];
+$entryBindingChangeReason = [
+    'type' => 'string',
+    'minLength' => 1,
+    'maxLength' => 96,
+];
 $dateTime = ['type' => 'string', 'format' => 'date-time'];
 
 $schemas = [
@@ -547,14 +552,14 @@ $add($paths, 'POST', '/platformapi/tenant-entry-bindings/enable', $operation(
     'enablePlatformTenantEntryBinding',
     'PlatformTenantBindings',
     $responses('PlatformEntryBinding'),
-    requestBody: $jsonBody(['type' => 'object', 'additionalProperties' => false, 'required' => ['tenant_id', 'host', 'client_key', 'change_reason'], 'properties' => ['tenant_id' => $positiveId, 'host' => ['type' => 'string', 'maxLength' => 253], 'client_key' => ['type' => 'string', 'enum' => ['admin-web', 'member-api']], 'change_reason' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 500]]]),
+    requestBody: $jsonBody(['type' => 'object', 'additionalProperties' => false, 'required' => ['tenant_id', 'host', 'client_key', 'change_reason'], 'properties' => ['tenant_id' => $positiveId, 'host' => ['type' => 'string', 'maxLength' => 253], 'client_key' => ['type' => 'string', 'enum' => ['admin-web', 'member-api']], 'change_reason' => $entryBindingChangeReason]]),
     errors: ['TENANT_ENTRY_CLIENT_INVALID', 'TENANT_ENTRY_INPUT_INVALID', 'TENANT_ENTRY_TENANT_UNAVAILABLE', 'TENANT_ENTRY_BINDING_CONFLICT'],
 ));
 $add($paths, 'POST', '/platformapi/tenant-entry-bindings/disable', $operation(
     'disablePlatformTenantEntryBinding',
     'PlatformTenantBindings',
     $responses('PlatformEntryBindingDisabled'),
-    requestBody: $jsonBody(['type' => 'object', 'additionalProperties' => false, 'required' => ['binding_id', 'change_reason'], 'properties' => ['binding_id' => $positiveId, 'change_reason' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 500]]]),
+    requestBody: $jsonBody(['type' => 'object', 'additionalProperties' => false, 'required' => ['binding_id', 'change_reason'], 'properties' => ['binding_id' => $positiveId, 'change_reason' => $entryBindingChangeReason]]),
     errors: ['TENANT_ENTRY_INPUT_INVALID', 'TENANT_ENTRY_BINDING_NOT_FOUND'],
 ));
 

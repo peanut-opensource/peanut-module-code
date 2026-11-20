@@ -80,7 +80,7 @@
         "baseline_root": ".peanut/scaffold-baseline/5.1.18-rc.3/files"
     },
     "digests": {
-        "managed_tree_sha256": "ba3da3bb39b8bf928c99e1dc4eaa6acc67f83f5b61a3128515dee253d5ad5be3",
+        "managed_tree_sha256": "97e776df5205720716358eb3fdf6c6953f8ed7f30c29a35413f2a6f9f813e52a",
         "app_owned_tree_sha256": "aa035662f4e6b15ac3013c97825632729aeb9b73fd4be7947ccf92555976471d"
     },
     "files": [
@@ -786,15 +786,12 @@
             "baseline_mode": 420
         },
         {
-            "path": "packages/core-php/peanut-admin-core-5.1.3-rc.3.zip",
-            "sha256": "0d682190a944abcce0332f39a7e58f099a9ba34615b9baa7a4298e884ec66cbd",
+            "path": "packages/core-php/peanut-admin-core-5.1.3-rc.20261120.zip",
+            "sha256": "898c06ae8a044862a0e17dc96bbc282619edfa8691258a1e482e8fef00838a2d",
             "mode": 420,
             "classification": "managed",
             "owner": "scaffold",
-            "source": "packages/core-php/peanut-admin-core-5.1.3-rc.3.zip",
-            "baseline_path": ".peanut/scaffold-baseline/5.1.18-rc.3/files/packages/core-php/peanut-admin-core-5.1.3-rc.3.zip",
-            "baseline_sha256": "0d682190a944abcce0332f39a7e58f099a9ba34615b9baa7a4298e884ec66cbd",
-            "baseline_mode": 420
+            "source": "packages/core-php/peanut-admin-core-5.1.3-rc.20261120.zip"
         },
         {
             "path": "packages/core-web/peanut-admin-client-5.1.3-rc.1.tgz",

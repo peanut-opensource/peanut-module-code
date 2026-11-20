@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PeanutAdmin\Modules\Ops\Infrastructure;
 
+use app\common\contract\module\ModuleQualification;
 use PeanutAdmin\Modules\Ops\Service\PlatformUpgradeReadinessService;
 use app\common\module\ModuleMigrationRun;
 use app\common\value\installation\ServerReleaseIdentity;
@@ -88,27 +89,34 @@ final readonly class ApplicationRuntimeStatusProvider implements RuntimeStatusPr
         });
         $checks[] = $this->check('database.connection', $databaseStatus, true, $databaseLatency);
 
-        $migrationStarted = hrtime(true);
+        $moduleStarted = hrtime(true);
         try {
-            $migrations = $this->migrationState();
-            $migrationStatus = !$migrations['drift'] && $migrations['pending'] === 0 ? 'up' : 'down';
+            $installed = $this->moduleGovernance->qualification()->installedModules();
         } catch (Throwable) {
-            $migrations = $this->unavailableMigrationState();
-            $migrationStatus = 'down';
+            $installed = null;
+        }
+        $moduleLatency = $this->elapsedMilliseconds($moduleStarted);
+
+        // Both probes refer to the same verified deployment; only the migration probe reads the ledger.
+        $migrationStarted = hrtime(true);
+        if ($installed === null) {
+            $migrations = $this->unavailableMigrationState([]);
+        } else {
+            $expected = [];
+            try {
+                $expected = $this->expectedMigrations($installed);
+                $migrations = $this->migrationState($expected);
+            } catch (Throwable) {
+                $migrations = $this->unavailableMigrationState($expected);
+            }
         }
         $checks[] = $this->check(
             'database.migrations',
-            $migrationStatus,
+            !$migrations['drift'] && $migrations['pending'] === 0 ? 'up' : 'down',
             true,
             $this->elapsedMilliseconds($migrationStarted),
         );
-
-        [$moduleStatus, $moduleLatency] = $this->probe(function (): void {
-            $this->moduleGovernance
-                ->qualification()
-                ->installedModules();
-        });
-        $checks[] = $this->check('module.catalog', $moduleStatus, true, $moduleLatency);
+        $checks[] = $this->check('module.catalog', $installed !== null ? 'up' : 'down', true, $moduleLatency);
 
         [$cacheStatus, $cacheLatency] = $this->probe(static function (): void {
             Cache::get('application:v1:ops-readonly-health');
@@ -419,10 +427,11 @@ final readonly class ApplicationRuntimeStatusProvider implements RuntimeStatusPr
         return gmdate('Y-m-d\TH:i:s', $timestamp) . '.000Z';
     }
 
-    /** @return array{applied:int,target:int,pending:int,digest:string,drift:bool,files:array<string,string>} */
-    private function migrationState(): array
+    /** @param array<string,array{name:string,sha256:string}> $expected
+     * @return array{applied:int,target:int,pending:int,digest:string,drift:bool,files:array<string,string>}
+     */
+    private function migrationState(array $expected): array
     {
-        $expected = $this->expectedMigrations();
         // ThinkPHP migration uses the configured connection prefix and native ledger.
         // Read it directly: constructing a migration adapter may create the ledger.
         $table = (string) Db::connect()->getConfig('prefix') . (string) Config::get('database.migration_table', 'migrations');
@@ -452,12 +461,16 @@ final readonly class ApplicationRuntimeStatusProvider implements RuntimeStatusPr
         ];
     }
 
-    /** Current native migration source versions and their source digests. */
-    private function expectedMigrations(): array
+    /** Current native migration source versions and their source digests.
+     * @param list<ModuleQualification> $installed
+     */
+    private function expectedMigrations(array $installed): array
     {
-        $registry = $this->moduleGovernance->registry();
-        $modules = $this->moduleGovernance->qualification()->installedModules();
-        $manifests = $registry->requireInstalledMany(array_column($modules, 'moduleKey'), false);
+        $registry = $this->moduleGovernance->registry()->compiled();
+        $manifests = [];
+        foreach ($installed as $module) {
+            $manifests[$module->moduleKey] = $registry->requireManifest($module->moduleKey);
+        }
         $expected = [];
         foreach (ModuleMigrationRun::sources($manifests, $this->projectRoot . '/server', true) as $source) {
             $expected[$source['migration_key']] = ['name' => $source['name'], 'sha256' => $source['sha256']];
@@ -465,14 +478,11 @@ final readonly class ApplicationRuntimeStatusProvider implements RuntimeStatusPr
         return $expected;
     }
 
-    /** @return array{applied:int,target:int,pending:int,digest:string,drift:bool,files:array<string,string>} */
-    private function unavailableMigrationState(): array
+    /** @param array<string,array{name:string,sha256:string}> $expected
+     * @return array{applied:int,target:int,pending:int,digest:string,drift:bool,files:array<string,string>}
+     */
+    private function unavailableMigrationState(array $expected): array
     {
-        try {
-            $expected = $this->expectedMigrations();
-        } catch (Throwable) {
-            $expected = [];
-        }
         $files = array_map(static fn(array $source): string => $source['sha256'], $expected);
         return [
             'applied' => 0,

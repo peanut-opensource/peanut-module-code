@@ -13,12 +13,17 @@ use DateTimeZone;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 use PeanutAdmin\Kernel\Module\ModuleGuard;
+use PeanutAdmin\Kernel\Module\ModuleInstallationRecord;
 use PeanutAdmin\Kernel\Module\ModuleRuntimeRepository;
+use PeanutAdmin\Kernel\Module\TenantModuleRecord;
 use PeanutAdmin\Modules\Identity\Contract\TenantSessionAccess;
 
 /** Live identity/RBAC/Module and contextual policy, never a parallel resource ACL. */
 final readonly class FileAuthorizationService
 {
+    private const PREVIEW_PERMISSION = 'peanut.file.list';
+    private const DOWNLOAD_ORIGINAL_PERMISSION = 'peanut.file.download-original';
+
     public function __construct(
         private AdminAuthorizationQuery $authorization,
         private TenantSessionAccess $sessions,
@@ -118,8 +123,8 @@ final readonly class FileAuthorizationService
     private function requireOperationPermission(TenantContext $context, \app\common\dto\authorization\AdminPrincipal $principal, string $operation): void
     {
         $permission = match ($operation) {
-            'preview' => 'peanut.file.list',
-            'download_original' => 'peanut.file.download-original',
+            'preview' => self::PREVIEW_PERMISSION,
+            'download_original' => self::DOWNLOAD_ORIGINAL_PERMISSION,
             'manage' => 'peanut.file.manage',
         };
         if (!$this->authorization->decide($context, $principal, $permission)->allowed) {
@@ -143,21 +148,11 @@ final readonly class FileAuthorizationService
     /** @return array{authorization_revision:string,reference_digest:?string,context:TenantContext} */
     public function authorize(TenantContext $context, array $object, string $operation, ?int $documentId = null): array
     {
-        if (!in_array($operation, ['preview', 'download_original', 'manage'], true)
-            || $context->tenantId !== (int) $object['tenant_id'] || $object['status'] !== 'ready') {
+        if (!in_array($operation, ['preview', 'download_original', 'manage'], true)) {
             throw BusinessException::forbidden('FILE_ACCESS_DENIED', '无权访问资源');
         }
-        $current = $this->sessions->revalidateSession(
-            $context->tenantId,
-            $context->accountId,
-            $context->memberId,
-            $context->sessionKey,
-            $context->clientKey,
-            $context->requestId,
-        );
-        if ($current->authorizationRevision !== $context->authorizationRevision) {
-            throw BusinessException::forbidden('FILE_AUTHORIZATION_STALE', '资源授权已改变');
-        }
+        $this->assertReadableObject($context, $object);
+        $current = $this->currentContext($context);
         $principal = $this->authorization->principal($current);
         return $this->execution->run(new AdminExecutionContext($current, 'file.' . $operation, $principal->toArray()), function () use ($current, $principal, $object, $operation, $documentId): array {
             $guard = new ModuleGuard($this->modules);
@@ -182,12 +177,79 @@ final readonly class FileAuthorizationService
             }
             return [
                 'context' => $current,
-                'authorization_revision' => hash('sha256', json_encode([$current->authorizationRevision, $operation, $documentRevision, $installation, $tenantModule], JSON_THROW_ON_ERROR)),
+                'authorization_revision' => $this->authorizationRevision($current, $operation, $documentRevision, $installation, $tenantModule),
                 'reference_digest' => $referenceDigest,
             ];
         });
     }
 
+    /**
+     * File-internal authorization for direct previews after checking the first page object.
+     * @return array{grant:array{context:TenantContext,authorization_revision:string,reference_digest:null},can_download_original:bool}
+     */
+    public function authorizePreviewPage(TenantContext $context): array
+    {
+        $current = $this->currentContext($context);
+        $principal = $this->authorization->principal($current);
+        return $this->execution->run(new AdminExecutionContext($current, 'file.preview', $principal->toArray()), function () use ($current): array {
+            $guard = new ModuleGuard($this->modules);
+            $installation = $guard->assertDeployment('peanut.file');
+            $tenantModule = $guard->assertTenant($current->tenantId, 'peanut.file', new DateTimeImmutable('now', new DateTimeZone('UTC')));
+            try {
+                $decisions = $this->authorization->decisions($current, [self::PREVIEW_PERMISSION, self::DOWNLOAD_ORIGINAL_PERMISSION]);
+            } catch (\DomainException $error) {
+                if ($error->getMessage() !== 'TENANT_ADMIN_PRINCIPAL_UNAVAILABLE') {
+                    throw $error;
+                }
+                throw BusinessException::forbidden('FILE_ACCESS_DENIED', '无权执行资源操作');
+            }
+            if (!$decisions[self::PREVIEW_PERMISSION]->allowed) {
+                throw BusinessException::forbidden('FILE_ACCESS_DENIED', '无权执行资源操作');
+            }
+            return [
+                'grant' => [
+                    'context' => $current,
+                    'authorization_revision' => $this->authorizationRevision($current, 'preview', '', $installation, $tenantModule),
+                    'reference_digest' => null,
+                ],
+                'can_download_original' => $decisions[self::DOWNLOAD_ORIGINAL_PERMISSION]->allowed,
+            ];
+        });
+    }
+
+    /** File-internal object check shared by page and single-object authorization. */
+    public function assertReadableObject(TenantContext $context, array $object): void
+    {
+        if ($context->tenantId !== (int) $object['tenant_id'] || $object['status'] !== 'ready') {
+            throw BusinessException::forbidden('FILE_ACCESS_DENIED', '无权访问资源');
+        }
+    }
+
+    private function currentContext(TenantContext $context): TenantContext
+    {
+        $current = $this->sessions->revalidateSession(
+            $context->tenantId,
+            $context->accountId,
+            $context->memberId,
+            $context->sessionKey,
+            $context->clientKey,
+            $context->requestId,
+        );
+        if ($current->authorizationRevision !== $context->authorizationRevision) {
+            throw BusinessException::forbidden('FILE_AUTHORIZATION_STALE', '资源授权已改变');
+        }
+        return $current;
+    }
+
+    private function authorizationRevision(
+        TenantContext $context,
+        string $operation,
+        string $documentRevision,
+        ModuleInstallationRecord $installation,
+        TenantModuleRecord $tenantModule,
+    ): string {
+        return hash('sha256', json_encode([$context->authorizationRevision, $operation, $documentRevision, $installation, $tenantModule], JSON_THROW_ON_ERROR));
+    }
 
     /** Current independent original-download right under the existing System root; never creates an Admin root. */
     public function authorizeBackgroundDocumentSource(TenantContext $context, array $object): void

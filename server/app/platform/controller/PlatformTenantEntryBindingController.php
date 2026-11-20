@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace app\platform\controller;
 
-use think\App;
-
-use PeanutAdmin\Modules\Identity\Platform\Application\TenantEntryBindingAdminService;
+use app\common\http\ApiProblem;
 use app\platform\validate\TenantEntryBindingValidate;
+use PeanutAdmin\Modules\Identity\Platform\Application\TenantEntryBindingAdminService;
+use think\App;
+use think\exception\ValidateException;
 
 final class PlatformTenantEntryBindingController extends BasePlatformController
 {
@@ -18,7 +19,7 @@ final class PlatformTenantEntryBindingController extends BasePlatformController
     public function lists()
     {
         if ($this->platformContext === null) {
-            throw \app\common\http\ApiProblem::fromEnvelope('Platform authentication is required.', null, 40100);
+            throw ApiProblem::fromEnvelope('Platform authentication is required.', null, 40100);
         }
         $tenantId = $this->request->get('tenant_id');
         if ($tenantId !== null && $tenantId !== '') {
@@ -61,10 +62,14 @@ final class PlatformTenantEntryBindingController extends BasePlatformController
     private function mutate(string $scene, callable $operation)
     {
         if ($this->platformContext === null) {
-            throw \app\common\http\ApiProblem::fromEnvelope('Platform authentication is required.', null, 40100);
+            throw ApiProblem::fromEnvelope('Platform authentication is required.', null, 40100);
         }
         $params = $this->request->post();
-        $this->validate($params, TenantEntryBindingValidate::class . '.' . $scene);
+        try {
+            $this->validate($params, TenantEntryBindingValidate::class . '.' . $scene);
+        } catch (ValidateException $exception) {
+            throw new ApiProblem('TENANT_ENTRY_INPUT_INVALID', 422, (string) $exception->getError());
+        }
         return $this->data($operation($params));
     }
 }
