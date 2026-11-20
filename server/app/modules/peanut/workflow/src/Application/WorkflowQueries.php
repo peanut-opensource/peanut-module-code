@@ -399,10 +399,14 @@ final readonly class WorkflowQueries
                     if ($node['config']['allocation_mode'] === 'claim' && $this->allowed($c, $graph, $row['subject_key'], 'read', ['peanut.workflow.task.release'])) {
                         $actions[] = 'release';
                     }
+                    $decisions = [];
                     foreach ($graph->outgoing($node['key']) as $edge) {
                         $action = $edge['action'];
                         $permission = $action === 'resubmit' ? 'peanut.workflow.instance.resubmit' : 'peanut.workflow.task.' . (in_array($action, ['approve', 'reject'], true) ? 'decide' : $action);
-                        if ($this->allowed($c, $graph, $row['subject_key'], $edge['operation'], [$permission, ...$edge['permission_keys']])) {
+                        $permissions = [$permission, ...$edge['permission_keys']];
+                        $rule = serialize([$edge['operation'], $permissions]);
+                        $decisions[$rule] ??= $this->allowed($c, $graph, $row['subject_key'], $edge['operation'], $permissions);
+                        if ($decisions[$rule]) {
                             $actions[] = $action;
                         }
                     }
