@@ -53,11 +53,33 @@ final class OfficialAccountSecretRedactionFiles implements FileReferences
         return $reference === '' ? '' : '/files/' . ltrim($reference, '/');
     }
 
+    public function getFileUrls(array $references): array
+    {
+        $urls = [];
+        foreach ($references as $reference) {
+            $reference = trim($reference);
+            $urls[$reference] = $this->getFileUrl($reference);
+        }
+        return $urls;
+    }
+
     public function setTenantFileUrl(
         AuthenticatedMemberContext|TenantContext|TenantSystemContext $context,
         string $value = '',
     ): string {
         return $value;
+    }
+
+    public function setTenantFileUrls(
+        AuthenticatedMemberContext|TenantContext|TenantSystemContext $context,
+        array $values,
+    ): array {
+        $normalized = [];
+        foreach ($values as $value) {
+            $value = trim($value);
+            $normalized[$value] = $this->setTenantFileUrl($context, $value);
+        }
+        return $normalized;
     }
 }
 

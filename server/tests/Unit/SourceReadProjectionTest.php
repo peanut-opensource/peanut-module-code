@@ -2,108 +2,83 @@
 
 declare(strict_types=1);
 
-use PeanutAdmin\Modules\Identity\access\SourceRead\SourceReadCapability;
-use PeanutAdmin\Modules\Identity\access\SourceRead\SourceReadProjection;
+use PeanutAdmin\DataPermission\Constraint\ColumnIn;
+use PeanutAdmin\DataPermission\Constraint\ColumnNotIn;
+use PeanutAdmin\DataPermission\Constraint\ColumnReference;
+use PeanutAdmin\DataPermission\Constraint\OrConstraint;
+use PeanutAdmin\DataPermission\Constraint\TenantEquals;
 use PeanutAdmin\DataPermission\Exception\DataAuthorizationException;
+use PeanutAdmin\DataPermission\Scope\AuthorizedReadScope;
+use PeanutAdmin\DataPermission\Scope\SourceReadScope;
+use PeanutAdmin\Kernel\Auth\TenantContext;
+use PeanutAdmin\Kernel\Auth\ValidatedTenantSession;
 use PHPUnit\Framework\TestCase;
 
-/** 逐对象字段许可的纯规则测试：拒绝跨对象字段并集，保留合法增强。 */
 final class SourceReadProjectionTest extends TestCase
 {
-    private const FIELDS = ['id', 'quantity', 'amount'];
-
-    public function testRecipientAndSourceModuleAreIndependent(): void
+    public function testTenantAndObjectsRemainPairedInTheQueryConstraint(): void
     {
-        $definition = new SourceReadCapability('inventory.summary', 'read', 'official.inventory', 'summary.read', 'sharing.manage', self::FIELDS, 'official.summary');
-        self::assertSame('official.inventory', $definition->moduleKey);
-        self::assertSame('official.summary', $definition->recipientModuleKey);
-        $legacy = new SourceReadCapability('inventory.summary', 'read', 'official.inventory', 'summary.read', 'sharing.manage', self::FIELDS);
-        self::assertSame('official.inventory', $legacy->recipientModuleKey);
+        $scope = $this->scope([
+            new SourceReadScope(202, [2], [3], ['id', 'quantity'], 'source-r1'),
+            new SourceReadScope(303, null, [9], ['id', 'amount'], 'source-r2'),
+        ], ['id']);
+        self::assertSame(101, $scope->actor->tenantId);
+        self::assertSame([202, 303], $scope->sourceTenantIds());
+        self::assertSame(['id'], $scope->requestedFields);
+        $scope->assertFields(['id']);
+
+        $tenant = new ColumnReference('tenant_id');
+        $object = new ColumnReference('id');
+        $constraint = $scope->constraint($tenant, $object);
+        self::assertInstanceOf(OrConstraint::class, $constraint);
+        self::assertCount(2, $constraint->constraints);
+        self::assertEquals([
+            new TenantEquals($tenant, 202),
+            new ColumnIn($object, [2]),
+            new ColumnNotIn($object, [3]),
+        ], $constraint->constraints[0]->constraints);
+        self::assertEquals([
+            new TenantEquals($tenant, 303),
+            new ColumnNotIn($object, [9]),
+        ], $constraint->constraints[1]->constraints);
     }
 
-    public function testRequestedFieldsOnlyIncludeMatchingObjects(): void
+    public function testFieldsFromDifferentSourcesCannotBeCombined(): void
     {
-        $allows = [
-            ['object_id' => 1, 'fields' => ['id', 'quantity']],
-            ['object_id' => 2, 'fields' => ['id', 'amount']],
-        ];
-        self::assertSame([[1], ['id', 'quantity']], SourceReadProjection::resolve($allows, [], self::FIELDS, ['quantity', 'id']));
-        self::assertSame([[2], ['amount', 'id']], SourceReadProjection::resolve($allows, [], self::FIELDS, ['id', 'amount']));
-    }
+        $scope = $this->scope([
+            new SourceReadScope(202, [2], [], ['id', 'quantity'], 'source-r1'),
+            new SourceReadScope(303, [3], [], ['id', 'amount'], 'source-r2'),
+        ]);
 
-    public function testDifferentObjectsCannotCombineFieldsToCreateNewPermission(): void
-    {
         $this->expectException(DataAuthorizationException::class);
-        SourceReadProjection::resolve([
-            ['object_id' => 1, 'fields' => ['id', 'quantity']],
-            ['object_id' => 2, 'fields' => ['id', 'amount']],
-        ], [], self::FIELDS, ['quantity', 'amount']);
+        $scope->assertFields(['quantity', 'amount']);
     }
 
-    public function testAdditionalUnrelatedGrantDoesNotRemoveExistingExplicitProjection(): void
+    public function testEmptyProjectionFailsClosed(): void
     {
-        $original = [['object_id' => 1, 'fields' => ['id', 'quantity']]];
-        $before = SourceReadProjection::resolve($original, [], self::FIELDS, ['id', 'quantity']);
-        $original[] = ['object_id' => 2, 'fields' => ['id', 'amount']];
-        self::assertSame($before, SourceReadProjection::resolve($original, [], self::FIELDS, ['id', 'quantity']));
-    }
+        $scope = $this->scope([new SourceReadScope(202, [2], [], ['id'], 'source-r1')]);
 
-    public function testGlobalAndSameObjectPermissionsComposeWithoutOpeningOtherObjects(): void
-    {
-        self::assertSame([[2], ['amount', 'id']], SourceReadProjection::resolve([
-            ['object_id' => null, 'fields' => ['id']],
-            ['object_id' => 2, 'fields' => ['amount']],
-        ], [], self::FIELDS, ['id', 'amount']));
-    }
-
-    public function testGlobalCompleteProjectionKeepsAllObjects(): void
-    {
-        self::assertSame([null, ['id', 'quantity']], SourceReadProjection::resolve([
-            ['object_id' => null, 'fields' => ['id', 'quantity']],
-            ['object_id' => 2, 'fields' => ['id']],
-        ], [3], self::FIELDS, ['id', 'quantity']));
-        // 返回 null 只表示允许全集；deny 列表由 SourceReadScope 独立强制执行。
-    }
-
-    public function testExplicitDenyRemovesAnOtherwisePermittedObject(): void
-    {
-        self::assertSame([[1], ['amount']], SourceReadProjection::resolve([
-            ['object_id' => 1, 'fields' => ['amount']],
-            ['object_id' => 2, 'fields' => ['amount']],
-        ], [2], self::FIELDS, ['amount']));
-    }
-
-    public function testLegacyCommonProjectionIsExplicitlyConservative(): void
-    {
-        self::assertSame([[1, 2], ['id']], SourceReadProjection::resolve([
-            ['object_id' => 1, 'fields' => ['id', 'quantity']],
-            ['object_id' => 2, 'fields' => ['id', 'amount']],
-        ], [], self::FIELDS, []));
-    }
-
-    public function testSameObjectAllowsCanCombine(): void
-    {
-        self::assertSame([[1], ['amount', 'id']], SourceReadProjection::resolve([
-            ['object_id' => 1, 'fields' => ['id']],
-            ['object_id' => 1, 'fields' => ['amount']],
-        ], [], self::FIELDS, ['amount', 'id']));
-    }
-
-    public function testUnknownFieldIsRejected(): void
-    {
         $this->expectException(DataAuthorizationException::class);
-        SourceReadProjection::requestedFields(['password_hash'], self::FIELDS);
+        $scope->assertFields([]);
     }
 
-    public function testDuplicateFieldIsRejected(): void
+    public function testRequestedFieldsMustBeGrantedByEverySource(): void
     {
-        $this->expectException(DataAuthorizationException::class);
-        SourceReadProjection::requestedFields(['id', 'id'], self::FIELDS);
+        $this->expectException(InvalidArgumentException::class);
+        $this->scope([
+            new SourceReadScope(202, [2], [], ['id', 'quantity'], 'source-r1'),
+            new SourceReadScope(303, [3], [], ['id'], 'source-r2'),
+        ], ['quantity']);
     }
 
-    public function testEmptyAvailableObjectsFailClosed(): void
+    /** @param non-empty-list<SourceReadScope> $sources */
+    private function scope(array $sources, array $requestedFields = []): AuthorizedReadScope
     {
-        $this->expectException(DataAuthorizationException::class);
-        SourceReadProjection::resolve([['object_id' => 1, 'fields' => ['id']]], [1], self::FIELDS, []);
+        $actor = TenantContext::fromValidatedSession(new ValidatedTenantSession(
+            1, 'fixture-session', 101, 10, 11, 'admin-web',
+            new DateTimeImmutable('2031-01-01T00:00:00Z'), 1, 1,
+        ), 'fixture-read');
+
+        return new AuthorizedReadScope($actor, 'inventory.summary', 'read', $sources, 'fixture-r1', $requestedFields);
     }
 }
