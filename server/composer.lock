@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d1e5da36a4e265dd219d821c5876e1e4",
+    "content-hash": "9270cd83f371fd71ae3dd7014c8c5558",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2625,11 +2625,11 @@
         },
         {
             "name": "peanut-business/peanut-member",
-            "version": "1.0.28-rc.2",
+            "version": "1.0.28-rc.3",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/member",
-                "reference": "0363e9b81542802cf684130de6124a94bc9b6603"
+                "reference": "953098617c7c4b2192e9ba35dcecb175a42aba26"
             },
             "require": {
                 "firebase/php-jwt": "^7.1",
@@ -6746,5 +6746,5 @@
         "php": "^8.3"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.6.0"
 }
