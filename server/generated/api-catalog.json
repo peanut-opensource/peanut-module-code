@@ -4,7 +4,7 @@
     "inputs": [
         {
             "path": "modules.lock",
-            "sha256": "39d362989dfb958184f7f9e268b48ad8991055b455c2a6bccf42920ae2ad06fc"
+            "sha256": "b70071ba228a463b099e37690da68782f9b03fced4e96e44880dc215f1ae3089"
         },
         {
             "path": "release-versions.json",
@@ -112,7 +112,7 @@
         },
         {
             "path": "server/app/modules/peanut/member/api/metadata/openapi.php",
-            "sha256": "907e8ef4e0760c073593e98569d6ca395d5a0b1520a516ceea4b334933b98b64"
+            "sha256": "daa83c8dc4c3492c87dfdeb21c908c29ee945b334499ff159964d28cdcd5ff5c"
         },
         {
             "path": "server/app/modules/peanut/member/route/app.php",
@@ -28296,10 +28296,10 @@
                 }
             ],
             "errors": [
-                400,
                 401,
                 403,
-                409
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -28379,10 +28379,10 @@
                 }
             ],
             "errors": [
-                400,
                 401,
                 403,
-                404
+                404,
+                422
             ],
             "middleware": [
                 {
@@ -28462,11 +28462,11 @@
                 }
             ],
             "errors": [
-                400,
                 401,
                 403,
                 404,
-                409
+                409,
+                422
             ],
             "middleware": [
                 {

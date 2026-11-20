@@ -11281,10 +11281,13 @@ export interface components {
         };
         MemberTagCreateRequest: {
             name: string;
+            remark?: string | null;
         };
         MemberTagUpdateRequest: {
             id: components["schemas"]["MemberPositiveIntegerInput"];
             name: string;
+            /** @description 省略或传 null 时保留原备注，空字符串清除备注。 */
+            remark?: string | null;
         };
         MemberAdminListTag: {
             id: number;
@@ -24747,10 +24750,10 @@ export interface operations {
                     "application/json": components["schemas"]["MemberMutationResponse"];
                 };
             };
-            400: components["responses"]["ErrorResponse"];
             401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
             409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
         };
     };
     listMemberTags: {
@@ -24797,11 +24800,11 @@ export interface operations {
                     "application/json": components["schemas"]["MemberMutationResponse"];
                 };
             };
-            400: components["responses"]["ErrorResponse"];
             401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
             404: components["responses"]["ErrorResponse"];
             409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
         };
     };
     deleteMemberTag: {
@@ -24826,10 +24829,10 @@ export interface operations {
                     "application/json": components["schemas"]["MemberMutationResponse"];
                 };
             };
-            400: components["responses"]["ErrorResponse"];
             401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
             404: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
         };
     };
     listAdminMemberBalanceLogs: {
