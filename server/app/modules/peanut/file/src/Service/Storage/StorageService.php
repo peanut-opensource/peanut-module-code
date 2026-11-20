@@ -1290,12 +1290,35 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             ? array_column($rows, null, 'file_key')
             : [];
         $access = null;
+        $batch = null;
         $previews = [];
         foreach ($fileKeys as $index => $fileKey) {
             $source = $objects[$fileKey] ?? throw BusinessException::notFound('FILE_NOT_FOUND', '资源不存在');
             $this->authorization->assertReadableObject($context, $source);
             $access ??= $this->authorization->authorizePreviewPage($context);
-            $previews[$index] = $this->describeAuthorizedObject($context, $source, 'preview', null, $variantKeys[$index] ?? null, $viewerAdapterId, $access['grant'], $access['can_download_original']);
+            if ($batch === null) {
+                $batch = (object) ['variants' => [], 'targets' => [], 'modules' => null];
+                if (!$access['can_download_original'] || $variantKeys !== []) {
+                    $variants = Db::name('file_derivative')->where('tenant_id', $context->tenantId)
+                        ->whereIn('source_file_key', array_values(array_unique($fileKeys)))
+                        ->order('variant_key')->select()->toArray();
+                    $targetKeys = [];
+                    foreach ($variants as $variant) {
+                        $sourceKey = (string) $variant['source_file_key'];
+                        $key = (string) $variant['variant_key'];
+                        $batch->variants[$sourceKey][$key] ??= $variant;
+                        $targetKeys[] = (string) $variant['derivative_file_key'];
+                    }
+                    if ($targetKeys !== []) {
+                        $targets = $this->objectQuery($tenantId)->whereIn('f.file_key', array_values(array_unique($targetKeys)))
+                            ->where('f.status', 'ready')->select()->toArray();
+                        if ($targets !== [] && $this->directory->tenantStatus($tenantId) === 'active') {
+                            $batch->targets = array_column($targets, null, 'file_key');
+                        }
+                    }
+                }
+            }
+            $previews[$index] = $this->describeAuthorizedObject($context, $source, 'preview', null, $variantKeys[$index] ?? null, $viewerAdapterId, $access['grant'], $access['can_download_original'], $batch);
         }
         return $previews;
     }
@@ -1313,7 +1336,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         return $this->describeAuthorizedObject($context, $source, $operation, $documentId, $variantKey, $viewerAdapterId, $grant, $canDownload);
     }
 
-    private function describeAuthorizedObject(TenantContext $context, array $source, string $operation, ?int $documentId, ?string $variantKey, ?string $viewerAdapterId, array $grant, bool $canDownload): array
+    private function describeAuthorizedObject(TenantContext $context, array $source, string $operation, ?int $documentId, ?string $variantKey, ?string $viewerAdapterId, array $grant, bool $canDownload, ?\stdClass $batch = null): array
     {
         $fileKey = (string) $source['file_key'];
         if ($operation === 'manage') {
@@ -1322,13 +1345,19 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         $target = $source;
         $selectedVariantKey = null;
         if ($operation === 'preview' && (!$canDownload || $variantKey !== null)) {
-            $query = Db::name('file_derivative')->where('source_file_key', $fileKey);
-            $query->where('tenant_id', $context->tenantId);
-            if ($variantKey !== null) {
-                $query->where('variant_key', $variantKey);
+            if ($batch !== null) {
+                $variants = $batch->variants[$fileKey] ?? [];
+                $variant = $variantKey === null ? (reset($variants) ?: null) : ($variants[$variantKey] ?? null);
+                $target = is_array($variant) ? ($batch->targets[(string) $variant['derivative_file_key']] ?? null) : null;
+            } else {
+                $query = Db::name('file_derivative')->where('source_file_key', $fileKey);
+                $query->where('tenant_id', $context->tenantId);
+                if ($variantKey !== null) {
+                    $query->where('variant_key', $variantKey);
+                }
+                $variant = $query->order('variant_key')->find();
+                $target = is_array($variant) ? $this->deliverableObjectForTenant($context->tenantId, (string) $variant['derivative_file_key']) : null;
             }
-            $variant = $query->order('variant_key')->find();
-            $target = is_array($variant) ? $this->deliverableObjectForTenant($context->tenantId, (string) $variant['derivative_file_key']) : null;
             if ($target === null || $target['file_key'] === $fileKey || $target['sha256'] === $source['sha256']
                 || !in_array($target['media_type'], ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'], true)) {
                 return ['file_key' => $fileKey, 'state' => 'preview_unavailable', 'can_download_original' => $canDownload, 'url' => null];
@@ -1343,7 +1372,8 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             $canDownload,
             $grant['authorization_revision'],
             'browser',
-            $this->authorization->contentProviderModules($context),
+            $batch === null ? $this->authorization->contentProviderModules($context)
+                : ($batch->modules ??= $this->authorization->contentProviderModules($context)),
         ), 'view', $viewerAdapterId, null);
         if ($operation === 'preview' && !$capability['canView']) {
             return ['file_key' => $fileKey, 'state' => $capability['state'], 'capabilities' => $capability, 'can_download_original' => $canDownload, 'url' => null];
