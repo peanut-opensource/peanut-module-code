@@ -7,10 +7,12 @@ namespace PeanutAdmin\Modules\Identity\DataPermission\Application;
 use DateTimeImmutable;
 use DateTimeZone;
 use PeanutAdmin\DataPermission\Catalog\ResourceOperation;
+use PeanutAdmin\DataPermission\Exception\DataAuthorizationException;
 use PeanutAdmin\DataPermission\Target\TargetResolverRegistry;
 use PeanutAdmin\DataPermission\Target\TypedResourceTargetSet;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Authorization\Application\AdminAccessException;
+use PeanutAdmin\Kernel\Authorization\TenantAuthorizationEvaluator;
 use PeanutAdmin\Modules\Identity\Audit\AuditService;
 use PeanutAdmin\Modules\Identity\DataPermission\Catalog\ThinkPhpResourceOperationCatalog;
 use PeanutAdmin\Modules\Identity\DataPermission\Model\DataPermissionPolicyRecord;
@@ -27,6 +29,7 @@ final readonly class DataPolicyAdminService
         private ThinkPhpResourceOperationCatalog $catalog,
         private TargetResolverRegistry $targetResolvers,
         private AuditService $audit,
+        private TenantAuthorizationEvaluator $permissions,
     ) {}
 
     public function get(int $tenantId, int $roleId, string $resourceKey, string $operation): array
@@ -205,7 +208,7 @@ final readonly class DataPolicyAdminService
                         throw self::invalid();
                     }
                     $targetName = self::text($targetSet['name'] ?? null, 120);
-                    $targetIds = $this->targetIds($actor, $mode, $targetKey, $targetSet['targets'] ?? null);
+                    $targetIds = $this->targetIds($actor, $operation, $mode, $targetKey, $targetSet['targets'] ?? null);
                 }
                 ++$conditionId;
                 $prepared[] = [
@@ -223,7 +226,7 @@ final readonly class DataPolicyAdminService
     }
 
     /** @return list<string> */
-    private function targetIds(TenantContext $actor, string $mode, string $key, mixed $targets): array
+    private function targetIds(TenantContext $actor, ResourceOperation $operation, string $mode, string $key, mixed $targets): array
     {
         if (!is_array($targets) || !array_is_list($targets) || $targets === [] || count($targets) > 500) {
             throw self::invalid();
@@ -247,13 +250,43 @@ final readonly class DataPolicyAdminService
                 throw self::invalid();
             }
         } else {
+            $this->assertTargetSelectionAllowed($actor, $operation, $key);
             $type = $this->catalog->targetType($key);
             if ($type === null || !$this->catalog->moduleAvailable($actor->tenantId, $type['module_key'])) {
                 throw self::invalid();
             }
-            $this->targetResolvers->get($type['resolver'])->resolveAndValidate($actor, new TypedResourceTargetSet($key, $ids));
+            try {
+                $this->targetResolvers->get($type['resolver'])->resolveAndValidate($actor, new TypedResourceTargetSet($key, $ids));
+            } catch (DataAuthorizationException $error) {
+                throw new AdminAccessException($error->errorCode, 403, 'The selected targets are not available to this actor.');
+            }
         }
         return $ids;
+    }
+
+    /** Direct policy writes require the same declared grants as the policy target catalog. */
+    private function assertTargetSelectionAllowed(TenantContext $actor, ResourceOperation $operation, string $key): void
+    {
+        $selectionPermission = null;
+        foreach ($operation->targetTypes as $target) {
+            if ($target->targetRole === 'primary' && $target->targetResourceKey === $key) {
+                $selectionPermission = $target->policySelectionPermissionKey;
+                break;
+            }
+        }
+        if ($operation->permissionKeys === [] || $selectionPermission === null || $selectionPermission === '') {
+            throw new AdminAccessException('AUTHZ_PERMISSION_DENIED', 403, 'The operation has no available target selection authority.');
+        }
+        $manage = 'core.role.data-policy.manage';
+        $grants = $this->permissions->allowsMany($actor, array_values(array_unique([
+            ...$operation->permissionKeys, $manage, $selectionPermission,
+        ])));
+        $functionalGrants = array_map(static fn(string $permission): bool => $grants[$permission], $operation->permissionKeys);
+        $functionalAllowed = $operation->permissionMatch === 'all'
+            ? !in_array(false, $functionalGrants, true) : in_array(true, $functionalGrants, true);
+        if (!$functionalAllowed || !$grants[$manage] || !$grants[$selectionPermission]) {
+            throw new AdminAccessException('AUTHZ_PERMISSION_DENIED', 403, 'The policy target selection permission is denied.');
+        }
     }
 
     private function format(array $row, ResourceOperation $operation): array
