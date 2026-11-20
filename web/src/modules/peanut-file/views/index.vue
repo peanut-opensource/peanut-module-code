@@ -25,7 +25,7 @@
 
       <el-row :gutter="16" class="body">
         <!-- 左侧分类 -->
-        <el-col :span="4">
+        <el-col v-if="canReadCategories" :span="4">
           <div class="cate-panel">
             <div class="cate-head">
               <span>{{ $t('systemFile.cate.title') }}</span>
@@ -122,7 +122,7 @@
           </div>
         </el-col>
         <!-- 右侧文件区 -->
-        <el-col :span="20">
+        <el-col :span="canReadCategories ? 20 : 24">
           <div class="toolbar">
             <el-space>
               <el-upload
@@ -290,6 +290,7 @@
     </el-dialog>
     <!-- 分类新增/编辑 -->
     <el-dialog
+      v-if="canReadCategories"
       v-model="cateModalVisible"
       :title="
         cateIsEdit
@@ -400,11 +401,13 @@
 
 <script lang="ts" setup>
   import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
+  import { useRoute } from 'vue-router';
   import { useI18n } from 'vue-i18n';
   import { ElMessage } from 'element-plus';
   import type { FormInstance, UploadRequestOptions } from 'element-plus';
   import { Delete, Plus, Search } from '@element-plus/icons-vue';
   import useLoading from '@/hooks/loading';
+  import { hasPermission } from '@/hooks/permission';
   import { useUserStore } from '@/store';
   import { getSessionSnapshot, isLogin } from '@/utils/auth';
   import createLockedContentToolRegistry from '@/modules/peanut-content-tools/src/contributions';
@@ -428,7 +431,11 @@
 
   const { t } = useI18n();
   const { loading, setLoading } = useLoading(false);
+  const route = useRoute();
   const user = useUserStore();
+  const canReadCategories = computed(() =>
+    hasPermission('peanut.file.category.list', route.path)
+  );
   const sessionGeneration = ref(getSessionSnapshot().generation);
   const contentRegistry = createLockedContentToolRegistry();
   const contextKey = computed(() =>
@@ -438,6 +445,7 @@
       user.tenantName,
       user.role,
       user.permissions,
+      canReadCategories.value,
     ])
   );
   const unsubscribe = user.$subscribe(
@@ -479,7 +487,7 @@
   const currentCid = ref<number | ''>('');
 
   const fetchCate = async () => {
-    if (disposed) return;
+    if (disposed || !canReadCategories.value) return;
     const type = activeType.value;
     const requestContext = contextKey.value;
     cateRequestId += 1;
@@ -660,7 +668,7 @@
   };
   const submitCate = async () => {
     const valid = await cateFormRef.value?.validate().catch(() => false);
-    if (!valid) return;
+    if (!valid || !canReadCategories.value) return;
     cateSubmitting.value = true;
     try {
       if (cateIsEdit.value) {
@@ -680,6 +688,7 @@
     }
   };
   const handleCateDelete = async (c: FileCateRecord) => {
+    if (!canReadCategories.value) return;
     await deleteFileCate(c.id);
     ElMessage.success(t('systemFile.tip.ok'));
     if (currentCid.value === c.id) currentCid.value = '';
