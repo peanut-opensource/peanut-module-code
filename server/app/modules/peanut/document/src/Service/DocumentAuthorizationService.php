@@ -252,6 +252,14 @@ final readonly class DocumentAuthorizationService
         return $this->composeRevision($context, $document, $action, $digest, $owner);
     }
 
+    /** The caller has just authorized edit on this exact, locked business owner. */
+    public function lockedEditorRevision(TenantContext $context, Document $document, \PeanutAdmin\Modules\Document\Contract\DocumentOwnerState $owner): string
+    {
+        [$permissions, $modules] = $this->authorityScope($document, 'edit');
+        $digest = $this->fence->currentDigest($context, $permissions, $modules);
+        return $this->composeRevision($context, $document, 'edit', $digest, $owner);
+    }
+
     private function composeRevision(TenantContext $context, Document $document, string $action, string $digest, \PeanutAdmin\Modules\Document\Contract\DocumentOwnerState $owner): string
     {
         [$permissions, $modules] = $this->authorityScope($document, $action);

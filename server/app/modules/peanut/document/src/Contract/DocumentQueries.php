@@ -23,6 +23,10 @@ interface DocumentQueries
     public function versionSnapshot(TenantContext $context, int $documentId, int $revisionId): VersionSnapshot;
     /** Owner edit authorization, never implicit ordinary view/detail authority. */
     public function ownerEditor(TenantContext $context, int $documentId, DocumentOwnerReference $owner): array;
+    /** Read a Save-capable editor and its business metadata under the same locked owner and current Admin session.
+     * @param callable(DocumentOwnerState):array{document_id:int,...} $readBinding
+     */
+    public function ownerEditorContext(TenantContext $context, DocumentOwnerReference $owner, callable $readBinding): array;
     /** A committed version for this owner's Save only; requires version.create, not view. */
     public function ownerSaveSnapshot(TenantContext $context, int $documentId, int $revisionId, DocumentOwnerReference $owner): VersionSnapshot;
     /** Same original object, live outer Admin root and caller transaction; never a serializable credential. */

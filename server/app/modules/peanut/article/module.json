@@ -3,7 +3,7 @@
   "key": "peanut.article",
   "name": "Article Content",
   "description": "Tenant-owned article and category content with member collections.",
-  "version": "1.0.21-rc.8",
+  "version": "1.0.21-rc.9",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-article",
@@ -15,7 +15,7 @@
     },
     {
       "module_key": "peanut.document",
-      "version": "^1.0.16"
+      "version": "^1.0.28-rc.4"
     },
     {
       "module_key": "peanut.rich-text",

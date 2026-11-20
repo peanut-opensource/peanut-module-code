@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c2171c24e8740b3085bbfa126aad8a17",
+    "content-hash": "6c5faefeb225ba8357e5809e8aa137be",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2276,14 +2276,14 @@
         },
         {
             "name": "peanut-business/peanut-article",
-            "version": "1.0.21-rc.8",
+            "version": "1.0.21-rc.9",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/article",
-                "reference": "6e82c107e1d75c7cd717e087189af520fb4175ba"
+                "reference": "2171f06c07b44cd03edeef82404bc85d8fd64a94"
             },
             "require": {
-                "peanut-business/peanut-document": "^1.0.16",
+                "peanut-business/peanut-document": "^1.0.28-rc.4",
                 "peanut-business/peanut-identity": "^4.0.0-rc.32",
                 "peanut-business/peanut-member": "^1.0",
                 "peanut-business/peanut-rich-text": "^1.0.16"
@@ -2437,11 +2437,11 @@
         },
         {
             "name": "peanut-business/peanut-document",
-            "version": "1.0.28-rc.3",
+            "version": "1.0.28-rc.4",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/document",
-                "reference": "14a800143db11f00e544d9e63c882a793bfdcba0"
+                "reference": "c93263a7f44e1bd345e6bdbfe93479fe137ee1b3"
             },
             "require": {
                 "peanut-business/peanut-file": "^1.0.44",
@@ -6746,5 +6746,5 @@
         "php": "^8.3"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }

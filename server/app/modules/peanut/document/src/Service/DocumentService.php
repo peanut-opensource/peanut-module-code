@@ -665,6 +665,15 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
         }
     }
 
+    private function ownerSaveModules(DocumentOwnerReference $owner): array
+    {
+        $modules = ['peanut.document','peanut.file',$owner->moduleKey];
+        if ($this->ownerDocuments($owner)->where('collaboration_enabled', 1)->count() > 0) {
+            $modules[] = 'peanut.collaboration';
+        }
+        return $modules;
+    }
+
     /** Native decision remains authoritative; the digest only prevents RR snapshots from missing revocation. */
     private function businessTransaction(TenantContext $context, DocumentOwnerReference $owner, string $action, callable $operation, bool $verifyAfter = false): mixed
     {
@@ -672,11 +681,7 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
         return $this->authorization->run($context, function (TenantContext $current) use ($owner, $action, $operation, $verifyAfter): mixed {
             $policy = $this->owners->requirePolicy($owner);
             $permissions = $policy->authorizationPermissionKeys($action);
-            $modules = ['peanut.document','peanut.file',$owner->moduleKey];
-            // Collaboration is optional for solo owner slots; include only if installed provider is actually required.
-            if ($this->ownerDocuments($owner)->where('collaboration_enabled', 1)->count() > 0) {
-                $modules[] = 'peanut.collaboration';
-            }
+            $modules = $this->ownerSaveModules($owner);
             foreach ($modules as $module) {
                 $this->authorization->requireModule($current, $module);
             }
@@ -1082,25 +1087,74 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
             if (DocumentAuthorizationService::reference($doc) != $owner || $doc->content_kind !== 'rich_text') {
                 throw BusinessException::forbidden('DOCUMENT_OWNER_MISMATCH', '正文编辑归属不一致');
             }
-            $state = DocumentState::where('document_id', $documentId)->find();
-            if ($state === null || (int) $state->state_seq !== (int) $doc->state_seq) {
-                throw BusinessException::conflict('DOCUMENT_STATE_MISSING', '正文持久水位不一致');
-            }
             $revision = $this->authorization->revision($current, $doc, 'edit');
-            $modules = [];
-            foreach (['peanut.content-tools','peanut.rich-text'] as $key) {
-                try {
-                    $this->authorization->requireModule($current, $key);
-                    $modules[] = $key;
-                } catch (\PeanutAdmin\Kernel\Module\ModuleException) {
-                }
-            }
-            $authorized = new AuthorizedContentContext('rich_text', 'application/vnd.peanut.richtext+json', true, true, false, $revision, 'browser', $modules, []);
-            return $this->summary($doc) + ['owner' => self::ownerArray($owner),'authorization_revision' => $revision,
-                'collaboration_enabled' => (bool) $doc->collaboration_enabled,'structured_content' => self::json($state->projected_json),
-                'digest' => $state->state_sha256,'persisted_at' => $state->persisted_at,'can_edit' => true,'can_download_original' => false,
-                'capabilities' => $this->tools->resolve($authorized, 'edit', null, null)];
+            return $this->editorProjection($current, $doc, $owner, $revision);
         });
+    }
+
+    public function ownerEditorContext(TenantContext $context, DocumentOwnerReference $owner, callable $readBinding): array
+    {
+        $this->outsideTransaction();
+        return Db::transaction(function () use ($context, $owner, $readBinding): array {
+            $policy = $this->owners->requirePolicy($owner);
+            $permissions = array_values(array_unique([...$policy->authorizationPermissionKeys('version.create'), ...$policy->authorizationPermissionKeys('edit')]));
+            $modules = $this->ownerSaveModules($owner);
+            // Lock IAM inputs before checking the live session, both actions and the business owner.
+            try {
+                $this->authorizationFence->captureGrant($context, $permissions, $modules);
+            } catch (\DomainException $error) {
+                if ($error->getMessage() !== 'IDENTITY_AUTHORIZATION_PROOF_STALE') {
+                    throw $error;
+                }
+                throw BusinessException::conflict('DOCUMENT_AUTHORIZATION_CHANGED', '当前授权输入已改变');
+            }
+            return $this->authorization->run($context, function (TenantContext $current) use ($owner, $readBinding, $modules, $policy): array {
+                // run() admits Document and owner() admits the owner module.
+                foreach (array_diff($modules, ['peanut.document', $owner->moduleKey]) as $key) {
+                    $this->authorization->requireModule($current, $key);
+                }
+                $state = $this->authorization->owner($current, $owner, 'version.create', true);
+                $policy->authorize($current, 'edit', $state);
+                $pdo = Db::connect()->getPdo();
+                $binding = $readBinding($state);
+                if ($pdo !== Db::connect()->getPdo() || !$pdo->inTransaction()) {
+                    throw new \LogicException('DOCUMENT_OWNER_TRANSACTION_CHANGED');
+                }
+                $doc = Document::where('id', $binding['document_id'])->find();
+                if ($doc === null) {
+                    throw BusinessException::notFound('DOCUMENT_NOT_FOUND', '文档不存在');
+                }
+                if (DocumentAuthorizationService::reference($doc) != $owner || $doc->content_kind !== 'rich_text') {
+                    throw BusinessException::forbidden('DOCUMENT_OWNER_MISMATCH', '正文编辑归属不一致');
+                }
+                if ($doc->status !== 'active' || $state->archived) {
+                    throw BusinessException::forbidden('DOCUMENT_STATE_DENIED', '当前业务或文档状态不允许此操作');
+                }
+                $revision = $this->authorization->lockedEditorRevision($current, $doc, $state);
+                return $this->editorProjection($current, $doc, $owner, $revision) + $binding;
+            });
+        });
+    }
+
+    private function editorProjection(TenantContext $current, Document $doc, DocumentOwnerReference $owner, string $revision): array
+    {
+        $state = DocumentState::where('document_id', $doc->id)->find();
+        if ($state === null || (int) $state->state_seq !== (int) $doc->state_seq) {
+            throw BusinessException::conflict('DOCUMENT_STATE_MISSING', '正文持久水位不一致');
+        }
+        $modules = [];
+        foreach (['peanut.content-tools','peanut.rich-text'] as $key) {
+            try {
+                $this->authorization->requireModule($current, $key);
+                $modules[] = $key;
+            } catch (\PeanutAdmin\Kernel\Module\ModuleException) {
+            }
+        }
+        $authorized = new AuthorizedContentContext('rich_text', 'application/vnd.peanut.richtext+json', true, true, false, $revision, 'browser', $modules, []);
+        return $this->summary($doc) + ['owner' => self::ownerArray($owner),'authorization_revision' => $revision,
+            'collaboration_enabled' => (bool) $doc->collaboration_enabled,'structured_content' => self::json($state->projected_json),
+            'digest' => $state->state_sha256,'persisted_at' => $state->persisted_at,'can_edit' => true,'can_download_original' => false,
+            'capabilities' => $this->tools->resolve($authorized, 'edit', null, null)];
     }
 
     public function publicationBody(DocumentOwnerReference $owner): array
