@@ -604,7 +604,7 @@
         "manifest_source": {
           "source": "application",
           "path": "server/app/modules/peanut/identity/module.json",
-          "sha256": "f0f227053dfcd2425a2418c8b6b3741c7a7d377d6da3b4c6ff558e85f364c376"
+          "sha256": "85ceee0aaad9fb0b0e2291400fec3de68dfedf1b1e010b0175648599267a1248"
         },
         "method_results": {
           "get": "array",
