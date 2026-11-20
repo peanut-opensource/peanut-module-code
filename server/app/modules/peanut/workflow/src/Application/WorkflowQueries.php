@@ -14,6 +14,7 @@ use PeanutAdmin\Modules\Workflow\Persistence\Model\WorkflowDefinitionVersionReco
 use PeanutAdmin\Modules\Workflow\Persistence\Model\WorkflowInstanceRecord as Instance;
 use PeanutAdmin\Modules\Workflow\Persistence\Model\WorkflowNodeExecutionRecord as Node;
 use PeanutAdmin\Modules\Workflow\Persistence\Model\WorkflowEventRecord as Event;
+use think\db\BaseQuery;
 use think\facade\Db;
 
 final readonly class WorkflowQueries
@@ -133,6 +134,32 @@ final readonly class WorkflowQueries
             $blocker = ['code' => 'ACTION_BLOCKED', 'message' => $row['blocked_reason'], 'node_execution_key' => $nodes[0]['node_execution_key'] ?? ''];
         }
         return ['instance_key' => $row['instance_key'], 'status' => $row['status'], 'result_code' => $row['result_code'], 'revision' => (int) $row['revision'], 'subject_type' => $row['subject_type'], 'subject_key' => $row['subject_key'], 'subject_revision_key' => $row['subject_revision_key'], 'active_nodes' => $nodes, 'own_work_items' => $own, 'reassign_work_items' => $reassignable, 'available_actions' => $actions, 'event_cursor' => (int) Event::scope('tenant', $this->scope($c))->where('instance_id', $row['id'])->max('sequence_no'), 'blocker' => $blocker];
+    }
+
+    /**
+     * Reads the first visible work item in detail order for a subsequent task decision.
+     * The decision command independently checks current authorization, versions and assignment.
+     *
+     * @return array{status:string,result_code:?string,revision:int,work_item:?array{work_item_key:string,node_execution_key:string,revision:int,node_revision:int}}
+     */
+    public function taskDecisionBasis(AuthorizedOperationContext $c, string $instanceKey): array
+    {
+        [$instance] = $this->visibleInstance($c, $instanceKey);
+        $query = $this->workItemQuery($c)->where('i.id', $instance['id']);
+        $this->own($c, $query, null);
+        $item = $query->field('w.work_item_key,n.node_execution_key,w.revision,n.revision AS node_revision')->order('w.id')->find();
+
+        return [
+            'status' => $instance['status'],
+            'result_code' => $instance['result_code'],
+            'revision' => (int) $instance['revision'],
+            'work_item' => $item === null ? null : [
+                'work_item_key' => $item['work_item_key'],
+                'node_execution_key' => $item['node_execution_key'],
+                'revision' => (int) $item['revision'],
+                'node_revision' => (int) $item['node_revision'],
+            ],
+        ];
     }
 
     /**
@@ -341,7 +368,16 @@ final readonly class WorkflowQueries
         $member = (int) $c->tenantContext->memberId;
         $projection = 'w.*,i.instance_key,i.revision AS instance_revision,i.subject_key,i.initiated_by_member_id,i.status AS instance_status,n.node_execution_key,n.revision AS node_revision,n.status AS node_status,v.graph_json';
         $projection .= ',COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT(\'relation_type\',l.relation_type,\'sources_json\',l.sources_json)) FROM ' . $links . ' l WHERE l.tenant_id=w.tenant_id AND l.work_item_id=w.id AND l.member_id=' . $member . '),JSON_ARRAY()) AS own_links_json';
-        return Db::name('workflow_work_item')->alias('w')->join('workflow_instance i', 'i.id=w.instance_id AND i.tenant_id=w.tenant_id')->join('workflow_node_execution n', 'n.id=w.node_execution_id AND n.tenant_id=w.tenant_id')->join('workflow_definition_version v', 'v.definition_id=i.definition_id AND v.version=i.definition_version AND v.tenant_id=i.tenant_id')->where('w.tenant_id', $c->tenantContext->tenantId)->fieldRaw($projection);
+        return $this->workItemQuery($c)->fieldRaw($projection);
+    }
+
+    private function workItemQuery(AuthorizedOperationContext $c): BaseQuery
+    {
+        return Db::name('workflow_work_item')->alias('w')
+            ->join('workflow_instance i', 'i.id=w.instance_id AND i.tenant_id=w.tenant_id')
+            ->join('workflow_node_execution n', 'n.id=w.node_execution_id AND n.tenant_id=w.tenant_id')
+            ->join('workflow_definition_version v', 'v.definition_id=i.definition_id AND v.version=i.definition_version AND v.tenant_id=i.tenant_id')
+            ->where('w.tenant_id', $c->tenantContext->tenantId);
     }
 
     private function own(AuthorizedOperationContext $c, mixed $query, ?string $filter): void

@@ -298,6 +298,32 @@ final class WorkflowRuntimeTest extends TestCase
         self::assertSame($before, $this->state());
     }
 
+    public function testTaskDecisionBasisKeepsDetailVisibilityAndVersions(): void
+    {
+        $this->publish();
+        $instance = $this->start();
+        $key = $instance['instance_key'];
+        $reviewer = $this->context(member: 12);
+        $detail = $this->queries->instance($reviewer, $key);
+        self::assertNotEmpty($detail['own_work_items']);
+        $item = $detail['own_work_items'][0];
+        self::assertSame([
+            'status' => $detail['status'],
+            'result_code' => $detail['result_code'],
+            'revision' => $detail['revision'],
+            'work_item' => [
+                'work_item_key' => $item['work_item_key'],
+                'node_execution_key' => $item['node_execution_key'],
+                'revision' => $item['revision'],
+                'node_revision' => $item['node_revision'],
+            ],
+        ], $this->queries->taskDecisionBasis($reviewer, $key));
+        self::assertNull($this->queries->taskDecisionBasis($this->context(member: 13), $key)['work_item']);
+        WorkflowCapabilityCompositionTest::assertWorkflowFailure('WORKFLOW_SUBJECT_NOT_FOUND', fn() => $this->queries->taskDecisionBasis($this->context(tenant: 2), $key));
+        $this->denied = true;
+        WorkflowCapabilityCompositionTest::assertWorkflowFailure('WORKFLOW_SUBJECT_NOT_FOUND', fn() => $this->queries->taskDecisionBasis($reviewer, $key));
+    }
+
     public function testAllReviewRequiresEveryFrozenAssignee(): void
     {
         $graph = WorkflowGraphTest::validGraph(true);
