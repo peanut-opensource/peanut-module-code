@@ -1278,7 +1278,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
     }
 
     /** File administration shares one live authorization across this tenant's ready page objects. */
-    public function resolvePreviewPage(TenantContext $context, array $fileKeys, ?string $viewerAdapterId): array
+    public function resolvePreviewPage(TenantContext $context, array $fileKeys, ?string $viewerAdapterId, array $variantKeys = []): array
     {
         if ($fileKeys === []) {
             return [];
@@ -1295,7 +1295,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             $source = $objects[$fileKey] ?? throw BusinessException::notFound('FILE_NOT_FOUND', '资源不存在');
             $this->authorization->assertReadableObject($context, $source);
             $access ??= $this->authorization->authorizePreviewPage($context);
-            $previews[$index] = $this->describeAuthorizedObject($context, $source, 'preview', null, null, $viewerAdapterId, $access['grant'], $access['can_download_original']);
+            $previews[$index] = $this->describeAuthorizedObject($context, $source, 'preview', null, $variantKeys[$index] ?? null, $viewerAdapterId, $access['grant'], $access['can_download_original']);
         }
         return $previews;
     }
