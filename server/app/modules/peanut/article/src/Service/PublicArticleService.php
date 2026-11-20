@@ -230,10 +230,12 @@ final class PublicArticleService implements PublicArticleQueries, MemberCollecti
     {
         $categories = ArticleCate::where([])->field(['id', 'name'])->where('is_show', 1)
             ->order(['sort' => 'desc', 'id' => 'desc'])->select()->toArray();
+        $articles = Article::topPublishedByCategories(array_column($categories, 'id'), 10);
+        $imageUrls = $this->assets->forReadMany(array_column($articles, 'image'));
         $byCategory = [];
-        foreach (Article::topPublishedByCategories(array_column($categories, 'id'), 10) as $article) {
+        foreach ($articles as $article) {
             $article['click'] = (int) $article['click_actual'] + (int) $article['click_virtual'];
-            $article['image'] = $this->assets->forRead((string) ($article['image'] ?? ''));
+            $article['image'] = $imageUrls[trim((string) ($article['image'] ?? ''))] ?? '';
             unset($article['click_actual'], $article['click_virtual'], $article['category_rank']);
             $byCategory[(int) $article['cid']][] = $article;
         }
@@ -254,9 +256,10 @@ final class PublicArticleService implements PublicArticleQueries, MemberCollecti
             ->limit($limit)
             ->select()
             ->toArray();
+        $imageUrls = $this->assets->forReadMany(array_column($rows, 'image'));
         foreach ($rows as &$row) {
             $row['click'] = (int) $row['click_actual'] + (int) $row['click_virtual'];
-            $row['image'] = $this->assets->forRead((string) ($row['image'] ?? ''));
+            $row['image'] = $imageUrls[trim((string) ($row['image'] ?? ''))] ?? '';
             unset($row['click_actual'], $row['click_virtual']);
         }
         unset($row);
@@ -310,9 +313,10 @@ final class PublicArticleService implements PublicArticleQueries, MemberCollecti
             $query->limit($limit);
         }
         $rows = $query->select()->toArray();
+        $imageUrls = $this->assets->forReadMany(array_column($rows, 'image'));
         foreach ($rows as &$row) {
             $row['click'] = (int) $row['click_actual'] + (int) $row['click_virtual'];
-            $row['image'] = $this->assets->forRead((string) ($row['image'] ?? ''));
+            $row['image'] = $imageUrls[trim((string) ($row['image'] ?? ''))] ?? '';
             unset($row['click_actual'], $row['click_virtual'], $row['sort']);
         }
         unset($row);

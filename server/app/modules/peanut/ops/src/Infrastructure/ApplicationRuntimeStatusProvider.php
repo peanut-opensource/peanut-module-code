@@ -456,10 +456,8 @@ final readonly class ApplicationRuntimeStatusProvider implements RuntimeStatusPr
     private function expectedMigrations(): array
     {
         $registry = $this->moduleGovernance->registry();
-        $manifests = [];
-        foreach ($this->moduleGovernance->qualification()->installedModules() as $module) {
-            $manifests[$module->moduleKey] = $registry->requireInstalled($module->moduleKey, false);
-        }
+        $modules = $this->moduleGovernance->qualification()->installedModules();
+        $manifests = $registry->requireInstalledMany(array_column($modules, 'moduleKey'), false);
         $expected = [];
         foreach (ModuleMigrationRun::sources($manifests, $this->projectRoot . '/server', true) as $source) {
             $expected[$source['migration_key']] = ['name' => $source['name'], 'sha256' => $source['sha256']];
