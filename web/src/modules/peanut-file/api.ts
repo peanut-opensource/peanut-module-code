@@ -1,4 +1,5 @@
 import axios, { type AxiosRequestConfig } from 'axios';
+import type { components } from '@/generated/openapi';
 import type {
   SurfaceCapabilities,
   SurfaceState,
@@ -71,6 +72,7 @@ export interface FileRecord {
   source_sha256?: string | null;
   capabilities?: SurfaceCapabilities | null;
   preview_state?: SurfaceState;
+  preview_access?: components['schemas']['FilePreviewAccessReceipt'];
   preview_unavailable_reason?: string | null;
   authorization_revision?: string | null;
   can_download_original?: boolean;

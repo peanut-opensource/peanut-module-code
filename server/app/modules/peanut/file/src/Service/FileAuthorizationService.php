@@ -214,7 +214,7 @@ final readonly class FileAuthorizationService
 
     /**
      * File-internal authorization for direct previews after checking the first page object.
-     * @return array{grant:array{context:TenantContext,authorization_revision:string,reference_digest:null},can_download_original:bool}
+     * @return array{grant:array{context:TenantContext,authorization_revision:string,tenant_authorization_revision:int,reference_digest:null},can_download_original:bool}
      */
     public function authorizePreviewPage(TenantContext $context): array
     {
@@ -239,6 +239,8 @@ final readonly class FileAuthorizationService
                 'grant' => [
                     'context' => $current,
                     'authorization_revision' => $this->authorizationRevision($current, 'preview', '', $installation, $tenantModule),
+                    // Role permissions can change without changing the member revision.
+                    'tenant_authorization_revision' => $current->tenantAuthorizationRevision,
                     'reference_digest' => null,
                 ],
                 'can_download_original' => $decisions[self::DOWNLOAD_ORIGINAL_PERMISSION]->allowed,

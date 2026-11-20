@@ -12,6 +12,8 @@ export interface FileContentCallbackOptions {
   readonly variantKey?: string | null;
   readonly viewerAdapterId: string;
   readonly canDownloadOriginal: () => boolean;
+  /** The current File page's already-issued preview, consumed by its thumbnail once. */
+  readonly pagePreviewReceipt?: unknown;
 }
 
 const record = (value: unknown): Record<string, unknown> => {
@@ -35,7 +37,7 @@ const deliveryUrl = (value: unknown): string => {
   return url.href;
 };
 
-/** File/Document supplies the identity and explicit tool choice; callbacks never store URLs. */
+/** File/Document supplies the identity and explicit tool choice. */
 export const createFileContentCallbacks = (
   options: FileContentCallbackOptions
 ): SurfaceCallbacks => {
@@ -44,40 +46,13 @@ export const createFileContentCallbacks = (
     !/^[a-z][a-z0-9-]{0,31}$/.test(options.variantKey)
   )
     throw new Error('FILE_VARIANT_KEY_INVALID');
-  const resolve = async (
+  let pagePreviewReceipt =
+    options.documentId === undefined ? options.pagePreviewReceipt : undefined;
+  const validate = (
     content: FileResourceContent,
     operation: 'preview' | 'download_original',
-    signal: AbortSignal
-  ): Promise<Record<string, unknown>> => {
-    const response = await tenantSessionFetch(
-      new Request('/adminapi/api/v1/files/resolve', {
-        method: 'POST',
-        credentials: 'same-origin',
-        signal,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          file_key: content.fileKey,
-          operation,
-          ...(operation === 'preview'
-            ? {
-                viewer_adapter_id: options.viewerAdapterId,
-                ...(options.variantKey == null
-                  ? {}
-                  : { variant_key: options.variantKey }),
-                ...(options.documentId === undefined
-                  ? {}
-                  : { document_id: options.documentId }),
-              }
-            : {}),
-        }),
-      })
-    );
-    const envelope = record(await response.json());
-    if (!response.ok || envelope.code !== 20000)
-      throw new Error('FILE_ACCESS_DENIED');
-    const data = record(envelope.data);
+    data: Record<string, unknown>
+  ): Record<string, unknown> => {
     if (data.state !== 'available') throw new Error('FILE_PREVIEW_UNAVAILABLE');
     if (
       data.file_key !== content.fileKey ||
@@ -124,25 +99,79 @@ export const createFileContentCallbacks = (
     deliveryUrl(data.url);
     return data;
   };
+  const resolve = async (
+    content: FileResourceContent,
+    operation: 'preview' | 'download_original',
+    signal: AbortSignal
+  ): Promise<Record<string, unknown>> => {
+    const response = await tenantSessionFetch(
+      new Request('/adminapi/api/v1/files/resolve', {
+        method: 'POST',
+        credentials: 'same-origin',
+        signal,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          file_key: content.fileKey,
+          operation,
+          ...(operation === 'preview'
+            ? {
+                viewer_adapter_id: options.viewerAdapterId,
+                ...(options.variantKey == null
+                  ? {}
+                  : { variant_key: options.variantKey }),
+                ...(options.documentId === undefined
+                  ? {}
+                  : { document_id: options.documentId }),
+              }
+            : {}),
+        }),
+      })
+    );
+    const envelope = record(await response.json());
+    if (!response.ok || envelope.code !== 20000)
+      throw new Error('FILE_ACCESS_DENIED');
+    return validate(content, operation, record(envelope.data));
+  };
+  const previewAccess = (
+    content: FileResourceContent,
+    data: Record<string, unknown>
+  ): AuthorizedPreviewAccess => {
+    if (!options.canDownloadOriginal() && data.bytes !== 'derivative')
+      throw new Error('FILE_PREVIEW_ORIGINAL_FORBIDDEN');
+    return {
+      url: deliveryUrl(data.url),
+      fileKey: content.fileKey,
+      sourceSha256: content.sourceSha256,
+      mimeType: data.media_type as string,
+      purpose: 'preview',
+      bytes: data.bytes as 'original' | 'derivative',
+      expiresAt: data.expires_at as number,
+      dispose: () => {},
+    };
+  };
 
   return {
     resolvePreview: async (
       content,
       signal
     ): Promise<AuthorizedPreviewAccess> => {
+      if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+      const receipt = pagePreviewReceipt;
+      pagePreviewReceipt = undefined;
+      if (receipt !== undefined) {
+        try {
+          return previewAccess(
+            content,
+            validate(content, 'preview', record(receipt))
+          );
+        } catch {
+          // A stale list response can only be replaced by freshly authorized access.
+        }
+      }
       const data = await resolve(content, 'preview', signal);
-      if (!options.canDownloadOriginal() && data.bytes !== 'derivative')
-        throw new Error('FILE_PREVIEW_ORIGINAL_FORBIDDEN');
-      return {
-        url: deliveryUrl(data.url),
-        fileKey: content.fileKey,
-        sourceSha256: content.sourceSha256,
-        mimeType: data.media_type as string,
-        purpose: 'preview',
-        bytes: data.bytes as 'original' | 'derivative',
-        expiresAt: data.expires_at as number,
-        dispose: () => {},
-      };
+      return previewAccess(content, data);
     },
     downloadOriginal: async (content, signal): Promise<void> => {
       if (!options.canDownloadOriginal())

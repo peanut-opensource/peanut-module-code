@@ -116,6 +116,13 @@ final class FileAdministrationService implements FileAdministration
             $item['capabilities'] = $preview['capabilities'] ?? null;
             $item['preview_unavailable_reason'] = $preview['capabilities']['unavailableReason'] ?? ($preview['state'] === 'preview_unavailable' ? 'FILE_PREVIEW_UNAVAILABLE' : null);
             $item['authorization_revision'] = $preview['authorization_revision'] ?? null;
+            if ($preview['state'] === 'available') {
+                $item['preview_access'] = array_intersect_key($preview, [
+                    'file_key' => true, 'delivery_file_key' => true, 'source_sha256' => true,
+                    'media_type' => true, 'state' => true, 'purpose' => true, 'bytes' => true,
+                    'variant_key' => true, 'expires_at' => true, 'url' => true, 'capabilities' => true,
+                ]);
+            }
         }
         unset($item);
 

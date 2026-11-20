@@ -1243,7 +1243,9 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         } else {
             $subject = json_decode((string) $grant['subject_json'], true, 16, JSON_THROW_ON_ERROR);
             $context = $this->authorization->grantContext($subject);
-            if ($context->authorizationRevision !== (int) $subject['authorization_revision']) {
+            if ($context->authorizationRevision !== (int) $subject['authorization_revision']
+                || (isset($subject['tenant_authorization_revision'])
+                    && $context->tenantAuthorizationRevision !== (int) $subject['tenant_authorization_revision'])) {
                 throw BusinessException::forbidden('FILE_DELIVERY_REVOKED', '资源授权已改变');
             }
             $live = $this->authorization->authorize($context, $source, (string) $grant['operation'], $grant['document_id'] === null ? null : (int) $grant['document_id']);
@@ -1936,6 +1938,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
                 'tenant_id' => $context->tenantId, 'account_id' => $context->accountId, 'member_id' => $context->memberId,
                 'session_key' => $context->sessionKey, 'client_key' => $context->clientKey,
                 'authorization_revision' => $context->authorizationRevision,
+                ...array_intersect_key($grant, ['tenant_authorization_revision' => true]),
             ], JSON_THROW_ON_ERROR) : null,
             'expires_at' => gmdate('Y-m-d H:i:s', time() + ($private || $grant !== null ? 300 : self::DELIVERY_URL_TTL)),
         ];

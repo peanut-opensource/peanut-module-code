@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { FileResourceContent } from '@/modules/official-content-tools/src';
+import { tenantSessionFetch } from '@/api/tenant-session-fetch';
+import type { FileResourceContent } from '@/modules/peanut-content-tools/src';
 import { createFileContentCallbacks } from '../src/contentCallbacks';
 
-vi.mock('@/utils/auth', () => ({ getToken: () => 'synthetic-token' }));
+vi.mock('@/api/tenant-session-fetch', () => ({ tenantSessionFetch: vi.fn() }));
 
 const content: FileResourceContent = {
   kind: 'file_resource',
@@ -41,20 +42,21 @@ const respond = (data: ReturnType<typeof receipt>) => {
   vi.stubGlobal('window', {
     location: { origin: 'https://application.invalid' },
   });
-  const fetch = vi.fn().mockResolvedValue({
-    ok: true,
-    json: async () => ({ code: 20000, data }),
-  });
-  vi.stubGlobal('fetch', fetch);
-  return fetch;
+  return vi
+    .mocked(tenantSessionFetch)
+    .mockResolvedValue(new Response(JSON.stringify({ code: 20000, data })));
 };
-const callbacks = () =>
+const callbacks = (pagePreviewReceipt?: unknown) =>
   createFileContentCallbacks({
     variantKey: 'small',
     viewerAdapterId: 'builtin.image',
     canDownloadOriginal: () => false,
+    pagePreviewReceipt,
   });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.resetAllMocks();
+});
 
 describe('File preview selection receipt', () => {
   it('accepts an actual PNG derivative of a JPEG source and sends the fixed variant', async () => {
@@ -65,7 +67,9 @@ describe('File preview selection receipt', () => {
     );
     expect(preview.mimeType).toBe('image/png');
     expect(preview.bytes).toBe('derivative');
-    expect(JSON.parse(fetch.mock.calls[0]![1].body).variant_key).toBe('small');
+    expect(
+      (await (fetch.mock.calls[0]![0] as Request).json()).variant_key
+    ).toBe('small');
   });
 
   it.each([
@@ -98,5 +102,56 @@ describe('File preview selection receipt', () => {
     await expect(
       callbacks().resolvePreview!(content, new AbortController().signal)
     ).rejects.toThrow('FILE_VARIANT_RECEIPT_INVALID');
+  });
+
+  it('consumes the issued page preview only once and uses live resolution on retry', async () => {
+    const issued = receipt();
+    const fetch = respond({
+      ...issued,
+      url: '/api/storage/delivery?token=fresh',
+    });
+    const resolver = callbacks(issued).resolvePreview!;
+    const { signal } = new AbortController();
+    expect((await resolver(content, signal)).url).toContain('token=synthetic');
+    expect(fetch).not.toHaveBeenCalled();
+    expect((await resolver(content, signal)).url).toContain('token=fresh');
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['expired', { expires_at: 1 }],
+    ['different file', { file_key: `file_${'d'.repeat(32)}` }],
+    ['original bytes', { bytes: 'original' }],
+    ['cross-origin URL', { url: 'https://other.invalid/api/storage/delivery' }],
+  ])('replaces a %s page receipt only with fresh access', async (_, change) => {
+    const fetch = respond({
+      ...receipt(),
+      url: '/api/storage/delivery?token=fresh',
+    });
+    const initial = { ...receipt(), ...change };
+    const preview = await callbacks(initial).resolvePreview!(
+      content,
+      new AbortController().signal
+    );
+    expect(preview.url).toContain('token=fresh');
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('requires live resolution for document previews and preserves the document binding', async () => {
+    const fetch = respond({
+      ...receipt(),
+      url: '/api/storage/delivery?token=fresh',
+    });
+    const resolver = createFileContentCallbacks({
+      documentId: 42,
+      viewerAdapterId: 'builtin.image',
+      canDownloadOriginal: () => false,
+      pagePreviewReceipt: receipt(),
+    }).resolvePreview!;
+    const preview = await resolver(content, new AbortController().signal);
+    expect(preview.url).toContain('token=fresh');
+    expect(
+      (await (fetch.mock.calls[0]![0] as Request).json()).document_id
+    ).toBe(42);
   });
 });

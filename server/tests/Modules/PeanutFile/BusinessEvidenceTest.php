@@ -22,7 +22,9 @@ use PeanutAdmin\Modules\File\Contract\Dto\BusinessEvidenceFile;
 use PeanutAdmin\Modules\File\Contract\Dto\BusinessEvidenceFact;
 use PeanutAdmin\Modules\File\Contract\Dto\UploadFile;
 use PeanutAdmin\Modules\File\Contract\FileDocumentReferencePolicy;
+use PeanutAdmin\Modules\File\Service\FileAdministrationService;
 use PeanutAdmin\Modules\File\Service\FileAuthorizationService;
+use PeanutAdmin\Modules\File\Service\FileService;
 use PeanutAdmin\Modules\File\Service\Storage\StorageService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -35,6 +37,7 @@ use think\facade\Db;
 final class BusinessEvidenceTest extends TestCase
 {
     private StorageService $storage;
+    private FileAdministrationService $administration;
     private Drivers $drivers;
     private BusinessEvidenceFixture\Audit $audit;
     private ExecutionContextStore $contexts;
@@ -76,7 +79,7 @@ final class BusinessEvidenceTest extends TestCase
         $this->actor = $this->actor();
         $this->connect();
         SnapshotRecoveryReceiptFixture\schema($server . '/app/modules/peanut/file/database/migrations/20261101010003_initial_file_schema.php',
-            ['storage_account', 'storage_space', 'storage_route', 'file_object', 'file_immutable_snapshot', 'file_reference', 'file', 'file_derivative',
+            ['storage_account', 'storage_space', 'storage_route', 'file_object', 'file_immutable_snapshot', 'file_reference', 'file', 'file_derivative', 'file_image_asset',
                 'file_delivery_grant', 'file_delivery_nonce']);
         // SQLite RTRIM reproduces ascii_bin's PAD SPACE equality for the original reference identity.
         $referenceSchema = Db::query("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'file_reference'")[0]['sql'];
@@ -142,8 +145,10 @@ final class BusinessEvidenceTest extends TestCase
         $tools = ContentToolRegistry::withBuiltins();
         $tools->register(new SurfaceAdapterRegistration('fixture.text', 'peanut.content-tools', '1.0.0', ['file_resource'], ['text/plain'], ['view']));
         $capabilities = new ContentCapabilitiesService($tools);
+        $execution = new CurrentExecutionContext($this->contexts);
         $this->storage = new StorageService($this->drivers, str_repeat('s', 32), 'https://synthetic.invalid', $directory, $fileAuthorization,
-            new CurrentExecutionContext($this->contexts), $this->audit, $capabilities, $registry);
+            $execution, $this->audit, $capabilities, $registry);
+        $this->administration = new FileAdministrationService($this->storage, $execution, new FileService($this->storage, 'https://synthetic.invalid'), $fileAuthorization);
         Db::name('storage_account')->insert(['id' => 1, 'account_key' => 'synthetic-local', 'driver' => 'local', 'name' => 'test', 'status' => 'active']);
         Db::name('storage_space')->insert(['id' => 1, 'space_key' => 'synthetic-private', 'name' => 'test', 'account_id' => 1,
             'access_type' => 'private', 'local_path' => 'private/storage', 'status' => 'active']);
@@ -417,6 +422,53 @@ final class BusinessEvidenceTest extends TestCase
                 5 => ['file_key' => $second, 'state' => 'preview_unavailable', 'can_download_original' => false, 'url' => null],
             ], $previews);
             self::assertSame(1, $this->fileDecisionBatches);
+        });
+    }
+
+    public function testFileListReturnsOnlyTheIssuedPreviewAndSelectorKeepsItsOwnProjection(): void
+    {
+        $this->within(function (): void {
+            $path = $this->root . '/source.png';
+            file_put_contents($path, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a91sAAAAASUVORK5CYII=', true));
+            $key = $this->storage->storePath(1, 11, 'document.snapshot', $path, 'source.png', 'image/png')['file_key'];
+            Db::name('file')->insert(['tenant_id' => 1, 'file_key' => $key, 'type' => 10, 'name' => 'source.png']);
+
+            $row = $this->administration->lists(['type' => 10])->items[0];
+            $receipt = $row['preview_access'];
+            self::assertEqualsCanonicalizing(['file_key', 'delivery_file_key', 'source_sha256', 'media_type', 'state', 'purpose', 'bytes', 'variant_key', 'expires_at', 'url', 'capabilities'], array_keys($receipt));
+            self::assertSame([$key, $key, hash_file('sha256', $path), 'image/png', 'preview', 'original', null, $row['url']],
+                [$receipt['file_key'], $receipt['delivery_file_key'], $receipt['source_sha256'], $receipt['media_type'], $receipt['purpose'], $receipt['bytes'], $receipt['variant_key'], $receipt['url']]);
+            self::assertGreaterThan(time() * 1000, $receipt['expires_at']);
+            self::assertSame(1, Db::name('file_delivery_grant')->count());
+            $asset = $this->administration->imageAssets([])->items[0];
+            self::assertSame(['id', 'file_key', 'original_name', 'media_type', 'width', 'height', 'preview_uri', 'variants'], array_keys($asset));
+            self::assertSame($key, $asset['file_key']);
+
+            $this->deniedPermissions = ['peanut.file.download-original'];
+            $unavailable = $this->administration->lists(['type' => 10])->items[0];
+            self::assertArrayNotHasKey('preview_access', $unavailable);
+            self::assertSame('', $unavailable['url']);
+        });
+    }
+
+    public function testFilePageOriginalPreviewExpiresAndRejectsATenantRoleRevisionChange(): void
+    {
+        $this->within(function (): void {
+            $key = $this->claimedSnapshot()[0];
+            $page = $this->storage->resolvePreviewPage($this->actor, [$key], null)[0];
+            self::assertSame(['available', 'original', true], [$page['state'], $page['bytes'], $page['can_download_original']]);
+            parse_str((string) parse_url($page['url'], PHP_URL_QUERY), $delivery);
+            $this->deniedPermissions = ['peanut.file.download-original'];
+            $this->liveTenantRevision++;
+            $this->denied(fn() => $this->storage->authorizedDownload(1, $key, $delivery['token']), 'FILE_DELIVERY_REVOKED');
+            $current = $this->storage->resolvePreviewPage($this->actor, [$key], null)[0];
+            self::assertSame(['preview_unavailable', false, null], [$current['state'], $current['can_download_original'], $current['url']]);
+
+            $this->deniedPermissions = [];
+            $fresh = $this->storage->resolvePreviewPage($this->actor, [$key], null)[0];
+            parse_str((string) parse_url($fresh['url'], PHP_URL_QUERY), $delivery);
+            Db::name('file_delivery_grant')->where('file_key', $key)->update(['expires_at' => '2000-01-01 00:00:00']);
+            $this->denied(fn() => $this->storage->authorizedDownload(1, $key, $delivery['token']), 'FILE_DELIVERY_REVOKED');
         });
     }
 

@@ -83,6 +83,7 @@
   const callbacks = computed(() =>
     createFileContentCallbacks({
       viewerAdapterId: surface.value?.capabilities.viewerAdapterId ?? '',
+      pagePreviewReceipt: props.compact ? props.item.preview_access : undefined,
       canDownloadOriginal: () =>
         props.item.can_download_original === true &&
         surface.value?.capabilities.canDownloadOriginal === true,

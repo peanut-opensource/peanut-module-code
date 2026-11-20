@@ -471,6 +471,24 @@ return [
                 'children' => ['type' => 'array', 'items' => ['$ref' => '#/components/schemas/FileCategoryRecord']],
             ],
         ],
+        'FilePreviewAccessReceipt' => [
+            'type' => 'object', 'additionalProperties' => false,
+            'description' => 'An already issued short-lived preview for the listed object. Delivery still revalidates current authorization.',
+            'required' => ['file_key', 'delivery_file_key', 'source_sha256', 'media_type', 'state', 'purpose', 'bytes', 'variant_key', 'expires_at', 'url', 'capabilities'],
+            'properties' => [
+                'file_key' => ['type' => 'string', 'pattern' => '^file_[0-9a-f]{32}$'],
+                'delivery_file_key' => ['type' => 'string', 'pattern' => '^file_[0-9a-f]{32}$'],
+                'source_sha256' => ['type' => 'string', 'pattern' => '^[0-9a-f]{64}$'],
+                'media_type' => ['type' => 'string'],
+                'state' => ['type' => 'string', 'enum' => ['available']],
+                'purpose' => ['type' => 'string', 'enum' => ['preview']],
+                'bytes' => ['type' => 'string', 'enum' => ['original', 'derivative']],
+                'variant_key' => ['type' => 'string', 'nullable' => true, 'pattern' => '^[a-z][a-z0-9-]{0,31}$'],
+                'expires_at' => ['type' => 'integer'],
+                'url' => ['type' => 'string'],
+                'capabilities' => ['type' => 'object', 'additionalProperties' => true],
+            ],
+        ],
         'FileListRecord' => [
             'type' => 'object', 'additionalProperties' => false,
             'required' => [
@@ -491,6 +509,7 @@ return [
                 'file_key' => ['type' => 'string', 'pattern' => '^file_[0-9a-f]{32}$'],
                 'url' => ['type' => 'string'],
                 'preview_state' => ['type' => 'string'],
+                'preview_access' => ['$ref' => '#/components/schemas/FilePreviewAccessReceipt'],
                 'can_download_original' => ['type' => 'boolean'],
                 'verified_mime_type' => ['type' => 'string', 'nullable' => true],
                 'source_sha256' => ['type' => 'string', 'nullable' => true, 'pattern' => '^[0-9a-f]{64}$'],

@@ -46,7 +46,11 @@ final class FilePreviewPageAuthorizationTest extends TestCase
         $page = $service->authorizePreviewPage($actor);
 
         self::assertSame($canDownload, $page['can_download_original']);
-        self::assertSame($service->authorize($actor, $first, 'preview'), $page['grant']);
+        $grant = $service->authorize($actor, $first, 'preview');
+        self::assertSame($grant['authorization_revision'], $page['grant']['authorization_revision']);
+        self::assertSame($grant['context'], $page['grant']['context']);
+        self::assertSame($grant['reference_digest'], $page['grant']['reference_digest']);
+        self::assertSame($actor->tenantAuthorizationRevision, $page['grant']['tenant_authorization_revision']);
     }
 
     public static function permissions(): iterable
