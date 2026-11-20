@@ -53,6 +53,21 @@ const contribution: ModuleFrontendContribution = {
             requiredPermissions: 'peanut.article.list',
           },
         },
+        {
+          path: 'edit/:id',
+          name: 'ArticleEdit',
+          component: () =>
+            import('@/modules/peanut-article/views/edit/index.vue'),
+          meta: {
+            locale: 'article.modal.edit',
+            requiresAuth: true,
+            hideInMenu: true,
+            activeMenu: 'ArticleList',
+            ignoreCache: true,
+            tenantModuleKey: 'peanut.article',
+            requiredPermissions: 'peanut.article.edit',
+          },
+        },
       ],
     },
   ],

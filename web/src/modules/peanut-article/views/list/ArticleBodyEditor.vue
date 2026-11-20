@@ -1,6 +1,10 @@
 <template>
   <section :aria-busy="busy">
-    <p role="status">{{ saveState === 'error' ? '正文编辑不可用，请检查当前授权和服务状态。' : message }}</p>
+    <p role="status">{{
+      saveState === 'error'
+        ? '正文编辑不可用，请检查当前授权和服务状态。'
+        : message
+    }}</p>
     <p v-if="saveState" role="status"
       >正文草稿：{{ saveState }}（{{ saveStateText[saveState] }}）</p
     >
@@ -193,6 +197,7 @@
   const ownerBaseline = ref<string>();
   const reloadRequired = ref(false);
   const detail = shallowRef<DocumentDetail>();
+  const openedStateSeq = ref<number>();
   const saveState = ref<DocumentSaveState>('idle');
   const documentEditor = ref<InstanceType<typeof DocumentEditor>>();
   const documentBusinessActions: NonNullable<
@@ -235,13 +240,33 @@
   const phase = ref<
     'idle' | 'pending' | 'unknown' | 'completed' | 'conflicted'
   >('idle');
-  const canAppendDraft = computed(() =>
-    mountedEditor.value && editor.value?.can_edit === true && !reloadRequired.value &&
-    !busy.value && !enablingCollaboration.value && !documentOperationLocked.value &&
-    !targetAttempt.value && !attempt.value && ['saved', 'idle', 'persisting'].includes(saveState.value)
+  const hasUnsaved = computed(() => {
+    if (phase.value === 'completed') return false;
+    if (targetAttempt.value || collaborationUnknown.value) return true;
+    return (
+      mountedEditor.value &&
+      !!detail.value &&
+      (detail.value.state_seq !== openedStateSeq.value ||
+        ['idle', 'persisting', 'error'].includes(saveState.value))
+    );
+  });
+  const canAppendDraft = computed(
+    () =>
+      mountedEditor.value &&
+      editor.value?.can_edit === true &&
+      !reloadRequired.value &&
+      !busy.value &&
+      !enablingCollaboration.value &&
+      !documentOperationLocked.value &&
+      !targetAttempt.value &&
+      !attempt.value &&
+      ['saved', 'idle', 'persisting'].includes(saveState.value)
   );
   function adoptDraft(text: string, acknowledge: (accepted: boolean) => void) {
-    acknowledge(canAppendDraft.value && documentEditor.value?.appendPlainText(text) === true);
+    acknowledge(
+      canAppendDraft.value &&
+        documentEditor.value?.appendPlainText(text) === true
+    );
   }
   const canEnableCollaboration = computed(
     () =>
@@ -277,7 +302,7 @@
         token: number;
       }
     | undefined;
-  let ensureId = globalThis.crypto.randomUUID();
+  let ensureId = crypto.randomUUID();
   const current = (controller: AbortController, key: string, token: number) =>
     !disposed &&
     !controller.signal.aborted &&
@@ -436,6 +461,7 @@
     mountedEditor.value = false;
     editor.value = undefined;
     detail.value = undefined;
+    openedStateSeq.value = undefined;
     saveState.value = baseline ? 'readonly' : 'idle';
     try {
       // Once initialization was attempted, observation only reads the existing owner slot.
@@ -739,7 +765,7 @@
     )
       return false;
     const { controller, key, token } = start();
-    const requestId = targetAttempt.value?.requestId ?? globalThis.crypto.randomUUID();
+    const requestId = targetAttempt.value?.requestId ?? crypto.randomUUID();
     try {
       targetAttempt.value ??= {
         requestId,
@@ -868,6 +894,8 @@
     await submitOriginal();
   };
   const onDocumentLoad = (value: DocumentDetail) => {
+    if (openedStateSeq.value === undefined)
+      openedStateSeq.value = value.state_seq;
     detail.value = value;
     // Surface reload occurs only after release or an explicit baseline restart.
     documentOperation.value = undefined;
@@ -907,7 +935,7 @@
       targetAttempt.value = undefined;
       saved.value = undefined;
       phase.value = 'idle';
-      ensureId = globalThis.crypto.randomUUID();
+      ensureId = crypto.randomUUID();
       open();
     },
     { immediate: true, flush: 'sync' }
@@ -919,7 +947,7 @@
     request?.abort();
     unsubscribe();
   });
-  defineExpose({ save });
+  defineExpose({ save, hasUnsaved });
 </script>
 
 <style scoped>

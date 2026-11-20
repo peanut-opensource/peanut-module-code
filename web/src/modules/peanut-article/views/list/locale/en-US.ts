@@ -30,6 +30,30 @@ export default {
     'Scroll the table horizontally; keyboard users can focus it and use the arrow keys to view all columns.',
   'article.modal.add': 'Add Article',
   'article.modal.edit': 'Edit Article',
+  'article.edit.back': 'Back to articles',
+  'article.edit.focus': 'Focus mode',
+  'article.edit.exitFocus': 'Exit focus mode',
+  'article.edit.save': 'Save article',
+  'article.edit.metadata': 'Article details',
+  'article.edit.loading': 'Loading article…',
+  'article.edit.invalidId': 'The article ID is invalid.',
+  'article.edit.missing':
+    'No editable article was found. It may have been deleted or may belong to another site.',
+  'article.edit.requestFailed':
+    'Unable to load the article. Check your permissions or try again.',
+  'article.edit.unauthorized':
+    'You need permission to list, read, and edit articles.',
+  'article.edit.contextChanged':
+    'Your sign-in session changed. Open the article again.',
+  'article.edit.retry': 'Reload',
+  'article.edit.leaveWarning':
+    'This article has changes that have not been confirmed. Leave the editor?',
+  'article.edit.leaveTitle': 'Unsaved article changes',
+  'article.edit.leave': 'Leave',
+  'article.edit.stay': 'Keep editing',
+  'article.edit.published': 'Unpublish the article before editing its body.',
+  'article.edit.createHint':
+    'Create the article details first, then open the editor to add the body.',
   'article.field.cate': 'Category',
   'article.field.title': 'Title',
   'article.field.image': 'Cover',
