@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view v-if="userStore.isLoggedIn" class="page">
     <view class="form">
       <view class="input-group">
         <input
@@ -23,7 +23,9 @@
 <script setup lang="ts">
   import { ref } from 'vue';
   import { bindMobile } from '@/modules/peanut-member/api/user';
+  import { useMemberPageSession } from '@/modules/peanut-member/page-session';
 
+  const userStore = useMemberPageSession();
   const loading = ref(false);
   const mobile = ref('');
 

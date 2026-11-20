@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view v-if="userStore.isLoggedIn" class="page">
     <view class="menu-list">
       <view class="menu-item" @click="goChangePwd">
         <text class="title">修改密码</text>
@@ -27,11 +27,11 @@
 </template>
 
 <script setup lang="ts">
-  import { useUserStore } from '@/store/user';
+  import { useMemberPageSession } from '@/modules/peanut-member/page-session';
   import { logout } from '@/modules/peanut-member/api/account';
   import ModuleSlot from '@/components/ModuleSlot.vue';
 
-  const userStore = useUserStore();
+  const userStore = useMemberPageSession();
 
   function goChangePwd() {
     uni.navigateTo({ url: '/pages/change_password/change_password' });

@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view v-if="userStore.isLoggedIn" class="page">
     <view class="avatar-row" @click="chooseAvatar">
       <text class="label">头像</text>
       <view class="right">
@@ -57,7 +57,7 @@
 
 <script setup lang="ts">
   import { ref, onMounted, onBeforeUnmount } from 'vue';
-  import { useUserStore } from '@/store/user';
+  import { useMemberPageSession } from '@/modules/peanut-member/page-session';
   import {
     getUserInfo,
     setUserInfo,
@@ -65,7 +65,7 @@
   } from '@/modules/peanut-member/api/user';
   import { uploadImage } from '@/utils/request';
 
-  const userStore = useUserStore();
+  const userStore = useMemberPageSession();
   const loading = ref(false);
   const sexOptions = ['未知', '男', '女'];
   const sexIndex = ref(0);
@@ -88,6 +88,7 @@
   });
 
   onMounted(async () => {
+    if (!userStore.isLoggedIn) return;
     try {
       const info = await getUserInfo();
       form.value = {

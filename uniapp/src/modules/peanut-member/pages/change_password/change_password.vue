@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view v-if="userStore.isLoggedIn" class="page">
     <view class="form">
       <view class="input-group">
         <view class="input-label">原密码</view>
@@ -50,7 +50,9 @@
     type PasswordPolicy,
   } from '@/modules/peanut-member/api/password-policy';
   import { changePassword } from '@/modules/peanut-member/api/user';
+  import { useMemberPageSession } from '@/modules/peanut-member/page-session';
 
+  const userStore = useMemberPageSession();
   const loading = ref(false);
   const passwordPolicy = ref<PasswordPolicy | null>(null);
   const passwordPolicyError = ref('');
@@ -69,7 +71,9 @@
       passwordPolicyError.value = '无法读取密码要求，请重试';
     }
   }
-  onShow(loadPasswordPolicy);
+  onShow(() => {
+    if (userStore.isLoggedIn) return loadPasswordPolicy();
+  });
   const form = ref({
     old_password: '',
     new_password: '',

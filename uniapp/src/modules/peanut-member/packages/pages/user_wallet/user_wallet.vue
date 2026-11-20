@@ -1,5 +1,5 @@
 <template>
-  <view class="wallet-page">
+  <view v-if="userStore.isLoggedIn" class="wallet-page">
     <view class="wallet-card">
       <view class="label">账户余额</view>
       <view class="amount">¥{{ balance }}</view>
@@ -11,15 +11,16 @@
 <script setup lang="ts">
   import { computed, onMounted } from 'vue';
   import { getUserCenter } from '@/modules/peanut-member/api/user';
-  import { useUserStore } from '@/store/user';
+  import { useMemberPageSession } from '@/modules/peanut-member/page-session';
 
-  const userStore = useUserStore();
+  const userStore = useMemberPageSession();
   const userInfo = computed(() => userStore.userInfo);
   const balance = computed(() =>
     Number(userInfo.value.balance || 0).toFixed(2)
   );
 
   onMounted(async () => {
+    if (!userStore.isLoggedIn) return;
     const data = await getUserCenter();
     userStore.setUserInfo(data);
   });
