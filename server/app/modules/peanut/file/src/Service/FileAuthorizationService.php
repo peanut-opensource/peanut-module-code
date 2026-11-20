@@ -122,6 +122,15 @@ final readonly class FileAuthorizationService
         });
     }
 
+    /** File-internal check after live authorization of the delivery grant's preview. */
+    public function requireOriginalPreviewPermission(TenantContext $current): void
+    {
+        $principal = $this->authorization->principal($current);
+        $this->execution->run(new AdminExecutionContext($current, 'file.download_original', $principal->toArray()), function () use ($current, $principal): void {
+            $this->requireOperationPermission($current, $principal, 'download_original');
+        });
+    }
+
     private function requireOperationPermission(TenantContext $context, AdminPrincipal $principal, string $operation): void
     {
         $permission = match ($operation) {

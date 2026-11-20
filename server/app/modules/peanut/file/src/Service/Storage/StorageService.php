@@ -1253,6 +1253,9 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
                 || $grant['reference_digest'] !== $live['reference_digest']) {
                 throw BusinessException::forbidden('FILE_DELIVERY_REVOKED', '资源授权已改变');
             }
+            if ($grant['operation'] === 'preview' && $grant['file_key'] === $grant['source_file_key']) {
+                $this->authorization->requireOriginalPreviewPermission($live['context']);
+            }
         }
         return [
             ...$this->materialize($object),

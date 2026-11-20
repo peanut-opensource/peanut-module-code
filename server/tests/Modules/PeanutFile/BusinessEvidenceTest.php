@@ -24,6 +24,7 @@ use PeanutAdmin\Modules\File\Contract\Dto\UploadFile;
 use PeanutAdmin\Modules\File\Contract\FileDocumentReferencePolicy;
 use PeanutAdmin\Modules\File\Service\FileAdministrationService;
 use PeanutAdmin\Modules\File\Service\FileAuthorizationService;
+use PeanutAdmin\Modules\File\Service\FileDerivativeService;
 use PeanutAdmin\Modules\File\Service\FileService;
 use PeanutAdmin\Modules\File\Service\Storage\StorageService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
@@ -38,6 +39,7 @@ final class BusinessEvidenceTest extends TestCase
 {
     private StorageService $storage;
     private FileAdministrationService $administration;
+    private FileDerivativeService $derivatives;
     private Drivers $drivers;
     private BusinessEvidenceFixture\Audit $audit;
     private ExecutionContextStore $contexts;
@@ -149,6 +151,7 @@ final class BusinessEvidenceTest extends TestCase
         $this->storage = new StorageService($this->drivers, str_repeat('s', 32), 'https://synthetic.invalid', $directory, $fileAuthorization,
             $execution, $this->audit, $capabilities, $registry);
         $this->administration = new FileAdministrationService($this->storage, $execution, new FileService($this->storage, 'https://synthetic.invalid'), $fileAuthorization);
+        $this->derivatives = new FileDerivativeService($execution, $fileAuthorization, $this->storage);
         Db::name('storage_account')->insert(['id' => 1, 'account_key' => 'synthetic-local', 'driver' => 'local', 'name' => 'test', 'status' => 'active']);
         Db::name('storage_space')->insert(['id' => 1, 'space_key' => 'synthetic-private', 'name' => 'test', 'account_id' => 1,
             'access_type' => 'private', 'local_path' => 'private/storage', 'status' => 'active']);
@@ -428,8 +431,7 @@ final class BusinessEvidenceTest extends TestCase
     public function testFileListReturnsOnlyTheIssuedPreviewAndSelectorKeepsItsOwnProjection(): void
     {
         $this->within(function (): void {
-            $path = $this->root . '/source.png';
-            file_put_contents($path, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a91sAAAAASUVORK5CYII=', true));
+            $path = $this->pngFixture();
             $key = $this->storage->storePath(1, 11, 'document.snapshot', $path, 'source.png', 'image/png')['file_key'];
             Db::name('file')->insert(['tenant_id' => 1, 'file_key' => $key, 'type' => 10, 'name' => 'source.png']);
 
@@ -470,6 +472,79 @@ final class BusinessEvidenceTest extends TestCase
             Db::name('file_delivery_grant')->where('file_key', $key)->update(['expires_at' => '2000-01-01 00:00:00']);
             $this->denied(fn() => $this->storage->authorizedDownload(1, $key, $delivery['token']), 'FILE_DELIVERY_REVOKED');
         });
+    }
+
+    public function testOriginalPreviewDeliveryRechecksTheIndependentPermissionInTheCurrentSession(): void
+    {
+        $this->within(function (): void {
+            $key = $this->claimedSnapshot()[0];
+            $preview = $this->storage->resolveAuthorized($this->actor, $key, 'preview');
+            self::assertSame(['preview', 'original'], [$preview['purpose'], $preview['bytes']]);
+            parse_str((string) parse_url($preview['url'], PHP_URL_QUERY), $delivery);
+
+            $this->deniedPermissions = ['peanut.file.download-original'];
+            $this->liveTenantRevision++;
+            $this->fileSessionChecks = 0;
+            $this->filePermissionChecks = [];
+            $this->denied(fn() => $this->storage->authorizedDownload(1, $key, $delivery['token']), 'FILE_ACCESS_DENIED');
+            self::assertSame(2, $this->fileSessionChecks);
+            self::assertSame(['peanut.file.list', 'peanut.file.download-original'], $this->filePermissionChecks);
+
+            $this->deniedPermissions = [];
+            $allowed = $this->storage->resolveAuthorized($this->actor, $key, 'preview');
+            parse_str((string) parse_url($allowed['url'], PHP_URL_QUERY), $delivery);
+            $opened = $this->storage->authorizedDownload(1, $key, $delivery['token']);
+            self::assertSame(file_get_contents($this->root . '/source.txt'), file_get_contents($opened['path']));
+        });
+    }
+
+    public function testDerivativePreviewDeliversOnlyDerivativeBytesWithoutOriginalPermission(): void
+    {
+        $this->within(function (): void {
+            $source = $this->pngFixture();
+            $variant = $this->pngFixture(true);
+            $key = $this->storage->storePath(1, 11, 'document.snapshot', $source, 'source.png', 'image/png')['file_key'];
+            $derivative = $this->storage->storePath(1, 11, 'document.snapshot', $variant, 'small.png', 'image/png')['file_key'];
+            Db::name('file_image_asset')->insert(['tenant_id' => 1, 'file_key' => $key,
+                'width' => 1, 'height' => 1, 'media_type' => 'image/png', 'created_at' => '2026-11-20 00:00:00', 'updated_at' => '2026-11-20 00:00:00']);
+            $this->derivatives->bind($this->actor, $key, 'small', $derivative, 1, 1, 'image/png');
+            $this->deniedPermissions = ['peanut.file.download-original'];
+            $preview = $this->storage->resolveAuthorized($this->actor, $key, 'preview', null, 'small', 'builtin.image');
+            self::assertSame(['derivative', $derivative, false], [$preview['bytes'], $preview['delivery_file_key'], $preview['can_download_original']]);
+            parse_str((string) parse_url($preview['url'], PHP_URL_QUERY), $delivery);
+
+            $this->filePermissionChecks = [];
+            $opened = $this->storage->authorizedDownload(1, $derivative, $delivery['token']);
+            self::assertSame(['image/png', 'inline'], [$opened['media_type'], $opened['disposition']]);
+            self::assertSame(file_get_contents($variant), file_get_contents($opened['path']));
+            self::assertSame(['peanut.file.list'], $this->filePermissionChecks);
+        });
+    }
+
+    public function testPublicDeliveryUsesItsOwnGrantWithoutAnAdminSessionOrOriginalPermission(): void
+    {
+        Db::name('storage_space')->insert(['id' => 2, 'space_key' => 'synthetic-public', 'name' => 'test', 'account_id' => 1,
+            'access_type' => 'public', 'local_path' => 'public/storage', 'status' => 'active']);
+        Db::name('storage_route')->insert(['route_key' => 'default.public', 'access_type' => 'public', 'space_id' => 2]);
+        $png = $this->pngFixture();
+        $file = $this->within(fn() => $this->storage->storePath(1, 11, 'material.image', $png, 'public.png', 'image/png'));
+        parse_str((string) parse_url($file['url'], PHP_URL_QUERY), $delivery);
+
+        $this->deniedPermissions = ['peanut.file.list', 'peanut.file.download-original'];
+        $opened = $this->storage->authorizedDownload(1, $file['file_key'], $delivery['token']);
+        self::assertSame(file_get_contents($png), file_get_contents($opened['path']));
+        self::assertSame(0, $this->fileSessionChecks);
+        self::assertSame([], $this->filePermissionChecks);
+    }
+
+    private function pngFixture(bool $variant = false): string
+    {
+        $path = $this->root . ($variant ? '/variant.png' : '/source.png');
+        $encoded = $variant
+            ? 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgUPj/HwADYgIfC7ax5wAAAABJRU5ErkJggg=='
+            : 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a91sAAAAASUVORK5CYII=';
+        file_put_contents($path, base64_decode($encoded, true));
+        return $path;
     }
 
     public function testFixedSnapshotIssuesTheExistingContextualGrantThroughOneFileSessionCheck(): void
