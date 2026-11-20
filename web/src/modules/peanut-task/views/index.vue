@@ -68,6 +68,12 @@
           </el-button>
         </el-col>
       </el-row>
+      <el-alert
+        v-if="listError"
+        :title="listError"
+        type="error"
+        :closable="false"
+      />
       <el-table row-key="id" :loading="loading" :data="renderData" border>
         <el-table-column
           prop="id"
@@ -162,7 +168,7 @@
         >
       </el-table>
       <el-pagination
-        v-model:current-page="pagination.current"
+        v-model:current-page="pagination.page"
         v-model:page-size="pagination.pageSize"
         :total="pagination.total"
         layout="total, prev, pager, next"
@@ -272,7 +278,7 @@
   import { ElMessage } from 'element-plus';
   import type { FormInstance, TagProps } from 'element-plus';
   import { Plus, Refresh, Search } from '@element-plus/icons-vue';
-  import useLoading from '@/hooks/loading';
+  import useCrudTable from '@/hooks/useCrudTable';
   import {
     getCrontabList,
     getCrontabExpression,
@@ -282,27 +288,44 @@
     operateCrontab,
     type CrontabRecord,
     type CrontabForm,
-    type CrontabListParams,
     type CrontabStatus,
     type ExpressionItem,
   } from '@/modules/peanut-task/api';
 
   const { t } = useI18n();
-  const { loading, setLoading } = useLoading(true);
-  const renderData = ref<CrontabRecord[]>([]);
 
   const generateFormModel = () => ({
     name: '',
     status: '' as CrontabStatus | '',
   });
-  const formModel = ref(generateFormModel());
-
-  const pagination = reactive({
-    current: 1,
-    pageSize: 15,
-    total: 0,
-    showTotal: true,
+  const table = useCrudTable<
+    CrontabRecord,
+    ReturnType<typeof generateFormModel>
+  >({
+    initialFilters: generateFormModel(),
+    initialPageSize: 15,
+    load: async ({ filters, page, pageSize, signal }) => {
+      const { data } = await getCrontabList(
+        { ...filters, page_no: page, page_size: pageSize },
+        signal
+      );
+      return {
+        items: data.lists,
+        total: data.count,
+        page: data.pageNo,
+        pageSize: data.pageSize,
+      };
+    },
+    errorMessage: (error) =>
+      error instanceof Error ? error.message : String(error),
   });
+  const {
+    loading,
+    data: renderData,
+    searchForm: formModel,
+    pagination,
+    error: listError,
+  } = table;
 
   const statusOptions = computed(() => [
     { label: t('systemCrontab.status.start'), value: 1 },
@@ -318,30 +341,11 @@
   const statusColor = (status: CrontabStatus): TagProps['type'] =>
     statusColors[status] || 'info';
 
-  const fetchData = async (page = 1) => {
-    setLoading(true);
-    try {
-      const params: CrontabListParams = {
-        ...formModel.value,
-        page_no: page,
-        page_size: pagination.pageSize,
-      };
-      const { data } = await getCrontabList(params);
-      renderData.value = data.lists;
-      pagination.current = data.pageNo;
-      pagination.total = data.count;
-    } finally {
-      setLoading(false);
-    }
-  };
-  fetchData();
-
-  const search = () => fetchData(1);
+  const fetchData = (page = pagination.page) => table.fetchList(page);
+  fetchData(1);
+  const search = () => table.handleSearch();
   const onPageChange = (current: number) => fetchData(current);
-  const reset = () => {
-    formModel.value = generateFormModel();
-    fetchData(1);
-  };
+  const reset = () => table.handleReset();
   // ---- 弹窗 & 表单 ----
   const modalVisible = ref(false);
   const isEdit = ref(false);
@@ -444,7 +448,7 @@
       }
       ElMessage.success(t('systemCrontab.tip.success'));
       modalVisible.value = false;
-      await fetchData(pagination.current);
+      await fetchData(pagination.page);
     } finally {
       submitLoading.value = false;
     }
@@ -453,7 +457,7 @@
   const handleDelete = async (record: CrontabRecord) => {
     await deleteCrontab(record.id);
     ElMessage.success(t('systemCrontab.tip.success'));
-    await fetchData(pagination.current);
+    await fetchData(pagination.page);
   };
 
   const handleOperate = async (
@@ -462,7 +466,7 @@
   ) => {
     await operateCrontab(record.id, operate);
     ElMessage.success(t('systemCrontab.tip.success'));
-    await fetchData(pagination.current);
+    await fetchData(pagination.page);
   };
 </script>
 
