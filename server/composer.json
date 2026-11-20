@@ -278,7 +278,7 @@
         "peanut-business/peanut-oauth": "1.0.13-rc.1",
         "peanut-business/peanut-payment": "1.0.30-rc.1",
         "peanut-business/peanut-rich-text": "1.0.19-rc.1",
-        "peanut-business/workflow": "4.0.2-rc.3",
+        "peanut-business/workflow": "4.0.2-rc.4",
         "peanut-business/peanut-chart-examples": "1.0.5-rc.1",
         "custom/custom-ai-access": "1.0.1-rc.3",
         "custom/custom-ai-assistant": "1.2.5-rc.2"
