@@ -29,6 +29,12 @@ final readonly class AiAccess
     {
         return $this->authorization->decide($c, $this->authorization->principal($c), $key)->allowed;
     }
+    /** @param array<string,string> $keys @return array<string,bool> */
+    public function permissions(TenantContext $c, array $keys): array
+    {
+        $decisions = $this->authorization->decisions($c, array_values($keys));
+        return array_map(static fn(string $key): bool => $decisions[$key]->allowed, $keys);
+    }
     public function query(TenantContext $c, string $kind, string $op = 'view'): BaseQuery
     {
         $this->authorize($c, $op);

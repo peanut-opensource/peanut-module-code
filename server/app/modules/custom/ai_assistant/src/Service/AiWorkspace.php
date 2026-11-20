@@ -15,13 +15,14 @@ final readonly class AiWorkspace
     public function overview(TenantContext $c): array
     {
         $this->access->authorize($c, 'view');
-        $permissions = [];
+        $permissionKeys = [];
         foreach (D::OPERATIONS as $op) {
-            $permissions[$op] = $this->access->permission($c, 'custom.ai-assistant.' . $op);
+            $permissionKeys[$op] = 'custom.ai-assistant.' . $op;
         }
-        foreach (['task_read' => 'peanut.task.jobs.read','task_manage' => 'peanut.task.jobs.manage'] as $op => $key) {
-            $permissions[$op] = $this->access->permission($c, $key);
-        }
+        $permissions = $this->access->permissions($c, $permissionKeys + [
+            'task_read' => 'peanut.task.jobs.read',
+            'task_manage' => 'peanut.task.jobs.manage',
+        ]);
         $sourceGrantsAvailable = $this->documents instanceof DocumentSourceGrants;
         return ['permissions' => $permissions,'current_member_id' => $c->memberId,'current_tenant_id' => $c->tenantId,'capabilities' => D::CAPABILITIES,'result_types' => D::RESULT_TYPES,'protocols' => D::PROTOCOLS,'text_generation' => ['operation' => 'generateText','input' => 'member_text','requires_confirm_send' => true],'execution' => ['scope' => 'fixed_source_worker','state' => $sourceGrantsAvailable ? 'available' : 'blocked','code' => $sourceGrantsAvailable ? null : 'SOURCE_AUTHORIZATION_BRIDGE_REQUIRED','provider_requests_sent' => false,'reason' => $sourceGrantsAvailable ? '固定来源授权合同已接入；实际发送仍须有效配置、来源授权及明确发送确认，概览不发起提供方请求' : '当前Document实现未提供固定来源授权合同；配置和准备可办理，未向提供方发送'],'fields' => D::FIELDS];
     }

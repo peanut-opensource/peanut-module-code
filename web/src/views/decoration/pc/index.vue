@@ -108,11 +108,7 @@
                       >
                         <el-option label="站内页面" value="shop" />
                         <el-option
-                          :label="
-                            articleOptions.length
-                              ? '文章'
-                              : '文章（暂无可选项）'
-                          "
+                          :label="articleOptionLabel"
                           value="article"
                           :disabled="articleOptions.length === 0"
                         />
@@ -217,17 +213,17 @@
   import {
     getPcDecorationLists,
     getPcDecorationDetail,
-    getDecorationArticleOptions,
     savePcDecoration,
     type DecorationComponent as MutableComponent,
-    type DecorationArticleOption,
     type DecorationItem,
     type DecorationPage,
   } from '@/api/decoration';
+  import useDecorationArticleOptions from '../article-options';
 
   const loading = ref(true);
   const submitLoading = ref(false);
-  const articleOptions = ref<DecorationArticleOption[]>([]);
+  const { articleOptions, articleOptionLabel, loadArticleOptions } =
+    useDecorationArticleOptions();
   const images = usePublicImageReferences();
   const previewIndex = ref(0);
   const page = reactive<DecorationPage>({
@@ -259,11 +255,6 @@
       marginTop: String(styles.top || '0'),
     };
   });
-  const loadArticleOptions = async () => {
-    const { data } = await getDecorationArticleOptions();
-    articleOptions.value = data;
-  };
-
   const ensureQuery = (item: DecorationItem) => {
     item.link.query ||= {};
   };
