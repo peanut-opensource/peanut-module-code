@@ -64,7 +64,7 @@
           <template #default="{ row }">
             <el-space>
               <el-button
-                v-permission="['peanut.article.category.edit']"
+                v-if="canEdit"
                 link
                 type="primary"
                 size="small"
@@ -179,8 +179,11 @@
 
   const { t } = useI18n();
   const route = useRoute();
-  const canEdit = () =>
-    hasPermission('peanut.article.category.edit', route.path);
+  const canEdit = computed(
+    () =>
+      hasPermission('peanut.article.category.edit', route.path) &&
+      hasPermission('peanut.article.category.detail', route.path)
+  );
   const errorMessage = () => t('articleCate.error.request');
   const categoryList = useCrudTable<ArticleCateRecord, ArticleCategoryFilters>({
     initialFilters: {},
@@ -196,7 +199,7 @@
   const generateForm = () => ({ id: 0, name: '', sort: 0, is_show: 1 });
   const modal = useCrudModal<ReturnType<typeof generateForm>, ArticleCateRecord>({
     canOpen: (mode) => {
-      if (mode === 'edit') return canEdit();
+      if (mode === 'edit') return canEdit.value;
       return (
         mode === 'create' &&
         hasPermission('peanut.article.category.add', route.path)
@@ -261,7 +264,7 @@
   const openAdd = () => canRun() && modal.create();
 
   const openEdit = async (record: ArticleCateRecord) => {
-    if (!canRun() || !canEdit()) return;
+    if (!canRun() || !canEdit.value) return;
     const result = await formAction.run(({ signal }) =>
       articleCategoryResource.detail(record.id, signal)
     );
