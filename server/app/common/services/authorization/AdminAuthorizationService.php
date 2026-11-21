@@ -121,10 +121,7 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
             return PermissionDecision::deny($endpoint['path'], 'INVALID_TENANT_ADMIN_CONTEXT');
         }
         $prerequisites = json_decode($endpoint['prerequisite_permission_keys'], true, 32, JSON_THROW_ON_ERROR);
-        // AuthMiddleware already qualified the deployment for this exact endpoint.
-        $owner = $endpoint['module_key'];
-        $qualifiedOwner = in_array($owner, ['peanut.admin', 'platform', 'member', 'installation'], true) ? null : $owner;
-        $inputs = $this->moduleAdmin->permissionInputs($context, [...$keys, ...$prerequisites], $qualifiedOwner);
+        $inputs = $this->moduleAdmin->permissionInputs($context, [...$keys, ...$prerequisites]);
         $registered = $inputs['registered'];
         $owned = $inputs['owned'];
         foreach ($prerequisites as $required) {

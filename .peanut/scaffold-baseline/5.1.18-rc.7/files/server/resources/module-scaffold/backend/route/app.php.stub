@@ -1,0 +1,4 @@
+<?php
+declare(strict_types=1);
+
+// Register Module-owned routes here. Every protected route still requires backend authorization middleware.

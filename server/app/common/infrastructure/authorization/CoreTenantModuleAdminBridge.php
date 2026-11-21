@@ -284,7 +284,7 @@ final class CoreTenantModuleAdminBridge
      * @param list<string> $permissions
      * @return array{registered:list<string>,owned:list<string>}
      */
-    public function permissionInputs(TenantContext $context, array $permissions, ?string $qualifiedOwner = null): array
+    public function permissionInputs(TenantContext $context, array $permissions): array
     {
         if (TenantAuthService::authenticatedRead($context) !== null) {
             $license = $this->entitlements->license($context->tenantId, context: $context);
@@ -299,7 +299,7 @@ final class CoreTenantModuleAdminBridge
         }
         $owned = array_keys($states);
         return [
-            'registered' => $this->registeredLicensedSubset($owned, null, $states, qualifiedOwner: $qualifiedOwner),
+            'registered' => $this->registeredLicensedSubset($owned, null, $states),
             'owned' => $owned,
         ];
     }
@@ -323,19 +323,13 @@ final class CoreTenantModuleAdminBridge
      * @param array<string,true>|null $installed Qualified by installedModules in this same projection.
      * @return list<string>
      */
-    private function registeredLicensedSubset(
-        array $permissions,
-        ?array $licensedModules = null,
-        ?array $states = null,
-        ?array $installed = null,
-        ?string $qualifiedOwner = null,
-    ): array
+    private function registeredLicensedSubset(array $permissions, ?array $licensedModules = null, ?array $states = null, ?array $installed = null): array
     {
         if ($permissions === []) {
             return [];
         }
         $states ??= $this->cachedPermissionStates(array_values(array_unique($permissions)));
-        $owners = $qualifiedOwner === null ? [] : [$qualifiedOwner => true];
+        $owners = [];
         $registered = [];
         foreach ($permissions as $permission) {
             $state = $states[$permission] ?? null;

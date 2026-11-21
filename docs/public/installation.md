@@ -80,17 +80,6 @@ HTTP worker 的执行时限须覆盖首次迁移和所选模块安装；本地�
 
 结构使用官方 `migrate:run`，动态管理员和默认租户初始化后由官方 `seed:run --seed=InitialSeeder` 完成数据与权限目录。不要在网页安装成功后再执行 seed。初始迁移不支持回滚；种子发生部分失败后明确拒绝重复执行。原生版本表默认 pa_migrations；旧数据库基线和自研账本不再参与安装。
 
-### 开发实例独立平台管理员密码恢复
-
-使用应用自己的资源登记和维护进程输入，将 `PEANUT_DEPLOYMENT_TARGET` 设为 `local-development`、`PEANUT_DATABASE_CONSUMER` 设为 `host`，并将 `PEANUT_DATABASE_RESOURCE_ID` 指向登记的开发库。命令会核对实际连接的数据库标识和库名。
-
-```sh
-php server/think identity:credential-recover --mode=current-platform-development \
-  --operator-id=<平台操作员ID> --account-id=<账号ID> --credential-id=<凭据ID>
-```
-
-预检确认账号启用且不关联任何租户成员。执行时用相同参数追加 `--execute`、`--expected-revision=<预检返回的凭据版本>`、`--approval-ref=<授权引用>`、`--password-file=server/private/credentials/<文件>`。密码文件须由执行者持有、权限为 `0600`，只写入符合实例密码策略的单行密码。成功后原平台会话失效，操作写入平台审计日志。
-
 ## 已有租户缺失公共页面的定向维护
 
 实例维护者在已配置应用的 `server/` 运行原生命令，显式选择已有活动租户。先核对应用身份、数据库配置及租户 ID，再预览并应用：
