@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+"""Check the opt-in Scaffold and Official Modules host files from source."""
+import argparse
+import hashlib
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--scaffold-root", type=Path, default=ROOT.parent / "peanut-admin-code")
+    parser.add_argument("--module-root", type=Path, default=ROOT.parent / "peanut-module-code")
+    args = parser.parse_args()
+
+    scaffold = args.scaffold_root.resolve()
+    modules = args.module_root.resolve()
+    if scaffold == modules:
+        parser.error("Scaffold and Module checkout roots must be distinct")
+    try:
+        registry = (scaffold / "scripts/shared-host-files.txt").read_text(encoding="utf-8")
+    except OSError as error:
+        parser.error(str(error))
+    paths = sorted({line.strip() for line in registry.splitlines()
+                    if line.strip() and not line.lstrip().startswith("#")})
+    if not paths:
+        parser.error("No shared host paths registered")
+
+    differences = []
+    for name in paths:
+        path = Path(name)
+        if path.is_absolute() or ".." in path.parts:
+            parser.error(f"Invalid shared path: {name}")
+        checksums = []
+        for label, base in (("Scaffold", scaffold), ("Module", modules)):
+            file = base / path
+            try:
+                if not file.is_file() or file.is_symlink() or not file.resolve().is_relative_to(base):
+                    differences.append(f"{name}: {label} missing or not a regular checkout file")
+                    continue
+                checksums.append(hashlib.sha256(file.read_bytes()).hexdigest())
+            except OSError as error:
+                differences.append(f"{name}: {label}: {error}")
+        if len(checksums) == 2 and checksums[0] != checksums[1]:
+            differences.append(f"{name}: SHA-256 differs ({' vs '.join(checksums)})")
+
+    if differences:
+        print("\n".join(differences))
+        return 1
+    print(f"SHARED-HOST-CHECK passed: {len(paths)} registered files match")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

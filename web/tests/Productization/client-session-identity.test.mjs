@@ -1,18 +1,18 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { webcrypto } from 'node:crypto';
 import vm from 'node:vm';
 import test from 'node:test';
 import {
+  createMemoryRefreshCoordinator,
   createSessionRecovery,
   createSessionFetch,
 } from '../../node_modules/@peanut-admin/client/dist/index.js';
 
 const root = resolve(import.meta.dirname, '../../..');
-const require = createRequire(import.meta.url);
-const ts = require(resolve(root, 'tools/quality/node_modules/typescript'));
+const ts = createRequire(resolve(root, 'web/package.json'))('typescript');
 const axios = createRequire(resolve(root, 'platform/package.json'))('axios');
 const storage = () => {
   const data = new Map();
@@ -33,13 +33,13 @@ function load(
   path,
   localStorage,
   bindings = {},
-  window = { addEventListener() {}, location: { reload() {} } }
+  window = { addEventListener() {}, removeEventListener() {}, location: { reload() {} } }
 ) {
   const exports = {};
   const source = readFileSync(resolve(root, path), 'utf8').replaceAll(
     'import.meta.env.VITE_API_BASE_URL',
     'undefined'
-  );
+  ).replaceAll('import.meta.hot', 'undefined');
   const output = ts.transpileModule(source, {
     compilerOptions: {
       module: ts.ModuleKind.CommonJS,
@@ -50,11 +50,13 @@ function load(
     exports,
     localStorage,
     crypto: webcrypto,
-    window,
+    window: { ...window, crypto: webcrypto, localStorage },
+    navigator: { locks: { request: async (_name, run) => run() } },
     URL,
     require: (name) => {
-      assert.ok(Object.hasOwn(bindings, name), name);
-      return bindings[name];
+      if (Object.hasOwn(bindings, name)) return bindings[name];
+      if (name.startsWith('.')) return load(resolve(dirname(path), name + '.ts'), localStorage);
+      assert.fail(`Unexpected import: ${name}`);
     },
   });
   return exports;
@@ -65,6 +67,7 @@ function platform(transport) {
   localStorage.setItem('peanut-platform-session', 'old-session');
   const controlledAxios = {
     isAxiosError: axios.isAxiosError,
+    isCancel: axios.isCancel,
     create: (options) => {
       const client = axios.create(options);
       client.defaults.adapter = async (config) => ({
@@ -80,6 +83,7 @@ function platform(transport) {
   controlledAxios.default = controlledAxios;
   const api = load('platform/src/api/platform.ts', localStorage, {
     'axios': controlledAxios,
+    '@peanut-admin/vue': { createMemoryRefreshCoordinator },
     './tenant-license': load(
       'platform/src/api/tenant-license.ts',
       localStorage
@@ -104,23 +108,22 @@ function replaceSession(h) {
 test('Web tabs preserve refresh identity and invalidate a login/tenant transition', () => {
   const shared = storage();
   const a = load('web/src/utils/auth.ts', shared);
+  a.setToken('old-token', 'tenant-switched');
   const b = load('web/src/utils/auth.ts', shared);
-  a.advanceSessionGeneration();
-  a.setToken('old-token');
   const before = b.getSessionSnapshot();
-  a.setToken('rotated-token');
+  a.setToken('rotated-token', 'session-refreshed');
   const refreshed = b.getSessionSnapshot();
   assert.equal(refreshed.generation, before.generation);
   assert.equal(refreshed.token, 'rotated-token');
-  a.advanceSessionGeneration();
-  a.setToken('new-account-token');
+  a.setToken('new-account-token', 'tenant-switched');
   assert.ok(b.getSessionSnapshot().generation > before.generation);
+  assert.equal(b.getToken(), null);
 });
 
 function tenantHost({ refresh, status = 401, code = 40100 } = {}) {
   const localStorage = storage();
   const auth = load('web/src/utils/auth.ts', localStorage);
-  auth.setToken('pa_tat_old');
+  auth.setToken('pa_tat_old', 'tenant-switched');
   const client = axios.create();
   client.isAxiosError = axios.isAxiosError;
   client.isCancel = axios.isCancel;
@@ -143,6 +146,7 @@ function tenantHost({ refresh, status = 401, code = 40100 } = {}) {
     '@peanut-admin/vue': { isTenantAccessToken },
     '@/utils/auth': auth,
     '@/api/tenant-session': {
+      queueSessionCookieRequest: async (run) => run(),
       refreshTenantSession:
         refresh ??
         (async () => {
@@ -173,6 +177,7 @@ function tenantHost({ refresh, status = 401, code = 40100 } = {}) {
       ElMessage: { error: (message) => messages.push(message) },
     },
     '@/utils/auth': auth,
+    '@/utils/request-trace': load('web/src/utils/request-trace.ts', localStorage),
     '@/locale': { default: { global: { t: (key) => key } } },
     '@peanut-admin/vue': { isTenantAccessToken },
     '@/api/tenant-session-refresh': recovery,
@@ -188,6 +193,9 @@ function tenantHost({ refresh, status = 401, code = 40100 } = {}) {
     'web/src/api/tenant-session-fetch.ts',
     localStorage,
     {
+      'element-plus': { ElMessage: { error: (message) => messages.push(message) } },
+      '@/utils/auth': auth,
+      '@/utils/request-trace': load('web/src/utils/request-trace.ts', localStorage),
       '@peanut-admin/client': {
         createSessionFetch: (options) =>
           createSessionFetch({
@@ -213,7 +221,7 @@ function tenantHost({ refresh, status = 401, code = 40100 } = {}) {
 test('Web profile read failures abort navigation without remote logout or local cleanup', async () => {
   const shared = storage();
   const auth = load('web/src/utils/auth.ts', shared);
-  auth.setToken('pa_tat_current');
+  auth.setToken('pa_tat_current', 'tenant-switched');
   let guard;
   let logoutCalls = 0;
   const { default: setup } = load(
@@ -222,6 +230,7 @@ test('Web profile read failures abort navigation without remote logout or local 
     {
       'nprogress': { default: { start() {}, done() {} } },
       '@/store': {
+        useBrandStore: () => ({ load: async () => {}, loginEnabled: true }),
         useUserStore: () => ({
           role: null,
           info: async () => {
@@ -241,13 +250,9 @@ test('Web profile read failures abort navigation without remote logout or local 
       guard = callback;
     },
   });
-  let outcome;
-  await guard(
+  const outcome = await guard(
     { name: 'customer', fullPath: '/customer', query: {} },
-    {},
-    (value) => {
-      outcome = value;
-    }
+    {}
   );
   assert.equal(outcome, false);
   assert.equal(logoutCalls, 0);
@@ -293,27 +298,30 @@ test('Web refresh network failure and forbidden API response do not log out', as
 
 for (const identity of ['session-change', 'token-refresh'])
   for (const code of [20000, 40100]) {
-    test(`Platform rejects late ${code} after ${identity} without affecting the current token`, async () => {
+    test(`Platform handles late ${code} after ${identity} without clearing the current token`, async () => {
       const response = deferred();
       const started = deferred();
       let calls = 0;
-      const h = platform(async () => {
+      const canReplay = identity === 'token-refresh' && code === 40100;
+      const h = platform(async (config) => {
         calls++;
+        if (calls > 1) {
+          assert.equal(config.headers.Authorization, 'Bearer new-token');
+          return envelope({ lists: ['current'] });
+        }
         started.resolve();
         return response.promise;
       });
       const work = h.api.tenants();
-      const rejection = assert.rejects(work, /session has changed/);
+      const result = canReplay ? work : assert.rejects(work, /session has changed/);
       await started.promise;
       if (identity === 'session-change') replaceSession(h);
       else h.localStorage.setItem('peanut-platform-token', 'new-token');
       response.resolve(envelope({ lists: [{ id: 'old' }] }, code));
-      await rejection;
-      assert.equal(
-        h.localStorage.getItem('peanut-platform-token'),
-        'new-token'
-      );
-      assert.equal(calls, 1);
+      const page = await result;
+      if (canReplay) assert.deepEqual(Array.from(page.lists), ['current']);
+      assert.equal(h.localStorage.getItem('peanut-platform-token'), 'new-token');
+      assert.equal(calls, canReplay ? 2 : 1);
     });
   }
 
@@ -363,14 +371,11 @@ test('Platform refresh updates only its own token and replays the actual request
       : envelope(null, 40100);
   });
   assert.deepEqual(Array.from((await h.api.tenants()).lists), ['current']);
-  assert.equal(
-    h.localStorage.getItem('peanut-platform-token'),
-    'rotated-token'
-  );
-  assert.equal(
-    h.localStorage.getItem('peanut-platform-session'),
-    'old-session'
-  );
+  assert.equal(h.localStorage.getItem('peanut-platform-token'), null);
+  assert.deepEqual(JSON.parse(h.localStorage.getItem('peanut-platform-session')), {
+    identity: 'old-session',
+    token: 'rotated-token',
+  });
   assert.deepEqual(calls, [
     '/platformapi/tenants',
     '/platformapi/session/refresh',

@@ -2,7 +2,10 @@ import axios from 'axios';
 import { createSessionRecovery } from '@peanut-admin/client';
 import type { SessionSnapshot } from '@peanut-admin/client';
 import { isTenantAccessToken } from '@peanut-admin/vue';
-import { refreshTenantSession } from '@/api/tenant-session';
+import {
+  queueSessionCookieRequest,
+  refreshTenantSession,
+} from '@/api/tenant-session';
 import { getSessionSnapshot } from '@/utils/auth';
 import { useUserStore } from '@/store';
 
@@ -26,7 +29,11 @@ const recovery = createSessionRecovery({
     const redirect = router.currentRoute.value.fullPath;
     try {
       // An already rejected credential needs local cleanup, not another logout request.
-      await useUserStore().logoutCallBack(snapshot.generation, snapshot.token);
+      await queueSessionCookieRequest(
+        () =>
+          useUserStore().logoutCallBack(snapshot.generation, snapshot.token),
+        snapshot.generation
+      );
     } finally {
       const current = getSessionSnapshot();
       if (

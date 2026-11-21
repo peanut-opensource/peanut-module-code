@@ -13077,9 +13077,10 @@ export interface components {
         };
     };
     responses: {
-        /** @description Standard Peanut Module Code API response */
+        /** @description Standard Peanut Admin API response */
         ApiResponse: {
             headers: {
+                "X-Trace-Id": components["headers"]["TraceId"];
                 [name: string]: unknown;
             };
             content: {
@@ -13089,6 +13090,7 @@ export interface components {
         /** @description 统一 API 错误响应；data.error_code 仅在异常提供稳定错误码时出现。 */
         ErrorResponse: {
             headers: {
+                "X-Trace-Id": components["headers"]["TraceId"];
                 /** @description 请求追踪 ID */
                 "X-Request-Id"?: string;
                 [name: string]: unknown;
@@ -13137,7 +13139,10 @@ export interface components {
         IfMatchRevision: string;
     };
     requestBodies: never;
-    headers: never;
+    headers: {
+        /** @description 请求关联 ID，与 X-Request-Id 相同，可用于定位服务日志。 */
+        TraceId: string;
+    };
     pathItems: never;
 }
 export type $defs = Record<string, never>;

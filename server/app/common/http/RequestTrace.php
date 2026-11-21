@@ -6,6 +6,7 @@ namespace app\common\http;
 
 use app\common\execution\CurrentExecutionContext;
 use PeanutAdmin\Kernel\Support\TraceId;
+use think\Response;
 
 /** One stable request ID without mutating the framework Request object. */
 final class RequestTrace
@@ -123,6 +124,28 @@ final class RequestTrace
         }
 
         return self::remember($request, TraceId::generate($prefix));
+    }
+
+    /** Expose correlation without changing the origin's CORS policy. */
+    public static function attach(Response $response, string $requestId): Response
+    {
+        $exposeName = 'Access-Control-Expose-Headers';
+        $exposed = [];
+        foreach ($response->getHeader() as $name => $value) {
+            if (strcasecmp($name, $exposeName) === 0) {
+                $exposeName = $name;
+                $exposed = array_filter(array_map('trim', explode(',', (string) $value)));
+                break;
+            }
+        }
+        if (!in_array('x-trace-id', array_map('strtolower', $exposed), true)) {
+            $exposed[] = 'X-Trace-Id';
+        }
+        return $response->header([
+            'X-Request-Id' => $requestId,
+            'X-Trace-Id' => $requestId,
+            $exposeName => implode(', ', $exposed),
+        ]);
     }
 
     /** @return \WeakMap<object,string> */

@@ -1,6 +1,16 @@
 import axios from 'axios';
+import type { AxiosRequestConfig, AxiosResponse } from 'axios';
+import {
+  createPlatformSession,
+  type PlatformSessionSnapshot,
+} from '@/utils/platform-session';
+import { formatRequestError } from '@/utils/request-trace';
 
-const PLATFORM_TOKEN_KEY = 'peanut-platform-token';
+const sessionState = createPlatformSession(() => window.location.reload());
+import.meta.hot?.dispose(sessionState.dispose);
+type SessionConfig = AxiosRequestConfig & {
+  platformSession?: PlatformSessionSnapshot;
+};
 
 interface Envelope<T> {
   code: number;
@@ -78,7 +88,11 @@ const client = axios.create({
 });
 
 client.interceptors.request.use((config) => {
-  const token = localStorage.getItem(PLATFORM_TOKEN_KEY);
+  const snapshot = sessionState.current();
+  if (!sessionState.sameIdentity(snapshot))
+    throw new Error('The platform session has changed.');
+  (config as SessionConfig).platformSession = snapshot;
+  const { token } = snapshot;
   if (token) {
     config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
@@ -86,31 +100,44 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
-async function unwrap<T>(request: Promise<{ data: Envelope<T> }>): Promise<T> {
-  let response: { data: Envelope<T> };
+async function unwrap<T>(
+  request: Promise<AxiosResponse<Envelope<T>>>
+): Promise<T> {
+  let response: AxiosResponse<Envelope<T>>;
   try {
     response = await request;
   } catch (cause) {
-    if (axios.isAxiosError(cause)) {
-      const envelope = cause.response?.data as Envelope<{
-        error_code?: string;
-      }> | null;
-      if (envelope?.code === 40100) localStorage.removeItem(PLATFORM_TOKEN_KEY);
-      throw new Error(
-        envelope?.data?.error_code ||
-          envelope?.msg ||
-          `Platform request failed (${cause.response?.status || 'network'})`
-      );
+    if (axios.isCancel(cause)) throw cause;
+    if (!axios.isAxiosError(cause)) throw cause;
+    const errorResponse = cause.response as
+      | AxiosResponse<Envelope<T>>
+      | undefined;
+    if (!errorResponse) throw new Error('网络请求失败，请检查网络连接后重试');
+    if (!errorResponse.data || typeof errorResponse.data.code !== 'number') {
+      throw new Error(formatRequestError('模块治理请求失败', errorResponse));
     }
-    throw cause;
+    response = errorResponse;
   }
+  const snapshot = (response.config as SessionConfig).platformSession;
+  if (snapshot && !sessionState.matches(snapshot))
+    throw new Error('The platform session has changed.');
   if (response.data.code !== 20000) {
-    if (response.data.code === 40100)
-      localStorage.removeItem(PLATFORM_TOKEN_KEY);
+    if (
+      snapshot?.token &&
+      response.data.code === 40100 &&
+      response.config.url !== '/platformapi/session/login'
+    ) {
+      await sessionState.withCookieLock(async () => {
+        if (sessionState.matches(snapshot)) sessionState.setToken(null);
+      }, snapshot);
+    }
     const details = response.data.data as { error_code?: string } | null;
-    throw new Error(
-      details?.error_code || response.data.msg || 'Platform request failed'
-    );
+    const code = details?.error_code;
+    const message =
+      code && MODULE_ERROR_MESSAGES[code]
+        ? `${MODULE_ERROR_MESSAGES[code]}（${code}）`
+        : code || response.data.msg || '模块治理请求失败';
+    throw new Error(formatRequestError(message, response));
   }
   return response.data.data;
 }
@@ -161,17 +188,22 @@ export function moduleErrorMessage(cause: unknown): string {
 }
 
 export function hasPlatformSession(): boolean {
-  return !!localStorage.getItem(PLATFORM_TOKEN_KEY);
+  return sessionState.current().token !== null;
 }
 
 export async function loginPlatform(
   email: string,
   password: string
 ): Promise<void> {
-  const session = await unwrap<{ access_token: string }>(
-    client.post('/platformapi/session/login', { email, password })
-  );
-  localStorage.setItem(PLATFORM_TOKEN_KEY, session.access_token);
+  const snapshot = sessionState.current();
+  await sessionState.withCookieLock(async () => {
+    const session = await unwrap<{ access_token: string }>(
+      client.post('/platformapi/session/login', { email, password })
+    );
+    if (!sessionState.sameIdentity(snapshot))
+      throw new Error('The platform session has changed.');
+    sessionState.setToken(session.access_token);
+  }, snapshot);
 }
 
 export function listModules(params: {

@@ -1,8 +1,11 @@
+import { ElMessage } from 'element-plus';
+import { assertSessionGeneration, getSessionSnapshot } from '@/utils/auth';
+import { formatRequestError } from '@/utils/request-trace';
 import { createSessionFetch } from '@peanut-admin/client';
 import { tenantSessionRecovery } from '@/api/tenant-session-refresh';
 
 /** Only module authentication middleware may authorize automatic replay. */
-export const tenantSessionFetch = createSessionFetch({
+const fetchWithSession = createSessionFetch({
   recovery: tenantSessionRecovery,
   isAllowedRequest: (request) => {
     const api = new URL(
@@ -34,5 +37,19 @@ export const tenantSessionFetch = createSessionFetch({
     );
   },
 });
+
+export async function tenantSessionFetch(request: Request): Promise<Response> {
+  assertSessionGeneration(getSessionSnapshot().generation);
+  const response = await fetchWithSession(request);
+  if (!response.ok && response.headers.has('X-Trace-Id')) {
+    ElMessage.error(
+      formatRequestError('请求失败，请稍后重试', {
+        status: response.status,
+        headers: { 'X-Trace-Id': response.headers.get('X-Trace-Id') },
+      })
+    );
+  }
+  return response;
+}
 
 export default tenantSessionFetch;

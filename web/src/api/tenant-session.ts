@@ -6,11 +6,12 @@ import type {
 } from '@peanut-admin/vue';
 import { isTenantAccessToken } from '@peanut-admin/vue';
 import {
-  advanceSessionGeneration,
+  assertSessionGeneration,
   getSessionSnapshot,
   setToken,
 } from '@/utils/auth';
 import i18n from '@/locale';
+import { formatRequestError } from '@/utils/request-trace';
 
 const tenantClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || undefined,
@@ -22,6 +23,7 @@ tenantClient.interceptors.response.use(undefined, (error: unknown) => {
   if (axios.isCancel(error)) return Promise.reject(error);
   if (axios.isAxiosError<{ msg?: unknown }>(error)) {
     const message = error.response?.data?.msg;
+    if (error.response) error.message = '请求失败，请稍后重试';
     if (typeof message === 'string' && message.trim() !== '') {
       error.message = message;
     } else if (!error.response) {
@@ -34,6 +36,7 @@ tenantClient.interceptors.response.use(undefined, (error: unknown) => {
         error.message = translate('tenantSession.networkError');
       }
     }
+    error.message = formatRequestError(error.message, error.response);
   }
   return Promise.reject(error);
 });
@@ -42,15 +45,13 @@ let sessionCookieQueue: Promise<void> = Promise.resolve();
 const SESSION_COOKIE_LOCK = 'peanut-admin-tenant-session-cookie';
 
 /** Serializes cookie changes in this tab and, when available, across same-origin tabs. */
-function queueSessionCookieRequest<T>(
+export function queueSessionCookieRequest<T>(
   operation: () => Promise<T>,
   generation = getSessionSnapshot().generation,
   requireCrossTabLock = false
 ): Promise<T> {
   const request = sessionCookieQueue.then(async () => {
-    if (getSessionSnapshot().generation !== generation) {
-      throw new Error('The tenant session has changed.');
-    }
+    assertSessionGeneration(generation);
     const locks =
       typeof navigator === 'undefined' ? undefined : navigator.locks;
     if (!locks) {
@@ -64,9 +65,7 @@ function queueSessionCookieRequest<T>(
       SESSION_COOKIE_LOCK,
       { mode: 'exclusive' },
       () => {
-        if (getSessionSnapshot().generation !== generation) {
-          throw new Error('The tenant session has changed.');
-        }
+        assertSessionGeneration(generation);
         return operation();
       }
     );
@@ -90,7 +89,12 @@ type TenantEnvelope<T> =
       data: null;
     };
 
-function tenantData<T>(response: TenantEnvelope<T>): T {
+function tenantData<T>(result: {
+  data: TenantEnvelope<T>;
+  status: number;
+  headers?: Record<string, unknown>;
+}): T {
+  const response = result.data;
   if (
     !response ||
     typeof response !== 'object' ||
@@ -99,38 +103,32 @@ function tenantData<T>(response: TenantEnvelope<T>): T {
     response.data === undefined
   ) {
     const failed = response as Partial<{ msg: string }> | null | undefined;
-    throw new Error(failed?.msg || 'Tenant session returned no session data.');
+    throw new Error(
+      formatRequestError(
+        failed?.msg || 'Tenant session returned no session data.',
+        result
+      )
+    );
   }
   return response.data;
 }
 
-export async function tenantLogin(
-  email: string,
-  password: string,
-  generation?: number
-) {
-  return queueSessionCookieRequest(async () => {
-    const response = await tenantClient.post<
-      TenantEnvelope<TenantSessionOutcome>
-    >('/adminapi/tenant/session/login', { email, password });
-    return tenantData(response.data);
-  }, generation);
+// Login, selection and logout are used inside a complete cookie transition.
+export async function tenantLogin(email: string, password: string) {
+  const response = await tenantClient.post<
+    TenantEnvelope<TenantSessionOutcome>
+  >('/adminapi/tenant/session/login', { email, password });
+  return tenantData(response);
 }
 
-export async function selectTenant(
-  challengeToken: string,
-  tenantId: number,
-  generation?: number
-) {
-  return queueSessionCookieRequest(async () => {
-    const response = await tenantClient.post<
-      TenantEnvelope<TenantAuthentication>
-    >('/adminapi/tenant/session/select', {
-      challenge_token: challengeToken,
-      tenant_id: tenantId,
-    });
-    return tenantData(response.data);
-  }, generation);
+export async function selectTenant(challengeToken: string, tenantId: number) {
+  const response = await tenantClient.post<
+    TenantEnvelope<TenantAuthentication>
+  >('/adminapi/tenant/session/select', {
+    challenge_token: challengeToken,
+    tenant_id: tenantId,
+  });
+  return tenantData(response);
 }
 
 export async function tenantSwitch(accessToken: string) {
@@ -139,7 +137,7 @@ export async function tenantSwitch(accessToken: string) {
     {},
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
-  return tenantData(response.data);
+  return tenantData(response);
 }
 
 export async function refreshTenantSession(
@@ -162,13 +160,13 @@ export async function refreshTenantSession(
         {},
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
-      const authentication = tenantData(response.data);
+      const authentication = tenantData(response);
       const latest = getSessionSnapshot();
       if (latest.generation !== generation) {
         throw new Error('The tenant session has changed.');
       }
       if (latest.token === accessToken) {
-        setToken(authentication.access_token);
+        setToken(authentication.access_token, 'session-refreshed');
         return authentication.access_token;
       }
       if (latest.token !== null && isTenantAccessToken(latest.token)) {
@@ -181,25 +179,10 @@ export async function refreshTenantSession(
   );
 }
 
-export async function tenantLogout(
-  expected: { generation: number; token: string },
-  onStart: (token: string, generation: number) => void
-): Promise<void> {
-  if (!isTenantAccessToken(expected.token)) {
-    throw new Error('The tenant session has changed.');
-  }
-  return queueSessionCookieRequest(async () => {
-    const { token } = getSessionSnapshot();
-    if (token === null || !isTenantAccessToken(token)) {
-      throw new Error('The tenant session has changed.');
-    }
-    // A refresh that held this lock first may have rotated the access token.
-    const generation = advanceSessionGeneration();
-    onStart(token, generation);
-    await tenantClient.post(
-      '/adminapi/tenant/session/logout',
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-  }, expected.generation);
+export async function tenantLogout(token: string): Promise<void> {
+  await tenantClient.post(
+    '/adminapi/tenant/session/logout',
+    {},
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
 }

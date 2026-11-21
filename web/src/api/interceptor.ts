@@ -1,7 +1,12 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ElMessage } from 'element-plus';
-import { getSessionSnapshot, getToken } from '@/utils/auth';
+import { formatRequestError } from '@/utils/request-trace';
+import {
+  assertSessionGeneration,
+  getSessionSnapshot,
+  getToken,
+} from '@/utils/auth';
 import i18n from '@/locale';
 import { isTenantAccessToken } from '@peanut-admin/vue';
 import {
@@ -17,7 +22,6 @@ export interface HttpResponse<T = unknown> {
   data: T;
 }
 
-
 if (import.meta.env.VITE_API_BASE_URL) {
   axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 }
@@ -32,9 +36,7 @@ axios.interceptors.request.use(
   (config: AxiosRequestConfig) => {
     const requestConfig = config as SessionRequestConfig;
     const snapshot = requestConfig.tenantSession ?? getSessionSnapshot();
-    if (snapshot.generation !== getSessionSnapshot().generation) {
-      return Promise.reject(new Error('The request session has changed.'));
-    }
+    assertSessionGeneration(snapshot.generation);
     requestConfig.tenantSession = snapshot;
     const token = getToken();
     if (token) {
@@ -58,9 +60,7 @@ const handleResponse = async (response: AxiosResponse<HttpResponse>) => {
   retryConfig.tenantSession = snapshot;
   const currentSession = getSessionSnapshot();
   if (snapshot.generation !== currentSession.generation) {
-    return Promise.reject(
-      new Error(res.msg || 'The request session has changed.')
-    );
+    return Promise.reject(new Error('The request session has changed.'));
   }
   const canRefresh =
     res.code === 40100 &&
@@ -69,9 +69,7 @@ const handleResponse = async (response: AxiosResponse<HttpResponse>) => {
     retryConfig.url !== '/adminapi/tenant/session/refresh' &&
     retryConfig.url !== '/adminapi/tenant/session/logout';
   if (snapshot.token !== currentSession.token && !canRefresh) {
-    return Promise.reject(
-      new Error(res.msg || 'The request session has changed.')
-    );
+    return Promise.reject(new Error('The request session has changed.'));
   }
   // The legacy export endpoint uses code 2 to signal a generated file response.
   if (![20000, 2].includes(res.code)) {
@@ -95,13 +93,15 @@ const handleResponse = async (response: AxiosResponse<HttpResponse>) => {
       snapshot.generation !== getSessionSnapshot().generation ||
       snapshot.token !== getToken()
     ) {
-      return Promise.reject(
-        new Error(res.msg || 'The request session has changed.')
-      );
+      return Promise.reject(new Error('The request session has changed.'));
     }
+    const message = formatRequestError(
+      res.msg || '请求失败，请稍后重试',
+      response
+    );
     if (res.code === 40100) await invalidateTenantSession(snapshot);
-    else ElMessage.error({ message: res.msg || 'Error', duration: 5 * 1000 });
-    return Promise.reject(new Error(res.msg || 'Error'));
+    else ElMessage.error({ message, duration: 5 * 1000 });
+    return Promise.reject(new Error(message));
   }
   return res;
 };
@@ -114,20 +114,18 @@ axios.interceptors.response.use(handleResponse, (error) => {
   if (response?.data && typeof response.data.code === 'number') {
     return handleResponse(response);
   }
-  let message = error.msg || 'Request Error';
+  let message = '请求失败，请稍后重试';
   if (axios.isAxiosError(error) && !error.response) {
-    const translate = (
-      i18n.global as unknown as { t: (key: string) => string }
-    ).t;
+    const translate = (i18n.global as unknown as { t: (key: string) => string })
+      .t;
     if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
       message = translate('tenantSession.requestTimeout');
     } else if (error.code === 'ERR_NETWORK' || error.request) {
       message = translate('tenantSession.networkError');
     }
   }
-  ElMessage.error({
-    message,
-    duration: 5 * 1000,
-  });
+  message = formatRequestError(message, response);
+  ElMessage.error({ message, duration: 5 * 1000 });
+  if (axios.isAxiosError(error)) error.message = message;
   return Promise.reject(error);
 });

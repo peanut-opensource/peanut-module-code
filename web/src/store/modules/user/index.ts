@@ -1,12 +1,17 @@
 import { defineStore } from 'pinia';
 import { getUserInfo, LoginData } from '@/api/user';
 import {
-  advanceSessionGeneration,
+  assertSessionGeneration,
   clearToken,
   getSessionSnapshot,
   setToken,
 } from '@/utils/auth';
-import { selectTenant, tenantLogin, tenantLogout } from '@/api/tenant-session';
+import {
+  queueSessionCookieRequest,
+  selectTenant,
+  tenantLogin,
+  tenantLogout,
+} from '@/api/tenant-session';
 import { disposeTenantState, isTenantAccessToken } from '@peanut-admin/vue';
 import { removeRouteListener } from '@/utils/route-listener';
 import { UserState } from './types';
@@ -72,71 +77,46 @@ const useUserStore = defineStore('user', {
     },
 
     // Login
-    async login(loginForm: LoginData) {
-      let generation = advanceSessionGeneration();
-      const resetLoginState = () => {
-        this.resetInfo();
-        useBrandStore().setTenantName();
-        removeRouteListener();
-        useAppStore().clearServerMenu();
-      };
-      try {
-        resetLoginState();
-        await disposeTenantState();
-        if (getSessionSnapshot().generation !== generation) {
-          throw new Error('The login session has changed.');
-        }
-        if (loginForm.challengeToken && loginForm.tenantId) {
-          const authenticated = await selectTenant(
-            loginForm.challengeToken,
-            loginForm.tenantId,
-            generation
-          );
-          if (getSessionSnapshot().generation !== generation) {
-            throw new Error('The login session has changed.');
+    login(loginForm: LoginData) {
+      const generation = getSessionSnapshot().generation;
+      return queueSessionCookieRequest(async () => {
+        const resetLoginState = () => {
+          this.resetInfo();
+          useBrandStore().setTenantName();
+          removeRouteListener();
+          useAppStore().clearServerMenu();
+        };
+        try {
+          resetLoginState();
+          await disposeTenantState();
+          assertSessionGeneration(generation);
+          let outcome =
+            loginForm.challengeToken && loginForm.tenantId
+              ? await selectTenant(loginForm.challengeToken, loginForm.tenantId)
+              : await tenantLogin(loginForm.username, loginForm.password);
+          if (
+            outcome.state === 'tenant_selection_required' &&
+            loginForm.tenantId
+          ) {
+            assertSessionGeneration(generation);
+            outcome = await selectTenant(
+              outcome.challenge_token,
+              loginForm.tenantId
+            );
           }
-          resetLoginState();
-          generation = advanceSessionGeneration();
-          setToken(authenticated.access_token);
-          return authenticated;
-        }
-        const outcome = await tenantLogin(
-          loginForm.username,
-          loginForm.password,
-          generation
-        );
-        if (!outcome || typeof outcome !== 'object') {
-          throw new Error('Tenant session returned no session data.');
-        }
-        if (getSessionSnapshot().generation !== generation) {
-          throw new Error('The login session has changed.');
-        }
-        if (outcome.state === 'tenant_selection_required') {
-          if (!loginForm.tenantId) return outcome;
-          const authenticated = await selectTenant(
-            outcome.challenge_token,
-            loginForm.tenantId,
-            generation
-          );
-          if (getSessionSnapshot().generation !== generation) {
-            throw new Error('The login session has changed.');
+          assertSessionGeneration(generation);
+          if (outcome.state === 'authenticated') {
+            setToken(outcome.access_token, 'tenant-switched');
           }
-          resetLoginState();
-          generation = advanceSessionGeneration();
-          setToken(authenticated.access_token);
-          return authenticated;
+          return outcome;
+        } catch (error) {
+          if (getSessionSnapshot().generation === generation) {
+            resetLoginState();
+            clearToken();
+          }
+          throw error;
         }
-        resetLoginState();
-        generation = advanceSessionGeneration();
-        setToken(outcome.access_token);
-        return outcome;
-      } catch (err) {
-        if (getSessionSnapshot().generation === generation) {
-          resetLoginState();
-          clearToken();
-        }
-        throw err;
-      }
+      }, generation);
     },
     async logoutCallBack(
       expectedGeneration: number,
@@ -180,45 +160,26 @@ const useUserStore = defineStore('user', {
         beforeLogout.token !== token
       )
         return false;
-      const transition: { generation: number | null; token: string | null } = {
-        generation: null,
-        token,
-      };
-      let cleared = false;
+      let started = false;
       try {
-        if (token !== null && isTenantAccessToken(token)) {
-          await tenantLogout(
-            { generation, token },
-            (currentToken, nextGeneration) => {
-              transition.token = currentToken;
-              transition.generation = nextGeneration;
+        return await queueSessionCookieRequest(async () => {
+          const activeToken = getSessionSnapshot().token;
+          started = true;
+          let cleared = false;
+          try {
+            if (activeToken !== null && isTenantAccessToken(activeToken)) {
+              await tenantLogout(activeToken);
             }
-          );
-        } else {
-          transition.generation = advanceSessionGeneration();
-        }
+          } finally {
+            cleared = await this.logoutCallBack(generation, activeToken);
+          }
+          return cleared;
+        }, generation);
       } catch (error) {
-        if (
-          transition.generation === null &&
-          getSessionSnapshot().generation !== generation
-        )
+        if (!started && getSessionSnapshot().generation !== generation)
           return false;
         throw error;
-      } finally {
-        if (transition.generation !== null) {
-          const afterRemoteLogout = getSessionSnapshot();
-          if (
-            afterRemoteLogout.generation === transition.generation &&
-            afterRemoteLogout.token === transition.token
-          ) {
-            cleared = await this.logoutCallBack(
-              transition.generation,
-              transition.token
-            );
-          }
-        }
       }
-      return cleared;
     },
   },
 });

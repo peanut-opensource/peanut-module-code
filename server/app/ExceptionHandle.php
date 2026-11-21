@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace app;
 
+use app\common\execution\CurrentExecutionContext;
 use app\common\http\ApiProblem;
+use app\common\http\RequestTrace;
 use app\common\http\HostApiProblemRenderer;
 use app\common\exception\BusinessException;
 use think\db\exception\DataNotFoundException;
@@ -46,15 +48,14 @@ class ExceptionHandle extends Handle
     public function render($request, Throwable $e): Response
     {
         // Framework response exceptions already own a complete response (including redirects).
-        if ($e instanceof HttpResponseException) {
-            return parent::render($request, $e);
-        }
-        $response = $this->app->make(HostApiProblemRenderer::class)->render($request, $e);
+        $response = $e instanceof HttpResponseException
+            ? null
+            : $this->app->make(HostApiProblemRenderer::class)->render($request, $e);
         if ($response instanceof Response) {
             return $response;
         }
 
-        // 非 Application HTTP 错误交给框架处理。
-        return parent::render($request, $e);
+        $requestId = RequestTrace::id($this->app->make(CurrentExecutionContext::class), $request);
+        return RequestTrace::attach(parent::render($request, $e), $requestId);
     }
 }

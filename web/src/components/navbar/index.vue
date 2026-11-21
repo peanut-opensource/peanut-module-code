@@ -327,10 +327,10 @@
   import useUser from '@/hooks/user';
   import MenuComponent from '@/components/menu/index.vue';
   import useMenuTree from '@/components/menu/use-menu-tree';
-  import { selectTenant, tenantSwitch } from '@/api/tenant-session';
+  import { queueSessionCookieRequest, selectTenant, tenantSwitch } from '@/api/tenant-session';
   import { disposeTenantState, type TenantChoice } from '@peanut-admin/vue';
   import {
-    advanceSessionGeneration,
+    assertSessionGeneration,
     getSessionSnapshot,
     getToken,
     setToken,
@@ -461,6 +461,7 @@
     else if (command === 'fullscreen') toggleFullScreen();
     else if (command === 'settings') setVisible();
   };
+  let tenantSwitchGeneration: number | undefined;
   const beginTenantSwitch = async () => {
     const snapshot = getSessionSnapshot();
     const token = getToken();
@@ -472,37 +473,27 @@
       snapshot.token !== current.token
     )
       return;
+    tenantSwitchGeneration = snapshot.generation;
     tenantChallenge.value = selection.challenge_token;
     tenantChoices.value = selection.tenants;
     selectedTenantId.value = selection.tenants[0]?.tenant_id;
     tenantSwitchVisible.value = true;
   };
   const confirmTenantSwitch = async () => {
-    if (!tenantChallenge.value || !selectedTenantId.value) return;
-    let generation = advanceSessionGeneration();
-    const token = getToken();
+    const challenge = tenantChallenge.value;
+    const tenantId = selectedTenantId.value;
+    const openingGeneration = tenantSwitchGeneration;
+    if (!challenge || !tenantId || openingGeneration === undefined) return;
     tenantSwitching.value = true;
     try {
-      const authenticated = await selectTenant(
-        tenantChallenge.value,
-        selectedTenantId.value,
-        generation
-      );
-      const beforeDispose = getSessionSnapshot();
-      if (
-        beforeDispose.generation !== generation ||
-        beforeDispose.token !== token
-      )
-        return;
-      await disposeTenantState();
-      const beforeCommit = getSessionSnapshot();
-      if (
-        beforeCommit.generation !== generation ||
-        beforeCommit.token !== token
-      )
-        return;
-      generation = advanceSessionGeneration();
-      setToken(authenticated.access_token);
+      const generation = await queueSessionCookieRequest(async () => {
+        await disposeTenantState();
+        assertSessionGeneration(openingGeneration);
+        const authenticated = await selectTenant(challenge, tenantId);
+        assertSessionGeneration(openingGeneration);
+        setToken(authenticated.access_token, 'tenant-switched');
+        return getSessionSnapshot().generation;
+      }, openingGeneration);
       tenantSwitchVisible.value = false;
       userStore.resetInfo();
       appStore.clearServerMenu();

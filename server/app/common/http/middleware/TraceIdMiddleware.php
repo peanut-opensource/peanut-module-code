@@ -18,7 +18,6 @@ final readonly class TraceIdMiddleware
     {
         $response = $next($request);
         $id = RequestTrace::id($this->executionContext, $request);
-        $response->header(['X-Request-Id' => $id]);
-        return $response;
+        return RequestTrace::attach($response, $id);
     }
 }

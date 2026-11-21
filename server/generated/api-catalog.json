@@ -36,7 +36,7 @@
         },
         {
             "path": "server/app/api/metadata/contracts/openapi.json",
-            "sha256": "59f4b51475c160c781cf69f5721ab11fbbd1af76de07c17c4276f4160cb220b8"
+            "sha256": "4b32dc63eecc657718ac1b02f2c9e12134fa76bfbddc87261db55e130f4a2488"
         },
         {
             "path": "server/app/modules/custom/ai_access/api/metadata/openapi.php",

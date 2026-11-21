@@ -5,7 +5,7 @@
     "module_fragments": "server/app/modules/*/*/api/metadata/openapi.php"
   },
   "info": {
-    "title": "Peanut Module Code HTTP API",
+    "title": "Peanut Admin HTTP API",
     "version": "3.0.0",
     "description": "Application HTTP contract for the identity, Tenant, article, file and notification entry points. Runtime authorization and Tenant binding remain enforced by the server middleware."
   },
@@ -1988,9 +1988,18 @@
         ]
       }
     },
+  "headers": {
+    "TraceId": {
+      "description": "请求关联 ID，与 X-Request-Id 相同，可用于定位服务日志。",
+      "schema": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"}
+    }
+  },
   "responses": {
     "ApiResponse": {
-        "description": "Standard Peanut Module Code API response",
+        "description": "Standard Peanut Admin API response",
+        "headers": {
+          "X-Trace-Id": {"$ref": "#/components/headers/TraceId"}
+        },
         "content": {
           "application/json": {
             "schema": {
@@ -2002,6 +2011,7 @@
     "ErrorResponse": {
       "description": "统一 API 错误响应；data.error_code 仅在异常提供稳定错误码时出现。",
       "headers": {
+        "X-Trace-Id": {"$ref": "#/components/headers/TraceId"},
         "X-Request-Id": {
           "description": "请求追踪 ID",
           "schema": {

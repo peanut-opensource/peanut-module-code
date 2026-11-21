@@ -31,6 +31,8 @@ php scripts/generate-api-contracts.php --check
 
 接口源变化而未刷新、缺少派生文件、模块接口删除后遗留旧 SDK，都会使检查失败。生成失败时不得继续发布旧产物，也不能只改时间戳或版本字符串冒充刷新。
 
+宿主正常响应与应用异常响应的 `X-Trace-Id` 等于 `X-Request-Id`。应用通过 `Access-Control-Expose-Headers` 声明该头，跨源许可由实际部署的 CORS 策略控制。Web 与 Platform 的错误提示仅附加通过格式校验的追踪 ID。服务端 5xx 使用通用提示，未收到 HTTP 响应的网络错误仍使用本地提示。
+
 `GET /adminapi/peanut.document.versions` 和 `DocumentQueries::versions` 只返回获准文档的已提交版本摘要，每页重新按持久 owner 核验 active 的 view 或 archived 的 archive.read。默认 limit 为 20，范围 1–100；可选正整数 before_revision_no 以版本号倒序向更早版本翻页，无总数。摘要不授予正文、文件、下载或恢复权限；选中版本仍走原查询和命令核权。查询拒绝外层事务，避免将未提交版本列为历史。自定义 DocumentQueries 实现须实现新增 versions 方法；现有方法及生命周期协议不变。
 
 模块可以保留真实动态语义的字典，例如扩展属性或配置映射。固定返回对象应列出字段、类型、nullable、枚举和说明。公开合同不得包含数据库凭据、签名密钥、完整 Webhook 请求载荷、远端响应体或内部异常文本。

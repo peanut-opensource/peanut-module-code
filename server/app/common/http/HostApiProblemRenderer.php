@@ -50,12 +50,13 @@ final readonly class HostApiProblemRenderer
             'request_id' => $requestId,
         ] + $diagnostic);
 
-        return JsonResponseFactory::response(
+        $response = JsonResponseFactory::response(
             $problem->apiCode(),
             $problem->getMessage(),
             $problem->data(),
             $problem->httpStatus,
-        )->header(['X-Request-Id' => $requestId] + $problem->headers);
+        )->header($problem->headers);
+        return RequestTrace::attach($response, $requestId);
     }
 
     /** @return array{exception_class:string,exception_file:string,exception_line:int,exception_trace:list<array{class:?string,function:?string,line:?int}>} */

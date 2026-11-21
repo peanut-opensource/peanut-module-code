@@ -1,76 +1,74 @@
+import { createSessionSync, type SessionSyncType } from './session-sync';
+import {
+  newBrowserSessionIdentity,
+  readBrowserSession,
+  writeBrowserSession,
+} from './session-storage';
+
 const TOKEN_KEY = 'token';
+// Modules use this identity-only stamp in durable draft and recovery keys.
 const SESSION_KEY = 'peanut-admin-session';
+const SESSION_STATE_KEY = 'peanut-admin-session-state';
+const readSession = () =>
+  readBrowserSession(SESSION_STATE_KEY, TOKEN_KEY, SESSION_KEY);
 let sessionGeneration = 0;
-let observedToken: string | null = null;
-let hasObservedToken = false;
-let observedSession: string | null = null;
+let acceptedIdentity =
+  typeof window === 'undefined' ? null : readSession().identity;
+let remoteIdentityChanged = false;
 
-const readStoredToken = () => localStorage.getItem(TOKEN_KEY);
-
-const rememberToken = (token: string | null) => {
-  observedToken = token;
-  hasObservedToken = true;
-};
-
-const isLogin = () => {
-  return !!localStorage.getItem(TOKEN_KEY);
-};
+// Switch to @peanut-admin/client after the locked release exports this helper.
+const sessionSync = createSessionSync('admin', ({ type }) => {
+  if (type !== 'session-refreshed') window.location.reload();
+});
+import.meta.hot?.dispose(sessionSync.dispose);
 
 const getToken = () => {
-  const token = readStoredToken();
-  const identity = localStorage.getItem(SESSION_KEY);
-  if (!hasObservedToken) {
-    rememberToken(token);
-    observedSession = identity;
-  } else if (
-    identity !== observedSession ||
-    (identity === null && token !== observedToken)
-  ) {
-    rememberToken(token);
-    observedSession = identity;
-    sessionGeneration += 1;
+  const { identity, token } = readSession();
+  if (identity !== acceptedIdentity) {
+    if (!remoteIdentityChanged) sessionGeneration += 1;
+    remoteIdentityChanged = true;
   }
-  rememberToken(token);
-  return token;
+  // Old tenant UI cannot borrow a new bearer while its reload event is pending.
+  return remoteIdentityChanged ? null : token;
 };
 
-const setToken = (token: string) => {
-  localStorage.setItem(TOKEN_KEY, token);
-  rememberToken(token);
-};
-
-const clearToken = () => {
-  localStorage.removeItem(TOKEN_KEY);
-  rememberToken(null);
-  sessionGeneration += 1;
-  observedSession = Array.from(
-    crypto.getRandomValues(new Uint32Array(4)),
-    (value) => value.toString(16)
-  ).join('-');
-  localStorage.setItem(SESSION_KEY, observedSession);
-};
-
-const advanceSessionGeneration = () => {
-  observedSession = Array.from(
-    crypto.getRandomValues(new Uint32Array(4)),
-    (value) => value.toString(16)
-  ).join('-');
-  localStorage.setItem(SESSION_KEY, observedSession);
-  sessionGeneration += 1;
-  return sessionGeneration;
-};
-
+const isLogin = () => getToken() !== null;
 const getSessionSnapshot = () => {
   const token = getToken();
   return { generation: sessionGeneration, token };
 };
 
+const assertSessionGeneration = (expected: number) => {
+  if (getSessionSnapshot().generation !== expected || remoteIdentityChanged) {
+    throw new Error('The request session has changed.');
+  }
+};
+
+const commit = (token: string | null, type: SessionSyncType) => {
+  assertSessionGeneration(sessionGeneration);
+  const transitionsIdentity = type !== 'session-refreshed';
+  const identity = transitionsIdentity
+    ? newBrowserSessionIdentity()
+    : acceptedIdentity;
+  writeBrowserSession(SESSION_STATE_KEY, TOKEN_KEY, { identity, token });
+  if (identity !== null && transitionsIdentity) {
+    localStorage.setItem(SESSION_KEY, identity);
+    acceptedIdentity = identity;
+    sessionGeneration += 1;
+  }
+  sessionSync.publish(type);
+};
+
+const setToken = (token: string, type: Exclude<SessionSyncType, 'logout'>) =>
+  commit(token, type);
+const clearToken = () => commit(null, 'logout');
+
 export {
+  SESSION_KEY,
+  assertSessionGeneration,
   isLogin,
   getToken,
   setToken,
   clearToken,
-  advanceSessionGeneration,
   getSessionSnapshot,
-  SESSION_KEY,
 };
