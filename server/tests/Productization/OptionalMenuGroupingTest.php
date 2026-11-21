@@ -71,7 +71,7 @@ try {
     ThinkPhpTestConnection::fromPdo($pdo);
     $migrationDirectories = glob($server . '/app/modules/peanut/*/database/migrations', GLOB_ONLYDIR);
     $migrationDirectories = array_values(array_filter($migrationDirectories, static fn($path) => !str_contains($path, '/identity/')));
-    IdentityMysqlFixture::install($pdo, [...$migrationDirectories, $server . '/database/installation']);
+    IdentityMysqlFixture::install($pdo, [...$migrationDirectories, $server . '/database/installation', $server . '/database/migrations']);
     (new CorePermissionCatalogSynchronizer(new ThinkPhpAuthorizationCatalogRepository()))->synchronize();
     $bootstrap = new \PeanutAdmin\Modules\Identity\Platform\Bootstrap\BootstrapService(
         new \PeanutAdmin\Modules\Identity\Audit\AuditService(),
