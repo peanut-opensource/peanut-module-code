@@ -1,0 +1,51 @@
+# Private, unbound container-network management ingress. Never expose 8443.
+server {
+    listen 8443 ssl;
+    server_name ${COLLABORATION_PHP_TLS_HOST} ${COLLABORATION_CONTROL_TLS_HOST};
+    ssl_certificate /run/peanut-collaboration-tls/certificate.pem;
+    ssl_certificate_key /run/peanut-collaboration-tls/private-key.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    client_max_body_size 32m;
+    location ~ ^/adminapi/internal/collaboration/v1/(?:authorize|check|load|store|receipt|references|target(?:/prepare)?|recovery|revoke)$ {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME /server/public/index.php;
+        fastcgi_param QUERY_STRING s=$uri;
+        fastcgi_param HTTP_PROXY "";
+        fastcgi_read_timeout 45s;
+        fastcgi_pass php:9000;
+    }
+    location = /internal/collaboration/control/v1/business-barrier {
+        proxy_pass http://collaboration:80;
+        proxy_read_timeout 45s;
+        proxy_set_header Cookie "";
+        proxy_set_header Authorization "";
+    }
+    location = /internal/collaboration/access/v1/invalidate {
+        proxy_pass http://collaboration:80;
+        proxy_read_timeout 45s;
+        proxy_set_header Cookie "";
+        proxy_set_header Authorization "";
+    }
+    location / { return 404; }
+}
+server {
+    listen 443 ssl;
+    server_name ${COLLABORATION_WSS_HOSTNAME};
+    ssl_certificate /run/peanut-collaboration-tls/certificate.pem;
+    ssl_certificate_key /run/peanut-collaboration-tls/private-key.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    location ^~ /internal/ { return 404; }
+    location ^~ /adminapi/ { return 404; }
+    if ($host != ${COLLABORATION_WSS_HOSTNAME}) { return 421; }
+    location ~ ^/collaboration/?$ {
+        proxy_pass http://collaboration:80;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header Cookie "";
+        proxy_set_header Authorization "";
+        proxy_read_timeout 65s;
+    }
+    location / { return 404; }
+}

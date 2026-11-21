@@ -161,7 +161,8 @@
   const { t, locale } = useI18n();
   const fileProvider = resolveFileProvider();
   const handleAvatarUpload = (options: UploadRequestOptions) => {
-    if (!fileProvider) return Promise.reject(new Error('FILE_MODULE_UNAVAILABLE'));
+    if (!fileProvider)
+      return Promise.reject(new Error('FILE_MODULE_UNAVAILABLE'));
     return fileProvider.uploadFile(10, options);
   };
   const userStore = useUserStore();

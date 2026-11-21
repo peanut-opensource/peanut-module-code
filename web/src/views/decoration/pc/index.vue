@@ -255,6 +255,7 @@
       marginTop: String(styles.top || '0'),
     };
   });
+
   const ensureQuery = (item: DecorationItem) => {
     item.link.query ||= {};
   };

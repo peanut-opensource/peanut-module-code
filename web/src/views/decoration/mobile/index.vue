@@ -63,7 +63,7 @@
                         class="preview-user"
                       >
                         <span class="preview-avatar">P</span>
-                        <span>欢迎使用 Peanut Module Code</span>
+                        <span>欢迎使用 {{ brandStore.website.shop_name }}</span>
                       </div>
                       <div
                         v-else-if="component.name === 'news'"
@@ -549,7 +549,8 @@
   import { ElMessage } from 'element-plus';
   import FilePicker from '@/components/file-picker/index.vue';
   import usePublicImageReferences from '@/hooks/public-image-references';
-  import type { FileRecord } from '@/modules/peanut-file/api';
+  import { useBrandStore } from '@/store';
+  import type { FileRecord } from '@/api/file-provider';
   import {
     getMobileDecorationLists,
     getMobileDecorationDetail,
@@ -653,6 +654,7 @@
   const styleOptions = binaryOptions;
   const loading = ref(false);
   const submitLoading = ref(false);
+  const brandStore = useBrandStore();
   const { articleOptions, articleOptionLabel, loadArticleOptions } =
     useDecorationArticleOptions();
   const images = usePublicImageReferences();
