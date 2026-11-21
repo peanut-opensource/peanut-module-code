@@ -257,9 +257,10 @@ SELECT LPAD(CAST(m.id AS CHAR),26,'0'),m.tenant_id,m.account_id,m.id,'admin-web'
 FROM pa_tenant_member m JOIN pa_account a ON a.id=m.account_id JOIN pa_tenant t ON t.id=m.tenant_id;
 INSERT INTO pa_plan (id,code,name,status,created_at,updated_at) VALUES
  (1,'article-fixture','Article fixture','active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3));
+-- The active fixture predates small clock differences between PHP and MySQL hosts.
 INSERT INTO pa_tenant_license (tenant_id,plan_id,status,effective_at,created_at,updated_at) VALUES
- (101,1,'active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)),
- (202,1,'active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3));
+ (101,1,'active',DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 1 MINUTE),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)),
+ (202,1,'active',DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 1 MINUTE),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3));
 INSERT INTO pa_member (id, tenant_id) VALUES (501, 101), (502, 202);
 INSERT INTO pa_article_cate (id, tenant_id, name, sort, is_show) VALUES (11, 101, 'Alpha seed', 10, 1), (12, 202, 'Beta', 10, 1);
 INSERT INTO pa_article (id, tenant_id, cid, title, is_show, click_actual) VALUES (21, 101, 11, 'Alpha seed article', 1, 0), (22, 202, 12, 'Beta visible', 1, 0);
