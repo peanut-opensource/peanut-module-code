@@ -17,7 +17,7 @@
     <template #dropdown>
       <el-dropdown-menu :class="{ 'tab-list-menu': showTabs }">
         <el-dropdown-item
-          v-for="(tag, tagIndex) in showTabs ? (tabs ?? tagList) : []"
+          v-for="(tag, tagIndex) in showTabs ? tabs ?? tagList : []"
           :key="getTabKey(tag)"
           class="tab-list-item"
           :class="{ 'sperate-line': tagIndex === tagList.length - 1 }"
@@ -76,7 +76,11 @@
     Refresh,
     Switch,
   } from '@element-plus/icons-vue';
-  import { getTabKey, type ShellTab } from '@peanut-admin/ui-vue/tabs';
+  import {
+    getTabKey,
+    tabsForAction,
+    type ShellTab,
+  } from '@peanut-admin/ui-vue/tabs';
   import { useTabBarStore } from '@/store';
   import { DEFAULT_ROUTE_NAME, REDIRECT_ROUTE_NAME } from '@/router/constants';
 
@@ -119,22 +123,23 @@
       return;
     }
     const { itemData, index } = props;
-    const copyTagList = [...tagList.value];
+    const remainingAfter = (action: 'left' | 'right' | 'other') => {
+      const removed = new Set(
+        tabsForAction(tagList.value, getTabKey(itemData), action).map(getTabKey)
+      );
+      return tagList.value.filter((tag) => !removed.has(getTabKey(tag)));
+    };
     const currentRouteIdx = tagList.value.findIndex(isCurrent);
     if (value === Eaction.current) {
       closeCurrent();
     } else if (value === Eaction.left) {
-      copyTagList.splice(1, index - 1);
-      tabBarStore.freshTabList(copyTagList);
+      tabBarStore.freshTabList(remainingAfter('left'));
       if (currentRouteIdx < index) router.push(itemData.fullPath);
     } else if (value === Eaction.right) {
-      copyTagList.splice(index + 1);
-      tabBarStore.freshTabList(copyTagList);
+      tabBarStore.freshTabList(remainingAfter('right'));
       if (currentRouteIdx > index) router.push(itemData.fullPath);
     } else if (value === Eaction.others) {
-      tabBarStore.freshTabList(
-        tagList.value.filter((_tag, idx) => idx === 0 || idx === index)
-      );
+      tabBarStore.freshTabList(remainingAfter('other'));
       router.push(itemData.fullPath);
     } else if (value === Eaction.reload) {
       tabBarStore.deleteCache(itemData);

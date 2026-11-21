@@ -7,6 +7,7 @@ namespace PeanutAdmin\Modules\ReferenceCodes\Infrastructure;
 use PeanutAdmin\Modules\ReferenceCodes\Model\DictData;
 use PeanutAdmin\Modules\ReferenceCodes\Model\DictType;
 use PeanutAdmin\Kernel\Auth\TenantContext;
+use PeanutAdmin\Kernel\Query\DeclarativeQueryBuilder;
 use PeanutAdmin\Modules\ReferenceCodes\Contract\TenantDictionaryCommandProvider;
 use PeanutAdmin\Modules\ReferenceCodes\Contract\TenantDictionaryQueryProvider;
 use PeanutAdmin\Modules\ReferenceCodes\DictionaryEntry;
@@ -24,15 +25,16 @@ final class ThinkPhpTenantDictionaryProvider implements TenantDictionaryQueryPro
     {
         $where = [];
         if (!empty($filters['name'])) {
-            $where[] = ['name', 'like', '%' . $filters['name'] . '%'];
+            $where[] = ['field' => 'name', 'operator' => 'like', 'value' => '%' . $filters['name'] . '%'];
         }
         if (!empty($filters['type'])) {
-            $where[] = ['type', 'like', '%' . $filters['type'] . '%'];
+            $where[] = ['field' => 'type', 'operator' => 'like', 'value' => '%' . $filters['type'] . '%'];
         }
         if (isset($filters['is_disable']) && $filters['is_disable'] !== '') {
-            $where[] = ['is_disable', '=', (int) $filters['is_disable']];
+            $where[] = ['field' => 'is_disable', 'operator' => '=', 'value' => (int) $filters['is_disable']];
         }
-        $query = $this->typesQuery()->where($where);
+        $query = $this->typesQuery();
+        (new DeclarativeQueryBuilder(['name' => 'name', 'type' => 'type', 'is_disable' => 'is_disable']))->apply($query, $where);
         $pageResult = PaginationInput::from(['page_no' => $page, 'page_size' => $pageSize])->result($query->order(['id' => 'desc']));
         $rows = array_map(static fn($item): array => $item instanceof \think\Model ? $item->toArray() : (array) $item, $pageResult->items);
         return new DictionaryPage(array_map(static fn(array $row): DictionaryType => DictionaryType::fromArray($row), $rows), $pageResult->total, $pageResult->page, $pageResult->pageSize);
@@ -43,15 +45,16 @@ final class ThinkPhpTenantDictionaryProvider implements TenantDictionaryQueryPro
     {
         $where = [];
         if (!empty($filters['type_id'])) {
-            $where[] = ['type_id', '=', (int) $filters['type_id']];
+            $where[] = ['field' => 'type_id', 'operator' => '=', 'value' => (int) $filters['type_id']];
         }
         if (!empty($filters['name'])) {
-            $where[] = ['name', 'like', '%' . $filters['name'] . '%'];
+            $where[] = ['field' => 'name', 'operator' => 'like', 'value' => '%' . $filters['name'] . '%'];
         }
         if (isset($filters['is_disable']) && $filters['is_disable'] !== '') {
-            $where[] = ['is_disable', '=', (int) $filters['is_disable']];
+            $where[] = ['field' => 'is_disable', 'operator' => '=', 'value' => (int) $filters['is_disable']];
         }
-        $query = $this->entriesQuery()->where($where);
+        $query = $this->entriesQuery();
+        (new DeclarativeQueryBuilder(['type_id' => 'type_id', 'name' => 'name', 'is_disable' => 'is_disable']))->apply($query, $where);
         $pageResult = PaginationInput::from(['page_no' => $page, 'page_size' => $pageSize])->result($query->order(['sort' => 'desc', 'id' => 'desc']));
         $rows = array_map(static fn($item): array => $item instanceof \think\Model ? $item->toArray() : (array) $item, $pageResult->items);
         return new DictionaryPage(array_map(static fn(array $row): DictionaryEntry => DictionaryEntry::fromArray($row), $rows), $pageResult->total, $pageResult->page, $pageResult->pageSize);

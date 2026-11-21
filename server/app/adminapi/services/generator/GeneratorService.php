@@ -150,8 +150,11 @@ class GeneratorService
                 $module,
                 (string) $params['target_edition'],
             );
-            $tree = self::normalizeTree($params['tree_config'] ?? [], $columnNames, (string) $params['template_type']);
+            $config = $params['tree_config'] ?? [];
+            $tree = self::normalizeTree($config, $columnNames, (string) $params['template_type']);
             $softDelete = self::normalizeSoftDelete($params['soft_delete'] ?? [], $columnNames, $primaryNames);
+
+            $capabilities = self::normalizeCapabilities($config['capabilities'] ?? [], $columnNames, $primaryNames, $softDelete['field']);
 
             $submittedIds = [];
             $persist = [];
@@ -189,7 +192,7 @@ class GeneratorService
                 'data_owner' => (string) $params['data_owner'],
                 'target_edition' => (string) $params['target_edition'],
                 'author' => trim((string) ($params['author'] ?? '')),
-                'tree_config' => $tree + ['soft_delete' => $softDelete],
+                'tree_config' => $tree + ['soft_delete' => $softDelete, 'capabilities' => $capabilities],
                 'relations' => $relations,
             ]);
         });
@@ -589,6 +592,24 @@ class GeneratorService
             throw new \InvalidArgumentException('树主键和父级字段不能相同');
         }
         return $result;
+    }
+
+    /** @return array{batchDelete:bool,batchUpdateStatus:bool,statusField:string} */
+    private static function normalizeCapabilities(mixed $input, array $columns, array $primary, string $softDeleteField): array
+    {
+        if (!is_array($input) || array_diff(array_keys($input), ['batchDelete', 'batchUpdateStatus', 'statusField']) !== []) {
+            throw new \InvalidArgumentException('批量能力配置无效');
+        }
+        $delete = $input['batchDelete'] ?? false;
+        $status = $input['batchUpdateStatus'] ?? false;
+        $field = $input['statusField'] ?? '';
+        if (!is_bool($delete) || !is_bool($status) || !is_string($field)) {
+            throw new \InvalidArgumentException('批量能力配置类型无效');
+        }
+        if ($status && (!in_array($field, $columns, true) || in_array($field, [...$primary, 'tenant_id', 'delete_time', $softDeleteField], true))) {
+            throw new \InvalidArgumentException('批量状态字段无效');
+        }
+        return ['batchDelete' => $delete, 'batchUpdateStatus' => $status, 'statusField' => $status ? $field : ''];
     }
 
     /** @return array{enabled:bool,field:string} */

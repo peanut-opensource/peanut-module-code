@@ -41,6 +41,12 @@ final class ApiProblemMapper
                     'HTTP request was rejected.',
                     headers: $exception->getHeaders(),
                 ),
+            $exception instanceof \think\db\exception\PDOException
+                && in_array($exception->getData()['PDO Error Info']['Driver Error Code'] ?? null, [1048, 1062, 1264, 1406, 1451, 1452, 3819], true) => new ApiProblem(
+                    'DATA_CONSTRAINT_VIOLATION',
+                    422,
+                    '提交的数据不符合约束。',
+                ),
             $exception instanceof BusinessException => new ApiProblem(
                 $exception->errorCode,
                 $exception->httpStatus,

@@ -112,8 +112,9 @@ final class MemberAdministrationService implements MemberAdministration
             $keyword = trim((string) $params['keyword']);
             $query->where('sn|nickname|mobile|account', 'like', '%' . $keyword . '%');
         }
+        $filters = [];
         if (!empty($params['channel'])) {
-            $query->where('channel', (int) $params['channel']);
+            $filters[] = ['field' => 'channel', 'operator' => '=', 'value' => (int) $params['channel']];
         }
         if (!empty($params['create_time_start'])) {
             $query->where('create_time', '>=', strtotime((string) $params['create_time_start']));
@@ -124,8 +125,9 @@ final class MemberAdministrationService implements MemberAdministration
 
         // Peanut 原有状态筛选作为兼容扩展保留，不替代参考筛选字段。
         if (isset($params['status']) && $params['status'] !== '') {
-            $query->where('status', (int) $params['status']);
+            $filters[] = ['field' => 'status', 'operator' => '=', 'value' => (int) $params['status']];
         }
+        (new \PeanutAdmin\Kernel\Query\DeclarativeQueryBuilder(['channel' => 'channel', 'status' => 'status']))->apply($query, $filters);
         return $query->order('id', 'desc');
     }
 

@@ -4,129 +4,141 @@
       {{ $t('channel.officialAccount.permissionDenied') }}
     </el-alert>
     <template v-else>
-      <div class="toolbar">
-        <el-select
-          v-model="filterType"
-          clearable
-          style="width: 180px"
-          :placeholder="$t('channel.reply.filterType')"
-          @change="onTypeChange"
-        >
-          <el-option :label="$t('channel.reply.allTypes')" :value="''" />
-          <el-option :label="$t('channel.reply.subscribe')" :value="1" />
-          <el-option :label="$t('channel.reply.keyword')" :value="2" />
-          <el-option :label="$t('channel.reply.default')" :value="3" />
-        </el-select>
-        <el-button
-          v-permission="['peanut.oauth.official-account.reply.add']"
-          type="primary"
-          @click="handleAdd"
-        >
-          {{ $t('channel.reply.add') }}
-        </el-button>
-      </div>
-      <el-table row-key="id" :data="rows" border>
-        <el-table-column
-          prop="name"
-          :label="$t('channel.reply.columns.name')"
-        />
-        <el-table-column :label="$t('channel.reply.columns.type')" width="110"
-          ><template #default="{ row }">{{
-            replyTypeLabel(row.reply_type)
-          }}</template></el-table-column
-        >
-        <el-table-column
-          prop="keyword"
-          :label="$t('channel.reply.columns.keyword')"
-          width="160"
-        />
-        <el-table-column
-          :label="$t('channel.reply.columns.matchingType')"
-          width="110"
-          ><template #default="{ row }"
-            ><span v-if="row.reply_type === 2">{{
-              matchingTypeLabel(row.matching_type)
-            }}</span
-            ><span v-else>-</span></template
-          ></el-table-column
-        >
-        <el-table-column
-          :label="$t('channel.reply.columns.contentType')"
-          width="90"
-          ><template #default>{{
-            $t('channel.reply.text')
-          }}</template></el-table-column
-        >
-        <el-table-column
-          prop="content"
-          :label="$t('channel.reply.columns.content')"
-          show-overflow-tooltip
-        />
-        <el-table-column :label="$t('channel.reply.columns.status')" width="100"
-          ><template #default="{ row }">
-            <el-switch
-              :model-value="row.status === 1"
-              v-permission="[
-                'peanut.oauth.official-account.reply.update-status',
-              ]"
-              @change="(value: boolean) => handleStatus(row, value)"
-            />
-            <span v-if="!hasStatusPermission">{{
-              row.status === 1
-                ? $t('channel.reply.enabled')
-                : $t('channel.reply.disabled')
-            }}</span>
-          </template></el-table-column
-        >
-        <el-table-column
-          prop="sort"
-          :label="$t('channel.reply.columns.sort')"
-          width="80"
-        />
-        <el-table-column
-          :label="$t('channel.reply.columns.operations')"
-          width="170"
-          fixed="right"
-          ><template #default="{ row }">
-            <el-space>
-              <el-button
-                v-permission="['peanut.oauth.official-account.reply.edit']"
-                link
-                type="primary"
-                size="small"
-                @click="handleEdit(row)"
-              >
-                {{ $t('channel.reply.edit') }}
-              </el-button>
-              <el-popconfirm
-                :title="$t('channel.reply.deleteConfirm')"
-                @confirm="handleDelete(row)"
-              >
-                <template #reference
-                  ><el-button
-                    v-permission="[
-                      'peanut.oauth.official-account.reply.delete',
-                    ]"
-                    link
-                    type="danger"
-                    size="small"
-                  >
-                    {{ $t('channel.reply.delete') }}
-                  </el-button></template
+      <el-alert
+        v-if="tableError"
+        :title="tableError"
+        type="error"
+        :closable="false"
+      />
+      <CrudPage
+        :loading="loading"
+        :data="rows"
+        :pagination="pagination"
+        row-key="id"
+        border
+        pagination-layout="total, prev, pager, next"
+        @page-change="onPageChange"
+      >
+        <template #toolbar>
+          <div class="toolbar">
+            <el-select
+              v-model="filterType"
+              clearable
+              style="width: 180px"
+              :placeholder="$t('channel.reply.filterType')"
+              @change="onTypeChange"
+            >
+              <el-option :label="$t('channel.reply.allTypes')" :value="''" />
+              <el-option :label="$t('channel.reply.subscribe')" :value="1" />
+              <el-option :label="$t('channel.reply.keyword')" :value="2" />
+              <el-option :label="$t('channel.reply.default')" :value="3" />
+            </el-select>
+            <el-button
+              v-permission="['peanut.oauth.official-account.reply.add']"
+              type="primary"
+              @click="handleAdd"
+            >
+              {{ $t('channel.reply.add') }}
+            </el-button>
+          </div>
+        </template>
+        <template #columns>
+          <el-table-column
+            prop="name"
+            :label="$t('channel.reply.columns.name')"
+          />
+          <el-table-column :label="$t('channel.reply.columns.type')" width="110"
+            ><template #default="{ row }">{{
+              replyTypeLabel(row.reply_type)
+            }}</template></el-table-column
+          >
+          <el-table-column
+            prop="keyword"
+            :label="$t('channel.reply.columns.keyword')"
+            width="160"
+          />
+          <el-table-column
+            :label="$t('channel.reply.columns.matchingType')"
+            width="110"
+            ><template #default="{ row }"
+              ><span v-if="row.reply_type === 2">{{
+                matchingTypeLabel(row.matching_type)
+              }}</span
+              ><span v-else>-</span></template
+            ></el-table-column
+          >
+          <el-table-column
+            :label="$t('channel.reply.columns.contentType')"
+            width="90"
+            ><template #default>{{
+              $t('channel.reply.text')
+            }}</template></el-table-column
+          >
+          <el-table-column
+            prop="content"
+            :label="$t('channel.reply.columns.content')"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            :label="$t('channel.reply.columns.status')"
+            width="100"
+            ><template #default="{ row }">
+              <el-switch
+                :model-value="row.status === 1"
+                v-permission="[
+                  'peanut.oauth.official-account.reply.update-status',
+                ]"
+                @change="(value: boolean) => handleStatus(row, value)"
+              />
+              <span v-if="!hasStatusPermission">{{
+                row.status === 1
+                  ? $t('channel.reply.enabled')
+                  : $t('channel.reply.disabled')
+              }}</span>
+            </template></el-table-column
+          >
+          <el-table-column
+            prop="sort"
+            :label="$t('channel.reply.columns.sort')"
+            width="80"
+          />
+          <el-table-column
+            :label="$t('channel.reply.columns.operations')"
+            width="170"
+            fixed="right"
+            ><template #default="{ row }">
+              <el-space>
+                <el-button
+                  v-permission="['peanut.oauth.official-account.reply.edit']"
+                  link
+                  type="primary"
+                  size="small"
+                  @click="handleEdit(row)"
                 >
-              </el-popconfirm>
-            </el-space>
-          </template></el-table-column
-        >
-      </el-table>
-      <div class="pagination-wrapper"
-        ><el-pagination
-          :current-page="pagination.current"
-          :page-size="pagination.pageSize"
-          :total="pagination.total"
-          layout="total, prev, pager, next"
-          @current-change="onPageChange"
-      /></div>
+                  {{ $t('channel.reply.edit') }}
+                </el-button>
+                <el-popconfirm
+                  :title="$t('channel.reply.deleteConfirm')"
+                  @confirm="handleDelete(row)"
+                >
+                  <template #reference
+                    ><el-button
+                      v-permission="[
+                        'peanut.oauth.official-account.reply.delete',
+                      ]"
+                      link
+                      type="danger"
+                      size="small"
+                    >
+                      {{ $t('channel.reply.delete') }}
+                    </el-button></template
+                  >
+                </el-popconfirm>
+              </el-space>
+            </template></el-table-column
+          >
+        </template>
+      </CrudPage>
     </template>
   </div>
 
@@ -207,6 +219,8 @@
 
 <script lang="ts" setup>
   import { computed, onMounted, reactive, ref } from 'vue';
+  import CrudPage from '@/components/crud/CrudPage.vue';
+  import useCrudTable from '@/hooks/useCrudTable';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
   import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
@@ -230,16 +244,36 @@
     hasPermission('peanut.oauth.official-account.reply.list', route.path)
   );
   const hasStatusPermission = computed(() =>
-    hasPermission('peanut.oauth.official-account.reply.update-status', route.path)
+    hasPermission(
+      'peanut.oauth.official-account.reply.update-status',
+      route.path
+    )
   );
-  const loading = ref(false);
-  const rows = ref<OfficialAccountReplyRecord[]>([]);
   const filterType = ref<OfficialAccountReplyType | ''>('');
-  const pagination = reactive({
-    current: 1,
-    pageSize: 15,
-    total: 0,
-    showTotal: true,
+  const {
+    loading,
+    data: rows,
+    pagination,
+    error: tableError,
+    fetchList,
+  } = useCrudTable<OfficialAccountReplyRecord, Record<string, never>>({
+    initialFilters: {},
+    initialPageSize: 15,
+    errorMessage: (error) =>
+      error instanceof Error ? error.message : String(error),
+    load: async ({ page, pageSize }) => {
+      const { data } = await getOfficialAccountReplyList({
+        reply_type: filterType.value || undefined,
+        page_no: page,
+        page_size: pageSize,
+      });
+      return {
+        items: data.lists,
+        total: data.count,
+        page: data.pageNo,
+        pageSize: data.pageSize,
+      };
+    },
   });
   const defaultForm = (): OfficialAccountReplyForm => ({
     name: '',
@@ -297,23 +331,8 @@
     ],
   };
 
-  const fetchData = async (page = 1) => {
-    if (!canView.value) return;
-    loading.value = true;
-    try {
-      const { data } = await getOfficialAccountReplyList({
-        reply_type: filterType.value || undefined,
-        page_no: page,
-        page_size: pagination.pageSize,
-      });
-      rows.value = data.lists;
-      pagination.current = data.pageNo;
-      pagination.pageSize = data.pageSize;
-      pagination.total = data.count;
-    } finally {
-      loading.value = false;
-    }
-  };
+  const fetchData = (page = 1) =>
+    canView.value ? fetchList(page) : Promise.resolve(false);
   onMounted(() => fetchData());
 
   const onTypeChange = (value: unknown) => {
@@ -389,7 +408,7 @@
       else await addOfficialAccountReply(payload);
       ElMessage.success(t('channel.tip.success'));
       modalVisible.value = false;
-      await fetchData(pagination.current);
+      await fetchData(pagination.page);
     } finally {
       submitLoading.value = false;
     }
@@ -398,7 +417,7 @@
   const handleDelete = async (record: OfficialAccountReplyRecord) => {
     await deleteOfficialAccountReply(record.id);
     ElMessage.success(t('channel.tip.success'));
-    await fetchData(pagination.current);
+    await fetchData(pagination.page);
   };
 
   const handleStatus = async (
@@ -407,7 +426,7 @@
   ) => {
     const status: 0 | 1 = enabled ? 1 : 0;
     await updateOfficialAccountReplyStatus(record.id, status);
-    record.status = status;
+    await fetchData(pagination.page);
     ElMessage.success(t('channel.tip.success'));
   };
 </script>

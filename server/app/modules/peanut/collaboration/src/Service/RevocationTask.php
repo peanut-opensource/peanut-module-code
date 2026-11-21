@@ -303,9 +303,12 @@ final readonly class RevocationTask implements TaskWorkerDefinition, \PeanutAdmi
             || $body['fact_id'] !== $fact['fact_id'] || $body['fact_sha256'] !== $fact['fact_sha256']) {
             throw new RetryableTaskException('REVOCATION_HOLDER_CHANGED');
         }
+        $rooms = $body['targets'] === [] ? [] : $this->connections($fact)
+            ->whereIn('connection.connection_key', array_column($body['targets'], 'connection_key'))
+            ->column('room.room_key', 'connection.connection_key');
         foreach ($body['targets'] as $target) {
-            $row = $this->connections($fact)->where('connection.connection_key', $target['connection_key'])->field('room.room_key,ticket.issued_identity_json')->find();
-            if ($row !== null && $row['room_key'] !== $target['room_key']) {
+            $room = $rooms[$target['connection_key']] ?? null;
+            if ($room !== null && $room !== $target['room_key']) {
                 throw new \DomainException('REVOCATION_SCOPE_CHANGED');
             }
             // Node matches the complete old grant tuple. A renewed/new grant is not that tuple.

@@ -451,6 +451,7 @@ test('real generated Vue/API files pass native strict vue-tsc with actual compon
       ...files,
       path.join(webRoot, 'src/env.d.ts'),
       path.join(webRoot, 'src/directive/globals.d.ts'),
+      path.join(webRoot, 'src/router/typings.d.ts'),
       globalTypes,
     ],
     include: [],
@@ -479,8 +480,19 @@ test('real generated Vue/API files pass native strict vue-tsc with actual compon
 });
 
 test('the unchanged generated SFCs compile through native Vite/Vue without externalizing missing packages', async () => {
-  const { build } = native('vite');
-  const vuePlugin = native('@vitejs/plugin-vue');
+  const { build, loadConfigFromFile } = native('vite');
+  const loaded = await loadConfigFromFile(
+    {
+      command: 'build',
+      mode: 'multi-tenant',
+      isSsrBuild: false,
+      isPreview: false,
+    },
+    path.join(webRoot, 'vite.config.ts'),
+    webRoot,
+    'silent'
+  );
+  assert.ok(loaded, 'The native Vite config must load');
   const logs = [];
   try {
     for (const [index, file] of views.entries()) {
@@ -489,7 +501,8 @@ test('the unchanged generated SFCs compile through native Vite/Vue without exter
         root: replayWeb,
         publicDir: false,
         logLevel: 'error',
-        plugins: [vuePlugin()],
+        plugins: loaded.config.plugins,
+        define: loaded.config.define,
         resolve: {
           alias: [
             { find: '@', replacement: path.join(webRoot, 'src') },
@@ -502,6 +515,7 @@ test('the unchanged generated SFCs compile through native Vite/Vue without exter
             entry: path.join(work, file),
             formats: ['es'],
             fileName: () => `crud-${index}.mjs`,
+            cssFileName: `crud-${index}`,
           },
           outDir: path.join(work, `dist-${index}`),
           emptyOutDir: false,

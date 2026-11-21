@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\common\http;
 
 use app\common\execution\CurrentExecutionContext;
+use PeanutAdmin\Kernel\Support\TraceId;
 
 /** One stable request ID without mutating the framework Request object. */
 final class RequestTrace
@@ -18,7 +19,7 @@ final class RequestTrace
     public static function beginSqlTiming(string $requestId): bool
     {
         if (PHP_SAPI !== 'fpm-fcgi' || self::$sqlTiming !== null
-            || preg_match('/^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/D', $requestId) !== 1) {
+            || !TraceId::acceptsHeaderValue($requestId)) {
             return false;
         }
         self::$sqlTiming = [
@@ -103,7 +104,7 @@ final class RequestTrace
         $candidate = method_exists($request, 'header')
             ? trim((string) $request->header('X-Request-Id', ''))
             : '';
-        if (preg_match('/^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/D', $candidate) === 1) {
+        if (TraceId::acceptsHeaderValue($candidate)) {
             return self::remember($request, $candidate);
         }
 
@@ -121,11 +122,7 @@ final class RequestTrace
             return $known;
         }
 
-        $prefix = strtolower(trim($prefix));
-        if (preg_match('/^[a-z][a-z0-9-]{0,15}$/D', $prefix) !== 1) {
-            throw new \InvalidArgumentException('REQUEST_TRACE_PREFIX_INVALID');
-        }
-        return self::remember($request, $prefix . '-' . bin2hex(random_bytes(16)));
+        return self::remember($request, TraceId::generate($prefix));
     }
 
     /** @return \WeakMap<object,string> */

@@ -167,7 +167,7 @@
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "82524ea3dea276206441f5ab0f0dc7bb01511ee751ebbcc498e0b7a3a4ca199e"
+                "sha256": "a47865c18e47c669d52ae361e0b60ea3c587e6fd01bf3646c48f47338db50947"
             },
             "trust": {
                 "channel": "bundled",
@@ -226,7 +226,7 @@
                 {
                     "name": "@peanut-admin/peanut-article",
                     "version": "1.0.21-rc.12",
-                    "integrity": "sha256-BbMX6ekiUVugnM63DY5VvCocSv0VlMCv2K4TRrxaIpo="
+                    "integrity": "sha256-Hz3bHXiSofcm9vmZTKd60rkwcTnUnVotL0ArYwyVxIU="
                 },
                 {
                     "name": "@peanut-admin/peanut-article-pc",

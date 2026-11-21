@@ -13,6 +13,7 @@ use app\common\services\XlsxExportService;
 use app\common\support\ExportPageInfo;
 use app\common\support\PaginationInput;
 use PeanutAdmin\Kernel\Auth\TenantContext;
+use PeanutAdmin\Kernel\Query\DeclarativeQueryBuilder;
 use PeanutAdmin\Modules\Article\Contract\ArticleCategoryAdministration;
 use PeanutAdmin\Modules\Article\Model\Article;
 use PeanutAdmin\Modules\Article\Model\ArticleCate;
@@ -180,12 +181,14 @@ final class ArticleCategoryAdministrationService implements ArticleCategoryAdmin
     {
         $query = $onlyTrashed ? ArticleCate::onlyTrashed() : ArticleCate::where([]);
         $query->field(self::fields());
+        $filters = [];
         if (isset($params['name']) && $params['name'] !== '') {
-            $query->whereLike('name', '%' . trim((string) $params['name']) . '%');
+            $filters[] = ['field' => 'name', 'operator' => 'like', 'value' => '%' . trim((string) $params['name']) . '%'];
         }
         if (isset($params['is_show']) && $params['is_show'] !== '') {
-            $query->where('is_show', (int) $params['is_show']);
+            $filters[] = ['field' => 'is_show', 'operator' => '=', 'value' => (int) $params['is_show']];
         }
+        (new DeclarativeQueryBuilder(['name' => 'name', 'is_show' => 'is_show']))->apply($query, $filters);
         foreach (['start_time' => '>=', 'end_time' => '<=', 'start' => '>=', 'end' => '<='] as $field => $operator) {
             if (!isset($params[$field]) || $params[$field] === '') {
                 continue;

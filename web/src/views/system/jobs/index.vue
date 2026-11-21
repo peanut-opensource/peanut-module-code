@@ -1,158 +1,133 @@
 <template>
   <PageContent>
-    <PageHeader><h1>{{ $t('menu.system.jobs') }}</h1></PageHeader>
+    <PageHeader
+      ><h1>{{ $t('menu.system.jobs') }}</h1></PageHeader
+    >
     <el-card class="general-card">
-      <PageToolbar :label="$t('systemJobs.form.search')">
-        <el-form
-          class="pa-page-filters"
-          :model="formModel"
-          label-position="left"
-          label-width="80px"
-          @submit.prevent="search"
-        >
-          <el-form-item prop="name" :label="$t('systemJobs.form.name')">
-            <el-input
-              v-model="formModel.name"
-              clearable
-              :placeholder="$t('systemJobs.form.name.placeholder')"
-              @keyup.enter="search"
-            />
-          </el-form-item>
-          <el-form-item prop="code" :label="$t('systemJobs.form.code')">
-            <el-input
-              v-model="formModel.code"
-              clearable
-              :placeholder="$t('systemJobs.form.code.placeholder')"
-              @keyup.enter="search"
-            />
-          </el-form-item>
-          <el-form-item prop="status" :label="$t('systemJobs.form.status')">
-            <el-select
-              v-model="formModel.status"
-              clearable
-              :placeholder="$t('systemJobs.form.status.placeholder')"
-            >
-              <el-option
-                v-for="option in statusOptions"
-                :key="option.value"
-                :label="option.label"
-                :value="option.value"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item class="pa-page-filters__actions" label-width="0">
-            <el-space>
-              <el-button type="primary" @click="search">
-                <template #icon><Search /></template>
-                {{ $t('systemJobs.form.search') }}
-              </el-button>
-              <el-button @click="reset">
-                <template #icon><Refresh /></template>
-                {{ $t('systemJobs.form.reset') }}
-              </el-button>
-            </el-space>
-          </el-form-item>
-        </el-form>
-      </PageToolbar>
-      <el-divider />
-      <el-row style="margin-bottom: 16px">
-        <el-col :span="12">
-          <el-space>
-            <el-button
-              v-permission="['core.job.create']"
-              type="primary"
-              @click="handleAdd"
-            >
-              <template #icon><Plus /></template>
-              {{ $t('systemJobs.operation.create') }}
-            </el-button>
-            <el-button @click="openExport">
-              <template #icon><Download /></template>
-              {{ $t('systemJobs.operation.export') }}
-            </el-button>
-          </el-space>
-        </el-col>
-      </el-row>
-      <el-table
-        class="pa-page-table"
-        row-key="id"
-        v-loading="loading"
+      <CrudPage
+        :loading="loading"
         :data="renderData"
+        :pagination="pagination"
+        :fields="columns"
+        :column-storage-key="columnStorageKey"
+        row-key="id"
+        table-class="pa-page-table"
         border
+        hide-search-actions
+        pagination-layout="total, prev, pager, next"
+        @page-change="fetchList"
       >
-        <el-table-column
-          prop="id"
-          :label="$t('systemJobs.columns.id')"
-          width="80"
-        />
-        <el-table-column
-          prop="name"
-          :label="$t('systemJobs.columns.name')"
-          min-width="180"
-        />
-        <el-table-column
-          prop="code"
-          :label="$t('systemJobs.columns.code')"
-          width="160"
-        />
-        <el-table-column
-          prop="sort"
-          :label="$t('systemJobs.columns.sort')"
-          width="80"
-        />
-        <el-table-column
-          prop="remark"
-          :label="$t('systemJobs.columns.remark')"
-          min-width="220"
-        />
-        <el-table-column
-          prop="create_time"
-          :label="$t('systemJobs.columns.createTime')"
-          width="180"
-        />
-        <el-table-column :label="$t('systemJobs.columns.status')" width="90"
-          ><template #default="{ row }"
-            ><el-switch
-              v-permission="['core.job.update']"
-              :model-value="row.status === 1"
-              @change="(v: string | number | boolean) => handleStatus(row, v as boolean)" /></template
-        ></el-table-column>
-        <el-table-column
-          :label="$t('systemJobs.columns.operations')"
-          width="160"
-          ><template #default="{ row }"
-            ><el-space
-              ><el-button
+        <template #search>
+          <PageToolbar :label="$t('systemJobs.form.search')">
+            <el-form
+              class="pa-page-filters"
+              :model="formModel"
+              label-position="left"
+              label-width="80px"
+              @submit.prevent="search"
+            >
+              <el-form-item prop="name" :label="$t('systemJobs.form.name')">
+                <el-input
+                  v-model="formModel.name"
+                  clearable
+                  :placeholder="$t('systemJobs.form.name.placeholder')"
+                  @keyup.enter="search"
+                />
+              </el-form-item>
+              <el-form-item prop="code" :label="$t('systemJobs.form.code')">
+                <el-input
+                  v-model="formModel.code"
+                  clearable
+                  :placeholder="$t('systemJobs.form.code.placeholder')"
+                  @keyup.enter="search"
+                />
+              </el-form-item>
+              <el-form-item prop="status" :label="$t('systemJobs.form.status')">
+                <el-select
+                  v-model="formModel.status"
+                  clearable
+                  :placeholder="$t('systemJobs.form.status.placeholder')"
+                >
+                  <el-option
+                    v-for="option in statusOptions"
+                    :key="option.value"
+                    :label="option.label"
+                    :value="option.value"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-form-item class="pa-page-filters__actions" label-width="0">
+                <el-space>
+                  <el-button type="primary" @click="search">
+                    <template #icon><Search /></template>
+                    {{ $t('systemJobs.form.search') }}
+                  </el-button>
+                  <el-button @click="reset">
+                    <template #icon><Refresh /></template>
+                    {{ $t('systemJobs.form.reset') }}
+                  </el-button>
+                </el-space>
+              </el-form-item>
+            </el-form>
+          </PageToolbar>
+        </template>
+        <template #toolbar>
+          <el-row style="margin-bottom: 16px">
+            <el-col :span="12">
+              <el-space>
+                <el-button
+                  v-permission="['core.job.create']"
+                  type="primary"
+                  @click="handleAdd"
+                >
+                  <template #icon><Plus /></template>
+                  {{ $t('systemJobs.operation.create') }}
+                </el-button>
+                <el-button @click="openExport">
+                  <template #icon><Download /></template>
+                  {{ $t('systemJobs.operation.export') }}
+                </el-button>
+              </el-space>
+            </el-col>
+          </el-row>
+        </template>
+        <template #columns>
+          <el-table-column :label="$t('systemJobs.columns.status')" width="90"
+            ><template #default="{ row }"
+              ><el-switch
                 v-permission="['core.job.update']"
-                link
-                size="small"
-                @click="handleEdit(row)"
-                >{{ $t('systemJobs.operation.edit') }}</el-button
-              ><el-popconfirm
-                :title="$t('systemJobs.delete.confirm')"
-                @confirm="handleDelete(row)"
-                ><template #reference
-                  ><el-button
-                    v-permission="['core.job.archive']"
-                    link
-                    type="danger"
-                    size="small"
-                    >{{ $t('systemJobs.operation.delete') }}</el-button
-                  ></template
-                ></el-popconfirm
-              ></el-space
-            ></template
-          ></el-table-column
-        >
-      </el-table>
-      <el-pagination
-        :current-page="pagination.page"
-        :page-size="pagination.pageSize"
-        :total="pagination.total"
-        layout="total, prev, pager, next"
-        style="margin-top: 16px; justify-content: flex-end"
-        @current-change="fetchList"
-      />
+                :model-value="row.status === 1"
+                @change="(v: string | number | boolean) => handleStatus(row, v as boolean)" /></template
+          ></el-table-column>
+          <el-table-column
+            :label="$t('systemJobs.columns.operations')"
+            width="160"
+            ><template #default="{ row }"
+              ><el-space
+                ><el-button
+                  v-permission="['core.job.update']"
+                  link
+                  size="small"
+                  @click="handleEdit(row)"
+                  >{{ $t('systemJobs.operation.edit') }}</el-button
+                ><el-popconfirm
+                  :title="$t('systemJobs.delete.confirm')"
+                  @confirm="handleDelete(row)"
+                  ><template #reference
+                    ><el-button
+                      v-permission="['core.job.archive']"
+                      link
+                      type="danger"
+                      size="small"
+                      >{{ $t('systemJobs.operation.delete') }}</el-button
+                    ></template
+                  ></el-popconfirm
+                ></el-space
+              ></template
+            ></el-table-column
+          >
+        </template>
+      </CrudPage>
     </el-card>
 
     <el-dialog
@@ -187,8 +162,8 @@
         </el-form-item>
         <el-form-item prop="remark" :label="$t('systemJobs.field.remark')">
           <el-input
-            type="textarea"
             v-model="form.remark"
+            type="textarea"
             :placeholder="$t('systemJobs.field.remark.placeholder')"
             maxlength="200"
             show-word-limit
@@ -294,6 +269,8 @@
   import { ElMessage } from 'element-plus';
   import { Download, Plus, Refresh, Search } from '@element-plus/icons-vue';
   import { hasPermission } from '@/hooks/permission';
+  import { useUserStore } from '@/store';
+  import CrudPage from '@/components/crud/CrudPage.vue';
   import useCrudModal from '@/hooks/useCrudModal';
   import useCrudTable from '@/hooks/useCrudTable';
   import {
@@ -312,7 +289,25 @@
 
   const { t } = useI18n();
   const route = useRoute();
-  const canAccess = (permission: string) => hasPermission(permission, route.path);
+  const userStore = useUserStore();
+  const columnStorageKey = computed(
+    () =>
+      `peanut:jobs:columns:${window.location.host}:${userStore.tenantName}:${userStore.id}`
+  );
+  const columns = computed(() => [
+    { key: 'id', label: t('systemJobs.columns.id'), width: 80 },
+    { key: 'name', label: t('systemJobs.columns.name'), width: 180 },
+    { key: 'code', label: t('systemJobs.columns.code'), width: 160 },
+    { key: 'sort', label: t('systemJobs.columns.sort'), width: 80 },
+    { key: 'remark', label: t('systemJobs.columns.remark'), width: 220 },
+    {
+      key: 'create_time',
+      label: t('systemJobs.columns.createTime'),
+      width: 180,
+    },
+  ]);
+  const canAccess = (permission: string) =>
+    hasPermission(permission, route.path);
 
   const initialFilters = {
     name: '',
@@ -334,10 +329,16 @@
     load: async ({ filters, page, pageSize, signal }) => {
       const params = { ...filters, page_no: page, page_size: pageSize };
       const { data } = await getJobsList(params, signal);
-      return { items: reactive(data.lists), total: data.count, page: data.pageNo, pageSize };
+      return {
+        items: reactive(data.lists),
+        total: data.count,
+        page: data.pageNo,
+        pageSize,
+      };
     },
     deleteRecord: (record, signal) => deleteJobs(record.id, signal),
-    errorMessage: (error) => error instanceof Error ? error.message : String(error),
+    errorMessage: (error) =>
+      error instanceof Error ? error.message : String(error),
   });
   const renderData = computed(() => [...records.value]);
   fetchList();
@@ -368,7 +369,9 @@
   } = useCrudModal<JobsForm, JobsRecord>({
     canOpen: (intent) => {
       if (intent === 'view') return false;
-      return canAccess(intent === 'create' ? 'core.job.create' : 'core.job.update');
+      return canAccess(
+        intent === 'create' ? 'core.job.create' : 'core.job.update'
+      );
     },
     createForm: defaultForm,
     editForm: (record) => ({ ...defaultForm(), ...record }),
@@ -398,7 +401,7 @@
   };
 
   const handleDelete = async (record: JobsRecord) => {
-    if (canAccess('core.job.archive') && await remove(record)) {
+    if (canAccess('core.job.archive') && (await remove(record))) {
       ElMessage.success(t('systemJobs.tip.success'));
     }
   };
@@ -494,5 +497,4 @@
   };
 </script>
 
-<style scoped lang="less">
-</style>
+<style scoped lang="less"></style>

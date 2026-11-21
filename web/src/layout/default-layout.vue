@@ -49,8 +49,8 @@
       </aside>
       <el-drawer
         v-if="appStore.hideMenu"
-        class="tenant-navigation-drawer"
         v-model="drawerVisible"
+        class="tenant-navigation-drawer"
         direction="ltr"
         :size="`${appStore.menuWidth}px`"
         :with-header="false"
@@ -73,6 +73,11 @@
       </el-drawer>
     </template>
     <template #tabs><TabBar v-if="appStore.tabBar" /></template>
+    <CommandPalette
+      :commands="commands"
+      label="搜索菜单"
+      @error="onCommandError"
+    />
     <div class="tenant-page-body">
       <div class="tenant-page-tools"
         ><ShellContributions name="page-tools"
@@ -86,7 +91,17 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref, computed, watch, provide } from 'vue';
+  import {
+    ref,
+    computed,
+    watch,
+    provide,
+    onMounted,
+    onBeforeUnmount,
+  } from 'vue';
+  import { ElMessage } from 'element-plus';
+  import { CommandPalette, type ShellCommand } from '@peanut-admin/ui-vue';
+  import type { RouteRecordRaw } from 'vue-router';
   import { useRouter, useRoute } from 'vue-router';
   import { useI18n } from 'vue-i18n';
   import { useAppStore, useUserStore } from '@/store';
@@ -110,6 +125,51 @@
   const permission = usePermission();
   const { t, getLocaleMessage } = useI18n();
   const { menuTree } = useMenuTree();
+  const commands = computed<ShellCommand[]>(() => {
+    const result: ShellCommand[] = [];
+    const collect = (routes: RouteRecordRaw[]) => {
+      routes.forEach((item) => {
+        if (item.children?.length) {
+          collect(item.children);
+          return;
+        }
+        if (!item.name || item.meta?.hideInMenu) return;
+        const { name } = item;
+        const locale = String(item.meta?.locale || '');
+        const translated = locale ? t(locale) : '';
+        result.push({
+          id: String(name),
+          label:
+            translated && translated !== locale
+              ? translated
+              : String(item.meta?.title || locale || name),
+          run: async () => {
+            await router.push({ name });
+          },
+        });
+      });
+    };
+    collect(menuTree.value);
+    return result;
+  });
+  const onCommandError = () => ElMessage.error('打开菜单失败');
+  const protectEditorShortcut = (event: KeyboardEvent) => {
+    const { target } = event;
+    if (
+      (event.ctrlKey || event.metaKey) &&
+      event.key.toLowerCase() === 'k' &&
+      target instanceof HTMLElement &&
+      (target.isContentEditable ||
+        /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
+    )
+      event.stopPropagation();
+  };
+  onMounted(() =>
+    document.addEventListener('keydown', protectEditorShortcut, true)
+  );
+  onBeforeUnmount(() =>
+    document.removeEventListener('keydown', protectEditorShortcut, true)
+  );
   useResponsive(true);
   const appearance = computed(() => appStore.shellAppearance);
   const navigationMode = computed(() => appearance.value.navigationMode);
@@ -311,5 +371,39 @@
     .tenant-shell .tenant-page-body {
       --pa-page-inset: max(12px, var(--pa-shell-gap));
     }
+  }
+</style>
+
+<style>
+  .peanut-command-palette {
+    position: fixed;
+    z-index: 3000;
+    top: 15vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(520px, 90vw);
+    max-height: 70vh;
+    overflow: auto;
+    padding: 16px;
+    background: var(--el-bg-color-overlay);
+    box-shadow: var(--el-box-shadow-dark);
+    border-radius: 8px;
+  }
+  .peanut-command-palette input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .peanut-command-palette ul {
+    padding: 0;
+    list-style: none;
+  }
+  .peanut-command-palette li button {
+    width: 100%;
+    padding: 8px;
+    text-align: left;
+    border: 0;
+    background: transparent;
+    color: var(--el-text-color-primary);
+    cursor: pointer;
   }
 </style>
