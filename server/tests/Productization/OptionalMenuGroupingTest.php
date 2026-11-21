@@ -40,7 +40,13 @@ function optionalMenuVisible(ThinkPhpMenuCatalogRepository $repository, array $p
     );
 }
 
+$environment = getenv('PEANUT_SERVER_ENV_FILE');
+if (!is_string($environment) || !str_starts_with($environment, '/') || !is_file($environment)
+    || is_link($environment) || !is_readable($environment)) {
+    throw new RuntimeException('Explicit isolated backend environment file is required');
+}
 $app = new \think\App($server);
+$app->env->load($environment);
 $app->config->set(['mode' => 'multi-tenant'], 'deployment');
 $registry = (new ModuleModuleRegistryFactory($server))->fromDeploymentConfig([
     'roots' => array_map('dirname', glob($server . '/app/modules/peanut/*/module.json')),
