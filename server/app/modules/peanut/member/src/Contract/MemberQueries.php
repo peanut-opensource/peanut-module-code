@@ -42,5 +42,8 @@ interface MemberQueries
         int $memberId,
     ): ?MemberBalanceSnapshot;
 
+    /** @param list<string> $sourceSns @return list<array{source_sn:string,action:int,change_type:int,change_amount:string}> */
+    public function balanceLogsBySource(TenantContext|TenantSystemContext $context, int $memberId, array $sourceSns): array;
+
     public function balanceLogsForCurrentMember(int $page, int $pageSize): PageResult;
 }

@@ -10,6 +10,12 @@ use PeanutAdmin\Modules\Payment\Model\RefundLog;
 use PeanutAdmin\Modules\Payment\Model\RefundRecord;
 use app\common\exception\BusinessException;
 use app\common\execution\CurrentExecutionContext;
+use app\common\execution\AdminExecutionContext;
+use app\common\execution\SystemExecutionContext;
+use app\common\value\Money;
+use PeanutAdmin\Modules\Member\Contract\MemberBalanceCommands;
+use PeanutAdmin\Modules\Member\Contract\Dto\MemberBalanceMutation;
+use PeanutAdmin\Modules\Member\Value\AccountLogEnum;
 use think\facade\Db;
 use PeanutAdmin\Modules\Payment\Infrastructure\Channel\RefundGatewayInterface;
 use PeanutAdmin\Modules\Payment\Infrastructure\Channel\PaymentServiceFactory;
@@ -25,6 +31,7 @@ final readonly class ThinkPhpRefundReconciliationCommands implements RefundRecon
     public function __construct(
         private PaymentServiceFactory $payments,
         private CurrentExecutionContext $executionContext,
+        private MemberBalanceCommands $memberBalances,
     ) {}
 
     public function reconcile(object $scope, array $diagnostics): array
@@ -165,6 +172,27 @@ final readonly class ThinkPhpRefundReconciliationCommands implements RefundRecon
                 if ($finalStatus === RefundEnum::REFUND_SUCCESS) {
                     $lockedOrder->refund_transaction_id = (string) ($result['transaction_id'] ?? '');
                     $lockedOrder->save();
+                } else {
+                    $refundCents = Money::toCents((string) $lockedRecord->refund_amount);
+                    if ($refundCents > 0) {
+                        $execution = $this->executionContext->get();
+                        $context = match (true) {
+                            $execution instanceof SystemExecutionContext => $execution->system,
+                            $execution instanceof AdminExecutionContext => $execution->tenant,
+                            default => throw new \DomainException('REFUND_RECONCILE_CONTEXT_INVALID'),
+                        };
+                        $this->memberBalances->applyInTransaction($context, new MemberBalanceMutation(
+                            (int) $lockedOrder->user_id,
+                            AccountLogEnum::USER_MONEY_INC_ADMIN,
+                            AccountLogEnum::INC,
+                            $refundCents,
+                            'refund:credit:' . $lockedLog->sn,
+                            '充值退款渠道失败回退余额',
+                            [],
+                            (int) $lockedLog->handle_id,
+                            $refundCents,
+                        ));
+                    }
                 }
                 $lockedLog->save();
                 $lockedRecord->save();

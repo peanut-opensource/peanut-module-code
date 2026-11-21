@@ -137,10 +137,59 @@ final readonly class IdentityCredentialRecovery
             throw new RuntimeException('IDENTITY_RECOVERY_PASSWORD_REF_INVALID');
         }
         $this->assertPlatformContext($context, $identities);
+        return $this->recoverPlatformCredential(
+            $context, $newPassword, $requestId, $runId, $approvalRef, $maintenancePrincipal,
+            $passwordRef, $identities, fn (): array => $this->platformOperatorSnapshot(true, $identities),
+        );
+    }
+
+    public function inspectStandalonePlatformOperator(array $identities): array
+    {
+        return $this->platformOperatorSnapshot(false, $identities, true);
+    }
+
+    public function recoverStandalonePlatformOperator(
+        PlatformSystemContext $context,
+        #[SensitiveParameter] string $newPassword,
+        string $approvalRef,
+        string $maintenancePrincipal,
+        string $passwordRef,
+        array $identities,
+        int $expectedRevision,
+    ): array {
+        if ($context->actorKey !== self::PLATFORM_OPERATOR_ACTOR
+            || $context->operation !== self::PLATFORM_OPERATOR_OPERATION || $context->operationId === '') {
+            throw new RuntimeException('IDENTITY_RECOVERY_CONTEXT_INVALID');
+        }
+
+        return $this->recoverPlatformCredential(
+            $context, $newPassword, $context->operationId, $context->operationId, $approvalRef,
+            $maintenancePrincipal, $passwordRef, $identities,
+            function () use ($identities, $expectedRevision): array {
+                $snapshot = $this->platformOperatorSnapshot(true, $identities, true);
+                if ($snapshot['credential_revision'] !== $expectedRevision) {
+                    throw new RuntimeException('IDENTITY_RECOVERY_CREDENTIAL_CHANGED');
+                }
+                return $snapshot;
+            },
+        );
+    }
+
+    private function recoverPlatformCredential(
+        PlatformSystemContext $context,
+        #[SensitiveParameter] string $newPassword,
+        string $requestId,
+        string $runId,
+        string $approvalRef,
+        string $maintenancePrincipal,
+        string $passwordRef,
+        array $identities,
+        callable $snapshot,
+    ): array {
         return $this->recover(
             'platform-operator', $identities['platform_account_id'], $identities['platform_credential_id'],
             $newPassword, $requestId, $runId, $approvalRef, $maintenancePrincipal,
-            $passwordRef, fn (): array => $this->platformOperatorSnapshot(true, $identities),
+            $passwordRef, $snapshot,
             function (array $before, array $after, array $revoked) use (
                 $context,
                 $identities,
@@ -564,7 +613,7 @@ final readonly class IdentityCredentialRecovery
     }
 
     /** @return array<string, bool|int|string|null> */
-    private function platformOperatorSnapshot(bool $lock, array $identities): array
+    private function platformOperatorSnapshot(bool $lock, array $identities, bool $standalone = false): array
     {
         $operatorId = $identities['platform_operator_id'];
         $accountId = $identities['platform_account_id'];
@@ -582,12 +631,17 @@ final readonly class IdentityCredentialRecovery
         $credential = $lock ? $credentialQuery->lock(true)->find() : $credentialQuery->find();
         $sessions = $this->accountSessionCounts($accountId);
         $accountActive = $account !== null && (string) $account['status'] === 'active'
-            && $account['locked_until'] === null && $account['last_login_at'] === null;
+            && $account['locked_until'] === null && ($standalone || $account['last_login_at'] === null);
         $operatorActive = $operator !== null && (string) $operator['status'] === 'active';
-        $credentialActive = $this->credentialEligible($credential);
-        $eligible = $accountActive && $operatorActive && $credentialActive
-            && $sessions['tenant_sessions'] === 0 && $sessions['platform_sessions'] === 0
-            && $sessions['tenant_tokens'] === 0 && $sessions['platform_tokens'] === 0;
+        $credentialActive = $this->credentialEligible($credential, $standalone);
+        if ($standalone) {
+            $tenantMemberships = TenantMember::where('account_id', $accountId)->field('id')->lock($lock)->select();
+            $eligible = $accountActive && $operatorActive && $credentialActive && $tenantMemberships->isEmpty();
+        } else {
+            $eligible = $accountActive && $operatorActive && $credentialActive
+                && $sessions['tenant_sessions'] === 0 && $sessions['platform_sessions'] === 0
+                && $sessions['tenant_tokens'] === 0 && $sessions['platform_tokens'] === 0;
+        }
 
         return [
             'eligible' => $eligible,
@@ -603,16 +657,17 @@ final readonly class IdentityCredentialRecovery
             'credential_failed_attempts' => $credential === null ? null : (int) $credential['failed_attempts'],
             'credential_revision' => $credential === null ? null : (int) $credential['revision'],
             ...$sessions,
+            ...($standalone ? ['tenant_memberships' => $tenantMemberships->count()] : []),
         ];
     }
 
     /** @param array<string, mixed>|null $credential */
-    private function credentialEligible(mixed $credential): bool
+    private function credentialEligible(mixed $credential, bool $allowFailedAttempts = false): bool
     {
         if ($credential === null || (string) $credential['status'] !== 'active'
             || (string) $credential['kind'] !== 'email_password'
             || (string) $credential['identifier_type'] !== 'email'
-            || (int) $credential['failed_attempts'] !== 0
+            || (!$allowFailedAttempts && (int) $credential['failed_attempts'] !== 0)
             || $credential['locked_until'] !== null
             || ($credential['expires_at'] !== null && strtotime((string) $credential['expires_at'] . ' UTC') <= time())) {
             return false;

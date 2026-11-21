@@ -6,7 +6,6 @@
   import FilePicker from '@/components/file-picker/index.vue';
   import { hasPermission } from '@/hooks/permission';
   import { tenantSessionFetch } from '@/api/tenant-session-fetch';
-  import ImportExportPage from './optional-runtime/src/ImportExportPage.vue';
   import {
     createImportExportFetchTransport,
     createImportExportRuntime,
@@ -15,6 +14,7 @@
     IMPORT_EXPORT_READ_PERMISSION,
     importExportRuntimeKey,
   } from '@peanut-admin/peanut-import-export/runtime';
+  import ImportExportPage from './optional-runtime/src/ImportExportPage.vue';
 
   const route = useRoute();
   const { t } = useI18n();
@@ -43,6 +43,17 @@
   provide(importExportRuntimeKey, runtime);
   onBeforeUnmount(runtime.dispose);
 
+  const downloadDraftTemplate = () => {
+    const url = URL.createObjectURL(
+      new Blob(['\ufefftitle,cid,body\r\n'], { type: 'text/csv;charset=utf-8' })
+    );
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'article-drafts-template.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const importDrafts = async () => {
     const file = draftCsv.value;
     if (!file) return;
@@ -61,6 +72,9 @@
       <section v-if="canImportDrafts" class="draft-import">
         <h2>{{ t('importExport.drafts.title') }}</h2>
         <p>{{ t('importExport.drafts.csvInstructions') }}</p>
+        <ElButton @click="downloadDraftTemplate">{{
+          t('importExport.drafts.downloadTemplate')
+        }}</ElButton>
         <FilePicker
           v-if="!disabled"
           :type="30"
@@ -69,10 +83,14 @@
           @select="
             (_urls, files) => {
               const file = files[0];
-              invalidDraftFile = !file?.file_key || file.access_type !== 'private' || !/\.csv$/i.test(file.name);
-              draftCsv = !invalidDraftFile && file?.file_key
-                ? { key: file.file_key, name: file.name }
-                : undefined;
+              invalidDraftFile =
+                !file?.file_key ||
+                file.access_type !== 'private' ||
+                !/\.csv$/i.test(file.name);
+              draftCsv =
+                !invalidDraftFile && file?.file_key
+                  ? { key: file.file_key, name: file.name }
+                  : undefined;
             }
           "
         />
@@ -81,7 +99,8 @@
           type="primary"
           :disabled="disabled || !draftCsv"
           @click="importDrafts"
-        >{{ t('importExport.drafts.submit') }}</ElButton>
+          >{{ t('importExport.drafts.submit') }}</ElButton
+        >
         <ElAlert
           v-if="invalidDraftFile"
           :title="t('importExport.drafts.invalidFile')"

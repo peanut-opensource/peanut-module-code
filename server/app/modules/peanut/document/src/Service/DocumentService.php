@@ -1048,23 +1048,33 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
     public function detail(TenantContext $context, int $documentId, ?int $revisionId = null): array
     {
         return $this->authorization->run($context, function (TenantContext $current) use ($documentId, $revisionId): array {
-            $document = $this->authorization->document($current, $documentId, 'view');
-            $result = $this->summary($document);
-            $result['owner'] = ['module_key' => $document->owner_module_key,'object_type' => $document->owner_object_type,'object_id' => $document->owner_object_id,'slot' => $document->slot];
-            $result['authorization_revision'] = $this->authorization->revision($current, $document);
-            if ($revisionId !== null) {
-                return $result + $this->versionSnapshot($current, $documentId, $revisionId)->toArray();
-            }
-            if ($document->content_kind === 'rich_text') {
-                $state = DocumentState::where('document_id', $documentId)->find();
-                if ($state === null) {
-                    throw BusinessException::conflict('DOCUMENT_STATE_MISSING', '文档正文不可用');
-                }
-                return $result + ['structured_content' => self::json($state->projected_json),'digest' => $state->state_sha256,'persisted_at' => $state->persisted_at];
-            }
-            $binding = $this->binding($document);
-            return $result + ['file_key' => $binding['primary_file_key'],'verified_mime_type' => $binding['verified_mime_type'],'digest' => $binding['source_sha256']];
+            [$document, $authorizationRevision] = $this->authorization->readDocument($current, $documentId);
+            return $this->readDetail($current, $document, $revisionId, $authorizationRevision);
         });
+    }
+
+    /** The caller has performed the live view authorization in this operation. */
+    private function readDetail(TenantContext $current, Document $document, ?int $revisionId, string $authorizationRevision): array
+    {
+        $documentId = (int) $document->id;
+        $result = $this->summary($document);
+        $result['owner'] = self::ownerArray(DocumentAuthorizationService::reference($document));
+        $result['authorization_revision'] = $authorizationRevision;
+        if ($revisionId !== null) {
+            if (($pdo = Db::connect()->getPdo()) instanceof \PDO && $pdo->inTransaction()) {
+                throw BusinessException::conflict('DOCUMENT_VERSION_NOT_COMMITTED', '不可把外层事务中的版本声明为已提交');
+            }
+            return $result + $this->snapshotFromRevision($current, $document, $this->revision($document, $revisionId))->toArray();
+        }
+        if ($document->content_kind === 'rich_text') {
+            $state = DocumentState::where('document_id', $documentId)->find();
+            if ($state === null) {
+                throw BusinessException::conflict('DOCUMENT_STATE_MISSING', '文档正文不可用');
+            }
+            return $result + ['structured_content' => self::json($state->projected_json),'digest' => $state->state_sha256,'persisted_at' => $state->persisted_at];
+        }
+        $binding = $this->binding($document);
+        return $result + ['file_key' => $binding['primary_file_key'],'verified_mime_type' => $binding['verified_mime_type'],'digest' => $binding['source_sha256']];
     }
 
     public function readableFileOwner(TenantContext $context, int $documentId): DocumentOwnerReference
@@ -1535,8 +1545,8 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
             throw BusinessException::invalid('DOCUMENT_INTENT_INVALID', '内容意图无效');
         }
         return $this->authorization->run($context, function (TenantContext $current) use ($documentId, $intent, $revisionId): array {
-            $data = $this->detail($current, $documentId, $revisionId);
-            $document = $this->authorization->document($current, $documentId, 'view');
+            [$document, $authorizationRevision] = $this->authorization->readDocument($current, $documentId);
+            $data = $this->readDetail($current, $document, $revisionId, $authorizationRevision);
             $canEdit = false;
             $canDownload = false;
             if ($revisionId === null && !(bool) $document->collaboration_enabled) {

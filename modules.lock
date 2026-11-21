@@ -163,11 +163,11 @@
         },
         {
             "key": "peanut.article",
-            "version": "1.0.21-rc.12",
+            "version": "1.0.21-rc.18",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "82524ea3dea276206441f5ab0f0dc7bb01511ee751ebbcc498e0b7a3a4ca199e"
+                "sha256": "88510407002b24eecdb0f0499a1d1e26b943b193ab0a7d84d4e691a3d3489ed2"
             },
             "trust": {
                 "channel": "bundled",
@@ -183,7 +183,7 @@
                     "modules": [
                         {
                             "key": "peanut.article",
-                            "version": "1.0.21-rc.12",
+                            "version": "1.0.21-rc.18",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -218,46 +218,46 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-article",
-                    "version": "1.0.21-rc.12",
-                    "sha256": "b3fb952abcdbe926a57779caaf7d6c98fa5887d378311d3746e2e09713678d4a"
+                    "version": "1.0.21-rc.18",
+                    "sha256": "1edd68d970ab119bf9e544dd26f3878ac57d2b99c40b51f3a6aa0f1a7d7ece98"
                 }
             ],
             "npm": [
                 {
                     "name": "@peanut-admin/peanut-article",
-                    "version": "1.0.21-rc.12",
-                    "integrity": "sha256-BbMX6ekiUVugnM63DY5VvCocSv0VlMCv2K4TRrxaIpo="
+                    "version": "1.0.21-rc.18",
+                    "integrity": "sha256-FW2zuq0musUp4ktnMyLZFwVnJOAa+CwBoQ1ldFFfEnQ="
                 },
                 {
                     "name": "@peanut-admin/peanut-article-pc",
-                    "version": "1.0.21-rc.12",
-                    "integrity": "sha256-gotoAfa/PXP6VWVQ6RsVRbIoAMhqUbqqfyfg4CYbqAU="
+                    "version": "1.0.21-rc.18",
+                    "integrity": "sha256-omo5MFDUtMw+zuLIUzepJdBqh1/5ncwWCKebNqUPDyE="
                 },
                 {
                     "name": "@peanut-admin/peanut-article-uniapp",
-                    "version": "1.0.21-rc.12",
-                    "integrity": "sha256-vb/AFG3Fn3r5nSuweM+82tz7DC6+2QdaJ1XuEL2fBgE="
+                    "version": "1.0.21-rc.18",
+                    "integrity": "sha256-dnsTxvOwABu7VcvKk6PfiZ6qvCbHg6MQZ9fjvVK5VZg="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "pc-web",
                     "package": "@peanut-admin/peanut-article-pc",
-                    "version": "1.0.21-rc.12",
+                    "version": "1.0.21-rc.18",
                     "entry": "pc/modules/peanut-article/contribution.ts",
                     "sha256": "29f8b7624301a3531a579a60207a71055a50b68b021dec331724227318a51cf4"
                 },
                 {
                     "client_key": "uniapp",
                     "package": "@peanut-admin/peanut-article-uniapp",
-                    "version": "1.0.21-rc.12",
+                    "version": "1.0.21-rc.18",
                     "entry": "uniapp/src/modules/peanut-article/contribution.ts",
                     "sha256": "c0c06f27b613665a6858f2869ee8c2698c94b4defe3324edb070dcbd7c986ec2"
                 },
                 {
                     "client_key": "admin-web",
                     "package": "@peanut-admin/peanut-article",
-                    "version": "1.0.21-rc.12",
+                    "version": "1.0.21-rc.18",
                     "entry": "web/src/modules/peanut-article/contribution.ts",
                     "sha256": "3bdf14814908ce2861f3f917f687426604fc01b2b625d05853eabf06d6a5d820"
                 }
@@ -269,7 +269,7 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/article/module.json",
-            "manifest_sha256": "4935a4bc970b367dd399eb4b6769097853b0d75b8d86041e1f3f3b270c482911"
+            "manifest_sha256": "fe418c686616da527fd0d6702b569d82e11d86d1cad4d92663595c14104798c1"
         },
         {
             "key": "peanut.artifact-revision",
@@ -464,11 +464,11 @@
         },
         {
             "key": "peanut.collaboration",
-            "version": "1.0.21-rc.2",
+            "version": "1.0.21-rc.3",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "e00132197fa4fe245b4cffc0d8c213cbbfb8c8c53eda274b410b40ab4fcaeaaf"
+                "sha256": "7d9f46fd14c37e89c12612ed26526647482b302e7d8e60731349d03c83ee3137"
             },
             "trust": {
                 "channel": "bundled",
@@ -484,7 +484,7 @@
                     "modules": [
                         {
                             "key": "peanut.collaboration",
-                            "version": "1.0.21-rc.2",
+                            "version": "1.0.21-rc.3",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -515,8 +515,8 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-collaboration",
-                    "version": "1.0.21-rc.2",
-                    "sha256": "b4ad96eb30def2cc1b8929c0da5a20bae93988b1adb69f0f21618d95e2ef8565"
+                    "version": "1.0.21-rc.3",
+                    "sha256": "1cb3ee66beb8cd1de951ae48b7cd058f66900fb1051618af7a2ece846b96bdbb"
                 }
             ],
             "npm": [],
@@ -528,7 +528,7 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/collaboration/module.json",
-            "manifest_sha256": "8eca4e5eb393143259a23b40ef26463c7ef395d21b3bf8c47142490f3605063c"
+            "manifest_sha256": "e59062e51653868bac0bf81cf2aad0fd5c79107f7d9dcb7d43f756748d6354d7"
         },
         {
             "key": "peanut.content-tools",
@@ -597,11 +597,11 @@
         },
         {
             "key": "peanut.document",
-            "version": "1.0.28-rc.7",
+            "version": "1.0.28-rc.10",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "dc1a48890668aae5bec44b5d460647c227f4e4bb23bed9456a057f9841d604ae"
+                "sha256": "9aefe58d91bd859f2ef158a1d39b5453ff7c49a569fa4b5d9e188003e85ac85d"
             },
             "trust": {
                 "channel": "bundled",
@@ -617,7 +617,7 @@
                     "modules": [
                         {
                             "key": "peanut.document",
-                            "version": "1.0.28-rc.7",
+                            "version": "1.0.28-rc.10",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -648,22 +648,22 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-document",
-                    "version": "1.0.28-rc.7",
-                    "sha256": "25afe44cf8dfedd9d43088802c3eff903355fafda231e17dc17638c994e98399"
+                    "version": "1.0.28-rc.10",
+                    "sha256": "9e963434a009dfd1711e43ba37179a952ebbffc96fcbffb2852dac3fe95c6348"
                 }
             ],
             "npm": [
                 {
                     "name": "@peanut-admin/peanut-document",
-                    "version": "1.0.28-rc.7",
-                    "integrity": "sha256-wkDXKNZ2t8K3FEseEUXJMDwN19ZxqfG2voQwc7mQFEQ="
+                    "version": "1.0.28-rc.10",
+                    "integrity": "sha256-1kop645eTOjH5/6iym4tsnSBbHHh3BgmRs7hQuYx9tI="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "admin-web",
                     "package": "@peanut-admin/peanut-document",
-                    "version": "1.0.28-rc.7",
+                    "version": "1.0.28-rc.10",
                     "entry": "web/src/modules/peanut-document/contribution.ts",
                     "sha256": "e3b566dc7122677cebf798c1693ca391d613d6c7663a9b319f4d13aef35cdf34"
                 }
@@ -675,7 +675,7 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/document/module.json",
-            "manifest_sha256": "c0daf63828e7684f6da59689c0c85990c4c9fcee115c2fdd7abedbcbe8d28272"
+            "manifest_sha256": "d95a13f2be0d85924f4bb0a40a75e3c678f93cea27c79ae479e0698dbd1a59f7"
         },
         {
             "key": "peanut.entitlement-quota",
@@ -735,11 +735,11 @@
         },
         {
             "key": "peanut.file",
-            "version": "1.0.50-rc.10",
+            "version": "1.0.50-rc.15",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "1f19efdd3b346b5ded15b8b2086ae7db7ca10bc0bb26ace1c76c35e1c35c71ab"
+                "sha256": "05bb1489fc7e426cda48120152a2ae56ffd3a5c21e425ab42cd6c7e9c16f097e"
             },
             "trust": {
                 "channel": "bundled",
@@ -755,7 +755,7 @@
                     "modules": [
                         {
                             "key": "peanut.file",
-                            "version": "1.0.50-rc.10",
+                            "version": "1.0.50-rc.15",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -778,22 +778,22 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-file",
-                    "version": "1.0.50-rc.10",
-                    "sha256": "966ccc7f23d9f5909b7f1bbed771e8ea6f8564bc5fa8c6dc24e3d3606623ab33"
+                    "version": "1.0.50-rc.15",
+                    "sha256": "3b684e365c2c50bae10a70b10b01ff4befb5dcd97aed86ea3d182283977db14a"
                 }
             ],
             "npm": [
                 {
                     "name": "@peanut-admin/peanut-file",
-                    "version": "1.0.50-rc.10",
-                    "integrity": "sha256-Oiqp4Pk8guMpEVN5Xdi87aFIyypooq33Sxaql5Uraq8="
+                    "version": "1.0.50-rc.15",
+                    "integrity": "sha256-UJ8J2iX5N3YoW2t1FUiT4tbpA/GvHssnKJVsav5+ohY="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "admin-web",
                     "package": "@peanut-admin/peanut-file",
-                    "version": "1.0.50-rc.10",
+                    "version": "1.0.50-rc.15",
                     "entry": "web/src/modules/peanut-file/contribution.ts",
                     "sha256": "e0ea97808b2648e7e0039e6c289ec84118717b8a718ad74f4e81d5c56673e83a"
                 }
@@ -805,15 +805,15 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/file/module.json",
-            "manifest_sha256": "c02f24408d6c843e5f7cb845c7819252557dda69e5fccc0634944811bb2f7692"
+            "manifest_sha256": "addf355a4582ad13bef2fcfc13517d7683c6d58f2fd2383b67217006709e9068"
         },
         {
             "key": "peanut.identity",
-            "version": "4.0.1-rc.9",
+            "version": "4.0.1-rc.11",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "f6481f017603d8c67cf6406dbbecb6fefe67d65da6f39014149d8c90e7452956"
+                "sha256": "595343ce9d1d860a4a60798042d3b469943efefa5191a0b419c341e555143471"
             },
             "trust": {
                 "channel": "bundled",
@@ -829,7 +829,7 @@
                     "modules": [
                         {
                             "key": "peanut.identity",
-                            "version": "4.0.1-rc.9",
+                            "version": "4.0.1-rc.11",
                             "kernel_constraint": "^1.0",
                             "dependencies": [],
                             "permissions": {
@@ -843,8 +843,8 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-identity",
-                    "version": "4.0.1-rc.9",
-                    "sha256": "0c45b7de5cd05b23f4c96defcd6a3e734f898d3e96b6a0f8bc01812af6c3081d"
+                    "version": "4.0.1-rc.11",
+                    "sha256": "793da5534aca4a872220fdf2ee10a6be069bc889331f4f4e9369860310f5645d"
                 }
             ],
             "npm": [],
@@ -856,15 +856,15 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/identity/module.json",
-            "manifest_sha256": "65eb783c18bbb12a2101cf0e21e4a6856509d9d1a95a26cda8b5d300fd297d02"
+            "manifest_sha256": "3c3b9d8d91fd1318a2c2e98b5eccdb71c35af4607c58ffc61eae68267d29ef91"
         },
         {
             "key": "peanut.import-export",
-            "version": "1.0.37-rc.4",
+            "version": "1.0.37-rc.7",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "3635b0673c67a6f637d8d37a961c6c236e224eeed13e1169f65832bf30a6cca3"
+                "sha256": "f0764f2650618f0a720fe774a0f48324c8a5bbaa7738587344a736fc3e1217bc"
             },
             "trust": {
                 "channel": "bundled",
@@ -880,7 +880,7 @@
                     "modules": [
                         {
                             "key": "peanut.import-export",
-                            "version": "1.0.37-rc.4",
+                            "version": "1.0.37-rc.7",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -915,22 +915,22 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-import-export",
-                    "version": "1.0.37-rc.4",
-                    "sha256": "492c6fc141f8a95c5ad1c80cfcd4d7a7fc62d14f00508832a467dcd4f5ba038b"
+                    "version": "1.0.37-rc.7",
+                    "sha256": "5cc2a0be089728309b34a60ed0217682e756e75156435d496f4a759faef36440"
                 }
             ],
             "npm": [
                 {
                     "name": "@peanut-admin/peanut-import-export",
-                    "version": "1.0.37-rc.4",
-                    "integrity": "sha256-0xp1c+AZXcKZMtqrjLEPFyFlJ1YoWfvB4mlH34DszxI="
+                    "version": "1.0.37-rc.7",
+                    "integrity": "sha256-V8FJYpAGBHzgWGqHJESnpSo/P/7YzMGXFpmn7qnpZOo="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "admin-web",
                     "package": "@peanut-admin/peanut-import-export",
-                    "version": "1.0.37-rc.4",
+                    "version": "1.0.37-rc.7",
                     "entry": "web/src/modules/peanut-import-export/contribution.ts",
                     "sha256": "98462e8a7accf81e065377f06fd47eeaee8c0269dd6c039595899d28c5e1500d"
                 }
@@ -942,7 +942,7 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/import_export/module.json",
-            "manifest_sha256": "e363c1520929ba48c1f85dfbf1a15f12dde943e62059143fba49a4261929b419"
+            "manifest_sha256": "08c616d7f4aa1c904b38e9f9af37f21efbdef41dd16cf6414d1d57deedbaece8"
         },
         {
             "key": "peanut.integration",
@@ -1016,11 +1016,11 @@
         },
         {
             "key": "peanut.member",
-            "version": "1.0.28-rc.4",
+            "version": "1.0.28-rc.7",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "21262f811497ebb207176e2dcf388fda9b7f5d7473b939c66b1d9f9995a8ca70"
+                "sha256": "be9ebf49e3dfbd5c45a349867037e9911d3640719df14a0a6687cf974140a691"
             },
             "trust": {
                 "channel": "bundled",
@@ -1036,7 +1036,7 @@
                     "modules": [
                         {
                             "key": "peanut.member",
-                            "version": "1.0.28-rc.4",
+                            "version": "1.0.28-rc.7",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -1063,46 +1063,46 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-member",
-                    "version": "1.0.28-rc.4",
-                    "sha256": "bed7b9c63cf1bcad6a6a2ee6ea40f77c7077db0de5aca0dd0bedf949c062c1ed"
+                    "version": "1.0.28-rc.7",
+                    "sha256": "316ab6868c535b2f99bcbe52bdcd81d01f28703121091a6d3737da217f3ed18b"
                 }
             ],
             "npm": [
                 {
                     "name": "@peanut-admin/peanut-member",
-                    "version": "1.0.28-rc.4",
-                    "integrity": "sha256-5mIpFE4E9iVZzteQ2HVTLNOpFaj5JuFMM3mB97rjH2A="
+                    "version": "1.0.28-rc.7",
+                    "integrity": "sha256-5tZYGJACJ22yLI++AMDglWbPEDbWtfoncsxpLwWwF4M="
                 },
                 {
                     "name": "@peanut-admin/peanut-member-pc",
-                    "version": "1.0.28-rc.4",
-                    "integrity": "sha256-50KJYl7SAwIGg1B5b38d8mwhEtVagzylxFE2URa9+h0="
+                    "version": "1.0.28-rc.7",
+                    "integrity": "sha256-6WU9bXOq8ogu1YuqGeKryMRPDQ29/RWslzNzfEFe62o="
                 },
                 {
                     "name": "@peanut-admin/peanut-member-uniapp",
-                    "version": "1.0.28-rc.4",
-                    "integrity": "sha256-sPhUULlN29NrNKYP90SernGcNedZy48BuVNT4mNF6JM="
+                    "version": "1.0.28-rc.7",
+                    "integrity": "sha256-CzAM8xC1e1FWTIgYA1nauWSuF+lWyaB8+ZPivYttEFM="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "pc-web",
                     "package": "@peanut-admin/peanut-member-pc",
-                    "version": "1.0.28-rc.4",
+                    "version": "1.0.28-rc.7",
                     "entry": "pc/modules/peanut-member/contribution.ts",
                     "sha256": "7b4ef293b6db32eda6cb988be84d801534c3b53538f2616ba7fe858d157d44f2"
                 },
                 {
                     "client_key": "uniapp",
                     "package": "@peanut-admin/peanut-member-uniapp",
-                    "version": "1.0.28-rc.4",
+                    "version": "1.0.28-rc.7",
                     "entry": "uniapp/src/modules/peanut-member/contribution.ts",
                     "sha256": "31fd90daec8604d87032c5ffa68ec1e3246c429d874ef5f2c614b8a56d8ad3d2"
                 },
                 {
                     "client_key": "admin-web",
                     "package": "@peanut-admin/peanut-member",
-                    "version": "1.0.28-rc.4",
+                    "version": "1.0.28-rc.7",
                     "entry": "web/src/modules/peanut-member/contribution.ts",
                     "sha256": "88a8fd730cba3e0a673fed39a5516797cf1e03bcf3bc3bc3a21ec4730289d58a"
                 }
@@ -1114,15 +1114,15 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/member/module.json",
-            "manifest_sha256": "bc5c7e312eef2ab989926d536425b542d74882f46807767dc2cadd921744817f"
+            "manifest_sha256": "fb290b30938331c9c5c6e6349b07f3670f1a08841b985271088c148757de4fd1"
         },
         {
             "key": "peanut.notification",
-            "version": "1.0.33-rc.1",
+            "version": "1.0.33-rc.2",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "8e4b0810eb17d149cc7fe8c5891c3ea714528860657d7d3a2f8c2810a07e214f"
+                "sha256": "0453b74c54ef4a2aded844526baabf028911f86bf5883a7a49249edb582d5e18"
             },
             "trust": {
                 "channel": "bundled",
@@ -1138,7 +1138,7 @@
                     "modules": [
                         {
                             "key": "peanut.notification",
-                            "version": "1.0.33-rc.1",
+                            "version": "1.0.33-rc.2",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -1165,22 +1165,22 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-notification",
-                    "version": "1.0.33-rc.1",
-                    "sha256": "c720d925003a1748b36a993018f31bc3e482aa028b19b062e3a920c58537af0b"
+                    "version": "1.0.33-rc.2",
+                    "sha256": "fe4c1eb7c84a83ccaf68e7724a564f99a383c0d15071b16419732fe50bfdd311"
                 }
             ],
             "npm": [
                 {
                     "name": "@peanut-admin/peanut-notification",
-                    "version": "1.0.33-rc.1",
-                    "integrity": "sha256-3JRmWvw4GZQ9EvXVPYQaE13Eqar7J6Zizknufb6xLqM="
+                    "version": "1.0.33-rc.2",
+                    "integrity": "sha256-aj6AFBwXuOpKiMxR7goDY7V0le7vnnAaER81enLpOJg="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "admin-web",
                     "package": "@peanut-admin/peanut-notification",
-                    "version": "1.0.33-rc.1",
+                    "version": "1.0.33-rc.2",
                     "entry": "web/src/modules/peanut-notification/contribution.ts",
                     "sha256": "8f7941f67584ea66ff1315732c2b032d84adcbf70a19c9a7d2f41f4034e7b902"
                 }
@@ -1192,15 +1192,15 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/notification/module.json",
-            "manifest_sha256": "be1a9fd1893f83f0aefad0849ca71c38076ac2d897da96d613a069abe412b7a4"
+            "manifest_sha256": "671f4dcd6bed8c21b8ea8b7af96588fc18ce6e2ac4c8024784abc8094fed38b4"
         },
         {
             "key": "peanut.oauth",
-            "version": "1.0.13-rc.1",
+            "version": "1.0.13-rc.4",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "5c1c28b69c91e28c0fa5c040312d89aafedefa6152724704e77080602964b5a7"
+                "sha256": "1b244cda0bc76f21a2088d6cf1d8fa3be41b8d5126a31e23ea5b8496b76a0b38"
             },
             "trust": {
                 "channel": "bundled",
@@ -1216,7 +1216,7 @@
                     "modules": [
                         {
                             "key": "peanut.oauth",
-                            "version": "1.0.13-rc.1",
+                            "version": "1.0.13-rc.4",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -1255,46 +1255,46 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-oauth",
-                    "version": "1.0.13-rc.1",
-                    "sha256": "a04830b72b087a261415bf7f4f6e7c2d1aa9cbfd04a048ff71ee9a4e6c26c99a"
+                    "version": "1.0.13-rc.4",
+                    "sha256": "76ef39319f4f3a6427b7634332e74c5e07c7889080b2c4c306d0127d8c4e5498"
                 }
             ],
             "npm": [
                 {
                     "name": "@peanut-admin/peanut-oauth",
-                    "version": "1.0.13-rc.1",
-                    "integrity": "sha256-l1bVlw4agJC3iqt2hNr8i+w85PNtTUg6qPFP2Ub3eZo="
+                    "version": "1.0.13-rc.4",
+                    "integrity": "sha256-Ms2/T3+YvPgqWk5yMhr0nuweZF+P0s4QF82foM3kjAw="
                 },
                 {
                     "name": "@peanut-admin/peanut-oauth-pc",
-                    "version": "1.0.13-rc.1",
-                    "integrity": "sha256-I/fYq319mOcc73W6BjZPOHrsKufSokhnhoWP6WdUyE8="
+                    "version": "1.0.13-rc.4",
+                    "integrity": "sha256-hLLtwQ9RGxTV1e3pySzSmInOynm2Sn5GwLx86jd/Pwo="
                 },
                 {
                     "name": "@peanut-admin/peanut-oauth-uniapp",
-                    "version": "1.0.13-rc.1",
-                    "integrity": "sha256-2mHcpCBxp/mzEStUKMSqyjwtXBw49soY/VsvlTz/MIQ="
+                    "version": "1.0.13-rc.4",
+                    "integrity": "sha256-lyVEHlwtjVndp9UY7asObRF6gTbjokWmLvCb9uKE2dc="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "pc-web",
                     "package": "@peanut-admin/peanut-oauth-pc",
-                    "version": "1.0.13-rc.1",
+                    "version": "1.0.13-rc.4",
                     "entry": "pc/modules/peanut-oauth/contribution.ts",
                     "sha256": "afa9b975f26443c9e8d311d089aa0607fe9284d29f5a85fdf96b8a759f7096c6"
                 },
                 {
                     "client_key": "uniapp",
                     "package": "@peanut-admin/peanut-oauth-uniapp",
-                    "version": "1.0.13-rc.1",
+                    "version": "1.0.13-rc.4",
                     "entry": "uniapp/src/modules/peanut-oauth/contribution.ts",
                     "sha256": "f10b63e44cb68b5dde23257e2fdb1af04101921e8501d049c6d2a9fce4f4475d"
                 },
                 {
                     "client_key": "admin-web",
                     "package": "@peanut-admin/peanut-oauth",
-                    "version": "1.0.13-rc.1",
+                    "version": "1.0.13-rc.4",
                     "entry": "web/src/modules/peanut-oauth/contribution.ts",
                     "sha256": "fadee8d9f06aeedb486a5da0f9b68fb58c0df6561c8ba3bd5dc3ec78099b2bf6"
                 }
@@ -1306,15 +1306,15 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/oauth/module.json",
-            "manifest_sha256": "f5f3e03c9187e9633d1011470de9287d345dffd4baa6a07aa1a85bb0fb882a84"
+            "manifest_sha256": "2deb5032a97b63056fb6cf9f316058b6651c657464fce01fb77feb71c38c4d77"
         },
         {
             "key": "peanut.ops",
-            "version": "1.0.35-rc.3",
+            "version": "1.0.35-rc.4",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "c5bb1b90f0b4a6fc220b78e2e8c708814b1e476f77529ac9031c29d105d39cfd"
+                "sha256": "fdd3fbd51b90d2460c616b12ee8c788240f5fb64b7f52ae8cf14d5c92fb5b15b"
             },
             "trust": {
                 "channel": "bundled",
@@ -1330,7 +1330,7 @@
                     "modules": [
                         {
                             "key": "peanut.ops",
-                            "version": "1.0.35-rc.3",
+                            "version": "1.0.35-rc.4",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -1353,22 +1353,22 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-ops",
-                    "version": "1.0.35-rc.3",
-                    "sha256": "8db8751f4e959fed892609e0d48b18a44954914c4d68e1df56cb8301e77ea0b4"
+                    "version": "1.0.35-rc.4",
+                    "sha256": "27b21798d0090a028956411608e575e098ac259d563a1503b01bef4829e07a97"
                 }
             ],
             "npm": [
                 {
                     "name": "@peanut-admin/peanut-ops",
-                    "version": "1.0.35-rc.3",
-                    "integrity": "sha256-QuSvySzKOdLR9/G+hjYC3Ip+1aX84sIT96B4kpiYTBY="
+                    "version": "1.0.35-rc.4",
+                    "integrity": "sha256-pNig/KFcnVRCGiQET5Ukmoz/ckmq0Ob0D5GPkV09w8g="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "platform-web",
                     "package": "@peanut-admin/peanut-ops",
-                    "version": "1.0.35-rc.3",
+                    "version": "1.0.35-rc.4",
                     "entry": "platform/src/modules/peanut-ops/contribution.ts",
                     "sha256": "45a285f08ccefa5961bc2705a80561c8a4ca3a2736af5596597afadbc2c6430e"
                 }
@@ -1380,15 +1380,15 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/ops/module.json",
-            "manifest_sha256": "4bd6c6f52a71daacd7a92f1116c67c9144dda4f14a3d6bb1873d11adb2de9455"
+            "manifest_sha256": "5e464c95383ce031ea00f0229b58b4649b37cd6e70308c130baa7d2864edd8b7"
         },
         {
             "key": "peanut.payment",
-            "version": "1.0.30-rc.1",
+            "version": "1.0.30-rc.3",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "c58ebac1c63831641cba26a9bf4f35e6b210f5df57fba1e5b97a77fa44b8ad12"
+                "sha256": "79460122aded9cdeac3b16ccb27a75291ae1e998ebea24771d02655eec9b3cb2"
             },
             "trust": {
                 "channel": "bundled",
@@ -1404,7 +1404,7 @@
                     "modules": [
                         {
                             "key": "peanut.payment",
-                            "version": "1.0.30-rc.1",
+                            "version": "1.0.30-rc.3",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -1421,7 +1421,7 @@
                                 },
                                 {
                                     "module_key": "peanut.member",
-                                    "version": "^1.0"
+                                    "version": "^1.0.28-rc.7"
                                 },
                                 {
                                     "module_key": "peanut.oauth",
@@ -1447,46 +1447,46 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-payment",
-                    "version": "1.0.30-rc.1",
-                    "sha256": "df4caf9df6c52718741830398776a00de260035ef2598fed92410c66379b459a"
+                    "version": "1.0.30-rc.3",
+                    "sha256": "1e8e19bc5455ff0f87d246b48a42a52d49f5d16528476a4a545760cf6413a38f"
                 }
             ],
             "npm": [
                 {
                     "name": "@peanut-admin/peanut-payment",
-                    "version": "1.0.30-rc.1",
-                    "integrity": "sha256-sTZgLZ1tukJdRdKcqc1vpI6+pNAq8JrtnWpmCmI9IOA="
+                    "version": "1.0.30-rc.3",
+                    "integrity": "sha256-JVh3r6lbiRil7DVCmdOeGsOIv8JDsCLAa+pH2bxoonA="
                 },
                 {
                     "name": "@peanut-admin/peanut-payment-pc",
-                    "version": "1.0.30-rc.1",
-                    "integrity": "sha256-aLVo1/2iSJ41H9R+SyqGF4eaCe1WppCaWkVihZKXxbU="
+                    "version": "1.0.30-rc.3",
+                    "integrity": "sha256-M9ho62y2LIh7vO4O0rPKUMpizQA6sXQ2QzHYYCuQxoM="
                 },
                 {
                     "name": "@peanut-admin/peanut-payment-uniapp",
-                    "version": "1.0.30-rc.1",
-                    "integrity": "sha256-ix0S1ck5Nkh1kCwjHf5KgGqLHs+LaR041XJhI+t8WL4="
+                    "version": "1.0.30-rc.3",
+                    "integrity": "sha256-oA1yxSTG3sR2xS5J4GCMhhQlOtT1c2uIwqUt7OMDLzo="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "pc-web",
                     "package": "@peanut-admin/peanut-payment-pc",
-                    "version": "1.0.30-rc.1",
+                    "version": "1.0.30-rc.3",
                     "entry": "pc/modules/peanut-payment/contribution.ts",
                     "sha256": "1b47daf74220b43fd6b36c6c061dda79269d758c6d604bf1c15540f0a7089823"
                 },
                 {
                     "client_key": "uniapp",
                     "package": "@peanut-admin/peanut-payment-uniapp",
-                    "version": "1.0.30-rc.1",
+                    "version": "1.0.30-rc.3",
                     "entry": "uniapp/src/modules/peanut-payment/contribution.ts",
                     "sha256": "3812d1c1becde8b36d2968d7bb4c5a075ea4f1a6869c5449ec41aaeb6cd475b7"
                 },
                 {
                     "client_key": "admin-web",
                     "package": "@peanut-admin/peanut-payment",
-                    "version": "1.0.30-rc.1",
+                    "version": "1.0.30-rc.3",
                     "entry": "web/src/modules/peanut-payment/contribution.ts",
                     "sha256": "c22a90c382c0ef2b77148f2e8d77b2e0ee4aa863c27863b96a1e610862e8ad65"
                 }
@@ -1498,15 +1498,15 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/payment/module.json",
-            "manifest_sha256": "4959328afc81672116d7e781b075cc834330bd745b596a5ef3feb5a5a421858e"
+            "manifest_sha256": "d25f5e8c83a05d37807fc97d536e9e72e0dff775cfc0d4b2bdc865a58204aa90"
         },
         {
             "key": "peanut.reference-codes",
-            "version": "1.0.29-rc.1",
+            "version": "1.0.29-rc.4",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "3a5e55089d0cf0210e341138bf5f3c9de42df17276214ff91adb997335ed5b6c"
+                "sha256": "4b4a36b7bcffba1e66d3e3c00d2887b8d3dcc8a7fecb25756b6181666a244a0f"
             },
             "trust": {
                 "channel": "bundled",
@@ -1522,7 +1522,7 @@
                     "modules": [
                         {
                             "key": "peanut.reference-codes",
-                            "version": "1.0.29-rc.1",
+                            "version": "1.0.29-rc.4",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -1541,22 +1541,22 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-reference-codes",
-                    "version": "1.0.29-rc.1",
-                    "sha256": "970612b2cd6d2069fd306e159be23e526d4aef691c6a4d0747620acda1c9eda3"
+                    "version": "1.0.29-rc.4",
+                    "sha256": "4125fdb21ef9bc1bad68a2be6e25faa715397e1fa348894e77f13cce07d79374"
                 }
             ],
             "npm": [
                 {
                     "name": "@peanut-admin/peanut-reference-codes",
-                    "version": "1.0.29-rc.1",
-                    "integrity": "sha256-M7GRaroqmS8QRbni7jymZ0D6W/uHDbfjqxGjBj2Pbz0="
+                    "version": "1.0.29-rc.4",
+                    "integrity": "sha256-aN7AQLupD4HJB7b1xvcMNTpMmNOvQB/Tu5Kz4BfRyGM="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "admin-web",
                     "package": "@peanut-admin/peanut-reference-codes",
-                    "version": "1.0.29-rc.1",
+                    "version": "1.0.29-rc.4",
                     "entry": "web/src/modules/peanut-reference-codes/contribution.ts",
                     "sha256": "ebfd6a36b0b970f0751a64450d622c15b9a21ed87b2902a01cf01987230e78c1"
                 }
@@ -1568,7 +1568,7 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/reference_codes/module.json",
-            "manifest_sha256": "3ecc436f5d677f15f0bef0e1dc4efda063514e0465c835b140a7f6638927aead"
+            "manifest_sha256": "c6614ae6f4c51f60471750e7edf6a7b416a0639cf1583535fb5c9194b14ebc0d"
         },
         {
             "key": "peanut.rich-text",
@@ -1724,11 +1724,11 @@
         },
         {
             "key": "peanut.task",
-            "version": "1.0.36-rc.4",
+            "version": "1.0.36-rc.7",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "0963f538bd22d056df742b73f719403029dd5ffb32406d6cfd4ded612c2afc1b"
+                "sha256": "819a53132196657d3b2a0efb5f5c2527776ce0a96f6ea4c772b64c2cef6d22c5"
             },
             "trust": {
                 "channel": "bundled",
@@ -1744,7 +1744,7 @@
                     "modules": [
                         {
                             "key": "peanut.task",
-                            "version": "1.0.36-rc.4",
+                            "version": "1.0.36-rc.7",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -1763,22 +1763,22 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-task",
-                    "version": "1.0.36-rc.4",
-                    "sha256": "35caa5b12b4eb49c069b9c9eb5f705ef937a8e9aaedc8c86c3317d4c377bccd3"
+                    "version": "1.0.36-rc.7",
+                    "sha256": "f6079c80dbe4833e8982aa00e27308300995b0f7f1d4a874df0b798f7c3b0ec2"
                 }
             ],
             "npm": [
                 {
                     "name": "@peanut-admin/peanut-task",
-                    "version": "1.0.36-rc.4",
-                    "integrity": "sha256-vSt250UIptcVz5Em9tAYzID9epM6C/243ME5QgsSm/I="
+                    "version": "1.0.36-rc.7",
+                    "integrity": "sha256-+D8x3mf8EMwIxf7DTF2k06WHvNO2lMEYOxBZLqSWNiI="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "admin-web",
                     "package": "@peanut-admin/peanut-task",
-                    "version": "1.0.36-rc.4",
+                    "version": "1.0.36-rc.7",
                     "entry": "web/src/modules/peanut-task/contribution.ts",
                     "sha256": "d3b27a2a73e93d96b312dc92ff31eda29a7e2746c9769fbe7701c2d45118913b"
                 }
@@ -1790,15 +1790,15 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/task/module.json",
-            "manifest_sha256": "0a5fcd34c49de01098fc56ae352e512f9dee2c02af6cf66384130cc93d37b31a"
+            "manifest_sha256": "1b851bf091e19c49fe2c035640cc3ccb30032c2a091e26f09ea12b04315db5f8"
         },
         {
             "key": "peanut.workflow",
-            "version": "4.0.2-rc.6",
+            "version": "4.0.2-rc.7",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "e412f09c38488a7274cccb4ebbad476c1b3caad8009f85dac9fcedd05c6b5453"
+                "sha256": "b99b94aba5462dfd8a9525b22ccbc9d7fc1a55e527160ab244a76cab2e2af899"
             },
             "trust": {
                 "channel": "bundled",
@@ -1814,7 +1814,7 @@
                     "modules": [
                         {
                             "key": "peanut.workflow",
-                            "version": "4.0.2-rc.6",
+                            "version": "4.0.2-rc.7",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -1833,22 +1833,22 @@
             "composer": [
                 {
                     "name": "peanut-business/workflow",
-                    "version": "4.0.2-rc.6",
-                    "sha256": "b5703a45c86d4847e1cd9ee8705e23185dd45212341da08b0db8b2aeb453f66e"
+                    "version": "4.0.2-rc.7",
+                    "sha256": "20c4bfd8395a6e8f5b808b7f1521f5dd10eda09eaf7c4367f97606b073796171"
                 }
             ],
             "npm": [
                 {
                     "name": "@peanut-modules/workflow-web",
-                    "version": "4.0.2-rc.6",
-                    "integrity": "sha256-kEdeippPU5L8GiVacXlbOGHbDF+w82PfA5NLmsJoXls="
+                    "version": "4.0.2-rc.7",
+                    "integrity": "sha256-/ERkhqtyS+tK/fjt3GErBkkgQs22H4ve3hvuxHyXz8E="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "admin-web",
                     "package": "@peanut-modules/workflow-web",
-                    "version": "4.0.2-rc.6",
+                    "version": "4.0.2-rc.7",
                     "entry": "web/src/modules/peanut-workflow/contribution.ts",
                     "sha256": "e28a5cc8ec4dac9380b9b4675b86cd58f7e121cedd22a91fd9b9c39b1668b901"
                 }
@@ -1860,7 +1860,7 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/workflow/module.json",
-            "manifest_sha256": "3f94e52df35fa7e35daae5155a85cb996e66fb58d587c4968c0331ae7f0ee900"
+            "manifest_sha256": "ed377b77866d0ea70bc17995fd14ff9d3e13a0f5a11977f51b3b3c0bd2711408"
         }
     ]
 }

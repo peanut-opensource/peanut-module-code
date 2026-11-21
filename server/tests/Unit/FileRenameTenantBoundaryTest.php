@@ -59,9 +59,16 @@ final class FileRenameTenantBoundaryTest extends TestCase
         $authorization->method('principal')->willReturnCallback(static fn(TenantContext $actor) => AdminPrincipal::fromArray([
             'id' => $actor->memberId, 'tenant_id' => $actor->tenantId, 'account_id' => $actor->accountId, 'authorization_revision' => 1,
         ]));
-        $authorization->method('decide')->willReturnCallback(static fn($actor, $principal, string $key) =>
-            in_array($key, ['peanut.file.manage', 'peanut.file.rename'], true)
-                ? PermissionDecision::allow($key) : PermissionDecision::deny($key, 'NOT_GRANTED'));
+        $decision = static fn(string $key) => in_array($key, ['peanut.file.manage', 'peanut.file.rename'], true)
+            ? PermissionDecision::allow($key) : PermissionDecision::deny($key, 'NOT_GRANTED');
+        $authorization->method('decide')->willReturnCallback(static fn($actor, $principal, string $key) => $decision($key));
+        $authorization->method('decisions')->willReturnCallback(static function (TenantContext $actor, array $keys) use ($decision): array {
+            $decisions = [];
+            foreach ($keys as $key) {
+                $decisions[$key] = $decision($key);
+            }
+            return $decisions;
+        });
         $modules = $this->createStub(ModuleRuntimeRepository::class);
         $modules->method('installation')->willReturn(new ModuleInstallationRecord('peanut.file', '1.0', 'active', 1, str_repeat('a', 64)));
         $modules->method('tenantModule')->willReturnCallback(static fn(int $tenant, string $key) => new TenantModuleRecord($tenant, $key, 'enabled', null, null, 1));

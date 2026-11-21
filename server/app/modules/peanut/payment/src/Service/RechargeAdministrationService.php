@@ -206,30 +206,13 @@ class RechargeAdministrationService
                     }
 
                     $this->gatewayForOriginalPayment($order);
+                    $reserved = $this->refundBalanceReserved($context, $order, $record);
                     $amountCents = $this->requestedRefundAmountCents(
                         $context,
                         $order,
                         Money::toCents((string) $record->refund_amount),
+                        !$reserved,
                     );
-                    $this->memberBalances->applyInTransaction(
-                        $context,
-                        new MemberBalanceMutation(
-                            (int) $order->user_id,
-                            AccountLogEnum::USER_MONEY_DEC_RECHARGE_REFUND,
-                            AccountLogEnum::DEC,
-                            $amountCents,
-                            (string) $record->sn,
-                            '充值订单退款重试',
-                            [],
-                            $adminId,
-                            -$amountCents,
-                            '退款失败:用户余额已不足退款金额',
-                        ),
-                    );
-                    $record->refund_status = RefundEnum::REFUND_ING;
-                    $record->refund_msg = '';
-                    $record->save();
-
                     $log = self::createRefundLog(
                         $context,
                         $order,
@@ -237,6 +220,26 @@ class RechargeAdministrationService
                         (float) $record->refund_amount,
                         $adminId,
                     );
+                    if (!$reserved) {
+                        $this->memberBalances->applyInTransaction(
+                            $context,
+                            new MemberBalanceMutation(
+                                (int) $order->user_id,
+                                AccountLogEnum::USER_MONEY_DEC_RECHARGE_REFUND,
+                                AccountLogEnum::DEC,
+                                $amountCents,
+                                'refund:debit:' . $log->sn,
+                                '充值订单退款重试',
+                                [],
+                                $adminId,
+                                -$amountCents,
+                                '退款失败:用户余额已不足退款金额',
+                            ),
+                        );
+                    }
+                    $record->refund_status = RefundEnum::REFUND_ING;
+                    $record->refund_msg = '';
+                    $record->save();
                     return [$order, $record, $log];
                 });
 
@@ -258,7 +261,7 @@ class RechargeAdministrationService
         }
     }
 
-    private function requestedRefundAmountCents(object $context, object $order, mixed $requested): int
+    private function requestedRefundAmountCents(object $context, object $order, mixed $requested, bool $checkBalance = true): int
     {
         $orderCents = Money::toCents((string) $order->order_amount);
         $refundedCents = Money::toCents((string) (RefundRecord::where([])
@@ -276,11 +279,38 @@ class RechargeAdministrationService
             throw BusinessException::invalid('REFUND_AMOUNT_INVALID', '退款金额超过当前可退款金额');
         }
 
-        $member = $this->members->balanceSnapshot($context, (int) $order->user_id);
-        if ($member === null || $member->balanceCents < $amountCents) {
-            throw BusinessException::conflict('REFUND_MEMBER_BALANCE_INSUFFICIENT', '退款失败:用户余额已不足退款金额');
+        if ($checkBalance) {
+            $member = $this->members->balanceSnapshot($context, (int) $order->user_id);
+            if ($member === null || $member->balanceCents < $amountCents) {
+                throw BusinessException::conflict('REFUND_MEMBER_BALANCE_INSUFFICIENT', '退款失败:用户余额已不足退款金额');
+            }
         }
         return $amountCents;
+    }
+
+    private function refundBalanceReserved(object $context, object $order, object $record): bool
+    {
+        $sources = [(string) $record->sn => [AccountLogEnum::DEC, AccountLogEnum::USER_MONEY_DEC_RECHARGE_REFUND]];
+        foreach (RefundLog::where([])->where('record_id', (int) $record->id)->select() as $log) {
+            $sources['refund:debit:' . $log->sn] = [AccountLogEnum::DEC, AccountLogEnum::USER_MONEY_DEC_RECHARGE_REFUND];
+            $sources['refund:credit:' . $log->sn] = [AccountLogEnum::INC, AccountLogEnum::USER_MONEY_INC_ADMIN];
+        }
+        $amount = Money::toCents((string) $record->refund_amount);
+        $net = 0;
+        $initialFound = false;
+        foreach ($this->members->balanceLogsBySource($context, (int) $order->user_id, array_keys($sources)) as $entry) {
+            [$action, $type] = $sources[$entry['source_sn']];
+            if ((int) $entry['action'] !== $action || (int) $entry['change_type'] !== $type
+                || Money::toCents((string) $entry['change_amount']) !== $amount) {
+                throw BusinessException::conflict('REFUND_BALANCE_LEDGER_INVALID', '退款余额流水不一致');
+            }
+            $initialFound = $initialFound || $entry['source_sn'] === (string) $record->sn;
+            $net += $action === AccountLogEnum::DEC ? $amount : -$amount;
+        }
+        if (!$initialFound || !in_array($net, [0, $amount], true)) {
+            throw BusinessException::conflict('REFUND_BALANCE_LEDGER_INVALID', '退款余额流水不一致');
+        }
+        return $net === $amount;
     }
 
     private static function refundRequestHash(int $orderId, ?int $amountCents): string
@@ -413,7 +443,7 @@ class RechargeAdministrationService
                             AccountLogEnum::USER_MONEY_INC_ADMIN,
                             AccountLogEnum::INC,
                             $refundCents,
-                            (string) $lockedRecord->sn,
+                            'refund:credit:' . $lockedLog->sn,
                             '充值退款渠道失败回退余额',
                             [],
                             $adminId,

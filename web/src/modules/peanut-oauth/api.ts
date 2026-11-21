@@ -167,12 +167,24 @@ export function getOfficialAccountReplyDetail(id: number) {
   );
 }
 
-export function addOfficialAccountReply(data: OfficialAccountReplyForm) {
-  return axios.post('/adminapi/peanut.oauth.official-account.reply.add', data);
+export function addOfficialAccountReply(
+  data: OfficialAccountReplyForm,
+  signal?: AbortSignal
+) {
+  return axios.post('/adminapi/peanut.oauth.official-account.reply.add', data, {
+    signal,
+  });
 }
 
-export function editOfficialAccountReply(data: OfficialAccountReplyForm) {
-  return axios.post('/adminapi/peanut.oauth.official-account.reply.edit', data);
+export function editOfficialAccountReply(
+  data: OfficialAccountReplyForm,
+  signal?: AbortSignal
+) {
+  return axios.post(
+    '/adminapi/peanut.oauth.official-account.reply.edit',
+    data,
+    { signal }
+  );
 }
 
 export function deleteOfficialAccountReply(id: number) {

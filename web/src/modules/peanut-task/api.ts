@@ -44,9 +44,13 @@ export interface ExpressionItem {
   date: string;
 }
 
-export function getCrontabList(params: CrontabListParams) {
+export function getCrontabList(
+  params: CrontabListParams,
+  signal?: AbortSignal
+) {
   return axios.get<ListRes<CrontabRecord>>('/adminapi/peanut.task.list', {
     params,
+    signal,
   });
 }
 

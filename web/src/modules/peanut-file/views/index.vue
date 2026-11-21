@@ -314,6 +314,13 @@
           />
         </el-form-item>
       </el-form>
+      <el-alert
+        v-if="cateSubmitError"
+        :title="cateSubmitError"
+        type="error"
+        :closable="false"
+        show-icon
+      />
       <template #footer
         ><el-button @click="cateModalVisible = false">取消</el-button
         ><el-button type="primary" :loading="cateSubmitting" @click="submitCate"
@@ -407,6 +414,7 @@
   import type { FormInstance, UploadRequestOptions } from 'element-plus';
   import { Delete, Plus, Search } from '@element-plus/icons-vue';
   import useLoading from '@/hooks/loading';
+  import useCrudModal from '@/hooks/useCrudModal';
   import { hasPermission } from '@/hooks/permission';
   import { useUserStore } from '@/store';
   import { getSessionSnapshot, isLogin } from '@/utils/auth';
@@ -607,6 +615,7 @@
     fileListController?.abort();
     const type = Number(nextType);
     if (type !== 10 && type !== 20 && type !== 30) return;
+    cateModalVisible.value = false;
     activeType.value = type;
     // Invalidate in-flight requests before awaiting the category list; a slow
     // response for the previous tab must not repopulate this tab's file grid.
@@ -641,11 +650,46 @@
   };
 
   // ---- 分类弹窗 ----
-  const cateModalVisible = ref(false);
-  const cateIsEdit = ref(false);
-  const cateSubmitting = ref(false);
-  const cateFormRef = ref<FormInstance>();
-  const cateForm = reactive({ id: 0, pid: 0, name: '' });
+  const cateModal = useCrudModal<
+    { id: number; pid: number; name: string },
+    FileCateRecord
+  >({
+    canOpen: (mode) =>
+      canReadCategories.value &&
+      hasPermission(
+        mode === 'edit'
+          ? 'peanut.file.category.edit'
+          : 'peanut.file.category.add',
+        route.path
+      ),
+    createForm: () => ({ id: 0, pid: 0, name: '' }),
+    editForm: (record) => ({
+      id: record.id,
+      pid: record.pid,
+      name: record.name,
+    }),
+    save: (form, mode, signal) =>
+      mode === 'edit'
+        ? editFileCate({ id: form.id, name: form.name }, signal)
+        : addFileCate(
+            { type: activeType.value, pid: form.pid, name: form.name },
+            signal
+          ),
+    errorMessage: () => t('systemFile.error.categorySave'),
+    onSaved: async () => {
+      ElMessage.success(t('systemFile.tip.ok'));
+      await fetchCate();
+    },
+  });
+  const {
+    visible: cateModalVisible,
+    form: cateForm,
+    formRef: cateFormRef,
+    mode: cateMode,
+    submitLoading: cateSubmitting,
+    submitError: cateSubmitError,
+  } = cateModal;
+  const cateIsEdit = computed(() => cateMode.value === 'edit');
   const cateRules = {
     name: [
       { required: true, message: t('systemFile.cate.field.name.required') },
@@ -653,40 +697,14 @@
     ],
   };
 
-  const handleCateAdd = (pid = 0) => {
-    cateIsEdit.value = false;
-    cateForm.id = 0;
-    cateForm.pid = pid;
-    cateForm.name = '';
-    cateModalVisible.value = true;
+  const handleCateAdd = async (pid = 0) => {
+    if (!(await cateModal.create())) return;
+    cateForm.value.pid = pid;
   };
-  const handleCateEdit = (c: FileCateRecord) => {
-    cateIsEdit.value = true;
-    cateForm.id = c.id;
-    cateForm.name = c.name;
-    cateModalVisible.value = true;
+  const handleCateEdit = async (c: FileCateRecord) => {
+    await cateModal.edit(c);
   };
-  const submitCate = async () => {
-    const valid = await cateFormRef.value?.validate().catch(() => false);
-    if (!valid || !canReadCategories.value) return;
-    cateSubmitting.value = true;
-    try {
-      if (cateIsEdit.value) {
-        await editFileCate({ id: cateForm.id, name: cateForm.name });
-      } else {
-        await addFileCate({
-          type: activeType.value,
-          pid: cateForm.pid,
-          name: cateForm.name,
-        });
-      }
-      ElMessage.success(t('systemFile.tip.ok'));
-      cateModalVisible.value = false;
-      await fetchCate();
-    } finally {
-      cateSubmitting.value = false;
-    }
-  };
+  const submitCate = cateModal.submit;
   const handleCateDelete = async (c: FileCateRecord) => {
     if (!canReadCategories.value) return;
     await deleteFileCate(c.id);
@@ -768,8 +786,6 @@
       pagination.pageSize = 24;
       pagination.total = 0;
       cateModalVisible.value = false;
-      cateIsEdit.value = false;
-      Object.assign(cateForm, { id: 0, pid: 0, name: '' });
       renameModalVisible.value = false;
       Object.assign(renameForm, { id: 0, name: '' });
       moveModalVisible.value = false;

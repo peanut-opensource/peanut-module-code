@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\Task\Controller;
 
 use app\adminapi\controller\BaseAdminController;
+use app\common\http\PageResult;
+use app\common\traits\CrudTrait;
+use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Modules\Task\Service\TaskAdminApplicationService;
 use PeanutAdmin\Modules\Task\Validation\CrontabValidate;
 use think\App;
@@ -18,60 +21,47 @@ class CrontabController extends BaseAdminController
         parent::__construct($app);
     }
 
-    public function lists()
+    use CrudTrait;
+
+    protected const CRUD_VALIDATE = CrontabValidate::class;
+    protected const CRUD_ADD_SUCCESS_MESSAGE = '添加成功';
+    protected const CRUD_EDIT_SUCCESS_MESSAGE = '编辑成功';
+    protected const CRUD_DELETE_SUCCESS_MESSAGE = '删除成功';
+
+    protected function resolveCrudContext(): TenantContext
     {
-        $res = $this->crontabs->crontabs(
-            $this->tenantAdminContext(),
-            $this->tenantAdminActor(),
-            $this->request->get(),
-        );
-        return $this->data($res);
+        return $this->tenantAdminContext();
     }
 
-    public function detail()
+    protected function validatedInput(mixed $context, string $scene, array $params): array
     {
-        $params = $this->request->get();
-        $this->validate($params, CrontabValidate::class . '.detail');
-        $result = $this->crontabs->crontab(
-            $this->tenantAdminContext(),
-            $this->tenantAdminActor(),
-            (int) $params['id'],
-        );
-        return $this->data($result);
+        $this->validate($params, CrontabValidate::class . '.' . $scene);
+        return $params;
     }
 
-    public function add()
+    protected function performLists(mixed $context, array $params): PageResult
     {
-        $this->validate($this->request->post(), CrontabValidate::class . '.add');
-        $this->crontabs->addCrontab(
-            $this->tenantAdminContext(),
-            $this->tenantAdminActor(),
-            $this->request->post(),
-        );
-        return $this->success('添加成功');
+        return $this->crontabs->crontabs($context, $this->tenantAdminActor(), $params);
     }
 
-    public function edit()
+    protected function performDetail(mixed $context, array $params): array
     {
-        $this->validate($this->request->post(), CrontabValidate::class . '.edit');
-        $this->crontabs->editCrontab(
-            $this->tenantAdminContext(),
-            $this->tenantAdminActor(),
-            $this->request->post(),
-        );
-        return $this->success('编辑成功');
+        return $this->crontabs->crontab($context, $this->tenantAdminActor(), (int) $params['id']);
     }
 
-    public function delete()
+    protected function performAdd(mixed $context, array $params): bool
     {
-        $params = $this->request->post();
-        $this->validate($params, CrontabValidate::class . '.delete');
-        $this->crontabs->deleteCrontab(
-            $this->tenantAdminContext(),
-            $this->tenantAdminActor(),
-            (int) $params['id'],
-        );
-        return $this->success('删除成功');
+        return $this->crontabs->addCrontab($context, $this->tenantAdminActor(), $params);
+    }
+
+    protected function performEdit(mixed $context, array $params): bool
+    {
+        return $this->crontabs->editCrontab($context, $this->tenantAdminActor(), $params);
+    }
+
+    protected function performDelete(mixed $context, array $params): bool
+    {
+        return $this->crontabs->deleteCrontab($context, $this->tenantAdminActor(), (int) $params['id']);
     }
 
     public function operate()

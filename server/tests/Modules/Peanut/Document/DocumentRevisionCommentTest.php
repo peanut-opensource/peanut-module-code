@@ -1467,7 +1467,7 @@ final class DocumentRevisionCommentTest extends TestCase
         $actor = $this->sessions->actor(22);
         $call = function (array $body) use ($actor): array {
             $this->app->instance(think\Request::class, (new think\Request())->withPost($body));
-            return $this->authorization->run($actor, fn() => (new DocumentRevisionCommentController($this->app))->createThread()->getData()['data']);
+            return $this->authorization->run($actor, fn() => (new DocumentRevisionCommentController($this->app, $this->comments))->createThread()->getData()['data']);
         };
         $this->rejected('DOCUMENT_COMMENT_INPUT_INVALID', fn() => $call($input + ['actor_member_id' => 11]));
         $result = $call($input);
@@ -1503,6 +1503,35 @@ final class DocumentRevisionCommentTest extends TestCase
     public static function finalChanges(): array
     {
         return [['session', 'DOCUMENT_SESSION_DENIED'], ['source', 'DOCUMENT_VERSION_DIGEST_INVALID']];
+    }
+
+    public function testHistoricalDetailAndCapabilitiesRejectUncommittedOrCorruptVersions(): void
+    {
+        $revision = $this->revision();
+        $actor = $this->sessions->actor();
+        $reads = [
+            fn() => $this->queries->detail($actor, $revision['document_id'], $revision['revision_id']),
+            fn() => $this->queries->capabilities($actor, $revision['document_id'], 'view', $revision['revision_id']),
+        ];
+        foreach ($reads as $read) {
+            try {
+                Db::transaction($read);
+                self::fail('Historical reads must reject a caller-owned transaction');
+            } catch (BusinessException $error) {
+                self::assertSame(409, $error->httpStatus);
+                self::assertSame('DOCUMENT_VERSION_NOT_COMMITTED', $error->errorCode);
+            }
+        }
+        Db::name('document_revision')->where('id', $revision['revision_id'])->update(['snapshot_sha256' => str_repeat('0', 64)]);
+        foreach ($reads as $read) {
+            try {
+                $read();
+                self::fail('Historical reads must reject a corrupt version digest');
+            } catch (BusinessException $error) {
+                self::assertSame(409, $error->httpStatus);
+                self::assertSame('DOCUMENT_VERSION_DIGEST_INVALID', $error->errorCode);
+            }
+        }
     }
 
     public function testExistingPreparedVersionAndSaveBoundaryCannotBeBypassedByComments(): void

@@ -12,6 +12,7 @@ use PeanutAdmin\Modules\Document\Model\Document;
 use PeanutAdmin\Modules\Document\Model\DocumentCommentThread;
 use PeanutAdmin\Modules\Document\Model\DocumentCommentMessage;
 use PeanutAdmin\Modules\Document\Model\DocumentCommentOperation;
+use PeanutAdmin\Modules\Document\Model\DocumentFileReference;
 use PeanutAdmin\Modules\Identity\Contract\TenantAuthorizationReadFence;
 use PeanutAdmin\Modules\RichText\Contract\RichTextProjection;
 use think\facade\Db;
@@ -142,16 +143,19 @@ final readonly class DocumentRevisionCommentService implements DocumentRevisionC
                     'decision' => $candidate === null ? null : 'pending',
                 ]);
                 if ($candidate !== null) {
-                    $this->references->assertDocumentReferencesReadable($actor, (int) $document->id, array_column($candidate->fileReferences, 'file_key'));
+                    $fileKeys = array_column($candidate->fileReferences, 'file_key');
+                    $this->references->assertDocumentReferencesReadable($actor, (int) $document->id, $fileKeys);
+                    $existing = $fileKeys === [] ? [] : array_fill_keys(DocumentFileReference::where('document_id', $document->id)
+                        ->where('usage', 'suggestion')->whereIn('file_key', $fileKeys)->column('file_key'), true);
                     foreach ($candidate->fileReferences as $ref) {
-                        $query = \PeanutAdmin\Modules\Document\Model\DocumentFileReference::where('document_id', $document->id)->where('file_key', $ref['file_key'])->where('usage', 'suggestion');
-                        if ($query->find() === null) {
-                            \PeanutAdmin\Modules\Document\Model\DocumentFileReference::create(['tenant_id' => $actor->tenantId, 'document_id' => $document->id,
+                        if (!isset($existing[$ref['file_key']])) {
+                            DocumentFileReference::create(['tenant_id' => $actor->tenantId, 'document_id' => $document->id,
                                 'file_key' => $ref['file_key'], 'variant_key' => $ref['variant_key'], 'usage' => 'suggestion',
                                 'derived_state_seq' => $source['source_state_seq'], 'updated_at' => $now]);
+                            $existing[$ref['file_key']] = true;
                         }
                     }
-                    $keys = \PeanutAdmin\Modules\Document\Model\DocumentFileReference::where('document_id', $document->id)->order('file_key')->column('file_key');
+                    $keys = DocumentFileReference::where('document_id', $document->id)->order('file_key')->column('file_key');
                     $this->references->replaceDocumentReferences($actor, (int) $document->id, array_values(array_unique($keys)));
                 }
             } else {

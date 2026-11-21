@@ -176,11 +176,11 @@ final readonly class DocumentAuthorizationService
         });
     }
 
-    public function requireModule(TenantContext $context, string $moduleKey): void
+    public function requireModule(TenantContext $context, string $moduleKey): array
     {
         $guard = new ModuleGuard($this->modules);
-        $guard->assertDeployment($moduleKey);
-        $guard->assertTenant($context->tenantId, $moduleKey, new \DateTimeImmutable('now', new \DateTimeZone('UTC')));
+        return [$guard->assertDeployment($moduleKey),
+            $guard->assertTenant($context->tenantId, $moduleKey, new \DateTimeImmutable('now', new \DateTimeZone('UTC')))];
     }
 
     /** Deployment availability does not confer human or accepted-write authority. */
@@ -189,9 +189,9 @@ final readonly class DocumentAuthorizationService
         (new ModuleGuard($this->modules))->assertDeployment($moduleKey);
     }
 
-    public function owner(TenantContext $context, DocumentOwnerReference $reference, string $action, bool $lock): \PeanutAdmin\Modules\Document\Contract\DocumentOwnerState
+    public function owner(TenantContext $context, DocumentOwnerReference $reference, string $action, bool $lock, ?array &$moduleState = null): \PeanutAdmin\Modules\Document\Contract\DocumentOwnerState
     {
-        $this->requireModule($context, $reference->moduleKey);
+        $moduleState = $this->requireModule($context, $reference->moduleKey);
         $policy = $this->owners->requirePolicy($reference);
         $owner = $policy->resolveOwner($context, $reference, $lock);
         if ($owner->tenantId !== $context->tenantId || $owner->reference != $reference) {
@@ -199,6 +199,22 @@ final readonly class DocumentAuthorizationService
         }
         $policy->authorize($context, $action, $owner);
         return $owner;
+    }
+
+    /** Authorize a read once, after capturing the current revision inputs. */
+    public function readDocument(TenantContext $context, int $id): array
+    {
+        if ($id < 1 || ($document = Document::where('id', $id)->find()) === null) {
+            throw BusinessException::notFound('DOCUMENT_NOT_FOUND', '文档不存在');
+        }
+        [$permissions, $modules] = $this->authorityScope($document, 'view');
+        $digest = $this->fence->currentDigest($context, $permissions, $modules);
+        $action = $document->status === 'archived' ? 'archive.read' : 'view';
+        $owner = $this->owner($context, self::reference($document), $action, false, $moduleState);
+        if ($action === 'view' ? $document->status !== 'active' || $owner->archived : !$owner->archived) {
+            throw BusinessException::forbidden('DOCUMENT_STATE_DENIED', '当前业务或文档状态不允许此操作');
+        }
+        return [$document, $this->composeRevision($context, $document, 'view', $digest, $owner, $moduleState)];
     }
 
     /** Owner row is locked before the Document row on all mutation paths. */
@@ -258,11 +274,11 @@ final readonly class DocumentAuthorizationService
         return $this->composeRevision($context, $document, 'edit', $digest, $owner);
     }
 
-    private function composeRevision(TenantContext $context, Document $document, string $action, string $digest, \PeanutAdmin\Modules\Document\Contract\DocumentOwnerState $owner): string
+    private function composeRevision(TenantContext $context, Document $document, string $action, string $digest, \PeanutAdmin\Modules\Document\Contract\DocumentOwnerState $owner, ?array $moduleState = null): string
     {
         [$permissions, $modules] = $this->authorityScope($document, $action);
         $guard = new ModuleGuard($this->modules);
-        $moduleState = [$guard->assertDeployment($owner->reference->moduleKey),$guard->assertTenant($context->tenantId, $owner->reference->moduleKey, new \DateTimeImmutable('now', new \DateTimeZone('UTC')))];
+        $moduleState ??= [$guard->assertDeployment($owner->reference->moduleKey),$guard->assertTenant($context->tenantId, $owner->reference->moduleKey, new \DateTimeImmutable('now', new \DateTimeZone('UTC')))];
         // Editing progress belongs to state_seq/CAS receipts, never to a connection's authorization grant.
         return hash('sha256', json_encode(['peanut.document.grant-authorization.v1', $context->tenantId, $context->memberId,
             (int) $document->id, $action, [$owner->reference->moduleKey, $owner->reference->objectType, $owner->reference->objectId, $owner->reference->slot],

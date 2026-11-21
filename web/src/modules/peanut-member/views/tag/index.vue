@@ -3,55 +3,63 @@
     <Breadcrumb :items="['menu.member', 'menu.member.tag']" />
     <el-card class="general-card">
       <template #header>{{ $t('menu.member.tag') }}</template>
-      <el-row v-if="canAdd" style="margin-bottom: 16px">
-        <el-col :span="12">
-          <el-button type="primary" @click="handleAdd">
-            <template #icon><Plus /></template>
-            {{ $t('memberTag.operation.add') }}
-          </el-button>
-        </el-col>
-      </el-row>
-      <el-table v-loading="loading" row-key="id" :data="renderData" border>
-        <el-table-column prop="name" :label="$t('memberTag.columns.name')" />
-        <el-table-column
-          prop="remark"
-          :label="$t('memberTag.columns.remark')"
-        />
-        <el-table-column
-          v-if="canEdit || canDelete"
-          :label="$t('memberTag.columns.operations')"
-          width="160"
-        >
-          <template #default="{ row }">
-            <el-space>
-              <el-button
-                v-if="canEdit"
-                link
-                size="small"
-                @click="handleEdit(row)"
-              >
-                {{ $t('memberTag.operation.edit') }}
+      <CrudPage
+        :loading="loading"
+        :data="renderData"
+        :pagination="pagination"
+        :fields="fields"
+        column-storage-key="peanut-member-tag"
+        pagination-layout="total"
+        row-key="id"
+        border
+      >
+        <template #toolbar>
+          <el-row v-if="canAdd">
+            <el-col :span="12">
+              <el-button type="primary" @click="handleAdd">
+                <template #icon><Plus /></template>
+                {{ $t('memberTag.operation.add') }}
               </el-button>
-              <el-popconfirm
-                v-if="canDelete"
-                :title="$t('memberTag.delete.confirm')"
-                @confirm="handleDelete(row)"
-              >
-                <template #reference>
-                  <el-button
-                    link
-                    type="danger"
-                    size="small"
-                    :disabled="deleting"
-                  >
-                    {{ $t('memberTag.operation.delete') }}
-                  </el-button>
-                </template>
-              </el-popconfirm>
-            </el-space>
-          </template>
-        </el-table-column>
-      </el-table>
+            </el-col>
+          </el-row>
+        </template>
+        <template #columns>
+          <el-table-column
+            v-if="canEdit || canDelete"
+            :label="$t('memberTag.columns.operations')"
+            width="160"
+          >
+            <template #default="{ row }">
+              <el-space>
+                <el-button
+                  v-if="canEdit"
+                  link
+                  size="small"
+                  @click="handleEdit(row)"
+                >
+                  {{ $t('memberTag.operation.edit') }}
+                </el-button>
+                <el-popconfirm
+                  v-if="canDelete"
+                  :title="$t('memberTag.delete.confirm')"
+                  @confirm="handleDelete(row)"
+                >
+                  <template #reference>
+                    <el-button
+                      link
+                      type="danger"
+                      size="small"
+                      :disabled="deleting"
+                    >
+                      {{ $t('memberTag.operation.delete') }}
+                    </el-button>
+                  </template>
+                </el-popconfirm>
+              </el-space>
+            </template>
+          </el-table-column>
+        </template>
+      </CrudPage>
     </el-card>
 
     <el-dialog
@@ -100,6 +108,7 @@
   import { Plus } from '@element-plus/icons-vue';
   import { ElMessage } from 'element-plus';
   import { hasPermission } from '@/hooks/permission';
+  import CrudPage from '@/components/crud/CrudPage.vue';
   import useCrudModal from '@/hooks/useCrudModal';
   import useCrudTable from '@/hooks/useCrudTable';
   import {
@@ -123,8 +132,14 @@
     hasPermission('peanut.member.tag.delete', route.path)
   );
 
+  const fields = computed(() => [
+    { key: 'name', label: t('memberTag.columns.name') },
+    { key: 'remark', label: t('memberTag.columns.remark') },
+  ]);
+
   const {
     data: renderData,
+    pagination,
     loading,
     deleting,
     fetchList,

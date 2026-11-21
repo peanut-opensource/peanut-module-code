@@ -121,10 +121,25 @@ $refund = (string) file_get_contents($serverRoot . '/app/modules/peanut/payment/
 $retryStart = strpos($refund, 'public function refundAgain');
 $retryEnd = strpos($refund, 'private static function assertRefundableOrder', $retryStart ?: 0);
 expectMemberFinance($retryStart !== false && $retryEnd !== false, 'refund retry boundary is missing');
+$retry = substr($refund, $retryStart, $retryEnd - $retryStart);
+$retryGuard = strpos($retry, 'refund_status !== RefundEnum::REFUND_ERROR');
+$retryDebit = strpos($retry, 'AccountLogEnum::USER_MONEY_DEC_RECHARGE_REFUND');
+$gatewayStart = strpos($refund, 'private function requestGatewayRefund');
+$gatewayEnd = strpos($refund, 'private function gatewayForOriginalPayment', $gatewayStart ?: 0);
+expectMemberFinance($gatewayStart !== false && $gatewayEnd !== false, 'refund gateway boundary is missing');
+$gateway = substr($refund, $gatewayStart, $gatewayEnd - $gatewayStart);
+$reconcile = (string) file_get_contents($serverRoot . '/app/modules/peanut/payment/src/Infrastructure/ThinkPhpRefundReconciliationCommands.php');
 expectMemberFinance(
     str_contains($refund, 'private readonly PaymentRetryLock $retryLocks')
-        && !str_contains(substr($refund, $retryStart, $retryEnd - $retryStart), 'applyInTransaction('),
-    'refund retry must not deduct the balance again',
+        && $retryGuard !== false && $retryDebit !== false && $retryGuard < $retryDebit
+        && str_contains($retry, '$this->refundBalanceReserved(')
+        && str_contains($retry, "'refund:debit:' . \$log->sn")
+        && str_contains($gateway, 'AccountLogEnum::USER_MONEY_INC_ADMIN')
+        && str_contains($gateway, "'refund:credit:' . \$lockedLog->sn")
+        && str_contains($reconcile, 'refund_status === RefundEnum::REFUND_ING')
+        && str_contains($reconcile, 'AccountLogEnum::USER_MONEY_INC_ADMIN')
+        && str_contains($reconcile, "'refund:credit:' . \$lockedLog->sn"),
+    'refund retry must reserve only after failed settlement restores the balance',
 );
 
 $paymentSchema = (string) file_get_contents($serverRoot . '/app/modules/peanut/payment/database/migrations/20261102000005_initial_payment_schema.php');

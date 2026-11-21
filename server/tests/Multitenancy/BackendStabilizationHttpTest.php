@@ -129,12 +129,15 @@ try {
     $app->make(PeanutAdmin\Modules\Identity\Authorization\CorePermissionCatalogSynchronizer::class)->synchronize();
     $app->make(app\platform\infrastructure\module\ModuleCatalogApplier::class)->apply($registry->compiled());
     $pdo->exec("INSERT INTO pa_tenant_entry_binding (tenant_id,host,client_key) VALUES (101,'alpha.d03.test','member-api'),(202,'beta.d03.test','member-api'),(101,'alpha.d03.test','admin-web'),(202,'beta.d03.test','admin-web')");
+    $pdo->exec("INSERT INTO pa_plan (id,code,name,status,created_at,updated_at) VALUES (101,'alpha','Alpha','active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)),(202,'beta','Beta','active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+    $pdo->exec("INSERT INTO pa_tenant_license (tenant_id,plan_id,status,effective_at,created_at,updated_at) VALUES (101,101,'active','2020-01-01',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)),(202,202,'active','2020-01-01',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
     foreach ($registry->compiled()->modules as $manifest) {
         $insert = $pdo->prepare("INSERT INTO pa_module_installation (module_key,installed_version,manifest_schema_version,manifest_digest,status,created_at,updated_at) VALUES (?,?,?,?,'active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
         $insert->execute([$manifest->data['key'], $manifest->data['version'], $manifest->data['schema_version'], $manifest->digest]);
-        $insert = $pdo->prepare("INSERT INTO pa_tenant_module (tenant_id,module_key,status,created_at,updated_at) VALUES (101,?,'enabled',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)),(202,?,'enabled',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+        $insert = $pdo->prepare('INSERT INTO pa_plan_module (plan_id,module_key) VALUES (101,?),(202,?)');
         $insert->execute([$manifest->data['key'], $manifest->data['key']]);
     }
+    $pdo->exec('INSERT INTO pa_plan_permission (plan_id,permission_key) SELECT plan.id,permission.`key` FROM pa_plan plan CROSS JOIN pa_permission permission');
     $hash = app(PeanutAdmin\Kernel\Identity\PasswordHasher::class)->hash('D03HttpPassword2026');
     foreach ([[1501,501,101,'alpha'], [1502,502,202,'beta']] as [$account, $member, $tenant, $code]) {
         $pdo->exec("INSERT INTO pa_account (id,display_name,created_at,updated_at) VALUES ({$account},'HTTP Operator',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
@@ -144,7 +147,7 @@ try {
         $pdo->exec("INSERT INTO pa_role (id,tenant_id,`key`,name,is_builtin,status,created_at,updated_at) VALUES ({$member},{$tenant},'http.operator','HTTP Operator',0,'active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
         $pdo->exec("INSERT INTO pa_member_role (tenant_id,tenant_member_id,role_id,assigned_at) VALUES ({$tenant},{$member},{$member},UTC_TIMESTAMP(3))");
     }
-    $permissions = ['core.role.read','core.role.create','core.role.update','core.role.archive','core.department.read','core.department.create','core.department.update','core.department.archive','core.member.create','core.member.update','core.member.leave'];
+    $permissions = ['core.role.read','core.role.create','core.role.update','core.role.archive','core.department.read','core.department.create','core.department.update','core.department.archive','core.member.create','core.member.update','core.member.leave','core.member.role.assign','core.member.activate','core.member.suspend'];
     foreach ($permissions as $key) {
         $select = $pdo->prepare('SELECT id FROM pa_permission WHERE `key`=?');
         $select->execute([$key]);
@@ -159,15 +162,18 @@ try {
         $alpha = $auth->login('alpha-http@example.test', 'D03HttpPassword2026', 'alpha', '127.0.0.1', 'D03 HTTP', 'd03-http-login-a')->tokens->access->expose();
         $beta = $auth->login('beta-http@example.test', 'D03HttpPassword2026', 'beta', '127.0.0.1', 'D03 HTTP', 'd03-http-login-b')->tokens->access->expose();
         httpExpect(stabilizationHttp('GET', 'adminapi/role/lists')['status'] === 401, 'D03 missing token did not fail in login middleware');
-        httpExpect(stabilizationHttp('POST', 'adminapi/role/add', ['name' => 'forged','tenant_id' => 101], 'pa_tat_forged')['status'] === 403, 'D03 forged session did not fail');
+        $forged = stabilizationHttp('POST', 'adminapi/role/add', ['name' => 'forged'], 'pa_tat_forged');
+        httpExpect($forged['status'] === 401 && ($forged['body']['data']['error_code'] ?? null) === 'AUTH_TOKEN_INVALID', 'D03 forged session did not fail');
         httpSuccess(stabilizationHttp('GET', 'adminapi/role/lists', [], $alpha), 'D03 original role query');
-        httpSuccess(stabilizationHttp('POST', 'adminapi/role/add', ['name' => 'HTTP Alpha','tenant_id' => 202], $alpha), 'D03 role create');
+        $forgedTenant = stabilizationHttp('POST', 'adminapi/role/add', ['name' => 'HTTP Alpha','tenant_id' => 202], $alpha);
+        httpExpect($forgedTenant['status'] === 422 && ($forgedTenant['body']['data']['error_code'] ?? null) === 'ROLE_INPUT_INVALID', 'D03 forged tenant field was not rejected');
+        httpSuccess(stabilizationHttp('POST', 'adminapi/role/add', ['name' => 'HTTP Alpha'], $alpha), 'D03 role create');
         httpSuccess(stabilizationHttp('POST', 'adminapi/role/add', ['name' => 'HTTP Beta'], $beta, 'beta.d03.test'), 'D03 same permissions beta create');
         $roleA = (int) $pdo->query("SELECT id FROM pa_role WHERE tenant_id=101 AND name='HTTP Alpha'")->fetchColumn();
         $roleB = (int) $pdo->query("SELECT id FROM pa_role WHERE tenant_id=202 AND name='HTTP Beta'")->fetchColumn();
         httpExpect($roleA > 0 && $roleB > 0, 'D03 trusted session tenant not used for role writes');
         if ($roleA > 0 && $roleB > 0) {
-            httpSuccess(stabilizationHttp('POST', 'adminapi/role/edit', ['id' => $roleA,'name' => 'HTTP Alpha Edited','menu_id' => []], $alpha), 'D03 role edit');
+            httpSuccess(stabilizationHttp('POST', 'adminapi/role/edit', ['id' => $roleA,'name' => 'HTTP Alpha Edited'], $alpha), 'D03 role edit');
             httpExpect(stabilizationHttp('POST', 'adminapi/role/edit', ['id' => $roleB,'name' => 'Cross tenant'], $alpha)['status'] === 404, 'D03 same-permission cross-tenant role write accepted');
             httpExpect($pdo->query("SELECT name FROM pa_role WHERE id={$roleB}")->fetchColumn() === 'HTTP Beta', 'D03 cross-tenant role mutated');
             httpSuccess(stabilizationHttp('POST', 'adminapi/role/delete', ['id' => $roleA], $alpha), 'D03 role archive');
@@ -191,10 +197,17 @@ try {
         }
         httpSuccess(stabilizationHttp('GET', 'adminapi/admin/self', [], $alpha), 'D03 self query');
         httpSuccess(stabilizationHttp('POST', 'adminapi/admin/editSelf', ['nickname' => 'HTTP Self No UA','password_old' => 'D03HttpPassword2026','password' => 'D03HttpChangedNoUa2026','password_confirm' => 'D03HttpChangedNoUa2026'], $alpha, 'alpha.d03.test', null), 'D03 self profile and password without User-Agent');
-        httpExpect(stabilizationHttp('GET', 'adminapi/role/lists', [], $alpha)['status'] === 403, 'D03 HTTP password change without User-Agent did not invalidate session');
+        $query = $pdo->prepare('SELECT status FROM pa_tenant_session_token WHERE token_hash=? AND token_type=\'access\'');
+        $query->execute([hash('sha256', $alpha)]);
+        httpExpect($query->fetchColumn() === 'revoked', 'D03 password change without User-Agent did not revoke access token');
+        $revokedResponse = stabilizationHttp('GET', 'adminapi/role/lists', [], $alpha);
+        httpExpect($revokedResponse['status'] === 401 && ($revokedResponse['body']['data']['error_code'] ?? null) === 'AUTH_TOKEN_INVALID', 'D03 revoked session without User-Agent: ' . json_encode($revokedResponse));
         $alphaWithUserAgent = $auth->login('alpha-http@example.test', 'D03HttpChangedNoUa2026', 'alpha', '127.0.0.1', 'D03 HTTP', 'd03-http-login-a-with-ua')->tokens->access->expose();
         httpSuccess(stabilizationHttp('POST', 'adminapi/admin/editSelf', ['nickname' => 'HTTP Self','password_old' => 'D03HttpChangedNoUa2026','password' => 'D03HttpChanged2026','password_confirm' => 'D03HttpChanged2026'], $alphaWithUserAgent), 'D03 self profile and password with User-Agent');
-        httpExpect(stabilizationHttp('GET', 'adminapi/role/lists', [], $alphaWithUserAgent)['status'] === 403, 'D03 HTTP password change with User-Agent did not invalidate session');
+        $query->execute([hash('sha256', $alphaWithUserAgent)]);
+        httpExpect($query->fetchColumn() === 'revoked', 'D03 password change with User-Agent did not revoke access token');
+        $revokedResponse = stabilizationHttp('GET', 'adminapi/role/lists', [], $alphaWithUserAgent);
+        httpExpect($revokedResponse['status'] === 401 && ($revokedResponse['body']['data']['error_code'] ?? null) === 'AUTH_TOKEN_INVALID', 'D03 revoked session with User-Agent: ' . json_encode($revokedResponse));
         httpExpect((int) $pdo->query("SELECT COUNT(*) FROM pa_tenant_audit_event WHERE actor_tenant_member_id=501 AND actor_account_id=1501 AND event_type='tenant.role.created'")->fetchColumn() > 0, 'D03 HTTP write lost trusted audit identity');
         // 取消 beta 的单项权限，原会话必须经授权修订重新判定，不可绕过权限中间件。
         $pdo->exec("DELETE rp FROM pa_role_permission rp JOIN pa_permission p ON p.id=rp.permission_id WHERE rp.tenant_id=202 AND p.`key`='core.role.create'");
@@ -245,9 +258,14 @@ try {
         httpExpect((int) $pdo->query("SELECT check_count FROM pa_notice_log WHERE id={$logId}")->fetchColumn() === 5, 'D01 exhausted code must stop at exactly its failure budget');
         httpExpect(stabilizationHttp('POST', 'api/login/mobile', ['mobile' => '13800000701','code' => '918273'], '', 'unbound.d03.test')['status'] === 503, 'D01 unbound public Host was accepted');
     }
-    $pdo->exec("UPDATE pa_tenant_module SET status='disabled' WHERE tenant_id=101 AND module_key='peanut.member'");
+    $pdo->exec("DELETE FROM pa_plan_module WHERE plan_id=101 AND module_key='peanut.member'");
+    $pdo->exec('UPDATE pa_plan SET revision=revision+1 WHERE id=101');
+    $pdo->exec('UPDATE pa_tenant SET authorization_revision=authorization_revision+1 WHERE id=101');
     if (in_array($slice, ['all', 'd02'], true)) {
-        httpExpect(stabilizationHttp('POST', 'api/user/setInfo', ['field' => 'nickname','value' => 'Disabled'], $token)['status'] === 403, 'D02 disabled member module was accepted');
+        // D01 resets this member's password and revokes the earlier member session.
+        $token = app(PeanutAdmin\Modules\Member\Contract\MemberAccessTokens::class)->createToken(701);
+        $disabledResponse = stabilizationHttp('POST', 'api/user/setInfo', ['field' => 'nickname','value' => 'Disabled'], $token);
+        httpExpect($disabledResponse['status'] === 403, 'D02 disabled member module was accepted: ' . json_encode($disabledResponse));
     }
     if (in_array($slice, ['all', 'd01'], true)) {
         httpExpect(stabilizationHttp('POST', 'api/login/mobile', ['mobile' => '13800000701','code' => '918273'])['status'] === 403, 'D01 disabled member module was accepted');

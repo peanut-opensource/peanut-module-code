@@ -12,6 +12,7 @@ use PeanutAdmin\Kernel\Auth\ValidatedTenantSession;
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 require_once dirname(__DIR__, 3) . '/Support/CiBootstrap.php';
 require_once dirname(__DIR__, 3) . '/Support/RegisteredMysqlTestResource.php';
+require_once dirname(__DIR__, 3) . '/Support/IsolatedBackendEnvironment.php';
 require_once dirname(__DIR__, 3) . '/Support/ThinkPhpTestConnection.php';
 require_once dirname(__DIR__, 3) . '/Support/IdentityMysqlFixture.php';
 
@@ -70,10 +71,21 @@ INSERT INTO pa_dict_data (id, tenant_id, name, value, type_id, type_value, sort)
 SQL);
 }
 
+$host = IsolatedBackendEnvironment::required('DB_HOST');
+$port = (int) IsolatedBackendEnvironment::required('DB_PORT');
+$user = IsolatedBackendEnvironment::required('DB_USER');
+$password = IsolatedBackendEnvironment::required('DB_PASS');
 $database = RegisteredMysqlTestResource::configuredDatabaseName();
 [$pdo, $databaseCreated] = RegisteredMysqlTestResource::openEmptyDatabase($database);
 
 try {
+    IsolatedBackendEnvironment::activateDatabase($host, $port, $database, $user, $password, 'multi-tenant');
+    $app = think\Container::getInstance();
+    $app->setRuntimePath(sys_get_temp_dir() . '/peanut-dict-' . bin2hex(random_bytes(8)) . '/');
+    $app->initialize();
+    $app->cache->clear();
+    ThinkPhpTestConnection::fromPdo($pdo);
+
     createDictTenantSchema($pdo);
     seedDictTenantSchema($pdo);
     try {
@@ -82,12 +94,6 @@ try {
     } catch (PDOException $exception) {
         expectDictTenant($exception->getCode() === '23000', 'dictionary uniqueness failed with an unexpected shape');
     }
-
-    $app = think\Container::getInstance();
-    $app->env->set(['DEPLOYMENT_MODE' => 'multi-tenant', 'APP_ENV' => 'development', 'APP_DEBUG' => true]);
-    $app->initialize();
-    $app->cache->clear();
-    ThinkPhpTestConnection::fromPdo($pdo);
 
     $alpha = dictTenantContext(101, 501, 'mt02-dict-alpha');
     $beta = dictTenantContext(202, 502, 'mt02-dict-beta');

@@ -10,6 +10,7 @@ use app\common\services\audit\AuditContractHost;
 use PeanutAdmin\Kernel\Audit\AuditOutcome;
 use PeanutAdmin\Kernel\Context\PlatformContext;
 use PeanutAdmin\Modules\Ops\Domain\Application\OpsConsoleException;
+use PeanutAdmin\Modules\Ops\Domain\Support\Contract;
 use PeanutAdmin\Modules\Ops\Domain\Task\OpsTask;
 use PeanutAdmin\Modules\Ops\Domain\Task\OpsTaskDispatcher;
 use PeanutAdmin\Modules\Ops\Domain\Task\OpsTaskSubmission;
@@ -233,6 +234,21 @@ final readonly class ThinkPhpOpsTaskDispatcher implements OpsTaskDispatcher
             throw OpsConsoleException::taskNotFound();
         }
         return $this->map($row);
+    }
+
+    public function findMany(PlatformContext $context, array $taskKeys): array
+    {
+        if ($taskKeys === []) { return []; }
+        $rows = Db::name('ops_task')->whereIn('task_key', $taskKeys)->select()->toArray();
+        $byKey = [];
+        foreach ($rows as $row) { $byKey[$row['task_key']] = $row; }
+        $tasks = [];
+        foreach ($taskKeys as $taskKey) {
+            Contract::opaqueKey($taskKey, 'job_');
+            $row = $byKey[$taskKey] ?? throw OpsConsoleException::taskNotFound();
+            $tasks[] = $this->map($row);
+        }
+        return $tasks;
     }
 
     /** @param array<string, mixed> $row */

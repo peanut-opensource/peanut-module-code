@@ -51,14 +51,23 @@ final readonly class WorkflowNotificationDelivery
         $items = [];
         $query = $this->eventQuery($c, $instance);
         $total = (int) (clone $query)->count();
+        $instanceRetryAllowed = null;
         foreach ($query->order('sequence_no')->page($page, $pageSize)->select() as $event) {
             $canRecover = false;
             if ($taskManage !== null && $taskManage->tenantContext === $c->tenantContext) {
+                if ($instanceRetryAllowed === null) {
+                    $instanceRetryAllowed = false;
+                    try {
+                        $this->instance($c, $instanceKey, 'retry', ['peanut.workflow.diagnostics.retry']);
+                        $instanceRetryAllowed = true;
+                    } catch (WorkflowException|\PeanutAdmin\Kernel\Authorization\Application\AdminAccessException|\PeanutAdmin\DataPermission\Exception\DataAuthorizationException|\PeanutAdmin\Kernel\Module\ModuleException|\PeanutAdmin\Modules\Notification\Delivery\Application\NotificationException) {}
+                }
                 try {
-                    $this->instance($c, $instanceKey, 'retry', ['peanut.workflow.diagnostics.retry']);
-                    $fact = $event['notification_fact_json'];
-                    $this->notifications?->assertPublicationSource($c, new \PeanutAdmin\Modules\Notification\Contract\NotificationPublicationIdentity($fact['producer_key'], $fact['event_key'], $fact['business_key']));
-                    $canRecover = $this->notifications !== null;
+                    if ($instanceRetryAllowed) {
+                        $fact = $event['notification_fact_json'];
+                        $this->notifications?->assertPublicationSource($c, new \PeanutAdmin\Modules\Notification\Contract\NotificationPublicationIdentity($fact['producer_key'], $fact['event_key'], $fact['business_key']));
+                        $canRecover = $this->notifications !== null;
+                    }
                 } catch (WorkflowException|\PeanutAdmin\Kernel\Authorization\Application\AdminAccessException|\PeanutAdmin\DataPermission\Exception\DataAuthorizationException|\PeanutAdmin\Kernel\Module\ModuleException|\PeanutAdmin\Modules\Notification\Delivery\Application\NotificationException) { $canRecover = false; }
             }
             $outboxes = [];

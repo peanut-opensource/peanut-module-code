@@ -6,7 +6,9 @@ namespace PeanutAdmin\Modules\OAuth\Service;
 
 use app\common\http\PageResult;
 use app\common\exception\BusinessException;
-use app\common\support\PaginationInput;
+use app\common\services\AbstractCrudService;
+use think\db\BaseQuery;
+use think\Model;
 use PeanutAdmin\Modules\OAuth\Value\OfficialAccountEnum;
 use PeanutAdmin\Modules\OAuth\Model\OfficialAccountReply;
 use think\facade\Db;
@@ -14,25 +16,50 @@ use PeanutAdmin\Modules\Integration\Contract\ExternalTenantContext;
 use PeanutAdmin\Kernel\Context\TenantSystemContext;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 
-final class OfficialAccountReplyApplicationService
+final class OfficialAccountReplyApplicationService extends AbstractCrudService
 {
-    public function lists(TenantContext $context, array $params): PageResult
+    protected function query(TenantContext $context): BaseQuery
     {
-        $query = OfficialAccountReply::where([])->field([
-            'id', 'name', 'keyword', 'reply_type', 'matching_type',
-            'content_type', 'content', 'status', 'sort', 'create_time', 'update_time',
-        ]);
+        return OfficialAccountReply::where([]);
+    }
+
+    protected function newModel(TenantContext $context): Model
+    {
+        return new OfficialAccountReply();
+    }
+
+    // Admin route permissions are enforced by the controller middleware.
+    protected function assertPermission(TenantContext $context, string $action): void {}
+
+    protected function listFields(): array
+    {
+        return ['id', 'name', 'keyword', 'reply_type', 'matching_type',
+            'content_type', 'content', 'status', 'sort', 'create_time', 'update_time'];
+    }
+
+    protected function detailFields(): array { return $this->listFields(); }
+    protected function insertFields(): array { return []; }
+    protected function updateFields(): array { return []; }
+
+    protected function configureListQuery(TenantContext $context, BaseQuery $query, array $params): void
+    {
         if (!empty($params['reply_type'])) {
             $query->where('reply_type', (int) $params['reply_type']);
         }
-        $result = PaginationInput::from($params)->result($query->order(['sort' => 'desc', 'id' => 'desc']));
-
-        return $result->map(static fn(mixed $item): array => $item instanceof OfficialAccountReply
-            ? $item->toArray()
-            : (array) $item);
     }
 
-    public function detail(TenantContext $context, int $id): array
+    protected function configureListOrder(BaseQuery $query): void
+    {
+        $query->order(['sort' => 'desc', 'id' => 'desc']);
+    }
+
+    public function lists(TenantContext $context, array $params): PageResult|array
+    {
+        // Preserve the legacy filter and ordering contract, without enabling new query parameters.
+        return parent::lists($context, array_intersect_key($params, array_flip(['reply_type', 'page_no', 'page_size'])));
+    }
+
+    public function detail(TenantContext $context, int|string $id): array
     {
         $reply = OfficialAccountReply::where([])->findOrEmpty($id);
         return $reply->isEmpty() ? [] : $reply->toArray();
@@ -60,19 +87,19 @@ final class OfficialAccountReplyApplicationService
         return true;
     }
 
-    public function delete(TenantContext $context, int $id): bool
+    public function delete(TenantContext $context, int|string $id): bool
     {
         Db::transaction(function () use ($id): void {
-            $this->locked($id)->delete();
+            $this->locked((int) $id)->delete();
         });
         return true;
     }
 
-    public function updateStatus(TenantContext $context, int $id, int $status): bool
+    public function updateStatus(TenantContext $context, int|string $id, int $status): bool
     {
         Db::transaction(function () use ($id, $status): void {
-            $reply = $this->locked($id);
-            $this->disableOtherSingletons((int) $reply->reply_type, $status, $id);
+            $reply = $this->locked((int) $id);
+            $this->disableOtherSingletons((int) $reply->reply_type, $status, (int) $id);
             $reply->status = $status;
             $reply->save();
         });

@@ -3,7 +3,7 @@
   "key": "peanut.payment",
   "name": "Payment",
   "description": "Tenant-owned payment settings, recharge orders and refund processing.",
-  "version": "1.0.30-rc.1",
+  "version": "1.0.30-rc.3",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-payment",
@@ -23,7 +23,7 @@
     },
     {
       "module_key": "peanut.member",
-      "version": "^1.0"
+      "version": "^1.0.28-rc.7"
     },
     {
       "module_key": "peanut.oauth",

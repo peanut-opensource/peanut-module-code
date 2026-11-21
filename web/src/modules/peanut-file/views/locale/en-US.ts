@@ -25,6 +25,7 @@ export default {
   'systemFile.error.categories':
     'Categories could not load. Retry or continue browsing all files.',
   'systemFile.error.files': 'Files could not load. Please retry.',
+  'systemFile.error.categorySave': 'Category could not be saved. Please retry.',
   'systemFile.op.upload': 'Upload',
   'systemFile.op.rename': 'Rename',
   'systemFile.op.move': 'Move',

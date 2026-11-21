@@ -9,18 +9,21 @@ use app\common\dto\authorization\AdminPrincipal;
 use app\common\exception\BusinessException;
 use app\common\execution\CurrentExecutionContext;
 use app\common\http\PageResult;
+use app\common\services\AbstractCrudService;
 use app\common\services\XlsxExportService;
 use app\common\support\ExportPageInfo;
 use app\common\support\PaginationInput;
 use PeanutAdmin\Kernel\Auth\TenantContext;
+use PeanutAdmin\Kernel\Query\DeclarativeQueryBuilder;
 use PeanutAdmin\Modules\Article\Contract\ArticleCategoryAdministration;
 use PeanutAdmin\Modules\Article\Model\Article;
 use PeanutAdmin\Modules\Article\Model\ArticleCate;
 use think\db\BaseQuery;
 use think\facade\Db;
+use think\Model;
 
 /** 资讯分类后台用例；分类与资讯各自采用统一 CRUD 合同。 */
-final class ArticleCategoryAdministrationService implements ArticleCategoryAdministration
+final class ArticleCategoryAdministrationService extends AbstractCrudService implements ArticleCategoryAdministration
 {
     private const PAGE_SIZE_DEFAULT = 25;
     private const PAGE_SIZE_MAX = 25000;
@@ -30,6 +33,13 @@ final class ArticleCategoryAdministrationService implements ArticleCategoryAdmin
         private readonly AdminAuthorizationQuery $authorization,
         private readonly XlsxExportService $xlsxExport,
     ) {}
+
+    protected function query(TenantContext $context): BaseQuery { return ArticleCate::where([]); }
+    protected function newModel(TenantContext $context): Model { return new ArticleCate(); }
+    protected function listFields(): array { return self::fields(); }
+    protected function detailFields(): array { return self::fields(); }
+    protected function insertFields(): array { return ['name', 'sort', 'is_show']; }
+    protected function updateFields(): array { return $this->insertFields(); }
 
     public function lists(TenantContext $context, array $params): PageResult|array
     {
@@ -45,20 +55,22 @@ final class ArticleCategoryAdministrationService implements ArticleCategoryAdmin
         return array_map([self::class, 'formatRow'], $rows);
     }
 
-    public function detail(TenantContext $context, int $id): array
+    public function detail(TenantContext $context, int|string $id): array
     {
         $this->assertPermission($context, 'peanut.article.category.detail');
-        return $this->findRow($id, false);
+        return $this->findRow((int) $id, false);
     }
 
     public function add(TenantContext $context, array $params): bool
     {
-        $this->assertPermission($context, 'peanut.article.category.add');
-        $category = new ArticleCate();
-        if (!$category->save(self::writeData($params))) {
-            throw new \LogicException('ARTICLE_CATEGORY_CREATE_FAILED');
+        try {
+            return parent::add($context, self::writeData($params));
+        } catch (BusinessException $exception) {
+            if ($exception->errorCode === 'CRUD_SAVE_FAILED') {
+                throw new \LogicException('ARTICLE_CATEGORY_CREATE_FAILED', previous: $exception);
+            }
+            throw $exception;
         }
-        return true;
     }
 
     public function edit(TenantContext $context, array $params): bool
@@ -74,7 +86,7 @@ final class ArticleCategoryAdministrationService implements ArticleCategoryAdmin
         });
     }
 
-    public function delete(TenantContext $context, int $id): bool
+    public function delete(TenantContext $context, int|string $id): bool
     {
         $this->assertPermission($context, 'peanut.article.category.delete');
         return Db::transaction(function () use ($id): bool {
@@ -98,7 +110,7 @@ final class ArticleCategoryAdministrationService implements ArticleCategoryAdmin
         });
     }
 
-    public function updateStatus(TenantContext $context, int $id, int $isShow): bool
+    public function updateStatus(TenantContext $context, int|string $id, int $isShow): bool
     {
         $this->assertPermission($context, 'peanut.article.category.update-status');
         return Db::transaction(function () use ($id, $isShow): bool {
@@ -180,12 +192,14 @@ final class ArticleCategoryAdministrationService implements ArticleCategoryAdmin
     {
         $query = $onlyTrashed ? ArticleCate::onlyTrashed() : ArticleCate::where([]);
         $query->field(self::fields());
+        $filters = [];
         if (isset($params['name']) && $params['name'] !== '') {
-            $query->whereLike('name', '%' . trim((string) $params['name']) . '%');
+            $filters[] = ['field' => 'name', 'operator' => 'like', 'value' => '%' . trim((string) $params['name']) . '%'];
         }
         if (isset($params['is_show']) && $params['is_show'] !== '') {
-            $query->where('is_show', (int) $params['is_show']);
+            $filters[] = ['field' => 'is_show', 'operator' => '=', 'value' => (int) $params['is_show']];
         }
+        (new DeclarativeQueryBuilder(['name' => 'name', 'is_show' => 'is_show']))->apply($query, $filters);
         foreach (['start_time' => '>=', 'end_time' => '<=', 'start' => '>=', 'end' => '<='] as $field => $operator) {
             if (!isset($params[$field]) || $params[$field] === '') {
                 continue;
@@ -364,8 +378,11 @@ final class ArticleCategoryAdministrationService implements ArticleCategoryAdmin
         return $result;
     }
 
-    private function assertPermission(TenantContext $context, string $permission): void
+    protected function assertPermission(TenantContext $context, string $permission): void
     {
+        if ($permission === 'add') {
+            $permission = 'peanut.article.category.add';
+        }
         try {
             $current = $this->executionContext->tenantAdmin();
             $actor = AdminPrincipal::fromArray($this->executionContext->tenantAdminPrincipal());

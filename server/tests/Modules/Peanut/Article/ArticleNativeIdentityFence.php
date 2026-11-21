@@ -23,4 +23,10 @@ final class ArticleNativeIdentityFence
     {
         return str_repeat('a', 64);
     }
+
+    public function withLockedRead($context, array $permissionKeys, array $requiredModules, array $revisionPermissions, array $revisionModules, array $optionalModules, callable $read): mixed
+    {
+        $this->lockAndAssert();
+        return $read($this->currentDigest());
+    }
 }

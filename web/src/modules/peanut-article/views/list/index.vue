@@ -103,7 +103,7 @@
             >批量永久删除</el-button
           >
           <el-button
-            v-if="can(listPermission)"
+            v-if="canExport"
             :disabled="
               loading || articleAction.loading.value || !appliedFilters
             "
@@ -324,6 +324,7 @@
           @size-change="onPageSizeChange"
       /></div>
       <el-dialog
+        v-if="canExport"
         v-model="exportVisible"
         title="导出文章"
         width="min(520px, calc(100vw - 32px))"
@@ -460,6 +461,15 @@
   const listPermission = computed(() =>
     recycled.value ? 'peanut.article.recycle.list' : 'peanut.article.list'
   );
+  const canExport = computed(
+    () =>
+      can(listPermission.value) &&
+      hasPermission(
+        'peanut.file.download-original',
+        route.path,
+        user.permissions
+      )
+  );
   const selected = ref<ArticleRecord[]>([]);
   const listError = ref('');
   const batchResult = ref<ArticleBatchResult>();
@@ -491,11 +501,11 @@
   const exportInfo = ref<ArticleExportInfo>();
   const exportRange = reactive({ page_start: 1, page_end: 1 });
   const openExport = async () => {
-    if (!can(listPermission.value) || !appliedFilters.value) return;
+    if (!canExport.value || !appliedFilters.value) return;
     const result = await articleAction.run(() =>
       getArticleExportInfo(appliedFilters.value, recycled.value)
     );
-    if (result.status !== 'completed') return;
+    if (result.status !== 'completed' || !canExport.value) return;
     exportInfo.value = result.data.data;
     exportRange.page_start = 1;
     exportRange.page_end = Math.max(
@@ -505,7 +515,7 @@
     exportVisible.value = true;
   };
   const downloadExport = async () => {
-    if (!can(listPermission.value) || !appliedFilters.value) return;
+    if (!canExport.value || !appliedFilters.value) return;
     const result = await articleAction.run(() =>
       exportArticles(
         { ...appliedFilters.value, ...exportRange },

@@ -374,8 +374,12 @@ final class ArticleAdministrationService implements ArticleAdministration, Artic
         }
         $rows = $pageResult->items;
         $categoryNames = $this->categoryNames(array_column($rows, 'cid'), $onlyTrashed);
+        $imageUrls = $this->assets->forReadMany(array_map(
+            static fn(array $row): string => (string) ($row['image'] ?? ''),
+            $rows,
+        ));
         foreach ($rows as &$row) {
-            $row = $this->formatArticleRow($row, $categoryNames);
+            $row = $this->formatArticleRow($row, $categoryNames, $imageUrls);
         }
         unset($row);
         if ($exportMode === 2) {
@@ -491,14 +495,15 @@ final class ArticleAdministrationService implements ArticleAdministration, Artic
     }
 
     /** @param array<string,mixed> $row @param array<int,string> $categoryNames */
-    private function formatArticleRow(array $row, array $categoryNames): array
+    private function formatArticleRow(array $row, array $categoryNames, ?array $imageUrls = null): array
     {
         foreach (['id', 'cid', 'click_virtual', 'click_actual', 'is_show', 'sort'] as $field) {
             $row[$field] = (int) ($row[$field] ?? 0);
         }
         $row['cate_name'] = (string) ($categoryNames[$row['cid']] ?? '');
         $row['click'] = $row['click_actual'] + $row['click_virtual'];
-        $row['image'] = $this->assets->forRead((string) ($row['image'] ?? ''));
+        $image = trim((string) ($row['image'] ?? ''));
+        $row['image'] = $imageUrls === null ? $this->assets->forRead($image) : ($imageUrls[$image] ?? '');
         $row['content'] = $this->richText->forRead((string) ($row['content'] ?? ''));
         $row['body_document_id'] = $row['body_document_id'] === null ? null : (int) $row['body_document_id'];
         foreach (['create_time', 'update_time', 'delete_time'] as $field) {

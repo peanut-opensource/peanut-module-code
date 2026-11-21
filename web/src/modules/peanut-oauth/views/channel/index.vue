@@ -27,7 +27,9 @@
             name="official-account-reply"
             :label="$t('channel.tab.wechatOaReply')"
           >
-            <OfficialAccountReply />
+            <OfficialAccountReply
+              :active="activeTab === 'official-account-reply'"
+            />
           </el-tab-pane>
           <el-tab-pane
             v-if="canView('open-platform')"
@@ -386,7 +388,7 @@
     activeTab,
     (tab) => {
       if ((tab === 'h5' || tab === 'wechat_mini') && !configState[tab].loaded) {
-        void fetchConfig(tab);
+        fetchConfig(tab);
       }
     },
     { immediate: true }

@@ -117,6 +117,37 @@ trait CrudTrait
         ), '永久删除成功');
     }
 
+    /** Additional operations require an explicit action policy and route. */
+    final public function export(): Json { return $this->crudExtraAction('export', true); }
+    final public function importTemplate(): Json { return $this->crudExtraAction('importTemplate', true); }
+    final public function importPreview(): Json { return $this->crudExtraAction('importPreview'); }
+    final public function import(): Json { return $this->crudExtraAction('import'); }
+    final public function batchDelete(): Json { return $this->crudExtraAction('batchDelete'); }
+    final public function batchUpdateStatus(): Json { return $this->crudExtraAction('batchUpdateStatus'); }
+
+    protected function crudExtraInput(mixed $context, string $action, bool $read): array
+    {
+        return $this->validatedInput($context, $action, $read ? $this->request->get() : $this->request->post());
+    }
+
+    protected function performCrudExtraAction(mixed $context, string $action, array $params): bool|array
+    {
+        return $this->crudService()->{$action}($context, $params);
+    }
+
+    private function crudExtraAction(string $action, bool $read = false): Json
+    {
+        $actions = defined(static::class . '::CRUD_ACTIONS') ? static::CRUD_ACTIONS : [];
+        if (!is_array($actions)) throw new LogicException(static::class . ' has invalid CRUD_ACTIONS configuration.');
+        if (($actions[$action] ?? false) !== true) {
+            throw BusinessException::notFound('CRUD_ACTION_NOT_FOUND', '操作不存在');
+        }
+        $context = $this->resolveCrudContext();
+        $params = $this->readCrudInput(fn() => $this->crudExtraInput($context, $action, $read));
+        $result = $this->performCrudExtraAction($context, $action, $params);
+        return is_array($result) ? $this->data($result) : $this->renderMutation($result, '操作成功');
+    }
+
     abstract protected function resolveCrudContext(): mixed;
 
     /**
@@ -474,7 +505,7 @@ trait CrudTrait
         $primary = $this->crudPrimaryKey();
         $defaults = match ($scene) {
             'edit', 'delete', $this->crudStatusScene(), 'recycleDetail' => [$primary],
-            'restore', 'forceDelete', 'purge' => [$primary, 'ids'],
+            'restore', 'forceDelete', 'purge', 'batchDelete', 'batchUpdateStatus' => [$primary, 'ids'],
             default => [],
         };
         $policies = defined(static::class . '::CRUD_CONTROL_FIELDS') ? static::CRUD_CONTROL_FIELDS : null;
@@ -494,6 +525,7 @@ trait CrudTrait
         return $this->crudWritableFields($scene) !== null
             || in_array($scene, [
                 'add', 'edit', 'delete', $this->crudStatusScene(), 'restore', 'forceDelete', 'purge',
+                'import', 'batchDelete', 'batchUpdateStatus',
             ], true);
     }
 

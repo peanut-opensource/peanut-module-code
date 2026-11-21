@@ -68,108 +68,119 @@
           </el-button>
         </el-col>
       </el-row>
-      <el-table row-key="id" :loading="loading" :data="renderData" border>
-        <el-table-column
-          prop="id"
-          :label="$t('systemCrontab.columns.id')"
-          width="70"
-        />
-        <el-table-column
-          prop="name"
-          :label="$t('systemCrontab.columns.name')"
-        />
-        <el-table-column
-          prop="command"
-          :label="$t('systemCrontab.columns.command')"
-        />
-        <el-table-column
-          prop="expression"
-          :label="$t('systemCrontab.columns.expression')"
-        />
-        <el-table-column :label="$t('systemCrontab.columns.status')" width="90"
-          ><template #default="{ row }"
-            ><el-tag :type="statusColor(row.status)">{{
-              row.status_desc
-            }}</el-tag></template
-          ></el-table-column
-        >
-        <el-table-column prop="last_time" width="170">
-          <template #header>
-            <el-tooltip
-              :content="$t('systemCrontab.columns.lastTimeHelp')"
-              placement="top"
-            >
-              <span>{{ $t('systemCrontab.columns.lastTime') }}</span>
-            </el-tooltip>
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="time"
-          :label="$t('systemCrontab.columns.time')"
-          width="90"
-        />
-        <el-table-column
-          prop="max_time"
-          :label="$t('systemCrontab.columns.maxTime')"
-          width="90"
-        />
-        <el-table-column
-          prop="error"
-          :label="$t('systemCrontab.columns.error')"
-          width="180"
-        />
-        <el-table-column
-          :label="$t('systemCrontab.columns.operations')"
-          width="220"
-          ><template #default="{ row }"
-            ><el-space
-              ><el-button
-                v-if="row.status !== 1"
-                v-permission="['peanut.task.operate']"
-                link
-                size="small"
-                @click="handleOperate(row, 'start')"
-                >{{ $t('systemCrontab.operation.start') }}</el-button
-              ><el-button
-                v-else
-                v-permission="['peanut.task.operate']"
-                link
-                type="warning"
-                size="small"
-                @click="handleOperate(row, 'stop')"
-                >{{ $t('systemCrontab.operation.stop') }}</el-button
-              ><el-button
-                v-permission="['peanut.task.edit']"
-                link
-                size="small"
-                @click="handleEdit(row)"
-                >{{ $t('systemCrontab.operation.edit') }}</el-button
-              ><el-popconfirm
-                :title="$t('systemCrontab.delete.confirm')"
-                @confirm="handleDelete(row)"
-                ><template #reference
-                  ><el-button
-                    v-permission="['peanut.task.delete']"
-                    link
-                    type="danger"
-                    size="small"
-                    >{{ $t('systemCrontab.operation.delete') }}</el-button
-                  ></template
-                ></el-popconfirm
-              ></el-space
-            ></template
-          ></el-table-column
-        >
-      </el-table>
-      <el-pagination
-        v-model:current-page="pagination.current"
-        v-model:page-size="pagination.pageSize"
-        :total="pagination.total"
-        layout="total, prev, pager, next"
-        style="margin-top: 16px; justify-content: flex-end"
-        @current-change="onPageChange"
+      <el-alert
+        v-if="listError"
+        :title="listError"
+        type="error"
+        :closable="false"
       />
+      <CrudPage
+        :loading="loading"
+        :data="renderData"
+        :pagination="pagination"
+        :fields="tableFields"
+        column-storage-key="peanut.task.crontab.columns"
+        row-key="id"
+        border
+        pagination-layout="total, prev, pager, next"
+        @page-change="onPageChange"
+      >
+        <template #columns>
+          <el-table-column
+            :label="$t('systemCrontab.columns.status')"
+            width="90"
+            ><template #default="{ row }"
+              ><el-tag :type="statusColor(row.status)">{{
+                row.status_desc
+              }}</el-tag></template
+            ></el-table-column
+          >
+          <el-table-column prop="last_time" width="170">
+            <template #header>
+              <el-tooltip
+                :content="$t('systemCrontab.columns.lastTimeHelp')"
+                placement="top"
+              >
+                <span>{{ $t('systemCrontab.columns.lastTime') }}</span>
+              </el-tooltip>
+            </template>
+          </el-table-column>
+          <el-table-column
+            :label="$t('systemCrontab.columns.operations')"
+            width="220"
+            ><template #default="{ row }"
+              ><el-space
+                ><el-button
+                  v-if="canDetail"
+                  link
+                  size="small"
+                  @click="openDetail(row)"
+                  >详情</el-button
+                ><el-button
+                  v-if="row.status !== 1"
+                  v-permission="['peanut.task.operate']"
+                  link
+                  size="small"
+                  @click="handleOperate(row, 'start')"
+                  >{{ $t('systemCrontab.operation.start') }}</el-button
+                ><el-button
+                  v-else
+                  v-permission="['peanut.task.operate']"
+                  link
+                  type="warning"
+                  size="small"
+                  @click="handleOperate(row, 'stop')"
+                  >{{ $t('systemCrontab.operation.stop') }}</el-button
+                ><el-button
+                  v-permission="['peanut.task.edit']"
+                  link
+                  size="small"
+                  @click="handleEdit(row)"
+                  >{{ $t('systemCrontab.operation.edit') }}</el-button
+                ><el-popconfirm
+                  :title="$t('systemCrontab.delete.confirm')"
+                  @confirm="handleDelete(row)"
+                  ><template #reference
+                    ><el-button
+                      v-permission="['peanut.task.delete']"
+                      link
+                      type="danger"
+                      size="small"
+                      >{{ $t('systemCrontab.operation.delete') }}</el-button
+                    ></template
+                  ></el-popconfirm
+                ></el-space
+              ></template
+            ></el-table-column
+          >
+        </template>
+      </CrudPage>
     </el-card>
+    <CrudDetailDrawer v-model="detailVisible" title="定时任务详情">
+      <el-descriptions v-if="detailRecord" :column="1" border>
+        <el-descriptions-item label="ID">{{
+          detailRecord.id
+        }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('systemCrontab.columns.name')">{{
+          detailRecord.name
+        }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('systemCrontab.columns.command')">{{
+          detailRecord.command
+        }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('systemCrontab.columns.expression')">{{
+          detailRecord.expression
+        }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('systemCrontab.columns.status')">{{
+          detailRecord.status_desc
+        }}</el-descriptions-item>
+        <el-descriptions-item label="参数">{{
+          detailRecord.params
+        }}</el-descriptions-item>
+        <el-descriptions-item label="备注">{{
+          detailRecord.remark
+        }}</el-descriptions-item>
+      </el-descriptions>
+    </CrudDetailDrawer>
     <el-dialog
       v-model="modalVisible"
       :title="
@@ -267,14 +278,23 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, reactive, ref } from 'vue';
+  import { computed, onScopeDispose, ref } from 'vue';
+  import { useRoute } from 'vue-router';
+  import { getTabKey } from '@peanut-admin/ui-vue/tabs';
+  import { registerTenantDisposer, useAsyncAction } from '@peanut-admin/vue';
+  import { hasPermission } from '@/hooks/permission';
+  import useCrudTab from '@/hooks/useCrudTab';
+  import CrudDetailDrawer from '@/components/crud/CrudDetailDrawer.vue';
   import { useI18n } from 'vue-i18n';
   import { ElMessage } from 'element-plus';
-  import type { FormInstance, TagProps } from 'element-plus';
+  import type { TagProps } from 'element-plus';
   import { Plus, Refresh, Search } from '@element-plus/icons-vue';
-  import useLoading from '@/hooks/loading';
+  import CrudPage from '@/components/crud/CrudPage.vue';
+  import useCrudTable from '@/hooks/useCrudTable';
+  import useCrudModal from '@/hooks/useCrudModal';
   import {
     getCrontabList,
+    getCrontabDetail,
     getCrontabExpression,
     addCrontab,
     editCrontab,
@@ -282,27 +302,84 @@
     operateCrontab,
     type CrontabRecord,
     type CrontabForm,
-    type CrontabListParams,
     type CrontabStatus,
     type ExpressionItem,
   } from '@/modules/peanut-task/api';
 
   const { t } = useI18n();
-  const { loading, setLoading } = useLoading(true);
-  const renderData = ref<CrontabRecord[]>([]);
+  const route = useRoute();
+  const canDetail = computed(() =>
+    hasPermission('peanut.task.detail', route.path)
+  );
+  const detailVisible = ref(false);
+  const detailRecord = ref<CrontabRecord>();
+  const detailAction = useAsyncAction((error) =>
+    error instanceof Error ? error.message : String(error)
+  );
+  const clearDetail = () => {
+    detailAction.cancel();
+    detailVisible.value = false;
+    detailRecord.value = undefined;
+  };
+  const currentTab = useCrudTab(clearDetail);
+  const unregisterDetail = registerTenantDisposer(
+    `peanut.task.detail:${getTabKey(route)}`,
+    clearDetail
+  );
+  onScopeDispose(unregisterDetail);
+  const openDetail = async (record: CrontabRecord) => {
+    if (!canDetail.value || !currentTab.value) return;
+    const result = await detailAction.run(
+      async () => (await getCrontabDetail(record.id)).data
+    );
+    if (result.status !== 'completed' || !currentTab.value || !canDetail.value)
+      return;
+    detailRecord.value = result.data;
+    detailVisible.value = true;
+  };
 
   const generateFormModel = () => ({
     name: '',
     status: '' as CrontabStatus | '',
   });
-  const formModel = ref(generateFormModel());
-
-  const pagination = reactive({
-    current: 1,
-    pageSize: 15,
-    total: 0,
-    showTotal: true,
+  const table = useCrudTable<
+    CrontabRecord,
+    ReturnType<typeof generateFormModel>
+  >({
+    initialFilters: generateFormModel(),
+    initialPageSize: 15,
+    load: async ({ filters, page, pageSize, signal }) => {
+      const { data } = await getCrontabList(
+        { ...filters, page_no: page, page_size: pageSize },
+        signal
+      );
+      return {
+        items: data.lists,
+        total: data.count,
+        page: data.pageNo,
+        pageSize: data.pageSize,
+      };
+    },
+    errorMessage: (error) =>
+      error instanceof Error ? error.message : String(error),
   });
+  const {
+    loading,
+    data: renderData,
+    searchForm: formModel,
+    pagination,
+    error: listError,
+  } = table;
+
+  const tableFields = computed(() => [
+    { key: 'id', label: t('systemCrontab.columns.id'), width: 70 },
+    { key: 'name', label: t('systemCrontab.columns.name') },
+    { key: 'command', label: t('systemCrontab.columns.command') },
+    { key: 'expression', label: t('systemCrontab.columns.expression') },
+    { key: 'time', label: t('systemCrontab.columns.time'), width: 90 },
+    { key: 'max_time', label: t('systemCrontab.columns.maxTime'), width: 90 },
+    { key: 'error', label: t('systemCrontab.columns.error'), width: 180 },
+  ]);
 
   const statusOptions = computed(() => [
     { label: t('systemCrontab.status.start'), value: 1 },
@@ -318,35 +395,12 @@
   const statusColor = (status: CrontabStatus): TagProps['type'] =>
     statusColors[status] || 'info';
 
-  const fetchData = async (page = 1) => {
-    setLoading(true);
-    try {
-      const params: CrontabListParams = {
-        ...formModel.value,
-        page_no: page,
-        page_size: pagination.pageSize,
-      };
-      const { data } = await getCrontabList(params);
-      renderData.value = data.lists;
-      pagination.current = data.pageNo;
-      pagination.total = data.count;
-    } finally {
-      setLoading(false);
-    }
-  };
-  fetchData();
-
-  const search = () => fetchData(1);
+  const fetchData = (page = pagination.page) => table.fetchList(page);
+  fetchData(1);
+  const search = () => table.handleSearch();
   const onPageChange = (current: number) => fetchData(current);
-  const reset = () => {
-    formModel.value = generateFormModel();
-    fetchData(1);
-  };
+  const reset = () => table.handleReset();
   // ---- 弹窗 & 表单 ----
-  const modalVisible = ref(false);
-  const isEdit = ref(false);
-  const submitLoading = ref(false);
-  const formRef = ref<FormInstance>();
   const previewList = ref<ExpressionItem[]>([]);
   const previewError = ref('');
   const previewLoading = ref(false);
@@ -362,7 +416,6 @@
     expression: '',
     remark: '',
   });
-  const form = reactive<CrontabForm>(defaultForm());
 
   const clearPreview = () => {
     previewList.value = [];
@@ -379,20 +432,19 @@
     ],
   };
 
-  const resetForm = (patch: Partial<CrontabForm> = {}) => {
-    Object.assign(form, defaultForm(), patch);
-    clearPreview();
-  };
-
-  const handleAdd = () => {
-    isEdit.value = false;
-    resetForm();
-    modalVisible.value = true;
-  };
-
-  const handleEdit = (record: CrontabRecord) => {
-    isEdit.value = true;
-    resetForm({
+  const {
+    create,
+    edit,
+    submit: handleSubmit,
+    visible: modalVisible,
+    form,
+    formRef,
+    mode,
+    submitLoading,
+  } = useCrudModal<CrontabForm, CrontabRecord>({
+    canOpen: (intent) => intent !== 'view',
+    createForm: defaultForm,
+    editForm: (record) => ({
       id: record.id,
       name: record.name,
       type: record.type,
@@ -402,14 +454,28 @@
       status: record.status === 3 ? 2 : record.status,
       expression: record.expression,
       remark: record.remark,
-    });
-    modalVisible.value = true;
+    }),
+    save: (values, intent) =>
+      intent === 'edit' ? editCrontab(values) : addCrontab(values),
+    onSaved: async () => {
+      ElMessage.success(t('systemCrontab.tip.success'));
+      await fetchData(pagination.page);
+    },
+  });
+  const isEdit = computed(() => mode.value === 'edit');
+  const handleAdd = () => {
+    clearPreview();
+    create();
+  };
+  const handleEdit = (record: CrontabRecord) => {
+    clearPreview();
+    edit(record);
   };
 
   const previewExpression = async () => {
     if (previewLoading.value) return;
     clearPreview();
-    const { expression } = form;
+    const { expression } = form.value;
     if (!expression?.trim()) {
       previewError.value = t('systemCrontab.field.expression.required');
       return;
@@ -417,7 +483,7 @@
     previewLoading.value = true;
     try {
       const { data } = await getCrontabExpression(expression);
-      if (form.expression !== expression || !modalVisible.value) return;
+      if (form.value.expression !== expression || !modalVisible.value) return;
       if (Array.isArray(data) && data.length) {
         previewList.value = data;
       } else {
@@ -425,35 +491,17 @@
       }
     } catch {
       // The shared interceptor already shows the server's business message.
-      if (form.expression === expression && modalVisible.value)
+      if (form.value.expression === expression && modalVisible.value)
         previewError.value = t('systemCrontab.tip.previewFailed');
     } finally {
       previewLoading.value = false;
     }
   };
 
-  const handleSubmit = async () => {
-    const valid = await formRef.value?.validate().catch(() => false);
-    if (!valid) return;
-    submitLoading.value = true;
-    try {
-      if (isEdit.value) {
-        await editCrontab(form);
-      } else {
-        await addCrontab(form);
-      }
-      ElMessage.success(t('systemCrontab.tip.success'));
-      modalVisible.value = false;
-      await fetchData(pagination.current);
-    } finally {
-      submitLoading.value = false;
-    }
-  };
-
   const handleDelete = async (record: CrontabRecord) => {
     await deleteCrontab(record.id);
     ElMessage.success(t('systemCrontab.tip.success'));
-    await fetchData(pagination.current);
+    await fetchData(pagination.page);
   };
 
   const handleOperate = async (
@@ -462,7 +510,7 @@
   ) => {
     await operateCrontab(record.id, operate);
     ElMessage.success(t('systemCrontab.tip.success'));
-    await fetchData(pagination.current);
+    await fetchData(pagination.page);
   };
 </script>
 

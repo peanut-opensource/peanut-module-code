@@ -65,8 +65,7 @@ expectNotificationHost(
     str_contains($readinessHost, 'private readonly ?NotificationQueries $notifications')
         && str_contains($readinessHost, "NOTIFICATION_MODULE_UNAVAILABLE'))->channelDetail()")
         && !str_contains($readinessHost, 'NotificationModuleProvider')
-        && str_contains($readinessController, 'protected string $readinessClass = FirstRunReadinessHost::class;')
-        && str_contains($readinessController, '@property-read FirstRunReadinessHost $readiness')
+        && str_contains($readinessController, 'protected readonly FirstRunReadinessHost $readiness')
         && str_contains($readinessController, '$this->readiness->checklist(')
         && !str_contains($readinessController, 'new FirstRunReadinessHost'),
     'readiness projection bypasses its container-owned Notification dependency',

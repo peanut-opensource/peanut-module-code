@@ -1,0 +1,1 @@
+import{d as o,f as a,aa as r,o as s,c as n}from"./index-DLkLmow0.js";const d=o({__name:"index",setup(c){const e=a(),t=r().params.path;return e.replace(t),(p,_)=>(s(),n("div"))}});export{d as default};

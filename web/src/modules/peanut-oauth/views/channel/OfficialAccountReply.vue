@@ -4,132 +4,187 @@
       {{ $t('channel.officialAccount.permissionDenied') }}
     </el-alert>
     <template v-else>
-      <div class="toolbar">
-        <el-select
-          v-model="filterType"
-          clearable
-          style="width: 180px"
-          :placeholder="$t('channel.reply.filterType')"
-          @change="onTypeChange"
-        >
-          <el-option :label="$t('channel.reply.allTypes')" :value="''" />
-          <el-option :label="$t('channel.reply.subscribe')" :value="1" />
-          <el-option :label="$t('channel.reply.keyword')" :value="2" />
-          <el-option :label="$t('channel.reply.default')" :value="3" />
-        </el-select>
-        <el-button
-          v-permission="['peanut.oauth.official-account.reply.add']"
-          type="primary"
-          @click="handleAdd"
-        >
-          {{ $t('channel.reply.add') }}
-        </el-button>
-      </div>
-      <el-table row-key="id" :data="rows" border>
-        <el-table-column
-          prop="name"
-          :label="$t('channel.reply.columns.name')"
-        />
-        <el-table-column :label="$t('channel.reply.columns.type')" width="110"
-          ><template #default="{ row }">{{
-            replyTypeLabel(row.reply_type)
-          }}</template></el-table-column
-        >
-        <el-table-column
-          prop="keyword"
-          :label="$t('channel.reply.columns.keyword')"
-          width="160"
-        />
-        <el-table-column
-          :label="$t('channel.reply.columns.matchingType')"
-          width="110"
-          ><template #default="{ row }"
-            ><span v-if="row.reply_type === 2">{{
-              matchingTypeLabel(row.matching_type)
-            }}</span
-            ><span v-else>-</span></template
-          ></el-table-column
-        >
-        <el-table-column
-          :label="$t('channel.reply.columns.contentType')"
-          width="90"
-          ><template #default>{{
-            $t('channel.reply.text')
-          }}</template></el-table-column
-        >
-        <el-table-column
-          prop="content"
-          :label="$t('channel.reply.columns.content')"
-          show-overflow-tooltip
-        />
-        <el-table-column :label="$t('channel.reply.columns.status')" width="100"
-          ><template #default="{ row }">
-            <el-switch
-              :model-value="row.status === 1"
-              v-permission="[
-                'peanut.oauth.official-account.reply.update-status',
-              ]"
-              @change="(value: boolean) => handleStatus(row, value)"
-            />
-            <span v-if="!hasStatusPermission">{{
-              row.status === 1
-                ? $t('channel.reply.enabled')
-                : $t('channel.reply.disabled')
-            }}</span>
-          </template></el-table-column
-        >
-        <el-table-column
-          prop="sort"
-          :label="$t('channel.reply.columns.sort')"
-          width="80"
-        />
-        <el-table-column
-          :label="$t('channel.reply.columns.operations')"
-          width="170"
-          fixed="right"
-          ><template #default="{ row }">
-            <el-space>
-              <el-button
-                v-permission="['peanut.oauth.official-account.reply.edit']"
-                link
-                type="primary"
-                size="small"
-                @click="handleEdit(row)"
-              >
-                {{ $t('channel.reply.edit') }}
-              </el-button>
-              <el-popconfirm
-                :title="$t('channel.reply.deleteConfirm')"
-                @confirm="handleDelete(row)"
-              >
-                <template #reference
-                  ><el-button
-                    v-permission="[
-                      'peanut.oauth.official-account.reply.delete',
-                    ]"
-                    link
-                    type="danger"
-                    size="small"
-                  >
-                    {{ $t('channel.reply.delete') }}
-                  </el-button></template
+      <el-alert
+        v-if="tableError"
+        :title="tableError"
+        type="error"
+        :closable="false"
+      />
+      <CrudPage
+        :loading="loading"
+        :data="rows"
+        :pagination="pagination"
+        row-key="id"
+        border
+        pagination-layout="total, prev, pager, next"
+        @page-change="onPageChange"
+      >
+        <template #toolbar>
+          <div class="toolbar">
+            <el-select
+              v-model="filterType"
+              clearable
+              style="width: 180px"
+              :placeholder="$t('channel.reply.filterType')"
+              @change="onTypeChange"
+            >
+              <el-option :label="$t('channel.reply.allTypes')" :value="''" />
+              <el-option :label="$t('channel.reply.subscribe')" :value="1" />
+              <el-option :label="$t('channel.reply.keyword')" :value="2" />
+              <el-option :label="$t('channel.reply.default')" :value="3" />
+            </el-select>
+            <el-button
+              v-permission="['peanut.oauth.official-account.reply.add']"
+              type="primary"
+              @click="handleAdd"
+            >
+              {{ $t('channel.reply.add') }}
+            </el-button>
+          </div>
+        </template>
+        <template #columns>
+          <el-table-column
+            prop="name"
+            :label="$t('channel.reply.columns.name')"
+          />
+          <el-table-column :label="$t('channel.reply.columns.type')" width="110"
+            ><template #default="{ row }">{{
+              replyTypeLabel(row.reply_type)
+            }}</template></el-table-column
+          >
+          <el-table-column
+            prop="keyword"
+            :label="$t('channel.reply.columns.keyword')"
+            width="160"
+          />
+          <el-table-column
+            :label="$t('channel.reply.columns.matchingType')"
+            width="110"
+            ><template #default="{ row }"
+              ><span v-if="row.reply_type === 2">{{
+                matchingTypeLabel(row.matching_type)
+              }}</span
+              ><span v-else>-</span></template
+            ></el-table-column
+          >
+          <el-table-column
+            :label="$t('channel.reply.columns.contentType')"
+            width="90"
+            ><template #default>{{
+              $t('channel.reply.text')
+            }}</template></el-table-column
+          >
+          <el-table-column
+            prop="content"
+            :label="$t('channel.reply.columns.content')"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            :label="$t('channel.reply.columns.status')"
+            width="100"
+            ><template #default="{ row }">
+              <el-switch
+                :model-value="row.status === 1"
+                v-permission="[
+                  'peanut.oauth.official-account.reply.update-status',
+                ]"
+                @change="(value: boolean) => handleStatus(row, value)"
+              />
+              <span v-if="!hasStatusPermission">{{
+                row.status === 1
+                  ? $t('channel.reply.enabled')
+                  : $t('channel.reply.disabled')
+              }}</span>
+            </template></el-table-column
+          >
+          <el-table-column
+            prop="sort"
+            :label="$t('channel.reply.columns.sort')"
+            width="80"
+          />
+          <el-table-column
+            :label="$t('channel.reply.columns.operations')"
+            width="170"
+            fixed="right"
+            ><template #default="{ row }">
+              <el-space>
+                <el-button
+                  v-if="canDetail"
+                  link
+                  size="small"
+                  @click="openDetail(row)"
+                  >详情</el-button
                 >
-              </el-popconfirm>
-            </el-space>
-          </template></el-table-column
-        >
-      </el-table>
-      <div class="pagination-wrapper"
-        ><el-pagination
-          :current-page="pagination.current"
-          :page-size="pagination.pageSize"
-          :total="pagination.total"
-          layout="total, prev, pager, next"
-          @current-change="onPageChange"
-      /></div>
+                <el-button
+                  v-permission="['peanut.oauth.official-account.reply.edit']"
+                  link
+                  type="primary"
+                  size="small"
+                  @click="handleEdit(row)"
+                >
+                  {{ $t('channel.reply.edit') }}
+                </el-button>
+                <el-popconfirm
+                  :title="$t('channel.reply.deleteConfirm')"
+                  @confirm="handleDelete(row)"
+                >
+                  <template #reference
+                    ><el-button
+                      v-permission="[
+                        'peanut.oauth.official-account.reply.delete',
+                      ]"
+                      link
+                      type="danger"
+                      size="small"
+                    >
+                      {{ $t('channel.reply.delete') }}
+                    </el-button></template
+                  >
+                </el-popconfirm>
+              </el-space>
+            </template></el-table-column
+          >
+        </template>
+      </CrudPage>
     </template>
   </div>
 
+  <CrudDetailDrawer v-model="detailVisible" title="公众号回复详情">
+    <el-descriptions v-if="detailRecord" :column="1" border>
+      <el-descriptions-item label="ID">{{
+        detailRecord.id
+      }}</el-descriptions-item>
+      <el-descriptions-item :label="$t('channel.reply.columns.name')">{{
+        detailRecord.name
+      }}</el-descriptions-item>
+      <el-descriptions-item :label="$t('channel.reply.columns.type')">{{
+        replyTypeLabel(detailRecord.reply_type)
+      }}</el-descriptions-item>
+      <el-descriptions-item
+        v-if="detailRecord.reply_type === 2"
+        :label="$t('channel.reply.columns.keyword')"
+        >{{ detailRecord.keyword }}</el-descriptions-item
+      >
+      <el-descriptions-item
+        v-if="detailRecord.reply_type === 2"
+        :label="$t('channel.reply.columns.matchingType')"
+        >{{
+          matchingTypeLabel(detailRecord.matching_type)
+        }}</el-descriptions-item
+      >
+      <el-descriptions-item :label="$t('channel.reply.columns.content')">{{
+        detailRecord.content
+      }}</el-descriptions-item>
+      <el-descriptions-item :label="$t('channel.reply.columns.status')">{{
+        detailRecord.status === 1
+          ? $t('channel.reply.enabled')
+          : $t('channel.reply.disabled')
+      }}</el-descriptions-item>
+      <el-descriptions-item :label="$t('channel.reply.columns.sort')">{{
+        detailRecord.sort
+      }}</el-descriptions-item>
+    </el-descriptions>
+  </CrudDetailDrawer>
   <el-dialog
     v-model="modalVisible"
     :title="
@@ -137,6 +192,12 @@
     "
     :close-on-click-modal="false"
   >
+    <el-alert
+      v-if="submitError"
+      :title="submitError"
+      type="error"
+      :closable="false"
+    />
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
       <el-form-item prop="reply_type" :label="$t('channel.reply.type')"
         ><el-select v-model="form.reply_type"
@@ -206,10 +267,17 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, reactive, ref } from 'vue';
+  import { computed, onMounted, onScopeDispose, ref, watch } from 'vue';
+  import { getTabKey } from '@peanut-admin/ui-vue/tabs';
+  import { registerTenantDisposer, useAsyncAction } from '@peanut-admin/vue';
+  import useCrudTab from '@/hooks/useCrudTab';
+  import CrudDetailDrawer from '@/components/crud/CrudDetailDrawer.vue';
+  import CrudPage from '@/components/crud/CrudPage.vue';
+  import useCrudTable from '@/hooks/useCrudTable';
+  import useCrudModal from '@/hooks/useCrudModal';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
-  import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
+  import { ElMessage, type FormRules } from 'element-plus';
   import { hasPermission } from '@/hooks/permission';
   import {
     addOfficialAccountReply,
@@ -224,22 +292,83 @@
     type OfficialAccountReplyType,
   } from '@/modules/peanut-oauth/api';
 
+  const props = defineProps<{ active: boolean }>();
   const route = useRoute();
   const { t } = useI18n();
   const canView = computed(() =>
     hasPermission('peanut.oauth.official-account.reply.list', route.path)
   );
-  const hasStatusPermission = computed(() =>
-    hasPermission('peanut.oauth.official-account.reply.update-status', route.path)
+  const canDetail = computed(() =>
+    hasPermission('peanut.oauth.official-account.reply.detail', route.path)
   );
-  const loading = ref(false);
-  const rows = ref<OfficialAccountReplyRecord[]>([]);
+  const detailVisible = ref(false);
+  const detailRecord = ref<OfficialAccountReplyRecord>();
+  const detailAction = useAsyncAction((error) =>
+    error instanceof Error ? error.message : String(error)
+  );
+  const clearDetail = () => {
+    detailAction.cancel();
+    detailVisible.value = false;
+    detailRecord.value = undefined;
+  };
+  const currentTab = useCrudTab(clearDetail);
+  watch(
+    () => props.active,
+    (active) => {
+      if (!active) clearDetail();
+    }
+  );
+  const unregisterDetail = registerTenantDisposer(
+    `peanut.oauth.reply.detail:${getTabKey(route)}`,
+    clearDetail
+  );
+  onScopeDispose(unregisterDetail);
+  const openDetail = async (record: OfficialAccountReplyRecord) => {
+    if (!canDetail.value || !currentTab.value || !props.active) return;
+    const result = await detailAction.run(
+      async () => (await getOfficialAccountReplyDetail(record.id)).data
+    );
+    if (
+      result.status !== 'completed' ||
+      !currentTab.value ||
+      !props.active ||
+      !canDetail.value
+    )
+      return;
+    detailRecord.value = result.data;
+    detailVisible.value = true;
+  };
+  const hasStatusPermission = computed(() =>
+    hasPermission(
+      'peanut.oauth.official-account.reply.update-status',
+      route.path
+    )
+  );
   const filterType = ref<OfficialAccountReplyType | ''>('');
-  const pagination = reactive({
-    current: 1,
-    pageSize: 15,
-    total: 0,
-    showTotal: true,
+  const {
+    loading,
+    data: rows,
+    pagination,
+    error: tableError,
+    fetchList,
+  } = useCrudTable<OfficialAccountReplyRecord, Record<string, never>>({
+    initialFilters: {},
+    initialPageSize: 15,
+    errorMessage: (error) =>
+      error instanceof Error ? error.message : String(error),
+    load: async ({ page, pageSize }) => {
+      const { data } = await getOfficialAccountReplyList({
+        reply_type: filterType.value || undefined,
+        page_no: page,
+        page_size: pageSize,
+      });
+      return {
+        items: data.lists,
+        total: data.count,
+        page: data.pageNo,
+        pageSize: data.pageSize,
+      };
+    },
   });
   const defaultForm = (): OfficialAccountReplyForm => ({
     name: '',
@@ -251,15 +380,58 @@
     status: 1,
     sort: 0,
   });
-  const form = reactive<OfficialAccountReplyForm>(defaultForm());
-  const formRef = ref<FormInstance>();
-  const modalVisible = ref(false);
-  const isEdit = ref(false);
-  const submitLoading = ref(false);
-  const detailLoading = ref(false);
+  const {
+    create: handleAdd,
+    edit: openEdit,
+    submit: handleSubmit,
+    form,
+    formRef,
+    visible: modalVisible,
+    mode,
+    submitLoading,
+    submitError,
+  } = useCrudModal<OfficialAccountReplyForm, OfficialAccountReplyRecord>({
+    canOpen: (intent) =>
+      intent !== 'view' &&
+      hasPermission(
+        `peanut.oauth.official-account.reply.${
+          intent === 'create' ? 'add' : 'edit'
+        }`,
+        route.path
+      ),
+    createForm: defaultForm,
+    editForm: (record) => ({ ...defaultForm(), ...record }),
+    save: (values, intent, signal) => {
+      const payload: OfficialAccountReplyForm = {
+        ...(values.id ? { id: values.id } : {}),
+        name: values.name.trim(),
+        keyword: values.reply_type === 2 ? values.keyword.trim() : '',
+        reply_type: values.reply_type,
+        matching_type: values.reply_type === 2 ? values.matching_type : 1,
+        content_type: 1,
+        content: values.content.trim(),
+        status: values.status,
+        sort: values.reply_type === 2 ? values.sort : 0,
+      };
+      return intent === 'edit'
+        ? editOfficialAccountReply(payload, signal)
+        : addOfficialAccountReply(payload, signal);
+    },
+    onSaved: async () => {
+      ElMessage.success(t('channel.tip.success'));
+      await fetchList(pagination.page);
+    },
+  });
+  const isEdit = computed(() => mode.value === 'edit');
   const rules: FormRules = {
     reply_type: [{ required: true }],
-    name: [{ required: true, message: t('channel.reply.nameRequired') }],
+    name: [
+      {
+        required: true,
+        whitespace: true,
+        message: t('channel.reply.nameRequired'),
+      },
+    ],
     keyword: [
       {
         validator: (
@@ -267,7 +439,7 @@
           value: string,
           callback: (error?: Error) => void
         ) => {
-          if (form.reply_type === 2 && !value.trim()) {
+          if (form.value.reply_type === 2 && !value.trim()) {
             callback(new Error(t('channel.reply.keywordRequired')));
             return;
           }
@@ -275,7 +447,13 @@
         },
       },
     ],
-    content: [{ required: true, message: t('channel.reply.contentRequired') }],
+    content: [
+      {
+        required: true,
+        whitespace: true,
+        message: t('channel.reply.contentRequired'),
+      },
+    ],
     status: [{ required: true }],
     sort: [
       {
@@ -285,7 +463,7 @@
           callback: (error?: Error) => void
         ) => {
           if (
-            form.reply_type === 2 &&
+            form.value.reply_type === 2 &&
             (!Number.isInteger(value) || value < 0)
           ) {
             callback(new Error(t('channel.reply.sortInvalid')));
@@ -297,23 +475,8 @@
     ],
   };
 
-  const fetchData = async (page = 1) => {
-    if (!canView.value) return;
-    loading.value = true;
-    try {
-      const { data } = await getOfficialAccountReplyList({
-        reply_type: filterType.value || undefined,
-        page_no: page,
-        page_size: pagination.pageSize,
-      });
-      rows.value = data.lists;
-      pagination.current = data.pageNo;
-      pagination.pageSize = data.pageSize;
-      pagination.total = data.count;
-    } finally {
-      loading.value = false;
-    }
-  };
+  const fetchData = (page = 1) =>
+    canView.value ? fetchList(page) : Promise.resolve(false);
   onMounted(() => fetchData());
 
   const onTypeChange = (value: unknown) => {
@@ -333,72 +496,15 @@
   const matchingTypeLabel = (value: OfficialAccountMatchingType) =>
     t(value === 1 ? 'channel.reply.exact' : 'channel.reply.fuzzy');
 
-  const resetForm = (patch: Partial<OfficialAccountReplyForm> = {}) => {
-    Object.assign(form, defaultForm(), patch);
-  };
-
-  const handleAdd = () => {
-    isEdit.value = false;
-    resetForm();
-    modalVisible.value = true;
-  };
-
   const handleEdit = async (record: OfficialAccountReplyRecord) => {
-    isEdit.value = true;
-    detailLoading.value = true;
-    try {
-      const { data } = await getOfficialAccountReplyDetail(record.id);
-      resetForm({ ...data });
-      modalVisible.value = true;
-    } finally {
-      detailLoading.value = false;
-    }
-  };
-
-  const handleSubmit = async () => {
-    const valid = await formRef.value?.validate().catch(() => false);
-    if (!valid) return;
-    if (!form.name.trim() || !form.content.trim()) {
-      ElMessage.error(t('channel.reply.contentRequired'));
-      return;
-    }
-    if (form.reply_type === 2) {
-      if (!form.keyword.trim()) {
-        ElMessage.error(t('channel.reply.keywordRequired'));
-        return;
-      }
-      if (!Number.isInteger(form.sort) || form.sort < 0) {
-        ElMessage.error(t('channel.reply.sortInvalid'));
-        return;
-      }
-    }
-    const payload: OfficialAccountReplyForm = {
-      ...(form.id ? { id: form.id } : {}),
-      name: form.name.trim(),
-      keyword: form.reply_type === 2 ? form.keyword.trim() : '',
-      reply_type: form.reply_type,
-      matching_type: form.reply_type === 2 ? form.matching_type : 1,
-      content_type: 1,
-      content: form.content.trim(),
-      status: form.status,
-      sort: form.reply_type === 2 ? form.sort : 0,
-    };
-    submitLoading.value = true;
-    try {
-      if (isEdit.value) await editOfficialAccountReply(payload);
-      else await addOfficialAccountReply(payload);
-      ElMessage.success(t('channel.tip.success'));
-      modalVisible.value = false;
-      await fetchData(pagination.current);
-    } finally {
-      submitLoading.value = false;
-    }
+    const { data } = await getOfficialAccountReplyDetail(record.id);
+    await openEdit(data);
   };
 
   const handleDelete = async (record: OfficialAccountReplyRecord) => {
     await deleteOfficialAccountReply(record.id);
     ElMessage.success(t('channel.tip.success'));
-    await fetchData(pagination.current);
+    await fetchData(pagination.page);
   };
 
   const handleStatus = async (
@@ -407,7 +513,7 @@
   ) => {
     const status: 0 | 1 = enabled ? 1 : 0;
     await updateOfficialAccountReplyStatus(record.id, status);
-    record.status = status;
+    await fetchData(pagination.page);
     ElMessage.success(t('channel.tip.success'));
   };
 </script>

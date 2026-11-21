@@ -123,11 +123,19 @@ final class DocumentTaskSourceTest extends TestCase
         $this->permissionQuery = $authorization;
         $authorization->method('principal')->willReturnCallback(static fn(TenantContext $actor) => AdminPrincipal::fromArray([
             'id' => $actor->memberId,'tenant_id' => $actor->tenantId,'account_id' => $actor->accountId,'authorization_revision' => $actor->authorizationRevision]));
-        $authorization->method('decide')->willReturnCallback(function ($actor, $principal, string $permission): PermissionDecision {
+        $decision = function (string $permission): PermissionDecision {
             $allowed = str_starts_with($permission, 'peanut.file.') ? $this->fileAllowed
                 : (str_starts_with($permission, 'peanut.article.') ? $this->ownerAllowed
                 : ($permission === 'peanut.task.jobs.manage' ? $this->manageAllowed : true));
             return $allowed ? PermissionDecision::allow($permission) : PermissionDecision::deny($permission, 'PERMISSION_NOT_GRANTED');
+        };
+        $authorization->method('decide')->willReturnCallback(static fn($actor, $principal, string $permission) => $decision($permission));
+        $authorization->method('decisions')->willReturnCallback(static function (TenantContext $actor, array $permissions) use ($decision): array {
+            $decisions = [];
+            foreach ($permissions as $permission) {
+                $decisions[$permission] = $decision($permission);
+            }
+            return $decisions;
         });
         $modules = $this->createStub(ModuleRuntimeRepository::class);
         $this->moduleRepository = $modules;

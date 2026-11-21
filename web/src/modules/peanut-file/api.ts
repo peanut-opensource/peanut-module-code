@@ -39,16 +39,22 @@ export function getFileCateList(type: FileType) {
   });
 }
 
-export function addFileCate(data: {
-  type: FileType;
-  pid?: number;
-  name: string;
-}) {
-  return axios.post('/adminapi/peanut.file.category.add', data);
+export function addFileCate(
+  data: {
+    type: FileType;
+    pid?: number;
+    name: string;
+  },
+  signal?: AbortSignal
+) {
+  return axios.post('/adminapi/peanut.file.category.add', data, { signal });
 }
 
-export function editFileCate(data: { id: number; name: string }) {
-  return axios.post('/adminapi/peanut.file.category.edit', data);
+export function editFileCate(
+  data: { id: number; name: string },
+  signal?: AbortSignal
+) {
+  return axios.post('/adminapi/peanut.file.category.edit', data, { signal });
 }
 
 export function deleteFileCate(id: number) {

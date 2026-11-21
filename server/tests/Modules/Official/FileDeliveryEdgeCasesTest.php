@@ -12,6 +12,7 @@ use PeanutAdmin\Modules\Identity\Contract\TenantSessionAccess;
 
 require_once dirname(__DIR__, 3) . '/vendor/autoload.php';
 require_once dirname(__DIR__, 2) . '/Support/RegisteredMysqlTestResource.php';
+require_once dirname(__DIR__, 2) . '/Support/IsolatedBackendEnvironment.php';
 require_once dirname(__DIR__, 2) . '/Support/ThinkPhpTestConnection.php';
 require_once dirname(__DIR__, 2) . '/Support/IdentityMysqlFixture.php';
 
@@ -33,12 +34,23 @@ function fileAccessDenied(callable $operation, string $message): void
     throw new RuntimeException($message . ': accepted');
 }
 
+$host = IsolatedBackendEnvironment::required('DB_HOST');
+$port = (int) IsolatedBackendEnvironment::required('DB_PORT');
+$user = IsolatedBackendEnvironment::required('DB_USER');
+$password = IsolatedBackendEnvironment::required('DB_PASS');
 $database = RegisteredMysqlTestResource::configuredDatabaseName();
 [$pdo, $created] = RegisteredMysqlTestResource::openEmptyDatabase($database);
 $paths = [];
 $storedPaths = [];
 try {
     $serverRoot = dirname(__DIR__, 3);
+    IsolatedBackendEnvironment::activateDatabase($host, $port, $database, $user, $password, 'multi-tenant');
+    $app = think\Container::getInstance();
+    $app->setRuntimePath(sys_get_temp_dir() . '/peanut-file-' . bin2hex(random_bytes(8)) . '/');
+    $app->env->set(['JWT_SECRET' => str_repeat('f', 32)]);
+    $app->initialize();
+    $app->cache->clear();
+    ThinkPhpTestConnection::fromPdo($pdo);
     IdentityMysqlFixture::install($pdo, [
         $serverRoot . '/app/modules/peanut/file/database/migrations',
         $serverRoot . '/app/modules/peanut/settings/database/migrations',
@@ -58,11 +70,6 @@ try {
     $bootstrap->activateTenantOwner($platform->operatorId, $owner->tenantId, $owner->memberId, 'r0-owner-active');
     $bootstrap->activateTenant($platform->operatorId, $owner->tenantId, 'r0-tenant-active');
     $serverRoot = dirname(__DIR__, 3);
-    $app = think\Container::getInstance();
-    $app->env->set(['DEPLOYMENT_MODE' => 'multi-tenant', 'APP_ENV' => 'development', 'APP_DEBUG' => true, 'JWT_SECRET' => str_repeat('f', 32)]);
-    $app->initialize();
-    $app->cache->clear();
-    ThinkPhpTestConnection::fromPdo($pdo);
     $registry = $app->make(CompiledModuleRegistry::class);
     foreach (['peanut.identity', 'peanut.file', 'peanut.content-tools'] as $moduleKey) {
         $manifest = $registry->requireManifest($moduleKey);

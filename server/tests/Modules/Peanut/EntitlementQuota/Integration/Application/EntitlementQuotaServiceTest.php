@@ -84,7 +84,13 @@ final class EntitlementQuotaServiceTest extends TestCase
             )),
         );
         self::assertSame('peanut.entitlement-quota', Package::MODULE_KEY);
-        self::assertSame('4.0.0-dev', Package::VERSION);
+        $moduleDir = dirname(__DIR__, 6) . '/app/modules/peanut/entitlement_quota';
+        $manifest = json_decode(file_get_contents($moduleDir . '/module.json'), true, 512, JSON_THROW_ON_ERROR);
+        $composer = json_decode(file_get_contents($moduleDir . '/composer.json'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame(Package::MODULE_KEY, $manifest['key']);
+        self::assertSame('peanut-business/entitlement-quota', $manifest['php_package']);
+        self::assertSame($manifest['php_package'], $composer['name']);
+        self::assertSame($manifest['version'], $composer['version']);
 
         $receipt = new EntitlementQuotaReceipt(
             Package::RESERVE_OPERATION,

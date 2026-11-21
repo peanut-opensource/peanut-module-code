@@ -1,5 +1,6 @@
 export default {
   'menu.system.configurationTransfer': 'Configuration Transfer',
+  'importExport.drafts.downloadTemplate': 'Download import template',
   'importExport.drafts.title': 'Article draft import',
   'importExport.drafts.csvInstructions':
     'Use a UTF-8 CSV with the headers title, cid, body. Use an existing category ID for cid. The plain-text body may be empty.',

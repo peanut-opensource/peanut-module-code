@@ -124,6 +124,9 @@ final class RefundBehaviorGateway implements \PeanutAdmin\Modules\Payment\Infras
         self::$refundKeys[$orderSn][] = $refundSn;
         $attempt = count(self::$refundKeys[$orderSn]);
         $mode = self::$modes[$orderSn] ?? 'success';
+        if ($mode === 'pending_then_failed' && $attempt === 1) {
+            throw new RuntimeException('provider result unknown', self::ERROR_RESULT_UNKNOWN);
+        }
         if ($mode === 'accepted_unknown') {
             self::$effects[$refundSn] = (self::$effects[$refundSn] ?? 0) + 1;
             throw new RuntimeException('provider accepted before transport failure', self::ERROR_RESULT_UNKNOWN);
@@ -144,7 +147,7 @@ final class RefundBehaviorGateway implements \PeanutAdmin\Modules\Payment\Infras
         $orderSn = (string) ($order['sn'] ?? '');
         self::$queryKeys[$orderSn][] = $refundSn;
         return [
-            'status' => self::STATUS_SUCCESS,
+            'status' => (self::$modes[$orderSn] ?? '') === 'pending_then_failed' ? self::STATUS_FAILED : self::STATUS_SUCCESS,
             'transaction_id' => 'provider-' . $refundSn,
             'receipt' => ['refund_sn' => $refundSn],
         ];
@@ -198,19 +201,25 @@ INSERT INTO pa_tenant_member (id,tenant_id,account_id,status,created_at,updated_
  (501,101,10501,'active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)),
  (502,202,10502,'active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3));
 INSERT INTO pa_member (id,tenant_id,sn,account,nickname,user_money,total_recharge_amount)
-VALUES (11,101,'M-ALPHA','alpha','Alpha',100.00,30.00),(22,202,'M-BETA','beta','Beta',20.00,0);
+VALUES (11,101,'M-ALPHA','alpha','Alpha',100.00,30.00),(12,101,'M-ASYNC','async','Async',20.00,10.00),(13,101,'M-LEGACY','legacy','Legacy',10.00,0.00),(22,202,'M-BETA','beta','Beta',20.00,0);
 INSERT INTO pa_recharge_order
   (id,tenant_id,sn,user_id,pay_sn,pay_way,pay_status,pay_time,order_amount,order_terminal,transaction_id,refund_status,create_time)
 VALUES (21,101,'RC-ALPHA',11,'PY-ALPHA',2,1,1700000000,10.00,3,'TX-ALPHA',1,1700000000),
        (23,101,'RC-UNKNOWN',11,'PY-UNKNOWN',2,1,1700000000,10.00,3,'TX-UNKNOWN',0,1700000000),
        (24,101,'RC-RETRY',11,'PY-RETRY',2,1,1700000000,10.00,3,'TX-RETRY',0,1700000000),
-       (25,101,'RC-FINALIZE',11,'PY-FINALIZE',2,1,1700000000,10.00,3,'TX-FINALIZE',0,1700000000);
+       (25,101,'RC-FINALIZE',11,'PY-FINALIZE',2,1,1700000000,10.00,3,'TX-FINALIZE',0,1700000000),
+       (26,101,'RC-ASYNC-FAIL',12,'PY-ASYNC-FAIL',2,1,1700000000,10.00,3,'TX-ASYNC-FAIL',0,1700000000),
+       (27,101,'RC-LEGACY-FAIL',13,'PY-LEGACY-FAIL',2,1,1700000000,10.00,3,'TX-LEGACY-FAIL',1,1700000000);
 INSERT INTO pa_refund_record
   (id,tenant_id,sn,user_id,order_id,order_sn,order_type,order_amount,refund_amount,transaction_id,refund_way,refund_type,refund_status,refund_msg)
-VALUES (31,101,'RF-ALPHA',11,21,'RC-ALPHA','recharge',10.00,10.00,'TX-ALPHA',1,1,2,'');
+VALUES (31,101,'RF-ALPHA',11,21,'RC-ALPHA','recharge',10.00,10.00,'TX-ALPHA',1,1,2,''),
+       (32,101,'RF-LEGACY',13,27,'RC-LEGACY-FAIL','recharge',10.00,10.00,'TX-LEGACY-FAIL',1,1,2,'legacy failure');
 INSERT INTO pa_refund_log
   (id,tenant_id,sn,record_id,user_id,handle_id,order_amount,refund_amount,refund_status,refund_msg)
-VALUES (41,101,'RL-ALPHA',31,11,1,10.00,10.00,2,'');
+VALUES (41,101,'RL-ALPHA',31,11,1,10.00,10.00,2,''),
+       (42,101,'RL-LEGACY',32,13,1,10.00,10.00,2,'legacy failure');
+INSERT INTO pa_member_balance_log (tenant_id,sn,member_id,change_object,change_type,action,left_amount,change_amount,source_sn,remark)
+VALUES (101,'BL-LEGACY',13,1,101,2,10.00,10.00,'RF-LEGACY','legacy refund reservation');
 INSERT INTO pa_external_channel_binding (id,tenant_id,provider,callback_key,identity_hash,identity_hint,config_json,status)
 VALUES (101,101,'payment.wechat',SHA2('alpha-callback',256),SHA2('alpha-app:alpha-merchant',256),'alpha',JSON_OBJECT('wx_pay_appid','alpha-app','wx_pay_mch_id','alpha-merchant'),1);
 INSERT INTO pa_payment_tenant_channel_grant (id,tenant_id,provider,external_binding_id,status) VALUES (101,101,'payment.wechat',101,1);
@@ -317,6 +326,60 @@ try {
         (RefundBehaviorGateway::$queryKeys['RC-UNKNOWN'] ?? []) === [(string) $unknownRecord->sn],
         'reconcile did not query with the original RefundRecord SN',
     );
+
+    RefundBehaviorGateway::mode('RC-ASYNC-FAIL', 'pending_then_failed');
+    financeRun($alpha, 'test.refund.async-failure', static fn() => $refunds->refund(
+        $alpha,
+        ['recharge_id' => 26],
+        1,
+        'refund-async-failure-001',
+    ));
+    $asyncRecord = financeRun($alpha, 'test.refund.async-failure-record', static fn() => RefundRecord::where([])
+        ->where('order_id', 26)->findOrEmpty());
+    $balance = static fn(): array => $pdo->query('SELECT user_money,total_recharge_amount FROM pa_member WHERE tenant_id=101 AND id=12')->fetch(PDO::FETCH_ASSOC);
+    $ledger = static fn(): array => $pdo->query('SELECT action,change_amount FROM pa_member_balance_log WHERE tenant_id=101 AND member_id=12 ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+    expectFinanceTenant((int) $asyncRecord->refund_status === RefundEnum::REFUND_ING
+        && $balance() === ['user_money' => '10.00', 'total_recharge_amount' => '0.00']
+        && array_map('intval', array_column($ledger(), 'action')) === [2], 'pending refund did not reserve the balance once');
+
+    financeReconcile($alpha);
+    $asyncRecord = financeRun($alpha, 'test.refund.async-failure-settled', static fn() => RefundRecord::where([])
+        ->where('id', (int) $asyncRecord->id)->findOrEmpty());
+    expectFinanceTenant((int) $asyncRecord->refund_status === RefundEnum::REFUND_ERROR
+        && $balance() === ['user_money' => '20.00', 'total_recharge_amount' => '10.00']
+        && array_map('intval', array_column($ledger(), 'action')) === [2, 1], 'confirmed async failure did not compensate the reservation');
+    financeReconcile($alpha);
+    expectFinanceTenant($balance() === ['user_money' => '20.00', 'total_recharge_amount' => '10.00']
+        && array_map('intval', array_column($ledger(), 'action')) === [2, 1]
+        && (RefundBehaviorGateway::$queryKeys['RC-ASYNC-FAIL'] ?? []) === [(string) $asyncRecord->sn],
+        'repeated reconciliation duplicated the compensation');
+
+    $asyncRetry = financeRun($alpha, 'test.refund.async-failure-retry', static fn() => $refunds->refundAgain(
+        $alpha,
+        ['record_id' => (int) $asyncRecord->id],
+        1,
+    ));
+    $asyncRecord = financeRun($alpha, 'test.refund.async-failure-retried', static fn() => RefundRecord::where([])
+        ->where('id', (int) $asyncRecord->id)->findOrEmpty());
+    expectFinanceTenant($asyncRetry === '操作成功' && (int) $asyncRecord->refund_status === RefundEnum::REFUND_SUCCESS
+        && $balance() === ['user_money' => '10.00', 'total_recharge_amount' => '0.00']
+        && array_map('intval', array_column($ledger(), 'action')) === [2, 1, 2]
+        && (RefundBehaviorGateway::$refundKeys['RC-ASYNC-FAIL'] ?? []) === [(string) $asyncRecord->sn, (string) $asyncRecord->sn]
+        && (RefundBehaviorGateway::$effects[(string) $asyncRecord->sn] ?? 0) === 1,
+        'retry after async failure did not reserve once and reuse the provider key');
+
+    $legacyRetry = financeRun($alpha, 'test.refund.legacy-retry', static fn() => $refunds->refundAgain(
+        $alpha,
+        ['record_id' => 32],
+        1,
+    ));
+    $legacyRecord = financeRun($alpha, 'test.refund.legacy-retried', static fn() => RefundRecord::where([])->findOrEmpty(32));
+    expectFinanceTenant($legacyRetry === '操作成功' && (int) $legacyRecord->refund_status === RefundEnum::REFUND_SUCCESS
+        && $pdo->query('SELECT user_money FROM pa_member WHERE tenant_id=101 AND id=13')->fetchColumn() === '10.00'
+        && $pdo->query('SELECT total_recharge_amount FROM pa_member WHERE tenant_id=101 AND id=13')->fetchColumn() === '0.00'
+        && (int) $pdo->query('SELECT COUNT(*) FROM pa_member_balance_log WHERE tenant_id=101 AND member_id=13')->fetchColumn() === 1
+        && (RefundBehaviorGateway::$refundKeys['RC-LEGACY-FAIL'] ?? []) === ['RF-LEGACY'],
+        'legacy failed refund retry must retain its original reserved balance');
 
     RefundBehaviorGateway::mode('RC-RETRY', 'known_failure_then_success');
     try {

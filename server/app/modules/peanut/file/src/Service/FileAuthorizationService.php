@@ -71,15 +71,14 @@ final readonly class FileAuthorizationService
         if ($current->authorizationRevision !== $context->authorizationRevision) {
             throw BusinessException::forbidden('FILE_AUTHORIZATION_STALE', '资源授权已改变');
         }
-        $principal = $this->authorization->principal($current);
+        // The freshly revalidated context takes the live grant path, including the
+        // plan's effective window, module selection, and matching installation manifest.
+        $decisions = $this->authorization->decisions($current, ['peanut.file.manage', $permission]);
         foreach (['peanut.file.manage', $permission] as $required) {
-            if (!$this->authorization->decide($current, $principal, $required)->allowed) {
+            if (!$decisions[$required]->allowed) {
                 throw BusinessException::forbidden('FILE_MANAGEMENT_DENIED', '无权管理资源');
             }
         }
-        $guard = new ModuleGuard($this->modules);
-        $guard->assertDeployment('peanut.file');
-        $guard->assertTenant($current->tenantId, 'peanut.file', new DateTimeImmutable('now', new DateTimeZone('UTC')));
     }
 
     /** Business upload authority does not replace File's independent live upload permission. */
@@ -113,13 +112,13 @@ final readonly class FileAuthorizationService
         if ($current->authorizationRevision !== $context->authorizationRevision) {
             throw BusinessException::forbidden('FILE_AUTHORIZATION_STALE', '资源授权已改变');
         }
-        $principal = $this->authorization->principal($current);
-        $this->execution->run(new AdminExecutionContext($current, 'file.download_original', $principal->toArray()), function () use ($current, $principal): void {
-            $guard = new ModuleGuard($this->modules);
-            $guard->assertDeployment('peanut.file');
-            $guard->assertTenant($current->tenantId, 'peanut.file', new DateTimeImmutable('now', new DateTimeZone('UTC')));
-            $this->requireOperationPermission($current, $principal, 'download_original');
-        });
+        $guard = new ModuleGuard($this->modules);
+        $guard->assertDeployment('peanut.file');
+        $guard->assertTenant($current->tenantId, 'peanut.file', new DateTimeImmutable('now', new DateTimeZone('UTC')));
+        $decisions = $this->authorization->decisions($current, [self::DOWNLOAD_ORIGINAL_PERMISSION]);
+        if (!$decisions[self::DOWNLOAD_ORIGINAL_PERMISSION]->allowed) {
+            throw BusinessException::forbidden('FILE_ACCESS_DENIED', '无权执行资源操作');
+        }
     }
 
     /** File-internal check after live authorization of the delivery grant's preview. */

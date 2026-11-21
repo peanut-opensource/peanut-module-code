@@ -54,6 +54,7 @@ CREATE TABLE pa_document (id INTEGER PRIMARY KEY, tenant_id INTEGER, owner_modul
 CREATE TABLE pa_document_state (id INTEGER PRIMARY KEY, tenant_id INTEGER, document_id INTEGER, yjs_state_binary BLOB, state_seq INTEGER, state_sha256 TEXT, projected_json JSON, projection_schema_version TEXT, persisted_at TEXT, last_store_id TEXT, UNIQUE(tenant_id,document_id));
 CREATE TABLE pa_document_operation (id INTEGER PRIMARY KEY, tenant_id INTEGER, document_id INTEGER, operation_id TEXT, action TEXT, input_sha256 TEXT, result_json JSON, created_at TEXT, phase TEXT DEFAULT 'completed', UNIQUE(tenant_id,document_id,operation_id));
 CREATE TABLE pa_document_file_ref (id INTEGER PRIMARY KEY, tenant_id INTEGER, document_id INTEGER, file_key TEXT, variant_key TEXT, usage TEXT, derived_state_seq INTEGER, updated_at TEXT);
+CREATE TABLE pa_document_change (id INTEGER PRIMARY KEY, tenant_id INTEGER NOT NULL, document_id INTEGER NOT NULL, state_seq INTEGER NOT NULL, kind TEXT NOT NULL, actor_member_id INTEGER, source_label TEXT NOT NULL, from_projection_sha256 TEXT NOT NULL, to_projection_sha256 TEXT NOT NULL, before_text TEXT NOT NULL, after_text TEXT NOT NULL, operation_id TEXT NOT NULL, source_progress INTEGER, created_at TEXT NOT NULL);
 SQL);
     }
 

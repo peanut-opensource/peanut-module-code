@@ -5,7 +5,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { cloneVNode, defineComponent, h, KeepAlive, nextTick, ref } from 'vue';
 import { createMemoryHistory, createRouter, RouterView } from 'vue-router';
 import axios from 'axios';
-import {
+import ElementPlus, {
   ElAlert,
   ElButton,
   ElMessage,
@@ -54,6 +54,7 @@ let wrappers;
 let warnings;
 let originalAdapter;
 let success;
+let defaultRouter;
 const drain = async () => {
   await flushPromises();
   await nextTick();
@@ -63,7 +64,7 @@ function open(component = Page, plugins = []) {
   const wrapper = mount(component, {
     attachTo: document.body,
     global: {
-      plugins,
+      plugins: [ElementPlus, ...(plugins.length ? plugins : [defaultRouter])],
       directives: { permission },
       config: { warnHandler: (message) => warnings.push(message) },
     },
@@ -103,7 +104,13 @@ const batch = (field, failed = []) => ({
   failed,
 });
 
-beforeEach(() => {
+beforeEach(async () => {
+  defaultRouter = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/records', component: Page }],
+  });
+  await defaultRouter.push('/records');
+  await defaultRouter.isReady();
   pending = [];
   wrappers = [];
   warnings = [];
@@ -206,6 +213,9 @@ describe(`native generated ${example}`, () => {
     old.unmount();
     expect(pending[0].config.signal.aborted).toBe(true);
     wrappers = [];
+    // Vue Router resets its current route when its last mounted app unmounts.
+    await defaultRouter.push('/records');
+    await defaultRouter.isReady();
     const fresh = open();
     await drain();
     pending[1].resolve(result([row('fresh scope')]));

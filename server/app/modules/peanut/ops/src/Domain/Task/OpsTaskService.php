@@ -69,6 +69,22 @@ final readonly class OpsTaskService
         }
     }
 
+    /** @param list<string> $taskKeys @return list<OpsTask> */
+    public function tasks(PlatformContext $context, array $taskKeys): array
+    {
+        if ($taskKeys === []) { return []; }
+        $this->assertAllowed($context, Package::READ_PERMISSION);
+        try {
+            return $this->dispatcher->findMany($context, $taskKeys);
+        } catch (OpsConsoleException $exception) {
+            throw $exception;
+        } catch (InvalidArgumentException) {
+            throw OpsConsoleException::taskNotFound();
+        } catch (Throwable) {
+            throw OpsConsoleException::taskUnavailable();
+        }
+    }
+
     /** @param array<string, string> $payload */
     private function dispatch(
         PlatformContext $context,

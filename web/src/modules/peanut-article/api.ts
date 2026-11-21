@@ -293,6 +293,35 @@ export function exportArticleCategories(
   });
 }
 
+export function getRecycledArticleCategories(
+  page: number,
+  pageSize: number,
+  signal?: AbortSignal
+) {
+  return axios.get<ArticleCateListRes>(
+    '/adminapi/peanut.article.category.recycle.list',
+    { params: { page_no: page, page_size: pageSize }, signal }
+  );
+}
+export function restoreArticleCategory(id: number, signal?: AbortSignal) {
+  return axios.post<{
+    restored: number[];
+    already_active: number[];
+    failed: { id: number; code: string; message: string }[];
+  }>('/adminapi/peanut.article.category.restore', { ids: [id] }, { signal });
+}
+
+export function purgeArticleCategory(id: number, signal?: AbortSignal) {
+  return axios.post<{
+    deleted: number[];
+    failed: { id: number; code: string; message: string }[];
+  }>(
+    '/adminapi/peanut.article.category.force-delete',
+    { ids: [id] },
+    { signal }
+  );
+}
+
 export function getArticleCateAll(signal?: AbortSignal) {
   return axios.get<ArticleCateOption[]>(
     '/adminapi/peanut.article.category.all',

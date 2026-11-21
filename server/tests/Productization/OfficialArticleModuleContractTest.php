@@ -34,6 +34,7 @@ officialArticleExpect(
 officialArticleExpect(
     ($manifest['contracts']['exports'] ?? null) === [
         'PeanutAdmin\\Modules\\Article\\Contract\\ArticleAdministration',
+        'PeanutAdmin\\Modules\\Article\\Contract\\ArticleDraftImport',
         'PeanutAdmin\\Modules\\Article\\Contract\\ArticleBodySaveInput',
         'PeanutAdmin\\Modules\\Article\\Contract\\ArticleHtmlMigrationInput',
         'PeanutAdmin\\Modules\\Article\\Contract\\ArticleQueries',
@@ -92,6 +93,12 @@ $articlePersistence = $administration . $publicArticles
     . (string) file_get_contents($moduleRoot . '/src/Model/Article.php')
     . (string) file_get_contents($moduleRoot . '/src/Model/ArticleCate.php')
     . (string) file_get_contents($moduleRoot . '/src/Model/ArticleCollect.php');
+officialArticleExpect(
+    substr_count($articlePersistence, "->where('tenant_id', \$context->tenantId)") === 1
+        && str_contains($publicArticles, 'public function publishedCardsSql(TenantSystemContext $context): string'),
+    'published Article SQL must retain its trusted tenant scope',
+);
+$articlePersistence = str_replace("->where('tenant_id', \$context->tenantId)", '', $articlePersistence);
 $provider = (string) file_get_contents($moduleRoot . '/src/ModuleProvider.php');
 $categoryController = (string) file_get_contents($moduleRoot . '/src/Controller/ArticleCateController.php');
 officialArticleExpect(substr_count($routes, "Route::get('peanut.article.") === 13, 'Article GET route count changed');
@@ -99,8 +106,7 @@ officialArticleExpect(substr_count($routes, "Route::post('peanut.article.") === 
 officialArticleExpect(str_contains($routes, "[OfficialModuleMiddleware::class, ['peanut.article', 'http.admin']]"), 'Article admin routes lost their Module boundary');
 officialArticleExpect(
     str_contains($categoryController, 'use CrudTrait;')
-        && str_contains($categoryController, 'protected string $crudClass = ArticleCategoryAdministration::class;')
-        && str_contains($categoryController, '@property-read ArticleCategoryAdministration $crud'),
+        && str_contains($categoryController, 'private readonly ArticleCategoryAdministration $crud'),
     'Article category controller is not mapped to the declared category application use case',
 );
 officialArticleExpect(
@@ -142,7 +148,7 @@ officialArticleExpect(
 
 $consumer = (string) file_get_contents($moduleRoot . '/src/Controller/ConsumerArticleController.php');
 $landing = (string) file_get_contents($moduleRoot . '/src/Service/ArticleLandingService.php');
-officialArticleExpect(str_contains($consumer, 'protected string $articlesClass = PublicArticleQueries::class;') && str_contains($landing, 'private PublicArticleQueries $articles'), 'Article consumer bypasses its public queries');
+officialArticleExpect(str_contains($consumer, 'private readonly PublicArticleQueries $articles') && str_contains($landing, 'private PublicArticleQueries $articles'), 'Article consumer bypasses its public queries');
 officialArticleExpect(str_contains($provider, 'PublicArticleQueries::class =>') && str_contains($publicArticles, 'implements PublicArticleQueries'), 'Public Article provider binding is missing');
 officialArticleExpect(
     str_contains($publicMiddleware, "'文章模块当前不可用'")
@@ -167,7 +173,7 @@ officialArticleExpect(
 
 $contribution = (string) file_get_contents($repoRoot . '/web/src/modules/peanut-article/contribution.ts');
 officialArticleExpect(
-    substr_count($contribution, "tenantModuleKey: 'peanut.article'") === 3,
+    substr_count($contribution, "tenantModuleKey: 'peanut.article'") === 4,
     'Article frontend contribution lost TenantModule route metadata',
 );
 officialArticleExpect(

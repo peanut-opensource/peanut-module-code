@@ -87,8 +87,8 @@ INSERT INTO pa_plan (id,code,name,status,created_at,updated_at)
  VALUES (1,'article-fixture','Article fixture','active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3));
 INSERT INTO pa_plan_module (plan_id,module_key) VALUES (1,'peanut.article');
 INSERT INTO pa_tenant_license (tenant_id,plan_id,status,effective_at,created_at,updated_at) VALUES
- (101,1,'active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)),
- (202,1,'suspended',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3));
+ (101,1,'active','2020-01-01 00:00:00.000',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)),
+ (202,1,'suspended','2020-01-01 00:00:00.000',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3));
 INSERT INTO pa_article_cate (id,tenant_id,name,sort,is_show) VALUES
  (11,101,'Alpha',10,1),(12,202,'Beta',10,1);
 INSERT INTO pa_article (id,tenant_id,cid,title,is_show) VALUES

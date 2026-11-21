@@ -37,6 +37,13 @@ final class PlatformPermissionMiddleware
             throw \app\common\http\ApiProblem::fromEnvelope('Platform permission boundary is invalid.', null, 40300);
         }
 
+        $route = $request->rule();
+        $decision = $request->middleware(self::class);
+        if ($route !== null && is_array($decision) && $decision['route'] === $route
+            && $decision['context'] === $context && in_array($permission, $decision['permissions'], true)) {
+            return $next($request);
+        }
+
         $endpoint = $this->apis->endpoint($request, 'platform');
         if ($endpoint === null || $endpoint['access_mode'] !== 'platform_permission'
             || !$this->apis->moduleAvailable($endpoint, $this->modules)) {
@@ -62,6 +69,12 @@ final class PlatformPermissionMiddleware
                 throw \app\common\http\ApiProblem::fromEnvelope('演示账号已锁定平台权限和关键配置操作', null, 40300);
             }
         }
+
+        $request->withMiddleware([self::class => [
+            'route' => $route,
+            'context' => $context,
+            'permissions' => [...$primary, ...$prerequisites],
+        ]]);
 
         return $next($request);
     }

@@ -17,6 +17,7 @@ use app\common\http\PageResult;
 use PeanutAdmin\Modules\File\Service\Storage\StorageService;
 use app\common\support\PaginationInput;
 use PeanutAdmin\Modules\File\Support\PositiveIds;
+use PeanutAdmin\Kernel\Tree\TreeBuilder;
 use think\facade\Db;
 
 /** Application use cases for File media and categories. */
@@ -162,7 +163,25 @@ final class FileAdministrationService implements FileAdministration
             }
         }
 
-        return $page->map(function (array $item) use ($objects, $metadata, $derivatives, $derivativeObjects): array {
+        $previewSources = [];
+        $previewVariants = [];
+        foreach ($page->items as $item) {
+            $fileKey = (string) $item['file_key'];
+            foreach ($derivatives[$fileKey] ?? [] as $derivative) {
+                $derivativeObject = $derivativeObjects[(string) $derivative['derivative_file_key']] ?? null;
+                if (!is_array($derivativeObject) || ($derivativeObject['status'] ?? null) !== 'ready') {
+                    continue;
+                }
+                $previewSources[] = $fileKey;
+                $previewVariants[] = (string) $derivative['variant_key'];
+            }
+        }
+        $variantPreviews = $previewSources === [] ? [] : $this->storage->resolvePreviewPage(
+            $this->executionContext->tenantAdmin(), $previewSources, 'builtin.image', $previewVariants,
+        );
+        $previewIndex = 0;
+
+        return $page->map(function (array $item) use ($objects, $metadata, $derivatives, $derivativeObjects, $variantPreviews, &$previewIndex): array {
             $fileKey = (string) $item['file_key'];
             $object = $objects[$fileKey] ?? [];
             $image = $metadata[$fileKey] ?? null;
@@ -179,7 +198,7 @@ final class FileAdministrationService implements FileAdministration
                     'width' => (int) $derivative['width'],
                     'height' => (int) $derivative['height'],
                     'media_type' => (string) $derivative['media_type'],
-                    'delivery_uri' => $this->storage->resolveAuthorized($this->executionContext->tenantAdmin(), $fileKey, 'preview', null, (string) $derivative['variant_key'], 'builtin.image')['url'] ?? '',
+                    'delivery_uri' => $variantPreviews[$previewIndex++]['url'] ?? '',
                 ];
             }
             return [
@@ -301,7 +320,7 @@ final class FileAdministrationService implements FileAdministration
             ->order(['id' => 'asc'])
             ->select()
             ->toArray();
-        return linear_to_tree($categories);
+        return (new TreeBuilder())->build($categories, 'id', 'pid');
     }
 
     public function addCategory(array $params): void

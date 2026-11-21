@@ -18,6 +18,7 @@ $server = dirname(__DIR__, 2);
 require_once $server . '/vendor/autoload.php';
 require_once $server . '/vendor/topthink/framework/src/helper.php';
 require_once $server . '/tests/Support/RegisteredMysqlTestResource.php';
+require_once $server . '/tests/Support/IsolatedBackendEnvironment.php';
 require_once $server . '/tests/Support/ThinkPhpTestConnection.php';
 require_once $server . '/tests/Support/IdentityMysqlFixture.php';
 
@@ -40,7 +41,13 @@ function optionalMenuVisible(ThinkPhpMenuCatalogRepository $repository, array $p
     );
 }
 
+$environment = getenv('PEANUT_SERVER_ENV_FILE');
+if (!is_string($environment) || !str_starts_with($environment, '/') || !is_file($environment)
+    || is_link($environment) || !is_readable($environment)) {
+    throw new RuntimeException('Explicit isolated backend environment file is required');
+}
 $app = new \think\App($server);
+$app->env->load($environment);
 $app->config->set(['mode' => 'multi-tenant'], 'deployment');
 $registry = (new ModuleModuleRegistryFactory($server))->fromDeploymentConfig([
     'roots' => array_map('dirname', glob($server . '/app/modules/peanut/*/module.json')),
@@ -51,10 +58,20 @@ optionalMenuExpect(count($registry->modules) === 22, 'Optional menu fixture must
 $database = RegisteredMysqlTestResource::configuredDatabaseName();
 [$pdo, $created] = RegisteredMysqlTestResource::openEmptyDatabase($database);
 try {
+    IsolatedBackendEnvironment::activateDatabase(
+        IsolatedBackendEnvironment::required('DB_HOST'),
+        IsolatedBackendEnvironment::required('DB_PORT'),
+        $database,
+        IsolatedBackendEnvironment::required('DB_USER'),
+        IsolatedBackendEnvironment::required('DB_PASS'),
+        'multi-tenant',
+    );
+    $app->setRuntimePath(sys_get_temp_dir() . '/peanut-optional-menu-' . bin2hex(random_bytes(8)) . '/');
+    $app->initialize();
+    ThinkPhpTestConnection::fromPdo($pdo);
     $migrationDirectories = glob($server . '/app/modules/peanut/*/database/migrations', GLOB_ONLYDIR);
     $migrationDirectories = array_values(array_filter($migrationDirectories, static fn($path) => !str_contains($path, '/identity/')));
-    IdentityMysqlFixture::install($pdo, [...$migrationDirectories, $server . '/database/installation']);
-    ThinkPhpTestConnection::fromPdo($pdo);
+    IdentityMysqlFixture::install($pdo, [...$migrationDirectories, $server . '/database/installation', $server . '/database/migrations']);
     (new CorePermissionCatalogSynchronizer(new ThinkPhpAuthorizationCatalogRepository()))->synchronize();
     $bootstrap = new \PeanutAdmin\Modules\Identity\Platform\Bootstrap\BootstrapService(
         new \PeanutAdmin\Modules\Identity\Audit\AuditService(),
@@ -75,7 +92,8 @@ try {
     $applier->activatePackageDeployment($manifests, false, gmdate('Y-m-d H:i:s'));
     $pdo->exec("INSERT INTO pa_plan(code,name,status,revision,created_at,updated_at) VALUES('optional-menu','Optional menu fixture','active',1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
     $plan = (int) $pdo->lastInsertId();
-    $pdo->prepare("INSERT INTO pa_tenant_license(tenant_id,plan_id,status,effective_at,revision,created_at,updated_at) VALUES(?,?,'active',UTC_TIMESTAMP(3),1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))")->execute([$owner->tenantId, $plan]);
+    // Keep the fixture effective despite small clock differences between PHP and MySQL hosts.
+    $pdo->prepare("INSERT INTO pa_tenant_license(tenant_id,plan_id,status,effective_at,revision,created_at,updated_at) VALUES(?,?,'active',DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 1 MINUTE),1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))")->execute([$owner->tenantId, $plan]);
     foreach (array_keys($manifests) as $key) {
         $pdo->prepare('INSERT INTO pa_plan_module(plan_id,module_key) VALUES(?,?)')->execute([$plan, $key]);
     }
@@ -114,7 +132,12 @@ try {
     $bridge = (new ReflectionClass(CoreTenantModuleAdminBridge::class))->newInstanceWithoutConstructor();
     (new ReflectionProperty($bridge, 'menuAdministration'))->setValue($bridge, new MenuAdministrationService());
     $projection = new ReflectionMethod($bridge, 'serverMenuRecords');
-    $project = static fn() => $projection->invoke($bridge, optionalMenuVisible($repository, $permissions, $repository->activeDeploymentModules(), $repository->activeTenantModules($owner->tenantId)), $permissions);
+    // Each projection represents a new request after any fixture mutation.
+    $project = static function () use ($registry, $projection, $bridge, $permissions, $owner): array {
+        $repository = new ThinkPhpMenuCatalogRepository(new TenantEntitlementService($registry));
+        return $projection->invoke($bridge, optionalMenuVisible($repository, $permissions, $repository->activeDeploymentModules(), $repository->activeTenantModules($owner->tenantId)), $permissions);
+    };
+    // Exercise the underlying presentation service, not MT access to its ST-only HTTP entry.
     $management = new MenuApplicationService(
         (new ReflectionClass(AdminAuthorizationService::class))->newInstanceWithoutConstructor(),
         (new ReflectionClass(MenuPermissionUsageQuery::class))->newInstanceWithoutConstructor(),
@@ -122,8 +145,19 @@ try {
     );
     foreach (['peanut.article.articles', 'peanut.oauth.channels'] as $key) {
         $record = $management->detail($key);
+        $snapshot = $pdo->prepare('SELECT * FROM pa_system_menu WHERE `key` = ?');
+        $snapshot->execute([$key]);
+        $unchanged = $snapshot->fetch(PDO::FETCH_ASSOC);
+        try {
+            $management->edit([...$record, 'perms' => 'malicious.grant']);
+            throw new RuntimeException('Unknown permission accepted');
+        } catch (\app\common\exception\BusinessException $exception) {
+            optionalMenuExpect($exception->errorCode === 'MENU_PERMISSION_INVALID', 'Unknown permission returned an unexpected error');
+        }
+        $snapshot->execute([$key]);
+        optionalMenuExpect($snapshot->fetch(PDO::FETCH_ASSOC) === $unchanged, 'Rejected permission changed the menu record');
         $management->edit([...$record, 'name' => '自定义展示名', 'sort' => 888, 'is_show' => 0, 'is_cache' => 1,
-            'perms' => 'malicious.grant', 'paths' => '/malicious', 'component' => 'malicious/component']);
+            'paths' => '/malicious', 'component' => 'malicious/component']);
         $applier->apply($registry);
         $edited = $management->detail($key);
         optionalMenuExpect($edited['name'] === '自定义展示名' && $edited['sort'] === 888 && $edited['is_show'] === 0 && $edited['is_cache'] === 1, 'Optional presentation edit was overwritten');
@@ -140,18 +174,18 @@ try {
         }
     }
 
-    // A customized Member legacy parent is presentation, and a disabled parent must deny its child.
-    $pdo->exec("INSERT INTO pa_system_menu(menu_key,module_key,pid,type,name,paths,sort) VALUES('custom.optional-members','application',0,'M','我的会员目录','/optional-members',999)");
-    $groupId = (int) $pdo->lastInsertId();
-    $member = $management->detail('peanut.member.account-log');
-    $pdo->prepare("INSERT INTO pa_system_menu(menu_key,parent_key,module_key,pid,type,name,perms,paths,component) VALUES('peanut.member.account-log','custom.optional-members','peanut.member',?,'C',?,?,?,?)")
-        ->execute([$groupId, $member['name'], $member['perms'], $member['paths'], $member['component']]);
+    // Model an existing presentation override using a compiled native category.
+    $groupRows = $pdo->query("SELECT id, `key` FROM pa_system_menu WHERE `key`='core.organization' AND type='group'")->fetchAll(PDO::FETCH_ASSOC);
+    optionalMenuExpect(count($groupRows) === 1, 'Native Member category was not unique');
+    $groupId = (int) $groupRows[0]['id'];
+    $groupKey = $groupRows[0]['key'];
+    $pdo->prepare("UPDATE pa_system_menu SET parent_key=? WHERE `key`='peanut.member.account-log'")->execute([$groupKey]);
     $applier->apply($registry);
     $memberRows = array_values(array_filter($project(), static fn($row) => $row['menu_key'] === 'peanut.member.account-log'));
-    optionalMenuExpect(count($memberRows) === 1 && $memberRows[0]['pid'] === $groupId, 'Member projection overrode a customized legacy parent');
-    $pdo->exec("UPDATE pa_system_menu SET is_disable=1 WHERE id={$groupId}");
+    optionalMenuExpect(count($memberRows) === 1 && $memberRows[0]['pid'] === $groupId, 'Member projection overrode a customized parent');
+    $pdo->prepare('UPDATE pa_system_menu SET is_disable=1 WHERE `key`=?')->execute([$groupKey]);
     optionalMenuExpect(count(array_filter($project(), static fn($row) => $row['menu_key'] === 'peanut.member.account-log')) === 0, 'Disabled customized category leaked Member page');
-    $pdo->exec("UPDATE pa_system_menu SET is_disable=0 WHERE id={$groupId}");
+    $pdo->prepare('UPDATE pa_system_menu SET is_disable=0 WHERE `key`=?')->execute([$groupKey]);
 
     $applier->disableActivePackageModules(['peanut.notification']);
     optionalMenuExpect(!in_array('peanut.notification', $repository->activeDeploymentModules(), true), 'Deployment-disabled optional module remained available');
@@ -163,6 +197,9 @@ try {
     $pdo->prepare("INSERT INTO pa_plan_module(plan_id,module_key) VALUES(?,'peanut.notification')")->execute([$plan]);
     $pdo->exec("UPDATE pa_tenant_license SET status='suspended' WHERE tenant_id={$owner->tenantId}");
     $optionalKeys = array_values(array_filter(array_keys($manifests), static fn($key) => !$registry->isRequiredTenantFoundation($key)));
+    $suspendedEntitlements = new TenantEntitlementService($registry);
+    optionalMenuExpect($suspendedEntitlements->license($owner->tenantId)['state'] === 'suspended', 'Fresh request did not observe suspended license');
+    optionalMenuExpect(array_intersect($suspendedEntitlements->moduleKeys($owner->tenantId), $optionalKeys) === [], 'Suspended license retained optional module entitlements');
     optionalMenuExpect(count(array_filter($project(), static fn($row) => in_array($row['module_key'], $optionalKeys, true))) === 0, 'Suspended license leaked optional module menus');
     $pdo->exec("UPDATE pa_tenant_license SET status='active' WHERE tenant_id={$owner->tenantId}");
     $applier->retire(['peanut.notification']);

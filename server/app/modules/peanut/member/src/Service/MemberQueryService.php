@@ -74,6 +74,15 @@ final class MemberQueryService implements MemberQueries
         );
     }
 
+    public function balanceLogsBySource(TenantContext|TenantSystemContext $context, int $memberId, array $sourceSns): array
+    {
+        if ($sourceSns === []) {
+            return [];
+        }
+        return MemberBalanceLog::where([])->where('member_id', $memberId)->whereIn('source_sn', $sourceSns)
+            ->field('source_sn,action,change_type,change_amount')->select()->toArray();
+    }
+
     public function balanceLogsForCurrentMember(int $page, int $pageSize): PageResult
     {
         $context = $this->executionContext->member();

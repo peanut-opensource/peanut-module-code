@@ -16,7 +16,7 @@
       "PeanutAdmin\\Modules\\Identity\\": "src/"
     }
   },
-  "version": "4.0.1-rc.9",
+  "version": "4.0.1-rc.11",
   "extra": {
     "peanut": {
       "editions": [

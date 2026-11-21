@@ -66,15 +66,12 @@ final readonly class PlatformBackupCenterService
     /** @return list<array<string,mixed>> */
     private function recentTasks(PlatformContext $context, int $page, int $pageSize): array
     {
-        $tasks = [];
         $taskKeys = Db::name('ops_task')->whereIn('task_type', [Package::BACKUP_TASK_TYPE, Package::RESTORE_TASK_TYPE])
             ->order('id', 'desc')->page($page, $pageSize)->column('task_key');
-        foreach ($taskKeys as $taskKey) {
-            $tasks[] = $this->tasks
-                ->task($context, (string) $taskKey)
-                ->toPublicArray();
-        }
-        return $tasks;
+        return array_map(
+            static fn($task): array => $task->toPublicArray(),
+            $this->tasks->tasks($context, array_map('strval', $taskKeys)),
+        );
     }
 
     /** @return array<string,mixed>|null */

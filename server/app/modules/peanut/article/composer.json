@@ -1,6 +1,6 @@
 {
   "name": "peanut-business/peanut-article",
-  "version": "1.0.21-rc.12",
+  "version": "1.0.21-rc.18",
   "type": "peanut-admin-module",
   "license": "Apache-2.0",
   "autoload": {
@@ -16,6 +16,7 @@
     }
   },
   "require": {
+    "peanut-admin/core": "^5.1.3-rc.4",
     "peanut-business/peanut-identity": "^4.0.0-rc.32",
     "peanut-business/peanut-document": "^1.0.28-rc.5",
     "peanut-business/peanut-rich-text": "^1.0.16",

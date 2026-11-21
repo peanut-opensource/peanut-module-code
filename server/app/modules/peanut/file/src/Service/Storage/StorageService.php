@@ -232,7 +232,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             if ($object === null) {
                 throw new \RuntimeException('文件对象当前不可交付');
             }
-            $stored['url'] = $purpose === 'export.xlsx' ? $this->accessUrlForTenant($tenantId, $fileKey)
+            $stored['url'] = $purpose === 'export.xlsx' ? $this->originalAccessUrl($object)
                 : ($access === 'public' ? $this->url($object) : '');
             return $stored;
         } catch (\Throwable $error) {
@@ -839,6 +839,11 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         if ($object === null) {
             throw new \RuntimeException('文件对象不存在或不可用');
         }
+        return $this->originalAccessUrl($object);
+    }
+
+    private function originalAccessUrl(array $object): string
+    {
         $context = $this->execution->tenantAdmin();
         $grant = $this->authorization->authorize($context, $object, 'download_original');
         return $this->url($object, $grant, 'download_original');
@@ -1230,7 +1235,9 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             || strtotime((string) $grant['expires_at'] . ' UTC') <= time()) {
             throw BusinessException::forbidden('FILE_DELIVERY_REVOKED', '资源链接已失效');
         }
-        $source = $this->deliverableObjectForTenant($tenantId, (string) $grant['source_file_key']);
+        $source = $grant['source_file_key'] === $fileKey
+            ? $object
+            : $this->deliverableObjectForTenant($tenantId, (string) $grant['source_file_key']);
         if ($source === null || (int) $source['revision'] !== (int) $grant['source_revision']
             || $source['access_type'] !== $grant['source_visibility']) {
             throw BusinessException::forbidden('FILE_DELIVERY_REVOKED', '资源链接已失效');
@@ -1278,7 +1285,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
     }
 
     /** File administration shares one live authorization across this tenant's ready page objects. */
-    public function resolvePreviewPage(TenantContext $context, array $fileKeys, ?string $viewerAdapterId): array
+    public function resolvePreviewPage(TenantContext $context, array $fileKeys, ?string $viewerAdapterId, array $variantKeys = []): array
     {
         if ($fileKeys === []) {
             return [];
@@ -1290,12 +1297,35 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             ? array_column($rows, null, 'file_key')
             : [];
         $access = null;
+        $batch = null;
         $previews = [];
         foreach ($fileKeys as $index => $fileKey) {
             $source = $objects[$fileKey] ?? throw BusinessException::notFound('FILE_NOT_FOUND', '资源不存在');
             $this->authorization->assertReadableObject($context, $source);
             $access ??= $this->authorization->authorizePreviewPage($context);
-            $previews[$index] = $this->describeAuthorizedObject($context, $source, 'preview', null, null, $viewerAdapterId, $access['grant'], $access['can_download_original']);
+            if ($batch === null) {
+                $batch = ['variants' => [], 'targets' => []];
+                if (!$access['can_download_original'] || $variantKeys !== []) {
+                    $variants = Db::name('file_derivative')->where('tenant_id', $context->tenantId)
+                        ->whereIn('source_file_key', array_values(array_unique($fileKeys)))
+                        ->order('variant_key')->select()->toArray();
+                    $targetKeys = [];
+                    foreach ($variants as $variant) {
+                        $sourceKey = (string) $variant['source_file_key'];
+                        $key = (string) $variant['variant_key'];
+                        $batch['variants'][$sourceKey][$key] ??= $variant;
+                        $targetKeys[] = (string) $variant['derivative_file_key'];
+                    }
+                    if ($targetKeys !== []) {
+                        $targets = $this->objectQuery($tenantId)->whereIn('f.file_key', array_values(array_unique($targetKeys)))
+                            ->where('f.status', 'ready')->select()->toArray();
+                        if ($targets !== [] && $this->directory->tenantStatus($tenantId) === 'active') {
+                            $batch['targets'] = array_column($targets, null, 'file_key');
+                        }
+                    }
+                }
+            }
+            $previews[$index] = $this->describeAuthorizedObject($context, $source, 'preview', null, $variantKeys[$index] ?? null, $viewerAdapterId, $access['grant'], $access['can_download_original'], $batch);
         }
         return $previews;
     }
@@ -1313,7 +1343,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         return $this->describeAuthorizedObject($context, $source, $operation, $documentId, $variantKey, $viewerAdapterId, $grant, $canDownload);
     }
 
-    private function describeAuthorizedObject(TenantContext $context, array $source, string $operation, ?int $documentId, ?string $variantKey, ?string $viewerAdapterId, array $grant, bool $canDownload): array
+    private function describeAuthorizedObject(TenantContext $context, array $source, string $operation, ?int $documentId, ?string $variantKey, ?string $viewerAdapterId, array $grant, bool $canDownload, ?array $batch = null): array
     {
         $fileKey = (string) $source['file_key'];
         if ($operation === 'manage') {
@@ -1322,13 +1352,19 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         $target = $source;
         $selectedVariantKey = null;
         if ($operation === 'preview' && (!$canDownload || $variantKey !== null)) {
-            $query = Db::name('file_derivative')->where('source_file_key', $fileKey);
-            $query->where('tenant_id', $context->tenantId);
-            if ($variantKey !== null) {
-                $query->where('variant_key', $variantKey);
+            if ($batch !== null) {
+                $variants = $batch['variants'][$fileKey] ?? [];
+                $variant = $variantKey === null ? (reset($variants) ?: null) : ($variants[$variantKey] ?? null);
+                $target = is_array($variant) ? ($batch['targets'][(string) $variant['derivative_file_key']] ?? null) : null;
+            } else {
+                $query = Db::name('file_derivative')->where('source_file_key', $fileKey);
+                $query->where('tenant_id', $context->tenantId);
+                if ($variantKey !== null) {
+                    $query->where('variant_key', $variantKey);
+                }
+                $variant = $query->order('variant_key')->find();
+                $target = is_array($variant) ? $this->deliverableObjectForTenant($context->tenantId, (string) $variant['derivative_file_key']) : null;
             }
-            $variant = $query->order('variant_key')->find();
-            $target = is_array($variant) ? $this->deliverableObjectForTenant($context->tenantId, (string) $variant['derivative_file_key']) : null;
             if ($target === null || $target['file_key'] === $fileKey || $target['sha256'] === $source['sha256']
                 || !in_array($target['media_type'], ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'], true)) {
                 return ['file_key' => $fileKey, 'state' => 'preview_unavailable', 'can_download_original' => $canDownload, 'url' => null];
@@ -1429,6 +1465,21 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
     public function visibilityManifest(TenantContext $context, array $roots, string $batchKey, bool $lock = false, array $qualifications = []): array
     {
         $this->authorization->requireManagementPermission($context, 'peanut.file.visibility.change');
+        return $this->readVisibilityManifest($context, $roots, $batchKey, $lock, $qualifications);
+    }
+
+    public function previewVisibilityManifest(TenantContext $context, array $roots, string $batchKey): array
+    {
+        $this->authorization->requireManagementPermission($context, 'peanut.file.visibility.change');
+        $manifest = $this->readVisibilityManifest($context, $roots, $batchKey, false, []);
+        foreach ($this->readVisibilityOriginQualifications($manifest) as $key => $facts) {
+            $manifest['files'][$key]['source']['origin_qualification'] = $facts;
+        }
+        return $manifest;
+    }
+
+    private function readVisibilityManifest(TenantContext $context, array $roots, string $batchKey, bool $lock, array $qualifications): array
+    {
         if ($roots === [] || count($roots) > 100 || count(array_unique($roots)) !== count($roots)
             || preg_match('/^batch_[a-f0-9]{32}$/D', $batchKey) !== 1) {
             throw BusinessException::invalid('FILE_VISIBILITY_INPUT_INVALID', '请选择有效资源');
@@ -1456,22 +1507,31 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
                 throw BusinessException::invalid('FILE_VISIBILITY_CLOSURE_LIMIT', '关联资源过多，请缩小批次');
             }
         } while ($oldKeys !== $keys);
-        $files = [];
-        foreach ($keys as $key) {
-            if ($lock) {
-                $row = $this->ownedObjects($context->tenantId)->where('file_key', $key)->lock(true)->find();
-                if ($row === null) {
-                    throw BusinessException::notFound('FILE_VISIBILITY_OBJECT_NOT_FOUND', '资源不存在');
-                }
+        if ($lock) {
+            $locked = $this->ownedObjects($context->tenantId)->whereIn('file_key', $keys)
+                ->order('file_key')->field('file_key')->lock(true)->select()->toArray();
+            if (count($locked) !== count($keys)) {
+                throw BusinessException::notFound('FILE_VISIBILITY_OBJECT_NOT_FOUND', '资源不存在');
             }
-            $object = $this->objectForTenant($context->tenantId, $key, false);
+        }
+        $objects = $this->directory->tenantStatus($context->tenantId) === null ? [] : array_column(
+            $this->objectQuery($context->tenantId)->whereIn('f.file_key', $keys)->select()->toArray(),
+            null,
+            'file_key',
+        );
+        $files = [];
+        $routes = [];
+        foreach ($keys as $key) {
+            $object = $objects[$key] ?? null;
             if ($object === null || $object['status'] !== 'ready' || $object['access_type'] !== 'public'
                 || ($object['visibility_batch_key'] ?? null) !== null || !is_string($object['sha256'])
                 || preg_match('/^[a-f0-9]{64}$/D', $object['sha256']) !== 1) {
                 throw BusinessException::conflict('FILE_VISIBILITY_OBJECT_NOT_STABLE', '资源不可切换或已被其他操作占用');
             }
-            $this->authorization->authorize($context, $object, 'manage');
-            $target = $this->route((string) $object['purpose'], 'private');
+            // Management permission and the module state were checked once for this manifest.
+            $this->authorization->assertReadableObject($context, $object);
+            $purpose = (string) $object['purpose'];
+            $target = $routes[$purpose] ??= $this->route($purpose, 'private');
             if ($target['driver'] !== 'local' || $target['bucket'] !== null || $target['access_domain'] !== null
                 || $target['local_path'] !== 'private/storage') {
                 throw BusinessException::conflict('FILE_VISIBILITY_ORIGIN_UNQUALIFIED', '目标不支持可核验的私有存储');
@@ -1520,7 +1580,15 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
     /** Provider metadata is read before the short admission transaction, never while its row locks are held. */
     public function visibilityOriginQualifications(TenantContext $context, array $manifest): array
     {
+        if (!in_array('qiniu', array_map(static fn (array $file): string => $file['source']['driver'], $manifest['files']), true)) {
+            return [];
+        }
         $this->authorization->requireManagementPermission($context, 'peanut.file.visibility.change');
+        return $this->readVisibilityOriginQualifications($manifest);
+    }
+
+    private function readVisibilityOriginQualifications(array $manifest): array
+    {
         $qualifications = [];
         $observedOrigins = [];
         foreach ($manifest['files'] as $key => $file) {

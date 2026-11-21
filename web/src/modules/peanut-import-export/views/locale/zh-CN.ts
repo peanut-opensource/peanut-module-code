@@ -1,5 +1,6 @@
 export default {
   'menu.system.configurationTransfer': '配置转移',
+  'importExport.drafts.downloadTemplate': '下载导入模板',
   'importExport.drafts.title': '导入资讯草稿',
   'importExport.drafts.csvInstructions':
     '使用 UTF-8 CSV，表头为 title、cid、body。cid 填写已有栏目 ID，正文为纯文本，可留空。',

@@ -17,4 +17,6 @@
 
 Before project work, read [the project rule index](docs/README.md) and, when present, [the application-owned rules](docs/project-rules.md), then load only the topics needed for the current task. Project identity, architecture, tool commands, runtime resources, Git policy and acceptance requirements belong in those documents, not in this reusable entry. If a required entry is missing, locate the existing project authority before making dependent changes.
 
+For official Module enhancement and cross-application upgrades, follow the sequence in [module development and delivery](docs/public/module-development.md#可用的开发与交付入口).
+
 For maintainer work, also read `docs/maintenance/agent-project-rules.md` when present. These entry links do not grant testing, publication, deployment or data-operation permission.

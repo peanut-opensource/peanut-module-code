@@ -29,7 +29,8 @@ $assert($manifest['backend']['provider'] === ModuleProvider::class, 'native Modu
 $assert($manifest['backend']['migrations'] === 'database/migrations', 'native Module no longer owns its schema');
 $assert(in_array('pa_dict_type', $manifest['database']['owned_tables'], true)
     && in_array('pa_dict_data', $manifest['database']['owned_tables'], true)
-    && in_array('pa_reference_code_set', $manifest['database']['owned_tables'], true),
+    && in_array('pa_dict_type_policy', $manifest['database']['owned_tables'], true)
+    && in_array('pa_dict_entry_override', $manifest['database']['owned_tables'], true),
     'native Module dictionary/reference-code tables were lost');
 
 $provider = new ModuleProvider();

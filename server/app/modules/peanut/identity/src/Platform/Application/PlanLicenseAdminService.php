@@ -75,7 +75,11 @@ final readonly class PlanLicenseAdminService
                 $current = Db::name('plan')->where('id', $id)->lock(true)->find();
                 if ($current === null) { throw AdminAccessException::notFound(); }
                 if ((int) $current['revision'] !== $expected) { throw AdminAccessException::revisionMismatch(); }
-                $before = $this->plan($id);
+                $before = self::planProjection(
+                    $current,
+                    Db::name('plan_module')->where('plan_id', $id)->order('module_key')->column('module_key'),
+                    Db::name('plan_permission')->where('plan_id', $id)->order('permission_key')->column('permission_key'),
+                );
             } elseif (Db::name('plan')->where('code', $code)->lock(true)->find() !== null) {
                 throw AdminAccessException::conflict('PLAN_CODE_CONFLICT', 'The plan code is already in use.');
             }
@@ -294,8 +298,12 @@ final readonly class PlanLicenseAdminService
     {
         Db::name('plan_module')->where('plan_id',$id)->delete();
         Db::name('plan_permission')->where('plan_id',$id)->delete();
-        foreach ($modules as $key) { Db::name('plan_module')->insert(['plan_id'=>$id,'module_key'=>$key]); }
-        foreach ($permissions as $key) { Db::name('plan_permission')->insert(['plan_id'=>$id,'permission_key'=>$key]); }
+        if ($modules !== []) {
+            Db::name('plan_module')->insertAll(array_map(static fn(string $key): array => ['plan_id'=>$id,'module_key'=>$key], $modules));
+        }
+        if ($permissions !== []) {
+            Db::name('plan_permission')->insertAll(array_map(static fn(string $key): array => ['plan_id'=>$id,'permission_key'=>$key], $permissions));
+        }
     }
 
     private function fields(array $input,array $allowed): void

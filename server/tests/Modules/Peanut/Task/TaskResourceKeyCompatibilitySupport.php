@@ -42,6 +42,7 @@ final class Sqlite extends \think\db\connector\Sqlite
     {
         $sql = preg_replace('/TIMESTAMPADD\(SECOND,\s*(-?\d+),\s*UTC_TIMESTAMP\(3\)\)/i', 'TASK_KEY_ADD_SECONDS($1)', $sql);
         $sql = preg_replace('/\s+FOR UPDATE(?: SKIP LOCKED)?/i', '', $sql);
+        $sql = preg_replace('/\bBINARY\s+(selection\.module_key|installation\.module_key)\b/i', '$1 COLLATE BINARY', $sql);
         try {
             return parent::getPDOStatement($sql, $bind, $master, $procedure);
         } catch (\think\db\exception\PDOException $error) {

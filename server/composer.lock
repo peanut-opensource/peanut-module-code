@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e42eddce3948045cefacb6b6e17c0f57",
+    "content-hash": "af46d3a374232b7d9db7304dd0dd71bc",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -1959,6 +1959,99 @@
             "time": "2026-07-06T18:56:19+00:00"
         },
         {
+            "name": "openspout/openspout",
+            "version": "v4.33.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/openspout/openspout.git",
+                "reference": "8ddddbb3ece300a84bb13205e40686b78c39fde7"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/openspout/openspout/zipball/8ddddbb3ece300a84bb13205e40686b78c39fde7",
+                "reference": "8ddddbb3ece300a84bb13205e40686b78c39fde7",
+                "shasum": ""
+            },
+            "require": {
+                "ext-dom": "*",
+                "ext-fileinfo": "*",
+                "ext-filter": "*",
+                "ext-libxml": "*",
+                "ext-xmlreader": "*",
+                "ext-zip": "*",
+                "php": "~8.3.0 || ~8.4.0 || ~8.5.0 || ~8.6.0"
+            },
+            "require-dev": {
+                "ext-zlib": "*",
+                "friendsofphp/php-cs-fixer": "^3.90.0",
+                "infection/infection": "^0.31.9",
+                "phpbench/phpbench": "^1.4.3",
+                "phpstan/phpstan": "^2.1.32",
+                "phpstan/phpstan-phpunit": "^2.0.8",
+                "phpstan/phpstan-strict-rules": "^2.0.7",
+                "phpunit/phpunit": "^12.4.4"
+            },
+            "suggest": {
+                "ext-iconv": "To handle non UTF-8 CSV files (if \"php-mbstring\" is not already installed or is too limited)",
+                "ext-mbstring": "To handle non UTF-8 CSV files (if \"iconv\" is not already installed)"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "3.3.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "OpenSpout\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Adrien Loison",
+                    "email": "adrien@box.com"
+                }
+            ],
+            "description": "PHP Library to read and write spreadsheet files (CSV, XLSX and ODS), in a fast and scalable way",
+            "homepage": "https://github.com/openspout/openspout",
+            "keywords": [
+                "OOXML",
+                "csv",
+                "excel",
+                "memory",
+                "odf",
+                "ods",
+                "office",
+                "open",
+                "php",
+                "read",
+                "scale",
+                "spreadsheet",
+                "stream",
+                "write",
+                "xlsx"
+            ],
+            "support": {
+                "issues": "https://github.com/openspout/openspout/issues",
+                "source": "https://github.com/openspout/openspout/tree/v4.33.0"
+            },
+            "funding": [
+                {
+                    "url": "https://paypal.me/filippotessarotto",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/Slamdunk",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-11-19T13:20:45+00:00"
+        },
+        {
             "name": "opis/json-schema",
             "version": "2.6.0",
             "source": {
@@ -2150,17 +2243,17 @@
         },
         {
             "name": "peanut-admin/core",
-            "version": "5.1.3-rc.20261120",
+            "version": "5.1.3-rc.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/peanut-business/peanut-admin-core-php.git",
-                "reference": "4b2024b0bf030086ef8e6693aacafcea504a65ee"
+                "reference": "1e519eda9247910dff6c94cd3e0a062c6277aebc"
             },
             "dist": {
                 "type": "zip",
-                "url": "../packages/core-php/peanut-admin-core-5.1.3-rc.20261120.zip",
-                "reference": "4b2024b0bf030086ef8e6693aacafcea504a65ee",
-                "shasum": "734b2f7626873d545487804a312ea0d5ff1727e0"
+                "url": "../packages/core-php/peanut-admin-core-5.1.3-rc.4.zip",
+                "reference": "1e519eda9247910dff6c94cd3e0a062c6277aebc",
+                "shasum": "d0cdb09172ce9924a8ea900763a59f0313cf8085"
             },
             "require": {
                 "composer/semver": "^3.4.4",
@@ -2169,12 +2262,17 @@
                 "ext-openssl": "*",
                 "ext-pdo": "*",
                 "ext-sodium": "*",
+                "openspout/openspout": "^4.0",
                 "opis/json-schema": "^2.6.0",
                 "php": "^8.3",
+                "symfony/lock": "^7.0",
+                "symfony/rate-limiter": "^7.0",
                 "topthink/think-orm": "^4.0.51"
             },
             "suggest": {
                 "aliyuncs/oss-sdk-php": "Required by hosts that construct AliyunStorageDriver.",
+                "endroid/qr-code": "Required by hosts that generate QR codes.",
+                "intervention/image": "Required by hosts that transform images.",
                 "qcloud/cos-sdk-v5": "Required by hosts that construct QcloudStorageDriver.",
                 "qiniu/php-sdk": "Required by hosts that construct QiniuStorageDriver."
             },
@@ -2185,7 +2283,8 @@
                     "PeanutAdmin\\FileMedia\\": "file-media/src/",
                     "PeanutAdmin\\IntegrationSecurity\\": "integration-security/src/",
                     "PeanutAdmin\\Kernel\\": "kernel/src/",
-                    "PeanutAdmin\\Settings\\": "settings/src/"
+                    "PeanutAdmin\\Settings\\": "settings/src/",
+                    "PeanutAdmin\\ImportExport\\": "import-export/src/"
                 }
             },
             "scripts": {
@@ -2193,7 +2292,7 @@
                     "phpstan analyse --no-progress"
                 ],
                 "test": [
-                    "phpunit --no-configuration --bootstrap vendor/autoload.php --fail-on-empty-test-suite --fail-on-risky data-permission/tests file-media/tests integration-security/tests kernel/tests settings/tests testing/tests"
+                    "phpunit --no-configuration --bootstrap vendor/autoload.php --fail-on-empty-test-suite --fail-on-risky data-permission/tests file-media/tests integration-security/tests kernel/tests settings/tests testing/tests import-export/tests"
                 ]
             },
             "license": [
@@ -2276,13 +2375,14 @@
         },
         {
             "name": "peanut-business/peanut-article",
-            "version": "1.0.21-rc.12",
+            "version": "1.0.21-rc.18",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/article",
-                "reference": "3d846a2025272581b0e7466d70f4f05e9b3e39d2"
+                "reference": "b2a25789b1fffad37a78d573a09aaefd06a09041"
             },
             "require": {
+                "peanut-admin/core": "^5.1.3-rc.4",
                 "peanut-business/peanut-document": "^1.0.28-rc.5",
                 "peanut-business/peanut-identity": "^4.0.0-rc.32",
                 "peanut-business/peanut-member": "^1.0",
@@ -2373,11 +2473,11 @@
         },
         {
             "name": "peanut-business/peanut-collaboration",
-            "version": "1.0.21-rc.2",
+            "version": "1.0.21-rc.3",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/collaboration",
-                "reference": "1b876e79fec3f8532c2e5786d6cab66b11f99388"
+                "reference": "5063609027ad7e92f9c94d3cd1d3876f80b77d0e"
             },
             "require": {
                 "peanut-business/peanut-document": "^1.0.26"
@@ -2437,11 +2537,11 @@
         },
         {
             "name": "peanut-business/peanut-document",
-            "version": "1.0.28-rc.7",
+            "version": "1.0.28-rc.10",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/document",
-                "reference": "dd1dbe4282832a922e0ce8503afaec9d36ee7aed"
+                "reference": "98b188a51d902dad5d029769969f86909dd4fd9e"
             },
             "require": {
                 "peanut-business/peanut-file": "^1.0.44",
@@ -2472,11 +2572,11 @@
         },
         {
             "name": "peanut-business/peanut-file",
-            "version": "1.0.50-rc.10",
+            "version": "1.0.50-rc.15",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/file",
-                "reference": "4844a60c8fc2d860a0ec619b058477e05de73bc6"
+                "reference": "3fd44cf4bc463eefda86704595bdd9a227fec863"
             },
             "require": {
                 "aws/aws-sdk-php": "^3.0",
@@ -2510,11 +2610,11 @@
         },
         {
             "name": "peanut-business/peanut-identity",
-            "version": "4.0.1-rc.9",
+            "version": "4.0.1-rc.11",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/identity",
-                "reference": "c2f668e0376816e84ffb663af151bbc807533e6f"
+                "reference": "c5d85fe33545923954bbdd067913c8bf1f76c693"
             },
             "require": {
                 "ext-bcmath": "*",
@@ -2549,11 +2649,11 @@
         },
         {
             "name": "peanut-business/peanut-import-export",
-            "version": "1.0.37-rc.4",
+            "version": "1.0.37-rc.7",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/import_export",
-                "reference": "456749b6733dee16882c847e6010e5f56ee002af"
+                "reference": "ba48005c66da3ed119783c27484c4247b9a1b0ce"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2625,15 +2725,15 @@
         },
         {
             "name": "peanut-business/peanut-member",
-            "version": "1.0.28-rc.4",
+            "version": "1.0.28-rc.7",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/member",
-                "reference": "82972ef1723525587ffb5fe1da0a3eb9746bbd54"
+                "reference": "07a34c5e0be9573dde92d129eb2eb27fc62d5bac"
             },
             "require": {
                 "firebase/php-jwt": "^7.1",
-                "peanut-admin/core": "^5.0.2",
+                "peanut-admin/core": "^5.1.3-rc.4",
                 "peanut-business/peanut-identity": "^4.0.0-rc.32",
                 "peanut-business/peanut-settings": "^1.0",
                 "php": "^8.3"
@@ -2662,11 +2762,11 @@
         },
         {
             "name": "peanut-business/peanut-notification",
-            "version": "1.0.33-rc.1",
+            "version": "1.0.33-rc.2",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/notification",
-                "reference": "9be260ed7684b1a858a2268b2f1c03fc45bf75db"
+                "reference": "e8fd70c62f8aedc4d38adbe1f4b53edcce500282"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2700,11 +2800,11 @@
         },
         {
             "name": "peanut-business/peanut-oauth",
-            "version": "1.0.13-rc.1",
+            "version": "1.0.13-rc.4",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/oauth",
-                "reference": "e22cc06e44ea6658ace02e23d9a4e39494a007be"
+                "reference": "76617c7e8cc83af564d951ab60ae19eba13bacca"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2737,11 +2837,11 @@
         },
         {
             "name": "peanut-business/peanut-ops",
-            "version": "1.0.35-rc.3",
+            "version": "1.0.35-rc.4",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/ops",
-                "reference": "49c41ec45f6e8f95bb23b1db97c9ec21b487ea0d"
+                "reference": "e338fc46f5e5527f0c8afd505e65b010c022617b"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2774,11 +2874,11 @@
         },
         {
             "name": "peanut-business/peanut-payment",
-            "version": "1.0.30-rc.1",
+            "version": "1.0.30-rc.3",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/payment",
-                "reference": "150784e49f18f331eed2af6cd7652918b2e7ca64"
+                "reference": "6a8500d996b23e87e80a54179e220725a31ac2f3"
             },
             "require": {
                 "hyperf/pimple": "^2.2",
@@ -2786,7 +2886,7 @@
                 "peanut-admin/module-composition-host": "^1.0",
                 "peanut-business/peanut-identity": "^4.0.0-rc.32",
                 "peanut-business/peanut-integration": "^1.0.28",
-                "peanut-business/peanut-member": "^1.0",
+                "peanut-business/peanut-member": "^1.0.28-rc.7",
                 "peanut-business/peanut-task": "^1.0.29",
                 "php": "^8.3",
                 "symfony/event-dispatcher": "^7.4",
@@ -2816,14 +2916,14 @@
         },
         {
             "name": "peanut-business/peanut-reference-codes",
-            "version": "1.0.29-rc.1",
+            "version": "1.0.29-rc.4",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/reference_codes",
-                "reference": "fc9d2529fbad139d24f40543b3f0a6a33cadd1bf"
+                "reference": "9f23b4c886eead48864354ff9abce8e9786acb0e"
             },
             "require": {
-                "peanut-admin/core": "^5.0.2",
+                "peanut-admin/core": "^5.1.3-rc.4",
                 "peanut-business/peanut-identity": "^4.0.0-rc.32",
                 "php": "^8.3"
             },
@@ -2922,11 +3022,11 @@
         },
         {
             "name": "peanut-business/peanut-task",
-            "version": "1.0.36-rc.4",
+            "version": "1.0.36-rc.7",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/task",
-                "reference": "b97ad7d294ced545e12340ad34794b98da366e9c"
+                "reference": "335f01eb82cf23d57f2cde2a522027a278882256"
             },
             "require": {
                 "peanut-admin/core": "^5.0.3-alpha.5",
@@ -2958,11 +3058,11 @@
         },
         {
             "name": "peanut-business/workflow",
-            "version": "4.0.2-rc.6",
+            "version": "4.0.2-rc.7",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/workflow",
-                "reference": "00f08d1fe88ec2454b4f9744f02e75ba66de1a57"
+                "reference": "9a378a7ca14e84532978b35c9f0afb9bd1b6fe79"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -3958,6 +4058,160 @@
             "time": "2026-11-04T08:27:22+00:00"
         },
         {
+            "name": "symfony/lock",
+            "version": "v7.4.23",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/lock.git",
+                "reference": "1c89b44cf414dfb98e2f83a02b6a7487ccedeb17"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/lock/zipball/1c89b44cf414dfb98e2f83a02b6a7487ccedeb17",
+                "reference": "1c89b44cf414dfb98e2f83a02b6a7487ccedeb17",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.2",
+                "psr/log": "^1|^2|^3"
+            },
+            "conflict": {
+                "doctrine/dbal": "<3.6",
+                "symfony/cache": "<6.4"
+            },
+            "require-dev": {
+                "doctrine/dbal": "^3.6|^4",
+                "predis/predis": "^1.1|^2.0",
+                "symfony/serializer": "^6.4|^7.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Symfony\\Component\\Lock\\": ""
+                },
+                "exclude-from-classmap": [
+                    "/Tests/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Jérémy Derussé",
+                    "email": "jeremy@derusse.com"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "Creates and manages locks, a mechanism to provide exclusive access to a shared resource",
+            "homepage": "https://symfony.com",
+            "keywords": [
+                "cas",
+                "flock",
+                "locking",
+                "mutex",
+                "redlock",
+                "semaphore"
+            ],
+            "support": {
+                "source": "https://github.com/symfony/lock/tree/v7.4.23"
+            },
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/nicolas-grekas",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2026-11-01T22:26:51+00:00"
+        },
+        {
+            "name": "symfony/options-resolver",
+            "version": "v7.4.22",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/options-resolver.git",
+                "reference": "c95dd81729944936b48f9fecb38ff524eeaf97c0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/options-resolver/zipball/c95dd81729944936b48f9fecb38ff524eeaf97c0",
+                "reference": "c95dd81729944936b48f9fecb38ff524eeaf97c0",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.2",
+                "symfony/deprecation-contracts": "^2.5|^3"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Symfony\\Component\\OptionsResolver\\": ""
+                },
+                "exclude-from-classmap": [
+                    "/Tests/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Fabien Potencier",
+                    "email": "fabien@symfony.com"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "Provides an improved replacement for the array_replace PHP function",
+            "homepage": "https://symfony.com",
+            "keywords": [
+                "config",
+                "configuration",
+                "options"
+            ],
+            "support": {
+                "source": "https://github.com/symfony/options-resolver/tree/v7.4.22"
+            },
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/nicolas-grekas",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2026-10-18T14:39:27+00:00"
+        },
+        {
             "name": "symfony/polyfill-ctype",
             "version": "v1.37.0",
             "source": {
@@ -4208,6 +4462,80 @@
                 }
             ],
             "time": "2026-09-25T15:50:05+00:00"
+        },
+        {
+            "name": "symfony/rate-limiter",
+            "version": "v7.4.23",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/rate-limiter.git",
+                "reference": "a65b8280000598b80b4456004280a56fdad011b3"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/rate-limiter/zipball/a65b8280000598b80b4456004280a56fdad011b3",
+                "reference": "a65b8280000598b80b4456004280a56fdad011b3",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.2",
+                "symfony/options-resolver": "^7.3|^8.0"
+            },
+            "require-dev": {
+                "psr/cache": "^1.0|^2.0|^3.0",
+                "symfony/lock": "^6.4|^7.0|^8.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Symfony\\Component\\RateLimiter\\": ""
+                },
+                "exclude-from-classmap": [
+                    "/Tests/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Wouter de Jong",
+                    "email": "wouter@wouterj.nl"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "Provides a Token Bucket implementation to rate limit input and output in your application",
+            "homepage": "https://symfony.com",
+            "keywords": [
+                "limiter",
+                "rate-limiter"
+            ],
+            "support": {
+                "source": "https://github.com/symfony/rate-limiter/tree/v7.4.23"
+            },
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/nicolas-grekas",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2026-11-01T19:17:22+00:00"
         },
         {
             "name": "topthink/framework",

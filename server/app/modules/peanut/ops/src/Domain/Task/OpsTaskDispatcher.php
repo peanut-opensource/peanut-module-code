@@ -12,4 +12,7 @@ interface OpsTaskDispatcher
     public function dispatch(PlatformContext $context, OpsTaskSubmission $submission): OpsTask;
 
     public function find(PlatformContext $context, string $taskKey): OpsTask;
+
+    /** @param list<string> $taskKeys @return list<OpsTask> */
+    public function findMany(PlatformContext $context, array $taskKeys): array;
 }

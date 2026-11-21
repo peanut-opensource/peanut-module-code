@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace PeanutAdmin\Modules\ImportExport\Engine\Contract;
 
 use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
+use PeanutAdmin\Modules\ImportExport\Contract\ImportExportCommands;
 use PeanutAdmin\Modules\ImportExport\Engine\Application\ImportExportException;
 
 final class DataProviderRegistry
 {
-    public const RESOURCE_KEY = 'peanut.import_export.operation';
+    public const RESOURCE_KEY = ImportExportCommands::RESOURCE_KEY;
 
     /** @var array<string, DataProvider> */
     private array $providers = [];

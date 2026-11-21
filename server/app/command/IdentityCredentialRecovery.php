@@ -15,23 +15,26 @@ use think\console\Command;
 use think\console\Input;
 use think\console\Output;
 use think\console\input\Option;
+use think\facade\Db;
 
-/** Local credential recovery with separate initial-grant and current shared-account admission. */
+/** Local credential recovery for initial, shared, and standalone development identities. */
 final class IdentityCredentialRecovery extends Command
 {
     protected function configure(): void
     {
         $this->setName('identity:credential-recover')
-            ->setDescription('Preflight or recover local Identity credentials with explicit initial or current shared admission')
+            ->setDescription('Preflight or recover local Identity credentials')
             ->addOption('target', null, Option::VALUE_REQUIRED, 'tenant-owner or platform-operator')
             ->addOption('run-id', null, Option::VALUE_REQUIRED, 'The initial identity grant run id')
             ->addOption('execute', null, Option::VALUE_NONE, 'Perform the approved credential recovery; default is read-only preflight')
             ->addOption('approval-ref', null, Option::VALUE_REQUIRED, 'Root approval reference recorded in audit')
             ->addOption('password-file', null, Option::VALUE_REQUIRED, 'APP-owned 0600 one-line password file');
-        $this->addOption('mode', null, Option::VALUE_REQUIRED, 'initial or current-existing-shared', 'initial');
+        $this->addOption('mode', null, Option::VALUE_REQUIRED, 'initial, current-existing-shared, or current-platform-development', 'initial');
         foreach (['owner', 'thread', 'session', 'operation-id', 'tenant-code', 'account-id', 'credential-id', 'plan-sha256'] as $name) {
             $this->addOption($name, null, Option::VALUE_REQUIRED, 'Current shared source-maintenance ' . $name);
         }
+        $this->addOption('operator-id', null, Option::VALUE_REQUIRED, 'Current standalone platform operator ID');
+        $this->addOption('expected-revision', null, Option::VALUE_REQUIRED, 'Credential revision from development preflight');
         $this->addOption('gate', null, Option::VALUE_REQUIRED, 'Registered source-maintenance gate', 'shared-development');
     }
 
@@ -45,6 +48,9 @@ final class IdentityCredentialRecovery extends Command
         $password = null;
         try {
             $mode = (string) $input->getOption('mode');
+            if ($mode === 'current-platform-development') {
+                return $this->recoverCurrentPlatform($input, $output);
+            }
             if ($mode === 'current-existing-shared') {
                 if ((string) $input->getOption('target') !== '' || (string) $input->getOption('run-id') !== '') {
                     throw new RuntimeException('IDENTITY_RECOVERY_CURRENT_INPUT_INVALID');
@@ -193,6 +199,86 @@ final class IdentityCredentialRecovery extends Command
         }
     }
 
+    private function recoverCurrentPlatform(Input $input, Output $output): int
+    {
+        $serverRoot = dirname(__DIR__, 2);
+        $appRoot = dirname($serverRoot);
+        if (fileowner($appRoot) !== posix_geteuid()) {
+            throw new RuntimeException('IDENTITY_RECOVERY_LOCAL_PRINCIPAL_UNAVAILABLE');
+        }
+
+        require_once $serverRoot . '/database/environment-guard.php';
+        $guarded = guardedDatabaseConfig();
+        if ($guarded['deployment_target'] !== 'local-development' || $guarded['consumer'] !== 'host') {
+            throw new RuntimeException('IDENTITY_RECOVERY_DEVELOPMENT_RESOURCE_REQUIRED');
+        }
+        $this->assertFrameworkConnection($guarded);
+        $db = registeredDatabase(projectResourceRegistry(), $guarded['resource_id']);
+        $active = Db::query('SELECT @@server_uuid AS server_uuid, DATABASE() AS schema_name')[0] ?? [];
+        if (($active['server_uuid'] ?? '') !== ($db['server_uuid'] ?? null)
+            || ($active['schema_name'] ?? '') !== $guarded['database']) {
+            throw new RuntimeException('IDENTITY_RECOVERY_RESOURCE_BINDING_INVALID');
+        }
+
+        $identities = [];
+        foreach (['operator-id', 'account-id', 'credential-id'] as $option) {
+            $identities['platform_' . str_replace('-', '_', $option)] = $this->positiveOption($input, $option);
+        }
+        $recovery = $this->getApp()->make(Recovery::class);
+        $status = $recovery->inspectStandalonePlatformOperator($identities);
+        if (!$input->getOption('execute')) {
+            $output->writeln(json_encode(['mode' => 'preflight_only', 'status' => $status], JSON_THROW_ON_ERROR));
+            return $status['eligible'] ? 0 : 2;
+        }
+        if (!$status['eligible']) {
+            throw new RuntimeException('IDENTITY_RECOVERY_PRECONDITION_FAILED');
+        }
+
+        $approvalRef = trim((string) $input->getOption('approval-ref'));
+        $passwordRef = (string) $input->getOption('password-file');
+        $revision = $this->positiveOption($input, 'expected-revision');
+        if ($approvalRef === '') {
+            throw new RuntimeException('IDENTITY_RECOVERY_CONTEXT_INVALID');
+        }
+        $factory = new SystemContextFactory(
+            new SystemActorRegistry([
+                new SystemActorDefinition(
+                    Recovery::PLATFORM_OPERATOR_ACTOR,
+                    'platform',
+                    [Recovery::PLATFORM_OPERATOR_OPERATION],
+                ),
+            ]),
+            new ThinkPhpSystemTenantResolver(),
+        );
+        $context = $factory->platform(
+            Recovery::PLATFORM_OPERATOR_ACTOR,
+            Recovery::PLATFORM_OPERATOR_OPERATION,
+            'identity-recovery-' . bin2hex(random_bytes(12)),
+        );
+        $password = $this->readPassword($this->resolvePasswordPath($appRoot, $passwordRef));
+        try {
+            $result = $recovery->recoverStandalonePlatformOperator(
+                $context, $password, $approvalRef, $this->maintenancePrincipal(),
+                $passwordRef, $identities, $revision,
+            );
+        } finally {
+            if (function_exists('sodium_memzero')) {
+                sodium_memzero($password);
+            }
+        }
+        $output->writeln(json_encode(['recovered' => true, 'target' => 'platform-operator', 'result' => $result], JSON_THROW_ON_ERROR));
+        return 0;
+    }
+
+    private function positiveOption(Input $input, string $option): int
+    {
+        $value = (string) $input->getOption($option);
+        if (preg_match('/^[1-9][0-9]{0,17}$/D', $value) !== 1) {
+            throw new RuntimeException('IDENTITY_RECOVERY_TARGET_INVALID');
+        }
+        return (int) $value;
+    }
+
     /** @return array<string, mixed> */
     private function bindingReceipt(string $serverRoot): array
     {
@@ -276,6 +362,11 @@ final class IdentityCredentialRecovery extends Command
             throw new RuntimeException('IDENTITY_RECOVERY_RESOURCE_BINDING_INVALID');
         }
 
+        $this->assertFrameworkConnection($guarded);
+    }
+
+    private function assertFrameworkConnection(array $guarded): void
+    {
         $connection = $this->getApp()->config->get('database.connections.mysql', []);
         if (!is_array($connection)
             || ($this->getApp()->config->get('database.default') !== 'mysql')

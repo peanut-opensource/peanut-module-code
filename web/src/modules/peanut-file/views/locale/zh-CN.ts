@@ -23,6 +23,7 @@ export default {
   'systemFile.op.assetSelector': '图片素材选择器',
   'systemFile.op.retry': '重试',
   'systemFile.error.categories': '分类加载失败，可重试或继续查看全部素材。',
+  'systemFile.error.categorySave': '分类保存失败，请重试。',
   'systemFile.error.files': '素材加载失败，请重试。',
   'systemFile.op.upload': '上传',
   'systemFile.op.rename': '重命名',

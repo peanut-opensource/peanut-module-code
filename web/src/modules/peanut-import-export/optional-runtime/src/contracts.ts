@@ -169,7 +169,13 @@ export const parseOperation = (value: unknown): ImportExportOperation => {
     terminal !== (item.completed_at !== null)
   )
     throw new Error('IMPORT_EXPORT_RESPONSE_INVALID');
-  const mapping = record(item.mapping);
+  // PHP serializes the empty export mapping as an array.
+  const mapping =
+    item.direction === 'export' &&
+    Array.isArray(item.mapping) &&
+    item.mapping.length === 0
+      ? {}
+      : record(item.mapping);
   if (
     Object.entries(mapping).some(
       ([source, target]) =>

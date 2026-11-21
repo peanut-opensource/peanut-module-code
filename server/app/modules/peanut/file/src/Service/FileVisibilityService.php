@@ -30,12 +30,9 @@ final readonly class FileVisibilityService implements FileVisibility
 
     public function preview(array $fileKeys): array
     {
-        $context = $this->context();
+        $context = $this->execution->tenantAdmin();
         $batch = 'batch_' . bin2hex(random_bytes(16));
-        $manifest = $this->storage->visibilityManifest($context, $fileKeys, $batch);
-        foreach ($this->storage->visibilityOriginQualifications($context, $manifest) as $key => $facts) {
-            $manifest['files'][$key]['source']['origin_qualification'] = $facts;
-        }
+        $manifest = $this->storage->previewVisibilityManifest($context, $fileKeys, $batch);
         $payload = ['version' => 1, 'batch_key' => $batch, 'actor' => self::actor($context),
             'expires_at' => time() + 300, 'target' => 'private',
             'manifest' => $manifest];
@@ -74,9 +71,9 @@ final readonly class FileVisibilityService implements FileVisibility
             }
         }
         $created = Db::transaction(function () use ($context, $confirmation, $signature, $requestKey, $requestHash, $batch, $qualifications): bool {
-            $this->context();
             $existing = FileVisibilityBatch::where('request_key', $requestKey)->lock(true)->find();
             if ($existing !== null) {
+                $this->context();
                 if ($existing['batch_key'] !== $batch || (int) $existing['created_by_member_id'] !== $context->memberId
                     || !hash_equals($existing['request_sha256'], $requestHash)) {
                     throw BusinessException::conflict('FILE_VISIBILITY_IDEMPOTENCY_CONFLICT', '相同请求标识不能改变资源或确认内容');
@@ -191,13 +188,10 @@ final readonly class FileVisibilityService implements FileVisibility
                 return $this->status($batchKey);
             }
             FileVisibilityBatch::where('batch_key', $batchKey)->update(['status' => 'running', 'revision' => new Raw('revision+1'), 'updated_at' => new Raw('UTC_TIMESTAMP(3)')]);
-            $keys = FileVisibilityItem::where('batch_key', $batchKey)->order('file_key')->column('file_key');
-            foreach ($keys as $fileKey) {
+            $items = FileVisibilityItem::where('batch_key', $batchKey)->order('file_key')->select()->toArray();
+            foreach ($items as $item) {
+                $fileKey = $item['file_key'];
                 while (true) {
-                    $item = FileVisibilityItem::where('batch_key', $batchKey)->where('file_key', $fileKey)->find()?->toArray();
-                    if ($item === null) {
-                        throw BusinessException::conflict('FILE_VISIBILITY_ITEM_MISSING', '批次记录不完整');
-                    }
                     if ($item['status'] === 'ready_private') {
                         break;
                     }
@@ -209,9 +203,12 @@ final readonly class FileVisibilityService implements FileVisibility
                     try {
                         // Commit the exact next intent before any filesystem operation. A later
                         // resume inspects these same locations; it never creates another batch.
-                        Db::transaction(function () use ($context, $batchKey, $fileKey, $step): void {
+                        $item = Db::transaction(function () use ($context, $batchKey, $fileKey, $step): array {
                             $this->context();
-                            $this->item($batchKey, $fileKey)->lock(true)->findOrFail();
+                            $current = $this->item($batchKey, $fileKey)->lock(true)->findOrFail()->toArray();
+                            if ($current['step'] !== $step) {
+                                throw BusinessException::conflict('FILE_VISIBILITY_STEP_CHANGED', '批次阶段已改变');
+                            }
                             $this->item($batchKey, $fileKey)->update(['attempts' => new Raw('attempts+1'), 'error_code' => null,
                                 'updated_at' => new Raw('UTC_TIMESTAMP(3)')]);
                             $this->audit->appendTenantMember(
@@ -223,6 +220,7 @@ final readonly class FileVisibilityService implements FileVisibility
                                 'file.visibility.batch',
                                 $batchKey,
                             );
+                            return $current;
                         });
                         $receipt = $this->storage->visibilityStorageStep(
                             $context,
@@ -231,7 +229,7 @@ final readonly class FileVisibilityService implements FileVisibility
                             $item['target_json'],
                             $step,
                         );
-                        Db::transaction(function () use ($context, $batchKey, $fileKey, $step, $position, $receipt): void {
+                        $item = Db::transaction(function () use ($context, $batchKey, $fileKey, $step, $position, $receipt): array {
                             $this->context();
                             $current = $this->item($batchKey, $fileKey)->lock(true)->findOrFail()->toArray();
                             if ($current['step'] !== $step) {
@@ -262,6 +260,10 @@ final readonly class FileVisibilityService implements FileVisibility
                                 1,
                                 hash('sha256', StorageService::visibilityJson($receipt)),
                             );
+                            $current['status'] = $step === 'verify' ? 'ready_private' : ($step === 'copy' ? 'restricting' : 'verifying');
+                            $current['step'] = self::STEPS[$position + 1];
+                            $current['receipts_json'] = $receipts;
+                            return $current;
                         });
                     } catch (\Throwable $failure) {
                         $code = $failure instanceof BusinessException ? $failure->errorCode : 'FILE_VISIBILITY_STORAGE_FAILED';

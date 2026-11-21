@@ -1,0 +1,167 @@
+<?php
+
+declare(strict_types=1);
+
+namespace app\common\module;
+
+use app\platform\exception\module\ModuleLifecycleException;
+use PeanutAdmin\Kernel\Module\ManifestDocument;
+use Phinx\Util\Util;
+use think\migration\command\migrate\Run;
+
+/** Adapts source discovery only; execution, ordering and the ledger remain native. */
+final class ModuleMigrationRun extends Run
+{
+    private string $directory = '';
+
+    /** @param list<array<string,mixed>> $sources */
+    public function __construct(private readonly array $sources)
+    {
+        parent::__construct();
+    }
+
+    /**
+     * Does not include PHP or access the database. A null owner denotes the Host.
+     *
+     * @param array<string,ManifestDocument> $manifests
+     * @return list<array{migration_key:string,name:string,sha256:string,file:string,module_key:?string,declared_tables:array,author_description:?string,change_description:?string}>
+     */
+    public static function sources(array $manifests, string $serverRoot, bool $includeHost = false): array
+    {
+        $directories = [];
+        $initialFiles = [];
+        if ($includeHost) {
+            require_once $serverRoot . '/database/InitialInstallationSource.php';
+            $initialFiles = \InitialInstallationSource::migrationFiles($serverRoot);
+            $directories[] = [$serverRoot . '/database/migrations', null, [], null, $serverRoot];
+        }
+        foreach ($manifests as $key => $manifest) {
+            $path = $manifest->data['backend']['migrations'] ?? null;
+            if ($path === null) {
+                continue;
+            }
+            if ($path !== 'database/migrations') {
+                throw new ModuleLifecycleException('MODULE_MIGRATION_PATH_INVALID', "Noncanonical migration path: {$key}");
+            }
+            $directories[] = [$manifest->root . '/' . $path, $key,
+                $manifest->data['database']['owned_tables'] ?? [], $manifest->data['description'] ?? null, $manifest->root];
+        }
+        $sources = [];
+        $classes = [];
+        $seen = [];
+        foreach ($initialFiles as $file) {
+            $directories[] = [dirname($file), null, [], null, $serverRoot, [$file]];
+        }
+        foreach ($directories as $entry) {
+            [$path, $owner, $tables, $description, $boundary] = $entry;
+            $directory = realpath($path);
+            $root = realpath($boundary);
+            if ($directory === false || $root === false || !str_starts_with($directory, $root . DIRECTORY_SEPARATOR)) {
+                throw new ModuleLifecycleException('MODULE_MIGRATION_PATH_INVALID', "Migration directory is missing or escapes its owner: {$path}");
+            }
+            foreach ($entry[5] ?? (glob($directory . '/*.php') ?: []) as $file) {
+                if ($includeHost && isset($seen[$file])) { continue; }
+                $seen[$file] = true;
+                $name = basename($file);
+                if (is_link($file) || preg_match('/^[0-9]{14}_[a-z][a-z0-9_]*\.php$/D', $name) !== 1
+                    || !Util::isValidMigrationFileName($name)) {
+                    throw new ModuleLifecycleException('MODULE_MIGRATION_FILE_INVALID', "Invalid migration source: {$file}");
+                }
+                $version = (string) Util::getVersionFromFileName($name);
+                $class = Util::mapFileNameToClassName($name);
+                $classKey = strtolower($class);
+                if (strlen($class) > 100 || isset($sources[$version]) || isset($classes[$classKey])) {
+                    throw new ModuleLifecycleException('MODULE_MIGRATION_IDENTITY_CONFLICT', "Duplicate migration version or class: {$file}");
+                }
+                $source = file_get_contents($file);
+                if (!is_string($source)) {
+                    throw new ModuleLifecycleException('MODULE_MIGRATION_FILE_INVALID', "Unreadable migration: {$file}");
+                }
+                $note = null;
+                $tokens = token_get_all($source);
+                foreach ($tokens as $token) {
+                    if (!is_array($token)) {
+                        continue;
+                    }
+                    if ($token[0] === T_DOC_COMMENT) {
+                        $note = $token[1];
+                    }
+                    if ($token[0] === T_CLASS) {
+                        break;
+                    }
+                }
+                $sources[$version] = ['migration_key' => $version, 'name' => $class, 'sha256' => hash('sha256', $source),
+                    'file' => $file, 'module_key' => $owner, 'declared_tables' => $tables,
+                    'author_description' => $description, 'change_description' => $note];
+                $classes[$classKey] = true;
+            }
+        }
+        ksort($sources, SORT_NUMERIC);
+        return array_values($sources);
+    }
+
+    /**
+     * @param array<string,ManifestDocument> $incoming
+     * @param array<string,ManifestDocument> $composition
+     */
+    public static function assertCompatibleComposition(
+        array $incoming,
+        array $composition,
+        string $serverRoot,
+        bool $includeHost = false,
+    ): void {
+        self::sources($incoming, $serverRoot, $includeHost);
+        foreach (array_diff_key($composition, $incoming) as $key => $manifest) {
+            self::sources($incoming + [$key => $manifest], $serverRoot);
+        }
+    }
+
+    /** @param list<array{migration_key:string,name:string,file:string}> $sources
+     *  @param array<int|string,string> $applied
+     */
+    public static function assertLedgerIdentity(array $sources, array $applied): void
+    {
+        $appliedNames = [];
+        foreach ($applied as $version => $name) {
+            $appliedNames[strtolower((string) $name)] = (string) $version;
+        }
+        foreach ($sources as $source) {
+            $version = $source['migration_key'];
+            $name = $source['name'];
+            if (isset($applied[$version]) && $applied[$version] !== $name) {
+                throw new ModuleLifecycleException(
+                    'MODULE_MIGRATION_IDENTITY_CONFLICT',
+                    "Migration {$version} is already recorded as {$applied[$version]}; package declares {$name}.",
+                );
+            }
+            $appliedVersion = $appliedNames[strtolower($name)] ?? null;
+            if ($appliedVersion !== null && $appliedVersion !== $version) {
+                throw new ModuleLifecycleException(
+                    'MODULE_MIGRATION_IDENTITY_CONFLICT',
+                    "Migration {$name} is already recorded at {$appliedVersion}; package declares {$version}.",
+                );
+            }
+        }
+    }
+
+    protected function getPath()
+    {
+        return $this->directory;
+    }
+
+    protected function getMigrations()
+    {
+        $directories = [];
+        foreach ($this->sources as $source) {
+            $directories[dirname($source['file'])] = true;
+        }
+        $selected = [];
+        foreach (array_keys($directories) as $directory) {
+            $this->directory = $directory;
+            $this->migrations = null;
+            $selected += parent::getMigrations();
+        }
+        ksort($selected, SORT_NUMERIC);
+        return $this->migrations = $selected;
+    }
+}
