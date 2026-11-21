@@ -30,7 +30,6 @@ class GeneratorService
             'module_name' => $module,
             'entity_name' => $this->entityName($tableName),
             'data_owner' => 'tenant-orm',
-            'use_physical_table' => true,
             'target_edition' => $edition,
         ], $root);
     }

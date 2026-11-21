@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace app\adminapi\services\generator;
 
 use app\common\exception\BusinessException;
+use PeanutAdmin\Kernel\Idempotency\IdempotencySchema;
+use PeanutAdmin\Kernel\Migration\ModuleSchema;
 use RuntimeException;
 
 /** 将已完成归属校验的表配置渲染为现有 Module 可装配的 CRUD 代码和合并预览。 */
@@ -87,7 +89,7 @@ final class GeneratorRenderService
         $columns = self::columns($rawColumns);
         $primary = self::primaryColumn($columns);
 
-        $module = self::module(trim((string) ($table['module_name'] ?? '')), $root);
+        $module = self::module(trim((string) ($table['module_name'] ?? '')), $root, $tableName);
         $entity = trim((string) ($table['entity_name'] ?? ''));
         if (preg_match('/^[A-Z][A-Za-z0-9]{0,63}$/D', $entity) !== 1) {
             throw new RuntimeException('实体名称不符合生成规范');
@@ -143,9 +145,6 @@ final class GeneratorRenderService
         return $module + [
             'entity' => $entity,
             'resource' => $resource,
-            'tableDeclaration' => !empty($table['use_physical_table'])
-                ? 'protected $table = ' . var_export($tableName, true) . ';'
-                : 'protected $name = ' . var_export(str_starts_with($tableName, 'pa_') ? substr($tableName, 3) : $tableName, true) . ';',
             'databaseTable' => $tableName,
             'title' => $title !== '' ? $title : $entity,
             'columns' => $columns,
@@ -181,12 +180,14 @@ final class GeneratorRenderService
     }
 
     /** @return array<string,mixed> */
-    private static function module(string $input, string $root): array
+    private static function module(string $input, string $root, ?string $tableName = null): array
     {
         if ($input === '' || preg_match('/^[a-z][a-z0-9_-]{0,31}(?:\.[a-z][a-z0-9-]{0,31})?$/D', $input) !== 1) {
             throw new RuntimeException('目标模块标识格式错误');
         }
         $matches = [];
+        $tableOwners = [];
+        $retiredOwners = [];
         foreach (glob($root . '/server/app/modules/*/*/module.json') ?: [] as $manifestAbsolute) {
             $manifestPath = substr($manifestAbsolute, strlen($root) + 1);
             $source = self::readFile($manifestPath, $root);
@@ -196,6 +197,12 @@ final class GeneratorRenderService
                 throw new RuntimeException('已登记模块清单无效：' . $manifestPath, 0, $exception);
             }
             $key = is_array($manifest) ? (string) ($manifest['key'] ?? '') : '';
+            if ($tableName !== null && in_array($tableName, (array) ($manifest['database']['owned_tables'] ?? []), true)) {
+                $tableOwners[$manifestPath] = $key;
+            }
+            if ($tableName !== null && in_array($tableName, (array) ($manifest['database']['retired_tables'] ?? []), true)) {
+                $retiredOwners[] = $key;
+            }
             $parts = explode('.', $key);
             $leaf = (string) end($parts);
             $directoryLeaf = basename(dirname($manifestAbsolute));
@@ -219,6 +226,27 @@ final class GeneratorRenderService
         }
 
         [$manifestPath, $manifestSource, $manifest] = $matches[0];
+        if ($retiredOwners !== []) {
+            throw BusinessException::invalid(
+                'GENERATOR_TABLE_RETIRED',
+                "数据表已退役：{$tableName}（" . implode('、', $retiredOwners) . '）',
+            );
+        }
+        $ownedByTarget = isset($tableOwners[$manifestPath]);
+        unset($tableOwners[$manifestPath]);
+        if ($tableOwners !== []) {
+            throw BusinessException::invalid(
+                'GENERATOR_TABLE_OWNED_BY_OTHER_MODULE',
+                "数据表已由其他模块拥有：{$tableName}（" . implode('、', $tableOwners) . '）',
+            );
+        }
+        // The compiler permits explicitly transferred technical tables and the module migration ledger.
+        if ($tableName !== null && !$ownedByTarget && in_array($tableName, [
+            ...array_diff(ModuleSchema::tableNames(), ['pa_module_migration']),
+            ...IdempotencySchema::tableNames(),
+        ], true)) {
+            throw BusinessException::invalid('GENERATOR_TABLE_RESERVED', "数据表由 Core 保留：{$tableName}");
+        }
         $backendRelative = dirname($manifestPath);
         try {
             $composer = json_decode(self::readFile($backendRelative . '/composer.json', $root), true, 64, JSON_THROW_ON_ERROR);
@@ -563,7 +591,7 @@ use app\common\model\TenantOwnedModel;{{softImport}}
 
 class {{entity}} extends TenantOwnedModel
 {
-{{softBody}}    {{tableDeclaration}}
+{{softBody}}    protected $table = '{{databaseTable}}';
     protected $pk = '{{primary}}';
 
     // Keep aligned with this module's migrations.
@@ -659,6 +687,8 @@ namespace {{namespace}}Service;
 use app\common\contract\authorization\AdminAuthorizationQuery;
 use app\common\dto\authorization\AdminPrincipal;
 use app\common\exception\BusinessException;
+use PeanutAdmin\Kernel\Idempotency\IdempotencySchema;
+use PeanutAdmin\Kernel\Migration\ModuleSchema;
 use app\common\execution\CurrentExecutionContext;
 use app\common\http\PageResult;
 use app\common\support\PaginationInput;
@@ -2058,9 +2088,19 @@ PHP, $c + compact('softRoutes', 'batchRoutes'));
         if (str_contains($c['openApiSource'], $include)) {
             throw new RuntimeException('目标模块已登记同名接口元数据');
         }
+        // Extend the registry forms emitted by this generator and the published consumer fragments.
+        $source = rtrim($c['openApiSource']);
+        $fragment = "require __DIR__ \. '/(?:consumer|generated/[a-z0-9-]+)\.php'";
+        $arguments = '(?:\$[A-Za-z_][A-Za-z0-9_]*, )?' . $fragment . '(?:, ' . $fragment . ')*';
+        $registry = '~^return (?:(?<single>' . $fragment . ')|array_replace_recursive\((?<merged>' . $arguments . ')\));\z~m';
+        if (preg_match($registry, $source, $matches, PREG_OFFSET_CAPTURE)) {
+            $existing = $matches['merged'][0] ?? $matches['single'][0];
+            return substr($source, 0, $matches[0][1]) . "return array_replace_recursive({$existing}, {$include});\n";
+        }
+
         preg_match_all('/^return\s+\[/m', $c['openApiSource'], $matches, PREG_OFFSET_CAPTURE);
         if (count($matches[0] ?? []) !== 1) {
-            throw new RuntimeException('目标模块 OpenAPI 元数据不是可安全合并的单一顶层 return 数组');
+            throw new RuntimeException('目标模块 OpenAPI 元数据没有可安全合并的顶层登记');
         }
         $offset = $matches[0][0][1];
         $source = substr_replace($c['openApiSource'], '$base = [', $offset, strlen($matches[0][0][0]));
