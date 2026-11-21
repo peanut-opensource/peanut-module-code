@@ -438,22 +438,6 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
         return $this->moduleAdmin->accessData($tenantContext)['menu'];
     }
 
-    /** @param list<string> $permissions @param list<string> $registered @param list<string> $managedMenuKeys */
-    private function compatibilityMenus(
-        TenantContext $tenantContext,
-        AdminPrincipal $admin,
-        array $permissions,
-        array $registered,
-        array $managedMenuKeys,
-    ): array {
-        if (!$this->validContext($tenantContext, $admin)) {
-            return [];
-        }
-
-        // Dual-table menu records are unified in pa_system_menu; no standalone legacy SystemMenu rows remain.
-        return [];
-    }
-
     private function validContext(?TenantContext $context, AdminPrincipal $admin): bool
     {
         return $context instanceof TenantContext

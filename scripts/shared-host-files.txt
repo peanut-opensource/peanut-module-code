@@ -1,8 +1,11 @@
 # Opt-in exact source parity. Generated API outputs, manifests, and locks are
 # composed separately in each host; only entries intended to be identical belong here.
+docs/README.md
 docs/architecture/core-capabilities-and-application-overrides.md
 docs/architecture/file-visibility-sources.md
+docs/development/current-code-lifecycle.md
 docs/development/php-thinkphp-guidelines.md
+docs/development/standard.md
 docs/public/api-and-sdk.md
 platform/src/api/platform.ts
 platform/src/components/PermissionBundlesPanel.vue
@@ -40,8 +43,11 @@ server/app/common/http/middleware/TraceIdMiddleware.php
 server/app/common/infrastructure/runtime/OperationalLog.php
 server/app/common/services/AbstractCrudService.php
 server/app/common/services/audit/AuditContractHost.php
+server/app/common/services/authorization/AdminAuthorizationService.php
 server/app/installation/http/middleware/InstallationExecutionMiddleware.php
 server/app/platform/http/middleware/PlatformLoginMiddleware.php
+server/app/platform/infrastructure/module/ModuleArtifactWriter.php
+server/app/platform/infrastructure/module/ModuleLockResolver.php
 server/app/service.php
 server/config/console.php
 server/config/trace.php

@@ -491,11 +491,6 @@ final readonly class ModuleArtifactWriter
     {
         return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n";
     }
-    /** @param array<string,mixed> $value */
-    private function writeJson(string $path, array $value): void
-    {
-        $this->writeContents($path, $this->encode($value));
-    }
     private function writeContents(string $path, string $contents): void
     {
         $directory = dirname($path);

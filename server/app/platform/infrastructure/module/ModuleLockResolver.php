@@ -739,33 +739,4 @@ final class ModuleLockResolver
             throw new ModuleLifecycleException($error, 'Plugin document fields do not match the schema.');
         }
     }
-
-    private function sameJson(mixed $left, mixed $right): bool
-    {
-        return $this->canonicalJson($left) === $this->canonicalJson($right);
-    }
-
-    private function canonicalJson(mixed $value): string
-    {
-        $normalize = static function (mixed $item) use (&$normalize): mixed {
-            if (!is_array($item)) {
-                return $item;
-            }
-            $isList = array_is_list($item);
-            if (!$isList) {
-                ksort($item, SORT_STRING);
-            }
-            foreach ($item as $key => $child) {
-                $item[$key] = $normalize($child);
-            }
-            if ($isList) {
-                usort($item, static fn(mixed $left, mixed $right): int => strcmp(
-                    (string) json_encode($left, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES),
-                    (string) json_encode($right, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES),
-                ));
-            }
-            return $item;
-        };
-        return (string) json_encode($normalize($value), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
-    }
 }

@@ -221,6 +221,7 @@
       "paths": [
         "AGENTS.md",
         "SECURITY.md",
+        "deploy/legacy-env-migrate",
         "resources/codegraph-registry.json",
         "resources/service-registry.json",
         "resources/consumer-ready-control.json",

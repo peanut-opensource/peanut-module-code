@@ -150,15 +150,15 @@ python3 "$code_root/scripts/project-env" --root "$web_core" --state-root "$code_
 
 日常可变源码联调不构成候选资格：阶段候选通过冻结合同生成 PHP ZIP、Web 六个 TGZ，并由同格式模板 TGZ 创建 APP，按候选原生 Composer/npm 锁安装到 APP 自身 `vendor`/`node_modules`，必须拒绝维护者源码链接；正式交付再核适用公开包的最终内容、来源及原生正式锁。
 
-首次安装继续使用网页安装向导，控制台入口是 `php server/database/install.php`。首次空库检查、动态管理员/租户、模块选择、租户模块开通、健康检查和完成锁均由安装业务负责。结构通过官方 `migrate:run` 执行唯一 `server/database/migrations` 目录；动态身份创建后，官方 `seed:run --seed=InitialSeeder` 写默认数据并同步权限目录。种子从实际唯一默认租户读取身份，不依赖另一个 PDO 的会话变量；重复或部分初始化拒绝重放。安装完成身份位于 `server/private/installation/installed.json`，包含原生迁移版本与当前源码摘要，不能据此声称官方账本提供历史 checksum 验证。
+首次安装继续使用网页安装向导，控制台入口是 `php server/database/install.php`。首次空库检查、动态管理员/租户、模块选择、租户模块开通、健康检查和完成锁均由安装业务负责。安装器汇集安装快照、宿主前向迁移和已选模块的 `backend.migrations`，由 ThinkPHP 原生执行器按版本顺序执行。动态身份创建后，通过 `seed:run --seed=InitialSeeder` 写宿主默认数据并同步目录。种子从实际唯一默认租户读取身份，不依赖另一个 PDO 的会话变量；重复或部分初始化拒绝重放。安装完成身份位于 `server/private/installation/installed.json`，包含原生迁移版本与当前源码摘要，不能据此声称官方账本提供历史 checksum 验证。
 
 生成应用默认 `peanut create --demo=none`；显式 `--demo=workbench` 记录到应用manifest与 `peanut.demo.preset`，只在正常首次安装的原生锁内将稳定工作台示例写入实际默认租户的 `application.workbench-demo` 设置。工作台读取该持久记录并显示Demo标识；升级不播种，`scripts/seed-demo-data` 只提供 `--plan`，不提供安装后 `--apply`。该preset不启用下述演示账号模式或弱密码策略。
 
 既有 `server/database/seed-multi-tenant-demo.php` 仍保留专项演示数据能力；它与首次安装、脚手架开发库初始化是不同操作。需要该能力时，先按其既有 target/resource 准入及恢复合同核对明确目标，在对应后端环境配置 `PEANUT_DEMO_MODE`、演示租户邮件/密码/域名等所需值，再显式选择 `PHP_ENV_NAME` 并执行 `php server/database/seed-multi-tenant-demo.php --apply --default-host=<明确的default租户域名>`。它不负责选择工具、安装依赖、生成秘密或启动服务；不得向共享开发库重放旧演示配方，也不能把退出的聚合脚本当作当前初始化入口。
 
-数据库只采用 ThinkPHP 原生迁移和 `pa_migrations`（可由 database.migration_table 配置）。本次最终结构为唯一 `20261101000000_initial_baseline.php`，后续用 `php server/think migrate:create <Name>` 增加标准 PHP 迁移；初始基线明确不支持回滚。旧 baseline 覆盖、自研版本账本、schema:application 及历史 partial continuation 已退役。不存在自动清库、重建身份或旧数据库兼容路径。维护者迁移合同仅见Code源码仓`docs/maintenance/migration-protocols.md`，不随生成APP交付。
+安装基线在 `server/database/installation/20261101020000_initial_scaffold_baseline.php`，由应用安装快照固定并配合 `server/database/schema/baseline-schema.sql` 创建宿主初始表。宿主后续迁移位于 `server/database/migrations`，新建使用 `php server/think migrate:create <Name>`。初始基线不可逆，已执行迁移保持原版本和类名，后续变更新增迁移。
 
-模块安装/升级仍负责信任、依赖、锁、模块状态、目录和租户业务，结构变更由应用主目录原生迁移统一交付；不再读取模块私有 SQL 目录或 backend.migrations。安装执行原生 pending 迁移并核声明的自有表，缺失结构明确拒绝，不能把模块目录提升视为数据库交付。模块 schema 的新增/删除应在应用版本中审阅并交付，卸载保留原生迁移历史。
+模块通过 manifest 的 `backend.migrations` 声明自己的 `database/migrations`。安装或升级选定模块及必需依赖时，宿主先检查迁移身份、已应用版本与宿主前置条件，再由原生执行器运行待执行的模块迁移并核对自有表。宿主和模块共用 ThinkPHP 账本，默认是 `pa_migrations`。卸载保留迁移历史和默认保留的数据。模块作者入口见[模块开发与交付](../public/module-development.md)。
 
 开发 APP 吸收脚手架源码仍使用 CLI `peanut upgrade` 或 `scripts/scaffold-upgrade` 的固定模板、完整 inventory、来源摘要、三方比较、归属与显式冲突决策。源码 apply 不安装依赖、不构建客户端、不迁移数据库、不部署。`.peanut/scaffold-baseline` 是有效源码比较元数据，与已删除的数据库基线目录无关；APP 自有业务、秘密、配置与持久文件不进入自动覆盖。
 
