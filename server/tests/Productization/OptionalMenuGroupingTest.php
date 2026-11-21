@@ -18,6 +18,7 @@ $server = dirname(__DIR__, 2);
 require_once $server . '/vendor/autoload.php';
 require_once $server . '/vendor/topthink/framework/src/helper.php';
 require_once $server . '/tests/Support/RegisteredMysqlTestResource.php';
+require_once $server . '/tests/Support/IsolatedBackendEnvironment.php';
 require_once $server . '/tests/Support/ThinkPhpTestConnection.php';
 require_once $server . '/tests/Support/IdentityMysqlFixture.php';
 
@@ -57,10 +58,20 @@ optionalMenuExpect(count($registry->modules) === 22, 'Optional menu fixture must
 $database = RegisteredMysqlTestResource::configuredDatabaseName();
 [$pdo, $created] = RegisteredMysqlTestResource::openEmptyDatabase($database);
 try {
+    IsolatedBackendEnvironment::activateDatabase(
+        IsolatedBackendEnvironment::required('DB_HOST'),
+        IsolatedBackendEnvironment::required('DB_PORT'),
+        $database,
+        IsolatedBackendEnvironment::required('DB_USER'),
+        IsolatedBackendEnvironment::required('DB_PASS'),
+        'multi-tenant',
+    );
+    $app->setRuntimePath(sys_get_temp_dir() . '/peanut-optional-menu-' . bin2hex(random_bytes(8)) . '/');
+    $app->initialize();
+    ThinkPhpTestConnection::fromPdo($pdo);
     $migrationDirectories = glob($server . '/app/modules/peanut/*/database/migrations', GLOB_ONLYDIR);
     $migrationDirectories = array_values(array_filter($migrationDirectories, static fn($path) => !str_contains($path, '/identity/')));
     IdentityMysqlFixture::install($pdo, [...$migrationDirectories, $server . '/database/installation']);
-    ThinkPhpTestConnection::fromPdo($pdo);
     (new CorePermissionCatalogSynchronizer(new ThinkPhpAuthorizationCatalogRepository()))->synchronize();
     $bootstrap = new \PeanutAdmin\Modules\Identity\Platform\Bootstrap\BootstrapService(
         new \PeanutAdmin\Modules\Identity\Audit\AuditService(),
