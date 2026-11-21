@@ -65,10 +65,10 @@ final class OptionalModuleCompositionTest extends TestCase
         self::assertFalse($app->bound(\PeanutAdmin\Modules\Notification\Contract\NotificationProducerRegistry::class));
     }
 
-    public function testAllTwentyThreeModulesRegisterActualCommandsAndOwnedRegistries(): void
+    public function testAllTwentyFourModulesRegisterActualCommandsAndOwnedRegistries(): void
     {
         [$app, $registry] = $this->compose(true);
-        self::assertCount(23, $registry->modules);
+        self::assertCount(24, $registry->modules);
         $commands = $app->make(ModuleConsoleCommands::class)->contributions();
         $console = $app->make('console');
         self::assertSame($console, $app->make('console'));

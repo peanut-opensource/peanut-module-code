@@ -16,12 +16,18 @@ use think\App;
 final class OptionalModuleAliasIdentityTest extends TestCase
 {
     private static ClassLoader $loader;
+    private static string $server;
 
     public static function setUpBeforeClass(): void
     {
         require_once dirname(__DIR__, 2) . '/vendor/topthink/framework/src/helper.php';
+        $root = getenv('PEANUT_OPTIONAL_MODULE_APPLICATION_ROOT');
+        self::$server = $root ? rtrim($root, '/') . '/server' : dirname(__DIR__, 2);
+        if (!is_file(self::$server . '/app/AppService.php')) {
+            throw new RuntimeException('Explicit actual Module application source root is required.');
+        }
         self::$loader = new ClassLoader();
-        foreach (glob(dirname(__DIR__, 2) . '/app/modules/*/*/composer.json') as $path) {
+        foreach (glob(self::$server . '/app/modules/*/*/composer.json') as $path) {
             $composer = json_decode(file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
             foreach ($composer['autoload']['psr-4'] as $prefix => $paths) {
                 self::$loader->addPsr4($prefix, array_map(static fn($source) => dirname($path) . '/' . $source, (array) $paths));
@@ -103,13 +109,13 @@ final class OptionalModuleAliasIdentityTest extends TestCase
 
     private function compose(): App
     {
-        $server = dirname(__DIR__, 2);
+        $server = self::$server;
         $manifests = [];
         foreach (glob($server . '/app/modules/*/*/module.json') as $path) {
             $manifests[] = ManifestDocument::fromObject(dirname($path), json_decode(file_get_contents($path), false, 512, JSON_THROW_ON_ERROR));
         }
         $registry = new CompiledModuleRegistry($manifests, [], [], [], 'optional-alias-identity');
-        self::assertCount(23, $registry->modules);
+        self::assertCount(24, $registry->modules);
         $app = new App($server);
         (new ReflectionProperty(App::class, 'initialized'))->setValue($app, true);
         $app->bind(require $server . '/app/adminapi/provider.php');
