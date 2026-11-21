@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\common\services;
 
+use app\common\contract\audit\AuditResource;
+use app\common\services\audit\AuditContractHost;
 use app\common\exception\BusinessException;
 use app\common\http\PageResult;
 use app\common\support\PaginationInput;
@@ -36,6 +38,7 @@ abstract class AbstractCrudService
     protected function revealMaskedFields(TenantContext $context): bool { return false; }
     protected function richTextFields(): array { return []; }
     protected function diffFields(): array { return []; }
+    protected function auditResourceType(): string { return static::class; }
     protected function onFieldDiff(TenantContext $context, Model $model, array $diff): void {}
     protected function statusField(): ?string { return null; }
     protected function versionField(): ?string { return null; }
@@ -101,7 +104,15 @@ abstract class AbstractCrudService
     public function detail(TenantContext $context, int|string $id): array
     {
         $this->assertPermission($context, 'detail');
-        return $this->maskRow($context, $this->project($this->find($context, $id, detail: true), $this->detailFields()));
+        $model = $this->find($context, $id, detail: true);
+        $detail = $this->maskRow($context, $this->project($model, $this->detailFields()));
+        $auditFields = $this->auditFields($this->diffFields());
+        if ($auditFields !== []) {
+            $detail['audit_history'] = app(AuditContractHost::class)->crudFieldHistory(
+                $context, $this->auditResource($model), $auditFields,
+            );
+        }
+        return $detail;
     }
 
     public function add(TenantContext $context, array $params): bool
@@ -124,8 +135,6 @@ abstract class AbstractCrudService
             $model = $this->find($context, $params[$this->primaryKey()], true);
             $this->beforeEdit($context, $model, $params);
             $values = $this->sanitizeInput(array_intersect_key($params, array_flip($this->updateFields())));
-            $diffFields = $this->diffFields();
-            $before = array_intersect_key($model->toArray(), array_flip($diffFields));
             $versionField = $this->versionField();
             if ($versionField !== null) {
                 $expected = $params[$versionField] ?? null;
@@ -137,13 +146,7 @@ abstract class AbstractCrudService
                 }
                 $values[$versionField] = (int) $expected + 1;
             }
-            if ($model->save($values) === false) {
-                throw $this->resourceError('save');
-            }
-            if ($diffFields !== []) {
-                $after = array_intersect_key($model->toArray(), array_flip($diffFields));
-                $this->onFieldDiff($context, $model, (new FieldDiffCalculator())->calculate($before, $after));
-            }
+            $this->saveUpdate($context, $model, $values, notify: true);
             return true;
         });
     }
@@ -170,9 +173,7 @@ abstract class AbstractCrudService
         }
         return Db::transaction(function () use ($context, $id, $status, $field): bool {
             $model = $this->find($context, $id, true);
-            if ($model->save($this->statusValues($model, $field, $status)) === false) {
-                throw $this->resourceError('save');
-            }
+            $this->saveUpdate($context, $model, $this->statusValues($model, $field, $status));
             return true;
         });
     }
@@ -202,12 +203,47 @@ abstract class AbstractCrudService
         if ((!is_int($status) && !is_string($status)) || filter_var($status, FILTER_VALIDATE_INT) === false) throw new \InvalidArgumentException('状态值错误');
         return Db::transaction(function () use ($context, $ids, $field, $status): bool {
             foreach ($this->findBatch($context, $ids) as $model) {
-                if ($model->save($this->statusValues($model, $field, (int) $status)) === false) {
-                    throw $this->resourceError('save');
-                }
+                $this->saveUpdate($context, $model, $this->statusValues($model, $field, (int) $status));
             }
             return true;
         });
+    }
+
+    private function saveUpdate(TenantContext $context, Model $model, array $values, bool $notify = false): void
+    {
+        $diffFields = $this->diffFields();
+        $before = $diffFields === [] ? [] : $this->project($model, $diffFields);
+        if ($model->save($values) === false) {
+            throw $this->resourceError('save');
+        }
+        if ($diffFields === []) {
+            return;
+        }
+        $diff = (new FieldDiffCalculator())->calculate($before, $this->project($model, $diffFields));
+        if ($notify) {
+            $this->onFieldDiff($context, $model, $diff);
+        }
+        $auditDiff = array_intersect_key($diff, $this->auditFields($diffFields));
+        if ($auditDiff !== []) {
+            app(AuditContractHost::class)->recordCrudFieldDiff($context, $this->auditResource($model), $auditDiff);
+        }
+    }
+
+    /** History is limited to opted-in, unmasked fields visible in resource detail. */
+    private function auditFields(array $diffFields): array
+    {
+        if ($diffFields === []) {
+            return [];
+        }
+        return array_diff_key(
+            array_intersect_key(array_flip($diffFields), array_flip($this->detailFields())),
+            $this->maskedFields(),
+        );
+    }
+
+    private function auditResource(Model $model): AuditResource
+    {
+        return new AuditResource($this->auditResourceType(), (string) $model->getAttr($this->primaryKey()));
     }
 
     private function statusValues(Model $model, string $field, int $status): array

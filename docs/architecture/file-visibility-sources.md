@@ -16,6 +16,19 @@
 
 预检查从供应商读取 Bucket 的公开属性、region 和 `versioning=false`，分别查询自定义源站域名及按 Bucket 筛选的 CDN 域名。当前源站关闭适配要求这两组域名为空且分页完整；已有绑定、未知状态、启用版本管理、其他未支持区域/供应商都拒绝整批准入，不能用一项配置布尔值宣布合格。这与七牛目前[不支持文件版本管理](https://developer.qiniu.com/kodo/kb/12957/kodo-nomarl-faq?category=kb)的合同一致，不把“不支持版本列举”推断成其他供应商没有历史版本。
 
+## 云驱动依赖边界
+
+Core FileMedia 提供 `StorageDriver`、本地驱动及各云适配器。File 模块的 `StorageDriverFactory` 按空间配置组装驱动，解析当前账号凭据，且只在选到对应驱动时创建 SDK 客户端。本地路径没有云 SDK 调用。5.x 宿主仍承诺默认 File 组合可运行全部已支持供应商，Composer 依赖闭包如下。
+
+| Composer 包 | 运行调用方 | 当前依赖声明 |
+| --- | --- | --- |
+| `aws/aws-sdk-php` | File 的 `QiniuS3DownloadTransport` 使用 SigV4 | File 与宿主 |
+| `aliyuncs/oss-sdk-php` | File 的 `AliyunStorageClientFactory` 与 Core 的 `AliyunStorageDriver` | 宿主 |
+| `qcloud/cos-sdk-v5` | File 的 `QcloudStorageClientFactory` 与 Core 的 `QcloudStorageDriver` | 宿主 |
+| `qiniu/php-sdk` | File 的七牛工厂、可见性源站及 Core 的 `QiniuStorageDriver` | 宿主 |
+
+迁移时先为 File 的云适配器声明对应 SDK 及版本，明确默认组合与本地存储组合分别安装哪些适配器；已有云存储账号在升级后必须继续安装其适配器。随后更新 File 工厂与能力声明，覆盖本地组合无 SDK、各云组合实际创建客户端、七牛 S3 签名和可见性迁移，验证已有账号升级。最后用原生依赖和发行流程重算两仓 Composer 锁、模板依赖及 Scaffold SBOM，并通过 `check-release-consistency` 与干净锁安装后移除宿主的四项直接依赖。
+
 ## 批次与恢复
 
 上传拒绝外层数据库事务；先保留带原请求身份的审计意图及 `pending_write` 对象账本，再调用供应商写入。供应商未返回确定成功，或成功后账本确认失败时，保留同一 key、大小和 SHA-256，能记录时进入 `write_failed`；不自动删除或重传。数据库不可用时，原意图和预留记录仍是对账依据，不能把未知结果当作对象不存在。先只读核对原 key；新的上传会生成另一个 key，不能用它代替恢复原上传。已确定成功后的交付或素材元数据失败补偿是另一条路径，只针对同请求的新对象，仍须遵守实际资源的精确删除授权。

@@ -22,6 +22,11 @@
 
 ## 5. 已确认的关键安全合同
 
+### 输入校验与工具边界
+
+`app/common/validate/` 存放 ThinkPHP 请求校验器、白名单输入与公共规则，由控制器、应用服务和官方模块复用。`app/common/validation/` 存放实例工具访问策略和脚手架文件路径约束，服务于 CLI、安装和升级入口。后者的 `scaffold/ScaffoldPathGuard.php` 是 Composer 自动加载入口，和 CLI 共享同一份实现。
+
+
 ### 身份模块调用
 
 角色/部门/成员写入和个人账户操作使用已认证 TenantContext，不拼客户端 tenant_id/裸人 ID 当身份；仍接收整数租户的查询不机械替换。身份模块维护审计/授权修订/归属/会话，Core 提供技术协议；公开签名必须反射实际加载类。缺省 User-Agent 等可选输入保持既定安全处理，不因接口迁移改变语义。

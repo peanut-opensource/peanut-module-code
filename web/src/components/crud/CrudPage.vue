@@ -15,7 +15,7 @@
     <div class="crud-page__toolbar">
       <slot name="toolbar" />
       <el-select
-        v-if="views"
+        v-if="views && !savedViews"
         placeholder="常用视图"
         v-bind="{ ariaLabel: '常用视图' }"
         @change="$emit('applyView', $event)"
@@ -27,7 +27,7 @@
           :value="view.id"
         />
       </el-select>
-      <template v-if="views">
+      <template v-if="views && !savedViews">
         <el-input
           v-model="viewName"
           placeholder="视图名称"
@@ -38,16 +38,57 @@
           >保存视图</el-button
         >
       </template>
+      <template v-if="savedViewKey">
+        <el-select
+          v-model="selectedView"
+          placeholder="已保存视图"
+          aria-label="已保存视图"
+          @change="applySavedView"
+        >
+          <el-option
+            v-for="view in savedViewItems"
+            :key="view.name"
+            :label="view.name"
+            :value="view.name"
+          />
+        </el-select>
+        <el-input
+          v-model="savedViewName"
+          maxlength="80"
+          placeholder="视图名称"
+          aria-label="视图名称"
+          style="width: 150px"
+          @keyup.enter="saveCurrentView"
+        />
+        <el-button :disabled="!savedViewName.trim()" @click="saveCurrentView"
+          >保存视图</el-button
+        >
+        <el-button
+          :disabled="!selectedView"
+          @click="applySavedView(selectedView)"
+          >应用视图</el-button
+        >
+        <el-button :disabled="!selectedView" @click="deleteSavedView"
+          >删除视图</el-button
+        >
+      </template>
       <TableColumnSetting
-        v-if="fields && columnStorageKey"
-        :key="`${columnStorageKey}:${fields
+        ref="columnSettings"
+        v-if="fields && effectiveColumnKey"
+        :key="`${effectiveColumnKey}:${fields
           .map((field) => field.label)
           .join('|')}`"
         :schema="fields"
-        :storage-key="columnStorageKey"
+        :storage-key="effectiveColumnKey"
         @change="onColumnsChange"
       />
     </div>
+    <el-alert
+      v-if="viewError"
+      :title="viewError"
+      type="error"
+      :closable="false"
+    />
     <el-alert
       v-if="editError"
       :title="editError"
@@ -89,7 +130,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        v-if="saveEdit && canEdit && fields?.some((field) => field.editable)"
+        v-if="saveEdit && canEdit && editableFields.length"
         label="操作"
         width="150"
       >
@@ -132,7 +173,11 @@
   </section>
 </template>
 
-<script setup lang="ts" generic="TRow extends object">
+<script
+  setup
+  lang="ts"
+  generic="TRow extends object, TFilters extends Record<string, unknown> = Record<string, unknown>"
+>
   import { computed, ref, shallowRef, watch } from 'vue';
   import { ElLoadingDirective as vLoading } from 'element-plus';
   import useCrudTab from '@/hooks/useCrudTab';
@@ -160,6 +205,13 @@
     paginationDisabled?: boolean;
     treeProps?: { children?: string; hasChildren?: string };
     defaultExpandAll?: boolean;
+    savedViews?: {
+      pageKey: string;
+      tenantId: number | string;
+      userId: number | string;
+      filters: TFilters;
+      applyFilters: (filters: TFilters) => void;
+    };
     views?: readonly { id: string; label: string }[];
     fields?: Field[];
     columnStorageKey?: string;
@@ -191,12 +243,120 @@
       viewName.value = '';
     }
   };
+  interface SavedView {
+    name: string;
+    filters: TFilters;
+    columns: string[];
+  }
+  const columnSettings = ref<InstanceType<typeof TableColumnSetting>>();
+  const savedViewItems = shallowRef<SavedView[]>([]);
+  const selectedView = ref('');
+  const savedViewName = ref('');
+  const viewError = ref('');
+  const savedViewKey = computed(() => {
+    const config = props.savedViews;
+    if (!config?.pageKey || !config.tenantId || !config.userId) return '';
+    return `peanut:crud:views:${JSON.stringify([
+      config.pageKey,
+      String(config.tenantId),
+      String(config.userId),
+    ])}`;
+  });
+  const effectiveColumnKey = computed(() =>
+    props.savedViews
+      ? savedViewKey.value
+        ? `${savedViewKey.value}:columns`
+        : undefined
+      : props.columnStorageKey
+  );
+  watch(
+    savedViewKey,
+    (key) => {
+      savedViewName.value = '';
+      selectedView.value = '';
+      viewError.value = '';
+      savedViewItems.value = [];
+      if (!key) return;
+      try {
+        const raw = localStorage.getItem(key);
+        const stored: unknown = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(stored)) return;
+        savedViewItems.value = stored.filter(
+          (view): view is SavedView =>
+            view &&
+            typeof view.name === 'string' &&
+            view.filters &&
+            typeof view.filters === 'object' &&
+            !Array.isArray(view.filters) &&
+            Array.isArray(view.columns) &&
+            view.columns.every((key: unknown) => typeof key === 'string')
+        );
+      } catch {
+        viewError.value = '无法读取已保存视图';
+      }
+    },
+    { immediate: true, flush: 'sync' }
+  );
+
+  const writeSavedViews = (views: SavedView[]) => {
+    if (!savedViewKey.value) return false;
+    try {
+      localStorage.setItem(savedViewKey.value, JSON.stringify(views));
+      savedViewItems.value = views;
+      viewError.value = '';
+      return true;
+    } catch {
+      viewError.value = '无法保存视图，请检查浏览器存储设置';
+      return false;
+    }
+  };
+  const saveCurrentView = () => {
+    const name = savedViewName.value.trim();
+    if (!name || !props.savedViews || !savedViewKey.value) return;
+    try {
+      const view: SavedView = {
+        name,
+        filters: JSON.parse(JSON.stringify(props.savedViews.filters)),
+        columns: displayedFields.value.map((field) => field.key),
+      };
+      if (
+        writeSavedViews([
+          ...savedViewItems.value.filter((item) => item.name !== name),
+          view,
+        ])
+      ) {
+        selectedView.value = name;
+        savedViewName.value = '';
+      }
+    } catch {
+      viewError.value = '无法保存当前筛选条件';
+    }
+  };
+  const applySavedView = (name: string) => {
+    const view = savedViewItems.value.find((item) => item.name === name);
+    if (!view || !props.savedViews) return;
+    cancelEdit();
+    columnSettings.value?.applyVisibility(view.columns);
+    props.savedViews.applyFilters(JSON.parse(JSON.stringify(view.filters)));
+  };
+  const deleteSavedView = () => {
+    if (
+      writeSavedViews(
+        savedViewItems.value.filter((view) => view.name !== selectedView.value)
+      )
+    ) {
+      selectedView.value = '';
+    }
+  };
   const customFields = shallowRef<Field[]>();
   const displayedFields = computed(
     () =>
       customFields.value ??
       props.fields?.filter((field) => field.visible !== false) ??
       []
+  );
+  const editableFields = computed(() =>
+    displayedFields.value.filter((field) => field.editable)
   );
   const tableDensity = ref<'default' | 'large' | 'small'>('default');
   const fixedHeader = ref(false);
@@ -234,18 +394,34 @@
     },
     { flush: 'sync' }
   );
+  watch(
+    () => editableFields.value.map((field) => field.key).join('\0'),
+    cancelEdit
+  );
+  watch(
+    effectiveColumnKey,
+    () => {
+      customFields.value = undefined;
+      cancelEdit();
+    },
+    { flush: 'sync' }
+  );
+  watch(
+    () => props.data,
+    (data) => {
+      if (editing.value && !saving.value && !data.includes(editing.value))
+        cancelEdit();
+    }
+  );
   const startEdit = (row: TRow) => {
     if (!active.value || !props.canEdit?.(row) || !props.saveEdit) return;
     editing.value = row;
     editError.value = '';
-    const record: object = row;
     draft.value = Object.fromEntries(
-      (props.fields ?? [])
-        .filter((field) => field.editable)
-        .map((field) => [
-          field.key,
-          String(Reflect.get(record, field.key) ?? ''),
-        ])
+      editableFields.value.map((field) => [
+        field.key,
+        String(Reflect.get(row, field.key) ?? ''),
+      ])
     );
   };
   const confirmEdit = async () => {
@@ -253,12 +429,24 @@
     const save = props.saveEdit;
     if (!row || !save || !props.canEdit?.(row) || !active.value || saving.value)
       return;
+    const values = Object.fromEntries(
+      editableFields.value
+        .map(({ key }) => [key, draft.value[key]] as const)
+        .filter(
+          ([key, value]) =>
+            value !== undefined && value !== String(Reflect.get(row, key) ?? '')
+        )
+    ) as Record<string, string>;
+    if (!Object.keys(values).length) {
+      cancelEdit();
+      return;
+    }
     const controller = new AbortController();
     editRequest = controller;
     saving.value = true;
     editError.value = '';
     try {
-      await save(row, { ...draft.value }, controller.signal);
+      await save(row, values, controller.signal);
       if (!controller.signal.aborted) {
         cancelEdit();
         emit('edited', row);
@@ -271,6 +459,7 @@
       if (editRequest === controller) {
         editRequest = undefined;
         saving.value = false;
+        if (!props.data.includes(row)) cancelEdit();
       }
     }
   };

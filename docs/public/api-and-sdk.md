@@ -27,6 +27,8 @@ php scripts/generate-api-contracts.php --check
 ./scripts/check-openapi
 ```
 
+脚手架 CI 的 PHP 作业在组合模块消费者之前使用同一入口检查宿主源码。当前生成链只输出 Web 的 OpenAPI 类型和模块 SDK，PC、Platform 和 UniApp 没有消费这套生成类型。
+
 接口源变化而未刷新、缺少派生文件、模块接口删除后遗留旧 SDK，都会使检查失败。生成失败时不得继续发布旧产物，也不能只改时间戳或版本字符串冒充刷新。
 
 `GET /adminapi/peanut.document.versions` 和 `DocumentQueries::versions` 只返回获准文档的已提交版本摘要，每页重新按持久 owner 核验 active 的 view 或 archived 的 archive.read。默认 limit 为 20，范围 1–100；可选正整数 before_revision_no 以版本号倒序向更早版本翻页，无总数。摘要不授予正文、文件、下载或恢复权限；选中版本仍走原查询和命令核权。查询拒绝外层事务，避免将未提交版本列为历史。自定义 DocumentQueries 实现须实现新增 versions 方法；现有方法及生命周期协议不变。

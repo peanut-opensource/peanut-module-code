@@ -88,6 +88,13 @@
         fixedHeader: false,
       }
     );
+  function applyVisibility(keys: readonly string[]) {
+    const visible = new Set(keys);
+    for (const column of columns.value) {
+      column.visible = visible.has(column.key);
+    }
+  }
+  defineExpose({ applyVisibility });
   const list = ref<HTMLElement>();
   let sortable: Sortable | undefined;
   watch(

@@ -9,14 +9,17 @@ use app\common\policy\audit\RedactionPolicy;
 use app\common\contract\audit\AuditActor;
 use app\common\contract\audit\AuditEvent;
 use app\common\contract\audit\AuditResource;
+use app\common\contract\audit\AuditTrace;
 use app\common\execution\CurrentExecutionContext;
 use PeanutAdmin\Kernel\Audit\AuditOutcome;
 use PeanutAdmin\Modules\Identity\Audit\AuditService;
+use PeanutAdmin\Modules\Identity\Audit\Model\TenantAuditEventRecord;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use think\facade\Db;
 
 final class AuditContractHost
 {
+    private const CRUD_FIELD_DIFF = 'crud.field_diff';
     private OperationLogProjection $operationLogs;
     private AuditService $identityAudit;
 
@@ -40,6 +43,71 @@ final class AuditContractHost
             return;
         }
         $this->appendTenantEvent($event);
+    }
+
+    /** @param array<string, array{before: mixed, after: mixed}> $diff */
+    public function recordCrudFieldDiff(TenantContext $context, AuditResource $resource, array $diff): void
+    {
+        // ORM JSON attributes can contain objects. Redaction works on associative JSON trees.
+        $normalized = json_decode(
+            json_encode($diff, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE),
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
+        $before = RedactionPolicy::sanitize(array_map(static fn(array $change): mixed => $change['before'], $normalized));
+        $after = RedactionPolicy::sanitize(array_map(static fn(array $change): mixed => $change['after'], $normalized));
+        if ($before === $after) {
+            return;
+        }
+        $this->record(new AuditEvent(
+            AuditEvent::TENANT,
+            $context->tenantId,
+            AuditActor::tenantMember($context),
+            self::CRUD_FIELD_DIFF,
+            'update',
+            $resource,
+            null,
+            new AuditTrace($context->requestId),
+            AuditOutcome::Success,
+            null,
+            before: $before,
+            after: $after,
+        ));
+    }
+
+    /** Read the latest changes for an already authorized resource and its current field allowlist. */
+    public function crudFieldHistory(TenantContext $context, AuditResource $resource, array $fields): array
+    {
+        $rows = TenantAuditEventRecord::where('tenant_id', $context->tenantId)
+            ->where('event_type', self::CRUD_FIELD_DIFF)
+            ->where('target_resource_type', $resource->type)
+            ->where('target_resource_id', $resource->id)
+            // The table's text collation is case-insensitive; resource identifiers may not be.
+            ->whereRaw('HEX(target_resource_type) = ? AND HEX(target_resource_id) = ?', [
+                strtoupper(bin2hex($resource->type)), strtoupper(bin2hex($resource->id)),
+            ])
+            ->field('id, occurred_at, before_json, after_json')
+            ->order('occurred_at', 'desc')->order('id', 'desc')->limit(30)->select();
+        $history = [];
+        foreach ($rows as $row) {
+            $before = $row->getAttr('before_json') ?? [];
+            $after = $row->getAttr('after_json') ?? [];
+            if ($before === ['_redacted' => 'payload_unavailable'] || $after === ['_redacted' => 'payload_unavailable']) {
+                continue;
+            }
+            $before = RedactionPolicy::sanitize(array_intersect_key($before, $fields));
+            $after = RedactionPolicy::sanitize(array_intersect_key($after, $fields));
+            if ($before !== $after) {
+                $history[] = [
+                    'id' => (string) $row->getAttr('id'),
+                    'occurred_at' => (string) $row->getAttr('occurred_at'),
+                    'before' => $before,
+                    'after' => $after,
+                ];
+            }
+        }
+        return $history;
     }
 
     public function recordOperationLog(

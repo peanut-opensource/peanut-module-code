@@ -85,3 +85,10 @@ Web Core 包有公开合同不等于每个产品宿主都已接入；确认某�
 新增能力先回答：原生框架是否已有；真实消费者是否跨模块且没有业务/渠道依赖；需要保留的安全/租户不变量是什么；默认实现能否直接用；配置与实现替换是否贯穿所有消费者。只有真实合同或多实现需要才新增接口，普通可替换服务可以用公开类及原生绑定。完整业务继续作为可复用 Code 模块分发，复用不要求进入 Core。
 
 该表是职责和扩展合同。运行验证只证明实际检查过的路径；全量资格、公开发布、生产/已安装 APP 升级分别按其明确授权执行。
+
+
+## 宿主 CRUD 扩展
+
+- 字段审计由服务的 `diffFields()` 显式开启，声明允许留存历史的字段。通用编辑和状态更新在原事务写入 Identity 租户审计，跳过无变化。读取复用对象详情权限及其查询范围，只返回当前详情允许且无字段遮罩的最近 30 条事件。沿用 `detail()` 的页面把 `detail.audit_history` 传给 `CrudDetailDrawer` 的 `audit-history`。若服务重命名，覆盖 `auditResourceType()` 保留旧的审计资源标识。页面采用时更新本资源详情的 OpenAPI schema 并重新生成 SDK。
+- `CrudPage.savedViews` 接收 `pageKey`、可信会话的稳定 `tenantId` 和 `userId`，以及可 JSON 序列化的 `filters` 与 `applyFilters`。可直接传入 `useCrudTable` 的查询表单，由回调按本页字段接收筛选并执行 `handleSearch()`。预设保存在本浏览器，覆盖 `fields` 声明的列显隐，插槽列由页面管理。筛选快照应排除凭据等敏感内容。
+- `CrudPage` 的行内编辑仅对 `fields[].editable`、`canEdit(row)` 和 `saveEdit(row, changedValues, signal)` 同时配置的行开放。回调负责调用已有写接口和按页面合同校验文本值，提交失败显示原有错误提示，成功后通过 `edited` 刷新页面。
