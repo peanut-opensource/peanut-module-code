@@ -144,27 +144,9 @@ class AppService extends Service
         // Source-only create/adopt uses server/module without this Service.
         $serverRoot = dirname(__DIR__);
         if (!$this->isSourceAuthoringCommand()
-            && (!file_exists($serverRoot . '/private/installation/installed.json')
-                && !is_link($serverRoot . '/private/installation/installed.json'))
-            && ModuleLockResolver::forRuntime(
-                $serverRoot,
-                (string) $this->app->config->get('modules.module_lock', '../modules.lock'),
-            )->all() !== []) {
-            require_once $serverRoot . '/database/InitialInstallationSource.php';
-            try {
-                \InitialInstallationSource::modules($serverRoot);
-            } catch (\RuntimeException $exception) {
-                if (!str_starts_with($exception->getMessage(), 'INSTALL_MODULE_SOURCE_MISSING: ')) {
-                    throw $exception;
-                }
-                throw new \app\common\exception\installation\InstallationExecutionException(
-                    'INSTALL_MODULE_SOURCE_MISSING',
-                    '必选模块源码尚未准备，请通过 CLI create 的发行组合计划完成源码采用。',
-                    503,
-                    $exception,
-                    ['state' => 'uninstalled', 'module' => substr($exception->getMessage(), strlen('INSTALL_MODULE_SOURCE_MISSING: '))],
-                );
-            }
+            && !file_exists($serverRoot . '/private/installation/installed.json')
+            && !is_link($serverRoot . '/private/installation/installed.json')) {
+            $this->assertFirstRunModuleSource($serverRoot);
         }
         $this->registerHttpSqlTiming();
         $this->registerExecutionContext($this->registerHttpRequestThresholds());
@@ -175,6 +157,46 @@ class AppService extends Service
         $this->registerApplicationServices();
         $this->registerConfiguredBindings();
         $this->registerModules();
+    }
+
+    private function assertFirstRunModuleSource(string $serverRoot): void
+    {
+        $resolver = ModuleLockResolver::forRuntime(
+            $serverRoot,
+            (string) $this->app->config->get('modules.module_lock', '../modules.lock'),
+        );
+        $uncompiled = null;
+        try {
+            if ($resolver->all() === []) {
+                return;
+            }
+        } catch (\PeanutAdmin\Kernel\Module\ModuleException $exception) {
+            if ($this->app->runningInConsole() || $exception->errorCode !== 'MODULE_REGISTRY_NOT_COMPILED') {
+                throw $exception;
+            }
+            // A clean consumer has no compiled registry yet. Keep adoption recovery errors ahead of this probe.
+            $uncompiled = $exception;
+        }
+
+        require_once $serverRoot . '/database/InitialInstallationSource.php';
+        try {
+            \InitialInstallationSource::modules($serverRoot);
+        } catch (\RuntimeException $exception) {
+            $missing = 'INSTALL_MODULE_SOURCE_MISSING: ';
+            if (!str_starts_with($exception->getMessage(), $missing)) {
+                throw $exception;
+            }
+            throw new \app\common\exception\installation\InstallationExecutionException(
+                'INSTALL_MODULE_SOURCE_MISSING',
+                '必选模块源码尚未准备，请通过 CLI create 的发行组合计划完成源码采用。',
+                503,
+                $exception,
+                ['state' => 'uninstalled', 'module' => substr($exception->getMessage(), strlen($missing))],
+            );
+        }
+        if ($uncompiled !== null) {
+            throw $uncompiled;
+        }
     }
 
     private function registerConfiguredBindings(): void
