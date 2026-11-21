@@ -1,3 +1,5 @@
+// @peanut-admin/client exports: createSessionSync, SessionSyncEvent, SessionSyncType.
+// The 5.x hosts use this source until their dependency locks adopt these exports.
 export type SessionSyncType = 'logout' | 'tenant-switched' | 'session-refreshed';
 
 export interface SessionSyncEvent {

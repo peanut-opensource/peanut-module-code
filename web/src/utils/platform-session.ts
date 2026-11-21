@@ -1,9 +1,11 @@
-import { createSessionSync } from './session-sync';
+// @peanut-admin/client exports: createPlatformSession, PlatformSessionSnapshot.
+// The 5.x hosts use this source until their dependency locks adopt these exports.
+import { createSessionSync } from './session-sync.js';
 import {
   newBrowserSessionIdentity,
   readBrowserSession,
   writeBrowserSession,
-} from './session-storage';
+} from './session-storage.js';
 
 const tokenKey = 'peanut-platform-token';
 const sessionKey = 'peanut-platform-session';

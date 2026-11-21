@@ -1,3 +1,5 @@
+// @peanut-admin/client exports: readBrowserSession, writeBrowserSession, newBrowserSessionIdentity.
+// The 5.x hosts use this source until their dependency locks adopt these exports.
 interface BrowserSession {
   identity: string | null;
   token: string | null;

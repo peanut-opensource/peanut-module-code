@@ -1,22 +1,49 @@
 #!/usr/bin/env python3
 """Check the opt-in Scaffold and Official Modules host files from source."""
 import argparse
-import hashlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+CLIENT_PRIMITIVES = ("platform-session.ts", "request-trace.ts", "session-storage.ts", "session-sync.ts")
+
+
+def read_source(root, path):
+    file = root / path
+    if not file.is_file() or file.is_symlink() or not file.resolve().is_relative_to(root):
+        raise OSError("missing or not a regular checkout file")
+    return file.read_bytes()
+
+
+def compare(differences, left_root, left_path, right_root, right_path, right_label):
+    try:
+        left = read_source(left_root, left_path)
+    except OSError as error:
+        differences.append(f"{left_path}: Scaffold: {error}")
+        return
+
+    try:
+        right = read_source(right_root, right_path)
+    except OSError as error:
+        differences.append(f"{left_path}: {right_label} {right_path}: {error}")
+        return
+
+    if left != right:
+        differences.append(f"{left_path}: differs from {right_label} {right_path}")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--scaffold-root", type=Path, default=ROOT.parent / "peanut-admin-code")
     parser.add_argument("--module-root", type=Path, default=ROOT.parent / "peanut-module-code")
+    parser.add_argument("--core-web-root", type=Path, default=ROOT.parent / "peanut-admin-core-web")
     args = parser.parse_args()
 
     scaffold = args.scaffold_root.resolve()
     modules = args.module_root.resolve()
-    if scaffold == modules:
-        parser.error("Scaffold and Module checkout roots must be distinct")
+    core_web = args.core_web_root.resolve()
+    if len({scaffold, modules, core_web}) != 3:
+        parser.error("Checkout roots must be distinct")
+
     try:
         registry = (scaffold / "scripts/shared-host-files.txt").read_text(encoding="utf-8")
     except OSError as error:
@@ -31,23 +58,22 @@ def main():
         path = Path(name)
         if path.is_absolute() or ".." in path.parts:
             parser.error(f"Invalid shared path: {name}")
-        checksums = []
-        for label, base in (("Scaffold", scaffold), ("Module", modules)):
-            file = base / path
-            try:
-                if not file.is_file() or file.is_symlink() or not file.resolve().is_relative_to(base):
-                    differences.append(f"{name}: {label} missing or not a regular checkout file")
-                    continue
-                checksums.append(hashlib.sha256(file.read_bytes()).hexdigest())
-            except OSError as error:
-                differences.append(f"{name}: {label}: {error}")
-        if len(checksums) == 2 and checksums[0] != checksums[1]:
-            differences.append(f"{name}: SHA-256 differs ({' vs '.join(checksums)})")
+        compare(differences, scaffold, path, modules, path, "Module")
+
+    for name in CLIENT_PRIMITIVES:
+        core_path = Path("packages/client/src") / name
+        for directory in ("platform/src/core", "web/src/utils"):
+            host_path = Path(directory) / name
+            if host_path.as_posix() not in paths:
+                differences.append(f"{host_path}: missing from shared host registry")
+                continue
+            compare(differences, scaffold, host_path, core_web, core_path, "Core Web")
 
     if differences:
         print("\n".join(differences))
         return 1
     print(f"SHARED-HOST-CHECK passed: {len(paths)} registered files match")
+    print(f"Core Web parity: {len(CLIENT_PRIMITIVES)} client primitives match Web and Platform in both hosts")
     return 0
 
 

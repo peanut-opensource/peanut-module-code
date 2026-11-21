@@ -1,3 +1,5 @@
+// @peanut-admin/client exports: formatRequestError.
+// The 5.x hosts use this source until their dependency locks adopt these exports.
 /** Only an HTTP response can supply a trace ID. Keep upstream 5xx text private. */
 export function formatRequestError(
   message: string,

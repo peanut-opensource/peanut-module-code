@@ -2,13 +2,10 @@ import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
 import { test } from 'node:test';
 
-// Vite resolves extensionless TS imports. Mirror only that resolution in Node.
+// Mirror Vite resolution for extensionless and emitted session imports.
 registerHooks({
   resolve(specifier, context, next) {
-    return next(
-      ['./session-sync', './session-storage'].includes(specifier) ? `${specifier}.ts` : specifier,
-      context
-    );
+    return next(specifier.replace(/^(\.\/session-(?:sync|storage))(?:\.js)?$/, '$1.ts'), context);
   },
 });
 

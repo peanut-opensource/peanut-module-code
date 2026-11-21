@@ -55,7 +55,7 @@ function load(
     URL,
     require: (name) => {
       if (Object.hasOwn(bindings, name)) return bindings[name];
-      if (name.startsWith('.')) return load(resolve(dirname(path), name + '.ts'), localStorage);
+      if (name.startsWith('.')) return load(resolve(dirname(path), name.replace(/(?:\.js)?$/, '.ts')), localStorage);
       assert.fail(`Unexpected import: ${name}`);
     },
   });
