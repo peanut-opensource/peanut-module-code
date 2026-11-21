@@ -12,6 +12,10 @@ return [
         'require_digit' => false, // ASCII 0-9
         'require_special' => false, // Printable ASCII punctuation, excluding space
     ],
+    // Contract or base class => application implementation class.
+    'bindings' => [],
+    // ThinkPHP Service classes in registration order.
+    'services' => [],
     // 稳定 override key => 实现 AdminPermissionPolicy 的应用类。
     'overrides' => [],
     // module_key => [setting_key => value]; DB deployment/tenant/target values take precedence.

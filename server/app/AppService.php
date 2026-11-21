@@ -171,7 +171,29 @@ class AppService extends Service
         $this->registerStorage();
         $this->registerPlatform();
         $this->registerApplicationServices();
+        $this->registerConfiguredBindings();
         $this->registerModules();
+    }
+
+    private function registerConfiguredBindings(): void
+    {
+        $config = $this->app->config->get('peanut');
+        $bindings = array_key_exists('bindings', $config) ? $config['bindings'] : [];
+        if (!is_array($bindings)) {
+            throw new \InvalidArgumentException('PEANUT_BINDINGS_INVALID');
+        }
+        foreach ($bindings as $abstract => $implementation) {
+            if (!is_string($abstract) || !is_string($implementation)
+                || !is_a($implementation, $abstract, true)
+                || !(new \ReflectionClass($implementation))->isInstantiable()) {
+                throw new \InvalidArgumentException('PEANUT_BINDING_INVALID: ' . $abstract);
+            }
+        }
+        foreach ($bindings as $abstract => $implementation) {
+            // A string binding follows existing aliases. A factory replaces only this key.
+            $this->app->bind($abstract, fn(): object => $this->app->invokeClass($implementation));
+            $this->app->delete($abstract);
+        }
     }
 
     /** The sampling selector is FPM process configuration, never a request or .env setting. */

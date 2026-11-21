@@ -42,7 +42,7 @@
         <el-select
           v-model="selectedView"
           placeholder="已保存视图"
-          aria-label="已保存视图"
+          v-bind="{ ariaLabel: '已保存视图' }"
           @change="applySavedView"
         >
           <el-option
@@ -56,9 +56,9 @@
           v-model="savedViewName"
           maxlength="80"
           placeholder="视图名称"
-          aria-label="视图名称"
+          v-bind="{ ariaLabel: '视图名称' }"
           style="width: 150px"
-          @keyup.enter="saveCurrentView"
+          @keydown.enter="saveCurrentView"
         />
         <el-button :disabled="!savedViewName.trim()" @click="saveCurrentView"
           >保存视图</el-button

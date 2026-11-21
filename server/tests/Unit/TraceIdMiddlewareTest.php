@@ -6,6 +6,7 @@ use app\ExceptionHandle;
 use app\common\execution\CurrentExecutionContext;
 use app\common\execution\ExecutionContextStore;
 use app\common\http\RequestTrace;
+use app\common\infrastructure\runtime\OperationalLog;
 use app\common\http\middleware\TraceIdMiddleware;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
@@ -33,6 +34,37 @@ final class TraceIdMiddlewareTest extends TestCase
             self::assertSame('ETag, Content-Disposition, X-Trace-Id', $response->getHeader('access-control-expose-headers'));
             self::assertNull($response->getHeader('Access-Control-Allow-Origin'));
             self::assertMatchesRegularExpression('/^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/D', $seen);
+        }
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testOperationalLogUsesTheBoundHttpTraceWithoutExecutionContext(): void
+    {
+        $app = new class(dirname(__DIR__, 2)) extends App {
+            public function runningInConsole(): bool
+            {
+                return false;
+            }
+        };
+        require_once $app->getThinkPath() . 'helper.php';
+        $app->config->set([
+            'default' => 'file',
+            'channels' => ['file' => ['type' => 'File']],
+        ], 'log');
+        $context = new CurrentExecutionContext(new ExecutionContextStore());
+        $middleware = new TraceIdMiddleware($context);
+        foreach (['fixture-log-123', 'invalid header'] as $header) {
+            $request = (new Request())->withHeader(['X-Request-Id' => $header]);
+            $app->instance('request', $request);
+            $response = $middleware->handle($request, static function () use ($context) {
+                OperationalLog::info($context, 'fixture.http', ['request_id' => 'incorrect']);
+                return Response::create('ok');
+            });
+            $logs = $app->log->getLog();
+            $entry = json_decode(end($logs)->message, true, 512, JSON_THROW_ON_ERROR);
+            self::assertSame('fixture.http', $entry['event']);
+            self::assertSame($response->getHeader('X-Trace-Id'), $entry['attributes']['request_id']);
         }
     }
 

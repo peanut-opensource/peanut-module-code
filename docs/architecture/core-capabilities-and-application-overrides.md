@@ -40,7 +40,7 @@ Provider、事件/命令、套餐与许可证、HTTP/CLI/Task 上下文及安装
 
 ## 3. 配置与实现替换
 
-默认安装不需要自定义类。`server/config/peanut.php` 的 `password` 默认空数组，由 Core 提供缺省值。应用加强要求可使用：
+默认安装不需要自定义类。`server/config/peanut.php` 是后端应用自有（`app-owned`）扩展入口。脚手架升级保留应用配置。密码策略示例：
 
 ```php
 'password' => [
@@ -55,16 +55,22 @@ Provider、事件/命令、套餐与许可证、HTTP/CLI/Task 上下文及安装
 
 边界必须是整数，最小值至少 1，最大值不能小于最小值或超过散列技术输入上限 4096 字节；无效配置报错，不静默改回默认值。默认上限仍为 1024。技术输入上限用于限制散列/验证输入成本，独立于新密码策略，参考 Symfony PasswordHasher 的输入长度保护。单位是 UTF-8 字节，PHP 使用 `strlen`，客户端使用 UTF-8 编码后的字节数。中文/emoji 的字符数不能代替字节数。
 
-配置不足时，在应用自有源码中继承 `PasswordPolicy` 或 `PasswordHasher`，并替换 `server/app/provider.php` 对应条目，或在应用 Service 的 `register()` 中执行原生绑定：
+应用可在 `server/config/peanut.php` 中声明实现和原生服务类：
 
 ```php
-$this->app->bind(\PeanutAdmin\Kernel\Identity\PasswordPolicy::class, \app\security\ApplicationPasswordPolicy::class);
-$this->app->bind(\PeanutAdmin\Kernel\Identity\PasswordHasher::class, \app\security\ApplicationPasswordHasher::class);
+'bindings' => [
+    \PeanutAdmin\Kernel\Identity\PasswordPolicy::class => \app\security\ApplicationPasswordPolicy::class,
+    \PeanutAdmin\Kernel\Identity\PasswordHasher::class => \app\security\ApplicationPasswordHasher::class,
+    \PeanutAdmin\Kernel\Auth\Clock::class => \app\runtime\ApplicationClock::class,
+],
+'services' => [
+    \app\ApplicationService::class,
+],
 ```
 
-自定义策略同时维护 `assertValid()`、`minimumLength()` 与 `maximumLength()` 的一致合同；自定义散列维护安全生成、既有摘要验证与 `needsRehash()` 合同。类来自受信应用源码，不能由 HTTP 参数选择。应用 Service 登记在 `app/service.php`，须在相关服务首次解析前完成；普通无参数实现直接自动注入，有构造参数才使用绑定闭包。不提供第二个 Password override 配置表。
+两项默认均为空数组。绑定键为契约或基类，值为可实例化的兼容实现类，构造注入由 ThinkPHP 容器完成。宿主在登记默认绑定后通过原生工厂闭包替换指定键，保留直接解析默认实现类的行为。服务按配置顺序由 ThinkPHP 执行 `register()`，此时应用绑定已生效。框架随后触发 `AppInit` 并执行 `boot()`。配置类型或类合同无效会中止启动。生产配置类来自受信应用源码。宿主继续管理 `server/app/provider.php` 和 `server/app/service.php`。
 
-应用服务必须接受注入的策略/散列；不自行 `new` 默认实现、不用静态工厂绕过绑定。`AppService` 不再强制覆盖密码绑定。已有版本化权限 slot 继续校验白名单/合同版本，`registry()->bindings()` 交给原生容器，应用显式原生绑定优先。该 slot 不是所有技术能力的强制扩展入口。
+自定义策略同时维护 `assertValid()`、`minimumLength()` 与 `maximumLength()` 的一致合同。自定义散列维护安全生成、既有摘要验证与 `needsRehash()` 合同。消费者通过容器注入。已有版本化权限 slot 继续校验白名单和合同版本。
 
 ## 4. Web 界面组件、Shell 与主题
 

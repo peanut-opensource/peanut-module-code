@@ -38,7 +38,7 @@ final readonly class WorkflowLifecycleQueries
     public static function outstanding(?int $tenantId = null): int
     {
         $eventTable = Db::name('workflow_event')->getTable();
-        $columns = array_column(Db::query('SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?', [$eventTable]), 'COLUMN_NAME');
+        $columns = array_column(Db::query('SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?', [$eventTable]), 'COLUMN_NAME'); // @phpstan-ignore peanut.rawDbQuery (Metadata probe reads information_schema only.)
         if (!in_array('notification_fact_json', $columns, true) || !in_array('notification_outbox_json', $columns, true)) {
             $preflight = (new WorkflowUpgradePreflight(new \PeanutAdmin\Modules\Identity\Contract\WorkflowLegacyOrganizationQuery()))->report();
             if (!$preflight['already_applied']) {

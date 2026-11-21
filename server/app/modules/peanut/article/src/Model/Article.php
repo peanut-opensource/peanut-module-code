@@ -6,7 +6,6 @@ namespace PeanutAdmin\Modules\Article\Model;
 
 use app\common\model\TenantOwnedModel;
 use app\common\services\HtmlSanitizerService;
-use think\facade\Db;
 use think\model\concern\SoftDelete;
 
 class Article extends TenantOwnedModel
@@ -63,9 +62,10 @@ class Article extends TenantOwnedModel
             'a.click_virtual', 'a.click_actual',
         ])->fieldRaw(
             'ROW_NUMBER() OVER (PARTITION BY a.cid ORDER BY a.sort DESC, a.id DESC) AS category_rank',
-        )->whereIn('a.cid', $categoryIds)->where('a.is_show', 1)->buildSql();
+        )->whereIn('a.cid', $categoryIds)->where('a.is_show', 1);
 
-        return Db::table($ranked . ' ranked')
+        // Use the same connection for the derived table. The inner model query owns tenant and soft-delete scope.
+        return $ranked->getConnection()->newQuery()->table($ranked->buildSql() . ' ranked')
             ->where('category_rank', '<=', $limit)
             ->order(['cid' => 'asc', 'sort' => 'desc', 'id' => 'desc'])
             ->select()->toArray();

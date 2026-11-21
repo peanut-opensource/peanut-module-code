@@ -20,7 +20,7 @@ final readonly class WorkflowUpgradePreflight
         $counts = []; $missing = [];
         foreach ($tables as $table) {
             $name = Db::name($table)->getTable();
-            $present = Db::query('SELECT COUNT(*) AS count FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?', [$name]);
+            $present = Db::query('SELECT COUNT(*) AS count FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?', [$name]); // @phpstan-ignore peanut.rawDbQuery (Metadata probe reads information_schema only.)
             if ((int) ($present[0]['count'] ?? 0) === 0) { $missing[] = $table; $counts[$table] = 0; }
             else { $counts[$table] = (int) Db::name($table)->count(); }
         }

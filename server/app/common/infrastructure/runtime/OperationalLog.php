@@ -13,6 +13,7 @@ use app\common\execution\InstanceExecutionContext;
 use app\common\execution\PlatformExecutionContext;
 use app\common\execution\SystemExecutionContext;
 use app\common\policy\audit\RedactionPolicy;
+use app\common\http\RequestTrace;
 use think\facade\Log;
 
 /** Adds execution trace and redaction to every application-owned runtime log. */
@@ -92,6 +93,9 @@ final class OperationalLog
             },
             'tenant_id' => $context->tenantId(),
         ] + ($context instanceof SystemExecutionContext ? $context->metadata->toArray() : []);
+        if ($context === null && app()->exists('request')) {
+            $trace['request_id'] = RequestTrace::id($executionContext, app()->request);
+        }
         $trace['runtime_id'] = RuntimeNamespace::fromConfiguration()->fingerprint();
 
         $sanitized = RedactionPolicy::sanitize($trace + $attributes);

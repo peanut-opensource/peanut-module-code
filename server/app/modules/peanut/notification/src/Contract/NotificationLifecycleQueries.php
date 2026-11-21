@@ -25,7 +25,7 @@ final class NotificationLifecycleQueries
         foreach ($keys as $key) { if (!is_string($key) || $key === '' || strlen($key) > 160) { throw new \InvalidArgumentException('NOTIFICATION_LIFECYCLE_KEYS_INVALID'); } }
         $messageTable = Db::name('notification_message')->getTable();
         $outboxTable = Db::name('notification_outbox')->getTable();
-        $tables = array_column(Db::query(
+        $tables = array_column(Db::query( // @phpstan-ignore peanut.rawDbQuery (Metadata probe reads information_schema only.)
             'SELECT DISTINCT TABLE_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND ((TABLE_NAME=? AND COLUMN_NAME=?) OR TABLE_NAME=?)',
             [$messageTable, 'producer_key', $outboxTable],
         ), 'TABLE_NAME');

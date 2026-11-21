@@ -22,15 +22,25 @@ use PHPStan\Rules\RuleErrorBuilder;
 final class TenantRawQueryRule implements Rule
 {
     private const EXACT_GLOBAL_TABLES = [
+        'information_schema.columns',
+        'information_schema.tables',
         'migrations',
         'module_installation',
+        // Instance-wide tables defined by the Ops installation migration.
+        'ops_backup_evidence',
+        'ops_maintenance_window',
+        'ops_module_execution',
+        'ops_module_request',
+        'ops_restore_evidence',
         'ops_task',
+        'ops_upgrade_execution',
+        'ops_upgrade_step',
         'permission',
-    ];
-
-    private const GLOBAL_TABLE_PREFIXES = [
-        'information_schema.',
-        'platform_',
+        'platform_audit_event',
+        'platform_operator',
+        'platform_operator_role',
+        'platform_role',
+        'platform_role_permission',
     ];
 
     private const GUARDED_METHODS = [
@@ -74,11 +84,6 @@ final class TenantRawQueryRule implements Rule
                 $table = strtolower($firstArg->value);
                 if (in_array($table, self::EXACT_GLOBAL_TABLES, true)) {
                     return [];
-                }
-                foreach (self::GLOBAL_TABLE_PREFIXES as $prefix) {
-                    if (str_starts_with($table, $prefix)) {
-                        return [];
-                    }
                 }
             }
         }

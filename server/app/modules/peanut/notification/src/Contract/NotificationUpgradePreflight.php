@@ -53,7 +53,7 @@ final readonly class NotificationUpgradePreflight
             $started = true;
             $phase = 'outbox_schema';
             $table = Db::name('notification_outbox')->getTable();
-            $exists = Db::query('SELECT COUNT(*) AS n FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?', [$table]);
+            $exists = Db::query('SELECT COUNT(*) AS n FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?', [$table]); // @phpstan-ignore peanut.rawDbQuery (Metadata probe reads information_schema only.)
             if ((int) ($exists[0]['n'] ?? 0) !== 1) {
                 return $unknown + ['reason' => 'OUTBOX_SCHEMA_UNAVAILABLE', 'phase' => $phase];
             }

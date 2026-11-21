@@ -686,7 +686,7 @@ class {{entity}}Service extends {{baseService}}
     protected function detailFields(): array { return self::DETAIL_FIELDS; }
     protected function insertFields(): array { return self::INSERT_FIELDS; }
     protected function updateFields(): array { return self::UPDATE_FIELDS; }
-{{parentField}}{{statusField}}    protected function query(TenantContext $context): BaseQuery
+{{diffMethod}}{{parentField}}{{statusField}}    protected function query(TenantContext $context): BaseQuery
     {
         return {{entity}}::where('tenant_id', $context->tenantId);
     }
@@ -759,6 +759,9 @@ class {{entity}}Service extends {{baseService}}
 PHP, $c + $policies + [
             'queryCode' => $queryCode,
             'listBody' => $listBody,
+            'diffMethod' => $policies['diffFieldsArray'] === [] ? ''
+                : '    protected function diffFields(): array { return '
+                    . var_export($policies['diffFieldsArray'], true) . "; }\n",
             'listFieldsExport' => var_export($c['listFields'], true),
             'detailFieldsExport' => var_export($c['detailFields'], true),
             'relationSummaries' => var_export(array_column($c['relations'], 'summaryFields', 'name'), true),
@@ -1174,7 +1177,17 @@ export function delete{{entity}}({{primary}}: {{primaryTsType}}, signal?: AbortS
 {{softFunctions}}{{batchFunctions}}
 TS, $c + [
             'listTypeFields' => self::typescriptFields($c, $c['listFields']) . ($c['tree'] !== [] ? "  children?: {$c['entity']}ListRecord[];\n" : ''),
-            'detailTypeFields' => self::typescriptFields($c, $c['detailFields']),
+            'detailTypeFields' => self::typescriptFields($c, $c['detailFields'])
+                . ($policies['diffFieldsArray'] === [] ? '' : <<<'TS'
+  audit_history?: Array<{
+    id: string;
+    occurred_at: string;
+    before: Record<string, unknown>;
+    after: Record<string, unknown>;
+  }>;
+
+TS
+                ),
             'createTypeFields' => self::typescriptFields($c, $policies['insertFieldsArray'], false),
             'updateTypeFields' => self::typescriptFields($c, [$c['primary'], ...$policies['updateFieldsArray']], false),
             'listParamFields' => self::typescriptQueryFields($c, $policies['listFieldsArray']),
@@ -1269,10 +1282,12 @@ TS, $c + [
     private static function renderView(array $c): string
     {
         $controls = self::viewCrudControls($c);
+        $historyProp = self::fieldPolicies($c)['diffFieldsArray'] === []
+            ? '' : "\n" . '      :audit-history="detailRecord?.audit_history"';
         $visible = array_values(array_filter($c['columns'], static fn(array $column): bool => in_array($column['name'], $c['listFields'], true)));
         $columns = '';
         foreach (array_slice($visible, 0, 8) as $column) {
-            $columns .= "    { label: '{$column['comment']}', prop: '{$column['name']}' },\n";
+            $columns .= "    { label: '{$column['comment']}', key: '{$column['name']}' },\n";
         }
         $recycleToggle = $c['softDelete'] ? self::replace(<<<'VUE'
     <ElButton
@@ -1397,6 +1412,8 @@ TS, $c) : '';
       :loading="loading"
       :data="records"
       :pagination="pagination"
+      :fields="columns"
+      column-storage-key="peanut:crud:{{permissionPrefix}}:columns"
       row-key="{{primary}}"{{disabledPagination}}
       @page-change="fetchData"
       @size-change="handleSizeChange"
@@ -1406,12 +1423,6 @@ TS, $c) : '';
 {{searchSlot}}      <template #toolbar><ElButton{{normalOnly}} v-permission="['{{permissionPrefix}}.add']" type="primary" @click="openCreate">新建</ElButton></template>
 {{batchSlot}}      <template #columns>
         {{selectionColumn}}
-        <ElTableColumn
-          v-for="column in columns"
-          :key="column.prop"
-          :prop="column.prop"
-          :label="column.label"
-        />
         <ElTableColumn{{normalOnly}} label="操作" :width="220">
           <template #default="{ row }">
             <ElButton v-permission="['{{permissionPrefix}}.detail']" link @click="openDetail(row, 'view')">详情</ElButton>
@@ -1427,15 +1438,21 @@ TS, $c) : '';
       </template>
     </CrudPage>
     <ElAlert v-if="detailError || deleteError" :title="detailError || deleteError || undefined" type="error" :closable="false" />
-    <ElDialog v-model="visible" :title="mode === 'create' ? '新建' : mode === 'edit' ? '编辑' : '详情'">
-      <ElAlert v-if="submitError" :title="submitError" type="error" :closable="false" />
-      <ElDescriptions v-if="mode === 'view'" :column="1" border>
+    <CrudDetailDrawer
+      v-if="mode === 'view'"
+      v-model="visible"
+      title="详情"{{historyProp}}
+    >
+      <ElDescriptions :column="1" border>
 {{detailItems}}      </ElDescriptions>
-      <ElForm v-else ref="formRef" :model="form" label-width="120px">
+    </CrudDetailDrawer>
+    <ElDialog v-else v-model="visible" :title="mode === 'create' ? '新建' : '编辑'">
+      <ElAlert v-if="submitError" :title="submitError" type="error" :closable="false" />
+      <ElForm ref="formRef" :model="form" label-width="120px">
 {{formItems}}      </ElForm>
       <template #footer>
         <ElButton @click="visible = false">关闭</ElButton>
-        <ElButton v-if="mode !== 'view'" type="primary" :loading="submitLoading" @click="submit">保存</ElButton>
+        <ElButton type="primary" :loading="submitLoading" @click="submit">保存</ElButton>
       </template>
     </ElDialog>
   </ElCard>
@@ -1448,6 +1465,7 @@ TS, $c) : '';
   import { useAsyncAction } from '@peanut-admin/vue';
   import { hasPermission } from '@/hooks/permission';
   import CrudPage from '@/components/crud/CrudPage.vue';
+  import CrudDetailDrawer from '@/components/crud/CrudDetailDrawer.vue';
   import useCrudModal from '@/hooks/useCrudModal';
   import useCrudTab from '@/hooks/useCrudTab';
   import useCrudTable from '@/hooks/useCrudTable';
@@ -1455,7 +1473,7 @@ TS, $c) : '';
 
   interface ListColumn {
     label: string;
-    prop: keyof {{entity}}ListRecord;
+    key: keyof {{entity}}ListRecord;
   }
   const columns: ListColumn[] = [
 {{tableColumns}}  ];
@@ -1569,6 +1587,7 @@ VUE, $c + $controls + compact(
             'selectionColumn',
         ) + [
             'tableColumns' => $columns,
+            'historyProp' => $historyProp,
             'listResult' => $listResult,
             'batchErrorAlert' => $batchEnabled ? "    <ElAlert v-if=\"batchError\" :title=\"batchError\" type=\"error\" :closable=\"false\" />\n" : '',
         ]);
@@ -1696,6 +1715,24 @@ PHP, $c + compact('softRoutes', 'batchRoutes'));
                 : $summary;
             $listProperties[$relation['name']] = $relationSchema;
             $detailProperties[$relation['name']] = $relationSchema;
+        }
+
+        if ($policies['diffFieldsArray'] !== []) {
+            $snapshot = ['type' => 'object', 'additionalProperties' => true];
+            $detailProperties['audit_history'] = [
+                'type' => 'array',
+                'items' => [
+                    'type' => 'object',
+                    'additionalProperties' => false,
+                    'required' => ['id', 'occurred_at', 'before', 'after'],
+                    'properties' => [
+                        'id' => ['type' => 'string'],
+                        'occurred_at' => ['type' => 'string'],
+                        'before' => $snapshot,
+                        'after' => $snapshot,
+                    ],
+                ],
+            ];
         }
 
         $primarySchema = ['type' => $c['primaryType'] === 'int' ? 'integer' : 'string'];
@@ -1988,7 +2025,14 @@ PHP, $c + compact('softRoutes', 'batchRoutes'));
             ),
             'page_no', 'page_size',
         ]));
+        // The detail projection already excludes sensitive columns.
+        $diff = array_values(array_intersect($update, $c['detailFields']));
+        if ($diff !== [] && (in_array('audit_history', $c['detailFields'], true)
+            || in_array('audit_history', array_column($c['relations'], 'name'), true))) {
+            throw new RuntimeException('audit_history 是生成详情的保留字段');
+        }
         return [
+            'diffFieldsArray' => $diff,
             'insertFieldsArray' => $insert,
             'updateFieldsArray' => $update,
             'listFieldsArray' => $list,
