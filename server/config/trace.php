@@ -8,4 +8,6 @@ return [
     'type'    => 'Html',
     // 读取的日志通道名
     'channel' => '',
+    'slow_request_ms' => (int) env('PEANUT_TRACE_SLOW_REQUEST_MS', 0),
+    'max_sql_count' => (int) env('PEANUT_TRACE_MAX_SQL_COUNT', 0),
 ];

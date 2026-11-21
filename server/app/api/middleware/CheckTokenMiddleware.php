@@ -61,7 +61,7 @@ class CheckTokenMiddleware
             throw $exception;
         }
 
-        return $this->executionContexts->run(
+        return $this->executionContexts->runHttp(
             \app\common\execution\ConsumerExecutionContext::member($memberContext, sprintf(
                 'http.member.%s.%s',
                 strtolower((string) $request->method()),

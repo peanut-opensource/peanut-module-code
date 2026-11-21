@@ -1,4 +1,5 @@
 export default {
+  'workplace.version.defaultName': 'Peanut Module Code',
   'workplace.demoData.date': 'Demo 日期',
   'workplace.demoData.visitor': 'Demo 访问量',
   'workplace.demoData.sale': 'Demo 销售量',

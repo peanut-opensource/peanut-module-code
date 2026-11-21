@@ -14,6 +14,8 @@ return [
         'integration:purge-expired' => \PeanutAdmin\Modules\Integration\Console\PurgeExpiredDeliveriesCommand::class,
         'integration:webhook:dispatch' => \PeanutAdmin\Modules\Integration\Console\DispatchWebhooksCommand::class,
         'crontab'         => \app\command\Crontab::class,
+        'module:generate-crud' => \app\command\ModuleGenerateCrud::class,
+        'tenant:data-inventory' => \app\command\TenantDataInventory::class,
         'generator:cleanup' => \app\command\GeneratorCleanup::class,
         'tenant-task:work' => \app\command\TenantTaskWorker::class,
         'ops-backup:task' => \app\command\OpsBackupTask::class,

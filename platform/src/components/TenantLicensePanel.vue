@@ -99,6 +99,7 @@
 </template>
 
 <script setup lang="ts">
+  import { useAsyncAction } from '@peanut-admin/vue';
   import { onBeforeUnmount, reactive, ref, watch } from 'vue';
   import { ElMessage } from 'element-plus';
   import { api } from '../api/platform';
@@ -107,13 +108,8 @@
   const emit = defineEmits<{ (event: 'saved'): void }>();
   const license = ref<TenantLicense | null>(null);
   const plans = ref<Plan[]>([]);
-  const loading = ref(false);
-  const saving = ref(false);
   const loaded = ref(false);
   const visible = ref(false);
-  const catalogLoading = ref(false);
-  const catalogError = ref('');
-  const error = ref('');
   const formError = ref('');
   let request = 0;
   const form = reactive({
@@ -135,22 +131,24 @@
   function message(cause: unknown) {
     return cause instanceof Error ? cause.message : '请求失败';
   }
+  const { loading, error, run: fetchLicense, cancel: cancelLoad } = useAsyncAction(message);
+  const {
+    loading: catalogLoading,
+    error: catalogError,
+    run: fetchPlans,
+    cancel: cancelCatalog,
+  } = useAsyncAction(message);
+  const { loading: saving, run: runSave } = useAsyncAction(message);
+
   async function load() {
     const current = ++request;
     const tenantId = props.tenantId;
-    loading.value = true;
+    cancelLoad();
     loaded.value = false;
-    error.value = '';
-    try {
-      const result = await api.tenantLicense(tenantId);
-      if (current !== request) return;
-      license.value = result.license;
-      loaded.value = true;
-    } catch (cause) {
-      if (current === request) error.value = message(cause);
-    } finally {
-      if (current === request) loading.value = false;
-    }
+    const result = await fetchLicense(() => api.tenantLicense(tenantId));
+    if (current !== request || result.status !== 'completed') return;
+    license.value = result.data.license;
+    loaded.value = true;
   }
   async function open() {
     if (!props.canManage) return;
@@ -165,9 +163,8 @@
     });
     visible.value = true;
     formError.value = '';
-    catalogError.value = '';
-    catalogLoading.value = true;
-    try {
+    cancelCatalog();
+    const result = await fetchPlans(async () => {
       const rows: Plan[] = [];
       for (let page = 1; ; page += 1) {
         const result = await api.plans(page);
@@ -175,15 +172,11 @@
         if (rows.length >= result.count) break;
         if (!result.lists.length) throw new Error('套餐目录分页不完整');
       }
-      if (current === request) plans.value = rows;
-    } catch (cause) {
-      if (current === request) {
-        catalogError.value = message(cause);
-        formError.value = catalogError.value;
-      }
-    } finally {
-      if (current === request) catalogLoading.value = false;
-    }
+      return rows;
+    });
+    if (current !== request) return;
+    if (result.status === 'completed') plans.value = result.data;
+    if (result.status === 'failed') formError.value = result.error;
   }
   async function save() {
     if (!props.canManage) return;
@@ -197,33 +190,34 @@
       return;
     }
     const current = request;
-    saving.value = true;
+    const { plan_id, effective_at } = form;
     formError.value = '';
-    try {
+    const result = await runSave(async () => {
       const result = await api.saveTenantLicense({
         tenant_id: props.tenantId,
-        plan_id: form.plan_id,
+        plan_id,
         status: form.status,
-        effective_at: form.effective_at.toISOString(),
+        effective_at: effective_at.toISOString(),
         expires_at: form.expires_at?.toISOString() || null,
         expected_revision: license.value?.revision || 0,
         change_reason: form.change_reason.trim(),
       });
-      if (current !== request) return;
-      license.value = result.license;
+      return result.license;
+    });
+    if (current !== request) return;
+    if (result.status === 'failed') formError.value = result.error;
+    if (result.status === 'completed') {
+      license.value = result.data;
       visible.value = false;
       ElMessage.success('许可证已保存');
       emit('saved');
-    } catch (cause) {
-      if (current === request) formError.value = message(cause);
-    } finally {
-      saving.value = false;
     }
   }
   watch(
     () => props.tenantId,
     () => {
       visible.value = false;
+      cancelCatalog();
       license.value = null;
       void load();
     },

@@ -12,6 +12,7 @@
     <div class="content">
       <div class="content-inner">
         <LoginForm />
+        <component v-if="loginExtra" :is="loginExtra" />
       </div>
       <div class="footer">
         <Footer />
@@ -21,6 +22,7 @@
 </template>
 
 <script lang="ts" setup>
+  import { loginExtra } from '@/core/runtime';
   import Footer from '@/components/footer/index.vue';
   import { useBrandStore } from '@/store';
   import LoginBanner from './components/banner.vue';

@@ -8,6 +8,7 @@
         </el-button>
       </template>
     </PageHeader>
+    <component v-if="workbenchExtra" :is="workbenchExtra" />
     <TenantLicense class="workplace-license" />
     <div v-loading="loading" class="workplace-loading">
       <el-alert
@@ -24,7 +25,7 @@
             <template #header>{{ $t('workplace.version.title') }}</template>
             <el-descriptions :column="1" border size="large">
               <el-descriptions-item :label="$t('workplace.version.platform')">
-                {{ workbench.version.name || 'Peanut Module Code' }}
+                {{ workbench.version.name || zhCN['workplace.version.defaultName'] }}
               </el-descriptions-item>
               <el-descriptions-item :label="$t('workplace.version.current')">
                 {{ workbench.version.version }}
@@ -226,6 +227,7 @@
 </template>
 
 <script lang="ts" setup>
+  import { workbenchExtra } from '@/core/runtime';
   import { computed, onMounted, reactive, ref } from 'vue';
   import { PageContent, PageHeader } from '@peanut-admin/ui-vue';
   import { ElMessage } from 'element-plus';
@@ -233,6 +235,7 @@
   import { useI18n } from 'vue-i18n';
   import { getWorkbench, type WorkbenchData } from '@/api/workbench';
   import TenantLicense from '@/components/tenant-license/index.vue';
+  import zhCN from './locale/zh-CN';
 
   const { t } = useI18n();
   const loading = ref(true);
@@ -284,12 +287,12 @@
 
   const supportLocaleKeys: Record<string, [string, string, string]> = {
     项目文档: [
-      '查看 Peanut Module Code 使用与开发文档',
+      zhCN['workplace.support.docs.desc'],
       'workplace.support.docs.title',
       'workplace.support.docs.desc',
     ],
     技术支持: [
-      '获取 Peanut Module Code 技术支持',
+      zhCN['workplace.support.technical.desc'],
       'workplace.support.technical.title',
       'workplace.support.technical.desc',
     ],

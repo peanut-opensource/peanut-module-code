@@ -123,6 +123,7 @@ final readonly class ProviderClient implements AiClient
                     'capability' => $capability, 'status' => 'sending', 'provider_request_id' => null, 'usage_json' => null,
                 ];
                 try {
+                    // @phpstan-ignore peanut.rawDbQuery (The verified tenant and member own the inserted receipt.)
                     Db::name('ai_access_request')->insert($receipt + [
                         'tenant_id' => $tenant->tenantId, 'member_id' => $tenant->memberId,
                     ]);
@@ -332,6 +333,7 @@ final readonly class ProviderClient implements AiClient
         if (!preg_match('/^[A-Za-z0-9_.:-]{1,100}$/D', $key)) {
             throw BusinessException::invalid('AI_ACCESS_REQUEST_KEY_INVALID', '请求标识无效');
         }
+        // @phpstan-ignore peanut.rawDbQuery (The receipt lookup is bound to both tenant and member.)
         return Db::name('ai_access_request')->where('tenant_id', $tenant->tenantId)
             ->where('member_id', $tenant->memberId)->where('request_key', $key);
     }

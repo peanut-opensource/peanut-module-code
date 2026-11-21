@@ -63,6 +63,33 @@ Controller解析/校验HTTP输入并映射输出；外部回调绑定/签名/模
 
 `tenantAdminActor()` 与TenantContext的人/账号/租户一致性必须核验；不是有人员对象就可执行。上下文Getter/魔术只读及namespace规则由[Controller规范](controller-access-and-namespaces.md)唯一维护。声明式解析、类型注释、模板和运行验证保持一致；不能只因写法不同就把有用的Getter判错。
 
+### `server/app/common/` 20 个子目录的职责与 Core 边界
+
+| 子目录 | 宿主准入与职责 | Core 或模块归属 |
+| --- | --- | --- |
+| `composition/` | 宿主组合根、依赖绑定与应用覆盖 | 容器和覆盖的通用协议归 Core |
+| `context/` | 宿主请求及会话的上下文适配 | 可复用的身份与租户上下文归 Core |
+| `contract/` | 宿主与装配组件共享的接口 | 模块公开接口由拥有业务语义的模块维护 |
+| `dto/` | 宿主用例的输入与输出载体 | 模块 DTO 随模块契约发布 |
+| `enum/` | 宿主 Edition、状态与固定取值 | 技术协议枚举归 Core，业务枚举归所属模块 |
+| `exception/` | 宿主业务错误与场景例外 | 通用异常协议归 Core，模块错误语义归模块 |
+| `execution/` | HTTP、CLI 与安装任务的执行身份和作用域装配 | 通用身份和授权原语归 Core |
+| `http/` | 宿主请求与响应、路由中间件、Trace ID 接线 | 通用 HTTP 协议归 Core，业务路由归模块 |
+| `infrastructure/` | 宿主对框架、存储、模块交付及运行环境的适配 | 已有框架扩展点直接复用，可复用技术适配归 Core |
+| `model/` | 宿主拥有的表与共用模型接线 | 模块私表 Model 归模块，通用 ORM Scope 归 Core |
+| `module/` | 当前宿主的模块装配、发现及依赖约束 | 通用模块协议与加载原语归 Core |
+| `persistence/` | 宿主拥有数据的持久化适配 | 模块访问各自的表，通用持久化原语归 Core |
+| `policy/` | 宿主跨入口共用的产品约束 | 授权算法归 Core，业务规则归所属模块 |
+| `services/` | 通用 CRUD、安装及跨模块宿主用例 | 模块业务服务留在模块，经公开契约调用 |
+| `support/` | 宿主共享的小型输入及运行工具 | 多宿主共用技术工具优先采用 Core 或框架实现 |
+| `tenancy/` | 宿主租户入口、解析与部署装配 | 租户隔离原语与 Scope 归 Core |
+| `traits/` | 多个宿主类型共用且依赖宿主的窄行为 | 通用框架行为优先使用 Core 或 ThinkPHP |
+| `validate/` | ThinkPHP 请求规则、场景与输入白名单 | 模块动作的输入约束随模块维护 |
+| `validation/` | 工具访问与脚手架路径约束 | 通用验证原语归 Core，模块业务校验归模块 |
+| `value/` | 宿主产品值对象及其不变量 | 技术值对象归 Core，模块业务值归模块 |
+
+新增代码先找到维护该数据或业务用例的模块。多个宿主入口共享且依赖宿主部署、安装或 HTTP 装配的代码，按表归入 `common/`。独立于宿主的技术原语优先复用 ThinkPHP 或 Core。只有确有跨宿主消费者且现有能力无法表达时，才扩展 Core。模块通过公开契约协作，模块私表和内部服务留在所属模块。
+
 ## 7. 模块命名与自动加载
 
 业务 `PeanutAdmin\Modules\<Module>\...` 对应模块src；应用装配用app，真实Core/第三方技术前缀保留。Composer声明、HostLayout、Provider/公开导出/生成器同源；拒前缀抢占/大小写歧义。逐符号迁移连同消费者验证，不整前缀替换、不以模型换名绕私表边界。详见Controller规范§5–7。

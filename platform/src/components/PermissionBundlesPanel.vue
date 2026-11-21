@@ -385,6 +385,7 @@
 </template>
 
 <script setup lang="ts">
+  import { useAsyncAction } from '@peanut-admin/vue';
   import { computed, onBeforeUnmount, ref, watch } from 'vue';
   import { ElMessage } from 'element-plus';
   import { api } from '../api/platform';
@@ -445,11 +446,6 @@
   const audience = ref<PermissionAudience>('tenant');
   const bundles = ref<PermissionBundle[]>([]);
   const apis = ref<PermissionApi[]>([]);
-  const loading = ref(false);
-  const detailLoading = ref(false);
-  const saving = ref(false);
-  const error = ref('');
-  const detailError = ref('');
   const search = ref('');
   const apiSearch = ref('');
   const visible = ref(false);
@@ -468,8 +464,6 @@
     ]);
   const selection = ref<string[]>([]);
   const menuBindings = ref<PermissionMenuBinding[]>([]);
-  const menuLoading = ref(false);
-  const menuError = ref('');
   const menuSearch = ref('');
   const menuVisible = ref(false);
   const selectedMenu = ref<PermissionMenuBinding | null>(null);
@@ -555,6 +549,22 @@
     return items;
   }
 
+  const { loading, error, run: runLoad, cancel: cancelLoad } = useAsyncAction(message);
+  const {
+    loading: detailLoading,
+    error: detailError,
+    run: runDetail,
+    cancel: cancelDetail,
+  } = useAsyncAction(message);
+  const {
+    loading: menuLoading,
+    error: menuLoadError,
+    run: runMenuLoad,
+    cancel: cancelMenuLoad,
+  } = useAsyncAction(message);
+  const menuError = computed(() => menuSaveError.value || menuLoadError.value);
+  const { loading: saving, run: runSave } = useAsyncAction(message);
+
   async function load() {
     const request = ++generation;
     detailGeneration += 1;
@@ -563,13 +573,14 @@
     selected.value = null;
     menuVisible.value = false;
     menuBindings.value = [];
-    menuError.value = '';
+    menuSaveError.value = '';
     bundles.value = [];
     apis.value = [];
-    error.value = '';
-    loading.value = true;
+    cancelLoad();
+    cancelDetail();
+    cancelMenuLoad();
     const scope = audience.value;
-    try {
+    await runLoad(async () => {
       if (props.section === 'menus') {
         await loadMenuBindings(request);
         if (canReadBundles.value) {
@@ -599,32 +610,19 @@
         apis.value.some((row) => row.audience !== scope)
       )
         throw new Error('权限目录安全域不一致');
-    } catch (cause) {
-      if (request === generation) error.value = message(cause);
-    } finally {
-      if (request === generation) loading.value = false;
-    }
+    });
   }
 
   async function loadMenuBindings(request: number) {
     menuVisible.value = false;
     selectedMenu.value = null;
-    menuError.value = '';
-    menuLoading.value = true;
-    try {
+    await runMenuLoad(async () => {
       const result = await api.permissionMenus();
       if (request !== generation || audience.value !== 'tenant') return;
       if (result.total !== result.items.length)
         throw new Error('菜单引用未完整加载');
       menuBindings.value = result.items;
-    } catch (cause) {
-      if (request === generation) {
-        menuBindings.value = [];
-        menuError.value = message(cause);
-      }
-    } finally {
-      if (request === generation) menuLoading.value = false;
-    }
+    });
   }
 
   function openMenuBinding(row: PermissionMenuBinding) {
@@ -639,8 +637,7 @@
   async function saveMenuBinding() {
     if (!canSaveMenuBinding.value || !selectedMenu.value) return;
     const selected = selectedMenu.value;
-    saving.value = true;
-    try {
+    const result = await runSave(async () => {
       const row = await api.replacePermissionMenuBinding({
         menu_key: selected.menu_key,
         permission_key: menuPermissionKey.value || null,
@@ -657,13 +654,9 @@
       );
       menuVisible.value = false;
       ElMessage.success('菜单与按钮引用已保存');
-    } catch (cause) {
-      menuSaveError.value = `${message(
-        cause
-      )}。请关闭并刷新引用，核对最新状态后再操作。`;
-      menuError.value = menuSaveError.value;
-    } finally {
-      saving.value = false;
+    });
+    if (result.status === 'failed') {
+      menuSaveError.value = `${result.error}。请关闭并刷新引用，核对最新状态后再操作。`;
     }
   }
 
@@ -695,9 +688,8 @@
       !definition.value.name.trim()
     )
       return;
-    saving.value = true;
     definitionError.value = '';
-    try {
+    const result = await runSave(async () => {
       const bundle = editingBundle.value;
       const row = bundle
         ? await api.updatePermissionBundle({
@@ -719,23 +711,19 @@
       ];
       editing.value = false;
       ElMessage.success('权限包已保存');
-    } catch (cause) {
-      definitionError.value = message(cause);
-    } finally {
-      saving.value = false;
-    }
+    });
+    if (result.status === 'failed') definitionError.value = result.error;
   }
 
   async function open(bundle: PermissionBundle) {
     if (!canReadBindings.value || props.section !== 'apis') return;
     const request = ++detailGeneration;
     visible.value = true;
-    detailLoading.value = true;
-    detailError.value = '';
+    cancelDetail();
     selected.value = null;
     selection.value = [];
     apiSearch.value = '';
-    try {
+    await runDetail(async () => {
       const row = await api.permissionBindings(bundle.key);
       if (request !== detailGeneration || !visible.value) return;
       if (row.key !== bundle.key || row.audience !== audience.value)
@@ -744,11 +732,7 @@
         throw new Error('关联 API 未完整包含于目录，不能编辑');
       selected.value = row;
       selection.value = [...row.api_ids];
-    } catch (cause) {
-      if (request === detailGeneration) detailError.value = message(cause);
-    } finally {
-      if (request === detailGeneration) detailLoading.value = false;
-    }
+    });
   }
 
   async function save() {
@@ -761,9 +745,8 @@
       detailError.value
     )
       return;
-    saving.value = true;
     const bundle = selected.value;
-    try {
+    const result = await runSave(async () => {
       const row = await api.replacePermissionBindings(
         bundle.key,
         bundle.revision,
@@ -777,15 +760,15 @@
       );
       ElMessage.success('API 关联已保存');
       visible.value = false;
-    } catch (cause) {
-      ElMessage.error(message(cause));
-    } finally {
-      saving.value = false;
-    }
+    });
+    if (result.status === 'failed') ElMessage.error(result.error);
   }
   watch(audience, load);
   watch(visible, (value) => {
-    if (!value) detailGeneration += 1;
+    if (!value) {
+      detailGeneration += 1;
+      cancelDetail();
+    }
   });
   onBeforeUnmount(() => {
     generation += 1;

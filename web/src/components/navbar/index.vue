@@ -47,6 +47,7 @@
     <slot name="header-context" />
     <ul class="right-side">
       <li><slot name="header-actions" /></li>
+      <li v-if="navbarActions"><component :is="navbarActions" /></li>
       <li>
         <el-tooltip :content="$t('settings.search')">
           <el-button
@@ -321,7 +322,7 @@
     SwitchButton,
   } from '@element-plus/icons-vue';
   import { useAppStore, useBrandStore, useUserStore } from '@/store';
-  import { shellUserOptions } from '@/core/runtime';
+  import { navbarActions, shellUserOptions } from '@/core/runtime';
   import { LOCALE_OPTIONS } from '@/locale';
   import useLocale from '@/hooks/locale';
   import useUser from '@/hooks/user';

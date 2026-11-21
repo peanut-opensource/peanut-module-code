@@ -5,6 +5,7 @@ declare(strict_types=1);
 use app\ExceptionHandle;
 use app\common\execution\CurrentExecutionContext;
 use app\common\execution\ExecutionContextStore;
+use app\common\http\HttpRequestThresholds;
 use app\common\http\RequestTrace;
 use app\common\infrastructure\runtime\OperationalLog;
 use app\common\http\middleware\TraceIdMiddleware;
@@ -66,6 +67,53 @@ final class TraceIdMiddlewareTest extends TestCase
             self::assertSame('fixture.http', $entry['event']);
             self::assertSame($response->getHeader('X-Trace-Id'), $entry['attributes']['request_id']);
         }
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testThresholdLogUsesTrustedTenantAndTraceWithOnlyAggregateMetrics(): void
+    {
+        $app = new class(dirname(__DIR__, 2)) extends App {
+            public function runningInConsole(): bool
+            {
+                return false;
+            }
+        };
+        require_once $app->getThinkPath() . 'helper.php';
+        $app->config->set(['default' => 'file', 'channels' => ['file' => ['type' => 'File']]], 'log');
+        $app->config->set(['slow_request_ms' => 1, 'max_sql_count' => 2], 'trace');
+        $thresholds = new HttpRequestThresholds(1, 2);
+        $store = new ExecutionContextStore($thresholds);
+        $context = new CurrentExecutionContext($store);
+        $request = (new Request())->withHeader(['X-Request-Id' => 'threshold-123']);
+        $app->instance('request', $request);
+        $session = new \PeanutAdmin\Kernel\Auth\ValidatedTenantSession(
+            1, 'threshold', 27, 51, 61, 'admin-web', new \DateTimeImmutable('2035-01-01'), 1, 1,
+        );
+        $tenant = \PeanutAdmin\Kernel\Auth\TenantContext::fromValidatedSession($session, 'threshold-123');
+        $response = (new TraceIdMiddleware($context))->handle($request, function () use ($store, $tenant, $thresholds) {
+            return $store->runHttp(new \app\common\execution\AdminExecutionContext($tenant, 'http.test'), function () use ($thresholds) {
+                $thresholds->recordQuery('CONNECT:fixture');
+                for ($i = 0; $i < 3; $i++) {
+                    $thresholds->recordQuery('SELECT synthetic_private_value');
+                }
+                usleep(2000);
+                return Response::create('ok');
+            });
+        });
+        $thresholds->finish($context, $request);
+        $logs = $app->log->getLog();
+        $entry = json_decode(end($logs)->message, true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('http.request.threshold_exceeded', $entry['event']);
+        self::assertSame($response->getHeader('X-Trace-Id'), $entry['attributes']['request_id']);
+        self::assertSame(27, $entry['attributes']['tenant_id']);
+        self::assertSame(3, $entry['attributes']['sql_count']);
+        self::assertGreaterThan(1, $entry['attributes']['duration_ms']);
+        self::assertSame(1, $entry['attributes']['threshold_ms']);
+        self::assertSame(2, $entry['attributes']['threshold_sql_count']);
+        self::assertStringNotContainsString('synthetic_private_value', end($logs)->message);
+        $thresholds->finish($context, $request);
+        self::assertCount(count($logs), $app->log->getLog());
     }
 
     #[RunInSeparateProcess]

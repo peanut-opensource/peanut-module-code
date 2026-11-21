@@ -21,6 +21,7 @@ use app\common\contract\idempotency\IdempotentCommandExecutor;
 use app\common\contract\module\ModuleQualificationQuery;
 use app\common\services\audit\AuditContractHost;
 use app\common\execution\CurrentExecutionContext;
+use app\common\http\HttpRequestThresholds;
 use app\common\http\RequestTrace;
 use app\common\execution\ExecutionContextStore;
 use app\common\model\TenantOwnedModel;
@@ -142,7 +143,8 @@ class AppService extends Service
         // First-run admission precedes eager bindings to required Module types.
         // Source-only create/adopt uses server/module without this Service.
         $serverRoot = dirname(__DIR__);
-        if ((!file_exists($serverRoot . '/private/installation/installed.json')
+        if (!$this->isSourceAuthoringCommand()
+            && (!file_exists($serverRoot . '/private/installation/installed.json')
                 && !is_link($serverRoot . '/private/installation/installed.json'))
             && ModuleLockResolver::forRuntime(
                 $serverRoot,
@@ -165,7 +167,7 @@ class AppService extends Service
             }
         }
         $this->registerHttpSqlTiming();
-        $this->registerExecutionContext();
+        $this->registerExecutionContext($this->registerHttpRequestThresholds());
         $this->registerAuthentication();
         $this->registerAuthorization();
         $this->registerStorage();
@@ -240,9 +242,35 @@ class AppService extends Service
         });
     }
 
-    private function registerExecutionContext(): void
+    private function registerHttpRequestThresholds(): ?HttpRequestThresholds
     {
-        $contexts = new ExecutionContextStore();
+        if ($this->app->runningInConsole()) {
+            return null;
+        }
+        $slowMs = (int) $this->app->config->get('trace.slow_request_ms', 0);
+        $maxSql = (int) $this->app->config->get('trace.max_sql_count', 0);
+        if ($slowMs <= 0 && $maxSql <= 0) {
+            return null;
+        }
+
+        $thresholds = new HttpRequestThresholds(max(0, $slowMs), max(0, $maxSql));
+        $database = $this->app->config->get('database', []);
+        foreach (array_keys($database['connections'] ?? []) as $name) {
+            $database['connections'][$name]['trigger_sql'] = true;
+        }
+        $this->app->config->set($database, 'database');
+        $this->app->db->listen($thresholds->recordQuery(...));
+        $this->app->event->listen(\think\event\HttpRun::class, $thresholds->start(...));
+        $this->app->event->listen(\think\event\HttpEnd::class, function () use ($thresholds): void {
+            $thresholds->finish($this->app->make(CurrentExecutionContext::class), $this->app->request);
+        });
+
+        return $thresholds;
+    }
+
+    private function registerExecutionContext(?HttpRequestThresholds $thresholds = null): void
+    {
+        $contexts = new ExecutionContextStore($thresholds);
         $current = new CurrentExecutionContext($contexts);
         $this->app->instance(ExecutionContextStore::class, $contexts);
         $this->app->instance(CurrentExecutionContext::class, $current);
@@ -653,6 +681,15 @@ class AppService extends Service
         return (string) Config::get('database.connections.' . $connection . '.prefix', '');
     }
 
+    private function isSourceAuthoringCommand(): bool
+    {
+        return $this->app->runningInConsole()
+            && PHP_SAPI === 'cli'
+            && Config::get('peanut.environment', '') === 'development'
+            && $this->app->isDebug()
+            && in_array($_SERVER['argv'][1] ?? null, ['module:make', 'module:lock', 'module:generate-crud'], true);
+    }
+
     private function registerModules(): void
     {
         // Recovery must boot while a pending source journal deliberately blocks the Module resolver.
@@ -662,11 +699,7 @@ class AppService extends Service
             return;
         }
         // Source authoring repairs stale artifacts; it must not load Providers before it rewrites them.
-        if ($this->app->runningInConsole()
-            && PHP_SAPI === 'cli'
-            && Config::get('peanut.environment', '') === 'development'
-            && $this->app->isDebug()
-            && in_array((new \think\console\Input())->getFirstArgument(), ['module:make', 'module:lock'], true)) {
+        if ($this->isSourceAuthoringCommand()) {
             return;
         }
         $config = Config::get('modules', []);

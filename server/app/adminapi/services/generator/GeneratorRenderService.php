@@ -143,7 +143,9 @@ final class GeneratorRenderService
         return $module + [
             'entity' => $entity,
             'resource' => $resource,
-            'tableName' => str_starts_with($tableName, 'pa_') ? substr($tableName, 3) : $tableName,
+            'tableDeclaration' => !empty($table['use_physical_table'])
+                ? 'protected $table = ' . var_export($tableName, true) . ';'
+                : 'protected $name = ' . var_export(str_starts_with($tableName, 'pa_') ? substr($tableName, 3) : $tableName, true) . ';',
             'databaseTable' => $tableName,
             'title' => $title !== '' ? $title : $entity,
             'columns' => $columns,
@@ -561,7 +563,7 @@ use app\common\model\TenantOwnedModel;{{softImport}}
 
 class {{entity}} extends TenantOwnedModel
 {
-{{softBody}}    protected $name = '{{tableName}}';
+{{softBody}}    {{tableDeclaration}}
     protected $pk = '{{primary}}';
 
     // Keep aligned with this module's migrations.
@@ -981,6 +983,30 @@ PHP, $c + compact(
         if ($c['softDelete'] || $hasBatch) {
             $rules['ids'] = 'array|checkIds';
         }
+        $editRules = '';
+        foreach ($c['columns'] as $column) {
+            $name = $column['name'];
+            if ($column['required'] && $column['insert'] && in_array($name, $policies['updateFieldsArray'], true)) {
+                $editRules .= "\n            ->remove('{$name}', 'require')"
+                    . "->append('{$name}', 'requirePresentValue')";
+                $messages[$name . '.requirePresentValue'] = $column['comment'] . '不能为空';
+            }
+        }
+        $editScene = $editRules === '' ? '' : self::replace(<<<'PHP'
+
+    public function sceneEdit(): self
+    {
+        return $this->only({{editFields}}){{editRules}};
+    }
+
+    protected function requirePresentValue(mixed $value, mixed $rule, array $data, string $field): bool
+    {
+        return !array_key_exists($field, $data) || $this->is($value, 'require');
+    }
+PHP, [
+            'editFields' => var_export([$c['primary'], ...$policies['updateFieldsArray']], true),
+            'editRules' => $editRules,
+        ]);
         $listRemovals = '';
         foreach ($policies['listFieldsArray'] as $field) {
             if (isset($rules[$field]) && (
@@ -1082,10 +1108,11 @@ final class {{entity}}Validate extends ListsValidate
     {
         return $this->only({{listFields}}){{listRemovals}};
     }
-{{softSceneMethods}}{{batchScenes}}}
+{{editScene}}{{softSceneMethods}}{{batchScenes}}}
 PHP, array_merge($c, $policies, [
             'rules' => var_export($rules, true),
             'messages' => var_export($messages, true),
+            'editScene' => $editScene,
             'editSceneFields' => var_export([$c['primary'], ...$policies['updateFieldsArray']], true),
             'listRemovals' => $listRemovals,
             'softScenes' => $softScenes,
@@ -1189,7 +1216,7 @@ TS, $c + [
 TS
                 ),
             'createTypeFields' => self::typescriptFields($c, $policies['insertFieldsArray'], false),
-            'updateTypeFields' => self::typescriptFields($c, [$c['primary'], ...$policies['updateFieldsArray']], false),
+            'updateTypeFields' => self::typescriptFields($c, [$c['primary'], ...$policies['updateFieldsArray']], false, true),
             'listParamFields' => self::typescriptQueryFields($c, $policies['listFieldsArray']),
             'softTypes' => $softTypes,
             'softFunctions' => $softFunctions,
@@ -1286,9 +1313,38 @@ TS
             ? '' : "\n" . '      :audit-history="detailRecord?.audit_history"';
         $visible = array_values(array_filter($c['columns'], static fn(array $column): bool => in_array($column['name'], $c['listFields'], true)));
         $columns = '';
+        $inlineFields = '';
+        $updateFields = self::fieldPolicies($c)['updateFieldsArray'];
         foreach (array_slice($visible, 0, 8) as $column) {
-            $columns .= "    { label: '{$column['comment']}', key: '{$column['name']}' },\n";
+            $name = $column['name'];
+            $editable = in_array($name, $updateFields, true)
+                && !in_array($column['type'], ['array', 'json'], true);
+            $flag = $editable ? ', editable: true' : '';
+            $label = json_encode($column['comment'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+            $columns .= "    { label: {$label}, key: '{$name}'{$flag} },\n";
+            if ($editable) {
+                $value = "values.{$name}";
+                $parsed = $column['tsType'] === 'number' || $column['enum'] !== []
+                    ? "parse_{$name}({$value})" : $value;
+                $inlineFields .= "      ...({$value} === undefined ? {} : { {$name}: {$parsed} }),\n";
+            }
         }
+        $inlineProps = $inlineFields === '' ? '' : "\n" . '      :can-edit="canEditRow" :save-edit="saveRowEdit"';
+        $inlineHandlers = $inlineFields === '' ? '' : self::replace(<<<'TS'
+  const canEditRow = () => pageCurrent.value && {{normalList}}can('edit');
+  const saveRowEdit = async (row: {{entity}}ListRecord, values: Record<string, string>, signal: AbortSignal) => {
+    if (!canEditRow()) throw new Error('无权编辑');
+    const input: {{entity}}UpdateInput = {
+      {{primary}}: readPrimaryKey(row),
+{{inlineFields}}    };
+    await edit{{entity}}(input, signal);
+    if (!signal.aborted && canEditRow()) await fetchData(pagination.page);
+  };
+
+TS, $c + [
+            'normalList' => $c['softDelete'] ? '!searchForm.value.recycle && ' : '',
+            'inlineFields' => $inlineFields,
+        ]);
         $recycleToggle = $c['softDelete'] ? self::replace(<<<'VUE'
     <ElButton
       v-permission="['{{permissionPrefix}}.recycle.list']"
@@ -1333,6 +1389,9 @@ VUE, $c) : '';
         $filterType = '{ ' . $controls['filterFields'] . ($c['softDelete'] ? 'recycle: boolean; ' : '') . '}';
         $initialFilters = '{ ' . $controls['filterDefaults'] . ($c['softDelete'] ? 'recycle: false' : '') . '}';
         $filterParameter = ($c['softDelete'] || $hasSearch) ? ', filters' : '';
+        $savedFilters = $c['softDelete']
+            ? 'const { recycle, ...filters } = searchForm.value;'
+            : 'const filters = searchForm.value;';
         $fetchCall = $c['softDelete']
             ? "(filters.recycle ? get{$c['entity']}RecycleList : get{$c['entity']}List)"
             : "get{$c['entity']}List";
@@ -1413,6 +1472,7 @@ TS, $c) : '';
       :data="records"
       :pagination="pagination"
       :fields="columns"
+      :saved-views="savedViews"{{inlineProps}}
       column-storage-key="peanut:crud:{{permissionPrefix}}:columns"
       row-key="{{primary}}"{{disabledPagination}}
       @page-change="fetchData"
@@ -1464,6 +1524,7 @@ TS, $c) : '';
   import { useRoute } from 'vue-router';
   import { useAsyncAction } from '@peanut-admin/vue';
   import { hasPermission } from '@/hooks/permission';
+  import { useUserStore } from '@/store';
   import CrudPage from '@/components/crud/CrudPage.vue';
   import CrudDetailDrawer from '@/components/crud/CrudDetailDrawer.vue';
   import useCrudModal from '@/hooks/useCrudModal';
@@ -1474,6 +1535,7 @@ TS, $c) : '';
   interface ListColumn {
     label: string;
     key: keyof {{entity}}ListRecord;
+    editable?: boolean;
   }
   const columns: ListColumn[] = [
 {{tableColumns}}  ];
@@ -1492,6 +1554,26 @@ TS, $c) : '';
     },
   });
   const { data, pagination, loading, error, deleteError, fetchList: fetchData, searchForm, handleSearch, handleReset, handleDelete } = list;
+  const user = useUserStore();
+  const savedViews = computed(() => {
+    const { tenantId, accountId } = user;
+    if (!tenantId || !accountId) return undefined;
+    {{savedFilters}}
+    return {
+      pageKey: '{{permissionPrefix}}',
+      tenantId,
+      userId: accountId,
+      filters,
+      applyFilters: (selected: typeof filters) => {
+        const query: Record<string, unknown> = searchForm.value;
+        for (const key of Object.keys(filters)) {
+          const value = Reflect.get(selected, key);
+          query[key] = typeof value === 'string' ? value : '';
+        }
+        void handleSearch();
+      },
+    };
+  });
   const records = computed(() => [...data.value]);
   const handleSizeChange = (size: number) => {
     pagination.pageSize = size;
@@ -1565,7 +1647,7 @@ TS, $c) : '';
     const record = findRecord(data.value, readPrimaryKey(row));
     if (record) void handleDelete(record);
   };
-{{softHandlers}}{{batchHandlers}}  void fetchData();
+{{inlineHandlers}}{{softHandlers}}{{batchHandlers}}  void fetchData();
 </script>
 VUE, $c + $controls + compact(
             'recycleToggle',
@@ -1578,6 +1660,9 @@ VUE, $c + $controls + compact(
             'filterParameter',
             'fetchCall',
             'disabledPagination',
+            'savedFilters',
+            'inlineProps',
+            'inlineHandlers',
             'softHandlers',
             'searchSlot',
             'normalOnly',
@@ -2068,7 +2153,7 @@ PHP, $c + compact('softRoutes', 'batchRoutes'));
     }
 
     /** @param list<string> $fieldNames */
-    private static function typescriptFields(array $c, array $fieldNames, bool $includeRelationSummaries = true): string
+    private static function typescriptFields(array $c, array $fieldNames, bool $includeRelationSummaries = true, bool $partial = false): string
     {
         $byName = array_column($c['columns'], null, 'name');
         $result = '';
@@ -2077,7 +2162,7 @@ PHP, $c + compact('softRoutes', 'batchRoutes'));
             if (!is_array($column)) {
                 continue;
             }
-            $result .= "  {$name}" . ($column['required'] || $column['primary'] ? '' : '?') . ": {$column['tsType']};\n";
+            $result .= "  {$name}" . ($column['primary'] || (!$partial && $column['required']) ? '' : '?') . ": {$column['tsType']};\n";
         }
         foreach ($includeRelationSummaries ? $c['relations'] : [] as $relation) {
             if ($relation['summaryFields'] === []) {

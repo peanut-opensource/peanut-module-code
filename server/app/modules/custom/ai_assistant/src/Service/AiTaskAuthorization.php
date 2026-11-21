@@ -37,6 +37,7 @@ final readonly class AiTaskAuthorization
     }
     private function owned(TenantContext $c, string $kind, int $id): array
     {
+        // @phpstan-ignore peanut.rawDbQuery (Both fixed table choices are scoped to the authorized tenant before object authorization.)
         $q = Db::name($kind === 'task' ? 'ai_assistant_task' : 'ai_assistant_config')->where('tenant_id', $c->tenantId)->where('id', $id);
         if ($kind !== 'task') {
             $q->where('kind', $kind)->where('deleted_at', 0);
@@ -51,6 +52,7 @@ final readonly class AiTaskAuthorization
             throw new \DomainException('AI_TASK_ENVELOPE_INVALID');
         }
         // Only our server-held actor references are read before the real session is revalidated.
+        // @phpstan-ignore peanut.rawDbQuery (The verified job envelope binds the lookup to a tenant, task and operation.)
         $row = Db::name('ai_assistant_task')->where('tenant_id', $e->tenantId)->where('id', (int) $t->targetIds[0])->where('job_key', $e->operationId)->find() ?? throw new \DomainException('AI_TASK_BINDING_INVALID');
         $b = AiAccess::decode($row['actor_binding']);
         if (($b['account_id'] ?? null) !== $e->accountId || ($b['member_id'] ?? null) !== $e->memberId) {

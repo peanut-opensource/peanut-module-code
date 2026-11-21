@@ -1,6 +1,7 @@
 <template>
+  <component v-if="footerOverride" :is="footerOverride" />
   <footer
-    v-if="sidebar && menuEnabled"
+    v-else-if="sidebar && menuEnabled"
     class="footer sidebar-footer"
     :class="{ 'is-compact': compact }"
   >
@@ -80,6 +81,7 @@
 </template>
 
 <script lang="ts" setup>
+  import { footerOverride } from '@/core/runtime';
   import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import {

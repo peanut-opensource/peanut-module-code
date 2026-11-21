@@ -20,6 +20,21 @@ class GeneratorService
         private readonly string $databasePrefix,
     ) {}
 
+    /** Render a source table directly without persisting a generator draft. */
+    public function renderSource(string $module, string $tableName, string $edition, string $root): array
+    {
+        GeneratorRenderService::assertRegisteredModule($module, $root);
+        $definition = $this->metadata->definitions([$tableName])[$tableName];
+        return GeneratorRenderService::render($definition + [
+            'table_name' => $tableName,
+            'module_name' => $module,
+            'entity_name' => $this->entityName($tableName),
+            'data_owner' => 'tenant-orm',
+            'use_physical_table' => true,
+            'target_edition' => $edition,
+        ], $root);
+    }
+
     public function sourceTables(array $params): PageResult
     {
         $pagination = PaginationInput::from($params);

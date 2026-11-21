@@ -4,12 +4,27 @@ declare(strict_types=1);
 
 namespace app\common\execution;
 
+use app\common\http\HttpRequestThresholds;
+
 /** Process-local context stack; every boundary must restore it in finally. */
 final class ExecutionContextStore
 {
     /** @var list<ExecutionContext> */
     private array $stack = [];
     private ?object $rootIdentity = null;
+
+    public function __construct(private readonly ?HttpRequestThresholds $thresholds = null) {}
+
+    public function runHttp(ExecutionContext $context, callable $operation): mixed
+    {
+        if ($this->thresholds === null) {
+            return $this->run($context, $operation);
+        }
+        return $this->run($context, function () use ($context, $operation) {
+            $this->thresholds->rememberContext($context);
+            return $operation();
+        });
+    }
 
     /** Opaque identity of the current outer run; it grants no authority. */
     public function rootIdentity(): ?object

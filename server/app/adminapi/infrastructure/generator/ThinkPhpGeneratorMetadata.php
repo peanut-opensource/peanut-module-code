@@ -115,7 +115,9 @@ final class ThinkPhpGeneratorMetadata
         $name = (string) $column['column_name'];
         $audit = in_array($name, ['id', 'create_time', 'update_time', 'delete_time'], true);
         $primary = (string) $column['column_key'] === 'PRI';
-        $auto = str_contains(strtolower((string) $column['extra']), 'auto_increment');
+        $extra = strtolower((string) $column['extra']);
+        $generated = str_contains($extra, 'virtual generated') || str_contains($extra, 'stored generated');
+        $auto = str_contains($extra, 'auto_increment');
         $phpType = self::phpType((string) $column['data_type']);
         return [
             'column_name' => $name,
@@ -125,8 +127,8 @@ final class ThinkPhpGeneratorMetadata
             'is_required' => (int) ((string) $column['is_nullable'] === 'NO'
                 && $column['column_default'] === null && !$primary && !$auto),
             'is_pk' => (int) $primary,
-            'is_insert' => (int) (!$audit && !$auto),
-            'is_update' => (int) (!$audit && !$auto),
+            'is_insert' => (int) (!$audit && !$auto && !$generated),
+            'is_update' => (int) (!$audit && !$auto && !$generated),
             'is_lists' => (int) (!$audit || $primary),
             'is_query' => (int) (!$audit),
             'query_type' => $phpType === 'string' ? 'like' : '=',

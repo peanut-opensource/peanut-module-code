@@ -76,6 +76,16 @@ Provider、事件/命令、套餐与许可证、HTTP/CLI/Task 上下文及安装
 
 通用Vue组件、Shell、导航、主题token、slot和应用覆盖的类型合同由 Web Core 的 [UI/Vue扩展文档](https://github.com/peanut-business/peanut-admin-core-web/blob/dev/packages/ui-vue/README.md)维护；Code只维护宿主接线与应用所有权，不复制一份组件API说明。应用自己的 `web/src/peanut.overrides.ts` 已由模板inventory标为 `app-owned`，上游更新按既有inventory/baseline保护和冲突审阅处理。
 
+| 组件覆写 key | 渲染位置 |
+| --- | --- |
+| `peanut.shell.component.login-extra` | 登录表单下方 |
+| `peanut.shell.component.navbar-actions` | 顶栏右侧工具区 |
+| `peanut.shell.component.workbench-extra` | 工作台标题下方 |
+| `peanut.shell.component.footer` | 登录页脚和侧栏页脚，替换原页脚组件 |
+
+四个槽位均使用 `kind: 'component'` 和 `contractVersion: '1.0.0'`。默认值为 `null`，沿用宿主原界面。应用和预设可传入 Vue 组件，应用也可用 `null` 清除预设提供的组件。
+
+
 Web Core 包有公开合同不等于每个产品宿主都已接入；确认某应用已采用时，应核对该应用的实际宿主消费者。界面配置不能改变既有路由、权限和业务数据合同，后端服务实现替换继续按[服务绑定](service-bindings.md)执行。
 
 ## 5. 完整消费与升级
@@ -98,3 +108,12 @@ Web Core 包有公开合同不等于每个产品宿主都已接入；确认某�
 - 字段审计由服务的 `diffFields()` 显式开启，声明允许留存历史的字段。通用编辑和状态更新在原事务写入 Identity 租户审计，跳过无变化。读取复用对象详情权限及其查询范围，只返回当前详情允许且无字段遮罩的最近 30 条事件。沿用 `detail()` 的页面把 `detail.audit_history` 传给 `CrudDetailDrawer` 的 `audit-history`。若服务重命名，覆盖 `auditResourceType()` 保留旧的审计资源标识。页面采用时更新本资源详情的 OpenAPI schema 并重新生成 SDK。
 - `CrudPage.savedViews` 接收 `pageKey`、可信会话的稳定 `tenantId` 和 `userId`，以及可 JSON 序列化的 `filters` 与 `applyFilters`。可直接传入 `useCrudTable` 的查询表单，由回调按本页字段接收筛选并执行 `handleSearch()`。预设保存在本浏览器，覆盖 `fields` 声明的列显隐，插槽列由页面管理。筛选快照应排除凭据等敏感内容。
 - `CrudPage` 的行内编辑仅对 `fields[].editable`、`canEdit(row)` 和 `saveEdit(row, changedValues, signal)` 同时配置的行开放。回调负责调用已有写接口和按页面合同校验文本值，提交失败显示原有错误提示，成功后通过 `edited` 刷新页面。
+
+
+### CRUD 源码生成与请求盘点
+
+在开发及调试 CLI 中执行 `php think module:generate-crud <module_key> <table_name>`，预览 14 个文件的新增或合并操作。表名使用数据库的物理表名，且表需有单主键及 `tenant_id`。确认后加 `--write` 写入模块目录。生成结果改变模块清单、权限及 API 元数据，随后沿用模块作者的制品和锁更新流程，并通过 API 生成入口更新 Web 类型。
+
+`PEANUT_TRACE_SLOW_REQUEST_MS` 和 `PEANUT_TRACE_MAX_SQL_COUNT` 分别设置单次 HTTP 请求耗时及 SQL 条数阈值。默认值为 0。超过任一已启用阈值时，请求结束会记录 `http.request.threshold_exceeded`，字段包括耗时、SQL 条数、阈值、请求 ID 和已验证的租户 ID。
+
+在已配置的实例执行 `php think tenant:data-inventory <tenant_id>`，可取得当前库中含 `tenant_id` 的物理表及指定租户的逐表和总记录数。输出为 JSON。命令逐表查询，结果反映每张表查询时读到的记录数。

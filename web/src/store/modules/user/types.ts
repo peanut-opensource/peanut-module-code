@@ -1,4 +1,5 @@
 import type { ServerMenuRecord } from '../app/types';
+import type { components } from '@/generated/openapi';
 
 export type RoleType = '' | '*' | 'admin' | 'user';
 export interface ActionPermissionBinding {
@@ -22,7 +23,8 @@ export interface UserState {
   locationName?: string;
   phone?: string;
   registrationDate?: string;
-  accountId?: string;
+  accountId?: components['schemas']['AdminInfo']['accountId'];
+  tenantId?: components['schemas']['AdminInfo']['tenantId'];
   certification?: number;
   role: RoleType;
   permissions: string[];

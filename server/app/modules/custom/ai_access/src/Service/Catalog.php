@@ -156,6 +156,7 @@ final readonly class Catalog
 
     public function query(TenantContext $tenant, ?string $kind = null): BaseQuery
     {
+        // @phpstan-ignore peanut.rawDbQuery (Every catalog operation starts with the verified tenant predicate.)
         $query = Db::name('ai_access_catalog')->where('tenant_id', $tenant->tenantId);
         return $kind === null ? $query : $query->where('kind', $kind);
     }

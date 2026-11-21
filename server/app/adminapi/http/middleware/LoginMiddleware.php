@@ -76,7 +76,7 @@ final class LoginMiddleware
             strtolower((string) $request->method()),
             trim((string) $request->pathinfo(), '/'),
         );
-        return $this->executionContexts->run(
+        return $this->executionContexts->runHttp(
             new \app\common\execution\AdminExecutionContext($context, $operation, $principal, $entryBound),
             static fn() => $next($request),
         );

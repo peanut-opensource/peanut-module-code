@@ -160,7 +160,9 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+  import { useAsyncAction, useAsyncList } from '@peanut-admin/vue';
+  import { toRef } from 'vue';
+  import { computed, onMounted, reactive, ref } from 'vue';
   import { ElMessage } from 'element-plus';
   import { api } from '../api/platform';
   import type { Plan, PlanModule } from '../api/tenant-license';
@@ -176,17 +178,8 @@
       props.canApi('GET', '/platformapi/instance-tools/modules') &&
       props.canApi('GET', '/platformapi/permission/bundles')
   );
-  const plans = ref<Plan[]>([]);
   const modules = ref<PlanModule[]>([]);
   const bundles = ref<PermissionBundle[]>([]);
-  const page = ref(1);
-  const total = ref(0);
-  const loading = ref(false);
-  const saving = ref(false);
-  const error = ref('');
-  const catalogError = ref('');
-  const catalogLoading = ref(false);
-  let catalogRequest = 0;
   const formError = ref('');
   const visible = ref(false);
   const editing = ref<Plan | null>(null);
@@ -225,27 +218,31 @@
   function message(cause: unknown) {
     return cause instanceof Error ? cause.message : '请求失败';
   }
-  async function load() {
-    loading.value = true;
-    error.value = '';
-    try {
-      const result = await api.plans(page.value);
-      plans.value = result.lists;
-      total.value = result.count;
-    } catch (cause) {
-      error.value = message(cause);
-    } finally {
-      loading.value = false;
-    }
-  }
+  const { items: plans, pagination, loading, error, load: loadPage, reload: load } = useAsyncList({
+    initialFilters: {},
+    initialPageSize: 100,
+    errorMessage: message,
+    load: async ({ page, pageSize }) => {
+      const result = await api.plans(page);
+      return { items: result.lists, total: result.count, page, pageSize };
+    },
+  });
+  const page = toRef(pagination, 'page');
+  const total = toRef(pagination, 'total');
+  const { loading: saving, run: runSave } = useAsyncAction(message);
+
+  const {
+    loading: catalogLoading,
+    error: catalogError,
+    run: runCatalog,
+    cancel: cancelCatalog,
+  } = useAsyncAction(message);
   async function loadCatalog() {
-    const request = ++catalogRequest;
-    const isCurrent = () => request === catalogRequest && canReadCatalog.value;
-    catalogLoading.value = true;
-    catalogError.value = '';
+    cancelCatalog();
     modules.value = [];
     bundles.value = [];
-    try {
+    await runCatalog(async ({ signal }) => {
+      const isCurrent = () => !signal.aborted && canReadCatalog.value;
       const loadAllPages = async <T>(
         fetchPage: (page: number) => Promise<{ rows: T[]; total: number }>,
         driftMessage: string
@@ -303,11 +300,7 @@
         throw new Error('权限组合目录分页不完整');
       modules.value = moduleRows;
       bundles.value = bundleRows;
-    } catch (cause) {
-      if (isCurrent()) catalogError.value = message(cause);
-    } finally {
-      if (request === catalogRequest) catalogLoading.value = false;
-    }
+    });
   }
   async function open(plan?: Plan) {
     if (!canReadCatalog.value || (plan ? !canUpdate.value : !canCreate.value))
@@ -324,7 +317,7 @@
     formError.value = '';
     visible.value = true;
     await loadCatalog();
-    formError.value = catalogError.value;
+    formError.value = catalogError.value ?? '';
   }
   async function save() {
     if (
@@ -343,9 +336,8 @@
       formError.value = '请填写编码、名称及变更原因';
       return;
     }
-    saving.value = true;
     formError.value = '';
-    try {
+    const result = await runSave(async () => {
       const details = {
         name: form.name.trim(),
         module_keys: [...form.module_keys],
@@ -363,18 +355,11 @@
       visible.value = false;
       ElMessage.success('套餐已保存');
       await load();
-    } catch (cause) {
-      formError.value = message(cause);
-    } finally {
-      saving.value = false;
-    }
+    });
+    if (result.status === 'failed') formError.value = result.error;
   }
   function changePage(value: number) {
-    page.value = value;
-    void load();
+    void loadPage(value);
   }
   onMounted(load);
-  onBeforeUnmount(() => {
-    catalogRequest += 1;
-  });
 </script>

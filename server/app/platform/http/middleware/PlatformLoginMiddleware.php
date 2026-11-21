@@ -47,7 +47,7 @@ final class PlatformLoginMiddleware
             strtolower((string) $request->method()),
             trim((string) $request->pathinfo(), '/'),
         );
-        return $this->executionContexts->run(
+        return $this->executionContexts->runHttp(
             new \app\common\execution\PlatformExecutionContext($context, $operation),
             static fn() => $next($request),
         );

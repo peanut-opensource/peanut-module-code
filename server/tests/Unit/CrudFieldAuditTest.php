@@ -20,6 +20,13 @@ use think\Model;
 
 final class CrudFieldAuditTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        if (!class_exists(\PeanutAdmin\Modules\Identity\Audit\AuditService::class)) {
+            self::markTestSkipped('Requires official module Identity.');
+        }
+    }
+
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
     public function testCrudEditPersistsSafeScopedHistoryAndRollsBackOnAuditFailure(): void

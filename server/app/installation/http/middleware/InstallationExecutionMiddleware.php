@@ -23,7 +23,7 @@ final readonly class InstallationExecutionMiddleware
             strtolower((string) $request->method()),
             str_replace('/', '.', trim((string) $request->pathinfo(), '/')),
         );
-        return $this->contexts->run(
+        return $this->contexts->runHttp(
             new InstallationExecutionContext(
                 $operation,
                 RequestTrace::id($this->executionContext, $request, 'install'),

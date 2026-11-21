@@ -36,6 +36,19 @@ final class TenantRawQueryRule implements Rule
         'ops_upgrade_execution',
         'ops_upgrade_step',
         'permission',
+        // Global catalog and identity tables without a tenant_id column.
+        'account',
+        'credential',
+        'permission_api',
+        'plan',
+        'plan_module',
+        'plan_permission',
+        'setting_definition',
+        'system_api',
+        'system_dict_data',
+        'system_dict_type',
+        'system_menu',
+        'tenant',
         'platform_audit_event',
         'platform_operator',
         'platform_operator_role',
@@ -80,8 +93,12 @@ final class TenantRawQueryRule implements Rule
 
         if ($method === 'table' || $method === 'name') {
             $firstArg = $node->args[0]->value ?? null;
-            if ($firstArg instanceof String_) {
-                $table = strtolower($firstArg->value);
+            if ($firstArg instanceof String_
+                && preg_match('/^([a-z0-9_.]+)(?:\s+(?:as\s+)?[a-z_][a-z0-9_]*)?$/Di', trim($firstArg->value), $match)) {
+                $table = strtolower($match[1]);
+                if (str_starts_with($table, 'pa_')) {
+                    $table = substr($table, 3);
+                }
                 if (in_array($table, self::EXACT_GLOBAL_TABLES, true)) {
                     return [];
                 }

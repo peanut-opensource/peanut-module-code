@@ -46410,6 +46410,8 @@
                     "menu",
                     "permissions",
                     "action_bindings",
+                    "tenantId",
+                    "accountId",
                     "tenantName",
                     "website",
                     "canSwitchTenant",
@@ -46482,6 +46484,14 @@
                                 }
                             }
                         }
+                    },
+                    "tenantId": {
+                        "type": "string",
+                        "pattern": "^[1-9][0-9]*$"
+                    },
+                    "accountId": {
+                        "type": "string",
+                        "pattern": "^[1-9][0-9]*$"
                     },
                     "tenantName": {
                         "type": "string"

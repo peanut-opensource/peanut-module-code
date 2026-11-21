@@ -46,8 +46,9 @@ class LoginController extends BaseAdminController
             throw BusinessException::notFound('ADMIN_PRINCIPAL_NOT_FOUND', '管理员不存在');
         }
         $roleNames = array_column($admin['roles'] ?? [], 'name');
+        $tenant = $this->executionContext()->tenantAdmin();
         $accessData = $this->authorization->accessData(
-            $this->executionContext()->tenantAdmin(),
+            $tenant,
             AdminPrincipal::fromArray($admin),
         );
 
@@ -65,6 +66,8 @@ class LoginController extends BaseAdminController
             'menu'        => $accessData->menu,
             'permissions' => $accessData->permissions,
             'action_bindings' => $accessData->actionBindings,
+            'tenantId' => (string) $tenant->tenantId,
+            'accountId' => (string) $tenant->accountId,
             'tenantName' => $admin['tenant_name'],
             'website' => $this->website->get($this->tenantAdminContext()),
             'canSwitchTenant' => !$this->executionContext()->tenantEntryBound()

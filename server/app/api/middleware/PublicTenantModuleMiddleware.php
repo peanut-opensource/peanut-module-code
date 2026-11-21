@@ -58,7 +58,7 @@ final class PublicTenantModuleMiddleware
             );
         }
 
-        return $this->executionContexts->run(
+        return $this->executionContexts->runHttp(
             ConsumerExecutionContext::publicTenant($context),
             function () use ($moduleKey, $next, $operation, $request) {
                 // An empty key denotes an application-owned capability without a Module manifest.

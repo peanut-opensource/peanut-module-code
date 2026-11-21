@@ -34,6 +34,7 @@ const useUserStore = defineStore('user', {
     phone: undefined,
     registrationDate: undefined,
     accountId: undefined,
+    tenantId: undefined,
     certification: undefined,
     role: '',
     permissions: [],
