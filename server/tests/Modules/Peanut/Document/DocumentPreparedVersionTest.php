@@ -20,6 +20,7 @@ use think\facade\Db;
 require_once dirname(__DIR__, 4) . '/vendor/autoload.php';
 require_once dirname(__DIR__, 3) . '/Support/IdentityMysqlFixture.php';
 require_once dirname(__DIR__, 3) . '/Support/RegisteredMysqlTestResource.php';
+require_once dirname(__DIR__, 3) . '/Support/IsolatedBackendEnvironment.php';
 require_once dirname(__DIR__, 3) . '/Support/ThinkPhpTestConnection.php';
 
 $assertions = 0;
@@ -54,11 +55,25 @@ function documentProjection(string $text, ?string $fileKey = null): array
     }
     return ['schemaVersion' => RichTextProjection::SCHEMA,'editorModel' => 'tiptap-prosemirror','content' => ['type' => 'doc','content' => $nodes],'annotations' => []];
 }
+$host = IsolatedBackendEnvironment::required('DB_HOST');
+$port = (int) IsolatedBackendEnvironment::required('DB_PORT');
+$user = IsolatedBackendEnvironment::required('DB_USER');
+$password = IsolatedBackendEnvironment::required('DB_PASS');
 $database = RegisteredMysqlTestResource::configuredDatabaseName();
 [$pdo, $created] = RegisteredMysqlTestResource::openEmptyDatabase($database);
 $paths = [];
 try {
     $serverRoot = dirname(__DIR__, 4);
+    IsolatedBackendEnvironment::activateDatabase($host, $port, $database, $user, $password, 'multi-tenant');
+    $app = \think\Container::getInstance();
+    if (!$app instanceof \think\App) {
+        throw new RuntimeException('EXPLICIT_TEST_APPLICATION_REQUIRED');
+    }
+    $app->setRuntimePath(sys_get_temp_dir() . '/peanut-document-' . bin2hex(random_bytes(8)) . '/');
+    $app->env->set(['JWT_SECRET' => str_repeat('d', 48), 'ASYNC_SIGNING_KEY' => str_repeat('e', 32)]);
+    $app->initialize();
+    $app->cache->clear();
+    ThinkPhpTestConnection::fromPdo($pdo);
     IdentityMysqlFixture::install($pdo, array_map(
         static fn(string $module): string => $serverRoot . '/app/modules/peanut/' . $module . '/database/migrations',
         ['settings', 'reference_codes', 'file', 'member', 'article', 'document', 'task'],
@@ -73,13 +88,6 @@ try {
     $owner = $bootstrap->provisionTenantOwnerCandidate($platform->operatorId, 'default', 'B1 Synthetic', 'b1-owner@example.invalid', null, 'B1 Owner', 'b1-owner');
     $bootstrap->activateTenantOwner($platform->operatorId, $owner->tenantId, $owner->memberId, 'b1-owner-active');
     $bootstrap->activateTenant($platform->operatorId, $owner->tenantId, 'b1-tenant-active');
-    $app = \think\Container::getInstance();
-    if (!$app instanceof \think\App) {
-        throw new RuntimeException('EXPLICIT_TEST_APPLICATION_REQUIRED');
-    }
-    $app->env->set(['DEPLOYMENT_MODE' => 'multi-tenant', 'APP_ENV' => 'development', 'APP_DEBUG' => 'true', 'JWT_SECRET' => str_repeat('d', 48), 'ASYNC_SIGNING_KEY' => str_repeat('e', 32)]);
-    $app->initialize();
-    ThinkPhpTestConnection::fromPdo($pdo);
     $registry = $app->make(CompiledModuleRegistry::class);
     $seeds = new \app\common\module\ModuleSeedRun($registry->requireManifest('peanut.file'));
     $seeds->setApp($app);
