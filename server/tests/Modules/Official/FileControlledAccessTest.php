@@ -116,14 +116,12 @@ try {
     $context = $sessions->revalidateSession($tenant, $account, $member, $sessionKey, 'admin-web', 'r0-native');
     fileAccessExpect($context->tenantId === $tenant && $context->memberId === $member, 'native live session restoration');
     $management = $sessions->revalidateManagementSession($tenant, $account, $member, $sessionKey, 'admin-web', 'r0-management');
-    fileAccessExpect($management->authorizationRevision === $context->authorizationRevision
-        && $management->tenantAuthorizationRevision === $context->tenantAuthorizationRevision, 'management identity uses live revisions');
+    fileAccessExpect($management['context']->authorizationRevision === $context->authorizationRevision
+        && $management['context']->tenantAuthorizationRevision === $context->tenantAuthorizationRevision && $management['active_credential'], 'management identity uses live revisions');
     $pdo->exec("UPDATE pa_credential SET status='locked' WHERE account_id={$account} AND kind='email_password' AND identifier_type='email'");
     try {
-        $sessions->revalidateManagementSession($tenant, $account, $member, $sessionKey, 'admin-web', 'r0-credential-disabled');
-        throw new RuntimeException('inactive management credential accepted');
-    } catch (DomainException $error) {
-        fileAccessExpect($error->getMessage() === 'TENANT_ADMIN_PRINCIPAL_UNAVAILABLE', 'inactive credential preserves principal rejection');
+        $inactive = $sessions->revalidateManagementSession($tenant, $account, $member, $sessionKey, 'admin-web', 'r0-credential-disabled');
+        fileAccessExpect(!$inactive['active_credential'], 'inactive credential is reported to the management decision');
     } finally {
         $pdo->exec("UPDATE pa_credential SET status='active' WHERE account_id={$account} AND kind='email_password' AND identifier_type='email'");
     }

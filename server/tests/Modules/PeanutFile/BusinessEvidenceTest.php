@@ -55,6 +55,8 @@ final class BusinessEvidenceTest extends TestCase
     private bool $businessAllowed = true;
     private bool $moduleEnabled = true;
     private int $liveRevision = 1;
+    private bool $activeCredential = true;
+    private FileAuthorizationService $fileAuthorization;
     private int $liveTenantRevision = 1;
 
     protected function setUp(): void
@@ -105,9 +107,9 @@ final class BusinessEvidenceTest extends TestCase
             $this->fileSessionChecks++;
             return $this->actor($tenant, $account, $member, $this->liveRevision, $this->liveTenantRevision);
         });
-        $sessions->method('revalidateManagementSession')->willReturnCallback(function (int $tenant, int $account, int $member): TenantContext {
+        $sessions->method('revalidateManagementSession')->willReturnCallback(function (int $tenant, int $account, int $member): array {
             $this->fileSessionChecks++;
-            return $this->actor($tenant, $account, $member, $this->liveRevision, $this->liveTenantRevision);
+            return ['context' => $this->actor($tenant, $account, $member, $this->liveRevision, $this->liveTenantRevision), 'active_credential' => $this->activeCredential];
         });
         $authorization = $this->createStub(AdminAuthorizationQuery::class);
         $authorization->method('principal')->willReturnCallback(fn(TenantContext $context): AdminPrincipal => AdminPrincipal::fromArray([
@@ -146,6 +148,7 @@ final class BusinessEvidenceTest extends TestCase
         $app->instance(FileDocumentReferencePolicy::class, $documentPolicy);
         $registry = new PeanutAdmin\Modules\File\Service\FileDocumentReferenceRegistry($app, FileDocumentReferencePolicy::class);
         $fileAuthorization = new FileAuthorizationService($authorization, $sessions, $modules, $this->contexts, $registry);
+        $this->fileAuthorization = $fileAuthorization;
         $directory = new BusinessEvidenceFixture\Directory();
         $this->drivers = new Drivers($this->root);
         $this->audit = new BusinessEvidenceFixture\Audit();
@@ -359,6 +362,22 @@ final class BusinessEvidenceTest extends TestCase
             $this->audit->failPublication = false;
             self::assertSame($key, $this->observe()->fileKey);
             self::assertSame(1, $this->drivers->puts);
+        });
+    }
+
+    public function testStaleManagementRevisionPrecedesInactiveCredential(): void
+    {
+        $this->within(function (): void {
+            $this->liveRevision = 2;
+            $this->activeCredential = false;
+            $this->denied(fn() => $this->fileAuthorization->requireManagementPermission($this->actor, 'peanut.file.visibility.change'), 'FILE_AUTHORIZATION_STALE');
+            $this->liveRevision = 1;
+            try {
+                $this->fileAuthorization->requireManagementPermission($this->actor, 'peanut.file.visibility.change');
+                self::fail('Inactive credential accepted');
+            } catch (DomainException $error) {
+                self::assertSame('TENANT_ADMIN_PRINCIPAL_UNAVAILABLE', $error->getMessage());
+            }
         });
     }
 

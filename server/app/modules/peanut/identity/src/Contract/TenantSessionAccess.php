@@ -13,8 +13,8 @@ interface TenantSessionAccess
     /** Revalidate a server-held session reference; never hydrate a client-supplied identity. */
     public function revalidateSession(int $tenantId, int $accountId, int $memberId, string $sessionKey, string $clientKey, string $requestId): TenantContext;
 
-    /** Live session and active principal credential for one immediate management decision. */
-    public function revalidateManagementSession(int $tenantId, int $accountId, int $memberId, string $sessionKey, string $clientKey, string $requestId): TenantContext;
+    /** @return array{context:TenantContext,active_credential:bool} Live facts for one immediate management decision. */
+    public function revalidateManagementSession(int $tenantId, int $accountId, int $memberId, string $sessionKey, string $clientKey, string $requestId): array;
 
     /** @return list<TenantSessionSummary> */
     public function ownedSessions(TenantContext $context): array;

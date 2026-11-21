@@ -66,12 +66,16 @@ final readonly class FileAuthorizationService
 
     public function requireManagementPermission(TenantContext $context, string $permission): void
     {
-        $current = $this->sessions->revalidateManagementSession(
+        $identity = $this->sessions->revalidateManagementSession(
             $context->tenantId, $context->accountId, $context->memberId, $context->sessionKey,
             $context->clientKey, 'file-delivery-' . bin2hex(random_bytes(8)),
         );
+        $current = $identity['context'];
         if ($current->authorizationRevision !== $context->authorizationRevision) {
             throw BusinessException::forbidden('FILE_AUTHORIZATION_STALE', '资源授权已改变');
+        }
+        if (!$identity['active_credential']) {
+            throw new \DomainException('TENANT_ADMIN_PRINCIPAL_UNAVAILABLE');
         }
         // The freshly revalidated context takes the live grant path, including the
         // plan's effective window, module selection, and matching installation manifest.

@@ -63,7 +63,7 @@ final readonly class TenantSessionAccessService implements TenantSessionAccess
         ), $requestId);
     }
 
-    public function revalidateManagementSession(int $tenantId, int $accountId, int $memberId, string $sessionKey, string $clientKey, string $requestId): TenantContext
+    public function revalidateManagementSession(int $tenantId, int $accountId, int $memberId, string $sessionKey, string $clientKey, string $requestId): array
     {
         if ($tenantId < 1 || $accountId < 1 || $memberId < 1
             || preg_match('/^[0-9A-HJKMNP-TV-Z]{26}$/D', $sessionKey) !== 1
@@ -88,20 +88,18 @@ final readonly class TenantSessionAccessService implements TenantSessionAccess
         if ($row === null) {
             throw TenantSessionAccessException::denied();
         }
-        if ($row['credential_id'] === null) {
-            throw new \DomainException('TENANT_ADMIN_PRINCIPAL_UNAVAILABLE');
-        }
         $execution = app()->make(\app\common\execution\CurrentExecutionContext::class)->current();
         if (!$execution instanceof \app\common\execution\AdminExecutionContext
             || $execution->tenant->tenantId !== $tenantId
             || $execution->tenant->tenantAuthorizationRevision !== (int) $row['tenant_authorization_revision']) {
             \PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::invalidateRequestInstallations();
         }
-        return TenantContext::fromValidatedSession(new ValidatedTenantSession(
+        $context = TenantContext::fromValidatedSession(new ValidatedTenantSession(
             (int) $row['id'], $sessionKey, $tenantId, $accountId, $memberId, $clientKey,
             new DateTimeImmutable((string) $row['issued_at'], new DateTimeZone('UTC')),
             (int) $row['authorization_revision'], (int) $row['tenant_authorization_revision'],
         ), $requestId);
+        return ['context' => $context, 'active_credential' => $row['credential_id'] !== null];
     }
 
     public function ownedSessions(TenantContext $context): array
