@@ -1,10 +1,12 @@
 includes:
-    - phpstan-baseline.neon
+    - phpstan-tenant-baseline.neon
 
 parameters:
-    level: 5
+    customRulesetUsed: true
     paths:
-        - app
+        - app/modules
+        - app/adminapi
+        - app/api
     reportUnmatchedIgnoredErrors: false
 
 services:

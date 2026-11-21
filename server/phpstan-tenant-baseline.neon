@@ -1,0 +1,421 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/custom/ai_access/src/Service/Catalog.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 2
+			path: app/modules/custom/ai_access/src/Service/ProviderClient.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 2
+			path: app/modules/custom/ai_assistant/src/Service/AiTaskAuthorization.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:table\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/article/src/Model/Article.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/file/src/Contract/StorageQualificationQueries.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 2
+			path: app/modules/peanut/file/src/Infrastructure/Storage/DatabaseReplayGuard.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 14
+			path: app/modules/peanut/file/src/Service/Storage/StorageService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/identity/src/Audit/Diagnostic/ThinkPhpTenantAuditDiagnosticQuery.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 18
+			path: app/modules/peanut/identity/src/Authorization/ApiPermissionCatalog.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:table\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/identity/src/Authorization/ApiPermissionCatalog.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 2
+			path: app/modules/peanut/identity/src/Authorization/CatalogLifecycleService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:table\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 11
+			path: app/modules/peanut/identity/src/Authorization/CatalogLifecycleService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/identity/src/Authorization/ModuleAuthorizationCatalogSynchronizer.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:table\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/identity/src/Authorization/ModuleAuthorizationCatalogSynchronizer.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 2
+			path: app/modules/peanut/identity/src/Contract/AdminDirectoryQuery.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:table\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 3
+			path: app/modules/peanut/identity/src/Contract/AdminDirectoryQuery.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/identity/src/Contract/PlatformDirectoryQueries.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:query\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/identity/src/Contract/TenantAuthorizationQuery.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/identity/src/Contract/TenantIdentityQuery.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 7
+			path: app/modules/peanut/identity/src/Contract/TenantModuleStateQueries.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 2
+			path: app/modules/peanut/identity/src/Contract/WorkflowLegacyOrganizationQuery.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:query\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/identity/src/Contract/WorkflowLegacyOrganizationQuery.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/identity/src/DataPermission/Policy/ThinkPhpPolicyRepository.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:table\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 2
+			path: app/modules/peanut/identity/src/Device/BindDeviceCredential.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:query\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/identity/src/Device/EnrollDeviceCredential.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:table\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 2
+			path: app/modules/peanut/identity/src/Device/EnrollDeviceCredential.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:table\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 3
+			path: app/modules/peanut/identity/src/Device/RevokeDeviceCredential.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 12
+			path: app/modules/peanut/identity/src/Invitation/TenantOwnerInvitationAdminService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 18
+			path: app/modules/peanut/identity/src/Invitation/TenantOwnerInvitationPublicService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/identity/src/Membership/Application/MemberAdminService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 2
+			path: app/modules/peanut/identity/src/Menu/MenuCatalogSynchronizer.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:table\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/identity/src/Menu/MenuCatalogSynchronizer.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 5
+			path: app/modules/peanut/identity/src/Module/TenantEntitlementService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 41
+			path: app/modules/peanut/identity/src/Platform/Application/PlanLicenseAdminService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 7
+			path: app/modules/peanut/identity/src/Platform/Application/TenantEntryBindingAdminService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 3
+			path: app/modules/peanut/identity/src/Policy/DemoAccountPolicy.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/integration/src/Contract/ExternalBindingQualificationQueries.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 11
+			path: app/modules/peanut/integration/src/Infrastructure/ThinkPhpExternalTenantBindingRepository.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 3
+			path: app/modules/peanut/integration/src/Service/ExternalBindingTransferService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 3
+			path: app/modules/peanut/notification/src/Contract/NotificationLifecycleQueries.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:query\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/notification/src/Contract/NotificationLifecycleQueries.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 3
+			path: app/modules/peanut/notification/src/Contract/NotificationUpgradePreflight.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:query\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/notification/src/Contract/NotificationUpgradePreflight.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 2
+			path: app/modules/peanut/ops/src/Contract/InstanceSafetyQueries.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:query\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/ops/src/Infrastructure/ApplicationRuntimeStatusProvider.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:table\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/ops/src/Infrastructure/ApplicationRuntimeStatusProvider.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 2
+			path: app/modules/peanut/ops/src/Infrastructure/ThinkPhpBackupTaskExecutionService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 8
+			path: app/modules/peanut/ops/src/Infrastructure/ThinkPhpMaintenanceWindowStore.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 14
+			path: app/modules/peanut/ops/src/Infrastructure/ThinkPhpModuleOperationTaskExecutionService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/ops/src/Infrastructure/ThinkPhpOpsTaskDispatcher.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 3
+			path: app/modules/peanut/ops/src/Infrastructure/ThinkPhpRestoreTaskExecutionService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 19
+			path: app/modules/peanut/ops/src/Infrastructure/ThinkPhpUpgradeTaskExecutionService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 2
+			path: app/modules/peanut/ops/src/Service/DeploymentModuleRequestService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 2
+			path: app/modules/peanut/ops/src/Service/PlatformBackupCenterService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 2
+			path: app/modules/peanut/ops/src/Service/PlatformModuleOperationExecutionService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 2
+			path: app/modules/peanut/ops/src/Service/PlatformUpgradeExecutionService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 12
+			path: app/modules/peanut/reference_codes/src/Infrastructure/ThinkPhpDictionaryCustomizationProvider.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/reference_codes/src/Infrastructure/ThinkPhpSystemDictionaryProvider.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 4
+			path: app/modules/peanut/settings/src/Infrastructure/ThinkPhpTenantSettingsProvider.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 8
+			path: app/modules/peanut/settings/src/Service/SettingCatalogService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:table\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/settings/src/Service/SettingCatalogService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 5
+			path: app/modules/peanut/settings/src/Service/TenantSettingsTransferService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/task/src/Service/TaskDiagnosticService.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/workflow/src/Application/WorkflowCommands.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 6
+			path: app/modules/peanut/workflow/src/Application/WorkflowLifecycleQueries.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:query\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/workflow/src/Application/WorkflowLifecycleQueries.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 9
+			path: app/modules/peanut/workflow/src/Application/WorkflowQueries.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:table\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/workflow/src/Application/WorkflowQueries.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:name\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 4
+			path: app/modules/peanut/workflow/src/Application/WorkflowUpgradePreflight.php
+
+		-
+			message: '#^Raw think\\facade\\Db\:\:query\(\) call in tenant/module scope\. Use TenantModel, DeclarativeQueryBuilder, or a tenant\-scoped repository\.$#'
+			identifier: peanut.rawDbQuery
+			count: 1
+			path: app/modules/peanut/workflow/src/Application/WorkflowUpgradePreflight.php

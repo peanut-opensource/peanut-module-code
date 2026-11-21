@@ -138,6 +138,7 @@ final class ThinkPhpGeneratorMetadata
 
     private function schema(): string
     {
+        /** @phpstan-ignore peanut.rawDbQuery */
         $rows = Db::query('SELECT DATABASE() AS schema_name');
         $schema = (string) ($rows[0]['schema_name'] ?? '');
         if ($schema === '') {

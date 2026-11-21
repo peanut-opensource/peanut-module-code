@@ -14,20 +14,30 @@ use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
 
 /**
- * Flags raw think\facade\Db::table()/name() calls in tenant/business layers
- * unless targeting known platform-global tables or explicitly annotated.
+ * Flags raw think\facade\Db::table()/name()/query()/execute() calls in tenant/module layers
+ * unless targeting explicitly allowlisted platform-global tables.
  *
  * @implements Rule<StaticCall>
  */
 final class TenantRawQueryRule implements Rule
 {
-    private const PLATFORM_GLOBAL_TABLES = [
-        'information_schema.',
+    private const EXACT_GLOBAL_TABLES = [
         'migrations',
         'module_installation',
         'ops_task',
         'permission',
+    ];
+
+    private const GLOBAL_TABLE_PREFIXES = [
+        'information_schema.',
         'platform_',
+    ];
+
+    private const GUARDED_METHODS = [
+        'table',
+        'name',
+        'query',
+        'execute',
     ];
 
     public function getNodeType(): string
@@ -47,7 +57,7 @@ final class TenantRawQueryRule implements Rule
         }
 
         $method = $node->name->toString();
-        if ($method !== 'table' && $method !== 'name') {
+        if (!in_array($method, self::GUARDED_METHODS, true)) {
             return [];
         }
 
@@ -58,12 +68,17 @@ final class TenantRawQueryRule implements Rule
             return [];
         }
 
-        $firstArg = $node->args[0]->value ?? null;
-        if ($firstArg instanceof String_) {
-            $table = strtolower($firstArg->value);
-            foreach (self::PLATFORM_GLOBAL_TABLES as $prefix) {
-                if (str_starts_with($table, $prefix) || $table === $prefix) {
+        if ($method === 'table' || $method === 'name') {
+            $firstArg = $node->args[0]->value ?? null;
+            if ($firstArg instanceof String_) {
+                $table = strtolower($firstArg->value);
+                if (in_array($table, self::EXACT_GLOBAL_TABLES, true)) {
                     return [];
+                }
+                foreach (self::GLOBAL_TABLE_PREFIXES as $prefix) {
+                    if (str_starts_with($table, $prefix)) {
+                        return [];
+                    }
                 }
             }
         }
