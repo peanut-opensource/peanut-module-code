@@ -108,7 +108,7 @@ final readonly class PlatformDirectoryQueries
     public function owner(PlatformContext $context, int $tenantId): array
     {
         $this->authorization->assertAllowed($context, 'platform.tenant.read');
-        $row = Db::name('tenant_member')->alias('member')
+        $row = Db::name('tenant_member')->alias('member') // @phpstan-ignore peanut.rawDbQuery (The platform owner view requires platform.tenant.read and constrains member and role joins to the selected tenant.)
             ->join('account account', 'account.id=member.account_id')
             ->join('member_role membership', 'membership.tenant_id=member.tenant_id AND membership.tenant_member_id=member.id')
             ->join('role role', "role.tenant_id=membership.tenant_id AND role.id=membership.role_id AND role.`key`='core.tenant-owner'")

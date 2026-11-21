@@ -77,7 +77,7 @@ final class TenantEntitlementService
     /** The plan revision is already selected by the license join. @return array{0:?array,1:mixed} */
     private function licenseAndPlanRevision(int $tenantId, bool $lock): array
     {
-        $row = Db::name('tenant_license')->pk('id')->schema([
+        $row = Db::name('tenant_license')->pk('id')->schema([ // @phpstan-ignore peanut.rawDbQuery (License and global plan revision are fetched by the trusted tenant ID, with caller-selected locking.)
             'id' => 'bigint', 'tenant_id' => 'bigint', 'plan_id' => 'bigint', 'status' => 'string',
             'effective_at' => 'datetime', 'expires_at' => 'datetime', 'revision' => 'bigint',
             'created_at' => 'datetime', 'updated_at' => 'datetime',
@@ -125,7 +125,7 @@ final class TenantEntitlementService
             if ($this->registry->isRequiredTenantFoundation($moduleKey)) {
                 return true;
             }
-            $query = Db::name('tenant_license')->pk('id')->schema([
+            $query = Db::name('tenant_license')->pk('id')->schema([ // @phpstan-ignore peanut.rawDbQuery (The fast-path license query binds the same tenant as the live installation fallback.)
                 'id' => 'bigint', 'tenant_id' => 'bigint', 'plan_id' => 'bigint', 'status' => 'string',
                 'effective_at' => 'datetime', 'expires_at' => 'datetime', 'revision' => 'bigint',
                 'created_at' => 'datetime', 'updated_at' => 'datetime',

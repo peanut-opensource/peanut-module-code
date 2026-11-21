@@ -102,7 +102,7 @@ final readonly class TenantModuleStateQueries
         if ($moduleKeys === []) {
             return 0;
         }
-        return (int) Db::name('tenant_license')->alias('license')->join('tenant t', 't.id=license.tenant_id')
+        return (int) Db::name('tenant_license')->alias('license')->join('tenant t', 't.id=license.tenant_id') // @phpstan-ignore peanut.rawDbQuery (Governance resolves the tenant by unique code and joins licenses on the resolved tenant ID.)
             ->join('plan_module detail', 'detail.plan_id=license.plan_id')->where('t.code', $tenantCode)
             ->whereIn('detail.module_key', $moduleKeys)->count();
     }

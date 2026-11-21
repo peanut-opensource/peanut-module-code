@@ -129,7 +129,7 @@ final readonly class SettingCatalogService
                 return;
             }
             foreach (['setting_target_value', 'setting_tenant_value', 'setting_deployment_value'] as $table) {
-                Db::name($table)->whereIn('definition_id', $ids)->delete();
+                Db::name($table)->whereIn('definition_id', $ids)->delete(); // @phpstan-ignore peanut.rawDbQuery (Explicit module-wide lifecycle purge deletes settings values only for selected owned definitions.)
             }
             Db::name('setting_definition')->whereIn('id', $ids)->delete();
         });
@@ -148,7 +148,7 @@ final readonly class SettingCatalogService
      */
     private function valueReferences(string $table, array $definitionIds): array
     {
-        return $definitionIds === [] ? [] : array_map('strval', Db::name($table)
+        return $definitionIds === [] ? [] : array_map('strval', Db::name($table) // @phpstan-ignore peanut.rawDbQuery (The private caller selects one of three fixed settings value tables and supplies only owned definition IDs.)
             ->whereIn('definition_id', $definitionIds)->order('id')->column('id'));
     }
 

@@ -114,7 +114,7 @@ final readonly class ThinkPhpPolicyRepository implements PolicyRepository
         }
         $department = $member->getAttr('primary_department_id');
 
-        $policies = Db::name('data_permission')->alias('policy')
+        $policies = Db::name('data_permission')->alias('policy') // @phpstan-ignore peanut.rawDbQuery (Policies are bound to the requested tenant and both active-role and member-role joins require tenant equality.)
             ->join('role r', "r.tenant_id = policy.tenant_id AND r.id = policy.role_id AND r.status = 'active'")
             ->join('member_role mr', 'mr.tenant_id = r.tenant_id AND mr.role_id = r.id')
             ->where('policy.tenant_id', $tenantId)

@@ -420,7 +420,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
                 foreach ($this->ownedObjects($actor->tenantId)->whereIn('file_key', $keys)->order('file_key', 'asc')->lock(true)->select()->toArray() as $row) {
                     $lockedObjects[(string) $row['file_key']] = $row;
                 }
-                foreach (Db::name('file_evidence_command')->where('tenant_id', $actor->tenantId)
+                foreach (Db::name('file_evidence_command')->where('tenant_id', $actor->tenantId) // @phpstan-ignore peanut.rawDbQuery (Evidence commands are restricted to the actor tenant, fact module and locked files.)
                     ->where('module_key', $fact->moduleKey)->whereIn('file_key', $keys)->select()->toArray() as $cmd) {
                     $commandsByKey[(string) $cmd['file_key']] = $cmd;
                 }
@@ -436,7 +436,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
                 $this->authorization->authorize($actor, $object, 'preview');
                 $this->authorization->authorize($actor, $object, 'download_original');
             }
-            $query = fn(): BaseQuery => Db::name('file_evidence_fact')->where('tenant_id', $actor->tenantId)
+            $query = fn(): BaseQuery => Db::name('file_evidence_fact')->where('tenant_id', $actor->tenantId) // @phpstan-ignore peanut.rawDbQuery (The locked fact lookup uses the actor tenant plus the exact module and owner identity.)
                 ->where('module_key', $fact->moduleKey)->where('owner_type', $fact->ownerType)->where('owner_key', $fact->ownerKey);
             $digest = hash('sha256', json_encode($snapshots, JSON_THROW_ON_ERROR));
             $old = $query()->lock(true)->find();
@@ -463,7 +463,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
                 ];
             }
             if ($refRows !== []) {
-                Db::name('file_reference')->insertAll($refRows);
+                Db::name('file_reference')->insertAll($refRows); // @phpstan-ignore peanut.rawDbQuery (Every reference row uses the actor tenant and an already locked and authorized file.)
             }
             $this->audit->appendTenantMember($actor, 'file.evidence.retained', 'file.evidence.retain', $fact->ownerType, $fact->ownerKey, null, null, count($keys), $fact->basisDigest);
         });
@@ -489,7 +489,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
 
     private function evidenceCommands(TenantContext $actor, BusinessEvidenceCommand $command): BaseQuery
     {
-        return Db::name('file_evidence_command')->where('tenant_id', $actor->tenantId)
+        return Db::name('file_evidence_command')->where('tenant_id', $actor->tenantId) // @phpstan-ignore peanut.rawDbQuery (The replay query is keyed by actor tenant, module and command.)
             ->where('module_key', $command->moduleKey)->where('command_key', $command->commandKey);
     }
 
@@ -514,7 +514,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             throw BusinessException::conflict('FILE_EVIDENCE_OBJECT_CHANGED', '原凭证或存储不可用');
         }
         // Recheck the original protection under lock, including after provider I/O and for ready replays.
-        $reference = Db::name('file_reference')->where('tenant_id', $actor->tenantId)->where('file_key', $row['file_key'])
+        $reference = Db::name('file_reference')->where('tenant_id', $actor->tenantId)->where('file_key', $row['file_key']) // @phpstan-ignore peanut.rawDbQuery (The tenant-scoped replay locks the matching reference before returning the object.)
             ->where('owner_module_key', $row['module_key'])->where('owner_type', 'evidence-upload')
             ->where('owner_id', $row['command_key'])->lock(true)->find();
         if ($reference === null || (int) $reference['tenant_id'] !== $actor->tenantId
@@ -666,7 +666,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         }
         if ($grantRows !== []) {
             foreach (array_chunk($grantRows, 200) as $chunk) {
-                Db::name('file_delivery_grant')->insertAll($chunk);
+                Db::name('file_delivery_grant')->insertAll($chunk); // @phpstan-ignore peanut.rawDbQuery (Each public grant uses the tenant of a verified public object and its live authorization revision.)
             }
         }
 
@@ -757,7 +757,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             if ($locked === null || (int) $locked['created_by_member_id'] !== $context->memberId || $locked['status'] !== 'ready'
                 || \PeanutAdmin\Modules\File\Model\File::withTrashed()->where('file_key', $key)->find() !== null
                 || FileReference::where('file_key', $key)->find() !== null
-                || Db::name('file_derivative')->where('source_file_key|derivative_file_key', $key)->find() !== null) {
+                || Db::name('file_derivative')->where('source_file_key|derivative_file_key', $key)->find() !== null) { // @phpstan-ignore peanut.rawDbQuery (Compensation checks the already authorized file key; both derivative foreign keys require the same tenant as that globally unique key.)
                 throw BusinessException::conflict('FILE_UPLOAD_COMPENSATION_CONFLICT', '上传已被持久引用或状态改变');
             }
             if (!$this->archive($context->tenantId, $key)) {
@@ -1136,7 +1136,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
                 || $capture?->status === 'claimed' || ($capture !== null && !$recovery && $capture->capture_id !== $captureId)
                 || FileReference::where('file_key', $key)->find() !== null
                 || \PeanutAdmin\Modules\File\Model\File::withTrashed()->where('file_key', $key)->find() !== null
-                || Db::name('file_derivative')->where('source_file_key|derivative_file_key', $key)->find() !== null) {
+                || Db::name('file_derivative')->where('source_file_key|derivative_file_key', $key)->find() !== null) { // @phpstan-ignore peanut.rawDbQuery (Recovery checks the already locked tenant file; both derivative foreign keys require the same tenant as that globally unique key.)
                 throw BusinessException::conflict('FILE_SNAPSHOT_RECOVERY_DENIED', '快照已被认领、仍被引用或尚未进入恢复窗口');
             }
             if ($object['snapshot_cleanup_acknowledged_at'] !== null || $capture?->status === 'abandoned') {
@@ -1228,7 +1228,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         if ($claims['visibility'] !== $expectedVisibility) {
             throw new BusinessException('STORAGE_DELIVERY_INPUT_INVALID', 422, '文件链接无效或已过期');
         }
-        $grant = Db::name('file_delivery_grant')->where('token_id_hash', hash('sha256', $claims['token_id']))->find();
+        $grant = Db::name('file_delivery_grant')->where('token_id_hash', hash('sha256', $claims['token_id']))->find(); // @phpstan-ignore peanut.rawDbQuery (The token has been verified against this tenant and file; the grant tenant, file and current revision are checked before use.)
         if (!is_array($grant) || (int) $grant['subject_tenant_id'] !== $tenantId
             || $grant['file_key'] !== $fileKey || (int) $grant['file_revision'] !== (int) $object['revision']
             || $grant['visibility'] !== $object['access_type']
@@ -1306,7 +1306,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             if ($batch === null) {
                 $batch = ['variants' => [], 'targets' => []];
                 if (!$access['can_download_original'] || $variantKeys !== []) {
-                    $variants = Db::name('file_derivative')->where('tenant_id', $context->tenantId)
+                    $variants = Db::name('file_derivative')->where('tenant_id', $context->tenantId) // @phpstan-ignore peanut.rawDbQuery (Derivatives are listed only for the caller tenant and requested source keys.)
                         ->whereIn('source_file_key', array_values(array_unique($fileKeys)))
                         ->order('variant_key')->select()->toArray();
                     $targetKeys = [];
@@ -1357,7 +1357,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
                 $variant = $variantKey === null ? (reset($variants) ?: null) : ($variants[$variantKey] ?? null);
                 $target = is_array($variant) ? ($batch['targets'][(string) $variant['derivative_file_key']] ?? null) : null;
             } else {
-                $query = Db::name('file_derivative')->where('source_file_key', $fileKey);
+                $query = Db::name('file_derivative')->where('source_file_key', $fileKey); // @phpstan-ignore peanut.rawDbQuery (The private branch binds the authorized tenant before looking up the source derivative.)
                 $query->where('tenant_id', $context->tenantId);
                 if ($variantKey !== null) {
                     $query->where('variant_key', $variantKey);
@@ -1854,7 +1854,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
 
     private function assertPublicDerivative(array $object): void
     {
-        $query = Db::name('file_derivative')->where('derivative_file_key', $object['file_key']);
+        $query = Db::name('file_derivative')->where('derivative_file_key', $object['file_key']); // @phpstan-ignore peanut.rawDbQuery (Public derivative verification uses the tenant of the resolved public object before fetching its source.)
         $query->where('tenant_id', (int) $object['tenant_id']);
         $derivative = $query->find();
         if (is_array($derivative)) {
@@ -1974,7 +1974,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
         if ($tenantId !== null && $tenantId < 1) {
             throw new \DomainException('STORAGE_TENANT_INVALID');
         }
-        $query = Db::name('file_object')->alias('f')
+        $query = Db::name('file_object')->alias('f') // @phpstan-ignore peanut.rawDbQuery (Private reads require both the trusted tenant and its storage prefix; the unscoped branch can see public files only.)
             ->join('storage_space s', 's.id=f.storage_space_id')
             ->join('storage_account a', 'a.id=s.account_id')
             ->field('f.*,a.id AS account_id,a.account_key,a.driver,a.name AS account_name,a.credential_ciphertext,a.credential_key_version,a.status AS account_status')
@@ -2036,7 +2036,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             ], JSON_THROW_ON_ERROR) : null,
             'expires_at' => gmdate('Y-m-d H:i:s', time() + ($private || $grant !== null ? 300 : self::DELIVERY_URL_TTL)),
         ];
-        Db::name('file_delivery_grant')->insert($values);
+        Db::name('file_delivery_grant')->insert($values); // @phpstan-ignore peanut.rawDbQuery (The grant records the authorized object's tenant and the current file and source revisions.)
         $token = $this->deliveryTokens->issue(
             $tenantId,
             $fileKey,

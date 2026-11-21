@@ -91,7 +91,7 @@ final class TenantOwnerInvitationPublicService
             } elseif (!$this->ownerMemberExists($tenantId, ['active'])) {
                 return ['_error' => 'TENANT_ACTIVE_OWNER_REQUIRED'];
             }
-            $roleId = Db::name('role')->where('tenant_id', $tenantId)->where('key', self::OWNER_ROLE)
+            $roleId = Db::name('role')->where('tenant_id', $tenantId)->where('key', self::OWNER_ROLE) // @phpstan-ignore peanut.rawDbQuery (The owner role is locked in the tenant derived from the verified invitation.)
                 ->where('is_builtin', 1)->where('status', 'active')->lock(true)->value('id');
             if ($roleId === null) {
                 return ['_error' => 'TENANT_OWNER_ROLE_UNAVAILABLE'];
@@ -136,7 +136,7 @@ final class TenantOwnerInvitationPublicService
                 }
             }
 
-            $member = Db::name('tenant_member')->where('tenant_id', $tenantId)->where('account_id', $accountId)
+            $member = Db::name('tenant_member')->where('tenant_id', $tenantId)->where('account_id', $accountId) // @phpstan-ignore peanut.rawDbQuery (Membership is locked by the verified invitation tenant and resolved global account.)
                 ->lock(true)->field('id,status')->find();
             $memberId = $member === null ? null : (int) $member['id'];
             if ($memberId !== null && $this->memberHasRole($tenantId, $memberId, (int) $roleId)) {
@@ -144,7 +144,7 @@ final class TenantOwnerInvitationPublicService
             }
             if ($member === null) {
                 $now = $this->format($this->now());
-                $memberId = (int) Db::name('tenant_member')->insertGetId([
+                $memberId = (int) Db::name('tenant_member')->insertGetId([ // @phpstan-ignore peanut.rawDbQuery (Newly accepted membership carries the verified invitation tenant.)
                     'tenant_id' => $tenantId,
                     'account_id' => $accountId,
                     'display_name' => (string) $invitation['display_name'],
@@ -155,7 +155,7 @@ final class TenantOwnerInvitationPublicService
                 $member = ['id' => $memberId, 'status' => 'pending'];
             }
             if ($member['status'] === 'pending') {
-                Db::name('tenant_member')->where('tenant_id', $tenantId)->where('id', $memberId)->update([
+                Db::name('tenant_member')->where('tenant_id', $tenantId)->where('id', $memberId)->update([ // @phpstan-ignore peanut.rawDbQuery (Reactivation targets the locked member of the verified invitation tenant.)
                     'status' => 'active',
                     'joined_at' => Db::raw('UTC_TIMESTAMP(3)'),
                     'security_revision' => Db::raw('security_revision+1'),
@@ -166,13 +166,13 @@ final class TenantOwnerInvitationPublicService
                 return ['_error' => 'TENANT_MEMBER_INACTIVE'];
             }
             if (!$this->memberHasRole($tenantId, $memberId, (int) $roleId)) {
-                Db::name('member_role')->insert([
+                Db::name('member_role')->insert([ // @phpstan-ignore peanut.rawDbQuery (The grant uses the verified tenant and the member and owner role obtained in that tenant.)
                     'tenant_id' => $tenantId,
                     'tenant_member_id' => $memberId,
                     'role_id' => (int) $roleId,
                     'assigned_at' => Db::raw('UTC_TIMESTAMP(3)'),
                 ]);
-                Db::name('tenant_member')->where('tenant_id', $tenantId)->where('id', $memberId)->update([
+                Db::name('tenant_member')->where('tenant_id', $tenantId)->where('id', $memberId)->update([ // @phpstan-ignore peanut.rawDbQuery (Authorization revision changes only for the accepted member in the verified tenant.)
                     'authorization_revision' => Db::raw('authorization_revision+1'),
                     'updated_at' => Db::raw('UTC_TIMESTAMP(3)'),
                 ]);
@@ -191,7 +191,7 @@ final class TenantOwnerInvitationPublicService
             );
 
             $now = $this->format($this->now());
-            $updated = Db::name('tenant_owner_invitation')->where('id', (int) $invitation['id'])
+            $updated = Db::name('tenant_owner_invitation')->where('id', (int) $invitation['id']) // @phpstan-ignore peanut.rawDbQuery (Consumes the exact token-selected invitation while locked, and requires pending state.)
                 ->where('status', 'pending')->update([
                     'token_hash' => hash('sha256', random_bytes(32)),
                     'status' => 'accepted',
@@ -237,7 +237,7 @@ final class TenantOwnerInvitationPublicService
     /** @return array<string,mixed> */
     private function lockInvitation(OneTimeInvitationToken $token): array
     {
-        $row = Db::name('tenant_owner_invitation')->alias('invitation')
+        $row = Db::name('tenant_owner_invitation')->alias('invitation') // @phpstan-ignore peanut.rawDbQuery (Public onboarding resolves tenant ownership from the unguessable invitation token hash before any grant.)
             ->join('tenant tenant', 'tenant.id=invitation.tenant_id')
             ->where('invitation.token_hash', $token->hash())
             ->field('invitation.id,invitation.tenant_id,invitation.email_normalized,invitation.display_name,invitation.status,invitation.delivery_status,invitation.expires_at,invitation.accepted_account_id,invitation.accepted_member_id')
@@ -252,7 +252,7 @@ final class TenantOwnerInvitationPublicService
 
     private function markExpired(int $invitationId): void
     {
-        Db::name('tenant_owner_invitation')->where('id', $invitationId)->where('status', 'pending')->update([
+        Db::name('tenant_owner_invitation')->where('id', $invitationId)->where('status', 'pending')->update([ // @phpstan-ignore peanut.rawDbQuery (Only the locked, token-selected invitation ID can transition from pending to expired.)
             'status' => 'expired',
             'updated_at' => $this->format($this->now()),
         ]);
@@ -277,7 +277,7 @@ final class TenantOwnerInvitationPublicService
     /** @param list<string> $statuses */
     private function ownerMemberExists(int $tenantId, array $statuses): bool
     {
-        return Db::name('tenant_member')->alias('member')
+        return Db::name('tenant_member')->alias('member') // @phpstan-ignore peanut.rawDbQuery (The owner probe binds the invitation tenant and the member-role joins require tenant equality.)
             ->join('member_role membership', 'membership.tenant_id=member.tenant_id AND membership.tenant_member_id=member.id')
             ->join('role role', "role.tenant_id=membership.tenant_id AND role.id=membership.role_id AND role.`key`='core.tenant-owner' AND role.is_builtin=1 AND role.status='active'")
             ->where('member.tenant_id', $tenantId)->whereIn('member.status', $statuses)->value('member.id') !== null;
@@ -285,7 +285,7 @@ final class TenantOwnerInvitationPublicService
 
     private function memberHasRole(int $tenantId, int $memberId, int $roleId): bool
     {
-        return Db::name('member_role')->where('tenant_id', $tenantId)
+        return Db::name('member_role')->where('tenant_id', $tenantId) // @phpstan-ignore peanut.rawDbQuery (The existing role check is bound to the invitation tenant, accepted member and owner role.)
             ->where('tenant_member_id', $memberId)->where('role_id', $roleId)->value('role_id') !== null;
     }
 

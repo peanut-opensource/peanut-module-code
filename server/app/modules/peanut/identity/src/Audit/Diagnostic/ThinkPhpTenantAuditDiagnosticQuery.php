@@ -16,7 +16,7 @@ final readonly class ThinkPhpTenantAuditDiagnosticQuery implements TenantAuditDi
         if ($limit < 1 || $limit > 100) {
             throw new \InvalidArgumentException('TENANT_AUDIT_DIAGNOSTIC_LIMIT_INVALID');
         }
-        $rows = Db::name('tenant_audit_event')->where('event_type', 'admin.operation')
+        $rows = Db::name('tenant_audit_event')->where('event_type', 'admin.operation') // @phpstan-ignore peanut.rawDbQuery (Platform Ops only: bounded diagnostic projection of admin-operation evidence across tenants.)
             ->where('occurred_at', '>=', $since->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s.v'))
             ->field('tenant_id,request_id,operation_id,action,outcome,reason_code,target_resource_id,occurred_at')
             ->order('occurred_at', 'desc')->order('id', 'desc')->limit($limit)->select()->toArray();

@@ -11,11 +11,11 @@ final class WorkflowLegacyOrganizationQuery
 {
     public function leaderReport(): array
     {
-        $table = Db::name('department')->getTable();
-        $columns = Db::query('SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?', [$table]);
+        $table = Db::name('department')->getTable(); // @phpstan-ignore peanut.rawDbQuery (Resolves the physical table name only for the upgrade metadata probe.)
+        $columns = Db::query('SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?', [$table]); // @phpstan-ignore peanut.rawDbQuery (The bound metadata probe reads columns for the current database and department table only.)
         $names = array_column($columns, 'COLUMN_NAME');
         if (!in_array('leader', $names, true)) { return ['unbound_legacy_leaders' => 0, 'department_ids' => [], 'truncated' => false, 'binding_column_present' => in_array('leader_member_id', $names, true)]; }
-        $query = Db::name('department')->whereNotNull('leader')->where('leader', '<>', '');
+        $query = Db::name('department')->whereNotNull('leader')->where('leader', '<>', ''); // @phpstan-ignore peanut.rawDbQuery (Upgrade preflight counts legacy unbound leaders across the instance and returns bounded tenant and department identifiers.)
         $bound = in_array('leader_member_id', $names, true);
         if ($bound) { $query->whereNull('leader_member_id'); }
         $count = (int) (clone $query)->count();

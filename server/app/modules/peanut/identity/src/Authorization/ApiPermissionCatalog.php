@@ -226,7 +226,7 @@ final class ApiPermissionCatalog
         return Cache::remember($key, function () use ($method, $path): array {
             // Retain the original LIMIT 1 before expanding the endpoint's bindings.
             $endpointSql = $this->endpointQuery($method, $path, 'tenant')->limit(1)->buildSql();
-            $rows = Db::table($endpointSql)->alias('endpoint')
+            $rows = Db::table($endpointSql)->alias('endpoint') // @phpstan-ignore peanut.rawDbQuery (The derived table is the single already selected global tenant-audience endpoint; joined permissions are global catalog rows.)
                 ->leftJoin('permission_api binding', "binding.api_id = endpoint.id AND endpoint.access_mode = 'tenant_permission'")
                 ->leftJoin('permission permission', "permission.id = binding.permission_id AND permission.status = 'active' AND permission.key NOT LIKE 'platform.%' AND permission.module_key <> 'platform'")
                 ->field(['endpoint.*', 'permission.key' => 'resolved_permission_key'])

@@ -85,7 +85,7 @@ final readonly class EnrollDeviceCredential implements DeviceCredentialEnrollmen
                 }
                 $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
                 $stamp = $now->format('Y-m-d H:i:s.v');
-                $key = (string) Db::query('SELECT UUID() AS credential_key')[0]['credential_key'];
+                $key = (string) Db::query('SELECT UUID() AS credential_key')[0]['credential_key']; // @phpstan-ignore peanut.rawDbQuery (UUID generation uses a scalar SQL function and accesses no table.)
                 $body = [
                     'outcome' => 'accepted', 'correlation_id' => $actor->requestId,
                     'resource_key' => $key, 'resource_revision' => '1',
@@ -152,14 +152,14 @@ final readonly class EnrollDeviceCredential implements DeviceCredentialEnrollmen
 
     private function source(TenantContext $actor, string $commandKey, bool $lock = false): ?array
     {
-        return Db::table('pa_device_credential')->where([
+        return Db::table('pa_device_credential')->where([ // @phpstan-ignore peanut.rawDbQuery (Enrollment replay matches the actor tenant and source command key, using the caller's lock mode.)
             'tenant_id' => $actor->tenantId, 'enroll_source_command_key' => $commandKey,
         ])->lock($lock)->find();
     }
 
     private function keyExists(TenantContext $actor, string $fingerprint): bool
     {
-        return Db::table('pa_device_credential')->where([
+        return Db::table('pa_device_credential')->where([ // @phpstan-ignore peanut.rawDbQuery (Fingerprint uniqueness is checked only within the actor tenant.)
             'tenant_id' => $actor->tenantId, 'key_fingerprint' => $fingerprint,
         ])->find() !== null;
     }

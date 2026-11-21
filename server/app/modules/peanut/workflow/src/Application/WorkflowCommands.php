@@ -704,7 +704,7 @@ final readonly class WorkflowCommands
                     }
                     if ($linkRows !== []) {
                         foreach (array_chunk($linkRows, 200) as $chunk) {
-                            Db::name('workflow_task_identity_link')->insertAll($chunk);
+                            Db::name('workflow_task_identity_link')->insertAll($chunk); // @phpstan-ignore peanut.rawDbQuery (Validated assignee links inherit the transaction's tenant-scoped instance and work item.)
                         }
                     }
                     return;

@@ -25,7 +25,7 @@ final readonly class ExternalBindingTransferService implements ExternalBindingTr
     {
         $this->assertContext($context);
         $states = [];
-        foreach (Db::name('external_channel_binding')->where('tenant_id', $context->tenantId)->whereNull('retired_at')
+        foreach (Db::name('external_channel_binding')->where('tenant_id', $context->tenantId)->whereNull('retired_at') // @phpstan-ignore peanut.rawDbQuery (Export reads only the current non-retired bindings of the trusted tenant context.)
             ->field('provider,identity_hash,identity_hint,config_json,status,update_time')->order('provider')->select()->toArray() as $row) {
             $states[] = $this->state((string) ($row['provider'] ?? ''), $row);
         }
@@ -36,7 +36,7 @@ final readonly class ExternalBindingTransferService implements ExternalBindingTr
     {
         $this->assertContext($context);
         $this->assertProvider($provider);
-        $row = Db::name('external_channel_binding')->where('tenant_id', $context->tenantId)->whereNull('retired_at')->where('provider', $provider)
+        $row = Db::name('external_channel_binding')->where('tenant_id', $context->tenantId)->whereNull('retired_at')->where('provider', $provider) // @phpstan-ignore peanut.rawDbQuery (The transfer comparison binds the trusted tenant context and requested provider.)
             ->field('identity_hash,identity_hint,config_json,status,update_time')->find();
         return is_array($row) ? $this->state($provider, $row) : null;
     }
@@ -61,7 +61,7 @@ final readonly class ExternalBindingTransferService implements ExternalBindingTr
             if ($this->directory->tenantStatus($context->tenantId, true) !== 'active') {
                 throw new ExternalTenantResolutionException();
             }
-            $row = Db::name('external_channel_binding')->where('tenant_id', $context->tenantId)->whereNull('retired_at')->where('provider', $provider)
+            $row = Db::name('external_channel_binding')->where('tenant_id', $context->tenantId)->whereNull('retired_at')->where('provider', $provider) // @phpstan-ignore peanut.rawDbQuery (Transfer applies against the locked current binding for the tenant context and provider.)
                 ->field('id,callback_key,identity_hash,identity_hint,config_json,status,update_time')->lock(true)->find();
             $row = is_array($row) ? $row : null;
             $revision = $row === null ? null : $this->revision($row);

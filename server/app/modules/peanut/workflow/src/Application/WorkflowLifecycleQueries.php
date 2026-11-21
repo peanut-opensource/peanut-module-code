@@ -37,7 +37,7 @@ final readonly class WorkflowLifecycleQueries
 
     public static function outstanding(?int $tenantId = null): int
     {
-        $eventTable = Db::name('workflow_event')->getTable();
+        $eventTable = Db::name('workflow_event')->getTable(); // @phpstan-ignore peanut.rawDbQuery (Resolves the event table name for schema inspection only.)
         $columns = array_column(Db::query('SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?', [$eventTable]), 'COLUMN_NAME'); // @phpstan-ignore peanut.rawDbQuery (Metadata probe reads information_schema only.)
         if (!in_array('notification_fact_json', $columns, true) || !in_array('notification_outbox_json', $columns, true)) {
             $preflight = (new WorkflowUpgradePreflight(new \PeanutAdmin\Modules\Identity\Contract\WorkflowLegacyOrganizationQuery()))->report();
@@ -47,16 +47,16 @@ final readonly class WorkflowLifecycleQueries
             }
             throw WorkflowException::blocked('Workflow lifecycle requires its pending append-only notification schema migration; run the native upgrade preflight before traffic.');
         }
-        $query = Db::name('workflow_instance')->whereIn('status', ['running', 'blocked']);
+        $query = Db::name('workflow_instance')->whereIn('status', ['running', 'blocked']); // @phpstan-ignore peanut.rawDbQuery (The tenant path binds running instances to the supplied tenant; instance-wide lifecycle explicitly supplies null.)
         if ($tenantId !== null) {
             $query->where('tenant_id', $tenantId);
         }
         $instances = (int) $query->count();
-        $effects = Db::name('workflow_node_execution')->whereNotNull('task_job_key')->whereNull('effect_receipt_json')->whereIn('status', ['pending', 'active', 'blocked']);
+        $effects = Db::name('workflow_node_execution')->whereNotNull('task_job_key')->whereNull('effect_receipt_json')->whereIn('status', ['pending', 'active', 'blocked']); // @phpstan-ignore peanut.rawDbQuery (Tenant maintenance counts only effects in that tenant; module lifecycle may count across tenants.)
         if ($tenantId !== null) {
             $effects->where('tenant_id', $tenantId);
         }
-        $facts = Db::name('workflow_event')->whereNotNull('notification_fact_json');
+        $facts = Db::name('workflow_event')->whereNotNull('notification_fact_json'); // @phpstan-ignore peanut.rawDbQuery (The fact query and its clones preserve the tenant predicate for tenant maintenance.)
         if ($tenantId !== null) { $facts->where('tenant_id', $tenantId); }
         $pending = (int) (clone $facts)->whereRaw('(notification_outbox_json IS NULL OR JSON_LENGTH(notification_outbox_json)=0)')->count();
         $sources = (clone $facts)->fieldRaw("DISTINCT JSON_UNQUOTE(JSON_EXTRACT(notification_fact_json, '$.producer_key')) AS producer_key")->limit(101)->select()->toArray();
@@ -81,6 +81,7 @@ final readonly class WorkflowLifecycleQueries
 
     public static function hasRetainedData(): bool
     {
-        return Db::name('workflow_definition')->limit(1)->value('id') !== null || Db::name('workflow_instance')->limit(1)->value('id') !== null;
+        return Db::name('workflow_definition')->limit(1)->value('id') !== null // @phpstan-ignore peanut.rawDbQuery (Instance-wide uninstall preflight checks only whether workflow records remain.)
+            || Db::name('workflow_instance')->limit(1)->value('id') !== null; // @phpstan-ignore peanut.rawDbQuery (Instance-wide uninstall preflight checks only whether workflow records remain.)
     }
 }

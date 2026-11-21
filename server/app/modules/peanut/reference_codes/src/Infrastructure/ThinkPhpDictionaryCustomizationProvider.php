@@ -18,14 +18,14 @@ final class ThinkPhpDictionaryCustomizationProvider implements DictionaryCustomi
         if ($systemType === null) {
             return 'tenant';
         }
-        $selected = Db::name('dict_type_policy')
+        $selected = Db::name('dict_type_policy') // @phpstan-ignore peanut.rawDbQuery (Dictionary policy lookup binds the context tenant and system type.)
             ->where('tenant_id', $context->tenantId)->where('type_code', $type)->value('mode');
         return $this->effectiveMode($systemType, is_string($selected) ? $selected : null);
     }
 
     public function overrides(TenantContext $context, string $type): array
     {
-        $rows = Db::name('dict_entry_override')
+        $rows = Db::name('dict_entry_override') // @phpstan-ignore peanut.rawDbQuery (The override projection binds the current tenant and dictionary type.)
             ->where('tenant_id', $context->tenantId)->where('type_code', $type)
             ->field('value,action,name')->select()->toArray();
         $items = [];
@@ -68,7 +68,7 @@ final class ThinkPhpDictionaryCustomizationProvider implements DictionaryCustomi
     {
         $types = Db::name('system_dict_type')
             ->field('code,name,is_disable,remark,tenant_mode')->order('code')->select()->toArray();
-        $policies = Db::name('dict_type_policy')
+        $policies = Db::name('dict_type_policy') // @phpstan-ignore peanut.rawDbQuery (The system type list is overlaid with policies only from the current tenant.)
             ->where('tenant_id', $context->tenantId)->column('mode', 'type_code');
         foreach ($types as &$type) {
             $type['mode'] = $this->effectiveMode($type, $policies[(string) $type['code']] ?? null);
@@ -108,7 +108,7 @@ final class ThinkPhpDictionaryCustomizationProvider implements DictionaryCustomi
         if ($definition['tenant_mode'] === 'system' && $mode !== 'system') {
             throw BusinessException::conflict('DICTIONARY_SYSTEM_LOCKED', '此字典由平台统一维护，不支持租户修改');
         }
-        Db::name('dict_type_policy')->replace()->insert([
+        Db::name('dict_type_policy')->replace()->insert([ // @phpstan-ignore peanut.rawDbQuery (The replacement's composite type key includes the context tenant.)
             'tenant_id' => $context->tenantId,
             'type_code' => $type,
             'mode' => $mode,
@@ -131,7 +131,7 @@ final class ThinkPhpDictionaryCustomizationProvider implements DictionaryCustomi
         if ((int) $exists === 0) {
             throw BusinessException::notFound('SYSTEM_DICTIONARY_ENTRY_NOT_FOUND', '平台字典选项不存在或已停用');
         }
-        Db::name('dict_entry_override')->replace()->insert([
+        Db::name('dict_entry_override')->replace()->insert([ // @phpstan-ignore peanut.rawDbQuery (The replacement's composite override key includes the context tenant.)
             'tenant_id' => $context->tenantId,
             'type_code' => $type,
             'value' => $value,
@@ -143,7 +143,7 @@ final class ThinkPhpDictionaryCustomizationProvider implements DictionaryCustomi
 
     public function deleteOverride(TenantContext $context, string $type, string $value): void
     {
-        Db::name('dict_entry_override')->where('tenant_id', $context->tenantId)
+        Db::name('dict_entry_override')->where('tenant_id', $context->tenantId) // @phpstan-ignore peanut.rawDbQuery (The delete is restricted to context tenant, type and value.)
             ->where('type_code', $type)->where('value', $value)->delete();
     }
 

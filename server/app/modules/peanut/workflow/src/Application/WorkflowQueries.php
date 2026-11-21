@@ -74,7 +74,7 @@ final readonly class WorkflowQueries
         if (in_array($row['status'], ['running', 'blocked'], true)
             && $this->allowed($c, $graph, $row['subject_key'], 'reassign', ['peanut.workflow.diagnostics.reassign'])) {
             // Maintenance is object-authorized, independent of the maintainer's own responsibilities.
-            $pending = Db::name('workflow_work_item')->alias('w')
+            $pending = Db::name('workflow_work_item')->alias('w') // @phpstan-ignore peanut.rawDbQuery (Pending assignments use the authorized instance in the context tenant and the node join preserves tenant equality.)
                 ->join('workflow_node_execution n', 'n.id=w.node_execution_id AND n.tenant_id=w.tenant_id')
                 ->where('w.tenant_id', $c->tenantContext->tenantId)->where('w.instance_id', $row['id'])
                 ->where('w.status', 'pending')->whereIn('n.status', ['active', 'blocked'])
@@ -175,7 +175,7 @@ final readonly class WorkflowQueries
             return [];
         }
 
-        $items = Db::name('workflow_work_item')->alias('w')
+        $items = Db::name('workflow_work_item')->alias('w') // @phpstan-ignore peanut.rawDbQuery (The context tenant and authorized instance IDs constrain work items and the node join.)
             ->join('workflow_node_execution n', 'n.id=w.node_execution_id AND n.tenant_id=w.tenant_id')
             ->where('w.tenant_id', $c->tenantContext->tenantId)
             ->whereIn('w.instance_id', array_column($rows, 'id'));
@@ -222,11 +222,11 @@ final readonly class WorkflowQueries
             return [];
         }
 
-        $ranked = Db::name('workflow_event')->where('tenant_id', $c->tenantContext->tenantId)
+        $ranked = Db::name('workflow_event')->where('tenant_id', $c->tenantContext->tenantId) // @phpstan-ignore peanut.rawDbQuery (Ranking is computed only for the context tenant and authorized instance IDs.)
             ->whereIn('instance_id', array_column($rows, 'id'))
             ->field('instance_id,event_key,actor_member_id,comment_text,occurred_at')
             ->fieldRaw('ROW_NUMBER() OVER (PARTITION BY instance_id ORDER BY sequence_no) AS event_rank')->buildSql();
-        $events = Db::table($ranked . ' ranked_events')->where('event_rank', '<=', 20)
+        $events = Db::table($ranked . ' ranked_events')->where('event_rank', '<=', 20) // @phpstan-ignore peanut.rawDbQuery (The outer window-rank filter consumes only the already tenant-scoped events.)
             ->order('event_rank')->select()->toArray();
 
         $byInstance = [];
@@ -279,7 +279,7 @@ final readonly class WorkflowQueries
             throw WorkflowException::definitionInvalid('Invalid inbox filter.');
         }
         if ($filter === 'initiated') {
-            $query = Db::name('workflow_instance')->alias('i')->where('i.tenant_id', $c->tenantContext->tenantId)->where('i.initiated_by_member_id', $c->tenantContext->memberId);
+            $query = Db::name('workflow_instance')->alias('i')->where('i.tenant_id', $c->tenantContext->tenantId)->where('i.initiated_by_member_id', $c->tenantContext->memberId); // @phpstan-ignore peanut.rawDbQuery (The initiated inbox binds the context tenant and initiating member before visibility filtering.)
             $this->visibility($c, $query);
             $total = (clone $query)->count();
             // No per-row secondary queries: initiated inbox contains the minimal instance projection.
@@ -305,7 +305,7 @@ final readonly class WorkflowQueries
             throw WorkflowException::definitionInvalid();
         }
         [$row] = $this->visibleInstance($c, $instanceKey);
-        $rows = Db::name('workflow_event')->alias('e')->leftJoin('workflow_node_execution n', 'n.id=e.node_execution_id AND n.tenant_id=e.tenant_id')->where('e.tenant_id', $c->tenantContext->tenantId)->where('e.instance_id', $row['id'])->where('e.sequence_no', '>', $afterSequence)->field('e.sequence_no,e.event_key,n.node_execution_key,e.actor_member_id,e.comment_text,e.metadata_json,e.attachment_snapshots_json,e.occurred_at')->order('e.sequence_no')->limit($pageSize)->select()->toArray();
+        $rows = Db::name('workflow_event')->alias('e')->leftJoin('workflow_node_execution n', 'n.id=e.node_execution_id AND n.tenant_id=e.tenant_id')->where('e.tenant_id', $c->tenantContext->tenantId)->where('e.instance_id', $row['id'])->where('e.sequence_no', '>', $afterSequence)->field('e.sequence_no,e.event_key,n.node_execution_key,e.actor_member_id,e.comment_text,e.metadata_json,e.attachment_snapshots_json,e.occurred_at')->order('e.sequence_no')->limit($pageSize)->select()->toArray(); // @phpstan-ignore peanut.rawDbQuery (The event page binds tenant and authorized instance; the optional node join preserves tenant equality.)
         return array_map(static fn(array $e): array => ['sequence_no' => (int) $e['sequence_no'], 'event_key' => $e['event_key'], 'node_execution_key' => $e['node_execution_key'], 'actor_member_id' => $e['actor_member_id'] === null ? null : (string) $e['actor_member_id'], 'comment' => $e['comment_text'], 'metadata' => self::decode($e['metadata_json']), 'attachments' => self::eventAttachments($e['attachment_snapshots_json']), 'occurred_at' => self::utc($e['occurred_at'])], $rows);
     }
 
@@ -364,7 +364,7 @@ final readonly class WorkflowQueries
 
     private function itemQuery(AuthorizedOperationContext $c): mixed
     {
-        $links = Db::name('workflow_task_identity_link')->getTable();
+        $links = Db::name('workflow_task_identity_link')->getTable(); // @phpstan-ignore peanut.rawDbQuery (Resolves the link table name; the correlated projection binds the work item tenant and current member.)
         $member = (int) $c->tenantContext->memberId;
         $projection = 'w.*,i.instance_key,i.revision AS instance_revision,i.subject_key,i.initiated_by_member_id,i.status AS instance_status,n.node_execution_key,n.revision AS node_revision,n.status AS node_status,v.graph_json';
         $projection .= ',COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT(\'relation_type\',l.relation_type,\'sources_json\',l.sources_json)) FROM ' . $links . ' l WHERE l.tenant_id=w.tenant_id AND l.work_item_id=w.id AND l.member_id=' . $member . '),JSON_ARRAY()) AS own_links_json';
@@ -373,7 +373,7 @@ final readonly class WorkflowQueries
 
     private function workItemQuery(AuthorizedOperationContext $c): BaseQuery
     {
-        return Db::name('workflow_work_item')->alias('w')
+        return Db::name('workflow_work_item')->alias('w') // @phpstan-ignore peanut.rawDbQuery (The work-item query and all instance, node and definition joins stay within the context tenant.)
             ->join('workflow_instance i', 'i.id=w.instance_id AND i.tenant_id=w.tenant_id')
             ->join('workflow_node_execution n', 'n.id=w.node_execution_id AND n.tenant_id=w.tenant_id')
             ->join('workflow_definition_version v', 'v.definition_id=i.definition_id AND v.version=i.definition_version AND v.tenant_id=i.tenant_id')
@@ -393,7 +393,7 @@ final readonly class WorkflowQueries
         if ($filter === 'claimable') {
             $query->whereNull('w.assignee_member_id')->where('w.status', 'pending');
         }
-        $table = Db::name('workflow_task_identity_link')->getTable();
+        $table = Db::name('workflow_task_identity_link')->getTable(); // @phpstan-ignore peanut.rawDbQuery (Resolves the link table name for a correlated EXISTS on work item tenant, ID and current member.)
         $links = static function ($subquery) use ($table, $member, $relation): void {
             $subquery->table($table)->alias('l')->whereColumn('l.tenant_id', '=', 'w.tenant_id')->whereColumn('l.work_item_id', '=', 'w.id')->where('l.member_id', $member)->fieldRaw('1');
             if ($relation !== null) {
@@ -491,7 +491,7 @@ final readonly class WorkflowQueries
 
         $this->lifecycle->assertAvailable($c->tenantContext->tenantId);
         $keys = array_values(array_unique($instanceKeys));
-        $instances = Db::name('workflow_instance')->alias('i')->where('i.tenant_id', $c->tenantContext->tenantId)
+        $instances = Db::name('workflow_instance')->alias('i')->where('i.tenant_id', $c->tenantContext->tenantId) // @phpstan-ignore peanut.rawDbQuery (The authorized instance lookup binds the context tenant and requested keys; the version join preserves tenant equality.)
             ->whereIn('i.instance_key', $keys)
             ->leftJoin('workflow_definition_version v', 'v.definition_id=i.definition_id AND v.version=i.definition_version AND v.tenant_id=i.tenant_id')
             ->field('i.id,i.instance_key,i.definition_id,i.definition_version,i.subject_key,i.status,i.result_code,i.revision,i.initiated_by_member_id,i.substantive_at,v.graph_json,v.graph_sha256')

@@ -16,7 +16,7 @@ final class TenantSettingsTransferService implements TenantSettingsTransfer
     {
         $tenantId = $this->tenantId($context);
         $snapshots = [];
-        foreach (Db::name('tenant_setting')->where('tenant_id', $tenantId)
+        foreach (Db::name('tenant_setting')->where('tenant_id', $tenantId) // @phpstan-ignore peanut.rawDbQuery (Transfer export reads only the settings of the validated tenant context.)
             ->field('namespace,config_json,revision,create_time,update_time')->order('namespace')->select()->toArray() as $row) {
             $snapshots[] = $this->state($tenantId, $row);
         }
@@ -27,7 +27,7 @@ final class TenantSettingsTransferService implements TenantSettingsTransfer
     {
         $tenantId = $this->tenantId($context);
         $this->assertNamespace($namespace);
-        $row = Db::name('tenant_setting')->where('tenant_id', $tenantId)->where('namespace', $namespace)
+        $row = Db::name('tenant_setting')->where('tenant_id', $tenantId)->where('namespace', $namespace) // @phpstan-ignore peanut.rawDbQuery (The precondition snapshot is selected by validated tenant and namespace.)
             ->field('namespace,config_json,revision,create_time,update_time')->find();
         return is_array($row) ? $this->state($tenantId, $row) : null;
     }
@@ -45,14 +45,14 @@ final class TenantSettingsTransferService implements TenantSettingsTransfer
         // Keep the same connection and nested transaction semantics as package application.
         // A later adapter or audit failure must still roll back this write.
         Db::transaction(function () use ($tenantId, $namespace, $encoded, $revision): void {
-            $row = Db::name('tenant_setting')->where('tenant_id', $tenantId)->where('namespace', $namespace)
+            $row = Db::name('tenant_setting')->where('tenant_id', $tenantId)->where('namespace', $namespace) // @phpstan-ignore peanut.rawDbQuery (Transfer locks the validated tenant and namespace row before comparing revision.)
                 ->field('id,revision,create_time')->lock(true)->find();
             $now = time();
             if (!is_array($row)) {
                 if ($revision !== null) {
                     throw new \RuntimeException('TRANSFER_CONFLICT');
                 }
-                Db::name('tenant_setting')->insert([
+                Db::name('tenant_setting')->insert([ // @phpstan-ignore peanut.rawDbQuery (The inserted value belongs to the validated tenant and requested namespace.)
                     'tenant_id' => $tenantId,
                     'namespace' => $namespace,
                     'config_json' => $encoded,
@@ -65,7 +65,7 @@ final class TenantSettingsTransferService implements TenantSettingsTransfer
             if ($revision === null || (int) $row['revision'] !== $revision) {
                 throw new \RuntimeException('TRANSFER_CONFLICT');
             }
-            $updated = Db::name('tenant_setting')->where('id', (int) $row['id'])
+            $updated = Db::name('tenant_setting')->where('id', (int) $row['id']) // @phpstan-ignore peanut.rawDbQuery (Transfer compare-and-set matches tenant, namespace, locked row ID and expected revision.)
                 ->where('tenant_id', $tenantId)->where('namespace', $namespace)->where('revision', $revision)->update([
                     'config_json' => $encoded,
                     'revision' => Db::raw('revision + 1'),

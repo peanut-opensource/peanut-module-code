@@ -66,7 +66,7 @@ final readonly class BindDeviceCredential implements DeviceCredentialBindings, D
             'bound_installation_key' => $installationKey, 'bound_at' => $stamp, 'bound_by_member_id' => $actor->memberId,
             'updated_at' => $stamp, 'updated_by_member_id' => $actor->memberId,
         ];
-        $updated = Db::table('pa_device_credential')->where([
+        $updated = Db::table('pa_device_credential')->where([ // @phpstan-ignore peanut.rawDbQuery (Optimistic binding updates the actor tenant, credential key and expected enrolled revision.)
             'tenant_id' => $actor->tenantId, 'credential_key' => $credentialKey, 'revision' => '1', 'status' => 'enrolled',
         ])->update($changes);
         if ($updated !== 1) {
@@ -140,7 +140,7 @@ final readonly class BindDeviceCredential implements DeviceCredentialBindings, D
         if (preg_match(DeviceCredentialInput::UUID_PATTERN, $credentialKey) !== 1) {
             throw BusinessException::notFound('IDENTITY_DEVICE_NOT_FOUND', '当前设备凭据不可用。');
         }
-        $source = Db::table('pa_device_credential')->where([
+        $source = Db::table('pa_device_credential')->where([ // @phpstan-ignore peanut.rawDbQuery (The lookup locks the credential of the actor tenant when the binding caller requires it.)
             'tenant_id' => $actor->tenantId, 'credential_key' => $credentialKey,
         ])->lock($lock)->find();
         if ($source === null) {

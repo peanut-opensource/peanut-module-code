@@ -126,7 +126,7 @@ final readonly class PlanLicenseAdminService
             $plan = Db::name('plan')->where('id', $planId)->lock(true)->find();
             if ($plan === null) { throw AdminAccessException::notFound(); }
             if (Db::name('tenant')->where('id', $tenantId)->lock(true)->find() === null) { throw AdminAccessException::notFound(); }
-            $current = Db::name('tenant_license')->where('tenant_id', $tenantId)->lock(true)->find();
+            $current = Db::name('tenant_license')->where('tenant_id', $tenantId)->lock(true)->find(); // @phpstan-ignore peanut.rawDbQuery (Platform license change locks the explicitly selected tenant's current revision.)
             if ((int) ($current['revision'] ?? 0) !== $expected) { throw AdminAccessException::revisionMismatch(); }
             if ($plan['status'] !== 'active' && ($current === null || (int) $current['plan_id'] !== $planId)) {
                 throw AdminAccessException::conflict('PLAN_INACTIVE', 'The plan is closed to new assignments.');
@@ -137,8 +137,8 @@ final readonly class PlanLicenseAdminService
             $before = $this->entitlements->license($tenantId);
             $now = $this->now();
             $values = ['plan_id' => $planId,'status' => $status,'effective_at' => $effective,'expires_at' => $expires,'revision' => $expected + 1,'updated_at' => $now];
-            if ($current === null) { Db::name('tenant_license')->insert($values + ['tenant_id' => $tenantId,'created_at' => $now]); }
-            else { Db::name('tenant_license')->where('tenant_id', $tenantId)->update($values); }
+            if ($current === null) { Db::name('tenant_license')->insert($values + ['tenant_id' => $tenantId,'created_at' => $now]); } // @phpstan-ignore peanut.rawDbQuery (On creation the license is inserted with the platform-selected tenant.)
+            else { Db::name('tenant_license')->where('tenant_id', $tenantId)->update($values); } // @phpstan-ignore peanut.rawDbQuery (Existing license is updated only for the selected tenant after the revision check.)
             Db::name('tenant')->where('id', $tenantId)->update(['authorization_revision' => new Raw('authorization_revision + 1'),'updated_at' => $now]);
             $after = $this->entitlements->license($tenantId);
             $this->audit->platform($actor->operatorId,$actor->accountId,$actor->requestId,'tenant.license.saved','platform.tenant.license.manage',
@@ -169,9 +169,9 @@ final readonly class PlanLicenseAdminService
             }
             $planId = (int) $plan['id'];
             $tenantId = (int) $tenant['id'];
-            $license = Db::name('tenant_license')->where('tenant_id',$tenantId)->lock(true)->find();
+            $license = Db::name('tenant_license')->where('tenant_id',$tenantId)->lock(true)->find(); // @phpstan-ignore peanut.rawDbQuery (Standalone changes lock the default tenant's license.)
             if ($license === null || (int) $license['plan_id'] !== $planId
-                || Db::name('tenant_license')->where('plan_id',$planId)->where('tenant_id','<>',$tenantId)->lock(true)->find() !== null) {
+                || Db::name('tenant_license')->where('plan_id',$planId)->where('tenant_id','<>',$tenantId)->lock(true)->find() !== null) { // @phpstan-ignore peanut.rawDbQuery (The platform-side exclusivity check intentionally searches for another tenant on the same plan and blocks changes.)
                 throw AdminAccessException::conflict('STANDALONE_ENTITLEMENTS_LICENSE_REQUIRED','The default plan must belong only to the existing default tenant license.');
             }
             if ((int) $plan['revision'] !== $expectedPlan || (int) $license['revision'] !== $expectedLicense) {
@@ -182,7 +182,7 @@ final readonly class PlanLicenseAdminService
             $now = $this->now();
             $this->replaceDetails($planId,$modules,$permissions);
             Db::name('plan')->where('id',$planId)->update(['revision'=>new Raw('revision + 1'),'updated_at'=>$now]);
-            Db::name('tenant_license')->where('tenant_id',$tenantId)->update(['revision'=>new Raw('revision + 1'),'updated_at'=>$now]);
+            Db::name('tenant_license')->where('tenant_id',$tenantId)->update(['revision'=>new Raw('revision + 1'),'updated_at'=>$now]); // @phpstan-ignore peanut.rawDbQuery (Standalone license revision increments only for the locked default tenant.)
             Db::name('tenant')->where('id',$tenantId)->update(['authorization_revision'=>new Raw('authorization_revision + 1'),'updated_at'=>$now]);
             $after = ['plan'=>$this->plan($planId),'license'=>$this->entitlements->license($tenantId)];
             $uid = posix_geteuid();
@@ -220,8 +220,8 @@ final readonly class PlanLicenseAdminService
                 $planId = (int) Db::name('plan')->insertGetId(['code'=>'application-default','name'=>'Application default','status'=>'active','revision'=>1,'created_at'=>$now,'updated_at'=>$now]);
                 $this->replaceDetails($planId,$modules,$permissions);
             } else { $planId = (int) $plan['id']; }
-            if (Db::name('tenant_license')->where('tenant_id',$tenantId)->lock(true)->find() === null) {
-                Db::name('tenant_license')->insert(['tenant_id'=>$tenantId,'plan_id'=>$planId,'status'=>'active','effective_at'=>$now,'expires_at'=>null,'revision'=>1,'created_at'=>$now,'updated_at'=>$now]);
+            if (Db::name('tenant_license')->where('tenant_id',$tenantId)->lock(true)->find() === null) { // @phpstan-ignore peanut.rawDbQuery (Provisioning locks the new tenant's license slot before deciding whether to create it.)
+                Db::name('tenant_license')->insert(['tenant_id'=>$tenantId,'plan_id'=>$planId,'status'=>'active','effective_at'=>$now,'expires_at'=>null,'revision'=>1,'created_at'=>$now,'updated_at'=>$now]); // @phpstan-ignore peanut.rawDbQuery (Provisioning inserts the license with the newly created tenant ID.)
                 Db::name('tenant')->where('id', $tenantId)->inc('authorization_revision')->update(['updated_at' => $now]);
             }
             return $this->tenantLicense($tenantId);

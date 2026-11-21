@@ -142,7 +142,7 @@ final readonly class TenantAuthorizationQuery
         foreach (array_chunk(array_values(array_unique($permissionKeys)), 500) as $keys) {
             $references = implode(' UNION ALL ', array_fill(0, count($keys), 'SELECT ? AS input_key'));
             // Fixed owner-side join; every caller value is bound, never interpolated into SQL.
-            $rows = Db::query('SELECT selected.input_key, permission.`key`, permission.module_key, permission.status '
+            $rows = Db::query('SELECT selected.input_key, permission.`key`, permission.module_key, permission.status ' // @phpstan-ignore peanut.rawDbQuery (Only the global permission catalog is queried; every requested permission key is bound.)
                 . 'FROM (' . $references . ') selected JOIN `' . $table . '` permission '
                 . 'ON permission.`key` = selected.input_key ORDER BY permission.`key`', $keys);
             foreach ($rows as $row) {

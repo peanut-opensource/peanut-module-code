@@ -254,7 +254,7 @@ final readonly class CatalogLifecycleService
     {
         $keys = [];
         foreach (['pa_permission', 'pa_system_menu'] as $table) {
-            foreach (Db::table($table)->where('status', 'active')->distinct(true)->order('module_key')->column('module_key') as $key) {
+            foreach (Db::table($table)->where('status', 'active')->distinct(true)->order('module_key')->column('module_key') as $key) { // @phpstan-ignore peanut.rawDbQuery (The fixed table list contains only global permission and menu definitions.)
                 if (!in_array((string) $key, self::NON_MODULE_OWNERS, true)) {
                     $keys[(string) $key] = true;
                 }
@@ -274,7 +274,7 @@ final readonly class CatalogLifecycleService
         $permissions = $this->ids('pa_permission', $moduleKeys);
         $removed = [];
         $preserved = [];
-        $blockers = $this->crossModuleBlockers($moduleKeys, $permissions);
+        $blockers = $this->crossModuleBlockers($moduleKeys, $permissions, $purge);
         $this->append($removed, 'pa_system_api', 'soft_retire', $this->activeIds('pa_system_api', $moduleKeys));
         if ($purge) {
             foreach ([
@@ -309,13 +309,13 @@ final readonly class CatalogLifecycleService
         Db::transaction(function () use ($moduleKeys, $invalidate): void {
             $now = $this->now();
             if ($moduleKeys !== []) {
-                Db::name('system_api')->whereIn('module_key', $moduleKeys)->update([
+                Db::name('system_api')->whereIn('module_key', $moduleKeys)->where('status', 'active')->update([
                     'status' => 'retired', 'retired_at' => $now, 'updated_at' => $now,
                 ]);
             }
-            $permissions = $this->ids('pa_permission', $moduleKeys);
+            $permissions = $this->activeIds('pa_permission', $moduleKeys);
             $this->updateByIds('pa_permission', $permissions, ['status' => 'retired', 'retired_at' => $now, 'updated_at' => $now]);
-            $this->updateByIds('pa_system_menu', $this->ids('pa_system_menu', $moduleKeys), [
+            $this->updateByIds('pa_system_menu', $this->activeIds('pa_system_menu', $moduleKeys), [
                 'status' => 'retired', 'updated_at' => $now,
                 'upstream_defaults_json' => Db::raw("JSON_SET(upstream_defaults_json, '$.status', 'retired')"),
             ]);
@@ -331,7 +331,7 @@ final readonly class CatalogLifecycleService
         \PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::invalidateRequestInstallations();
         Db::transaction(function () use ($moduleKeys, $invalidate): void {
             if ($moduleKeys !== []) {
-                Db::name('system_api')->whereIn('module_key', $moduleKeys)->update([
+                Db::name('system_api')->whereIn('module_key', $moduleKeys)->where('status', 'active')->update([
                     'status' => 'retired', 'retired_at' => $this->now(), 'updated_at' => $this->now(),
                 ]);
             }
@@ -339,6 +339,7 @@ final readonly class CatalogLifecycleService
             $this->deleteByForeignIds('pa_role_permission', 'permission_id', $permissions);
             $this->deleteByForeignIds('pa_platform_role_permission', 'permission_id', $permissions);
             $this->deleteByIds('pa_system_menu', $this->ids('pa_system_menu', $moduleKeys));
+            $this->deleteByForeignIds('pa_permission_api', 'permission_id', $permissions);
             $this->deleteByIds('pa_permission', $permissions);
             if ($invalidate) {
                 app(ModuleAuthorizationCatalogSynchronizer::class)->invalidateTenantAuthorization($moduleKeys);
@@ -349,25 +350,19 @@ final readonly class CatalogLifecycleService
     /** @return list<string> */
     private function ids(string $table, array $moduleKeys): array
     {
-        return $moduleKeys === [] ? [] : array_map('strval', Db::table($table)->whereIn('module_key', $moduleKeys)->order('id')->column('id'));
+        return $moduleKeys === [] ? [] : array_map('strval', Db::table($table)->whereIn('module_key', $moduleKeys)->order('id')->column('id')); // @phpstan-ignore peanut.rawDbQuery (The private lifecycle caller supplies an owned catalog table and selected module keys.)
     }
 
     /** @return list<string> */
     private function activeIds(string $table, array $moduleKeys): array
     {
-        return $moduleKeys === [] ? [] : array_map('strval', Db::table($table)->whereIn('module_key', $moduleKeys)->where('status', 'active')->order('id')->column('id'));
+        return $moduleKeys === [] ? [] : array_map('strval', Db::table($table)->whereIn('module_key', $moduleKeys)->where('status', 'active')->order('id')->column('id')); // @phpstan-ignore peanut.rawDbQuery (The private retirement plan enumerates active global catalog rows of the selected modules.)
     }
 
     /** @return list<string> */
     private function foreignIds(string $table, string $column, array $ids): array
     {
-        return $ids === [] ? [] : array_map('strval', Db::table($table)->whereIn($column, $ids)->order('id')->column('id'));
-    }
-
-    /** @return list<string> */
-    private function activeForeignIds(string $table, string $column, array $ids): array
-    {
-        return $ids === [] ? [] : array_map('strval', Db::table($table)->whereIn($column, $ids)->where('status', 'active')->order('id')->column('id'));
+        return $ids === [] ? [] : array_map('strval', Db::table($table)->whereIn($column, $ids)->order('id')->column('id')); // @phpstan-ignore peanut.rawDbQuery (The purge plan selects fixed catalog relations via IDs of the selected module permissions.)
     }
 
     /** @return list<string> */
@@ -378,7 +373,7 @@ final readonly class CatalogLifecycleService
         }
         $table = $platform ? 'pa_platform_role_permission' : 'pa_role_permission';
         $fields = $platform ? 'platform_role_id,permission_id' : 'tenant_id,role_id,permission_id';
-        $rows = Db::table($table)->whereIn('permission_id', $permissionIds)->field($fields)->select()->toArray();
+        $rows = Db::table($table)->whereIn('permission_id', $permissionIds)->field($fields)->select()->toArray(); // @phpstan-ignore peanut.rawDbQuery (Module-wide purge planning enumerates every role grant to the selected global permission IDs, including tenant grants.)
         $ids = array_map(static fn(array $row): string => $platform
             ? 'platform_role_id=' . $row['platform_role_id'] . ';permission_id=' . $row['permission_id']
             : 'tenant_id=' . $row['tenant_id'] . ';role_id=' . $row['role_id'] . ';permission_id=' . $row['permission_id'], $rows);
@@ -387,11 +382,31 @@ final readonly class CatalogLifecycleService
     }
 
     /** @return list<array{code:string,identifiers:list<string>}> */
-    private function crossModuleBlockers(array $moduleKeys, array $permissionIds): array
+    private function crossModuleBlockers(array $moduleKeys, array $permissionIds, bool $purge): array
     {
         $checks = [];
         if ($moduleKeys !== [] && $permissionIds !== []) {
-            $checks['MODULE_CATALOG_EXTERNAL_MENU_REFERENCE'] = Db::table('pa_system_menu')->whereNotIn('module_key', $moduleKeys)->whereIn('required_permission_id', $permissionIds)->order('id')->column('id');
+            $menu = Db::table('pa_system_menu');
+            $hasInstancePermission = in_array('instance_permission_id', $menu->getTableFields(), true);
+            $checks['MODULE_CATALOG_EXTERNAL_MENU_REFERENCE'] = $menu->whereNotIn('module_key', $moduleKeys)
+                ->where(static function ($query) use ($permissionIds, $hasInstancePermission): void {
+                    $query->whereIn('required_permission_id', $permissionIds);
+                    if ($hasInstancePermission) {
+                        $query->whereOr('instance_permission_id', 'in', $permissionIds);
+                    }
+                })
+                ->order('id')->column('id');
+            if ($purge) {
+                $planPermissions = Db::name('plan_permission')->alias('selection')
+                    ->join('permission permission', 'permission.key = selection.permission_key')
+                    ->whereIn('permission.id', $permissionIds)
+                    ->field('selection.plan_id,selection.permission_key')
+                    ->order('selection.plan_id,selection.permission_key')->select()->toArray();
+                $checks['MODULE_CATALOG_PLAN_PERMISSION_REFERENCE'] = array_map(
+                    static fn(array $row): string => 'plan_id=' . $row['plan_id'] . ';permission_key=' . $row['permission_key'],
+                    $planPermissions,
+                );
+            }
         }
         $blockers = [];
         foreach ($checks as $code => $ids) {
@@ -427,32 +442,32 @@ final readonly class CatalogLifecycleService
     private function updateByIds(string $table, array $ids, array $values): void
     {
         if ($ids !== []) {
-            Db::table($table)->whereIn('id', $ids)->update($values);
+            Db::table($table)->whereIn('id', $ids)->update($values); // @phpstan-ignore peanut.rawDbQuery (The lifecycle updates only IDs already selected from module-owned global catalog definitions.)
         }
     }
 
     private function deleteByIds(string $table, array $ids): void
     {
         if ($ids !== []) {
-            Db::table($table)->whereIn('id', $ids)->delete();
+            Db::table($table)->whereIn('id', $ids)->delete(); // @phpstan-ignore peanut.rawDbQuery (Purge deletes only IDs already selected from global definitions of the requested modules.)
         }
     }
 
     private function deleteByForeignIds(string $table, string $column, array $ids): void
     {
         if ($ids !== []) {
-            Db::table($table)->whereIn($column, $ids)->delete();
+            Db::table($table)->whereIn($column, $ids)->delete(); // @phpstan-ignore peanut.rawDbQuery (Module purge removes dependent bindings only for the selected global permission IDs, across all affected tenants.)
         }
     }
 
     private function retireMissingKeys(string $table, string $moduleKey, array $activeKeys, string $now): void
     {
-        $query = Db::table($table)->where('module_key', $moduleKey)->where('status', 'active');
+        $query = Db::table($table)->where('module_key', $moduleKey)->where('status', 'active'); // @phpstan-ignore peanut.rawDbQuery (Missing-key retirement targets the selected module's global permission catalog only.)
         if ($activeKeys !== []) {
             $query->whereNotIn('key', $activeKeys);
         }
         $values = ['status' => 'retired', 'updated_at' => $now];
-        if (in_array($table, ['pa_permission', 'pa_protected_resource'], true)) {
+        if ($table === 'pa_permission') {
             $values['retired_at'] = $now;
         }
         $query->update($values);

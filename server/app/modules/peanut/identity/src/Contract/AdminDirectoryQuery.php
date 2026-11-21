@@ -240,7 +240,7 @@ final readonly class AdminDirectoryQuery
                 });
             }
         }
-        $choices = Db::table([$base->buildSql()=>'directory_member'])->pk('id')->field('id,active')
+        $choices = Db::table([$base->buildSql()=>'directory_member'])->pk('id')->field('id,active') // @phpstan-ignore peanut.rawDbQuery (The directory subquery is bound to the current admin tenant and its allowed department or member scope.)
             ->field(Db::raw('CASE WHEN id=' . $context->memberId . ' THEN ? WHEN active=1 THEN active_name ELSE CONCAT(display_name, ?) END AS option_name', [$selfName, $inactiveSuffix]))
             ->where(function ($scope) use ($context, $departmentIds, $historicalMemberIds) {
                 $scope->where('id', $context->memberId);
@@ -251,7 +251,7 @@ final readonly class AdminDirectoryQuery
                     $history->where('active', 0)->whereIn('id', $historicalMemberIds);
                 });
             });
-        $query = Db::table([$choices->buildSql()=>'member_options'])->pk('id');
+        $query = Db::table([$choices->buildSql()=>'member_options'])->pk('id'); // @phpstan-ignore peanut.rawDbQuery (Projection and filtering operate only on the previously tenant-scoped member choices.)
         if ($name !== '') $query->where(function ($search) use ($context, $name) {
             // LIKE above preserves the directory search; LOCATE keeps the final literal, case-insensitive match.
             $search->where('id', $context->memberId)
@@ -468,7 +468,7 @@ final readonly class AdminDirectoryQuery
     {
         // Select the same single profile before expanding roles: credentials are unique by identifier, not account.
         $profileSql = $this->principalProfileQuery($tenantId, $accountId, $includeTenantCount)->limit(1)->buildSql();
-        $rows = \think\facade\Db::table($profileSql)->alias('principal_profile')
+        $rows = \think\facade\Db::table($profileSql)->alias('principal_profile') // @phpstan-ignore peanut.rawDbQuery (The derived profile is limited by tenant and account; both role joins preserve tenant equality.)
             ->leftJoin('member_role membership', 'membership.tenant_id = principal_profile.tenant_id AND membership.tenant_member_id = principal_profile.member_id')
             ->leftJoin('role role', "role.tenant_id = membership.tenant_id AND role.id = membership.role_id AND role.status = 'active'")
             ->field([

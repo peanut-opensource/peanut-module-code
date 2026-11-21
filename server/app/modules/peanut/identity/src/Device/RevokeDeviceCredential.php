@@ -74,7 +74,7 @@ final readonly class RevokeDeviceCredential implements DeviceCredentialRevocatio
         if ($source !== null) {
             return $this->original($source, $hash);
         }
-        $credential = Db::table('pa_device_credential')->where([
+        $credential = Db::table('pa_device_credential')->where([ // @phpstan-ignore peanut.rawDbQuery (Revocation locks the credential selected by the actor tenant and key.)
             'tenant_id' => $actor->tenantId, 'credential_key' => $credentialKey,
         ])->lock(true)->find();
         if ($credential === null) {
@@ -161,7 +161,7 @@ final readonly class RevokeDeviceCredential implements DeviceCredentialRevocatio
             'updated_at' => $stamp, 'updated_by_member_id' => $actor->memberId,
         ];
         DeviceCredentialRevocationEvidence::original([...$credential, ...$changes]);
-        $updated = Db::table('pa_device_credential')->where([
+        $updated = Db::table('pa_device_credential')->where([ // @phpstan-ignore peanut.rawDbQuery (Revocation compare-and-set binds the actor tenant, key, status, revision and epoch.)
             'tenant_id' => $actor->tenantId, 'credential_key' => $credentialKey,
             'revision' => $input->expectedRevision, 'status' => $credential['status'], 'revocation_epoch' => '0',
         ])->update($changes);
@@ -190,7 +190,7 @@ final readonly class RevokeDeviceCredential implements DeviceCredentialRevocatio
 
     private function source(TenantContext $actor, string $commandKey): ?array
     {
-        return Db::table('pa_device_credential')->where([
+        return Db::table('pa_device_credential')->where([ // @phpstan-ignore peanut.rawDbQuery (Replay matches the actor tenant and revocation command key.)
             'tenant_id' => $actor->tenantId, 'revoke_source_command_key' => $commandKey,
         ])->find();
     }

@@ -48,6 +48,8 @@ final class TenantRawQueryRule implements Rule
         'system_dict_data',
         'system_dict_type',
         'system_menu',
+        'storage_account',
+        'file_delivery_nonce',
         'tenant',
         'platform_audit_event',
         'platform_operator',

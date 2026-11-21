@@ -47,6 +47,7 @@ server/config/console.php
 server/config/trace.php
 server/phpstan/Rules/TenantRawQueryRule.php
 server/phpstan/bootstrap.php
+server/tests/Support/ThinkPhpTestConnection.php
 server/tests/Unit/CrudFieldAuditTest.php
 server/tests/Unit/TenantDataInventoryTest.php
 server/tests/Unit/TraceIdMiddlewareTest.php

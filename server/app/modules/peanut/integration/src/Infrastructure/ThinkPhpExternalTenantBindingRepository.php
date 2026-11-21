@@ -19,7 +19,7 @@ final class ThinkPhpExternalTenantBindingRepository implements ExternalTenantBin
     public function byCallbackKey(string $provider, string $callbackKey): array
     {
         return $this->bindings(
-            Db::name('external_channel_binding')->alias('b')
+            Db::name('external_channel_binding')->alias('b') // @phpstan-ignore peanut.rawDbQuery (Callback owner discovery uses provider and callback key before a tenant context exists; the resolver checks uniqueness and provider proof.)
                 ->field($this->bindingFields())
                 ->where('b.provider', $provider)
                 ->where('b.callback_key', $callbackKey)
@@ -30,7 +30,7 @@ final class ThinkPhpExternalTenantBindingRepository implements ExternalTenantBin
     public function byClientIdentity(string $provider, string $identityHash): array
     {
         return $this->bindings(
-            Db::name('external_channel_binding')->alias('b')
+            Db::name('external_channel_binding')->alias('b') // @phpstan-ignore peanut.rawDbQuery (Provider identity discovery resolves the tenant from the canonical identity hash and fails on ambiguity.)
                 ->field($this->bindingFields())
                 ->where('b.provider', $provider)
                 ->where('b.identity_hash', $identityHash)
@@ -41,7 +41,7 @@ final class ThinkPhpExternalTenantBindingRepository implements ExternalTenantBin
     public function byProvider(string $provider): array
     {
         return $this->bindings(
-            Db::name('external_channel_binding')->alias('b')
+            Db::name('external_channel_binding')->alias('b') // @phpstan-ignore peanut.rawDbQuery (The server-only unique binding resolver rejects multiple results before establishing a tenant.)
                 ->field($this->bindingFields())
                 ->where('b.provider', $provider)
                 ->limit(2)->select()->toArray(),
@@ -50,7 +50,7 @@ final class ThinkPhpExternalTenantBindingRepository implements ExternalTenantBin
 
     public function byReference(int $tenantId, int $bindingId): array
     {
-        return $this->bindings(Db::name('external_channel_binding')->alias('b')
+        return $this->bindings(Db::name('external_channel_binding')->alias('b') // @phpstan-ignore peanut.rawDbQuery (Binding reference resolution requires both tenant ID and binding ID.)
             ->field($this->bindingFields())
             ->where('b.tenant_id', $tenantId)
             ->where('b.id', $bindingId)
@@ -63,7 +63,7 @@ final class ThinkPhpExternalTenantBindingRepository implements ExternalTenantBin
             // Consistent lock order: the owning Identity module locks the tenant first.
             $this->directory->tenantStatus($tenantId, true);
         }
-        $query = Db::name('external_channel_binding')->alias('b')
+        $query = Db::name('external_channel_binding')->alias('b') // @phpstan-ignore peanut.rawDbQuery (The binding is queried by tenant and provider, with optional locking for a grant.)
             ->field($this->bindingFields())
             ->where('b.provider', $provider)
             ->where('b.tenant_id', $tenantId)
@@ -81,7 +81,7 @@ final class ThinkPhpExternalTenantBindingRepository implements ExternalTenantBin
             if ($this->lockedBinding($tenantId, $provider) !== null) {
                 return;
             }
-            Db::name('external_channel_binding')->insert([
+            Db::name('external_channel_binding')->insert([ // @phpstan-ignore peanut.rawDbQuery (The locked initialization path inserts the binding with its selected tenant.)
                 'tenant_id' => $tenantId,
                 'provider' => $provider,
                 'callback_key' => bin2hex(random_bytes(32)),
@@ -162,7 +162,7 @@ final class ThinkPhpExternalTenantBindingRepository implements ExternalTenantBin
     /** @return array<string, mixed>|null */
     private function lockedBinding(int $tenantId, string $provider): ?array
     {
-        $binding = Db::name('external_channel_binding')
+        $binding = Db::name('external_channel_binding') // @phpstan-ignore peanut.rawDbQuery (The active binding is locked by tenant and provider before mutation.)
             ->where('tenant_id', $tenantId)->where('provider', $provider)->whereNull('retired_at')->lock(true)->find();
         return is_array($binding) ? $binding : null;
     }
@@ -192,9 +192,9 @@ final class ThinkPhpExternalTenantBindingRepository implements ExternalTenantBin
                 }
                 if (!hash_equals((string) $binding['identity_hash'], (string) $identityHash)) {
                     // Preserve the old callback key and credentials for existing trades.
-                    Db::name('external_channel_binding')->where('id', (int) $binding['id'])
+                    Db::name('external_channel_binding')->where('id', (int) $binding['id']) // @phpstan-ignore peanut.rawDbQuery (Merchant rotation retires only the locked binding of the selected tenant.)
                         ->where('tenant_id', $tenantId)->update(['retired_at' => time()]);
-                    $previous = Db::name('external_channel_binding')->where('tenant_id', $tenantId)
+                    $previous = Db::name('external_channel_binding')->where('tenant_id', $tenantId) // @phpstan-ignore peanut.rawDbQuery (Reactivation locks the previous binding by tenant, provider and merchant identity.)
                         ->where('provider', $provider)->where('identity_hash', $identityHash)->lock(true)->find();
                     $binding = is_array($previous) ? $previous : null;
                 }
@@ -205,7 +205,7 @@ final class ThinkPhpExternalTenantBindingRepository implements ExternalTenantBin
         $callbackKey = self::callbackKeyForUpdate($provider, $currentKey, $enabled);
         $now = time();
         if (!is_array($binding)) {
-            Db::name('external_channel_binding')->insert([
+            Db::name('external_channel_binding')->insert([ // @phpstan-ignore peanut.rawDbQuery (Upsert creates a binding under the transaction's selected tenant.)
                 'tenant_id' => $tenantId,
                 'provider' => $provider,
                 'callback_key' => $callbackKey,
@@ -223,7 +223,7 @@ final class ThinkPhpExternalTenantBindingRepository implements ExternalTenantBin
             $update['identity_hash'] = $identityHash;
             $update['identity_hint'] = $identityHint;
         }
-        Db::name('external_channel_binding')->where('id', (int) $binding['id'])->where('tenant_id', $tenantId)->update($update);
+        Db::name('external_channel_binding')->where('id', (int) $binding['id'])->where('tenant_id', $tenantId)->update($update); // @phpstan-ignore peanut.rawDbQuery (The update is restricted to the selected tenant and the locked binding ID.)
     }
 
     private static function callbackKeyForUpdate(string $provider, string $current, bool $enabled): string

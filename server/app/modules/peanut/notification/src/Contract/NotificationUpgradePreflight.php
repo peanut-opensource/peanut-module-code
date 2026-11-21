@@ -52,15 +52,15 @@ final readonly class NotificationUpgradePreflight
             $pdo->beginTransaction();
             $started = true;
             $phase = 'outbox_schema';
-            $table = Db::name('notification_outbox')->getTable();
+            $table = Db::name('notification_outbox')->getTable(); // @phpstan-ignore peanut.rawDbQuery (Only resolves the outbox table name for schema existence checking.)
             $exists = Db::query('SELECT COUNT(*) AS n FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?', [$table]); // @phpstan-ignore peanut.rawDbQuery (Metadata probe reads information_schema only.)
             if ((int) ($exists[0]['n'] ?? 0) !== 1) {
                 return $unknown + ['reason' => 'OUTBOX_SCHEMA_UNAVAILABLE', 'phase' => $phase];
             }
             $phase = 'pending_count';
-            $pending = (int) Db::name('notification_outbox')->whereIn('status', ['pending', 'queued', 'processing', 'retryable'])->count();
+            $pending = (int) Db::name('notification_outbox')->whereIn('status', ['pending', 'queued', 'processing', 'retryable'])->count(); // @phpstan-ignore peanut.rawDbQuery (Instance upgrade preflight counts pending deliveries across all tenants before DDL.)
             $phase = 'status_validation';
-            $invalid = (int) Db::name('notification_outbox')->whereNotIn('status', ['pending', 'queued', 'processing', 'retryable', 'delivered', 'permanent_failed'])->count();
+            $invalid = (int) Db::name('notification_outbox')->whereNotIn('status', ['pending', 'queued', 'processing', 'retryable', 'delivered', 'permanent_failed'])->count(); // @phpstan-ignore peanut.rawDbQuery (Instance upgrade preflight checks for unknown outbox statuses across tenants before DDL.)
             if ($invalid !== 0) {
                 return $unknown + ['reason' => 'OUTBOX_STATUS_UNRECOGNIZED', 'phase' => $phase];
             }

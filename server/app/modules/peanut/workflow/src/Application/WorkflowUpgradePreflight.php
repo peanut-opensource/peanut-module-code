@@ -19,16 +19,16 @@ final readonly class WorkflowUpgradePreflight
         $tables = ['workflow_definition', 'workflow_definition_version', 'workflow_instance', 'workflow_work_item', 'workflow_event'];
         $counts = []; $missing = [];
         foreach ($tables as $table) {
-            $name = Db::name($table)->getTable();
+            $name = Db::name($table)->getTable(); // @phpstan-ignore peanut.rawDbQuery (Resolves the table name from a fixed workflow list only for a metadata probe.)
             $present = Db::query('SELECT COUNT(*) AS count FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?', [$name]); // @phpstan-ignore peanut.rawDbQuery (Metadata probe reads information_schema only.)
             if ((int) ($present[0]['count'] ?? 0) === 0) { $missing[] = $table; $counts[$table] = 0; }
-            else { $counts[$table] = (int) Db::name($table)->count(); }
+            else { $counts[$table] = (int) Db::name($table)->count(); } // @phpstan-ignore peanut.rawDbQuery (Instance upgrade preflight counts records for the fixed list of workflow tables.)
         }
         $status = (new TenantModuleStateQueries())
             ->installationStates(['peanut.workflow'])['peanut.workflow']['status'] ?? null;
         $installed = in_array($status, ['active', 'maintenance'], true);
         $applied = $missing === [] && $installed
-            && Db::name((string) config('database.migration_table', 'migrations'))->where('version', self::SCHEMA_VERSION)->count() > 0;
+            && Db::name((string) config('database.migration_table', 'migrations'))->where('version', self::SCHEMA_VERSION)->count() > 0; // @phpstan-ignore peanut.rawDbQuery (The configured instance migration ledger is checked for the exact workflow migration version.)
         $report = ['schema_version' => 1, 'module_key' => 'peanut.workflow', 'migration_version' => self::SCHEMA_VERSION, 'already_applied' => $applied,
             'table_counts' => $counts, 'missing_tables' => $missing, 'legacy_graph_count' => 0, 'legacy_all_graph_count' => 0, 'unknown_graph_count' => 0,
             'graph_details' => [], 'details_truncated' => false, 'organization' => $this->organization->leaderReport(),
@@ -37,7 +37,7 @@ final readonly class WorkflowUpgradePreflight
         if ($applied) { return $report + ['status' => 'not_required', 'may_apply' => true]; }
         foreach (['workflow_definition' => 'draft_graph_json', 'workflow_definition_version' => 'graph_json'] as $table => $column) {
             if (in_array($table, $missing, true)) { continue; }
-            $query = Db::name($table);
+            $query = Db::name($table); // @phpstan-ignore peanut.rawDbQuery (Upgrade preflight uses fixed workflow table and JSON column pairs to count legacy graph formats across tenants.)
             $legacy = "(JSON_EXTRACT(`{$column}`, '$.contract_version') IS NULL OR JSON_UNQUOTE(JSON_EXTRACT(`{$column}`, '$.contract_version')) <> '2')";
             $report['legacy_graph_count'] += (int) (clone $query)->whereRaw($legacy)->count();
             $report['legacy_all_graph_count'] += (int) (clone $query)->whereRaw("JSON_SEARCH(`{$column}`, 'one', 'all', NULL, '$**.completion_policy') IS NOT NULL")->count();

@@ -23,8 +23,8 @@ final class NotificationLifecycleQueries
         if ($keys === []) { return 0; }
         if (!array_is_list($keys) || count($keys) > 100) { throw new \InvalidArgumentException('NOTIFICATION_LIFECYCLE_KEYS_INVALID'); }
         foreach ($keys as $key) { if (!is_string($key) || $key === '' || strlen($key) > 160) { throw new \InvalidArgumentException('NOTIFICATION_LIFECYCLE_KEYS_INVALID'); } }
-        $messageTable = Db::name('notification_message')->getTable();
-        $outboxTable = Db::name('notification_outbox')->getTable();
+        $messageTable = Db::name('notification_message')->getTable(); // @phpstan-ignore peanut.rawDbQuery (Resolves the message table name for the current database metadata probe.)
+        $outboxTable = Db::name('notification_outbox')->getTable(); // @phpstan-ignore peanut.rawDbQuery (Resolves the outbox table name for the current database metadata probe.)
         $tables = array_column(Db::query( // @phpstan-ignore peanut.rawDbQuery (Metadata probe reads information_schema only.)
             'SELECT DISTINCT TABLE_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND ((TABLE_NAME=? AND COLUMN_NAME=?) OR TABLE_NAME=?)',
             [$messageTable, 'producer_key', $outboxTable],
@@ -32,7 +32,7 @@ final class NotificationLifecycleQueries
         if (!in_array($messageTable, $tables, true) || !in_array($outboxTable, $tables, true)) {
             throw new \RuntimeException('NOTIFICATION_PRODUCER_SCHEMA_UPGRADE_REQUIRED');
         }
-        $query = Db::name('notification_outbox')->alias('o')->join('notification_message m', 'm.id=o.message_id AND m.tenant_id=o.tenant_id')
+        $query = Db::name('notification_outbox')->alias('o')->join('notification_message m', 'm.id=o.message_id AND m.tenant_id=o.tenant_id') // @phpstan-ignore peanut.rawDbQuery (Single-tenant callers bind both message and outbox; the separate lifecycle entry can reconcile across tenants.)
             ->whereIn('m.producer_key', $keys)->whereIn('o.status', ['pending', 'queued', 'processing', 'retryable']);
         if ($tenantId !== null) { $query->where('o.tenant_id', $tenantId)->where('m.tenant_id', $tenantId); }
         return (int) $query->count('o.id');

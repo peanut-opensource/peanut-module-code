@@ -30,6 +30,15 @@ final class ThinkPhpTestConnection
         return $connection;
     }
 
+    public static function sqliteBinaryModuleKey(string $sql): string
+    {
+        return preg_replace(
+            '/\bBINARY ((?:`?selection`?|`?installation`?)\.`?module_key`?)/',
+            '$1 COLLATE BINARY',
+            $sql,
+        );
+    }
+
     public static function moduleCatalogs(PDO $pdo): \app\platform\infrastructure\module\ModuleCatalogApplier
     {
         $connection = self::fromPdo($pdo);
@@ -95,5 +104,9 @@ final class SharedPdoSqliteConnection extends Sqlite
     protected function createPdo($dsn, $username, $password, $params): PDO
     {
         return $this->sharedPdo;
+    }
+    public function getPDOStatement(string $sql, array $bind = [], bool $master = false, bool $procedure = false): PDOStatement
+    {
+        return parent::getPDOStatement(ThinkPhpTestConnection::sqliteBinaryModuleKey($sql), $bind, $master, $procedure);
     }
 }

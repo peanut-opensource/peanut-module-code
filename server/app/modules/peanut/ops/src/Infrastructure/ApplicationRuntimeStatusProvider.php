@@ -82,7 +82,7 @@ final readonly class ApplicationRuntimeStatusProvider implements RuntimeStatusPr
         $checks = [];
 
         [$databaseStatus, $databaseLatency] = $this->probe(function (): void {
-            $result = Db::query('SELECT 1 AS healthy');
+            $result = Db::query('SELECT 1 AS healthy'); // @phpstan-ignore peanut.rawDbQuery (The scalar health probe selects a constant and accesses no table.)
             if ((int) ($result[0]['healthy'] ?? 0) !== 1) {
                 throw new \RuntimeException('database probe failed');
             }
@@ -435,7 +435,7 @@ final readonly class ApplicationRuntimeStatusProvider implements RuntimeStatusPr
         // ThinkPHP migration uses the configured connection prefix and native ledger.
         // Read it directly: constructing a migration adapter may create the ledger.
         $table = (string) Db::connect()->getConfig('prefix') . (string) Config::get('database.migration_table', 'migrations');
-        $actual = Db::table($table)->column('migration_name', 'version');
+        $actual = Db::table($table)->column('migration_name', 'version'); // @phpstan-ignore peanut.rawDbQuery (The dynamic name is the configured instance migration ledger, not a tenant table.)
         $actualNames = [];
         foreach ($actual as $version => $name) {
             $actualNames[strtolower((string) $name)] = (string) $version;

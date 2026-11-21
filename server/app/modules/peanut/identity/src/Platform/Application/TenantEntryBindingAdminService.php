@@ -24,7 +24,7 @@ final readonly class TenantEntryBindingAdminService
     public function lists(PlatformContext $context, ?int $tenantId = null): array
     {
         $this->authorization->assertAllowed($context, 'platform.tenant.read');
-        $query = Db::name('tenant_entry_binding')->alias('binding')
+        $query = Db::name('tenant_entry_binding')->alias('binding') // @phpstan-ignore peanut.rawDbQuery (The platform-only binding inventory supports an optional explicitly selected tenant filter.)
             ->join('tenant tenant', 'tenant.id=binding.tenant_id')
             ->field('binding.id,binding.tenant_id,tenant.code AS tenant_code,tenant.name AS tenant_name,binding.host,binding.client_key,binding.status,binding.created_at,binding.updated_at');
         if ($tenantId !== null) {
@@ -75,10 +75,10 @@ final readonly class TenantEntryBindingAdminService
                 );
             }
 
-            $existingRow = Db::name('tenant_entry_binding')->where('host', $host)
+            $existingRow = Db::name('tenant_entry_binding')->where('host', $host) // @phpstan-ignore peanut.rawDbQuery (The platform route claims the globally unique host and client pair under lock before binding a tenant.)
                 ->where('client_key', $clientKey)->field('id,tenant_id,status')->lock(true)->find();
             if ($existingRow === null) {
-                $bindingId = Db::name('tenant_entry_binding')->insertGetId([
+                $bindingId = Db::name('tenant_entry_binding')->insertGetId([ // @phpstan-ignore peanut.rawDbQuery (The route is created for the tenant selected and locked by the platform operator.)
                     'tenant_id' => $tenantId,
                     'host' => $host,
                     'client_key' => $clientKey,
@@ -93,7 +93,7 @@ final readonly class TenantEntryBindingAdminService
                         'Tenant entry binding request was rejected.',
                     );
                 }
-                Db::name('tenant_entry_binding')->where('id', $bindingId)
+                Db::name('tenant_entry_binding')->where('id', $bindingId) // @phpstan-ignore peanut.rawDbQuery (Re-enable writes only the exact locked globally unique route after ownership validation.)
                     ->update(['tenant_id' => $tenantId, 'status' => 'active']);
             }
 
@@ -136,7 +136,7 @@ final readonly class TenantEntryBindingAdminService
             $bindingId,
             $changeReason
         ): array {
-            $row = Db::name('tenant_entry_binding')->where('id', $bindingId)
+            $row = Db::name('tenant_entry_binding')->where('id', $bindingId) // @phpstan-ignore peanut.rawDbQuery (The platform permission gate precedes a lock on the unique route being disabled.)
                 ->field('id,tenant_id,host,client_key,status')->lock(true)->find();
             if ($row === null) {
                 throw BusinessException::conflict(
@@ -145,7 +145,7 @@ final readonly class TenantEntryBindingAdminService
                 );
             }
             if ($row['status'] !== 'disabled') {
-                Db::name('tenant_entry_binding')->where('id', $bindingId)->update(['status' => 'disabled']);
+                Db::name('tenant_entry_binding')->where('id', $bindingId)->update(['status' => 'disabled']); // @phpstan-ignore peanut.rawDbQuery (Platform disable updates the exact route locked and verified in this transaction.)
             }
             $this->audit($context, 'tenant.entry-binding.disabled', $changeReason, [
                 'tenant_id' => (int) $row['tenant_id'],

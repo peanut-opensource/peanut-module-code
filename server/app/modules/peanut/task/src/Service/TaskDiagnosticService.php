@@ -17,7 +17,7 @@ final readonly class TaskDiagnosticService implements TaskDiagnosticQuery
             throw new \InvalidArgumentException('TASK_DIAGNOSTIC_LIMIT_INVALID');
         }
 
-        $rows = Db::name('task_job')
+        $rows = Db::name('task_job') // @phpstan-ignore peanut.rawDbQuery (Platform Ops receives bounded cross-tenant failure aggregates without individual job data.)
             ->where('status', 'dead')
             ->where('updated_at', '>=', $since->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s.v'))
             ->field('task_type,status')

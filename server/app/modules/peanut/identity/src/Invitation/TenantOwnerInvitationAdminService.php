@@ -124,9 +124,9 @@ final class TenantOwnerInvitationAdminService
                     'Tenant already has a pending owner invitation.',
                 );
             }
-            if (Db::name('role')->where('tenant_id', $tenantId)->where('key', self::OWNER_ROLE)->lock(true)->value('id') === null) {
+            if (Db::name('role')->where('tenant_id', $tenantId)->where('key', self::OWNER_ROLE)->lock(true)->value('id') === null) { // @phpstan-ignore peanut.rawDbQuery (Owner-role lookup locks the exact role in the selected and locked tenant.)
                 $now = $this->format($this->now());
-                Db::name('role')->insert([
+                Db::name('role')->insert([ // @phpstan-ignore peanut.rawDbQuery (The new built-in role records the selected tenant ID.)
                     'tenant_id' => $tenantId, 'key' => self::OWNER_ROLE, 'name' => 'Tenant Owner',
                     'description' => 'Built-in owner role for tenant governance.', 'is_builtin' => 1,
                     'status' => 'active', 'created_at' => $now, 'updated_at' => $now,
@@ -168,7 +168,7 @@ final class TenantOwnerInvitationAdminService
         PageRequest $page,
     ): array {
         $this->authorization->assertAllowed($context, self::INVITE_PERMISSION);
-        $query = Db::name('tenant_owner_invitation')->where('tenant_id', $tenantId);
+        $query = Db::name('tenant_owner_invitation')->where('tenant_id', $tenantId); // @phpstan-ignore peanut.rawDbQuery (The platform invitation list filters to the explicitly selected tenant.)
         $items = (clone $query)
             ->field('id,tenant_id,email_normalized AS email,display_name,delivery_status,delivery_provider,delivery_attempts,delivery_error_code,generation,expires_at,accepted_at,revoked_at,accepted_account_id,accepted_member_id,invited_by_operator_id,revoked_by_operator_id,created_at,updated_at')
             ->fieldRaw("CASE WHEN status='pending' AND expires_at<=UTC_TIMESTAMP(3) THEN 'expired' ELSE status END AS status")
@@ -207,7 +207,7 @@ final class TenantOwnerInvitationAdminService
             }
             $this->assertOwnerBaseline($tenantId, (string) $tenant['status']);
             $now = $this->now();
-            Db::name('tenant_owner_invitation')->where('id', $invitationId)->where('status', 'pending')->update([
+            Db::name('tenant_owner_invitation')->where('id', $invitationId)->where('status', 'pending')->update([ // @phpstan-ignore peanut.rawDbQuery (Platform resend updates the exact invitation after locking it and its tenant in the same transaction.)
                 'token_hash' => $token->hash(),
                 'delivery_status' => 'pending_delivery',
                 'delivery_provider' => null,
@@ -262,7 +262,7 @@ final class TenantOwnerInvitationAdminService
                 );
             }
             $now = $this->format($this->now());
-            Db::name('tenant_owner_invitation')->where('id', $invitationId)->where('status', 'pending')->update([
+            Db::name('tenant_owner_invitation')->where('id', $invitationId)->where('status', 'pending')->update([ // @phpstan-ignore peanut.rawDbQuery (Platform revoke updates the exact invitation after locking it and its tenant in the same transaction.)
                 'status' => 'revoked',
                 'revoked_at' => $now,
                 'revoked_by_operator_id' => $context->operatorId,
@@ -297,7 +297,7 @@ final class TenantOwnerInvitationAdminService
         int $operatorId,
     ): array {
         $now = $this->format($this->now());
-        $id = Db::name('tenant_owner_invitation')->insertGetId([
+        $id = Db::name('tenant_owner_invitation')->insertGetId([ // @phpstan-ignore peanut.rawDbQuery (The issued invitation is inserted with the tenant selected by the platform operation.)
             'tenant_id' => $tenantId,
             'email_normalized' => $email,
             'display_name' => $displayName,
@@ -349,7 +349,7 @@ final class TenantOwnerInvitationAdminService
         if ($attempted === 1) {
             $changes['last_delivery_at'] = $now;
         }
-        Db::name('tenant_owner_invitation')->where('id', (int) $issued['id'])
+        Db::name('tenant_owner_invitation')->where('id', (int) $issued['id']) // @phpstan-ignore peanut.rawDbQuery (Delivery completion only updates the previously issued ID with the matching token hash and pending status.)
             ->where('token_hash', $token->hash())->where('status', 'pending')->update($changes);
 
         $response = array_replace($issued, ['delivery_status' => $result->status]);
@@ -363,7 +363,7 @@ final class TenantOwnerInvitationAdminService
     /** @return array{id:int,tenant_id:int,email_normalized:string,display_name:string,status:string,generation:int} */
     private function lockInvitationById(int $invitationId): array
     {
-        $row = Db::name('tenant_owner_invitation')->where('id', $invitationId)
+        $row = Db::name('tenant_owner_invitation')->where('id', $invitationId) // @phpstan-ignore peanut.rawDbQuery (Platform resend and revoke load and lock the unique invitation to derive its tenant.)
             ->field('id,tenant_id,email_normalized,display_name,status,generation')->lock(true)->find();
         if ($row === null) {
             throw TenantOwnerInvitationException::notFound();
@@ -412,21 +412,21 @@ final class TenantOwnerInvitationAdminService
     private function expireStalePending(int $tenantId): void
     {
         $now = $this->format($this->now());
-        Db::name('tenant_owner_invitation')->where('tenant_id', $tenantId)
+        Db::name('tenant_owner_invitation')->where('tenant_id', $tenantId) // @phpstan-ignore peanut.rawDbQuery (Expiry updates only pending invitations belonging to the selected tenant.)
             ->where('status', 'pending')->where('expires_at', '<=', $now)
             ->update(['status' => 'expired', 'updated_at' => $now]);
     }
 
     private function pendingInvitationExists(int $tenantId): bool
     {
-        return Db::name('tenant_owner_invitation')->where('tenant_id', $tenantId)
+        return Db::name('tenant_owner_invitation')->where('tenant_id', $tenantId) // @phpstan-ignore peanut.rawDbQuery (The pending check is limited to the selected tenant.)
             ->where('status', 'pending')->value('id') !== null;
     }
 
     /** @param list<string> $statuses */
     private function ownerMemberExists(int $tenantId, array $statuses): bool
     {
-        return Db::name('tenant_member')->alias('member')
+        return Db::name('tenant_member')->alias('member') // @phpstan-ignore peanut.rawDbQuery (The owner probe filters by tenant and requires tenant equality in member-role and role joins.)
             ->join('member_role membership', 'membership.tenant_id=member.tenant_id AND membership.tenant_member_id=member.id')
             ->join('role role', "role.tenant_id=membership.tenant_id AND role.id=membership.role_id AND role.`key`='core.tenant-owner' AND role.is_builtin=1 AND role.status='active'")
             ->where('member.tenant_id', $tenantId)->whereIn('member.status', $statuses)->value('member.id') !== null;
