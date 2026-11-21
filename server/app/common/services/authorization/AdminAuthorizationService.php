@@ -22,6 +22,7 @@ use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 use PeanutAdmin\Kernel\Context\RequestedTargetSet;
 use PeanutAdmin\Modules\Identity\Contract\AdminDirectoryQuery;
 use PeanutAdmin\Modules\Identity\Contract\TenantAuthorizationQuery;
+use PeanutAdmin\Modules\Identity\Contract\TenantSessionAccess;
 use PeanutAdmin\Modules\Identity\Platform\InstanceControlPlanePolicy;
 use app\common\validation\instance\InstanceToolAccessGuard;
 
@@ -37,22 +38,8 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
         private readonly CurrentExecutionContext $execution,
     ) {}
 
-    /** @var array<string, AdminPrincipal> */
-    private array $principalCache = [];
-
     public function principal(TenantContext $tenantContext, bool $includeTenantCount = true): AdminPrincipal
     {
-        $cacheKey = implode(':', [
-            $tenantContext->tenantId,
-            $tenantContext->accountId,
-            $tenantContext->memberId,
-            $tenantContext->authorizationRevision,
-            $tenantContext->tenantAuthorizationRevision,
-            $includeTenantCount ? '1' : '0',
-        ]);
-        if (isset($this->principalCache[$cacheKey])) {
-            return $this->principalCache[$cacheKey];
-        }
         $snapshot = $this->directory->activePrincipalProfileWithRoles($tenantContext->tenantId, $tenantContext->accountId, $includeTenantCount);
         if ($snapshot === null || $snapshot['profile']['member']->memberId !== $tenantContext->memberId) {
             throw new \DomainException('TENANT_ADMIN_PRINCIPAL_UNAVAILABLE');
@@ -66,7 +53,7 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
             $root = $root || ($role['key'] === 'core.tenant-owner' && $role['is_builtin']);
         }
 
-        return $this->principalCache[$cacheKey] = new AdminPrincipal(
+        return new AdminPrincipal(
             id: $member->memberId,
             tenantId: $member->tenantId,
             accountId: $member->accountId,
@@ -278,6 +265,18 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
     /** Reuse this request's exact endpoint admission; pending keys use a fresh projection. */
     public function decisions(TenantContext $tenantContext, array $accessUris): array
     {
+        $verified = !app()->runningInConsole() ? app()->request->middleware(TenantSessionAccess::class) : null;
+        if ($verified === $tenantContext) {
+            // Consume even if the endpoint grant makes the projection unnecessary.
+            app()->request->withMiddleware([TenantSessionAccess::class => null]);
+        }
+        $root = $this->execution->current();
+        $freshIdentity = $verified === $tenantContext && $root instanceof AdminExecutionContext
+            && $root->tenant->tenantId === $tenantContext->tenantId
+            && $root->tenant->accountId === $tenantContext->accountId
+            && $root->tenant->memberId === $tenantContext->memberId
+            && $root->tenant->sessionKey === $tenantContext->sessionKey
+            && $root->tenant->clientKey === $tenantContext->clientKey;
         if ($accessUris === []) {
             return [];
         }
@@ -299,7 +298,10 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
         // Direct calls and transactions retain their current membership/revision boundary.
         $current = $this->execution->current();
         $pdo = Db::connect()->getPdo();
-        if (!app()->runningInConsole() && app()->request->isGet()
+        if ($freshIdentity) {
+            // Identity has just checked the live membership, credential and session for this exact object.
+            $authorizationRevision = $tenantContext->authorizationRevision;
+        } elseif (!app()->runningInConsole() && app()->request->isGet()
             && ($pdo === false || !$pdo->inTransaction())
             && $current instanceof AdminExecutionContext && $current->tenant === $tenantContext
             && $current->principal !== []) {

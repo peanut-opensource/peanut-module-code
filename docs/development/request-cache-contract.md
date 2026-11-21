@@ -39,6 +39,8 @@ T=tenantId，M=memberId，MA=member authorization_revision，TA=tenant authoriza
 
 除鉴权前的 Host 映射以外，以上请求资料缓存仅接受 `TenantAuthService::authenticatedRead` 给出的当前 HTTP GET、同一个已验证 context、无数据库事务的请求。CLI、写请求、锁定读取、事务内读取沿实时路径。请求结束后原生 Request 中的身份和结果不进入跨请求静态对象。Host 映射只确定入口，不授予会话或记录访问权。
 
+File 管理操作另有一次性身份交接：Identity 实时核对当前会话、成员、账户、租户和有效凭据后，将该次返回的精确 context 仅交给紧接着的一次宿主权限投影；宿主核对当前执行身份并立即消费，调用结束清除。该交接不缓存权限决定，不扩展上述跨请求 GET 缓存，也不跨 File 的执行阶段、事务或外部 I/O 复用；下一阶段仍实时复验。
+
 身份资料的 `updated_at` 是毫秒时间戳，不是严格单调资料版本；权限及停用不依赖它。若后续要求同毫秒连续资料更新也必须立即显影，应复用正式资料 revision 或按实际资料值生成摘要，不能据 TTL 宣称绝对即时更新。
 
 ## 4. 写入口必须承担的责任
