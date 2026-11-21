@@ -1626,8 +1626,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             || (int) ($source['tenant_id'] ?? 0) !== $context->tenantId) {
             throw BusinessException::conflict('FILE_VISIBILITY_OPERATION_CHANGED', '资源操作已改变');
         }
-        $old = $this->visibilityLocation($source);
-        $new = $this->visibilityLocation($target);
+        [$old, $new] = $this->visibilityLocations($source, $target);
         $sourceDriver = $this->drivers->make($old, $old);
         $targetDriver = $this->drivers->make($new, $new);
         $origin = null;
@@ -1723,11 +1722,34 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             + ($anonymousStatus === null ? [] : ['source_anonymous_status' => $anonymousStatus]);
     }
 
+    /** @return array{0: array<string, mixed>, 1: array<string, mixed>} */
+    private function visibilityLocations(array $source, array $target): array
+    {
+        $ids = array_values(array_unique([$source['storage_space_id'], $target['storage_space_id']]));
+        $rows = StorageSpace::alias('s')->join('storage_account a', 'a.id=s.account_id')
+            ->whereIn('s.id', $ids)->where('s.status', 'active')->where('a.status', 'active')
+            ->field('a.*,s.id AS space_id,s.space_key,s.access_type,s.bucket,s.region,s.endpoint,s.access_domain,s.local_path')
+            ->select()->toArray();
+        $bySpaceId = [];
+        foreach ($rows as $row) {
+            $bySpaceId[(int) $row['space_id']] = $row;
+        }
+        return [
+            $this->assertVisibilityLocation($source, $bySpaceId[(int) $source['storage_space_id']] ?? null),
+            $this->assertVisibilityLocation($target, $bySpaceId[(int) $target['storage_space_id']] ?? null),
+        ];
+    }
+
     private function visibilityLocation(array $location): array
     {
         $row = $this->find(StorageSpace::alias('s')->join('storage_account a', 'a.id=s.account_id')
             ->where('s.id', $location['storage_space_id'])->where('s.status', 'active')->where('a.status', 'active')
             ->field('a.*,s.id AS space_id,s.space_key,s.access_type,s.bucket,s.region,s.endpoint,s.access_domain,s.local_path'));
+        return $this->assertVisibilityLocation($location, $row);
+    }
+
+    private function assertVisibilityLocation(array $location, ?array $row): array
+    {
         if ($row === null || $row['driver'] !== $location['driver']
             || $row['space_key'] !== $location['space_key'] || $row['access_type'] !== $location['access_type']) {
             throw BusinessException::conflict('FILE_VISIBILITY_ROUTE_CHANGED', '存储配置已改变，保留现场等待处理');
