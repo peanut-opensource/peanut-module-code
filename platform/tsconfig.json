@@ -9,7 +9,8 @@
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "types": ["vite/client"],
-    "lib": ["ES2022", "DOM"]
+    "lib": ["ES2022", "DOM"],
+    "rootDirs": ["src", "src/stubs"]
   },
   "include": ["src/**/*.ts", "src/**/*.vue"],
   "exclude": [

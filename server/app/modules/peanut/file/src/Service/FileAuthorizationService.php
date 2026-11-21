@@ -66,6 +66,9 @@ final readonly class FileAuthorizationService
 
     public function requireManagementPermission(TenantContext $context, string $permission): void
     {
+        /** @var \WeakMap<\think\Request, array<string, true>>|null $requestGrantCache */
+        static $requestGrantCache = null;
+
         $identity = $this->sessions->revalidateManagementSession(
             $context->tenantId, $context->accountId, $context->memberId, $context->sessionKey,
             $context->clientKey, 'file-delivery-' . bin2hex(random_bytes(8)),
@@ -77,9 +80,18 @@ final readonly class FileAuthorizationService
         if (!$identity['active_credential']) {
             throw new \DomainException('TENANT_ADMIN_PRINCIPAL_UNAVAILABLE');
         }
+
+        $request = app()->runningInConsole() ? null : app()->request;
+        $cacheKey = "{$current->tenantId}:{$current->memberId}:{$current->authorizationRevision}:{$current->tenantAuthorizationRevision}:{$permission}";
+        if ($request instanceof \think\Request) {
+            $requestGrantCache ??= new \WeakMap();
+            if (($requestGrantCache[$request][$cacheKey] ?? false) === true) {
+                return;
+            }
+        }
+
         // The freshly revalidated context takes the live grant path, including the
         // plan's effective window, module selection, and matching installation manifest.
-        $request = app()->runningInConsole() ? null : app()->request;
         $request?->withMiddleware([TenantSessionAccess::class => $current]);
         try {
             $decisions = $this->authorization->decisions($current, ['peanut.file.manage', $permission]);
@@ -90,6 +102,12 @@ final readonly class FileAuthorizationService
             if (!$decisions[$required]->allowed) {
                 throw BusinessException::forbidden('FILE_MANAGEMENT_DENIED', '无权管理资源');
             }
+        }
+
+        if ($request instanceof \think\Request) {
+            $granted = $requestGrantCache[$request] ?? [];
+            $granted[$cacheKey] = true;
+            $requestGrantCache[$request] = $granted;
         }
     }
 
