@@ -60,6 +60,7 @@ final class BusinessEvidenceTest extends TestCase
     protected function setUp(): void
     {
         $this->server = dirname(__DIR__, 3);
+        require_once $this->server . '/vendor/topthink/framework/src/helper.php';
         require_once __DIR__ . '/BusinessEvidenceSupport.php';
         require_once __DIR__ . '/../Peanut/File/SnapshotRecoveryReceiptSupport.php';
         class_alias(Drivers::class, 'PeanutAdmin\\Modules\\File\\Composition\\Storage\\StorageDriverFactory');
@@ -101,6 +102,10 @@ final class BusinessEvidenceTest extends TestCase
         Db::execute('CREATE TABLE business_outbox (command_key TEXT PRIMARY KEY, file_key TEXT)');
         $sessions = $this->createStub(PeanutAdmin\Modules\Identity\Contract\TenantSessionAccess::class);
         $sessions->method('revalidateSession')->willReturnCallback(function (int $tenant, int $account, int $member): TenantContext {
+            $this->fileSessionChecks++;
+            return $this->actor($tenant, $account, $member, $this->liveRevision, $this->liveTenantRevision);
+        });
+        $sessions->method('revalidateManagementSession')->willReturnCallback(function (int $tenant, int $account, int $member): TenantContext {
             $this->fileSessionChecks++;
             return $this->actor($tenant, $account, $member, $this->liveRevision, $this->liveTenantRevision);
         });

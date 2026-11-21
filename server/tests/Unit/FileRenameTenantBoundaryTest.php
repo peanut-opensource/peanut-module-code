@@ -55,6 +55,7 @@ final class FileRenameTenantBoundaryTest extends TestCase
 
         $sessions = $this->createStub(TenantSessionAccess::class);
         $sessions->method('revalidateSession')->willReturnCallback(static fn() => $current->tenantAdmin());
+        $sessions->method('revalidateManagementSession')->willReturnCallback(static fn() => $current->tenantAdmin());
         $authorization = $this->createStub(AdminAuthorizationQuery::class);
         $authorization->method('principal')->willReturnCallback(static fn(TenantContext $actor) => AdminPrincipal::fromArray([
             'id' => $actor->memberId, 'tenant_id' => $actor->tenantId, 'account_id' => $actor->accountId, 'authorization_revision' => 1,
