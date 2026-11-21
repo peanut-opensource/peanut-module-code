@@ -1514,7 +1514,8 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
                 throw BusinessException::notFound('FILE_VISIBILITY_OBJECT_NOT_FOUND', '资源不存在');
             }
         }
-        $objects = $this->directory->tenantStatus($context->tenantId) === null ? [] : array_column(
+        // The enclosing visibility operation has just revalidated this active tenant.
+        $objects = array_column(
             $this->objectQuery($context->tenantId)->whereIn('f.file_key', $keys)->select()->toArray(),
             null,
             'file_key',
@@ -1619,7 +1620,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
     {
         $this->authorization->requireManagementPermission($context, 'peanut.file.visibility.change');
         $key = $source['file_key'] ?? '';
-        $object = $this->objectForTenant($context->tenantId, $key, false);
+        $object = $this->find($this->objectQuery($this->logicalTenantId($context->tenantId))->where('f.file_key', $key));
         if ($object === null || ($object['visibility_batch_key'] ?? null) !== $batchKey
             || !in_array($object['status'], ['restricting','verifying','restricted_attention'], true)
             || (int) ($source['tenant_id'] ?? 0) !== $context->tenantId) {

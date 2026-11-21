@@ -66,14 +66,22 @@ final readonly class FileAuthorizationService
 
     public function requireManagementPermission(TenantContext $context, string $permission): void
     {
-        $current = $this->grantContext(['tenant_id' => $context->tenantId, 'account_id' => $context->accountId,
-            'member_id' => $context->memberId, 'session_key' => $context->sessionKey, 'client_key' => $context->clientKey]);
+        $current = $this->sessions->revalidateManagementSession(
+            $context->tenantId, $context->accountId, $context->memberId, $context->sessionKey,
+            $context->clientKey, 'file-delivery-' . bin2hex(random_bytes(8)),
+        );
         if ($current->authorizationRevision !== $context->authorizationRevision) {
             throw BusinessException::forbidden('FILE_AUTHORIZATION_STALE', '资源授权已改变');
         }
         // The freshly revalidated context takes the live grant path, including the
         // plan's effective window, module selection, and matching installation manifest.
-        $decisions = $this->authorization->decisions($current, ['peanut.file.manage', $permission]);
+        $request = app()->runningInConsole() ? null : app()->request;
+        $request?->withMiddleware([TenantSessionAccess::class => $current]);
+        try {
+            $decisions = $this->authorization->decisions($current, ['peanut.file.manage', $permission]);
+        } finally {
+            $request?->withMiddleware([TenantSessionAccess::class => null]);
+        }
         foreach (['peanut.file.manage', $permission] as $required) {
             if (!$decisions[$required]->allowed) {
                 throw BusinessException::forbidden('FILE_MANAGEMENT_DENIED', '无权管理资源');

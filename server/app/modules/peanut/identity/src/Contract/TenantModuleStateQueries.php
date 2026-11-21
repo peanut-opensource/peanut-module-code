@@ -120,8 +120,9 @@ final readonly class TenantModuleStateQueries
     }
 
     /**
-     * Authenticated GETs share the installation map under the live tenant authorization revision.
-     * Catalog lifecycle writes advance that revision in the same transaction; other reads stay live.
+     * HTTP GET and authenticated Admin requests share nonlocking facts for this Request.
+     * Only authenticated GETs use the cross-request map under the live tenant authorization revision.
+     * Lifecycle writes clear request facts; transactions and locked reads remain live.
      * Each consumer still checks the fact against its compiled manifest and original error contract.
      * A consumer with a combined live JOIN can request only an already shared fact without adding a query.
      * @return array{module_key:mixed,installed_version:mixed,manifest_schema_version:mixed,manifest_digest:mixed,status:mixed,revision:mixed}|null
@@ -132,8 +133,13 @@ final readonly class TenantModuleStateQueries
             return $read['installations'][$moduleKey];
         }
         $pdo = Db::connect()->getPdo();
-        $request = !$lock && !app()->runningInConsole() && app()->request->isGet()
-            && ($pdo === false || !$pdo->inTransaction()) ? app()->request : null;
+        $request = null;
+        if (!$lock && !app()->runningInConsole() && ($pdo === false || !$pdo->inTransaction())) {
+            $current = app()->make(\app\common\execution\CurrentExecutionContext::class)->current();
+            if (app()->request->isGet() || $current instanceof \app\common\execution\AdminExecutionContext) {
+                $request = app()->request;
+            }
+        }
         $rows = $request?->middleware(self::class, []) ?? [];
         if ($request !== null && array_key_exists($moduleKey, $rows)) {
             return $rows[$moduleKey];
@@ -166,6 +172,14 @@ final readonly class TenantModuleStateQueries
             $request->withMiddleware([self::class => $rows]);
         }
         return $row;
+    }
+
+    /** Drop request-local installation facts before a lifecycle write or a new live phase. */
+    public static function invalidateRequestInstallations(): void
+    {
+        if (!app()->runningInConsole()) {
+            app()->request->withMiddleware([self::class => []]);
+        }
     }
 
     /**

@@ -37,6 +37,11 @@ final class Sessions implements TenantSessionAccess
         [$tenant, $account] = $this->identity($member);
         return $this->revalidateSession($tenant, $account, $member, 'synthetic-comment-' . $member, 'admin-web', 'comment-test');
     }
+    public function revalidateManagementSession(int $tenantId, int $accountId, int $memberId, string $sessionKey, string $clientKey, string $requestId): TenantContext
+    {
+        return $this->revalidateSession($tenantId, $accountId, $memberId, $sessionKey, $clientKey, $requestId);
+    }
+
     public function revalidateSession(int $tenantId, int $accountId, int $memberId, string $sessionKey, string $clientKey, string $requestId): TenantContext
     {
         [$tenant, $account] = $this->identity($memberId);

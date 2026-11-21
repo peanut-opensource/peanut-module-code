@@ -280,6 +280,11 @@ same(false, $transport->request?->followRedirects, 'redirect disabled');
 truth(preg_match('/^v1=[0-9a-f]{64}$/D', $transport->request?->headers['X-Peanut-Signature'] ?? '') === 1, 'signature shape');
 
 $sessionAccess = new class implements TenantSessionAccess {
+    public function revalidateManagementSession(int $tenantId, int $accountId, int $memberId, string $sessionKey, string $clientKey, string $requestId): TenantContext
+    {
+        return $this->revalidateSession($tenantId, $accountId, $memberId, $sessionKey, $clientKey, $requestId);
+    }
+
     public function revalidateSession(int $tenantId, int $accountId, int $memberId, string $sessionKey, string $clientKey, string $requestId): TenantContext
     {
         throw new LogicException('This session-list fixture must not revalidate worker sessions.');

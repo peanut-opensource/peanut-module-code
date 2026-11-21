@@ -63,6 +63,47 @@ final readonly class TenantSessionAccessService implements TenantSessionAccess
         ), $requestId);
     }
 
+    public function revalidateManagementSession(int $tenantId, int $accountId, int $memberId, string $sessionKey, string $clientKey, string $requestId): TenantContext
+    {
+        if ($tenantId < 1 || $accountId < 1 || $memberId < 1
+            || preg_match('/^[0-9A-HJKMNP-TV-Z]{26}$/D', $sessionKey) !== 1
+            || trim($clientKey) === '' || trim($requestId) === '') {
+            throw TenantSessionAccessException::denied();
+        }
+        $now = $this->format(new DateTimeImmutable('now', new DateTimeZone('UTC')));
+        $row = TenantSession::alias('session')
+            ->join('tenant_member member', "member.id=session.tenant_member_id AND member.tenant_id=session.tenant_id AND member.account_id=session.account_id AND member.status='active'")
+            ->join('tenant tenant', "tenant.id=member.tenant_id AND tenant.status='active'")
+            ->join('account account', "account.id=member.account_id AND account.status='active'")
+            ->leftJoin('credential credential', "credential.account_id=account.id AND credential.kind='email_password' AND credential.identifier_type='email' AND credential.status='active'")
+            ->where('session.tenant_id', $tenantId)->where('session.account_id', $accountId)
+            ->where('session.tenant_member_id', $memberId)->where('session.session_key', $sessionKey)
+            ->where('session.client_key', $clientKey)->where('session.status', 'active')
+            ->whereColumn('session.account_security_revision', 'account.security_revision')
+            ->whereColumn('session.tenant_security_revision', 'tenant.security_revision')
+            ->whereColumn('session.member_security_revision', 'member.security_revision')
+            ->where('session.idle_expires_at', '>', $now)->where('session.absolute_expires_at', '>', $now)
+            ->field('session.id,session.issued_at,member.authorization_revision,tenant.authorization_revision AS tenant_authorization_revision,credential.id AS credential_id')
+            ->find()?->toArray();
+        if ($row === null) {
+            throw TenantSessionAccessException::denied();
+        }
+        if ($row['credential_id'] === null) {
+            throw new \DomainException('TENANT_ADMIN_PRINCIPAL_UNAVAILABLE');
+        }
+        $execution = app()->make(\app\common\execution\CurrentExecutionContext::class)->current();
+        if (!$execution instanceof \app\common\execution\AdminExecutionContext
+            || $execution->tenant->tenantId !== $tenantId
+            || $execution->tenant->tenantAuthorizationRevision !== (int) $row['tenant_authorization_revision']) {
+            \PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::invalidateRequestInstallations();
+        }
+        return TenantContext::fromValidatedSession(new ValidatedTenantSession(
+            (int) $row['id'], $sessionKey, $tenantId, $accountId, $memberId, $clientKey,
+            new DateTimeImmutable((string) $row['issued_at'], new DateTimeZone('UTC')),
+            (int) $row['authorization_revision'], (int) $row['tenant_authorization_revision'],
+        ), $requestId);
+    }
+
     public function ownedSessions(TenantContext $context): array
     {
         $member = $this->assertActor($context);

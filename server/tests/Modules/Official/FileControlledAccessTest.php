@@ -115,6 +115,18 @@ try {
     $sessions = $app->make(TenantSessionAccess::class);
     $context = $sessions->revalidateSession($tenant, $account, $member, $sessionKey, 'admin-web', 'r0-native');
     fileAccessExpect($context->tenantId === $tenant && $context->memberId === $member, 'native live session restoration');
+    $management = $sessions->revalidateManagementSession($tenant, $account, $member, $sessionKey, 'admin-web', 'r0-management');
+    fileAccessExpect($management->authorizationRevision === $context->authorizationRevision
+        && $management->tenantAuthorizationRevision === $context->tenantAuthorizationRevision, 'management identity uses live revisions');
+    $pdo->exec("UPDATE pa_credential SET status='locked' WHERE account_id={$account} AND kind='email_password' AND identifier_type='email'");
+    try {
+        $sessions->revalidateManagementSession($tenant, $account, $member, $sessionKey, 'admin-web', 'r0-credential-disabled');
+        throw new RuntimeException('inactive management credential accepted');
+    } catch (DomainException $error) {
+        fileAccessExpect($error->getMessage() === 'TENANT_ADMIN_PRINCIPAL_UNAVAILABLE', 'inactive credential preserves principal rejection');
+    } finally {
+        $pdo->exec("UPDATE pa_credential SET status='active' WHERE account_id={$account} AND kind='email_password' AND identifier_type='email'");
+    }
     fileAccessDenied(fn() => $sessions->revalidateSession($tenant, $account, $member, $sessionKey, 'pc-web', 'r0-client'), 'wrong client');
     fileAccessDenied(fn() => $sessions->revalidateSession($tenant + 1, $account, $member, $sessionKey, 'admin-web', 'r0-foreign'), 'foreign tenant');
     fileAccessDenied(fn() => $sessions->revalidateSession($tenant, $account, $member, '01K00000000000000000000002', 'admin-web', 'r0-unknown'), 'unknown durable session');

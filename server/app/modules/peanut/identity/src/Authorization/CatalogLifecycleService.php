@@ -23,6 +23,7 @@ final readonly class CatalogLifecycleService
      */
     public function refreshActiveCatalogIdentities(array $manifests): int
     {
+        \PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::invalidateRequestInstallations();
         $changed = 0;
         foreach ($manifests as $manifest) {
             $changed += Db::name('module_installation')
@@ -46,6 +47,7 @@ final readonly class CatalogLifecycleService
      */
     public function registerDeployedManifest(ManifestDocument $manifest, bool $invalidate = true): array
     {
+        \PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::invalidateRequestInstallations();
         $identity = [
             'key' => (string) $manifest->data['key'],
             'version' => (string) $manifest->data['version'],
@@ -86,6 +88,7 @@ final readonly class CatalogLifecycleService
     /** @param array<string,ManifestDocument> $manifests */
     public function beginPackageDeployment(array $manifests, bool $upgrade, string $now): void
     {
+        \PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::invalidateRequestInstallations();
         Db::transaction(function () use ($manifests, $upgrade, $now): void {
             foreach ($manifests as $manifest) {
                 $moduleKey = (string) $manifest->data['key'];
@@ -119,6 +122,7 @@ final readonly class CatalogLifecycleService
     /** @param array<string,ManifestDocument> $manifests */
     public function activatePackageDeployment(array $manifests, bool $upgrade, string $now, bool $invalidate = true): void
     {
+        \PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::invalidateRequestInstallations();
         Db::transaction(function () use ($manifests, $upgrade, $now, $invalidate): void {
             foreach ($manifests as $manifest) {
                 $moduleKey = (string) $manifest->data['key'];
@@ -146,6 +150,7 @@ final readonly class CatalogLifecycleService
     /** @param list<string> $moduleKeys */
     public function markPackageDeploymentFailed(array $moduleKeys, string $errorCode, string $now): void
     {
+        \PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::invalidateRequestInstallations();
         Db::transaction(function () use ($moduleKeys, $errorCode, $now): void {
             if ($moduleKeys !== []) {
                 Db::name('module_installation')->whereIn('module_key', $moduleKeys)->update([
@@ -162,6 +167,7 @@ final readonly class CatalogLifecycleService
     /** Disable only currently active members, preserving the original database-clock timestamp semantics. @param list<string> $moduleKeys */
     public function disableActivePackageModules(array $moduleKeys, bool $invalidate = true): void
     {
+        \PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::invalidateRequestInstallations();
         Db::transaction(function () use ($moduleKeys, $invalidate): void {
             if ($moduleKeys !== []) {
                 Db::name('module_installation')->whereIn('module_key', $moduleKeys)->where('status', 'active')->update([
@@ -180,6 +186,7 @@ final readonly class CatalogLifecycleService
     /** @param list<string> $moduleKeys */
     public function markPackageModulesForRecovery(array $moduleKeys, string $marker, string $now): void
     {
+        \PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::invalidateRequestInstallations();
         Db::transaction(function () use ($moduleKeys, $marker, $now): void {
             if ($moduleKeys !== []) {
                 Db::name('module_installation')->whereIn('module_key', $moduleKeys)->update([
@@ -196,6 +203,7 @@ final readonly class CatalogLifecycleService
     /** @param list<string> $moduleKeys */
     public function finalizePackageRemoval(array $moduleKeys, bool $purge, string $now): void
     {
+        \PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::invalidateRequestInstallations();
         Db::transaction(function () use ($moduleKeys, $purge, $now): void {
             if ($moduleKeys === []) {
                 return;
@@ -214,6 +222,7 @@ final readonly class CatalogLifecycleService
     /** @param array<string, ManifestDocument> $manifests */
     public function retireMissing(array $manifests, bool $invalidate = true): void
     {
+        \PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::invalidateRequestInstallations();
         $moduleKeys = array_keys($manifests);
         if ($moduleKeys === []) {
             return;
@@ -296,6 +305,7 @@ final readonly class CatalogLifecycleService
     /** @param list<string> $moduleKeys */
     public function retire(array $moduleKeys, bool $invalidate = true): void
     {
+        \PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::invalidateRequestInstallations();
         Db::transaction(function () use ($moduleKeys, $invalidate): void {
             $now = $this->now();
             if ($moduleKeys !== []) {
@@ -318,6 +328,7 @@ final readonly class CatalogLifecycleService
     /** @param list<string> $moduleKeys */
     public function purge(array $moduleKeys, bool $invalidate = true): void
     {
+        \PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::invalidateRequestInstallations();
         Db::transaction(function () use ($moduleKeys, $invalidate): void {
             if ($moduleKeys !== []) {
                 Db::name('system_api')->whereIn('module_key', $moduleKeys)->update([
