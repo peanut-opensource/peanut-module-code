@@ -36,6 +36,7 @@ final readonly class Catalog
                 'author' => 'authors',
                 'definition' => 'definitions',
                 'default' => 'defaults',
+                default => throw new \UnexpectedValueException('AI_CATALOG_KIND_INVALID'),
             }][] = $this->present($row);
         }
         return $result + ['can_configure' => $this->allowed($tenant, 'configure')];
@@ -154,7 +155,7 @@ final readonly class Catalog
         });
     }
 
-    public function query(TenantContext $tenant, ?string $kind = null): BaseQuery
+    public function query(TenantContext $tenant, ?string $kind = null): \think\db\Query
     {
         // @phpstan-ignore peanut.rawDbQuery (Every catalog operation starts with the verified tenant predicate.)
         $query = Db::name('ai_access_catalog')->where('tenant_id', $tenant->tenantId);

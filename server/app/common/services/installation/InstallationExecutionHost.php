@@ -171,7 +171,7 @@ final class InstallationExecutionHost
             'official_modules' => $this->officialModules(!$this->isInstalled() && !is_file($this->progressMarker())),
         ];
         $complete = $this->isInstalled();
-        if (($preflight['status'] ?? null) !== 'ready') {
+        if ($preflight['status'] !== 'ready') {
             return [
                 ...$base,
                 'state' => 'blocked',
@@ -681,7 +681,7 @@ SQL);
 
     private function pdo(): PDO
     {
-        $connection = Db::connect();
+        $connection = \think\Container::getInstance()->make(\think\DbManager::class)->connect();
         if (!$connection instanceof PDOConnection) {
             throw new RuntimeException('INSTALL_DATABASE_DRIVER_UNAVAILABLE');
         }
@@ -962,7 +962,7 @@ SQL);
             }
         }
         $source = $receipt['source'];
-        $required = match (is_array($source) ? ($source['kind'] ?? null) : null) {
+        $required = match ($source['kind'] ?? null) {
             'development-runtime' => ['development_runtime_identity_sha256', 'application_manifest_sha256'],
             'server-release' => ['server_release_identity_sha256', 'application_manifest_sha256'],
             'generated-application' => ['application_manifest_sha256'],

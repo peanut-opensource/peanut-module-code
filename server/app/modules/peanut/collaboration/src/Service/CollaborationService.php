@@ -113,7 +113,7 @@ final readonly class CollaborationService implements \PeanutAdmin\Modules\Collab
                 }
                 // Retain the existing internal session ledger and its revocation/grant joins.
                 // No browser credential is issued or persisted, and this row is never trusted as client input.
-                $ticket = CollaborationTicket::create(['tenant_id' => $actor->tenantId,
+                $ticket = CollaborationTicket::createModel(['tenant_id' => $actor->tenantId,
                     'instance_id' => $this->configuration['instance_id'],'edition' => $this->edition,
                     'document_id' => $documentId,'jti' => bin2hex(random_bytes(32)),
                     'ticket_sha256' => bin2hex(random_bytes(32)),'mode' => $mode,
@@ -128,7 +128,7 @@ final readonly class CollaborationService implements \PeanutAdmin\Modules\Collab
                 $room = CollaborationRoom::where('document_id', $ticket->document_id)->where('instance_id', $ticket->instance_id)
                     ->where('edition', $ticket->edition)->lock(true)->find();
                 if ($room === null) {
-                    $room = CollaborationRoom::create(['tenant_id' => $actor->tenantId,'document_id' => $ticket->document_id,
+                    $room = CollaborationRoom::createModel(['tenant_id' => $actor->tenantId,'document_id' => $ticket->document_id,
                         'instance_id' => $ticket->instance_id,'edition' => $ticket->edition,'room_key' => bin2hex(random_bytes(32)),
                         'binding_json' => json_encode($binding, JSON_THROW_ON_ERROR),'service_instance_id' => $request->serviceInstanceId,
                         'holder_key' => $request->holderKey,
@@ -155,7 +155,7 @@ final readonly class CollaborationService implements \PeanutAdmin\Modules\Collab
                         ['room_key' => $room->room_key,'lease_epoch' => (int) $room->lease_epoch,'binding' => $binding],
                     );
                 }
-                $connection = CollaborationConnection::create(['tenant_id' => $actor->tenantId,'connection_key' => bin2hex(random_bytes(32)),
+                $connection = CollaborationConnection::createModel(['tenant_id' => $actor->tenantId,'connection_key' => bin2hex(random_bytes(32)),
                     'ticket_id' => $ticket->id,'room_id' => $room->id,'lease_epoch' => $room->lease_epoch,'mode' => $ticket->mode,
                     'status' => 'active','authorization_revision' => $doc['authorization_revision'],
                     'lease_expires_at' => self::date(time() + $this->configuration['connection_lease_seconds']),'created_at' => self::date()]);

@@ -100,7 +100,7 @@ final readonly class PlatformUpgradeTarget
         $metadataVersion = $metadata['release_version'];
         if ($release['key'] !== 'v' . $productRelease
             || $metadataVersion !== $productRelease
-            || (($metadata['schema_version'] ?? null) === 2
+            || ($metadata['schema_version'] === 2
                 && ($metadata['source_product_version'] ?? null) !== $versions->sourceProductVersion())
             || $metadata['expected_tag'] !== $release['key']
             || !hash_equals($application['package_identity'], $metadata['application_identity'])
@@ -252,7 +252,7 @@ final readonly class PlatformUpgradeTarget
                 throw new RuntimeException('UPGRADE_TARGET_RELEASE_TREE_INVALID');
             }
             $stat = stat($path);
-            if (!is_array($stat) || !is_int($stat['mode'] ?? null)) {
+            if (!is_array($stat)) {
                 throw new RuntimeException('UPGRADE_TARGET_RELEASE_TREE_INVALID');
             }
             $entries[] = [
@@ -302,7 +302,7 @@ final readonly class PlatformUpgradeTarget
         }
         try {
             $stat = fstat($handle);
-            $size = is_array($stat) ? ($stat['size'] ?? null) : null;
+            $size = is_array($stat) ? $stat['size'] : null;
             if (!is_int($size) || $size < 0) {
                 throw new RuntimeException('UPGRADE_TARGET_RELEASE_TREE_INVALID');
             }
@@ -542,7 +542,7 @@ final readonly class PlatformUpgradeTarget
                 throw new RuntimeException('UPGRADE_TARGET_RELEASE_IDENTITY_INVALID');
             }
         }
-        $v2 = ($metadata['schema_version'] ?? null) === 2
+        $v2 = $metadata['schema_version'] === 2
             && ($metadata['protocol'] ?? null) === 'peanut.release-metadata.v2';
         $releaseVersion = $v2
             ? ($metadata['instance_version'] ?? $metadata['source_product_version'] ?? null)

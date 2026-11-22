@@ -76,7 +76,7 @@ class VerificationCodeService
             $context,
             $tenantId,
             (int) $scene->id,
-            (string) $scene->name,
+            (string) $scene->getAttr('name'),
             $sceneCode,
             $mobile,
             $content,
@@ -108,9 +108,9 @@ class VerificationCodeService
         }
 
         $outcome = $this->normalizeOutcome($result);
-        $provider = trim((string) ($result['provider'] ?? ''));
-        $error = trim((string) ($result['error'] ?? ''));
-        $receipt = is_array($result['result'] ?? null) ? $result['result'] : [];
+        $provider = trim((string) ($result['provider']));
+        $error = trim((string) ($result['error']));
+        $receipt = $result['result'];
         if ($outcome === SmsDriverResult::OUTCOME_UNKNOWN && $error === '') {
             $error = '短信服务商调用结果未知，请稍后重试';
         }

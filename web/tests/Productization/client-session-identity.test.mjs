@@ -5,13 +5,16 @@ import { dirname, resolve } from 'node:path';
 import { webcrypto } from 'node:crypto';
 import vm from 'node:vm';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import {
   createMemoryRefreshCoordinator,
   createSessionRecovery,
   createSessionFetch,
-} from '../../node_modules/@peanut-admin/client/dist/index.js';
+  formatRequestError,
+} from '@peanut-admin/client';
 
 const root = resolve(import.meta.dirname, '../../..');
+const clientEntry = fileURLToPath(import.meta.resolve('@peanut-admin/client'));
 const ts = createRequire(resolve(root, 'web/package.json'))('typescript');
 const axios = createRequire(resolve(root, 'platform/package.json'))('axios');
 const storage = () => {
@@ -33,10 +36,14 @@ function load(
   path,
   localStorage,
   bindings = {},
-  window = { addEventListener() {}, removeEventListener() {}, location: { reload() {} } }
+  window = { addEventListener() {}, removeEventListener() {}, location: { reload() {} } },
+  modules = new Map()
 ) {
+  const file = resolve(root, path);
+  if (modules.has(file)) return modules.get(file);
   const exports = {};
-  const source = readFileSync(resolve(root, path), 'utf8').replaceAll(
+  modules.set(file, exports);
+  const source = readFileSync(file, 'utf8').replaceAll(
     'import.meta.env.VITE_API_BASE_URL',
     'undefined'
   ).replaceAll('import.meta.hot', 'undefined');
@@ -55,7 +62,11 @@ function load(
     URL,
     require: (name) => {
       if (Object.hasOwn(bindings, name)) return bindings[name];
-      if (name.startsWith('.')) return load(resolve(dirname(path), name.replace(/(?:\.js)?$/, '.ts')), localStorage);
+      if (name === '@peanut-admin/client') return load(clientEntry, localStorage, {}, window, modules);
+      if (name.startsWith('.')) {
+        const child = name.endsWith('.js') ? name : name + '.ts';
+        return load(resolve(dirname(file), child), localStorage, bindings, window, modules);
+      }
       assert.fail(`Unexpected import: ${name}`);
     },
   });
@@ -177,7 +188,7 @@ function tenantHost({ refresh, status = 401, code = 40100 } = {}) {
       ElMessage: { error: (message) => messages.push(message) },
     },
     '@/utils/auth': auth,
-    '@/utils/request-trace': load('web/src/utils/request-trace.ts', localStorage),
+    '@peanut-admin/client': { formatRequestError },
     '@/locale': { default: { global: { t: (key) => key } } },
     '@peanut-admin/vue': { isTenantAccessToken },
     '@/api/tenant-session-refresh': recovery,
@@ -195,8 +206,8 @@ function tenantHost({ refresh, status = 401, code = 40100 } = {}) {
     {
       'element-plus': { ElMessage: { error: (message) => messages.push(message) } },
       '@/utils/auth': auth,
-      '@/utils/request-trace': load('web/src/utils/request-trace.ts', localStorage),
       '@peanut-admin/client': {
+        formatRequestError,
         createSessionFetch: (options) =>
           createSessionFetch({
             ...options,

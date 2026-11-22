@@ -24,8 +24,8 @@ final readonly class ExternalBindingQualificationQueries
     /**
      * Caller must first authorize the platform overview and select authoritative active tenants.
      * Batches bound SQL parameters, not the result; missing bindings remain explicit unconfigured results.
-     * @param list<int> $tenantIds
-     * @param list<string> $providerKeys
+     * @param array<array-key,mixed> $tenantIds
+     * @param array<array-key,mixed> $providerKeys
      * @return list<ExternalBindingQualification>
      */
     public function forTenants(array $tenantIds, array $providerKeys, string $digestKey): array

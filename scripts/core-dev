@@ -32,7 +32,7 @@ Local Web exports use dist/, compiled by the existing TypeScript toolchain.
 First select the checkouts and run install/link to prepare source dependencies.
 Use the prepared Core tool scope for the existing Web Core watch (see development docs).
 --client limits Web install/link/status/reset to the listed clients; default: all.
-Start clients separately with native npm run dev / npm run dev:h5 commands;
+Start clients separately with native pnpm run dev / pnpm run dev:h5 commands;
 they consume the prepared links and do not start Core watchers or read this choice.
 Do not re-link or rebuild for each edit.
 An APP without a saved choice uses its normal fixed packages. Candidate delivery

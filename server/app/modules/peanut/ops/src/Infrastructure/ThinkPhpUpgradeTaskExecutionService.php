@@ -552,7 +552,7 @@ final readonly class ThinkPhpUpgradeTaskExecutionService implements UpgradeTaskE
     /** @param array<string,mixed> $payload */
     private function createExecution(string $taskKey, array $payload): void
     {
-        Db::name('ops_upgrade_execution')->insertOrIgnore([
+        Db::name('ops_upgrade_execution')->extra('IGNORE')->insert([
             ...$payload,
             'task_key' => $taskKey,
             'source_release_key' => $payload['source_release_key'] === '' ? null : $payload['source_release_key'],
@@ -560,7 +560,7 @@ final readonly class ThinkPhpUpgradeTaskExecutionService implements UpgradeTaskE
         ]);
         $inputBase = ['task_key' => $taskKey, 'source' => $payload['source_commit'], 'target' => $payload['target_commit'], 'descriptor' => $payload['target_descriptor_sha256']];
         foreach (self::STEPS as $order => $step) {
-            Db::name('ops_upgrade_step')->insertOrIgnore([
+            Db::name('ops_upgrade_step')->extra('IGNORE')->insert([
                 'task_key' => $taskKey,
                 'step_key' => $step,
                 'step_order' => $order,

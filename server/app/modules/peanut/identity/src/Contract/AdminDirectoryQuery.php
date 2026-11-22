@@ -46,7 +46,7 @@ final readonly class AdminDirectoryQuery
 
     /**
      * Lifecycle projection for a bounded caller-selected set, not a grant of access.
-     * @param list<int> $tenantIds
+     * @param array<array-key,mixed> $tenantIds
      * @return list<int>
      */
     public function activeTenantIds(array $tenantIds): array
@@ -108,7 +108,7 @@ final readonly class AdminDirectoryQuery
     /**
      * Current display names for existing tenant-owned log references, not historical snapshots.
      * Inactive members remain addressable; missing references are omitted and never cross tenants.
-     * @param list<int> $memberIds
+     * @param array<array-key,mixed> $memberIds
      * @return array<int,string>
      */
     public function memberDisplayNames(\PeanutAdmin\Kernel\Auth\TenantContext $context, array $memberIds): array
@@ -147,7 +147,7 @@ final readonly class AdminDirectoryQuery
      * Null IDs select the email directory, explicit IDs resolve bounded references (including inactive members).
      * directoryOnly retains that directory membership restriction for selected historical references.
      * Active/name semantics match TenantMemberDirectory, without revalidating the actor per reference.
-     * @param null|list<int> $memberIds
+     * @param null|array<array-key,mixed> $memberIds
      * @param null|list<int> $departmentIds Null leaves departments unrestricted; explicit IDs are unioned below.
      * @param list<int> $includeMemberIds Additional candidates such as self or historical goal holders.
      * @return array<int,array{id:int,display_name:string,active_name:string,primary_department_id:?int,status:string,active:bool}>
@@ -437,7 +437,7 @@ final readonly class AdminDirectoryQuery
             ->join('role role', "role.tenant_id = membership.tenant_id AND role.id = membership.role_id AND role.`key` = 'core.tenant-owner' AND role.is_builtin = 1 AND role.status = 'active'")
             ->where('member.tenant_id', $tenantId)->where('member.status', 'active')
             ->field('member.id,member.account_id,member.authorization_revision,tenant.authorization_revision AS tenant_authorization_revision');
-        if ($memberId !== null && $accountId !== null) {
+        if ($memberId !== null) {
             $query->where('member.id', $memberId)->where('member.account_id', $accountId);
         }
         $owner = $query->order('member.id')->find()?->toArray();

@@ -138,6 +138,7 @@ class ConfigController extends BaseAdminController
             'statistics' => ['clarity_code'],
             'user' => ['default_avatar'],
             'login' => ['login_way', 'coerce_mobile', 'login_agreement', 'third_auth', 'wechat_auth'],
+            default => throw new \LogicException('Unknown website configuration scene.'),
         };
         $params = $this->validateInput($this->request->post(), WebsiteValidate::class . '.' . $scene, $fields)->writable();
         $this->configuration->$method($this->tenantAdminContext(), $params);

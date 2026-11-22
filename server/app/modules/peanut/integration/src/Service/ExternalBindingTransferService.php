@@ -41,6 +41,7 @@ final readonly class ExternalBindingTransferService implements ExternalBindingTr
         return is_array($row) ? $this->state($provider, $row) : null;
     }
 
+    /** @param array<string,mixed> $value */
     public function apply(TenantContext $context, string $provider, array $value, ?int $expectedRevision): void
     {
         $this->assertContext($context);

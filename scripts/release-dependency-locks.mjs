@@ -259,7 +259,7 @@ export function verifyDependencyLocks(versions, read, parseYaml, internal = fals
   }
   const required = {
     web: ['client', 'vue', 'ui-vue'],
-    platform: ['vue', 'ui-vue'],
+    platform: ['client', 'vue', 'ui-vue'],
     pc: ['client', 'nuxt'],
     uniapp: ['client', 'uniapp'],
   };
@@ -278,7 +278,7 @@ export function verifyDependencyLocks(versions, read, parseYaml, internal = fals
           typeof value !== 'string' ||
           (/^(?:file:|link:|workspace:|\/|\.\.?\/)/.test(value) &&
             !(mode === 'archive' && coreWebPackages.includes(name)) &&
-            !(client === 'web' && modules[name] && value.startsWith('workspace:')))
+            !(modules[name] && value.startsWith('workspace:')))
       )
     )
       fail(`${client} local dependency`);
@@ -299,93 +299,59 @@ export function verifyDependencyLocks(versions, read, parseYaml, internal = fals
         fail(`${client}:${name} declaration`);
     }
     if (mode === 'archive' && !internal && !archiveLocks) continue;
-    if (client === 'web') {
-      if (typeof parseYaml !== 'function')
-        fail('locked YAML parser required for native pnpm lock');
-      const lock = parseYaml(String(read('web/pnpm-lock.yaml')));
-      if (
-        String(lock?.lockfileVersion) !== '9.0' &&
-        String(lock?.lockfileVersion) !== '9'
-      )
-        fail('pnpm lock version');
-      const importer = lock.importers?.['.'];
-      for (const section of ['dependencies', 'devDependencies', 'optionalDependencies']) {
-        for (const [name, specifier] of Object.entries(manifest[section] ?? {})) {
-          if (!specifier.startsWith('workspace:')) continue;
-          const module = modules[name];
-          const reference = importer?.[section]?.[name];
-          if (!module || reference?.specifier !== specifier ||
-              reference.version !== `link:${module.url}` || !lock.importers?.[module.url])
-            fail(`pnpm Module workspace:${name}`);
-        }
-      }
-      for (const [name, specifier] of selections) {
-        const reference =
-          importer?.dependencies?.[name] ??
-          importer?.devDependencies?.[name] ??
-          importer?.optionalDependencies?.[name];
-        if (
-          reference?.specifier !== specifier ||
-          String(reference?.version).split('(')[0] !==
-            (mode === 'archive' ? `file:../${packages[name].archive}` : packages[name].version)
-        )
-          fail(`pnpm importer:${name}`);
-      }
-      for (const [key, value] of Object.entries(lock.packages ?? {})) {
-        if (!key.startsWith('@peanut-admin/')) continue;
-        const name = coreWebPackages.find((name) => key.startsWith(`${name}@`)),
-          i = packages[name];
-        if (
-          !i ||
-          key !== `${name}@${mode === 'archive' ? `file:../${i.archive}` : i.version}` ||
-          value.resolution?.integrity !== (mode === 'archive' ? archiveIntegrity(read, i) : i.integrity) ||
-          (mode === 'archive'
-            ? value.resolution?.tarball !== `file:../${i.archive}`
-            : value.resolution?.tarball && value.resolution.tarball !== i.resolved)
-        )
-          fail(`pnpm resolution:${key}`);
-        checked.push(`${client}:${name}`);
-      }
-      for (const [name] of selections)
-        if (!checked.includes(`${client}:${name}`))
-          fail(`pnpm package missing:${name}`);
-    } else {
-      const lock = json(`${client}/package-lock.json`);
-      if (![2, 3].includes(lock.lockfileVersion))
-        fail(`${client} npm lock version`);
-      for (const [name, specifier] of selections) {
-        const root = lock.packages?.[''];
-        if (
-          (root?.dependencies?.[name] ??
-            root?.devDependencies?.[name] ??
-            root?.optionalDependencies?.[name]) !== specifier ||
-          !lock.packages?.[`node_modules/${name}`]
-        )
-          fail(`${client} npm importer:${name}`);
-      }
-      for (const [path, value] of Object.entries(lock.packages ?? {})) {
-        const name = path.slice(path.lastIndexOf('node_modules/') + 13);
-        if (!name.startsWith('@peanut-admin/')) continue;
-        if (!coreWebPackages.includes(name)) {
-          const module = nativeClientModulePackages(read, client)[name];
-          if (!module || value.link !== true || value.resolved !== module.url ||
-              !manifest.workspaces?.includes(module.url) ||
-              lock.packages[module.url]?.name !== name || lock.packages[module.url]?.version !== module.version)
-            fail(`${client} npm Module workspace:${name}`);
-          continue;
-        }
-        const i = packages[name];
-        if (
-          !i ||
-          value.link ||
-          value.version !== i.version ||
-          value.resolved !== (mode === 'archive' ? `file:../${i.archive}` : i.resolved) ||
-          value.integrity !== (mode === 'archive' ? archiveIntegrity(read, i) : i.integrity)
-        )
-          fail(`${client} npm resolution:${name}`);
-        checked.push(`${client}:${name}`);
+    if (typeof parseYaml !== 'function')
+      fail('locked YAML parser required for native pnpm lock');
+    const lock = parseYaml(String(read(`${client}/pnpm-lock.yaml`)));
+    if (
+      String(lock?.lockfileVersion) !== '9.0' &&
+      String(lock?.lockfileVersion) !== '9'
+    )
+      fail('pnpm lock version');
+    const importer = lock.importers?.['.'];
+    const modulePaths = new Set(Object.values(modules).map((module) => module.url));
+    for (const path of Object.keys(lock.importers ?? {})) {
+      if (path !== '.' && !modulePaths.has(path)) fail(`${client} pnpm Module workspace:${path}`);
+    }
+    for (const section of ['dependencies', 'devDependencies', 'optionalDependencies']) {
+      for (const [name, specifier] of Object.entries(manifest[section] ?? {})) {
+        if (!specifier.startsWith('workspace:')) continue;
+        const module = modules[name];
+        const reference = importer?.[section]?.[name];
+        if (!module || reference?.specifier !== specifier ||
+            reference.version !== `link:${module.url}` || !lock.importers?.[module.url])
+          fail(`pnpm Module workspace:${name}`);
       }
     }
+    for (const [name, specifier] of selections) {
+      const reference =
+        importer?.dependencies?.[name] ??
+        importer?.devDependencies?.[name] ??
+        importer?.optionalDependencies?.[name];
+      if (
+        reference?.specifier !== specifier ||
+        String(reference?.version).split('(')[0] !==
+          (mode === 'archive' ? `file:../${packages[name].archive}` : packages[name].version)
+      )
+        fail(`pnpm importer:${name}`);
+    }
+    for (const [key, value] of Object.entries(lock.packages ?? {})) {
+      if (!key.startsWith('@peanut-admin/')) continue;
+      const name = coreWebPackages.find((name) => key.startsWith(`${name}@`)),
+        i = packages[name];
+      if (
+        !i ||
+        key !== `${name}@${mode === 'archive' ? `file:../${i.archive}` : i.version}` ||
+        value.resolution?.integrity !== (mode === 'archive' ? archiveIntegrity(read, i) : i.integrity) ||
+        (mode === 'archive'
+          ? value.resolution?.tarball !== `file:../${i.archive}`
+          : value.resolution?.tarball && value.resolution.tarball !== i.resolved)
+      )
+        fail(`pnpm resolution:${key}`);
+      checked.push(`${client}:${name}`);
+    }
+    for (const [name] of selections)
+      if (!checked.includes(`${client}:${name}`))
+        fail(`pnpm package missing:${name}`);
   }
   if (mode === 'archive') {
     for (const [name, i] of Object.entries(packages)) {
@@ -417,20 +383,12 @@ function archiveIntegrity(read, identity) {
 export function thirdPartyLocks(read, parseYaml) {
   const result = {};
   for (const client of ['web', 'platform', 'pc', 'uniapp']) {
-    const lock = client === 'web'
-      ? parseYaml(String(read('web/pnpm-lock.yaml')))
-      : JSON.parse(String(read(`${client}/package-lock.json`)));
+    const lock = parseYaml(String(read(`${client}/pnpm-lock.yaml`)));
     const rows = [];
     for (const [key, value] of Object.entries(lock.packages ?? {})) {
-      if (!key) continue;
-      // Peer-context paths may change when Core is projected; third-party
-      // package name/version and native origin/integrity must not change.
-      const name = client === 'web' ? key.split('(')[0]
-        : key.slice(key.lastIndexOf('node_modules/') + 13);
-      const packageName = client === 'web' ? name.slice(0, name.lastIndexOf('@')) : name;
-      if (coreWebPackages.includes(packageName)) continue;
-      rows.push(JSON.stringify([name, value.version ?? null,
-        value.resolution ?? { resolved: value.resolved ?? null, integrity: value.integrity ?? null }]));
+      const name = key.slice(0, key.indexOf('@', 1));
+      if (coreWebPackages.includes(name)) continue;
+      rows.push(JSON.stringify([key, value.resolution]));
     }
     rows.sort();
     result[client] = createHash('sha256').update(JSON.stringify(rows)).digest('hex');

@@ -19,8 +19,8 @@ final readonly class CurlWebhookTransport implements WebhookTransport
             throw new \RuntimeException('WEBHOOK_CURL_REQUIRED');
         }
         $destination = $request->destination;
-        $address = $destination->approvedAddresses[0] ?? null;
-        if (!is_string($address) || filter_var($address, FILTER_VALIDATE_IP) === false
+        $address = $destination->approvedAddresses[0];
+        if (filter_var($address, FILTER_VALIDATE_IP) === false
             || $destination->port !== 443 || $request->followRedirects
             || parse_url($destination->url, PHP_URL_SCHEME) !== 'https'
             || trim((string) parse_url($destination->url, PHP_URL_HOST), '[]') !== $destination->host

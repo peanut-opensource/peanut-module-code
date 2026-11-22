@@ -57,7 +57,8 @@ final readonly class AuditService implements \PeanutAdmin\Kernel\Audit\AuditWrit
             'occurred_at' => (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d H:i:s.v')];
         $hash = hash('sha256', self::revocationJson($fact));
         $row = new TenantAuditEventRecord();
-        if ($row->db()->getConnection()->getPdo() !== $pdo) {
+        $connection = $row->db()->getConnection();
+        if (!$connection instanceof \think\db\PDOConnection || $connection->getPdo() !== $pdo) {
             throw new \DomainException('IDENTITY_REVOCATION_PDO_MISMATCH');
         }
         $row->save(['tenant_id' => $tenantId, 'event_type' => 'identity.revocation.fact', 'action' => $reason, 'outcome' => 'success',
@@ -93,13 +94,14 @@ final readonly class AuditService implements \PeanutAdmin\Kernel\Audit\AuditWrit
             'member_suspended', 'member_left', 'member_roles_removed' => 'member',
             'role_permissions_removed', 'role_archived' => 'role',
             'session_revoked' => 'session', 'credential_changed' => 'tenant_scope_account',
+            default => throw new \DomainException('IDENTITY_REVOCATION_SOURCE_INVALID'),
         };
         if ($kind !== $expectedKind || ($reason === 'session_revoked') !== ($sessionFingerprint !== null)) {
             throw new \DomainException('IDENTITY_REVOCATION_SOURCE_INVALID');
         }
         if ($kind === 'member') {
             if ($subjectId !== (string) $memberId || (int) $member->authorization_revision !== ($after['authorization_revision'] ?? null)
-                || ($after['authorization_revision'] ?? null) !== ($before['authorization_revision'] ?? -1) + 1) {
+                || $after['authorization_revision'] !== ($before['authorization_revision'] ?? -1) + 1) {
                 throw new \DomainException('IDENTITY_REVOCATION_SOURCE_INVALID');
             }
             if ($reason === 'member_roles_removed') {
@@ -121,7 +123,7 @@ final readonly class AuditService implements \PeanutAdmin\Kernel\Audit\AuditWrit
             }
             $role = \PeanutAdmin\Modules\Identity\Persistence\Model\Role::where('tenant_id', $tenantId)->where('id', $subjectId)->field('status,authorization_revision')->find();
             if ($role === null || (int) $role->authorization_revision !== ($after['authorization_revision'] ?? null)
-                || ($after['authorization_revision'] ?? null) !== ($before['authorization_revision'] ?? -1) + 1
+                || $after['authorization_revision'] !== ($before['authorization_revision'] ?? -1) + 1
                 || \PeanutAdmin\Modules\Identity\Persistence\Model\MemberRole::where('tenant_id', $tenantId)->where('tenant_member_id', $memberId)->where('role_id', $subjectId)->find() === null) {
                 throw new \DomainException('IDENTITY_REVOCATION_SOURCE_INVALID');
             }
@@ -147,7 +149,7 @@ final readonly class AuditService implements \PeanutAdmin\Kernel\Audit\AuditWrit
             $revision = \PeanutAdmin\Modules\Identity\Persistence\Model\Account::where('id', $actor->accountId)->value('security_revision');
             if ((int) $member->account_id !== $actor->accountId || $subjectId !== (string) $actor->accountId
                 || (int) $revision !== ($after['account_security_revision'] ?? null)
-                || ($after['account_security_revision'] ?? null) !== ($before['account_security_revision'] ?? -1) + 1) {
+                || $after['account_security_revision'] !== ($before['account_security_revision'] ?? -1) + 1) {
                 throw new \DomainException('IDENTITY_REVOCATION_SOURCE_INVALID');
             }
         }

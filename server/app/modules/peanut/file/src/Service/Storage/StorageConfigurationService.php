@@ -66,7 +66,7 @@ final readonly class StorageConfigurationService implements StorageConfiguration
         ], function () use ($value): int {
             $this->assertKeys($value, ['account_key', 'driver', 'name', 'credentials', 'credential_ref']);
             $account = $this->account($value, true);
-            $created = StorageAccount::create([
+            $created = StorageAccount::createModel([
                 'account_key' => $account['account_key'], 'driver' => $account['driver'],
                 'name' => $account['name'], 'credential_ciphertext' => $account['credential']['ciphertext'],
                 'credential_key_version' => $account['credential']['key_version'],
@@ -117,7 +117,7 @@ final readonly class StorageConfigurationService implements StorageConfiguration
                 'region', 'endpoint', 'access_domain', 'local_path',
             ]);
             $space = $this->space($value + ['status' => 'active']);
-            $created = StorageSpace::create([
+            $created = StorageSpace::createModel([
                 'space_key' => $space['space_key'], 'account_id' => $space['account_id'],
                 'name' => $space['name'], 'access_type' => $space['access_type'],
                 'bucket' => $space['bucket'], 'region' => $space['region'],

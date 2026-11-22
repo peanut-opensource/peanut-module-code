@@ -14,7 +14,6 @@ use PeanutAdmin\DataPermission\Engine\DataPermissionEngine;
 use PeanutAdmin\DataPermission\Target\TypedResourceTargetCollection;
 use PeanutAdmin\Kernel\Auth\TenantContext;
 use think\db\BaseQuery;
-use think\Model;
 
 final readonly class AiAccess
 {
@@ -35,6 +34,7 @@ final readonly class AiAccess
         $decisions = $this->authorization->decisions($c, array_values($keys));
         return array_map(static fn(string $key): bool => $decisions[$key]->allowed, $keys);
     }
+    /** @return \think\db\Query<GenerationTask>|\think\db\Query<Configuration> */
     public function query(TenantContext $c, string $kind, string $op = 'view'): BaseQuery
     {
         $this->authorize($c, $op);
@@ -46,7 +46,7 @@ final readonly class AiAccess
         $this->constraints->apply($q, $this->engine->queryConstraint($c, 'custom.ai-assistant.' . $kind, $op));
         return $q;
     }
-    public function find(TenantContext $c, string $kind, int $id, string $op = 'view', bool $lock = false): Model
+    public function find(TenantContext $c, string $kind, int $id, string $op = 'view', bool $lock = false): GenerationTask|Configuration
     {
         return $this->query($c, $kind, $op)->where('id', $id)->lock($lock)->find() ?? throw BusinessException::notFound('AI_NOT_FOUND', '记录不存在或超出当前范围');
     }
@@ -58,7 +58,7 @@ final readonly class AiAccess
             throw BusinessException::forbidden('AI_CREATE_DENIED', '当前数据范围不允许创建或查询其原请求');
         }
     }
-    public function create(TenantContext $c, string $kind, string $title, array $data, string $requestId, array $private = []): Model
+    public function create(TenantContext $c, string $kind, string $title, array $data, string $requestId, array $private = []): GenerationTask|Configuration
     {
         $op = $kind === 'task' ? 'use' : 'configure';
         $this->authorize($c, $op);
@@ -71,17 +71,17 @@ final readonly class AiAccess
         $this->find($c, $kind, (int) $row->id, $op);
         return $row;
     }
-    public function cas(Model $r, int $version): void
+    public function cas(GenerationTask|Configuration $r, int $version): void
     {
         if ((int) $r->version !== $version) {
             throw BusinessException::conflict('AI_VERSION_CONFLICT', '记录已变化，请刷新后办理');
         }
     }
-    public function update(Model $r, array $data, ?string $status = null): void
+    public function update(GenerationTask|Configuration $r, array $data, ?string $status = null): void
     {
         $r->save(['details' => self::json($data),'status' => $status ?? $r->status,'version' => (int) $r->version + 1,'updated_at' => time()]);
     }
-    public function event(TenantContext $c, string $kind, Model $r, string $action, string $request, array $input, array $safeResult = [], array $evidence = []): void
+    public function event(TenantContext $c, string $kind, GenerationTask|Configuration $r, string $action, string $request, array $input, array $safeResult = [], array $evidence = []): void
     {
         $system = $this->execution->current() instanceof \app\common\execution\SystemExecutionContext;
         $event = new Event();
@@ -124,7 +124,7 @@ final readonly class AiAccess
         $rows = array_slice($rows, 0, $limit);
         return ['list' => array_map(self::present(...), $rows),'next_before_id' => $more ? (int) end($rows)->id : null];
     }
-    public static function data(Model $r): array
+    public static function data(GenerationTask|Configuration|Event|\Custom\Modules\AiAssistant\Model\TextGeneration $r): array
     {
         return self::decode($r->details);
     }
@@ -148,7 +148,7 @@ final readonly class AiAccess
             ksort($v, SORT_STRING);
         }return array_map(self::canonical(...), $v);
     }
-    public static function present(Model $r): array
+    public static function present(GenerationTask|Configuration|Event $r): array
     {
         $d = self::data($r);
         unset($d['_creation'],$d['_secret_hash']);

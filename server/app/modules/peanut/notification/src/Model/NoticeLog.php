@@ -8,6 +8,20 @@ use app\common\model\TenantOwnedModel;
 
 /**
  * 通知发送记录模型
+ *
+ * @property string $error
+ * @property string|null $extra
+ * @property string $provider
+ * @property int|null $reservation_active
+ * @property string|null $reservation_key
+ * @property int $status
+ * @property int $check_count
+ * @property int $is_verified
+ * @property string|null $request_digest
+ * @property int|null $reservation_until
+ * @property int $send_time
+ * @property int $verified_time
+ * @property string $verify_code_hash
  */
 class NoticeLog extends TenantOwnedModel
 {

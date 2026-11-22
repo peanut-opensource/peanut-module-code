@@ -41,6 +41,7 @@ final readonly class AiRequestStatus
             'createTask' => 'enqueue','manualCandidate' => 'manualCandidate','collectCandidate' => 'collect','decide' => 'decision',
             'candidateLifecycle' => 'candidate.' . I::choice($v['action'] ?? null, ['withdraw','rework','supersede']),
             'taskAction' => I::choice($v['action'] ?? null, ['cancel','retry','observeUnknown','poll']),
+            default => throw new \InvalidArgumentException('AI_REQUEST_ENDPOINT_INVALID'),
         };
         if ($endpoint === 'configurationState') {
             I::choice($v['action'] ?? null, ['enable','disable']);

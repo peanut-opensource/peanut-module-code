@@ -157,29 +157,15 @@ final readonly class Dependencies
             }
             foreach ($clients as $client => $modules) {
                 $directory = $project . '/' . $client;
-                if ($client === 'web') {
-                    $path = $directory . '/pnpm-workspace.yaml';
-                    $source = (string) file_get_contents($path);
-                    foreach ($modules as $module) {
-                        $source = preg_replace('/^[ \t]*-[ \t]*[\'\"]?' . preg_quote($module, '/') . '[\'\"]?[ \t]*(?:#[^\n]*)?\r?\n/m', '', $source);
-                    }
-                    if (file_put_contents($path, $source) === false) {
-                        throw new ModulePackageException('MODULE_DEPENDENCY_MANIFEST_WRITE_FAILED', 'Cannot update native pnpm workspace configuration.');
-                    }
-                    $operations[] = $this->run(['pnpm', 'install', '--prod=false', '--no-frozen-lockfile', '--strict-peer-dependencies', '--ignore-scripts'], $directory);
-                } else {
-                    $path = $directory . '/package.json';
-                    $package = $this->json($path);
-                    $workspaces = $package['workspaces'] ?? [];
-                    if (isset($workspaces['packages'])) {
-                        $workspaces['packages'] = array_values(array_diff($workspaces['packages'], $modules));
-                    } else {
-                        $workspaces = array_values(array_diff($workspaces, $modules));
-                    }
-                    $package['workspaces'] = $workspaces;
-                    $this->write($path, $package);
-                    $operations[] = $this->run(['npm', 'install', '--include=dev', '--strict-peer-deps', '--ignore-scripts', '--no-audit', '--no-fund'], $directory);
+                $path = $directory . '/pnpm-workspace.yaml';
+                $source = (string) file_get_contents($path);
+                foreach ($modules as $module) {
+                    $source = preg_replace('/^[ \t]*-[ \t]*[\'\"]?' . preg_quote($module, '/') . '[\'\"]?[ \t]*(?:#[^\n]*)?\r?\n/m', '', $source);
                 }
+                if (file_put_contents($path, $source) === false) {
+                    throw new ModulePackageException('MODULE_DEPENDENCY_MANIFEST_WRITE_FAILED', 'Cannot update native pnpm workspace configuration.');
+                }
+                $operations[] = $this->run(['pnpm', 'install', '--prod=false', '--no-frozen-lockfile', '--strict-peer-dependencies', '--ignore-scripts'], $directory);
             }
             return ['status' => 'dependencies-removed', 'operations' => $operations,
                 'frontend_adoption' => $this->adoptFrontend(array_keys($clients))];
@@ -359,21 +345,9 @@ final readonly class Dependencies
         foreach ($clients as $client => $plan) {
             $directory = $project . '/' . $client;
             $path = $directory . '/package.json';
-            if ($client === 'web') {
-                $this->pnpmWorkspaces($directory, $plan['modules']);
-                $this->write($path, $plan['manifest']);
-                $operations[] = $this->run(['pnpm', 'install', '--prod=false', '--no-frozen-lockfile', '--strict-peer-dependencies', '--ignore-scripts'], $directory);
-            } else {
-                $workspaces = $plan['manifest']['workspaces'] ?? [];
-                if (isset($workspaces['packages'])) {
-                    $workspaces['packages'] = array_values(array_unique([...$workspaces['packages'], ...$plan['modules']]));
-                } else {
-                    $workspaces = array_values(array_unique([...$workspaces, ...$plan['modules']]));
-                }
-                $plan['manifest']['workspaces'] = $workspaces;
-                $this->write($path, $plan['manifest']);
-                $operations[] = $this->run(['npm', 'install', '--include=dev', '--strict-peer-deps', '--ignore-scripts', '--no-audit', '--no-fund'], $directory);
-            }
+            $this->pnpmWorkspaces($directory, $plan['modules']);
+            $this->write($path, $plan['manifest']);
+            $operations[] = $this->run(['pnpm', 'install', '--prod=false', '--no-frozen-lockfile', '--strict-peer-dependencies', '--ignore-scripts'], $directory);
             foreach ($plan['optional'] as $dependency) {
                 $present = is_dir($directory . '/' . $dependency['module'] . '/node_modules/' . $dependency['package'])
                     || is_dir($directory . '/node_modules/' . $dependency['package']);
@@ -428,9 +402,10 @@ final readonly class Dependencies
             }
             [$key, $command, $entry] = match ($client) {
                 'web' => ['admin-web', ['pnpm', 'run', 'build', '--mode', $edition, '--outDir', '../server/public/admin', '--emptyOutDir'], $this->frontendEntry($client)],
-                'platform' => ['platform-web', ['npm', 'run', 'build', '--', '--outDir', '../server/public/platform', '--emptyOutDir'], 'server/public/platform/index.html'],
-                'pc' => ['pc-web', ['npm', 'run', 'build'], 'pc/.output/server/index.mjs'],
-                'uniapp' => ['uniapp', ['npm', 'run', 'build:h5'], 'uniapp/dist/build/h5/index.html'],
+                'platform' => ['platform-web', ['pnpm', 'run', 'build', '--outDir', '../server/public/platform', '--emptyOutDir'], 'server/public/platform/index.html'],
+                'pc' => ['pc-web', ['pnpm', 'run', 'build'], 'pc/.output/server/index.mjs'],
+                'uniapp' => ['uniapp', ['pnpm', 'run', 'build:h5'], 'uniapp/dist/build/h5/index.html'],
+                default => throw new ModulePackageException('MODULE_FRONTEND_CLIENT_INVALID', 'Unsupported frontend client.'),
             };
             // Vite/Nuxt copy public inputs verbatim, including dotfiles and linked file contents.
             $publicInput = $project . '/' . $client . ($client === 'uniapp' ? '/src/static' : '/public');
@@ -613,7 +588,6 @@ final readonly class Dependencies
             'php' => 'php',
             'composer', 'local-core-composer' => 'php,composer',
             'pnpm', 'local-core-web' => 'node,pnpm',
-            'npm' => 'node,npm',
             default => throw new ModulePackageException('MODULE_DEPENDENCY_TOOLCHAIN_REQUIRED',
                 'No declared project-env scope for the selected native dependency tool.'),
         };
@@ -632,8 +606,7 @@ final readonly class Dependencies
         }
         if ($clients !== []) {
             $tools[] = 'node';
-            if (in_array('web', $clients, true)) { $tools[] = 'pnpm'; }
-            if (array_diff($clients, ['web']) !== []) { $tools[] = 'npm'; }
+            $tools[] = 'pnpm';
         }
         $report = $this->execute([$this->automaticEnvironmentPython(),
             $project . '/scripts/project-env', '--root', $project, '--state-root', $project,

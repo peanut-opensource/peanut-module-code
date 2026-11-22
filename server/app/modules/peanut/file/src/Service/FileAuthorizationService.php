@@ -148,6 +148,7 @@ final readonly class FileAuthorizationService
             'preview' => self::PREVIEW_PERMISSION,
             'download_original' => self::DOWNLOAD_ORIGINAL_PERMISSION,
             'manage' => 'peanut.file.manage',
+            default => throw BusinessException::forbidden('FILE_ACCESS_DENIED', '无权执行资源操作'),
         };
         if (!$this->authorization->decide($context, $principal, $permission)->allowed) {
             throw BusinessException::forbidden('FILE_ACCESS_DENIED', '无权执行资源操作');

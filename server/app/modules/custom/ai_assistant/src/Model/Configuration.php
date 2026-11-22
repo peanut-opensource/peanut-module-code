@@ -7,6 +7,19 @@ namespace Custom\Modules\AiAssistant\Model;
 use app\common\model\TenantOwnedModel;
 use think\model\concern\SoftDelete;
 
+/**
+ * @property int|string $created_by
+ * @property int|string $created_at
+ * @property string $details
+ * @property int|string $id
+ * @property string $kind
+ * @property string $request_id
+ * @property string|null $secret_payload
+ * @property string $status
+ * @property string $title
+ * @property int|string $updated_at
+ * @property int|string $version
+ */
 final class Configuration extends TenantOwnedModel
 {
     use SoftDelete;

@@ -6,7 +6,11 @@ namespace PeanutAdmin\Modules\File\Model\Storage;
 
 use app\common\model\InstanceOwnedModel;
 
-/** Deployment-owned storage provider account configuration. */
+/**
+ * Deployment-owned storage provider account configuration.
+ *
+ * @property int|string $id
+ */
 final class StorageAccount extends InstanceOwnedModel
 {
     protected $name = 'storage_account';

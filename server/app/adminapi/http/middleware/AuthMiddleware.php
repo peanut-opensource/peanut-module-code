@@ -44,17 +44,16 @@ class AuthMiddleware
         }
 
         $path = 'adminapi/' . strtolower(trim($request->pathinfo(), '/'));
-        $tenantContext = $current instanceof AdminExecutionContext ? $current->tenant : null;
+        $tenantContext = $current->tenant;
         $authenticatedOnly = $this->accessRegistry->isAuthenticatedOnly((string) $request->method(), $path);
-        $snapshot = $tenantContext instanceof \PeanutAdmin\Kernel\Auth\TenantContext && !$authenticatedOnly
+        $snapshot = !$authenticatedOnly
             ? $this->apis->tenantEndpointWithPermissions($request, $tenantContext)
             : null;
         $endpoint = $snapshot !== null ? $snapshot['endpoint'] : $this->apis->endpoint($request, 'tenant', $tenantContext);
         if ($endpoint === null) {
             throw \app\common\http\ApiProblem::fromEnvelope('API 未登记或已退役', null, 40300);
         }
-        if (!$tenantContext instanceof \PeanutAdmin\Kernel\Auth\TenantContext
-            || !$this->apis->moduleAvailable($endpoint, $this->modules)
+        if (!$this->apis->moduleAvailable($endpoint, $this->modules)
             || (!in_array($endpoint['module_key'], ['peanut.admin', 'platform', 'member', 'installation'], true)
                 && !$this->entitlements->allowsModule($tenantContext->tenantId, $endpoint['module_key'], context: $tenantContext))) {
             throw \app\common\http\ApiProblem::fromEnvelope('API 所属模块不可用', null, 40300);

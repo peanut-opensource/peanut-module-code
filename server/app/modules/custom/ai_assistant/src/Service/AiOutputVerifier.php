@@ -21,7 +21,7 @@ final readonly class AiOutputVerifier
             $mime = 'text/plain';
         } elseif ($type === 'image') {
             $info = getimagesize($path);
-            if (!is_array($info) || ($info['mime'] ?? null) !== 'image/png' || $mime !== 'image/png' || $info[0] > 4096 || $info[1] > 4096 || $info[0] * $info[1] > 16777216) {
+            if (!is_array($info) || ($info['mime']) !== 'image/png' || $mime !== 'image/png' || $info[0] > 4096 || $info[1] > 4096) {
                 throw new \RuntimeException('AI_IMAGE_BYTES_INVALID');
             }$info = ['width' => $info[0],'height' => $info[1]];
         } else {

@@ -57,7 +57,7 @@ final readonly class ModuleArtifactWriter
         return ['path' => $this->relative($path), 'manifest' => $manifest];
     }
 
-    /** @return array{plugins:list<array<string,mixed>>,lock:array<string,mixed>,contents:string} */
+    /** @return array{modules:list<array<string,mixed>>,lock:array<string,mixed>,contents:string} */
     public function lock(): array
     {
         $manifests = glob($this->serverRoot . '/app/modules/*/*/module.json') ?: [];
@@ -85,7 +85,7 @@ final readonly class ModuleArtifactWriter
         return ['modules' => array_values($plugins), 'lock' => $lock, 'contents' => $this->encode($lock)];
     }
 
-    /** @return array{path:string,plugins:int} */
+    /** @return array{path:string,modules:int} */
     public function writeLock(): array
     {
         $built = $this->lock();
@@ -94,7 +94,7 @@ final readonly class ModuleArtifactWriter
         return ['path' => $this->relative($path), 'modules' => count($built['modules'])];
     }
 
-    /** @return array{path:string,plugins:int} */
+    /** @return array{path:string,modules:int} */
     public function checkLock(): array
     {
         $built = $this->lock();

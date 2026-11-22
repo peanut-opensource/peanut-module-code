@@ -51,7 +51,7 @@ if (!function_exists('del_target_dir')) {
         }
         $handle = opendir($path);
         if ($handle === false) {
-            return file_exists($path) ? unlink($path) : false;
+            return @unlink($path);
         }
         while (false !== ($item = readdir($handle))) {
             if ($item === '.' || $item === '..') {

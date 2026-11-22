@@ -11,7 +11,7 @@ import {
   setToken,
 } from '@/utils/auth';
 import i18n from '@/locale';
-import { formatRequestError } from '@/utils/request-trace';
+import { formatRequestError } from '@peanut-admin/client';
 
 const tenantClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || undefined,

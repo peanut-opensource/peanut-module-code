@@ -69,6 +69,7 @@ final readonly class DocumentAuthorizationService
             $ownerVersion = $policy->stateRevision($owner);
             $stale = $document->status !== 'active' || $owner->archived || $document->content_kind !== 'rich_text' || !(bool) $document->collaboration_enabled;
             $permissionDenied = false;
+            $revision = null;
             if (!$stale) {
                 try {
                     foreach ($modules as $module) {
@@ -120,7 +121,11 @@ final readonly class DocumentAuthorizationService
                 || $ownerVersion !== $policy->stateRevision($verifiedOwner)) {
                 return ['status' => 'UNKNOWN'];
             }
-            return ['status' => $stale || !hash_equals($issuedRevision, $revision) ? 'OLD_STALE' : 'CURRENT_FRESH'];
+            if ($stale) {
+                return ['status' => 'OLD_STALE'];
+            }
+            return ['status' => $revision === null ? 'UNKNOWN'
+                : (hash_equals($issuedRevision, $revision) ? 'CURRENT_FRESH' : 'OLD_STALE')];
         } catch (\Throwable) {
             // Source/fact/identity gates above are not hidden by this classification boundary.
             return ['status' => 'UNKNOWN'];
@@ -176,6 +181,7 @@ final readonly class DocumentAuthorizationService
         });
     }
 
+    /** @return array{\PeanutAdmin\Kernel\Module\ModuleInstallationRecord, \PeanutAdmin\Kernel\Module\TenantModuleRecord} */
     public function requireModule(TenantContext $context, string $moduleKey): array
     {
         $guard = new ModuleGuard($this->modules);
@@ -189,6 +195,7 @@ final readonly class DocumentAuthorizationService
         (new ModuleGuard($this->modules))->assertDeployment($moduleKey);
     }
 
+    /** @param-out array{mixed,mixed} $moduleState */
     public function owner(TenantContext $context, DocumentOwnerReference $reference, string $action, bool $lock, ?array &$moduleState = null): \PeanutAdmin\Modules\Document\Contract\DocumentOwnerState
     {
         $moduleState = $this->requireModule($context, $reference->moduleKey);

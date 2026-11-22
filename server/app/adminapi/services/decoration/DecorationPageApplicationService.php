@@ -35,7 +35,7 @@ class DecorationPageApplicationService
     public function detail(TenantContext $context, int $id, array $allowedTypes): array
     {
         $page = DecoratePage::where('id', $id)->findOrEmpty();
-        if ($page->isEmpty() || !in_array((int) $page->type, $allowedTypes, true)) {
+        if ($page->isEmpty() || !in_array((int) $page->getAttr('type'), $allowedTypes, true)) {
             throw BusinessException::notFound('DECORATION_PAGE_NOT_FOUND', '装修页面不存在或无权访问');
         }
         return $this->decoration->formatPage($page->toArray(), forEdit: true);
@@ -65,7 +65,7 @@ class DecorationPageApplicationService
             if ($page->isEmpty()) {
                 throw BusinessException::notFound('DECORATION_PAGE_NOT_FOUND', '装修页面不存在');
             }
-            if ((int) $page->type !== $type) {
+            if ((int) $page->getAttr('type') !== $type) {
                 throw BusinessException::conflict('DECORATION_PAGE_TYPE_IMMUTABLE', '装修页面类型不可修改');
             }
             $page->data = json_encode(
@@ -89,10 +89,10 @@ class DecorationPageApplicationService
             return [];
         }
         $rows = ($this->articles ?? throw new \DomainException('ARTICLE_MODULE_UNAVAILABLE'))->options($context, $limit);
-        $imageRefs = array_map(static fn(array $row): string => (string) ($row['image'] ?? ''), $rows);
+        $imageRefs = array_map(static fn(array $row): string => $row['image'], $rows);
         $resolved = $this->assets->forReadMany($imageRefs);
         foreach ($rows as &$row) {
-            $ref = trim((string) ($row['image'] ?? ''));
+            $ref = trim($row['image']);
             $row['image'] = $ref === '' ? '' : ($resolved[$ref] ?? '');
         }
         unset($row);

@@ -120,7 +120,7 @@ final readonly class LocalWorker
                     'line' => $exception->getLine(),
                     'frames' => array_map(static fn(array $frame): array => [
                         'class' => $frame['class'] ?? null,
-                        'function' => $frame['function'] ?? null,
+                        'function' => $frame['function'],
                         'file' => isset($frame['file']) ? basename($frame['file']) : null,
                         'line' => $frame['line'] ?? null,
                     ], array_slice($exception->getTrace(), 0, 8)),

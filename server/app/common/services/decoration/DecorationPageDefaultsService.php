@@ -13,7 +13,7 @@ final readonly class DecorationPageDefaultsService
 {
     public function __construct(private DbManager $database) {}
 
-    /** @param list<int> $types */
+    /** @param array<array-key, int> $types */
     public function ensureMissing(array $types = DecorationEnum::ALL_TYPES, bool $dryRun = false): array
     {
         if ($types === [] || !array_is_list($types)) {

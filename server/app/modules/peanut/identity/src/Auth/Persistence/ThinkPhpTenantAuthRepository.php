@@ -109,7 +109,7 @@ final class ThinkPhpTenantAuthRepository implements TenantAuthRepository
             }
         }
         $this->recordFailedLoginEvent($credential, $identifierHmac, $ipAddress, $userAgentHash, $requestId, $now);
-        if ($credentialLocked && $credential !== null) {
+        if ($credentialLocked) {
             $this->recordSecurityEvent(
                 'credential_locked',
                 'denied',

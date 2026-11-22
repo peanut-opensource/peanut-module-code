@@ -7,6 +7,9 @@ namespace PeanutAdmin\Modules\Article\Model;
 use app\common\model\TenantOwnedModel;
 use think\model\concern\SoftDelete;
 
+/**
+ * @property int $status
+ */
 class ArticleCollect extends TenantOwnedModel
 {
     use SoftDelete;

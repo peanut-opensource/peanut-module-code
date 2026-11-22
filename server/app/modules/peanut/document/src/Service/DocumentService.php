@@ -96,7 +96,7 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
                 return $this->receipt($current, $document, 'create', $requestId, $input, $this->summary($document) + ['created' => false]);
             }
             $resource = $fileKey === null ? null : $this->snapshots->describeForDocument($current, $fileKey);
-            $document = Document::create(['tenant_id' => $current->tenantId,'owner_module_key' => $owner->moduleKey,'owner_object_type' => $owner->objectType,
+            $document = Document::createModel(['tenant_id' => $current->tenantId,'owner_module_key' => $owner->moduleKey,'owner_object_type' => $owner->objectType,
                 'owner_object_id' => $owner->objectId,'slot' => $owner->slot,'content_kind' => $contentKind,'body_type' => $contentKind === 'rich_text' ? 'rich_text' : null,
                 'schema_version' => $contentKind === 'rich_text' ? RichTextProjection::SCHEMA : 'peanut.file-resource/1','status' => 'active','auth_revision' => 1,
                 'state_seq' => $resource === null ? 0 : 1,'collaboration_enabled' => 0,'lease_epoch' => 0,'created_by_member_id' => $current->memberId,
@@ -354,7 +354,7 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
             'result_revision_id' => $version['revision_id'], 'result_state_seq' => $version['source_state_seq'], 'accept_request_id' => null,
             'thread_revision' => (int) $thread->thread_revision + 1, 'updated_by_member_id' => $current->memberId,
             'updated_by_account_id' => $current->accountId, 'updated_at' => $now]);
-        $message = DocumentCommentMessage::create(['tenant_id' => $current->tenantId, 'thread_id' => $thread->id, 'thread_revision' => $thread->thread_revision,
+        $message = DocumentCommentMessage::createModel(['tenant_id' => $current->tenantId, 'thread_id' => $thread->id, 'thread_revision' => $thread->thread_revision,
             'action' => 'accept', 'body' => null, 'actor_member_id' => $current->memberId, 'actor_account_id' => $current->accountId, 'created_at' => $now]);
         $result = ['document_id' => (int) $doc->id, 'revision_id' => $source['revision_id'], 'version_digest' => $source['version_digest'],
             'text_profile' => $source['text_profile'], 'text_sha256' => $source['text_sha256'], 'request_id' => $input['request_id'], 'action' => 'accept',
@@ -652,6 +652,7 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
         return $result;
     }
 
+    /** @return \think\db\Query<Document> */
     private function ownerDocuments(DocumentOwnerReference $owner): \think\db\BaseQuery
     {
         return Document::where('owner_module_key', $owner->moduleKey)->where('owner_object_type', $owner->objectType)->where('owner_object_id', $owner->objectId)->order('id');
@@ -779,7 +780,7 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
     private function prepareBusiness(TenantContext $current, Document $doc, string $action, string $key, array $input, string $ownerRevision): BusinessBarrierPlan
     {
         self::requestKey($key);
-        $operation = DocumentOperation::create(['tenant_id' => $current->tenantId,'document_id' => $doc->id,'operation_id' => $key,
+        $operation = DocumentOperation::createModel(['tenant_id' => $current->tenantId,'document_id' => $doc->id,'operation_id' => $key,
             'action' => $action,'input_sha256' => self::inputHash($input),'result_json' => '{}','command_input_json' => json_encode($input, JSON_THROW_ON_ERROR),
             'phase' => 'prepared','initiator_json' => json_encode(self::businessActor($current), JSON_THROW_ON_ERROR),'created_at' => self::now()]);
         $plan = $this->acceptedWrites->requireProvider()->prepareBusinessBarrier(
@@ -1524,7 +1525,7 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
             $revision->immutable_file_key,
             $revision->immutable_file_sha256,
             $revision->immutable_file_mime_type,
-            $projection?->fileReferences ?? [['file_key' => (string) $revision->immutable_file_key, 'variant_key' => null]],
+            $projection->fileReferences ?? [['file_key' => (string) $revision->immutable_file_key, 'variant_key' => null]],
         );
     }
 
@@ -2050,7 +2051,7 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
                 $number = (int) DocumentRevision::where('document_id', $id)->max('revision_no') + 1;
                 $digest = hash('sha256', json_encode(['rich_text',$expected,$frozen->projection->json,
                     hash('sha256', $frozen->binary),null,null], JSON_THROW_ON_ERROR));
-                $revision = DocumentRevision::create(['tenant_id' => $current->tenantId,'document_id' => $id,'revision_no' => $number,
+                $revision = DocumentRevision::createModel(['tenant_id' => $current->tenantId,'document_id' => $id,'revision_no' => $number,
                     'source_state_seq' => $expected,'content_kind' => 'rich_text','yjs_snapshot' => $frozen->binary,
                     'content_snapshot_json' => $frozen->projection->json,'created_at' => self::now(),'created_by_member_id' => $current->memberId,
                     'reason' => $reason,'snapshot_sha256' => $digest]);
@@ -2323,7 +2324,7 @@ final readonly class DocumentService implements DocumentCommands, DocumentQuerie
         }
         $number = (int) DocumentRevision::where('document_id', $document->id)->max('revision_no') + 1;
         $digest = hash('sha256', json_encode([(string) $document->content_kind,(int) $document->state_seq,$content,$binary === null ? null : hash('sha256', $binary),$snapshot['file_key'] ?? null,$snapshot['sha256'] ?? null], JSON_THROW_ON_ERROR));
-        $revision = DocumentRevision::create(['tenant_id' => $context->tenantId,'document_id' => $document->id,'revision_no' => $number,'source_state_seq' => $document->state_seq,
+        $revision = DocumentRevision::createModel(['tenant_id' => $context->tenantId,'document_id' => $document->id,'revision_no' => $number,'source_state_seq' => $document->state_seq,
             'content_kind' => $document->content_kind,'yjs_snapshot' => $binary,'content_snapshot_json' => $content,'immutable_file_key' => $snapshot['file_key'] ?? null,'immutable_file_sha256' => $snapshot['sha256'] ?? null,
             'immutable_file_mime_type' => $snapshot['verified_mime_type'] ?? null,
             'created_at' => self::now(),'created_by_member_id' => $context->memberId,'reason' => $reason,'snapshot_sha256' => $digest]);

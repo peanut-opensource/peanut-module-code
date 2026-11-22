@@ -4,7 +4,6 @@ import argparse
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-CLIENT_PRIMITIVES = ("platform-session.ts", "request-trace.ts", "session-storage.ts", "session-sync.ts")
 
 
 def read_source(root, path):
@@ -35,13 +34,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--scaffold-root", type=Path, default=ROOT.parent / "peanut-admin-code")
     parser.add_argument("--module-root", type=Path, default=ROOT.parent / "peanut-module-code")
-    parser.add_argument("--core-web-root", type=Path, default=ROOT.parent / "peanut-admin-core-web")
     args = parser.parse_args()
 
     scaffold = args.scaffold_root.resolve()
     modules = args.module_root.resolve()
-    core_web = args.core_web_root.resolve()
-    if len({scaffold, modules, core_web}) != 3:
+    if scaffold == modules:
         parser.error("Checkout roots must be distinct")
 
     try:
@@ -60,20 +57,10 @@ def main():
             parser.error(f"Invalid shared path: {name}")
         compare(differences, scaffold, path, modules, path, "Module")
 
-    for name in CLIENT_PRIMITIVES:
-        core_path = Path("packages/client/src") / name
-        for directory in ("platform/src/core", "web/src/utils"):
-            host_path = Path(directory) / name
-            if host_path.as_posix() not in paths:
-                differences.append(f"{host_path}: missing from shared host registry")
-                continue
-            compare(differences, scaffold, host_path, core_web, core_path, "Core Web")
-
     if differences:
         print("\n".join(differences))
         return 1
     print(f"SHARED-HOST-CHECK passed: {len(paths)} registered files match")
-    print(f"Core Web parity: {len(CLIENT_PRIMITIVES)} client primitives match Web and Platform in both hosts")
     return 0
 
 

@@ -84,18 +84,18 @@ $operation = static function (
     return $value;
 };
 
-return compact(
-    'ref',
-    'parameterRef',
-    'responseRef',
-    'error',
-    'jsonBody',
-    'multipartBody',
-    'success',
-    'directJson',
-    'emptySuccess',
-    'query',
-    'header',
-    'path',
-    'operation',
-);
+return [
+    'ref' => $ref,
+    'parameterRef' => $parameterRef,
+    'responseRef' => $responseRef,
+    'error' => $error,
+    'jsonBody' => $jsonBody,
+    'multipartBody' => $multipartBody,
+    'success' => $success,
+    'directJson' => $directJson,
+    'emptySuccess' => $emptySuccess,
+    'query' => $query,
+    'header' => $header,
+    'path' => $path,
+    'operation' => $operation,
+];

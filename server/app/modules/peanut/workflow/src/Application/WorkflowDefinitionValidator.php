@@ -13,6 +13,11 @@ final readonly class WorkflowDefinitionValidator
 {
     public function __construct(private WorkflowScenarioProvider $scenarios, private ?\PeanutAdmin\Modules\Task\Contract\TrustedJobPublisher $tasks, private \PeanutAdmin\Kernel\Module\ModuleAvailability $modules, private ?\PeanutAdmin\Modules\Notification\Contract\NotificationProducerRegistry $producers = null) {}
 
+    private static function hasTaskPublisher(?\PeanutAdmin\Modules\Task\Contract\TrustedJobPublisher $tasks): bool
+    {
+        return $tasks !== null;
+    }
+
     public function validate(AuthorizedOperationContext $context, string $module, string $workflow, WorkflowGraph $graph): void
     {
         $scenario = $this->scenarios->scenario($context, $module, $workflow);
@@ -35,7 +40,7 @@ final readonly class WorkflowDefinitionValidator
             }
         }
         if (in_array('workflow.notification', $graph->data['required_capabilities'], true)) {
-            if ($this->producers === null || $this->tasks === null || !is_string($scenario['notification']['producer_key'] ?? null)) { throw WorkflowException::unsupported('workflow.notification'); }
+            if ($this->producers === null || !self::hasTaskPublisher($this->tasks) || !is_string($scenario['notification']['producer_key'] ?? null)) { throw WorkflowException::unsupported('workflow.notification'); }
             try {
                 foreach (['peanut.notification', 'peanut.task'] as $moduleKey) {
                     $this->modules->assertAvailable(\PeanutAdmin\Kernel\Tenancy\TenantScope::fromTrustedContext($context->tenantContext->tenantId, 'workflow'), $moduleKey, new \DateTimeImmutable('now', new \DateTimeZone('UTC')), true);

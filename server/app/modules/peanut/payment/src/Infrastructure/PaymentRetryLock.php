@@ -22,7 +22,7 @@ final readonly class PaymentRetryLock
 
         $scope = TenantScope::fromTrustedContext(
             $context->tenantId,
-            (string) ($context->requestId ?? ''),
+            $context->requestId,
         );
 
         return TenantNamespace::lockName($scope, 'recharge:refund-retry:' . $recordId);

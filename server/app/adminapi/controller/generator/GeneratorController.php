@@ -22,10 +22,7 @@ class GeneratorController extends BaseAdminController
     }
     public function sourceTables()
     {
-        $denial = $this->instanceToolAccessDenial();
-        if ($denial !== null) {
-            return $denial;
-        }
+        $this->assertInstanceToolAccess();
 
         $params = $this->request->get();
         $this->validate($params, GeneratorValidate::class . '.source');
@@ -35,10 +32,7 @@ class GeneratorController extends BaseAdminController
 
     public function lists()
     {
-        $denial = $this->instanceToolAccessDenial();
-        if ($denial !== null) {
-            return $denial;
-        }
+        $this->assertInstanceToolAccess();
 
         $params = $this->request->get();
         $this->validate($params, GeneratorValidate::class . '.lists');
@@ -48,10 +42,7 @@ class GeneratorController extends BaseAdminController
 
     public function detail()
     {
-        $denial = $this->instanceToolAccessDenial();
-        if ($denial !== null) {
-            return $denial;
-        }
+        $this->assertInstanceToolAccess();
 
         $params = $this->request->get();
         $this->validate($params, GeneratorValidate::class . '.id');
@@ -61,10 +52,7 @@ class GeneratorController extends BaseAdminController
 
     public function import()
     {
-        $denial = $this->instanceToolAccessDenial();
-        if ($denial !== null) {
-            return $denial;
-        }
+        $this->assertInstanceToolAccess();
 
         $params = $this->request->post();
         $this->validate($params, GeneratorValidate::class . '.import');
@@ -74,10 +62,7 @@ class GeneratorController extends BaseAdminController
 
     public function sync()
     {
-        $denial = $this->instanceToolAccessDenial();
-        if ($denial !== null) {
-            return $denial;
-        }
+        $this->assertInstanceToolAccess();
 
         $params = $this->request->post();
         $this->validate($params, GeneratorValidate::class . '.id');
@@ -87,10 +72,7 @@ class GeneratorController extends BaseAdminController
 
     public function update()
     {
-        $denial = $this->instanceToolAccessDenial();
-        if ($denial !== null) {
-            return $denial;
-        }
+        $this->assertInstanceToolAccess();
 
         $params = $this->request->post();
         $this->validate($params, GeneratorValidate::class . '.update');
@@ -100,10 +82,7 @@ class GeneratorController extends BaseAdminController
 
     public function delete()
     {
-        $denial = $this->instanceToolAccessDenial();
-        if ($denial !== null) {
-            return $denial;
-        }
+        $this->assertInstanceToolAccess();
 
         $params = $this->request->post();
         $this->validate($params, GeneratorValidate::class . '.ids');
@@ -113,10 +92,7 @@ class GeneratorController extends BaseAdminController
 
     public function preview()
     {
-        $denial = $this->instanceToolAccessDenial();
-        if ($denial !== null) {
-            return $denial;
-        }
+        $this->assertInstanceToolAccess();
 
         $params = $this->request->post();
         $this->validate($params, GeneratorValidate::class . '.id');
@@ -126,10 +102,7 @@ class GeneratorController extends BaseAdminController
 
     public function generate()
     {
-        $denial = $this->instanceToolAccessDenial();
-        if ($denial !== null) {
-            return $denial;
-        }
+        $this->assertInstanceToolAccess();
 
         $params = $this->request->post();
         $this->validate($params, GeneratorValidate::class . '.ids');
@@ -139,10 +112,7 @@ class GeneratorController extends BaseAdminController
 
     public function download()
     {
-        $denial = $this->instanceToolAccessDenial();
-        if ($denial !== null) {
-            return $denial;
-        }
+        $this->assertInstanceToolAccess();
 
         $params = $this->request->get();
         $this->validate($params, GeneratorValidate::class . '.download');
@@ -156,19 +126,16 @@ class GeneratorController extends BaseAdminController
 
     public function models()
     {
-        $denial = $this->instanceToolAccessDenial();
-        if ($denial !== null) {
-            return $denial;
-        }
+        $this->assertInstanceToolAccess();
 
         return $this->data($this->generator->models($this->adminId));
     }
 
-    private function instanceToolAccessDenial(): ?Json
+    private function assertInstanceToolAccess(): void
     {
         $guard = InstanceToolAccessGuard::fromConfiguredValue(config('deployment.mode'));
-        return $guard->allows()
-            ? null
-            : throw \app\common\http\ApiProblem::fromEnvelope('实例级开发工具仅在 standalone 部署中可用', null, 40300);
+        if (!$guard->allows()) {
+            throw \app\common\http\ApiProblem::fromEnvelope('实例级开发工具仅在 standalone 部署中可用', null, 40300);
+        }
     }
 }

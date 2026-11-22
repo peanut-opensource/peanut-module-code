@@ -7,7 +7,7 @@
 - **源码格式化**：`node scripts/format-source.mjs`
 - **模块边界检查**：`php scripts/check-module-boundaries.php`
 - **源码布局检查**：`php scripts/check-source-layout.php`
-- **ThinkPHP 架构检查**：`scripts/check-thinkphp-architecture`
+- **PHP 静态分析**：`scripts/phpstan-tenant-guard` 与 `scripts/phpstan-quality`
 
 ## 二、服务端测试（PHP）
 

@@ -240,6 +240,7 @@ final class ModuleLockResolver
                 $trust,
             );
         }
+        clearstatcache(true, $lockPath);
         if (file_exists($journal) || is_link($journal) || hash_file('sha256', $lockPath) !== $lockDigest) {
             throw new ModuleLifecycleException('MODULE_PACKAGE_RECOVERY_REQUIRED', 'Application source changed during resolution.');
         }
@@ -496,7 +497,7 @@ final class ModuleLockResolver
             try {
                 $clientRoot = ModuleFrontendLayout::clientRoot($clientKey);
             } catch (\InvalidArgumentException $exception) {
-                throw new ModuleLifecycleException('PLUGIN_IDENTITY_INVALID', $exception->getMessage(), 0, $exception);
+                throw new ModuleLifecycleException('PLUGIN_IDENTITY_INVALID', $exception->getMessage(), previous: $exception);
             }
             $relativeRoot = dirname((string) $identity['entry']);
             $matchedModule = null;
@@ -649,8 +650,7 @@ final class ModuleLockResolver
             throw new ModuleLifecycleException(
                 'PLUGIN_MODULE_CONFLICT',
                 'Locked Module PHP namespaces overlap or claim a reserved prefix.',
-                0,
-                $exception,
+                previous: $exception,
             );
         }
         ksort($roots, SORT_STRING);

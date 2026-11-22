@@ -164,7 +164,11 @@ final readonly class BootstrapService
             $now = $this->now();
             $tenant = new Tenant();
             // Discover metadata before INSERT to preserve PDO's last insert ID with explicit schema.
-            $tenant->getQuery()->getAutoInc();
+            $query = $tenant->db();
+            if (!$query instanceof \think\db\Query) {
+                throw new \LogicException('IDENTITY_TENANT_QUERY_DRIVER_UNSUPPORTED');
+            }
+            $query->getAutoInc();
             $tenant->save([
                 'code' => $tenantCode,
                 'name' => $tenantName,
@@ -397,7 +401,7 @@ final readonly class BootstrapService
 
     private function driverConnection(): PDOConnection
     {
-        $connection = Db::connect();
+        $connection = \think\Container::getInstance()->make(\think\DbManager::class)->connect();
         if (!$connection instanceof PDOConnection) {
             throw new DomainException('MySQL bootstrap locking requires ThinkPHP PDOConnection.');
         }

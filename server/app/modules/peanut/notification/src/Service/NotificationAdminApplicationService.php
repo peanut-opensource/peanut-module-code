@@ -108,7 +108,7 @@ final readonly class NotificationAdminApplicationService
         );
     }
 
-    /** @param list<string> $messageKeys */
+    /** @param list<mixed> $messageKeys */
     public function bulk(
         TenantContext $tenant,
         AdminPrincipal $actor,

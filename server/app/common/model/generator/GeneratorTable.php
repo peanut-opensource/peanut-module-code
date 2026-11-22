@@ -6,6 +6,9 @@ namespace app\common\model\generator;
 
 use app\common\model\InstanceOwnedModel;
 
+/**
+ * @property int|string $id
+ */
 class GeneratorTable extends InstanceOwnedModel
 {
     protected $name = 'generator_table';

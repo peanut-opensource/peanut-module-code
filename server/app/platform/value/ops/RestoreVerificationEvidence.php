@@ -148,7 +148,7 @@ final readonly class RestoreVerificationEvidence
         };
         $walk($registry);
         $find = static function (string $id) use ($rows): array {
-            $found = array_values(array_filter($rows, static fn (array $row): bool => ($row['stable_resource_id'] ?? null) === $id));
+            $found = array_values(array_filter($rows, static fn (array $row): bool => $row['stable_resource_id'] === $id));
             if (count($found) !== 1) {
                 throw new RuntimeException('OPS_RESTORE_TARGET_NOT_REGISTERED');
             }

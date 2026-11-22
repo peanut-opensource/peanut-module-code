@@ -9,7 +9,6 @@ use app\common\http\RequestTrace;
 use app\common\services\authorization\AdminAuthorizationService;
 use app\common\exception\BusinessException;
 use PeanutAdmin\Kernel\Auth\AuthException;
-use PeanutAdmin\Modules\Identity\Auth\TenantAuthentication;
 use PeanutAdmin\Modules\Identity\Auth\TenantAuthService;
 use PeanutAdmin\Modules\Identity\Auth\TenantSelectionRequired;
 use PeanutAdmin\Kernel\Host\ApplicationHostPolicy;
@@ -44,9 +43,6 @@ final class LoginApplicationService
             );
             if ($outcome instanceof TenantSelectionRequired) {
                 return $outcome->responseData();
-            }
-            if (!$outcome instanceof TenantAuthentication) {
-                throw new \DomainException('TENANT_AUTHENTICATION_INVALID');
             }
 
             $principal = $this->authorization->principal($outcome->context)->toArray();

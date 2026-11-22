@@ -14,7 +14,6 @@ final readonly class ProductAssetReferenceService
 {
     public function __construct(
         private FileReferences $files,
-        private string $applicationOrigin,
     ) {}
 
     /** Persist stable owned file_key only; external hyperlinks are a separate content field. */

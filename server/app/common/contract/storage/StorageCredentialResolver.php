@@ -6,6 +6,6 @@ namespace app\common\contract\storage;
 
 interface StorageCredentialResolver
 {
-    /** @return array{access_key:string,secret_key:string} */
+    /** @return array{}|array{access_key:string,secret_key:string} */
     public function resolve(array $account): array;
 }

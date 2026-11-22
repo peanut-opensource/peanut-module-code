@@ -7,7 +7,17 @@ declare(strict_types=1);
  * 生命周期工具返回可扩展部分使用递归有类型值，不用无约束 object 伪装完整合同。
  */
 $h = require __DIR__ . '/common.php';
-extract($h, EXTR_SKIP);
+$ref = $h['ref'];
+$parameterRef = $h['parameterRef'];
+$error = $h['error'];
+$jsonBody = $h['jsonBody'];
+$multipartBody = $h['multipartBody'];
+$success = $h['success'];
+$emptySuccess = $h['emptySuccess'];
+$query = $h['query'];
+$header = $h['header'];
+$path = $h['path'];
+$operation = $h['operation'];
 
 $nullableString = ['type' => 'string', 'nullable' => true];
 $nullableInteger = ['type' => 'integer', 'nullable' => true];

@@ -126,7 +126,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             'object_key' => $objectKey,
             'disposition' => StoragePurpose::disposition($purpose),
             'original_name' => $originalName,
-            'media_type' => $mediaType !== '' ? $mediaType : 'application/octet-stream',
+            'media_type' => $mediaType,
             'size_bytes' => $size,
             'sha256' => $sha256,
             'created_by_member_id' => $memberId && $memberId > 0 ? $memberId : null,
@@ -755,7 +755,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             $locked = $this->ownedObjects($context->tenantId)->where('file_key', $key)->lock(true)->find();
             $locked = is_array($locked) ? $locked : $locked?->toArray();
             if ($locked === null || (int) $locked['created_by_member_id'] !== $context->memberId || $locked['status'] !== 'ready'
-                || \PeanutAdmin\Modules\File\Model\File::withTrashed()->where('file_key', $key)->find() !== null
+                || (new \PeanutAdmin\Modules\File\Model\File())->db()->scope('withTrashed')->where('file_key', $key)->find() !== null
                 || FileReference::where('file_key', $key)->find() !== null
                 || Db::name('file_derivative')->where('source_file_key|derivative_file_key', $key)->find() !== null) { // @phpstan-ignore peanut.rawDbQuery (Compensation checks the already authorized file key; both derivative foreign keys require the same tenant as that globally unique key.)
                 throw BusinessException::conflict('FILE_UPLOAD_COMPENSATION_CONFLICT', '上传已被持久引用或状态改变');
@@ -951,7 +951,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             }
             $this->authorization->authorizeBackgroundDocumentSource($context, $object);
         } finally {
-            if ($opened['temporary'] ?? false) {
+            if ($opened['temporary']) {
                 @unlink($opened['path']);
             }
         }
@@ -1110,7 +1110,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             ->order('created_at')->order('file_key')->limit(100)->select()->toArray();
         return array_map(function (array $object): array {
             $capture = FileImmutableSnapshot::where('file_key', $object['file_key'])->find();
-            return ['file_key' => $object['file_key'],'status' => $capture?->status ?? 'interrupted_capture','created_at' => $object['created_at']];
+            return ['file_key' => $object['file_key'],'status' => $capture->status ?? 'interrupted_capture','created_at' => $object['created_at']];
         }, $objects);
     }
 
@@ -1135,7 +1135,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
                 || ($recovery && strtotime($object['created_at'] . ' UTC') > time() - 3600)
                 || $capture?->status === 'claimed' || ($capture !== null && !$recovery && $capture->capture_id !== $captureId)
                 || FileReference::where('file_key', $key)->find() !== null
-                || \PeanutAdmin\Modules\File\Model\File::withTrashed()->where('file_key', $key)->find() !== null
+                || (new \PeanutAdmin\Modules\File\Model\File())->db()->scope('withTrashed')->where('file_key', $key)->find() !== null
                 || Db::name('file_derivative')->where('source_file_key|derivative_file_key', $key)->find() !== null) { // @phpstan-ignore peanut.rawDbQuery (Recovery checks the already locked tenant file; both derivative foreign keys require the same tenant as that globally unique key.)
                 throw BusinessException::conflict('FILE_SNAPSHOT_RECOVERY_DENIED', '快照已被认领、仍被引用或尚未进入恢复窗口');
             }
@@ -1708,7 +1708,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             if ($sourceDriver->inspect($source['object_key'])->exists) {
                 throw BusinessException::conflict('FILE_VISIBILITY_SOURCE_STILL_PUBLIC', '原公开位置尚未关闭');
             }
-            return ['original_location_absent' => true, 'delete_outcome' => $receipt?->outcome ?? 'already-absent'];
+            return ['original_location_absent' => true, 'delete_outcome' => $receipt->outcome ?? 'already-absent'];
         }
         if ($step !== 'verify' || $sourceDriver->inspect($source['object_key'])->exists
             || (int) $object['storage_space_id'] !== (int) $target['storage_space_id']
@@ -1969,7 +1969,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
      * 文件模块自己的受控读取边界：私有读取固定租户，公开查询固定 public。
      * 签名交付没有员工会话，不从全局登录上下文推导范围，也不提供通用过滤开关。
      */
-    private function objectQuery(?int $tenantId): BaseQuery
+    private function objectQuery(?int $tenantId): \think\db\Query
     {
         if ($tenantId !== null && $tenantId < 1) {
             throw new \DomainException('STORAGE_TENANT_INVALID');

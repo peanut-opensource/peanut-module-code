@@ -123,7 +123,7 @@ final readonly class WorkflowDefinitionService
         $this->guard($context, 'read');
         $scenario = $this->scenarios->scenario($context, $moduleKey, $workflowKey);
         $actions = [];
-        foreach ($scenario['actions'] ?? [] as $key => $action) {
+        foreach ($scenario['actions'] as $key => $action) {
             $actions[] = ['action_key' => $key, 'contract_version' => $action['contract_version'], 'input_schema' => $action['input_schema']];
         }
         return ['scenario_contract_version' => $scenario['contract_version'], 'fields' => $scenario['fields'], 'result_codes' => $scenario['result_codes'], 'capabilities' => $scenario['capabilities'], 'actions' => $actions];

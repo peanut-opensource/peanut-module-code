@@ -24,7 +24,7 @@ final class ExternalChannelBindingService implements ExternalChannelBindings
     public function config(TenantContext $context, string $provider): array
     {
         $binding = $this->optionalBinding($context, $provider);
-        return $binding?->config ?? [];
+        return $binding->config ?? [];
     }
 
     public function callbackKey(TenantContext $context, string $provider): string
@@ -63,9 +63,7 @@ final class ExternalChannelBindingService implements ExternalChannelBindings
             $identity,
             static function (array $current) use ($provider, $identity, $mutator, $enabledResolver): array {
                 $config = $mutator($current);
-                if (!is_array($config)) {
-                    throw new \RuntimeException('外部渠道配置变更无效');
-                }
+                self::assertMutationConfig($config);
                 $enabled = $enabledResolver === null
                     ? self::enabled($provider, $config)
                     : (bool) $enabledResolver($config);
@@ -87,6 +85,13 @@ final class ExternalChannelBindingService implements ExternalChannelBindings
             return null;
         }
         return $this->resolver->bindingForTenant($tenantId, $provider, false);
+    }
+
+    private static function assertMutationConfig(mixed $config): void
+    {
+        if (!is_array($config)) {
+            throw new \RuntimeException('外部渠道配置变更无效');
+        }
     }
 
     private static function assertValidInput(string $provider, string $identity, bool $enabled): void

@@ -56,6 +56,8 @@ Code四端共用根 `.prettierrc.cjs`，Web入口仅引用；Prettier版本和PH
 
 控制器 XxxController，验证器 XxxValidate，业务动作 XxxService，模型实体名，公开纯查询 XxxQueries，命令合同 XxxCommands。拒绝用新的 CommonService、Helper、Manager 掩盖职责；已有确有语义的名称不机械替换。不按行数强拆文件。
 
+宿主 `server/config/` 和 `scripts/` 仅保留框架启动、宿主、已登记模块、生成或交付入口实际消费的文件。保留的模块配置须标明消费者。移除孤立配置、模板和废弃脚本时同步更新直接入口、共享清单与模板清单。
+
 ## 4. ThinkPHP 实现合同
 
 Controller 获取原始输入、按动作校验、调用公开业务并映射响应；不承载完整跨模块事务、渠道调用或直接批量写私表。Validator 负责类型、格式、枚举、长度及场景，不用“校验成功”代替字段写权限。Service 负责对象授权、业务状态、不变量、事务和编排，不返回 HTTP Response。Model / 持久化实现负责本模块数据访问，不藏支付、通知等外部副作用。Provider 只登记，不在构造或注册时创建业务记录。
@@ -97,6 +99,8 @@ contracts.exports 是模块公开面，不是所有可 autoload 类的目录。�
 文件沿现有稳定引用，不存签名 URL；共享引用的软删 / 恢复不得误删文件。永久回收单独核授权、引用、保留条件。受限缓存先授权，包含影响结果的身份 / 租户 / Scope / 修订；公共缓存不含个人数据，也须区分实际内容不同的 Host / 站点 / 语言。身份、授权、安装与租户资料的读取和写入遵守[请求缓存与失效合同](request-cache-contract.md)，变更写入口时同步核对版本更新。审计与普通日志分开，不因失败关闭安全审计，不输出秘密或敏感原始请求。
 
 ## 7. Vue 与 TypeScript
+
+Web、Platform、PC、UniApp 统一使用 pnpm 和 `pnpm-lock.yaml`，各端以 `pnpm install --frozen-lockfile` 安装并通过 `pnpm run type:check` 执行类型检查。四端采用一致的 TypeScript 和 vue-tsc 主版本基线，准确版本由各端原生锁固定。模板生成、CI、容器构建及 SBOM 使用同一包管理器合同。
 
 页面组合路由、状态和展示，不重复拼 URL、令牌、刷新或重试。展示组件显式 props / emits / slots，不偷读租户或硬编码业务 API。有状态复用使用 composable，纯转换用函数，UI 复用用组件；不新增 mixin。Pinia 只保存真实跨页共享状态，不容纳所有临时表单。
 

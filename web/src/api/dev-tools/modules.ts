@@ -3,8 +3,8 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 import {
   createPlatformSession,
   type PlatformSessionSnapshot,
-} from '@/utils/platform-session';
-import { formatRequestError } from '@/utils/request-trace';
+} from '@peanut-admin/client';
+import { formatRequestError } from '@peanut-admin/client';
 
 const sessionState = createPlatformSession(() => window.location.reload());
 import.meta.hot?.dispose(sessionState.dispose);

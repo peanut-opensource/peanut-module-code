@@ -51,7 +51,7 @@ final class RechargeTenantSettingService
             [(int) ($right['is_default'] ?? 0), (int) ($left['pay_way'] ?? 0)]
             <=> [(int) ($left['is_default'] ?? 0), (int) ($right['pay_way'] ?? 0)],
         );
-        return array_values($scenes);
+        return $scenes;
     }
 
     public function scene(

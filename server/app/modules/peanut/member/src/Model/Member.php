@@ -9,6 +9,16 @@ use PeanutAdmin\Kernel\Auth\TenantContext;
 use PeanutAdmin\Kernel\Context\TenantSystemContext;
 use think\model\concern\SoftDelete;
 
+/**
+ * @property int $id
+ * @property string $login_ip
+ * @property int $login_time
+ * @property string $password
+ * @property int|string $session_revision
+ * @property int $status
+ * @property string $total_recharge_amount
+ * @property string $user_money
+ */
 class Member extends TenantOwnedModel
 {
     use SoftDelete;

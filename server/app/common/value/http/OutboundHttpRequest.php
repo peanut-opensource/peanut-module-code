@@ -8,7 +8,7 @@ final readonly class OutboundHttpRequest
 {
     /**
      * @param array<string,string> $headers
-     * @param list<array{name:string,contents:mixed,filename?:string,headers?:array<string,string>}> $multipart
+     * @param array<array-key,mixed> $multipart
      * @param bool $directConnection Bypass client/process proxies for private service traffic.
      */
     public function __construct(

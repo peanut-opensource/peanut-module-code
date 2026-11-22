@@ -47,12 +47,13 @@ final readonly class RequestGuardMiddleware
         $action = $policy . ':' . $request->method() . ':' . $request->pathinfo();
         $limit = $config['limit'] ?? null;
         $interval = $config['interval'] ?? null;
+        $repeatInterval = $config['repeat_interval'] ?? null;
         if ($limit !== null || $interval !== null) {
             if (!is_int($limit) || $limit < 1 || !is_string($interval) || $interval === '') throw new \LogicException('REQUEST_GUARD_RATE_INVALID');
             $guard->limit($tenant, $subject, $action, $limit, $interval);
+        } elseif ($repeatInterval === null) {
+            throw new \LogicException('REQUEST_GUARD_POLICY_EMPTY');
         }
-        $repeatInterval = $config['repeat_interval'] ?? null;
-        if ($limit === null && $interval === null && $repeatInterval === null) throw new \LogicException('REQUEST_GUARD_POLICY_EMPTY');
         if ($repeatInterval !== null) {
             if (!is_string($repeatInterval) || $repeatInterval === '') throw new \LogicException('REQUEST_GUARD_REPEAT_INVALID');
             // Do not attach this policy to durable idempotent commands: their

@@ -20,7 +20,7 @@ final readonly class TenantAuthorizationQuery
 
     /**
      * Requested-key grants read current authority; deployment qualification remains with the caller.
-     * @param list<string> $permissionKeys
+     * @param list<mixed> $permissionKeys
      * @return array<string,array{key:string,module_key:string|null,status:string}>
      */
     public function permissionGrants(TenantContext $context, array $permissionKeys): array
@@ -121,7 +121,7 @@ final readonly class TenantAuthorizationQuery
      * 只读取调用方已选菜单引用的定义元数据；不存在与停用必须区分，不授予人员权限。
      * 以有界批次查询；数据库负责引用相等性，避免大小写/排序规则差异把停用定义误判成未登记。
      * 输入键映射到规范键；缺失项为空缺，存储失败原样传播，不返回SQL或查询对象。
-     * @param list<string> $permissionKeys
+     * @param list<mixed> $permissionKeys
      * @return array<string,array{key:string,module_key:string|null,status:string}>
      */
     public function permissionStates(array $permissionKeys): array
@@ -136,7 +136,7 @@ final readonly class TenantAuthorizationQuery
             return $states;
         }
         $table = (new Permission())->getTable();
-        if (!is_string($table) || preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/D', $table) !== 1) {
+        if (preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/D', $table) !== 1) {
             throw new \LogicException('PERMISSION_TABLE_INVALID');
         }
         foreach (array_chunk(array_values(array_unique($permissionKeys)), 500) as $keys) {
@@ -210,7 +210,7 @@ final readonly class TenantAuthorizationQuery
 
     /**
      * Counts include roles without memberships, using the same membership semantics as roleMemberCount().
-     * @param list<int> $roleIds
+     * @param array<array-key,mixed> $roleIds
      * @return array<int,int>
      */
     public function batchRoleMemberCounts(int $tenantId, array $roleIds): array

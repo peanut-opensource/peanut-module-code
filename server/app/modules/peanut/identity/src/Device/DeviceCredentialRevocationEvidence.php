@@ -102,7 +102,7 @@ final class DeviceCredentialRevocationEvidence
         ksort($actualData, SORT_STRING);
         ksort($expectedData, SORT_STRING);
         if ($basis !== $expectedBasis || $source['status'] !== 'revoked' || (string) $source['revocation_epoch'] !== '1'
-            || $body['outcome'] !== 'accepted' || $body['resource_key'] !== $source['credential_key']
+            || $body['resource_key'] !== $source['credential_key']
             || $body['resource_revision'] !== $after || $body['problem'] !== null
             || $actualData !== $expectedData
             || !hash_equals((string) $source['revoke_input_hash'], self::hash(

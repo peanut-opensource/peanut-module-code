@@ -18,16 +18,18 @@
 
 ## 云驱动依赖边界
 
-Core FileMedia 提供 `StorageDriver`、本地驱动及各云适配器。File 模块的 `StorageDriverFactory` 按空间配置组装驱动，解析当前账号凭据，且只在选到对应驱动时创建 SDK 客户端。本地路径没有云 SDK 调用。5.x 宿主仍承诺默认 File 组合可运行全部已支持供应商，Composer 依赖闭包如下。
+空宿主的 `server/composer.json` 只声明框架及宿主源码直接调用的依赖。仅由模块使用的 SDK、JWT、Cron 或支付库由调用模块的 `composer.json` 声明。模块采用入口解析模块依赖并更新 Composer 锁，空宿主安装保持独立。
 
-| Composer 包 | 运行调用方 | 当前依赖声明 |
+Core FileMedia 提供 `StorageDriver`、本地驱动及云驱动适配器。File 模块拥有供应商的启用与装配。其 `StorageDriverFactory` 根据空间配置解析当前账号凭据，只构建选中的 SDK 客户端。本地驱动无需创建云客户端。
+
+| Composer 包 | 运行调用方 | 声明归属 |
 | --- | --- | --- |
-| `aws/aws-sdk-php` | File 的 `QiniuS3DownloadTransport` 使用 SigV4 | File 与宿主 |
-| `aliyuncs/oss-sdk-php` | File 的 `AliyunStorageClientFactory` 与 Core 的 `AliyunStorageDriver` | 宿主 |
-| `qcloud/cos-sdk-v5` | File 的 `QcloudStorageClientFactory` 与 Core 的 `QcloudStorageDriver` | 宿主 |
-| `qiniu/php-sdk` | File 的七牛工厂、可见性源站及 Core 的 `QiniuStorageDriver` | 宿主 |
+| `aws/aws-sdk-php` | File 的 `QiniuS3DownloadTransport` 使用 SigV4 | `peanut.file` |
+| `aliyuncs/oss-sdk-php` | File 的 `AliyunStorageClientFactory` 与 Core 的 `AliyunStorageDriver` | `peanut.file` |
+| `qcloud/cos-sdk-v5` | File 的 `QcloudStorageClientFactory` 与 Core 的 `QcloudStorageDriver` | `peanut.file` |
+| `qiniu/php-sdk` | File 的七牛工厂、可见性源站及 Core 的 `QiniuStorageDriver` | `peanut.file` |
 
-迁移时先为 File 的云适配器声明对应 SDK 及版本，明确默认组合与本地存储组合分别安装哪些适配器；已有云存储账号在升级后必须继续安装其适配器。随后更新 File 工厂与能力声明，覆盖本地组合无 SDK、各云组合实际创建客户端、七牛 S3 签名和可见性迁移，验证已有账号升级。最后用原生依赖和发行流程重算两仓 Composer 锁、模板依赖及 Scaffold SBOM，并通过 `check-release-consistency` 与干净锁安装后移除宿主的四项直接依赖。
+采用 File 后必须保留已有存储账号的驱动能力。依赖改动通过原生生产入口更新 Composer 锁、模板依赖和 SBOM，验收覆盖空宿主的依赖缺席、采用后的 SDK 装配和原有驱动行为。
 
 ## 批次与恢复
 

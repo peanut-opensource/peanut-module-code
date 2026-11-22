@@ -8,6 +8,5 @@
 scaffold/releases/**
 scaffold/legacy/**
 **/pnpm-lock.yaml
-**/package-lock.json
 # The ignore file lives below the repo root; match the exact generator-owned path.
 **/web/components.d.ts

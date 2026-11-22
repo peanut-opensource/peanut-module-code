@@ -1,7 +1,0 @@
-# Peanut scheduling configuration example.
-# Business scheduling is not enabled in this delivery stage.
-# schedule.sh is currently a no-op placeholder; no active cron entry is shipped.
-# Future /etc/cron.d format: minute hour day month weekday user command
-# Example after scheduling and installation/maintenance guards are implemented:
-# * * * * * www-data /bin/sh /usr/local/bin/peanut-schedule
-# Do not put credentials in this file or enable duplicate task dispatchers.

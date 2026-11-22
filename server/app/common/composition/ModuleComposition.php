@@ -55,23 +55,16 @@ final readonly class ModuleComposition
             $providers[$moduleKey] = $provider;
             $selectedModuleKeys[$moduleKey] = true;
             if ($provider instanceof ContentToolContributor) {
-                $registrations = $provider->contentToolRegistrations();
-                if (!array_is_list($registrations)) {
-                    throw new ModuleException('MODULE_CONTENT_TOOL_INVALID', 'Content tools must be typed list contributions.');
-                }
-                foreach ($registrations as $registration) {
-                    if (!$registration instanceof SurfaceAdapterRegistration || $registration->providerModuleKey !== $moduleKey) {
-                        throw new ModuleException('MODULE_CONTENT_TOOL_INVALID', 'Content tool provider identity does not match its compiled Module.');
-                    }
-                    $contentAdapters[] = $registration;
-                }
+                $contentAdapters = [...$contentAdapters, ...self::contentToolRegistrations(
+                    $provider->contentToolRegistrations(), $moduleKey,
+                )];
             }
             if ($provider instanceof \PeanutAdmin\Modules\Document\Contract\DocumentOwnerContributor) {
                 foreach ($provider->documentOwnerPolicies() as $type => $policy) {
                     $key = $moduleKey . ':' . $type;
-                    if (!is_string($type) || preg_match('/^[a-z][a-z0-9_-]{0,63}$/D', $type) !== 1
-                        || isset($documentOwnerPolicies[$key]) || !is_string($policy)
-                        || !is_a($policy, \PeanutAdmin\Modules\Document\Contract\DocumentOwnerPolicy::class, true)) {
+                    if (!self::validDocumentOwnerType($type)
+                        || isset($documentOwnerPolicies[$key])
+                        || !self::isContributionClass($policy, \PeanutAdmin\Modules\Document\Contract\DocumentOwnerPolicy::class)) {
                         throw new ModuleException('MODULE_DOCUMENT_OWNER_POLICY_INVALID', 'Invalid business Document owner policy contribution.');
                     }
                     $documentOwnerPolicies[$key] = $policy;
@@ -88,14 +81,14 @@ final readonly class ModuleComposition
             if ($provider instanceof \PeanutAdmin\Modules\Document\Contract\DocumentAcceptedWriteContributor) {
                 $accepted = $provider->acceptedWriteProvider();
                 if ($moduleKey !== 'peanut.collaboration' || $documentAcceptedProvider !== null
-                    || !is_a($accepted, \PeanutAdmin\Modules\Document\Contract\DocumentAcceptedWriteProvider::class, true)) {
+                    || !self::isContributionClass($accepted, \PeanutAdmin\Modules\Document\Contract\DocumentAcceptedWriteProvider::class)) {
                     throw new ModuleException('MODULE_DOCUMENT_ACCEPTED_PROVIDER_INVALID', 'Invalid accepted Document write contribution.');
                 }
                 $documentAcceptedProvider = $accepted;
             }
             if ($provider instanceof TaskWorkerContributor) {
                 foreach ($provider->taskWorkerDefinitions() as $definition) {
-                    if (!is_string($definition) || !is_a($definition, TaskWorkerDefinition::class, true)) {
+                    if (!self::isContributionClass($definition, TaskWorkerDefinition::class)) {
                         throw new ModuleException('MODULE_TASK_WORKER_INVALID', "Module Task worker is invalid: {$moduleKey}");
                     }
                     $taskWorkers[] = ['module_key' => $moduleKey, 'definition' => $definition];
@@ -177,7 +170,7 @@ final readonly class ModuleComposition
                     throw new ModuleException('MODULE_TASK_WORKER_INVALID', 'Optional workers must be a typed list.');
                 }
                 foreach ($definitions as $definition) {
-                    if (!is_string($definition) || !is_a($definition, TaskWorkerDefinition::class, true)) {
+                    if (!self::isContributionClass($definition, TaskWorkerDefinition::class)) {
                         throw new ModuleException('MODULE_TASK_WORKER_INVALID', 'Optional worker contribution is invalid.');
                     }
                     $taskWorkers[] = ['module_key' => $provider->moduleKey(), 'definition' => $definition];
@@ -242,4 +235,29 @@ final readonly class ModuleComposition
             }
         }
     }
+    /** @param array<array-key,mixed> $registrations @return list<SurfaceAdapterRegistration> */
+    private static function contentToolRegistrations(array $registrations, string $moduleKey): array
+    {
+        if (!array_is_list($registrations)) {
+            throw new ModuleException('MODULE_CONTENT_TOOL_INVALID', 'Content tools must be typed list contributions.');
+        }
+        foreach ($registrations as $registration) {
+            if (!$registration instanceof SurfaceAdapterRegistration || $registration->providerModuleKey !== $moduleKey) {
+                throw new ModuleException('MODULE_CONTENT_TOOL_INVALID', 'Content tool provider identity does not match its compiled Module.');
+            }
+        }
+        return $registrations;
+    }
+
+    private static function validDocumentOwnerType(mixed $type): bool
+    {
+        return is_string($type) && preg_match('/^[a-z][a-z0-9_-]{0,63}$/D', $type) === 1;
+    }
+
+    /** @param class-string $contract */
+    private static function isContributionClass(mixed $candidate, string $contract): bool
+    {
+        return is_string($candidate) && is_a($candidate, $contract, true);
+    }
+
 }

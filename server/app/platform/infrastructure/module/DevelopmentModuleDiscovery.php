@@ -74,7 +74,7 @@ final readonly class DevelopmentModuleDiscovery
             try {
                 $phpNamespace = ModulePhpNamespace::fromModuleRoot($actualRoot);
             } catch (\InvalidArgumentException $exception) {
-                throw new ModuleLifecycleException('MODULE_MANIFEST_INVALID', 'Development Module PHP namespace is invalid.', 0, $exception);
+                throw new ModuleLifecycleException('MODULE_MANIFEST_INVALID', 'Development Module PHP namespace is invalid.', previous: $exception);
             }
             $namespaceKey = strtolower($phpNamespace);
             if (isset($phpNamespaces[$namespaceKey])) {
@@ -88,7 +88,7 @@ final readonly class DevelopmentModuleDiscovery
             try {
                 $contributions = ModuleFrontendLayout::contributions($frontend, $key->value());
             } catch (\InvalidArgumentException $exception) {
-                throw new ModuleLifecycleException('MODULE_PACKAGE_FRONTEND_ENTRY_MISMATCH', $exception->getMessage(), 0, $exception);
+                throw new ModuleLifecycleException('MODULE_PACKAGE_FRONTEND_ENTRY_MISMATCH', $exception->getMessage(), previous: $exception);
             }
             foreach ($contributions as $contribution) {
                 $entryPath = $this->projectRoot . '/' . $contribution['entry'];
@@ -113,8 +113,7 @@ final readonly class DevelopmentModuleDiscovery
             throw new ModuleLifecycleException(
                 'MODULE_REGISTRY_CONFLICT',
                 'Development Module PHP namespaces overlap or claim a reserved prefix.',
-                0,
-                $exception,
+                previous: $exception,
             );
         }
         ksort($manifests, SORT_STRING);

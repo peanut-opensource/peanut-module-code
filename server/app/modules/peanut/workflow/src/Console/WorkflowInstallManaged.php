@@ -81,10 +81,10 @@ final class WorkflowInstallManaged extends ContextualCommand
             foreach (array_slice($frames, 0, 8) as $frame) {
                 $file = is_string($frame['file'] ?? null) ? realpath($frame['file']) : false;
                 $class = $frame['class'] ?? null;
-                $function = $frame['function'] ?? null;
+                $function = $frame['function'];
                 $trace[] = [
                     'class' => is_string($class) && preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/D', str_replace('\\', '', $class)) === 1 ? $class : null,
-                    'function' => is_string($function) && ($function === '{closure}' || preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/D', $function) === 1) ? $function : null,
+                    'function' => ($function === '{closure}' || preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/D', $function) === 1) ? $function : null,
                     'file' => is_string($root) && is_string($file) && str_starts_with($file, $root . DIRECTORY_SEPARATOR)
                         ? substr($file, strlen($root) + 1) : 'unavailable',
                     'line' => is_int($frame['line'] ?? null) ? $frame['line'] : null,

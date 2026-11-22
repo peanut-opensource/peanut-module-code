@@ -210,8 +210,8 @@ final class ArticleAdministrationService implements ArticleAdministration, Artic
         $this->assertPermission($context, 'peanut.article.delete');
         return $this->documents->runOwnerLifecycle($context, new \PeanutAdmin\Modules\Document\Contract\DocumentOwnerReference('peanut.article', 'article', (string) $id, 'body'), 'archive', function () use ($context, $id): bool {
             $this->assertPermission($context, 'peanut.article.delete');
-            $article = Article::withTrashed()->where('id', $id)->lock(true)->findOrEmpty();
-            if ($article->isEmpty()) {
+            $article = (new Article())->db()->scope('withTrashed')->where('id', $id)->lock(true)->findOrEmpty();
+            if (!$article instanceof Article || $article->isEmpty()) {
                 throw BusinessException::notFound('ARTICLE_NOT_FOUND', '资讯不存在');
             }
             if ($article->trashed()) {
@@ -262,8 +262,8 @@ final class ArticleAdministrationService implements ArticleAdministration, Artic
         return $this->batch($ids, 'restored', function (int $id) use ($context): string {
             return $this->documents->runOwnerLifecycle($context, new \PeanutAdmin\Modules\Document\Contract\DocumentOwnerReference('peanut.article', 'article', (string) $id, 'body'), 'restore', function () use ($context, $id): string {
                 $this->assertPermission($context, 'peanut.article.restore');
-                $article = Article::withTrashed()->where('id', $id)->lock(true)->findOrEmpty();
-                if ($article->isEmpty()) {
+                $article = (new Article())->db()->scope('withTrashed')->where('id', $id)->lock(true)->findOrEmpty();
+                if (!$article instanceof Article || $article->isEmpty()) {
                     throw BusinessException::notFound('ARTICLE_NOT_FOUND', '资讯不存在');
                 }
                 if (!$article->trashed()) {
@@ -283,15 +283,15 @@ final class ArticleAdministrationService implements ArticleAdministration, Artic
         $this->assertPermission($context, 'peanut.article.force-delete');
         return $this->batch($ids, 'deleted', function (int $id) use ($context): string {
             return Db::transaction(function () use ($context, $id): string {
-                $article = Article::withTrashed()->where('id', $id)->lock(true)->findOrEmpty();
-                if ($article->isEmpty()) {
+                $article = (new Article())->db()->scope('withTrashed')->where('id', $id)->lock(true)->findOrEmpty();
+                if (!$article instanceof Article || $article->isEmpty()) {
                     throw BusinessException::notFound('ARTICLE_NOT_FOUND', '资讯不存在');
                 }
                 if (!$article->trashed()) {
                     throw BusinessException::conflict('ARTICLE_FORCE_DELETE_REQUIRES_TRASHED', '仅回收站资讯可永久删除');
                 }
                 $this->documents->assertOwnerDeletionAllowed($context, new \PeanutAdmin\Modules\Document\Contract\DocumentOwnerReference('peanut.article', 'article', (string) $id, 'body'));
-                if (!ArticleCollect::withTrashed()->where('article_id', $id)
+                if (!(new ArticleCollect())->db()->scope('withTrashed')->where('article_id', $id)
                     ->lock(true)->findOrEmpty()->isEmpty()
                 ) {
                     throw BusinessException::conflict('ARTICLE_COLLECTION_REFERENCE_EXISTS', '资讯仍有收藏引用，不能永久删除');
@@ -306,7 +306,7 @@ final class ArticleAdministrationService implements ArticleAdministration, Artic
 
     private function articleLists(TenantContext $context, array $params, bool $onlyTrashed): PageResult|array
     {
-        $query = $onlyTrashed ? Article::onlyTrashed() : Article::where([]);
+        $query = $onlyTrashed ? (new Article())->db()->scope('onlyTrashed') : Article::where([]);
         $query->field(self::articleFields());
         if (isset($params['title']) && $params['title'] !== '') {
             $query->whereLike('title', '%' . trim((string) $params['title']) . '%');
@@ -401,7 +401,7 @@ final class ArticleAdministrationService implements ArticleAdministration, Artic
     /** @return array<string,mixed> */
     private function findRow(int $id, bool $onlyTrashed): array
     {
-        $query = $onlyTrashed ? Article::onlyTrashed() : Article::where([]);
+        $query = $onlyTrashed ? (new Article())->db()->scope('onlyTrashed') : Article::where([]);
         $article = $query->field(self::articleFields())->where('id', $id)->findOrEmpty();
         if ($article->isEmpty()) {
             return [];
@@ -479,7 +479,7 @@ final class ArticleAdministrationService implements ArticleAdministration, Artic
         if ($ids === []) {
             return [];
         }
-        $query = $includeTrashed ? ArticleCate::withTrashed() : ArticleCate::where([]);
+        $query = $includeTrashed ? (new ArticleCate())->db()->scope('withTrashed') : ArticleCate::where([]);
         return $query->whereIn('id', $ids)->column('name', 'id');
     }
 

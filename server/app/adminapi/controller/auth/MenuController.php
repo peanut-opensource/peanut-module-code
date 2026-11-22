@@ -25,7 +25,8 @@ class MenuController extends BaseAdminController
     }
     public function lists()
     {
-        return $this->instanceMenuDenial() ?? $this->data($this->menus->getAll());
+        $this->assertInstanceToolAccess();
+        return $this->data($this->menus->getAll());
     }
     public function all()
     {
@@ -33,9 +34,7 @@ class MenuController extends BaseAdminController
     }
     public function detail()
     {
-        if ($denial = $this->instanceMenuDenial()) {
-            return $denial;
-        }
+        $this->assertInstanceToolAccess();
         $params = ['menu_key' => $this->request->get('menu_key')];
         $this->validate($params, MenuValidate::class . '.detail');
         return $this->data($this->menus->detail($params['menu_key']));
@@ -43,9 +42,7 @@ class MenuController extends BaseAdminController
 
     public function add()
     {
-        if ($denial = $this->instanceMenuDenial()) {
-            return $denial;
-        }
+        $this->assertInstanceToolAccess();
         $params = $this->validateInput(
             $this->request->post(),
             MenuValidate::class . '.add',
@@ -57,9 +54,7 @@ class MenuController extends BaseAdminController
 
     public function edit()
     {
-        if ($denial = $this->instanceMenuDenial()) {
-            return $denial;
-        }
+        $this->assertInstanceToolAccess();
         $params = $this->validateInput(
             $this->request->post(),
             MenuValidate::class . '.edit',
@@ -71,9 +66,7 @@ class MenuController extends BaseAdminController
 
     public function delete()
     {
-        if ($denial = $this->instanceMenuDenial()) {
-            return $denial;
-        }
+        $this->assertInstanceToolAccess();
         $params = ['menu_key' => $this->request->post('menu_key')];
         $this->validate($params, MenuValidate::class . '.delete');
         $this->menus->delete($params['menu_key']);
@@ -82,9 +75,7 @@ class MenuController extends BaseAdminController
 
     public function updateStatus()
     {
-        if ($denial = $this->instanceMenuDenial()) {
-            return $denial;
-        }
+        $this->assertInstanceToolAccess();
         $params = [
             'menu_key' => $this->request->post('menu_key'),
             'is_disable' => $this->request->post('is_disable'),
@@ -94,11 +85,11 @@ class MenuController extends BaseAdminController
         return $this->success('操作成功');
     }
 
-    private function instanceMenuDenial(): ?Json
+    private function assertInstanceToolAccess(): void
     {
         $guard = InstanceToolAccessGuard::fromConfiguredValue(config('deployment.mode'));
-        return $guard->allows()
-            ? null
-            : throw \app\common\http\ApiProblem::fromEnvelope('实例级菜单管理仅在 standalone 部署中可用', null, 40300);
+        if (!$guard->allows()) {
+            throw \app\common\http\ApiProblem::fromEnvelope('实例级菜单管理仅在 standalone 部署中可用', null, 40300);
+        }
     }
 }

@@ -116,7 +116,7 @@ final readonly class PackageCheck
             $configStat = lstat($configReal);
             if (realpath($configModuleRoot) !== $configModuleRoot || $configReal !== $configCursor
                 || !str_starts_with($configReal, $configModuleRoot . DIRECTORY_SEPARATOR)
-                || !is_array($configStat) || ($configStat['nlink'] ?? 0) !== 1) {
+                || !is_array($configStat) || $configStat['nlink'] !== 1) {
                 throw new ModulePackageException('MODULE_PACKAGE_PATH_MISMATCH', 'Module backend.config_schema is outside its ordinary Module files.');
             }
         }

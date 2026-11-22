@@ -126,7 +126,7 @@ final class ThinkPhpOAuthPersistence
         array $data,
     ): OAuthPrincipalRecord {
         unset($data['tenant_id']);
-        $model = OAuthPrincipal::create($data);
+        $model = OAuthPrincipal::createModel($data);
         return new OAuthPrincipalRecord((int) $model->id, (int) $model->member_id);
     }
 

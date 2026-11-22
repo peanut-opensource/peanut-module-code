@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title">
-  <title id="title">Technical support</title>
-  <rect width="96" height="96" rx="24" fill="#E7F8F3"/>
-  <path d="M25 50v-5c0-14 9-25 23-25s23 11 23 25v5" fill="none" stroke="#0F766E" stroke-width="6" stroke-linecap="round"/>
-  <rect x="19" y="46" width="15" height="24" rx="7" fill="#14B8A6"/>
-  <rect x="62" y="46" width="15" height="24" rx="7" fill="#14B8A6"/>
-  <path d="M68 70c-3 7-9 10-18 10" fill="none" stroke="#0F766E" stroke-width="5" stroke-linecap="round"/>
-  <circle cx="47" cy="80" r="5" fill="#0F766E"/>
-</svg>

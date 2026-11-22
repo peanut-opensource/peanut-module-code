@@ -41,7 +41,7 @@ final class BoundedResponseSink
         if (($u['path'] ?? '') === '') {
             return ['mode' => 0040700,'size' => 0,'nlink' => 1];
         }
-        return ($u['path'] ?? '') === '/response' && is_file(self::$issued[$u['host']]) ? stat(self::$issued[$u['host']]) : false;
+        return ($u['path']) === '/response' && is_file(self::$issued[$u['host']]) ? stat(self::$issued[$u['host']]) : false;
     }
     public function stream_open($path, $mode, $options, &$openedPath): bool
     {

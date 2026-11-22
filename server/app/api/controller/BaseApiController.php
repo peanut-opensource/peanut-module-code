@@ -19,20 +19,15 @@ abstract class BaseApiController extends BaseController
 
     public function initialize(): void
     {
-        $current = $this->executionContext();
-        if ($current->current() instanceof ConsumerExecutionContext
-            && $current->current()->member !== null) {
-            $this->memberId = $current->memberId();
+        $current = $this->executionContext()->current();
+        if ($current instanceof ConsumerExecutionContext && $current->member !== null) {
+            $this->memberId = $current->member->memberId;
         }
     }
 
     protected function memberContext(): AuthenticatedMemberContext
     {
-        $context = $this->executionContext()->member();
-        if (!$context instanceof AuthenticatedMemberContext) {
-            throw new \DomainException('EXECUTION_MEMBER_CONTEXT_REQUIRED');
-        }
-        return $context;
+        return $this->executionContext()->member();
     }
 
     protected function publicTenantContext(string $operation): TenantSystemContext

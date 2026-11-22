@@ -79,7 +79,7 @@ class DecorationSchemaService
             if (!is_string($item['name'] ?? null)) {
                 throw new \RuntimeException('Tabbar 名称格式无效');
             }
-            $name = trim((string) ($item['name'] ?? ''));
+            $name = trim((string) $item['name']);
             if ($name === '' || mb_strlen($name) > 20) {
                 throw new \RuntimeException('Tabbar 名称不能为空且最多 20 个字');
             }
@@ -193,7 +193,7 @@ class DecorationSchemaService
         ?ArticleQueries $articles,
     ): void {
         $expected = self::COMPONENTS[$type];
-        $names = array_map(static fn($item) => is_array($item) ? (string) ($item['name'] ?? '') : '', $components);
+        $names = array_map(static fn($item) => is_array($item) ? (string) $item['name'] : '', $components);
         $sortedNames = $names;
         $sortedExpected = $expected;
         sort($sortedNames);
@@ -292,12 +292,8 @@ class DecorationSchemaService
             }
             return;
         }
-        if ($name === 'pc-banner') {
-            self::binary($content['enabled'] ?? null, 'PC Banner 启用状态');
-            self::validateItems($context, $content['data'] ?? null, 1, 10, false, true, $articles);
-            return;
-        }
-        throw new \RuntimeException('未知装修组件');
+        self::binary($content['enabled'] ?? null, 'PC Banner 启用状态');
+        self::validateItems($context, $content['data'] ?? null, 1, 10, false, true, $articles);
     }
 
     private static function validateItems(

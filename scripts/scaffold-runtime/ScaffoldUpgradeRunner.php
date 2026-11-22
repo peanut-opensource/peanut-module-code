@@ -1862,7 +1862,7 @@ final class ScaffoldUpgradeRunner
     {
         if (in_array(strtolower(basename($path)), [
             'module.json', 'plugin.json', 'modules.lock', 'plugins.lock',
-            'composer.json', 'composer.lock', 'package.json', 'package-lock.json', 'npm-shrinkwrap.json',
+            'composer.json', 'composer.lock', 'package.json',
             'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'yarn.lock', 'bun.lock', 'bun.lockb', 'contribution.ts',
         ], true)) {
             return false;

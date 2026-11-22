@@ -11,7 +11,6 @@ use PeanutAdmin\Kernel\Auth\TenantContext;
 
 class OpenPlatformApplicationService
 {
-    private const CONFIG_TYPE = 'open_platform';
 
     public function __construct(private readonly ExternalChannelBindings $bindings) {}
 

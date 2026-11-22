@@ -8,6 +8,11 @@ use app\common\model\TenantOwnedModel;
 
 /**
  * 通知场景模型。
+ *
+ * @property int $id
+ * @property string $sms_content
+ * @property int $sms_status
+ * @property string $sms_template_id
  */
 class NoticeScene extends TenantOwnedModel
 {

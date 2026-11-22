@@ -84,25 +84,8 @@ final class FakeCatalogModel
     }
 }
 
-final class RetiredCatalogModel
-{
-    public static function __callStatic(string $name, array $arguments): never
-    {
-        throw new RuntimeException('Retired catalog model accessed: ' . $name);
-    }
-}
-
 if (!class_alias(FakeCatalogModel::class, \PeanutAdmin\Modules\Identity\Persistence\Model\Permission::class)) {
     throw new RuntimeException('Isolated permission fixture was not installed');
-}
-foreach ([
-    \PeanutAdmin\Modules\Identity\Authorization\Model\DataConditionDefinitionRecord::class,
-    \PeanutAdmin\Modules\Identity\Authorization\Model\TargetTypeRecord::class,
-    \PeanutAdmin\Modules\Identity\Authorization\Model\ProtectedResourceRecord::class,
-] as $model) {
-    if (class_exists($model, false) || !class_alias(RetiredCatalogModel::class, $model)) {
-        throw new RuntimeException('Isolated catalog fixture was not installed');
-    }
 }
 
 $repository = new \PeanutAdmin\Modules\Identity\Authorization\Persistence\ThinkPhpAuthorizationCatalogRepository();

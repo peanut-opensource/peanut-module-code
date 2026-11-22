@@ -84,7 +84,7 @@ final class ArticleExportServiceTest extends TestCase
             $this->exports[] = ['headings' => $headings, 'rows' => $rows];
             return ['url' => '/unit-only-not-a-download', 'original_name' => $name . '.xlsx'];
         });
-        $assets = new ProductAssetReferenceService($files, 'https://unit.invalid');
+        $assets = new ProductAssetReferenceService($files);
         $owner = new ArticleDocumentOwnerPolicy($authorization, $current);
         $documents = $this->createStub(DocumentCommands::class);
         $documents->method('runOwnerLifecycle')->willReturnCallback(static function (TenantContext $context, DocumentOwnerReference $reference, string $action, callable $commit) use ($owner): mixed {

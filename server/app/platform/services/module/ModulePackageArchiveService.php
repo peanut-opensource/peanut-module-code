@@ -558,7 +558,7 @@ final class ModulePackageArchiveService
             if (isset($entries[$relative])) {
                 throw new ModulePackageException('MODULE_PACKAGE_DUPLICATE_PATH', 'Module package source path is duplicated.');
             }
-            $entries[$relative] = ['source' => $file->getPathname()];
+            $entries[$relative] = ['source' => (string) $file->getPathname()];
         }
     }
 
@@ -592,8 +592,8 @@ final class ModulePackageArchiveService
     /** @param array{key_id:string,secret_key:string} $signer @return array<string,mixed> */
     private function signatureDocument(string $packageKey, string $version, string $inventory, array $signer): array
     {
-        $keyId = trim($signer['key_id'] ?? '');
-        $secretKey = $signer['secret_key'] ?? '';
+        $keyId = trim($signer['key_id']);
+        $secretKey = $signer['secret_key'];
         if (preg_match('/^[A-Za-z0-9._-]{1,96}$/D', $keyId) !== 1
             || strlen($secretKey) !== SODIUM_CRYPTO_SIGN_SECRETKEYBYTES) {
             throw new ModulePackageException('MODULE_PACKAGE_SIGNING_KEY_INVALID', 'Package signing key is invalid.');

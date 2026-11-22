@@ -69,7 +69,7 @@ final readonly class WorkflowCommands
             $r,
             $key,
             fn() => $this->authorize($c, $graph, $r['subject_key'], $graph->data['subject_start_operation'], ['peanut.workflow.instance.start', ...$graph->data['start_permission_keys']]),
-            function (string $now) use ($c, $r, $key, $graph, $authorized, $definitionQuery, $prepared): array {
+            function (string $now) use ($c, $r, $authorized, $definitionQuery, $prepared): array {
                 $this->lifecycle->assertNewOperations($c->tenantContext->tenantId, true);
                 // Documented lock order: idempotency -> business object -> definition -> instance -> node -> items.
                 $snapshot = $this->snapshot($authorized, $r['subject_type'], $r['subject_key'], $r['subject_revision_key'], $prepared);
@@ -245,7 +245,7 @@ final readonly class WorkflowCommands
                 throw WorkflowException::subjectNotFound();
             }
             $execution->checkpoint();
-            if ($instance !== null && $node !== null && $node['task_job_key'] === $execution->jobKey && $node['effect_receipt_json'] === null && in_array($instance['status'], ['running', 'blocked'], true)) {
+            if ($node['effect_receipt_json'] === null && in_array($instance['status'], ['running', 'blocked'], true)) {
                 $now = gmdate('Y-m-d H:i:s') . '.000';
                 $node->save(['status' => 'blocked', 'blocked_reason' => substr($message, 0, 500), 'revision' => (int) $node['revision'] + 1]);
                 $instance->save(['status' => 'blocked', 'blocked_reason' => substr($message, 0, 500), 'revision' => (int) $instance['revision'] + 1, 'updated_at' => $now]);
@@ -296,7 +296,7 @@ final readonly class WorkflowCommands
             $r,
             $key,
             $authorize,
-            function (string $now) use ($c, $r, $action, $itemKey, $basis, $graph, $nodeConfig, $edge, $authorize, $prepared): array {
+            function (string $now) use ($c, $r, $action, $itemKey, $basis, $graph, $nodeConfig, $authorize, $prepared): array {
                 $authorized = $authorize();
                 $snapshot = $this->snapshot($authorized, $basis['subject_type'], $basis['subject_key'], $action === 'resubmit' ? $r['subject_revision_key'] : $basis['subject_revision_key'], $prepared);
                 if ($action !== 'resubmit' && $snapshot['sha256'] !== $basis['subject_revision_sha256']) {
@@ -792,6 +792,11 @@ final readonly class WorkflowCommands
         ]);
     }
 
+    private static function isAssignmentMember(mixed $id): bool
+    {
+        return is_int($id) && $id > 0;
+    }
+
     private function resolve(AuthorizedOperationContext $c, array $rules, array $basis, bool $excludeInitiator): array
     {
         $members = [];
@@ -805,7 +810,7 @@ final readonly class WorkflowCommands
                 }
                 $this->text($person['source_key'], 160);
                 $this->text($person['binding_revision'], 160);
-                if (!is_int($person['member_id']) || $person['member_id'] < 1 || ($excludeInitiator && $person['member_id'] === $basis['initiator_member_id'])) {
+                if (!self::isAssignmentMember($person['member_id']) || ($excludeInitiator && $person['member_id'] === $basis['initiator_member_id'])) {
                     continue;
                 }
                 $source = ['source_kind' => $person['source_kind'], 'source_key' => $person['source_key'], 'binding_revision' => $person['binding_revision']];
@@ -874,15 +879,21 @@ final readonly class WorkflowCommands
     private function snapshot(AuthorizedOperationContext $c, string $type, string $subject, string $revision, object $prepared): array
     {
         $snapshot = $this->scenarios->snapshot($c, $type, $subject, $revision, true, $prepared);
+        self::assertSnapshotIdentity($snapshot, $revision);
+        return $snapshot;
+    }
+
+    /** @param array<string,mixed> $snapshot */
+    private static function assertSnapshotIdentity(array $snapshot, string $revision): void
+    {
         if (($snapshot['revision_key'] ?? null) !== $revision || !is_string($snapshot['sha256'] ?? null) || preg_match('/^[0-9a-f]{64}$/D', $snapshot['sha256']) !== 1 || !is_array($snapshot['fields'] ?? null) || !is_array($snapshot['reference'] ?? null)) {
             throw WorkflowException::subjectRevisionConflict();
         }
-        return $snapshot;
     }
     private function scenario(AuthorizedOperationContext $c, string $module, string $workflow, WorkflowGraph $graph): array
     {
         $scenario = $this->scenarios->scenario($c, $module, $workflow);
-        if (($scenario['contract_version'] ?? null) !== $graph->data['scenario_contract_version']) {
+        if ($scenario['contract_version'] !== $graph->data['scenario_contract_version']) {
             throw WorkflowException::unsupported('scenario_contract_version');
         }
         foreach ($graph->data['required_capabilities'] as $capability) {

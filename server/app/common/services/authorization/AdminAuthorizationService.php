@@ -21,7 +21,6 @@ use PeanutAdmin\Kernel\Context\AuthorizationDecision;
 use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 use PeanutAdmin\Kernel\Context\RequestedTargetSet;
 use PeanutAdmin\Modules\Identity\Contract\AdminDirectoryQuery;
-use PeanutAdmin\Modules\Identity\Contract\TenantAuthorizationQuery;
 use PeanutAdmin\Modules\Identity\Contract\TenantSessionAccess;
 use PeanutAdmin\Modules\Identity\Platform\InstanceControlPlanePolicy;
 use app\common\validation\instance\InstanceToolAccessGuard;
@@ -33,7 +32,6 @@ final class AdminAuthorizationService implements AdminAuthorizationQuery, Author
         private readonly CoreTenantModuleAdminBridge $moduleAdmin,
         private readonly AdminPermissionPolicy $permissionPolicy,
         private readonly AdminDirectoryQuery $directory,
-        private readonly TenantAuthorizationQuery $identityAuthorization,
         private readonly EndpointPermissionGrant $endpointGrant,
         private readonly CurrentExecutionContext $execution,
     ) {}

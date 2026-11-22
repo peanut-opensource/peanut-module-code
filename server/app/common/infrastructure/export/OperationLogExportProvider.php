@@ -81,6 +81,6 @@ final readonly class OperationLogExportProvider implements DataProvider
             ];
         }
 
-        return new ExportBatch($rows, count($rows) === $limit && $lastId !== null ? (string) $lastId : null);
+        return new ExportBatch($rows, count($rows) === $limit ? (string) $lastId : null);
     }
 }

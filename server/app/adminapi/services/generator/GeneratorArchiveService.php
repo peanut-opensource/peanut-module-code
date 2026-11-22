@@ -46,8 +46,8 @@ class GeneratorArchiveService
                 throw new RuntimeException('代码压缩包创建失败');
             }
             foreach ($files as $file) {
-                $entry = self::safeEntryPath((string) ($file['path'] ?? ''));
-                if (!$zip->addFromString($entry, (string) ($file['content'] ?? ''))) {
+                $entry = self::safeEntryPath($file['path']);
+                if (!$zip->addFromString($entry, $file['content'])) {
                     throw new RuntimeException('代码文件写入压缩包失败: ' . $entry);
                 }
             }

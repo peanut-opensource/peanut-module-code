@@ -3,7 +3,11 @@
 declare(strict_types=1);
 
 $h = require __DIR__ . '/common.php';
-extract($h, EXTR_SKIP);
+$ref = $h['ref'];
+$error = $h['error'];
+$jsonBody = $h['jsonBody'];
+$success = $h['success'];
+$operation = $h['operation'];
 
 $dynamicMap = ['type' => 'object', 'additionalProperties' => $ref('ApplicationDynamicValue')];
 $nullableDynamicMap = ['type' => 'object', 'additionalProperties' => $ref('ApplicationDynamicValue'), 'nullable' => true];

@@ -22,7 +22,7 @@ final class MemberProfileContractService implements MemberProfileCommands
 
     public function createAdminMember(TenantContext $context, array $profile, array $tagIds): void
     {
-        $member = Member::create([
+        $member = Member::createModel([
             'sn' => Member::generateSn($context),
             'nickname' => (string) $profile['nickname'],
             'avatar' => (string) ($profile['avatar'] ?? ''),

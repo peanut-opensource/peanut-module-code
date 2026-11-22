@@ -22,7 +22,7 @@ python3 scripts/project-env --tools node,pnpm run -- pnpm --dir web install --fr
 - `.local/toolchain/host.json`：本机私有工具路径、解释器与 CLI 文件绑定、缓存路径及 release/backups/Core 目录设置。由 `tools/toolchain.local.example.json` 提供基础格式，不提交真实桌面路径或凭据。Core 参数可相对所选 Code 根输入，`core.php`/`core.web` 始终保存绝对路径，固定绑定实际 Core 位置，避免改变 Code 工作目录后按另一基准解析；`.local` 配置不随 Git 合并；普通新工作区可自动检测或复用共享 profile，仅显式本机路径/Core 绑定失效时需要重新 config。commands、caches、extra_path、watch_paths、release 和 backups 路径继续接受相对或绝对值，相对路径统一以 Code 项目根为基准，运行时解析为绝对路径。`peanut config` 在当前 Code `.local/toolchain/cores/php|web/` 下分别保存 Core host 和缓存；Core host 用 `path_base` 记录 Code 根，Core 源码目录保持只读。Core 工具要求从各自的 `composer.json` 或 `package.json` 读取，并由 Code 自己的 `scripts/project-env --root <Core> --state-root <Code> --host <Code-local-host>` 执行，因此不要求 Core 仓有 `tools/toolchain.json` 或 `scripts/project-env`。
 - `scripts/project-env`：统一入口；可由系统已安装 Python 3.9+ 启动。项目业务命令仍使用登记的 Python 版本。入口不会解决工具缺失，缺失或版本不符须先由授权的环境维护操作修正。
 
-Code 源码仓不再保存 `packages/core-php` 或 `packages/core-web` 的归档副本。开发端 `server/composer.json` 的 `peanut-admin/core` 是独立 PHP Core 仓库的固定 Git 提交与原生 Composer 锁，源码联调继续使用已有 `core-dev`；不为开发依赖复制 ZIP 到 Code。制作**独立应用发行模板**时，现有 `freeze-core-release` 从独立 PHP/Web Core 仓生成固定归档到指定的仓外 `release` 构建输入，再由 `build-scaffold-release` 将所需归档写入最终 APP、重新生成 APP 自身的原生锁。这些是生成应用的可安装依赖，不是 Code 源码里的业务 Package 目录。历史版本归档保留在 Git 历史及明确的发行材料中，不为了源仓清理删除使用中的应用依赖。
+两仓通过原生 Composer 与前端锁采用 Core 固定制品。内部开发候选由 `freeze-core-release` 生成，`release-versions.json` 记录来源与 Web 归档摘要，Composer 锁记录 PHP Core 归档与来源。使用归档锁的版本只交付该锁声明的 `packages/core-php` 和 `packages/core-web` 制品，脚手架清单按同一版本生成。显式 `core-dev` 链接用于源码联调。公开发行锁按原生发布入口切换到已发行的固定版本。
 
 Core 的 prepared 指纹绑定 Code state root、该 Core 的 host scope、解析后的工具要求、实际命令文件身份及登记观察项，不绑定临时 Core 副本的绝对源码路径。相同 Core scope 与相同声明内容可以复用 prepared 入口；PHP/Web scope相互独立，工具约束、执行配置或工具身份变化会产生新的指纹；业务 manifest 的 description、业务依赖及 host 中的 release/backups 等非执行字段不使环境失效。
 
@@ -30,7 +30,7 @@ Core 的 prepared 指纹绑定 Code state root、该 Core 的 host scope、解�
 
 PHP 的 `local-core-composer` 仅在 ignored `.local/composer-core/composer.json` 中将 Core 依赖投影到所选源码的真实 Git 分支。已配置本地 path 模块若依赖 Core，其真实 manifest 元数据也在同一开发 manifest 内投影到该分支，模块版本保留原声明；Composer 通过原生 `package` 元数据和 `dist.type=path` 强制链接真实模块目录，不生成源码副本。局部 `update` 明确列出 Core 和这些受影响模块，其他包保持正式锁定版本；不使用 `-w/-W`、稳定版本 alias，也不修改正式 `server/composer.json`、锁或模块 manifest。此处复用 [Composer package repository](https://getcomposer.org/doc/05-repositories.md#package-2)、[path downloader](https://github.com/composer/composer/blob/2.10.2/src/Composer/Downloader/PathDownloader.php) 与[局部 update](https://getcomposer.org/doc/03-cli.md#update-u-upgrade)，只服务源码联调。
 
-原生模块生命周期的依赖准备必须消费当前 APP 已声明的 `project-env` 协议，不建立第二套工具发现。v2 在初次修改 Composer/客户端清单前按实际所需工具执行一次只读 scoped `doctor`；Composer、pnpm、npm、PHP 及原生 Core helper 随后各由既有 `project-env --tools <本次范围> run --` 自动准备或复用对应入口，不强制创建 `host.json`，也不在每条原生命令前重复 `prepare/exec`。不兼容 Node/PHP 或缺工具在写前拒绝；显式失效的 host/profile/解释器同样拒绝，不自动替换。旧版非 v2 APP 继续使用原有私有 host 和 `prepare/exec` 合同。有效的 `.local/core-dev.json` 仍通过原有 `local-core-composer install` 及现有原生 Core helper 使用所选源码、backend env 和自己的受控工具范围；无此选择保持正式 Composer 路径，错误或跨 APP 的选择立即拒绝。该路由只服务明确批准的 Module 依赖准备，不隐式安装工具、复制 vendor 或重建 Web Core。
+原生模块生命周期的依赖准备必须消费当前 APP 已声明的 `project-env` 协议，不建立第二套工具发现。v2 在初次修改 Composer/客户端清单前按实际所需工具执行一次只读 scoped `doctor`；Composer、pnpm、PHP 及原生 Core helper 随后各由既有 `project-env --tools <本次范围> run --` 自动准备或复用对应入口，不强制创建 `host.json`，也不在每条原生命令前重复 `prepare/exec`。不兼容 Node/PHP 或缺工具在写前拒绝；显式失效的 host/profile/解释器同样拒绝，不自动替换。旧版非 v2 APP 继续使用原有私有 host 和 `prepare/exec` 合同。有效的 `.local/core-dev.json` 仍通过原有 `local-core-composer install` 及现有原生 Core helper 使用所选源码、backend env 和自己的受控工具范围；无此选择保持正式 Composer 路径，错误或跨 APP 的选择立即拒绝。该路由只服务明确批准的 Module 依赖准备，不隐式安装工具、复制 vendor 或重建 Web Core。
 
 已准备依赖的只读核验也沿用这项显式选择：确认已安装 Core 路径为所选源码后，模块的 Core 约束取现有 `.local/composer-core/composer.json` 内对应模块的开发投影，再由 Composer Semver 核验实际安装版本。其他依赖、PHP 与扩展仍按模块原声明核验；没有本地 Core 选择时，全部保留正式约束。核验不生成投影、不运行 Composer；缺少对应投影须先走上述原生准备入口，不改正式约束或把开发分支伪装成发行版本。
 
@@ -71,7 +71,7 @@ Peanut CLI 的 `peanut config [--path <project-root>] [--yes]` 会发现已安�
 
 `requirements` 不需要本机配置，可供 CI 读取。`doctor` 只读检查；`prepare` 只在登记的 state root 下建立薄命令入口及临时目录，不安装第三方包。`exec` 只使用已经准备好的登记，不自动 prepare；子进程继承同一工具 PATH 和缓存。工具缺失、manifest 声明的平台约束不兼容、原生锁拒绝或绑定文件变化时退出 2；推荐版本差异本身不会拒绝。成功 exec 后保留实际子命令退出码及原始标准输入/输出。首次 `prepare` 先创建临时目录，再执行工具版本探测；`doctor` 在临时目录缺失时使用系统临时目录只读探测；后续 run/ensure 自动准备自己所需状态。
 
-入口会创建工具入口，不是新的隔离系统或包管理器。命令本身仍具有调用者权限；选择已信任的配置和程序。不要用此入口绕过资源、测试、发布或部署授权。Peanut CLI 是独立安装的全局工具；这里的 project-env 只负责为当前项目选择登记工具环境，并在对应 Node bin 已安装 `peanut` 时调用它，不再在 Peanut Module Code 内复制业务 CLI。
+入口会创建工具入口，不是新的隔离系统或包管理器。命令本身仍具有调用者权限；选择已信任的配置和程序。不要用此入口绕过资源、测试、发布或部署授权。Peanut CLI 是独立安装的全局工具；这里的 project-env 只负责为当前项目选择登记工具环境，并在对应 Node bin 已安装 `peanut` 时调用它，不再在宿主内复制业务 CLI。
 
 ## 可选制包数据库备份
 

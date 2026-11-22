@@ -8,6 +8,12 @@ use app\common\model\TenantOwnedModel;
 
 /**
  * 退款日志模型
+ *
+ * @property int $handle_id
+ * @property int $id
+ * @property string|null $refund_msg
+ * @property int $refund_status
+ * @property string|null $sn
  */
 class RefundLog extends TenantOwnedModel
 {

@@ -6,6 +6,21 @@ namespace PeanutAdmin\Modules\Payment\Model;
 
 use app\common\model\TenantOwnedModel;
 
+/**
+ * @property int|string $amount_cents
+ * @property int|string $binding_id
+ * @property string $currency
+ * @property int|null $expires_at
+ * @property int|string $grant_id
+ * @property int|string $id
+ * @property string $merchant_identity_hash
+ * @property string $merchant_order_sn
+ * @property int $order_id
+ * @property int $pay_way
+ * @property string $status
+ * @property int|string $tenant_id
+ * @property string|null $transaction_id
+ */
 final class RechargePaymentAttempt extends TenantOwnedModel
 {
     protected $name = 'recharge_payment_attempt';

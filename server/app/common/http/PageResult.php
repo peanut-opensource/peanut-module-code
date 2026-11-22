@@ -27,7 +27,7 @@ final readonly class PageResult
 
     public function map(callable $transform): self
     {
-        return $this->withItems(array_values(array_map($transform, $this->items)));
+        return $this->withItems(array_map($transform, $this->items));
     }
 
     /** @param list<mixed> $items */

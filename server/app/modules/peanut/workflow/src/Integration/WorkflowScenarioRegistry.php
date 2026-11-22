@@ -72,7 +72,7 @@ final class WorkflowScenarioRegistry implements WorkflowScenarioProvider, Workfl
             return;
         }
         if ($context->resourceKey !== $entry['resource_key']
-            || ($assignment['subject_type'] ?? null) !== $entry['resource_key']) {
+            || ($assignment['subject_type']) !== $entry['resource_key']) {
             throw WorkflowException::assignmentDenied();
         }
         $entry['provider']->validateAssignments($context, $moduleKey, $workflowKey, $assignment);

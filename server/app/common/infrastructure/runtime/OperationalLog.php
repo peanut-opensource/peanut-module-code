@@ -90,6 +90,7 @@ final class OperationalLog
                 $context instanceof InstallationExecutionContext => 'installation',
                 $context instanceof SystemExecutionContext => 'system',
                 $context instanceof InstanceExecutionContext => 'instance',
+                default => 'unknown',
             },
             'tenant_id' => $context->tenantId(),
         ] + ($context instanceof SystemExecutionContext ? $context->metadata->toArray() : []);

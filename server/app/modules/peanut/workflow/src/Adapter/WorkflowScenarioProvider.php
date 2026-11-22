@@ -10,7 +10,7 @@ use PeanutAdmin\Kernel\Context\AuthorizedOperationContext;
 interface WorkflowScenarioProvider
 {
     /** actions are trusted registrations, never HTTP-selected PHP classes.
-     * @return array{contract_version:int,fields:array,result_codes:list<string>,capabilities:list<string>,actions:array<string,array{contract_version:int,operation:string,permission_keys:list<string>,task_type:string,input_schema:array}>}
+     * @return array{contract_version:int,fields:array,result_codes:list<string>,capabilities:list<string>,notification?:array{producer_key:string},actions:array<string,array{contract_version:int,operation:string,permission_keys:list<string>,task_type:string,input_schema:array}>}
      */
     public function scenario(AuthorizedOperationContext $context, string $moduleKey, string $workflowKey): array;
 

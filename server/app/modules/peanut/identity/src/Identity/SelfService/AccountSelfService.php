@@ -479,7 +479,7 @@ final readonly class AccountSelfService
     /** MySQL advisory locks serialize password attempts across application workers. */
     private function driverConnection(): PDOConnection
     {
-        $connection = Db::connect();
+        $connection = \think\Container::getInstance()->make(\think\DbManager::class)->connect();
         if (!$connection instanceof PDOConnection) {
             throw new RuntimeException('PASSWORD_CHANGE_LOCK_DRIVER_UNSUPPORTED');
         }

@@ -4,6 +4,7 @@ ARG PEANUT_SOURCE_COMMIT
 ARG PEANUT_SOURCE_TREE
 
 FROM node:22.23.2-bookworm-slim AS client-base
+RUN corepack enable
 
 # Development locks may select local Core archives. A formal Edition has registry
 # locks and no local archives; copy development inputs only when they exist.
@@ -17,11 +18,9 @@ RUN --mount=type=bind,source=.,target=/build-context,readonly \
 FROM client-base AS admin-builder
 
 WORKDIR /build/web
-COPY web/package.json web/pnpm-lock.yaml ./
-RUN corepack enable && corepack prepare "$(node -p "require('./package.json').packageManager")" --activate
-RUN HUSKY=0 pnpm install --frozen-lockfile
 COPY modules.lock /build/modules.lock
 COPY web/ ./
+RUN HUSKY=0 pnpm install --frozen-lockfile
 RUN printf '%s\n' 'VITE_DEPLOYMENT_MODE=standalone' 'VITE_API_BASE_URL=' > .env.standalone \
     && printf '%s\n' 'VITE_DEPLOYMENT_MODE=multi-tenant' 'VITE_API_BASE_URL=' > .env.multi-tenant \
     && pnpm exec vue-tsc --noEmit \
@@ -30,28 +29,25 @@ RUN printf '%s\n' 'VITE_DEPLOYMENT_MODE=standalone' 'VITE_API_BASE_URL=' > .env.
 FROM client-base AS mobile-builder
 
 WORKDIR /build/uniapp
-COPY uniapp/package.json uniapp/package-lock.json ./
-RUN npm ci
 COPY uniapp/ ./
-RUN npm run build:h5
+RUN pnpm install --frozen-lockfile
+RUN pnpm run build:h5
 
 FROM client-base AS platform-builder
 
 WORKDIR /build/platform
-COPY platform/package.json platform/package-lock.json ./
-RUN npm ci
 COPY platform/ ./
-RUN npm run build
+RUN pnpm install --frozen-lockfile
+RUN pnpm run build
 
 FROM client-base AS pc-builder
 
 WORKDIR /build/pc
-COPY pc/package.json pc/package-lock.json ./
-RUN npm ci
 COPY pc/ ./
-RUN npm run build \
+RUN pnpm install --frozen-lockfile
+RUN pnpm run build \
     && mv .output /build/pc-ssr-output \
-    && NUXT_PC_RENDER_MODE=spa npm run generate
+    && NUXT_PC_RENDER_MODE=spa pnpm run generate
 
 FROM node:22.23.2-bookworm-slim AS pc
 
@@ -76,6 +72,11 @@ FROM composer:2.10.2 AS composer-deps
 RUN php -r 'exit(extension_loaded("bcmath") ? 0 : 1);' || docker-php-ext-install bcmath
 
 WORKDIR /build/server
+RUN --mount=type=bind,source=.,target=/build-context,readonly \
+    if [ -d /build-context/packages/core-php ]; then \
+        mkdir -p /build/packages/core-php; \
+        cp /build-context/packages/core-php/*.zip /build/packages/core-php/; \
+    fi
 COPY server/composer.json server/composer.lock ./
 COPY server/app app
 COPY server/database/schema database/schema

@@ -225,7 +225,7 @@ final class MenuAdministrationService
                     ? null
                     : (int) $definition['id'],
             ];
-            if ($before['type'] === 'A' && $action !== null) {
+            if ($before['type'] === 'A') {
                 $changes['route_path'] = $action;
             }
             $native->save($changes);

@@ -113,8 +113,8 @@ final readonly class RichTextProjection
                     || in_array(strtolower((string) parse_url($href, PHP_URL_SCHEME)), ['https','http'], true) && !is_string(parse_url($href, PHP_URL_HOST))
                     || str_contains($href, '/storage/delivery') || preg_match('/[\x00-\x20]/', $href) === 1
                     || isset($attributes['target']) && !in_array($attributes['target'], ['_blank','_self'], true)
-                    || isset($attributes['rel']) && $attributes['rel'] !== null && !in_array($attributes['rel'], ['noopener noreferrer','noopener noreferrer nofollow'], true)
-                    || isset($attributes['class']) && $attributes['class'] !== null) {
+                    || isset($attributes['rel']) && !in_array($attributes['rel'], ['noopener noreferrer','noopener noreferrer nofollow'], true)
+                    || isset($attributes['class'])) {
                     self::invalid();
                 }
             } elseif ($mark['type'] === 'textStyle') {

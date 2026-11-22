@@ -125,36 +125,25 @@ verify_candidate_declarations() {
             fi
             declared="$(node -e 'const m=require(process.argv[1]);process.stdout.write(m.dependencies?.[`@peanut-admin/${process.argv[2]}`]??"")' "$manifest" "$package")"
             [[ "$declared" == "$expected" ]] || die "$client @peanut-admin/$package must declare candidate $expected; found $declared"
-            if [[ "$client" == web ]]; then
-                lock="$ROOT_DIR/web/pnpm-lock.yaml"
-                if [[ "$mode" == registry ]]; then
-                    node - "$lock" "@peanut-admin/$package" "$version" "$integrity" <<'NODE' || die "web lock does not pin @peanut-admin/$package@$version with matching integrity"
+            lock="$ROOT_DIR/$client/pnpm-lock.yaml"
+            if [[ "$mode" == registry ]]; then
+                node - "$lock" "@peanut-admin/$package" "$version" "$resolved" "$integrity" <<'NODE' || die "$client lock does not pin @peanut-admin/$package@$version to the selected registry artifact"
 const fs = require('node:fs');
-const [file, name, version, integrity] = process.argv.slice(2);
+const [file, name, version, resolved, integrity] = process.argv.slice(2);
 const text = fs.readFileSync(file, 'utf8');
-const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const esc = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const importer = new RegExp(`^\\s*'${esc(name)}':\\s*\\n\\s*specifier:\\s*'?${esc(version)}'?\\s*$`, 'm');
-const pkg = new RegExp(`^\\s*'${esc(name)}@${esc(version)}':\\s*\\n(?:\\s+[^\\n]*\\n)*?\\s*resolution:\\s*\\{[^}\\n]*\\bintegrity:\\s*'?${esc(integrity)}'?(?:\\s*,|\\s*\\})`, 'm');
-if (!importer.test(text) || !pkg.test(text)) process.exit(1);
+const entry = new RegExp(`^  '${esc(name)}@${esc(version)}':\\s*\\n    resolution:\\s*\\{([^}\\n]*)\\}`, 'm');
+const resolution = entry.exec(text)?.[1] ?? '';
+const field = (key) => new RegExp(`(?:^|,)\\s*${key}:\\s*['"]?([^,'"\\s]+)`).exec(resolution)?.[1];
+const tarball = field('tarball');
+if (!importer.test(text) || field('integrity') !== integrity || (tarball !== undefined && tarball !== resolved)) {
+    process.exit(1);
+}
 NODE
-                else
-                    grep -Fq "specifier: $expected" "$lock" || die "web lock has no candidate specifier for @peanut-admin/$package"
-                    grep -Fq "tarball: $expected" "$lock" || die "web lock has no candidate tarball for @peanut-admin/$package"
-                fi
             else
-                lock="$ROOT_DIR/$client/package-lock.json"
-                if [[ "$mode" == registry ]]; then
-                    node -e '
-const l=require(process.argv[1]),n=`@peanut-admin/${process.argv[2]}`,v=process.argv[3],r=process.argv[4],i=process.argv[5]
-const entry=l.packages?.[`node_modules/${n}`]
-if(l.packages?.[""]?.dependencies?.[n]!==v||!entry||entry.version!==v||entry.resolved!==r||entry.integrity!==i)process.exit(1)
-' "$lock" "$package" "$version" "$resolved" "$integrity" || die "$client lock has no fixed candidate identity for @peanut-admin/$package"
-                else
-                    node -e '
-const l=require(process.argv[1]),n=`@peanut-admin/${process.argv[2]}`,e=process.argv[3]
-if(l.packages?.[""]?.dependencies?.[n]!==e||l.packages?.[`node_modules/${n}`]?.resolved!==e)process.exit(1)
-' "$lock" "$package" "$expected" || die "$client lock has no fixed candidate identity for @peanut-admin/$package"
-                fi
+                grep -Fq "specifier: $expected" "$lock" || die "$client lock has no candidate specifier for @peanut-admin/$package"
+                grep -Fq "tarball: $expected" "$lock" || die "$client lock has no candidate tarball for @peanut-admin/$package"
             fi
         done
     done < <(selected_clients)
@@ -200,11 +189,7 @@ verify_source_packages() {
 metadata_digest() {
     local client
     while IFS= read -r client; do
-        if [[ "$client" == web ]]; then
-            shasum -a 256 "$ROOT_DIR/$client/package.json" "$ROOT_DIR/$client/pnpm-lock.yaml"
-        else
-            shasum -a 256 "$ROOT_DIR/$client/package.json" "$ROOT_DIR/$client/package-lock.json"
-        fi
+        shasum -a 256 "$ROOT_DIR/$client/package.json" "$ROOT_DIR/$client/pnpm-lock.yaml"
     done < <(selected_clients)
 }
 
@@ -276,10 +261,7 @@ candidate_set_sha256() {
 
 install_candidates_owned() {
     while IFS= read -r client; do
-        case "$client" in
-            web) (cd "$ROOT_DIR/web" && pnpm install --frozen-lockfile --ignore-scripts) ;;
-            platform|pc|uniapp) (cd "$ROOT_DIR/$client" && npm ci --ignore-scripts) ;;
-        esac
+        (cd "$ROOT_DIR/$client" && pnpm install --frozen-lockfile --ignore-scripts)
     done < <(selected_clients)
     verify_candidate_installed
 }

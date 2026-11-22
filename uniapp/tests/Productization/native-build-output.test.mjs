@@ -25,7 +25,7 @@ const forbiddenNames = new Set([
   '.env',
   '.env.local',
   'node_modules',
-  'package-lock.json',
+  'pnpm-lock.yaml',
   'pnpm-lock.yaml',
   'yarn.lock',
   'src',

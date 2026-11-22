@@ -38,7 +38,7 @@ final readonly class TaskJobService
     /**
      * Returns visible jobs by key. Invalid and missing keys are omitted individually.
      *
-     * @param list<string> $jobKeys Up to 200 keys.
+     * @param array<array-key,mixed> $jobKeys Up to 200 keys.
      * @return array<string,JobRecord>
      */
     public function detailsByKey(AuthorizedOperationContext $context, array $jobKeys): array

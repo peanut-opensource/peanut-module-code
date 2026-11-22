@@ -46,7 +46,7 @@ final readonly class CoreSettingsConfigurationAdapter implements ConfigurationTr
         $platform = $this->platform($context);
         $state = $this->settings->current($platform, $key);
         $unsetSecret = $state['secret'] && SecretReferenceCodec::isMarker($entry['value'] ?? null)
-            && (($entry['value']['$secret']['state'] ?? null) === 'unconfigured');
+            && ($entry['value']['$secret']['state'] === 'unconfigured');
         $this->settings->apply($platform, $key, $value, $unsetSecret || $value === null, $revision);
     }
 

@@ -2748,7 +2748,7 @@ $metadata['paths']['/adminapi/custom.ai-assistant.candidateLifecycle']['post'] =
 foreach ($metadata['paths']['/adminapi/custom.ai-assistant.requestStatus']['get']['parameters'] as &$parameter) {
     if ($parameter['name'] === 'endpoint') {
         $parameter['schema']['enum'][] = 'candidateLifecycle';
-    } elseif ($parameter['name'] === 'action' && isset($parameter['schema']['enum'])) {
+    } elseif ($parameter['name'] === 'action') {
         $parameter['schema']['enum'] = array_values(array_unique(array_merge($parameter['schema']['enum'], ['withdraw','rework','supersede'])));
     }
 }

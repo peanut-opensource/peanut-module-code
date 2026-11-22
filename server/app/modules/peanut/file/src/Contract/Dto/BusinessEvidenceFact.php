@@ -7,7 +7,7 @@ namespace PeanutAdmin\Modules\File\Contract\Dto;
 /** Identifies one immutable financial fact and its basis, not a mutable upload root. */
 final readonly class BusinessEvidenceFact
 {
-    /** @param list<string> $fileKeys */
+    /** @param array<array-key,mixed> $fileKeys */
     public function __construct(public string $moduleKey, public string $ownerType, public string $ownerKey, public string $basisDigest, public array $fileKeys)
     {
         new BusinessEvidenceCommand($moduleKey, $ownerKey, $basisDigest);

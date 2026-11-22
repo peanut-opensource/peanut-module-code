@@ -3,7 +3,15 @@
 declare(strict_types=1);
 
 $m = require __DIR__ . '/common.php';
-extract($m, EXTR_SKIP);
+$ref = $m['ref'];
+$parameterRef = $m['parameterRef'];
+$error = $m['error'];
+$jsonBody = $m['jsonBody'];
+$success = $m['success'];
+$directJson = $m['directJson'];
+$emptySuccess = $m['emptySuccess'];
+$query = $m['query'];
+$operation = $m['operation'];
 
 $schemas = [
     'AdminLoginRequest' => [

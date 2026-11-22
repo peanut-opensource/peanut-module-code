@@ -46,7 +46,7 @@ class OfficialAccountMenuValidate extends Validate
         if ($children !== [] && !is_array($children)) {
             return '子菜单格式无效';
         }
-        if (is_array($children) && $children !== []) {
+        if ($children !== []) {
             if (!$topLevel) {
                 return '公众号菜单最多两级';
             }

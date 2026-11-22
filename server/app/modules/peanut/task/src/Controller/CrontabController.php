@@ -28,6 +28,11 @@ class CrontabController extends BaseAdminController
     protected const CRUD_EDIT_SUCCESS_MESSAGE = '编辑成功';
     protected const CRUD_DELETE_SUCCESS_MESSAGE = '删除成功';
 
+    protected function crudService(): object
+    {
+        return $this->crontabs;
+    }
+
     protected function resolveCrudContext(): TenantContext
     {
         return $this->tenantAdminContext();

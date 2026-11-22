@@ -30,6 +30,7 @@ final class ArticlePublicBodyRenderer
                     'bold' => '<strong>' . $text . '</strong>', 'italic' => '<em>' . $text . '</em>',
                     'strike' => '<s>' . $text . '</s>', 'underline' => '<u>' . $text . '</u>', 'code' => '<code>' . $text . '</code>',
                     'link' => self::link($attrs, $text),
+                    default => throw new \UnexpectedValueException('ARTICLE_BODY_MARK_INVALID'),
                     'textStyle' => isset($attrs['color']) ? '<span style="color:' . self::escape($attrs['color']) . '">' . $text . '</span>' : $text,
                 };
             }
@@ -45,6 +46,7 @@ final class ArticlePublicBodyRenderer
             'paragraph' => 'p', 'heading' => 'h' . ($attrs['level'] ?? 1), 'blockquote' => 'blockquote',
             'bulletList' => 'ul', 'orderedList' => 'ol', 'listItem' => 'li', 'codeBlock' => 'pre',
             'table' => 'table', 'tableRow' => 'tr', 'tableCell' => 'td', 'tableHeader' => 'th',
+            default => throw new \UnexpectedValueException('ARTICLE_BODY_NODE_INVALID'),
         };
         $attributes = '';
         if (isset($attrs['textAlign'])) { $attributes .= ' style="text-align:' . self::escape($attrs['textAlign']) . '"'; }

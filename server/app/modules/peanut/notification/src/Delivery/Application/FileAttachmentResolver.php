@@ -15,9 +15,7 @@ final readonly class FileAttachmentResolver implements AttachmentResolver
     public function snapshot(TenantContext $context, string $fileKey): AttachmentReference
     {
         $source = $this->files->attachmentSnapshot($context, $fileKey);
-        if (($source['file_key'] ?? null) !== $fileKey || !is_string($source['original_name'] ?? null)
-            || !is_string($source['verified_mime_type'] ?? null) || !is_int($source['size_bytes'] ?? null)
-            || !is_string($source['sha256'] ?? null)) {
+        if ($source['file_key'] !== $fileKey) {
             throw NotificationException::attachmentUnavailable();
         }
         return new AttachmentReference($fileKey, $source['original_name'], $source['verified_mime_type'], $source['size_bytes'], $source['sha256']);

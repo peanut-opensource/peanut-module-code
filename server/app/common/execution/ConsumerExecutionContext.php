@@ -46,7 +46,7 @@ final readonly class ConsumerExecutionContext implements ExecutionContext
     }
     public function tenantId(): ?int
     {
-        return $this->member?->tenantId ?? $this->publicTenant?->tenantId;
+        return $this->member->tenantId ?? $this->publicTenant?->tenantId;
     }
 
     public function actor(): array

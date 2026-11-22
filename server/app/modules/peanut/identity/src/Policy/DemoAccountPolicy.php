@@ -152,9 +152,6 @@ final class DemoAccountPolicy
             'time_cost' => 4,
             'threads' => 2,
         ]);
-        if (!is_string($hash) || $hash === '') {
-            throw new \RuntimeException('演示密码摘要生成失败');
-        }
         return $hash;
     }
 }

@@ -6,6 +6,22 @@ namespace Custom\Modules\AiAssistant\Model;
 
 use app\common\model\TenantOwnedModel;
 
+/**
+ * @property int $id
+ * @property int|string $created_by
+ * @property string $actor_binding
+ * @property int|string $created_at
+ * @property string $details
+ * @property string|null $job_key
+ * @property string $request_hash
+ * @property string $request_id
+ * @property string $sealed_config
+ * @property string $source_snapshot
+ * @property string $status
+ * @property string $title
+ * @property int|string $updated_at
+ * @property int|string $version
+ */
 final class GenerationTask extends TenantOwnedModel
 {
     protected $name = 'ai_assistant_task';

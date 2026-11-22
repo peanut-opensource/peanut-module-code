@@ -16,7 +16,6 @@ use think\facade\Db;
 
 class OfficialAccountApplicationService implements OfficialAccountCallbacks
 {
-    private const CONFIG_TYPE = 'oa_setting';
     private const SECRET_MASK = '******';
 
     public function __construct(

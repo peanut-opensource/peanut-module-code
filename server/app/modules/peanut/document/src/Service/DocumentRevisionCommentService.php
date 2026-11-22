@@ -130,7 +130,7 @@ final readonly class DocumentRevisionCommentService implements DocumentRevisionC
             $now = gmdate('Y-m-d H:i:s') . '.000';
             if (in_array($action, ['create', 'suggest'], true)) {
                 $candidate = $action === 'suggest' ? RichTextProjection::fromStructured($input['candidate_content']) : null;
-                $thread = DocumentCommentThread::create([
+                $thread = DocumentCommentThread::createModel([
                     'tenant_id' => $actor->tenantId, 'document_id' => $source['document_id'], 'revision_id' => $source['revision_id'],
                     'version_digest' => $source['version_digest'], 'owner_sha256' => self::ownerDigest($document),
                     'text_profile' => $source['text_profile'], 'text_sha256' => $source['text_sha256'],
@@ -180,7 +180,7 @@ final readonly class DocumentRevisionCommentService implements DocumentRevisionC
                     $thread->save(['decision' => 'rejected', 'decided_by_member_id' => $actor->memberId, 'decided_at' => $now]);
                 }
             }
-            $message = DocumentCommentMessage::create([
+            $message = DocumentCommentMessage::createModel([
                 'tenant_id' => $actor->tenantId, 'thread_id' => (int) $thread->id,
                 'thread_revision' => (int) $thread->thread_revision, 'action' => $action,
                 'body' => $input['body'] ?? null, 'actor_member_id' => $actor->memberId,

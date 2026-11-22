@@ -144,7 +144,7 @@ final readonly class AiCandidates
         }
         $saved = $this->commands->freeze($c, (int) $doc['document_id'], $seq, '保留AI人工候选固定版本', 'ai-result-freeze:' . hash('sha256', $request));
         $snapshot = $this->documents->ownerSaveSnapshot($c, (int) $doc['document_id'], (int) $saved['revision_id'], $owner);
-        return Db::transaction(function () use ($c, $id, $request, $snapshot, $owner, $candidate, $text, $recovery, $claim): array {
+        return Db::transaction(function () use ($c, $id, $request, $snapshot, $owner, $candidate, $recovery, $claim): array {
             $r = $this->access->find($c, 'task', $id, 'use', true);
             $d = AiAccess::data($r);
             AiCandidateGuard::assertClaim($d, $claim, (string) $r->job_key);
@@ -233,7 +233,7 @@ final readonly class AiCandidates
         $this->current($c, $r);
         $this->fixedReadable($c, $actual['fixed_result']);
     }
-    private function acceptedBinding(\think\Model $r): array
+    private function acceptedBinding(\Custom\Modules\AiAssistant\Model\GenerationTask $r): array
     {
         $d = AiAccess::data($r);
         if ($r->status !== 'accepted' || ($d['collection_state'] ?? '') !== 'collected'

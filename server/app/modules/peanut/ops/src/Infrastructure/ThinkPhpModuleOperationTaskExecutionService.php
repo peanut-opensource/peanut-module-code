@@ -88,11 +88,11 @@ final readonly class ThinkPhpModuleOperationTaskExecutionService implements Modu
                 $result['details'] = $exception->details;
             }
             $cause = $exception;
-            while ($cause->getPrevious() instanceof ModulePackageException
-                || $cause->getPrevious() instanceof ModuleLifecycleException) {
-                $cause = $cause->getPrevious();
+            while (($previous = $cause->getPrevious()) instanceof ModulePackageException
+                || $previous instanceof ModuleLifecycleException) {
+                $cause = $previous;
             }
-            if ($cause !== $exception) {
+            if ($cause !== $exception && ($cause instanceof ModulePackageException || $cause instanceof ModuleLifecycleException)) {
                 $result['cause'] = ['error_code' => $cause->errorCode, 'reason' => $cause->getMessage(),
                     'details' => $cause instanceof ModulePackageException ? $cause->details : []];
                 if ($cause->getCode() > 0 && $cause->getCode() < 256) {

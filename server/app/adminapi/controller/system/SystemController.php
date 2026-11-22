@@ -26,30 +26,24 @@ class SystemController extends BaseAdminController
     /** 系统环境信息 */
     public function info()
     {
-        $denial = $this->instanceToolAccessDenial();
-        if ($denial !== null) {
-            return $denial;
-        }
+        $this->assertInstanceToolAccess();
         return $this->data($this->system->getInfo((string) $this->request->server('SERVER_SOFTWARE', '')));
     }
 
     /** 清除系统缓存 */
     public function clearCache()
     {
-        $denial = $this->instanceToolAccessDenial();
-        if ($denial !== null) {
-            return $denial;
-        }
+        $this->assertInstanceToolAccess();
 
         $this->system->clearCache();
         return $this->success('清除成功');
     }
 
-    private function instanceToolAccessDenial(): ?Json
+    private function assertInstanceToolAccess(): void
     {
         $guard = InstanceToolAccessGuard::fromConfiguredValue(config('deployment.mode'));
-        return $guard->allows()
-            ? null
-            : throw \app\common\http\ApiProblem::fromEnvelope('实例级维护工具仅在 standalone 部署中可用', null, 40300);
+        if (!$guard->allows()) {
+            throw \app\common\http\ApiProblem::fromEnvelope('实例级维护工具仅在 standalone 部署中可用', null, 40300);
+        }
     }
 }

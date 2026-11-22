@@ -3,7 +3,13 @@
 declare(strict_types=1);
 
 $m = require __DIR__ . '/common.php';
-extract($m, EXTR_SKIP);
+$ref = $m['ref'];
+$error = $m['error'];
+$jsonBody = $m['jsonBody'];
+$success = $m['success'];
+$query = $m['query'];
+$path = $m['path'];
+$operation = $m['operation'];
 
 $strings = ['type' => 'array', 'items' => ['type' => 'string']];
 $bundle = ['type' => 'object', 'additionalProperties' => false,

@@ -3,7 +3,11 @@
 declare(strict_types=1);
 
 $common = require __DIR__ . '/common.php';
-extract($common, EXTR_SKIP);
+$ref = $common['ref'];
+$responseRef = $common['responseRef'];
+$success = $common['success'];
+$query = $common['query'];
+$operation = $common['operation'];
 
 $applicationError = $responseRef('ErrorResponse');
 $applicationEnvelope = static fn(array $data): array => [

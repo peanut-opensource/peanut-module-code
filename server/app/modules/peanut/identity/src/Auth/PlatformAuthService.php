@@ -291,7 +291,7 @@ final class PlatformAuthService
                     foreach (array_slice($first->getTrace(), 0, 5) as $frame) {
                         $trace[] = [
                             'class' => is_string($frame['class'] ?? null) ? $frame['class'] : null,
-                            'function' => is_string($frame['function'] ?? null) ? $frame['function'] : null,
+                            'function' => $frame['function'],
                             'line' => is_int($frame['line'] ?? null) ? $frame['line'] : null,
                         ];
                     }

@@ -5,8 +5,6 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  bin-wrapper: npm:bin-wrapper-china
-  gifsicle: 5.2.0
   decode-uri-component: 0.5.0
   js-yaml@4.3.1: 4.3.2
   postcss: 8.5.23
@@ -29,17 +27,17 @@ importers:
         specifier: 2.3.2
         version: 2.3.2(vue@3.5.40(typescript@5.9.3))
       '@peanut-admin/client':
-        specifier: file:../packages/core-web/peanut-admin-client-5.1.3-rc.4.tgz
-        version: file:../packages/core-web/peanut-admin-client-5.1.3-rc.4.tgz
+        specifier: file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz
+        version: file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz
       '@peanut-admin/peanut-chart':
         specifier: workspace:^1.0.0
         version: link:src/modules/peanut-chart
       '@peanut-admin/ui-vue':
-        specifier: file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.4.tgz
-        version: file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.4.tgz(@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.1.3-rc.4.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.4.tgz)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
+        specifier: file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.23.tgz
+        version: file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.23.tgz(@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.1.3-rc.23.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
       '@peanut-admin/vue':
-        specifier: file:../packages/core-web/peanut-admin-vue-5.1.3-rc.4.tgz
-        version: file:../packages/core-web/peanut-admin-vue-5.1.3-rc.4.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.4.tgz)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
+        specifier: file:../packages/core-web/peanut-admin-vue-5.1.3-rc.23.tgz
+        version: file:../packages/core-web/peanut-admin-vue-5.1.3-rc.23.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
       '@vueuse/core':
         specifier: ^9.3.0
         version: 9.13.0(vue@3.5.40(typescript@5.9.3))
@@ -55,9 +53,6 @@ importers:
       element-plus:
         specifier: 2.14.3
         version: 2.14.3(vue@3.5.40(typescript@5.9.3))
-      lodash:
-        specifier: ^4.17.21
-        version: 4.18.1
       mitt:
         specifier: ^3.0.0
         version: 3.0.1
@@ -70,9 +65,6 @@ importers:
       pinia:
         specifier: ^2.0.23
         version: 2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3))
-      query-string:
-        specifier: ^8.0.3
-        version: 8.2.0
       sortablejs:
         specifier: ^1.15.0
         version: 1.15.7
@@ -95,9 +87,6 @@ importers:
       '@commitlint/config-conventional':
         specifier: ^17.1.0
         version: 17.8.1
-      '@types/lodash':
-        specifier: ^4.14.186
-        version: 4.17.24
       '@types/nprogress':
         specifier: ^0.2.0
         version: 0.2.3
@@ -794,26 +783,26 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.4.tgz':
-    resolution: {integrity: sha512-yVhwHURHrMwCCChYngTRrwC7E1R/12sdSbFT2332Cvx2a9Ry8I8lenPbtkocYJDnOSDOFKKdRsx0ew6kaS7R2w==, tarball: file:../packages/core-web/peanut-admin-client-5.1.3-rc.4.tgz}
-    version: 5.1.3-rc.4
+  '@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz':
+    resolution: {integrity: sha512-viemp9fc0Nm5WO2V3M8+0rSh1qEDkIURxuZj+ISSuFBd7ZBrN1xkXrirWTEuWRQjWu0hCk3Eb2DeYWpRZ4Ymvw==, tarball: file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz}
+    version: 5.1.3-rc.23
     engines: {node: '>=22.12.0 <23'}
 
-  '@peanut-admin/ui-vue@file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.4.tgz':
-    resolution: {integrity: sha512-cH1W6n5cgGZamMSdzKf1QKy2Ov/zJSTWm+ir9c+rW82vbe8U1Q/WCU8dV0Y9Ffjpen33W6eV2gTf70otyezwpw==, tarball: file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.4.tgz}
-    version: 5.1.3-rc.4
+  '@peanut-admin/ui-vue@file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.23.tgz':
+    resolution: {integrity: sha512-lY68cf6Pu8unBACGLdxwUMReymd73W5d2WmyiBY5IjAweG4RRgbIX0KoKvdGEXE7s2dpql7C8X7Qj6mjx4v/QA==, tarball: file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.23.tgz}
+    version: 5.1.3-rc.23
     engines: {node: '>=22.12.0 <23'}
     peerDependencies:
-      '@peanut-admin/vue': 5.1.3-rc.4
+      '@peanut-admin/vue': 5.1.3-rc.23
       element-plus: ^2.14.3
       vue: ^3.4.21
 
-  '@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.1.3-rc.4.tgz':
-    resolution: {integrity: sha512-7bQIMtwE4K+z5SLSHSuTZLnMrRaDRNwCWxtNqrGHwDm1QEAoRusnr9mrDP+nzpT06xKmZBRvqbboyMigFBKxbg==, tarball: file:../packages/core-web/peanut-admin-vue-5.1.3-rc.4.tgz}
-    version: 5.1.3-rc.4
+  '@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.1.3-rc.23.tgz':
+    resolution: {integrity: sha512-y0uVB6VYJ9cFH4LUF+3bIialPXB9YrJ0I7FemlgL0SeW3NZel/UdSJe4k4+Yk2Qtna2GmmwbBbaa/UkhSvoBvQ==, tarball: file:../packages/core-web/peanut-admin-vue-5.1.3-rc.23.tgz}
+    version: 5.1.3-rc.23
     engines: {node: '>=22.12.0 <23'}
     peerDependencies:
-      '@peanut-admin/client': 5.1.3-rc.4
+      '@peanut-admin/client': 5.1.3-rc.23
       pinia: '>=2.0.23 <5'
       vue: ^3.4.21
 
@@ -1871,10 +1860,6 @@ packages:
     resolution: {integrity: sha512-z2S+W9X73hAUUki+N+9Za2lBlun89zigOyGrsax+KUQ6wKW4ZoWpEYBkGhQjwAjjDCkWxhY0VKEhk8wzY7F5cA==}
     engines: {node: '>=0.10.0'}
 
-  decode-uri-component@0.5.0:
-    resolution: {integrity: sha512-1BiQVoK8C9gUbQU6NzAtO/tkz2qOFpEObMWpcFvhx4fYnj4Oc5yzaJN/LD36ihkVUdXyh5ZekzX+yM+ty/SrPg==}
-    engines: {node: '>=14.16'}
-
   deep-is@0.1.4:
     resolution: {integrity: sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==}
 
@@ -2205,10 +2190,6 @@ packages:
   fill-range@7.1.1:
     resolution: {integrity: sha512-YsGpe3WHLK8ZYi4tWDg2Jy3ebRz2rXowDxnld4bkQB00cc/1Zw9AWnC0i9ztDJitivtQvaI9KaLyKrc+hBW0yg==}
     engines: {node: '>=8'}
-
-  filter-obj@5.1.0:
-    resolution: {integrity: sha512-qWeTREPoT7I0bifpPUXtxkZJ1XJzxWtfoWWkdVGqa+eCr3SHW/Ocp89o8vLvbUuQnadybJpjOKu4V+RwO6sGng==}
-    engines: {node: '>=14.16'}
 
   find-up@4.1.0:
     resolution: {integrity: sha512-PpOwAdQ/YlXQ2vj8a3h8IipDuYRi3wceVQQGYWxNINccq40Anw7BlsEXCMbt1Zt+OLA6Fq9suIpIWD0OsnISlw==}
@@ -3223,10 +3204,6 @@ packages:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
 
-  query-string@8.2.0:
-    resolution: {integrity: sha512-tUZIw8J0CawM5wyGBiDOAp7ObdRQh4uBor/fUR9ZjmbZVvw95OD9If4w3MQxr99rg0DJZ/9CIORcpEqU5hQG7g==}
-    engines: {node: '>=14.16'}
-
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
 
@@ -3453,10 +3430,6 @@ packages:
 
   spdx-license-ids@3.0.23:
     resolution: {integrity: sha512-CWLcCCH7VLu13TgOH+r8p1O/Znwhqv/dbb6lqWy67G+pT1kHmeD/+V36AVb/vq8QMIQwVShJ6Ssl5FPh0fuSdw==}
-
-  split-on-first@3.0.0:
-    resolution: {integrity: sha512-qxQJTx2ryR0Dw0ITYyekNQWpz6f8dGd7vffGNflQQ3Iqj9NJ6qiZ7ELpZsJ/QBhIVAiDfXdag3+Gp8RvWa62AA==}
-    engines: {node: '>=12'}
 
   split2@3.2.2:
     resolution: {integrity: sha512-9NThjpgZnifTkJpzTZ7Eue85S49QwpNhZTq6GRJwObb6jnLFNGB7Qm73V5HewTROPyxD0C29xqmaI68bQtV+hg==}
@@ -4477,17 +4450,17 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.4.tgz': {}
+  '@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz': {}
 
-  '@peanut-admin/ui-vue@file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.4.tgz(@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.1.3-rc.4.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.4.tgz)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
+  '@peanut-admin/ui-vue@file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.23.tgz(@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.1.3-rc.23.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
     dependencies:
-      '@peanut-admin/vue': file:../packages/core-web/peanut-admin-vue-5.1.3-rc.4.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.4.tgz)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
+      '@peanut-admin/vue': file:../packages/core-web/peanut-admin-vue-5.1.3-rc.23.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
       element-plus: 2.14.3(vue@3.5.40(typescript@5.9.3))
       vue: 3.5.40(typescript@5.9.3)
 
-  '@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.1.3-rc.4.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.4.tgz)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
+  '@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.1.3-rc.23.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))':
     dependencies:
-      '@peanut-admin/client': file:../packages/core-web/peanut-admin-client-5.1.3-rc.4.tgz
+      '@peanut-admin/client': file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz
       pinia: 2.3.1(typescript@5.9.3)(vue@3.5.40(typescript@5.9.3))
       vue: 3.5.40(typescript@5.9.3)
 
@@ -5561,8 +5534,6 @@ snapshots:
 
   decamelize@1.2.0: {}
 
-  decode-uri-component@0.5.0: {}
-
   deep-is@0.1.4: {}
 
   define-data-property@1.1.4:
@@ -6055,8 +6026,6 @@ snapshots:
   fill-range@7.1.1:
     dependencies:
       to-regex-range: 5.0.1
-
-  filter-obj@5.1.0: {}
 
   find-up@4.1.0:
     dependencies:
@@ -7087,12 +7056,6 @@ snapshots:
 
   punycode@2.3.1: {}
 
-  query-string@8.2.0:
-    dependencies:
-      decode-uri-component: 0.5.0
-      filter-obj: 5.1.0
-      split-on-first: 3.0.0
-
   queue-microtask@1.2.3: {}
 
   quick-lru@4.0.1: {}
@@ -7363,8 +7326,6 @@ snapshots:
       spdx-license-ids: 3.0.23
 
   spdx-license-ids@3.0.23: {}
-
-  split-on-first@3.0.0: {}
 
   split2@3.2.2:
     dependencies:

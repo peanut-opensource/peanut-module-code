@@ -12,13 +12,13 @@ use think\App;
 /** Compiled worker contributions from the installed Module providers. */
 final readonly class TaskWorkerDefinitionRegistry
 {
-    /** @param list<array{module_key:string,definition:class-string<TaskWorkerDefinition>}> $registrations */
+    /** @param list<array<string, mixed>> $registrations */
     public function __construct(private array $registrations)
     {
         $seen = [];
         foreach ($registrations as $registration) {
-            $moduleKey = $registration['module_key'] ?? '';
-            $definition = $registration['definition'] ?? '';
+            $moduleKey = $registration['module_key'] ?? null;
+            $definition = $registration['definition'] ?? null;
             if (!is_string($moduleKey) || preg_match('/^[a-z0-9][a-z0-9._-]{1,127}$/D', $moduleKey) !== 1
                 || !is_string($definition) || !is_a($definition, TaskWorkerDefinition::class, true)
                 || isset($seen[$definition])
@@ -49,7 +49,7 @@ final readonly class TaskWorkerDefinitionRegistry
             $authorizationKeys[$authorizationKey] = true;
             $handlerCount = 0;
             foreach ($definition->handlers() as $handler) {
-                if (!$handler instanceof TaskHandler || isset($handlerKeys[$handler->key()])) {
+                if (!self::isHandler($handler) || isset($handlerKeys[$handler->key()])) {
                     throw new ModuleException('MODULE_TASK_WORKER_CONFLICT', 'Module Task handler contribution is invalid or duplicated.');
                 }
                 $handlerKeys[$handler->key()] = true;
@@ -63,4 +63,9 @@ final readonly class TaskWorkerDefinitionRegistry
 
         return $definitions;
     }
+    private static function isHandler(mixed $handler): bool
+    {
+        return $handler instanceof TaskHandler;
+    }
+
 }

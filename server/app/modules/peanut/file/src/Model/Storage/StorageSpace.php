@@ -6,7 +6,11 @@ namespace PeanutAdmin\Modules\File\Model\Storage;
 
 use app\common\model\InstanceOwnedModel;
 
-/** Deployment-owned bucket or local filesystem space configuration. */
+/**
+ * Deployment-owned bucket or local filesystem space configuration.
+ *
+ * @property int|string $id
+ */
 final class StorageSpace extends InstanceOwnedModel
 {
     protected $name = 'storage_space';

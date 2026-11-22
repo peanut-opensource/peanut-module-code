@@ -80,6 +80,7 @@ final class FileUploadService implements FileUploads
             FileEnum::IMAGE => 'material.image',
             FileEnum::VIDEO => 'material.video',
             FileEnum::FILE => 'material.file',
+            default => throw new \InvalidArgumentException('FILE_UPLOAD_TYPE_INVALID'),
         };
         $tenantId = $this->executionContext->tenantId();
         if ($context->tenantId !== $tenantId) {
@@ -107,7 +108,7 @@ final class FileUploadService implements FileUploads
                 $tenantId,
                 $imageMetadata,
             ): File {
-                $file = File::create([
+                $file = File::createModel([
                     'cid' => $cid,
                     'source_id' => $sourceId,
                     'source' => $source,

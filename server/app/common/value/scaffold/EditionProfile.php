@@ -41,8 +41,7 @@ final readonly class EditionProfile
             || ($document['protocol'] ?? null) !== 'peanut.edition-profiles.v1'
             || ($document['generator_version'] ?? null) !== 3
             || !is_array($document['editions'] ?? null)
-            || array_keys($document['editions']) !== self::EDITIONS
-            || !is_string($raw)) {
+            || array_keys($document['editions']) !== self::EDITIONS) {
             throw new RuntimeException('CREATE_APP_EDITION_PROFILE_SCHEMA_INVALID');
         }
 

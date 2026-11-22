@@ -8,6 +8,12 @@ use app\common\model\TenantOwnedModel;
 
 /**
  * 退款记录模型
+ *
+ * @property int $order_id
+ * @property string|null $order_type
+ * @property string $refund_amount
+ * @property string|null $refund_msg
+ * @property int $refund_status
  */
 class RefundRecord extends TenantOwnedModel
 {

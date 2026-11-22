@@ -3,7 +3,6 @@ import type { RouteRecordRaw } from 'vue-router';
 import usePermission from '@/hooks/permission';
 import { useAppStore } from '@/store';
 import appClientMenus from '@/router/app-menus';
-import { cloneDeep } from 'lodash';
 
 function normalizePath(path: string): string {
   const normalized = `/${path}`.replace(/\/{2,}/g, '/');
@@ -101,7 +100,7 @@ export default function useMenuTree() {
     return appClientMenus;
   });
   const menuTree = computed(() => {
-    const copyRouter: RouteRecordRaw[] = cloneDeep(appRoute.value).filter(
+    const copyRouter: RouteRecordRaw[] = appRoute.value.filter(
       (route) =>
         route.meta?.order === undefined ||
         (typeof route.meta.order === 'number' &&
@@ -118,7 +117,8 @@ export default function useMenuTree() {
       _routes: RouteRecordRaw[],
       layer: number
     ): RouteRecordRaw[] {
-      const collector: Array<RouteRecordRaw | null> = _routes.map((element) => {
+      const collector: Array<RouteRecordRaw | null> = _routes.map((route) => {
+        const element = { ...route };
         // no access
         if (!permission.accessRouter(element)) {
           return null;

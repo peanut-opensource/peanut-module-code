@@ -90,8 +90,8 @@ final class ArticleCategoryAdministrationService extends AbstractCrudService imp
     {
         $this->assertPermission($context, 'peanut.article.category.delete');
         return Db::transaction(function () use ($id): bool {
-            $category = ArticleCate::withTrashed()->where('id', $id)->lock(true)->findOrEmpty();
-            if ($category->isEmpty()) {
+            $category = (new ArticleCate())->db()->scope('withTrashed')->where('id', $id)->lock(true)->findOrEmpty();
+            if (!$category instanceof ArticleCate || $category->isEmpty()) {
                 throw BusinessException::notFound('ARTICLE_CATEGORY_NOT_FOUND', '资讯分类不存在');
             }
             if ($category->trashed()) {
@@ -142,8 +142,8 @@ final class ArticleCategoryAdministrationService extends AbstractCrudService imp
         $this->assertPermission($context, 'peanut.article.category.restore');
         return $this->batch($ids, 'restored', static function (int $id): string {
             return Db::transaction(static function () use ($id): string {
-                $category = ArticleCate::withTrashed()->where('id', $id)->lock(true)->findOrEmpty();
-                if ($category->isEmpty()) {
+                $category = (new ArticleCate())->db()->scope('withTrashed')->where('id', $id)->lock(true)->findOrEmpty();
+                if (!$category instanceof ArticleCate || $category->isEmpty()) {
                     throw BusinessException::notFound('ARTICLE_CATEGORY_NOT_FOUND', '资讯分类不存在');
                 }
                 if (!$category->trashed()) {
@@ -162,8 +162,8 @@ final class ArticleCategoryAdministrationService extends AbstractCrudService imp
         $this->assertPermission($context, 'peanut.article.category.force-delete');
         return $this->batch($ids, 'deleted', static function (int $id): string {
             return Db::transaction(static function () use ($id): string {
-                $category = ArticleCate::withTrashed()->where('id', $id)->lock(true)->findOrEmpty();
-                if ($category->isEmpty()) {
+                $category = (new ArticleCate())->db()->scope('withTrashed')->where('id', $id)->lock(true)->findOrEmpty();
+                if (!$category instanceof ArticleCate || $category->isEmpty()) {
                     throw BusinessException::notFound('ARTICLE_CATEGORY_NOT_FOUND', '资讯分类不存在');
                 }
                 if (!$category->trashed()) {
@@ -172,7 +172,7 @@ final class ArticleCategoryAdministrationService extends AbstractCrudService imp
                         '仅回收站分类可永久删除',
                     );
                 }
-                if (!Article::withTrashed()->where('cid', $id)
+                if (!(new Article())->db()->scope('withTrashed')->where('cid', $id)
                     ->lock(true)->findOrEmpty()->isEmpty()
                 ) {
                     throw BusinessException::conflict(
@@ -190,7 +190,7 @@ final class ArticleCategoryAdministrationService extends AbstractCrudService imp
 
     private function categoryLists(TenantContext $context, array $params, bool $onlyTrashed): PageResult|array
     {
-        $query = $onlyTrashed ? ArticleCate::onlyTrashed() : ArticleCate::where([]);
+        $query = $onlyTrashed ? (new ArticleCate())->db()->scope('onlyTrashed') : ArticleCate::where([]);
         $query->field(self::fields());
         $filters = [];
         if (isset($params['name']) && $params['name'] !== '') {
@@ -275,7 +275,7 @@ final class ArticleCategoryAdministrationService extends AbstractCrudService imp
 
     private function findRow(int $id, bool $onlyTrashed): array
     {
-        $query = $onlyTrashed ? ArticleCate::onlyTrashed() : ArticleCate::where([]);
+        $query = $onlyTrashed ? (new ArticleCate())->db()->scope('onlyTrashed') : ArticleCate::where([]);
         $category = $query->field(self::fields())->where('id', $id)->findOrEmpty();
         return $category->isEmpty() ? [] : self::formatRow($category->toArray());
     }
@@ -330,7 +330,10 @@ final class ArticleCategoryAdministrationService extends AbstractCrudService imp
         if ($categoryIds === []) {
             return [];
         }
-        $query = $includeTrashed ? Article::withTrashed() : Article::where([]);
+        $query = Article::where([]);
+        if ($includeTrashed) {
+            $query->scope('withTrashed');
+        }
         $rows = $query->whereIn('cid', $categoryIds)->field('cid, COUNT(*) AS article_count')
             ->group('cid')->select()->toArray();
         $counts = [];

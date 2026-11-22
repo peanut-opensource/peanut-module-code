@@ -220,9 +220,9 @@ final readonly class RevocationTask implements TaskWorkerDefinition, \PeanutAdmi
                         $execution->assertLeaseOwned();
                         $decision = $this->documents->compareRevocationGrant($current, (int) $row['document_id'], $row['mode'], $row['authorization_revision'], $fact['fact_id'], $fact['fact_sha256']);
                         $execution->assertLeaseOwned();
-                        if (($decision['status'] ?? null) === 'OLD_STALE') {
+                        if (($decision['status']) === 'OLD_STALE') {
                             $stale = true;
-                        } elseif (($decision['status'] ?? null) !== 'CURRENT_FRESH') {
+                        } elseif (($decision['status']) !== 'CURRENT_FRESH') {
                             throw new RetryableTaskException('REVOCATION_GRANT_AUTHORITY_UNKNOWN');
                         }
                     }

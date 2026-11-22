@@ -185,7 +185,7 @@ final readonly class ModulePackageAdoptionService
                             || array_diff($row['editions'], $inspection['editions']) !== [] || array_diff($inspection['editions'], $row['editions']) !== []) {
                             throw new ModulePackageException('MODULE_COMPOSITION_ARCHIVE_MISMATCH', 'Archive differs from the pinned catalog.');
                         }
-                        if (($package->descriptor->source['type'] ?? null) !== 'canonical-contents'
+                        if ($package->descriptor->source['type'] !== 'canonical-contents'
                             || ($package->descriptor->trust['origin']['type'] ?? null) !== 'repository-contents'
                             || ($package->descriptor->trust['origin']['reference'] ?? null) !== 'canonical-plugin-contents-v1') {
                             throw new ModulePackageException('MODULE_PACKAGE_OFFICIAL_SOURCE_UNTRUSTED', 'Official source must have canonical identity.');
@@ -354,7 +354,7 @@ final readonly class ModulePackageAdoptionService
                 if ($expectedOfficialKey !== null && (!$official || !hash_equals($expectedOfficialKey, $package->packageKey))) {
                     throw new ModulePackageException('MODULE_PACKAGE_OFFICIAL_SOURCE_MISMATCH', 'The reviewed official Module identity differs from the package.');
                 }
-                if ($official && (($package->descriptor->source['type'] ?? null) !== 'canonical-contents'
+                if ($official && ($package->descriptor->source['type'] !== 'canonical-contents'
                     || ($package->descriptor->trust['origin']['type'] ?? null) !== 'repository-contents'
                     || ($package->descriptor->trust['origin']['reference'] ?? null) !== 'canonical-plugin-contents-v1')) {
                     throw new ModulePackageException('MODULE_PACKAGE_OFFICIAL_SOURCE_UNTRUSTED', 'Official package source identity is not canonical.');

@@ -35,6 +35,11 @@ class MemberTagController extends BaseAdminController
         parent::__construct($app);
     }
 
+    protected function crudService(): object
+    {
+        return $this->members;
+    }
+
     protected function resolveCrudContext(): TenantContext
     {
         return $this->tenantAdminContext();

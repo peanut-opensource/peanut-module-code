@@ -451,11 +451,7 @@ final class InstallationConfigurationHost
     private function identity(): array
     {
         if ($this->identityLoader !== null) {
-            $identity = ($this->identityLoader)($this->serverRoot);
-            if (!is_array($identity)) {
-                throw new RuntimeException('INSTALL_RELEASE_IDENTITY_UNAVAILABLE');
-            }
-            return $identity;
+            return ($this->identityLoader)($this->serverRoot);
         }
 
         $releasePath = $this->serverRoot . '/.peanut/release-identity.json';

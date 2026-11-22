@@ -30,7 +30,7 @@ final readonly class AiTextGenerator
         $c = $this->execution->tenantAdmin();
         $this->modules->assertHttp('custom.ai-assistant', 'http.admin');
         $this->access->authorize($c, 'use');
-        if (Db::connect()->getPdo()?->inTransaction()) {
+        if (($pdo = Db::connect()->getPdo()) instanceof \PDO && $pdo->inTransaction()) {
             throw BusinessException::conflict('AI_OUTSIDE_TRANSACTION_REQUIRED', '生成文本须在业务写入事务之外办理');
         }
         I::only($input, ['route_id', 'consumer_module', 'topic', 'outline', 'request_id', 'confirm_send']);

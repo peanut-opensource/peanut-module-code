@@ -15,7 +15,6 @@ final readonly class FileService implements FileReferences
 {
     public function __construct(
         private StorageService $storage,
-        private string $applicationOrigin,
     ) {}
 
     public function getFileUrl(string $reference = ''): string

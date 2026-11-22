@@ -44,6 +44,7 @@ final class WorkflowActionInput
         foreach ($mapping as $key => $binding) {
             $values[$key] = match ($binding['source']) {
                 'literal' => $binding['value'],
+                default => throw WorkflowException::blocked('Unsupported business action input source.'),
                 'instance' => $binding['field'] === 'cycle_no' ? (int) $instance['cycle_no'] : $instance[$binding['field']],
                 'node_input' => array_key_exists($binding['field'], $nodeInput) ? $nodeInput[$binding['field']] : throw WorkflowException::blocked('Missing fixed node input.'),
             };

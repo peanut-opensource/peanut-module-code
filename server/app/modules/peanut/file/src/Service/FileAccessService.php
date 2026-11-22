@@ -17,6 +17,7 @@ final readonly class FileAccessService implements FileAccess
         return $this->storage->resolveAuthorized($context, $fileKey, $operation, $documentId, $variantKey, $viewerAdapterId);
     }
 
+    /** @param array<array-key,string> $fileKeys */
     public function resolveMany(TenantContext $context, array $fileKeys, string $operation): array
     {
         if (count($fileKeys) > 100 || $fileKeys !== array_values($fileKeys)) {

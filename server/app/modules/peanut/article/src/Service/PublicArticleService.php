@@ -80,7 +80,7 @@ final class PublicArticleService implements PublicArticleQueries, MemberCollecti
             ->field(['id', 'title', 'abstract', 'desc' => 'description'])->buildSql();
     }
 
-    /** @inheritDoc */
+    /** @param array<array-key,mixed> $ids */
     public function summariesByIds(array $ids): array
     {
         if (!array_is_list($ids) || count($ids) > 200) {

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ElMessage } from 'element-plus';
-import { formatRequestError } from '@/utils/request-trace';
+import { formatRequestError } from '@peanut-admin/client';
 import {
   assertSessionGeneration,
   getSessionSnapshot,

@@ -546,7 +546,7 @@
     },
     {
       "patterns": [
-        "(^|/)(composer\\.json|package\\.json|package-lock\\.json|pnpm-lock\\.yaml)$"
+        "(^|/)(composer\\.json|package\\.json|pnpm-lock\\.yaml)$"
       ],
       "transform": "package"
     },

@@ -166,7 +166,6 @@ final class CoreTenantModuleAdminBridge
         $data = [
             'menu' => $visible === [] ? [] : $this->renderServerMenuRecords(
                 $visible,
-                $systemMenus,
                 $nativeRecords,
                 $permissions,
             ),
@@ -190,7 +189,7 @@ final class CoreTenantModuleAdminBridge
                 static fn(string $moduleKey): bool => in_array($moduleKey, $tenantModules, true),
                 static fn(string $permission): bool => in_array($permission, $entitlements['permissions'], true),
             );
-            $data['assignable_menu_records'] = $this->renderServerMenuRecords($assignable, $systemMenus, $nativeRecords, null);
+            $data['assignable_menu_records'] = $this->renderServerMenuRecords($assignable, $nativeRecords, null);
         } elseif ($includeActionBindings) {
             $data['managed_menu_keys'] = array_column($nativeRecords, 'key');
             $data['system_menu_rows'] = $systemMenus;
@@ -257,7 +256,7 @@ final class CoreTenantModuleAdminBridge
             return false;
         }
         $state = $this->identityAuthorization->permissionStates([$permission])[$permission] ?? null;
-        if (($state['key'] ?? null) !== $permission || ($state['status'] ?? null) !== 'active') {
+        if (($state['key'] ?? null) !== $permission || $state['status'] !== 'active') {
             return false;
         }
         $owner = $state['module_key'] ?? null;
@@ -333,7 +332,7 @@ final class CoreTenantModuleAdminBridge
         $registered = [];
         foreach ($permissions as $permission) {
             $state = $states[$permission] ?? null;
-            if (($state['key'] ?? null) !== $permission || ($state['status'] ?? null) !== 'active') {
+            if (($state['key'] ?? null) !== $permission || $state['status'] !== 'active') {
                 continue;
             }
             $owner = $state['module_key'];
@@ -451,14 +450,14 @@ final class CoreTenantModuleAdminBridge
             if (str_starts_with($permission, 'core.')) {
                 if (!isset($registeredCorePermissions[$permission])
                     || $moduleKey !== 'core'
-                    || ($state['status'] ?? null) !== 'active') {
+                    || $state['status'] !== 'active') {
                     continue;
                 }
                 $permissions[] = $permission;
                 continue;
             }
             if ($moduleKey !== null && $moduleKey !== '') {
-                if (($state['status'] ?? null) !== 'active' || !isset($active[$moduleKey])) {
+                if ($state['status'] !== 'active' || !isset($active[$moduleKey])) {
                     continue;
                 }
             }
@@ -478,7 +477,7 @@ final class CoreTenantModuleAdminBridge
             $state = $states[$permission] ?? null;
             if (($state['key'] ?? null) === $permission
                 && ($state['module_key'] ?? null) === 'core'
-                && ($state['status'] ?? null) === 'active') {
+                && $state['status'] === 'active') {
                 $registered[] = $permission;
             }
         }
@@ -596,33 +595,24 @@ final class CoreTenantModuleAdminBridge
         }
         return $this->renderServerMenuRecords(
             $definitions,
-            [],
             $this->menuAdministration->records(),
             $permissions,
         );
     }
 
-    /** @param list<MenuDefinition> $definitions @param list<array<string,mixed>> $legacy @param list<array<string,mixed>> $nativeRecords */
-    private function renderServerMenuRecords(array $definitions, array $legacy, array $nativeRecords, ?array $permissions): array
+    /** @param list<MenuDefinition> $definitions @param list<array<string,mixed>> $nativeRecords */
+    private function renderServerMenuRecords(array $definitions, array $nativeRecords, ?array $permissions): array
     {
         if ($definitions === []) {
             return [];
         }
         $nativeRows = array_column($nativeRecords, null, 'key');
-        $legacyById = array_column($legacy, null, 'id');
-        $legacyCounts = array_count_values(array_column($legacy, 'menu_key'));
-        $presentations = [];
         $ids = [];
         foreach ($definitions as $definition) {
             if (!isset($nativeRows[$definition->key]) || $nativeRows[$definition->key]['status'] !== 'active') {
                 continue;
             }
             $ids[$definition->key] = (int) $nativeRows[$definition->key]['id'];
-            $matches = array_values(array_filter($legacy, static fn(array $row): bool => $row['menu_key'] === $definition->key));
-            // Ambiguous legacy identities are preserved, never guessed or merged.
-            if (count($matches) === 1) {
-                $presentations[$definition->key] = $this->menuAdministration->legacyPresentationOverrides($matches[0], $legacyById);
-            }
         }
 
         $records = [];
@@ -630,45 +620,30 @@ final class CoreTenantModuleAdminBridge
             if (!isset($ids[$definition->key])) {
                 continue;
             }
-            $presentation = $presentations[$definition->key] ?? [];
             $instancePermission = $nativeRows[$definition->key]['instance_permission'] ?? null;
             $records[$definition->key] = [
                 'id' => $ids[$definition->key],
-                'pid' => array_key_exists('parent_key', $presentation)
-                    ? (int) $presentation['pid'] : ($ids[$definition->parentKey] ?? 0),
-                'parent_key' => array_key_exists('parent_key', $presentation) ? $presentation['parent_key'] : $definition->parentKey,
+                'pid' => $ids[$definition->parentKey] ?? 0,
+                'parent_key' => $definition->parentKey,
                 'type' => $definition->type === 'group' ? 'M' : 'C',
-                'name' => $presentation['name'] ?? $definition->name,
-                'icon' => $presentation['icon'] ?? $definition->icon ?? '',
-                'sort' => $presentation['sort'] ?? -$definition->sortOrder,
-                'perms' => $instancePermission ?? $presentation['perms'] ?? $definition->requiredPermission ?? '',
-                'paths' => $presentation['paths'] ?? $definition->routePath ?? '',
+                'name' => $definition->name,
+                'icon' => $definition->icon ?? '',
+                'sort' => -$definition->sortOrder,
+                'perms' => $instancePermission ?? $definition->requiredPermission ?? '',
+                'paths' => $definition->routePath ?? '',
                 'component' => $definition->componentKey ?? '',
-                'is_cache' => $presentation['is_cache'] ?? (int) $nativeRows[$definition->key]['is_cache'],
-                'is_show' => $presentation['is_show'] ?? (int) $nativeRows[$definition->key]['is_show'],
-                'is_disable' => $presentation['is_disable'] ?? (int) $nativeRows[$definition->key]['is_disable'],
+                'is_cache' => (int) $nativeRows[$definition->key]['is_cache'],
+                'is_show' => (int) $nativeRows[$definition->key]['is_show'],
+                'is_disable' => (int) $nativeRows[$definition->key]['is_disable'],
                 'module_key' => $definition->moduleKey,
-                'required_permission' => $instancePermission ?? $presentation['perms'] ?? $definition->requiredPermission,
+                'required_permission' => $instancePermission ?? $definition->requiredPermission,
                 'menu_key' => $definition->key,
                 'children' => [],
             ];
         }
 
-        $effective = $records;
-        foreach ($legacy as $row) {
-            $key = $row['menu_key'];
-            // A denied or retired native node must never re-enter through its legacy row.
-            if (isset($nativeRows[$key]) || ($legacyCounts[$key] ?? 0) !== 1 || !in_array($row['type'], ['M', 'C'], true)) {
-                continue;
-            }
-            $effective[$key] = [
-                'parent_key' => $row['parent_key'] ?? ($legacyById[(int) $row['pid']]['menu_key'] ?? null),
-                'perms' => (string) $row['perms'],
-                'is_disable' => (int) $row['is_disable'],
-            ];
-        }
         return array_values(array_filter($records, fn(array $row): bool =>
-            $this->effectivePresentationVisible($row['menu_key'], $effective, $permissions)));
+            $this->effectivePresentationVisible($row['menu_key'], $records, $permissions)));
     }
 
     /** The rendered parent chain, disable flags and instance references are also the visibility input. */

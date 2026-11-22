@@ -26,6 +26,14 @@ use think\facade\Db;
  */
 final class ConfigurationTransferApplicationService implements ConfigurationTransferCommands, ConfigurationTransferQueries
 {
+    /** Validate values supplied through the configuration adapter extension point. */
+    private static function assertAdapterState(mixed $state): void
+    {
+        if (!is_array($state) || !is_bool($state['exists'] ?? null)) {
+            throw new \RuntimeException('TRANSFER_ADAPTER_STATE_INVALID');
+        }
+    }
+
     private const TENANT_SCOPE = 'tenant';
     private const DEPLOYMENT_SCOPE = 'deployment';
 
@@ -36,7 +44,7 @@ final class ConfigurationTransferApplicationService implements ConfigurationTran
     private array $adapters = [];
 
     /**
-     * @param list<ConfigurationTransferAdapter> $adapters
+     * @param list<mixed> $adapters
      */
     public function __construct(
         array $adapters,
@@ -62,9 +70,6 @@ final class ConfigurationTransferApplicationService implements ConfigurationTran
         $entries = [];
         foreach ($this->adaptersForScope($scope) as $adapter) {
             foreach ($adapter->export($context) as $entry) {
-                if (!is_array($entry)) {
-                    throw new \runtimeException('TRANSFER_ENTRY_INVALID');
-                }
                 $entries[] = $entry;
             }
         }
@@ -236,9 +241,7 @@ final class ConfigurationTransferApplicationService implements ConfigurationTran
             $adapter = $scopeAdapters[(string) $entry['adapter']];
             $key = (string) $entry['key'];
             $current = $adapter->current($context, $key);
-            if (!is_array($current) || !is_bool($current['exists'] ?? null)) {
-                throw new \runtimeException('TRANSFER_ADAPTER_STATE_INVALID');
-            }
+            self::assertAdapterState($current);
             $currentRevision = $this->revision($current['revision'] ?? null);
             $same = $current['exists'] && $this->equivalent(
                 $entry['value'] ?? null,

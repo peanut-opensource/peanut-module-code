@@ -433,11 +433,9 @@ class AppService extends Service
         ));
         $this->app->bind(FileService::class, fn(): FileService => new FileService(
             $this->app->make(StorageService::class),
-            (string) $this->app->request->domain(),
         ));
         $this->app->bind(ProductAssetReferenceService::class, fn(): ProductAssetReferenceService => new ProductAssetReferenceService(
             $this->app->make(FileService::class),
-            (string) $this->app->request->domain(),
         ));
         $this->app->bind(StorageConfigurationService::class, fn(): StorageConfigurationService => new StorageConfigurationService(
             $this->app->make(AuditContractHost::class),
@@ -591,7 +589,6 @@ class AppService extends Service
         $this->app->bind(PlatformUpgradeExecutionService::class, fn(): PlatformUpgradeExecutionService =>
             new PlatformUpgradeExecutionService(
                 $this->app->make(ThinkPhpOpsTaskDispatcher::class),
-                dirname(__DIR__, 2),
                 $this->app->make(ApplicationRuntimeStatusProvider::class),
                 $this->app->make(PlatformPermissionChecker::class),
             ));

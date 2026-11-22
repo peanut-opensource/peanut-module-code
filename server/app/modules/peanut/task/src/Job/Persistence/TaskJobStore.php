@@ -296,9 +296,11 @@ final class TaskJobStore
     public function recordNegativeState(JobClaim $claim, string $reference, array $state): void
     {
         $pdo = Db::connect()->getPdo();
+        $jobConnection = (new TaskJobRecord())->db()->getConnection();
+        $eventConnection = (new TaskJobEventRecord())->db()->getConnection();
         if (!$pdo instanceof \PDO || !$pdo->inTransaction()
-            || (new TaskJobRecord())->db()->getConnection()->getPdo() !== $pdo
-            || (new TaskJobEventRecord())->db()->getConnection()->getPdo() !== $pdo) {
+            || !$jobConnection instanceof \think\db\PDOConnection || $jobConnection->getPdo() !== $pdo
+            || !$eventConnection instanceof \think\db\PDOConnection || $eventConnection->getPdo() !== $pdo) {
             throw TaskJobException::denied();
         }
         $this->query('task_job', $claim->tenantId)->where('id', $claim->id)->lock(true)->find();

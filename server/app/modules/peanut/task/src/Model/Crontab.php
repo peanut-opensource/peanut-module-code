@@ -9,6 +9,11 @@ use think\model\concern\SoftDelete;
 
 /**
  * 定时任务模型
+ *
+ * @property string $command
+ * @property string $error
+ * @property string $params
+ * @property int $status
  */
 class Crontab extends TenantOwnedModel
 {

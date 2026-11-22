@@ -330,11 +330,11 @@ final class IdentityCredentialRecovery extends Command
         $stat = lstat($path);
         $currentUid = function_exists('posix_geteuid') ? posix_geteuid() : null;
         if (!is_array($stat)
-            || ($stat['nlink'] ?? 0) !== 1
-            || (($stat['mode'] ?? 0) & 0170000) !== 0100000
-            || (($stat['mode'] ?? 0) & 0777) !== $mode
+            || $stat['nlink'] !== 1
+            || ($stat['mode'] & 0170000) !== 0100000
+            || ($stat['mode'] & 0777) !== $mode
             || $currentUid === null
-            || ($stat['uid'] ?? null) !== $currentUid
+            || $stat['uid'] !== $currentUid
             || realpath($path) !== $path) {
             throw new RuntimeException('IDENTITY_RECOVERY_PRIVATE_FILE_PERMISSIONS_INVALID');
         }
@@ -347,7 +347,7 @@ final class IdentityCredentialRecovery extends Command
         }
         $uid = posix_geteuid();
         $user = posix_getpwuid($uid);
-        if (!is_array($user) || !is_string($user['name'] ?? null) || $user['name'] === '') {
+        if (!is_array($user) || $user['name'] === '') {
             throw new RuntimeException('IDENTITY_RECOVERY_LOCAL_PRINCIPAL_UNAVAILABLE');
         }
         return 'uid:' . $uid . ':' . $user['name'];

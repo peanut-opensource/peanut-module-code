@@ -90,7 +90,7 @@ abstract class ArticleHtmlMigrationFixture extends TestCase
             });
         }
         $files = $this->createStub(\PeanutAdmin\Modules\File\Contract\FileReferences::class);
-        $this->service = new ArticleBodyService($commands, $commands instanceof DocumentQueries ? $commands : $this->createStub(DocumentQueries::class), new \app\common\services\ProductAssetReferenceService($files, 'https://unit.invalid'), $app);
+        $this->service = new ArticleBodyService($commands, $commands instanceof DocumentQueries ? $commands : $this->createStub(DocumentQueries::class), new \app\common\services\ProductAssetReferenceService($files), $app);
         $this->pdo->exec(<<<'SQL'
 CREATE TABLE pa_article (id INTEGER PRIMARY KEY, tenant_id INTEGER NOT NULL, cid INTEGER DEFAULT 1, title TEXT DEFAULT 'Legacy', "desc" TEXT DEFAULT '', abstract TEXT DEFAULT '', image TEXT DEFAULT '', author TEXT DEFAULT '', content TEXT, body_document_id INTEGER, body_revision_id INTEGER, body_source_state_seq INTEGER, body_snapshot_sha256 TEXT, click_virtual INTEGER DEFAULT 0, sort INTEGER DEFAULT 0, is_show INTEGER DEFAULT 0, create_time INTEGER DEFAULT 10, update_time INTEGER DEFAULT 10, delete_time INTEGER);
 CREATE TABLE pa_article_html_migration (id INTEGER PRIMARY KEY, tenant_id INTEGER, article_id INTEGER, document_id INTEGER, request_id TEXT, input_sha256 TEXT, source_sha256 TEXT, actor_account_id INTEGER, actor_member_id INTEGER, result_json JSON, created_at TEXT, UNIQUE(tenant_id,article_id,request_id));

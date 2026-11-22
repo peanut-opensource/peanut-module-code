@@ -99,7 +99,7 @@ final readonly class ProviderClient implements AiClient
                 $this->catalog->identifier($key);
             }
         }
-        if (Db::connect()->getPdo()?->inTransaction()) {
+        if (($pdo = Db::connect()->getPdo()) instanceof \PDO && $pdo->inTransaction()) {
             throw BusinessException::conflict('AI_ACCESS_TRANSACTION_ACTIVE', 'AI 外发须在业务事务之外执行');
         }
         $request = $this->requests($tenant, $requestKey);
@@ -285,7 +285,8 @@ final readonly class ProviderClient implements AiClient
         if ($capability === 'image') {
             $encoded = $payload['data'][0]['b64_json'] ?? null;
             $bytes = is_string($encoded) ? base64_decode($encoded, true) : false;
-            if ($bytes === false || (@getimagesizefromstring($bytes)['mime'] ?? null) !== 'image/png') {
+            $image = $bytes === false ? false : @getimagesizefromstring($bytes);
+        if (!is_array($image) || $image['mime'] !== 'image/png') {
                 throw new \UnexpectedValueException('AI_ACCESS_IMAGE_INVALID');
             }
             return ['image' => $bytes, 'mime_type' => 'image/png'];

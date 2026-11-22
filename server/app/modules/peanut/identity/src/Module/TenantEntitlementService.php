@@ -22,7 +22,6 @@ final class TenantEntitlementService
     private array $licenseCache = [];
 
     /** @var array<string,list<string>> */
-    private array $modulesForLicenseCache = [];
 
     /** @var array<int,array{modules:list<string>,permissions:list<string>}> */
     private array $permissionProjectionCache = [];

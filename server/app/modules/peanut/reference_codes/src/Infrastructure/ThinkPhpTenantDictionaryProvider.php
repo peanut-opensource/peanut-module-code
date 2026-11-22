@@ -98,7 +98,7 @@ final class ThinkPhpTenantDictionaryProvider implements TenantDictionaryQueryPro
         if ($this->typeExists((string) ($values['type'] ?? ''))) {
             throw BusinessException::conflict('DICTIONARY_TYPE_EXISTS', '字典类型标识已存在');
         }
-        $model = DictType::create($values);
+        $model = DictType::createModel($values);
         return DictionaryType::fromArray($model->toArray());
     }
 
@@ -160,7 +160,7 @@ final class ThinkPhpTenantDictionaryProvider implements TenantDictionaryQueryPro
             throw BusinessException::conflict('DICTIONARY_VALUE_EXISTS', '当前字典类型下数据值已存在');
         }
         $values['type_value'] = (string) $type->type;
-        $model = DictData::create($values);
+        $model = DictData::createModel($values);
         return DictionaryEntry::fromArray($model->toArray());
     }
 

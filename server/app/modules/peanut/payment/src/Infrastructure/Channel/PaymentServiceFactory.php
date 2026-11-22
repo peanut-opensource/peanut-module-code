@@ -19,6 +19,7 @@ final readonly class PaymentServiceFactory
         $provider = match ($channel) {
             'wechat' => ExternalProvider::WECHAT_PAYMENT,
             'alipay' => ExternalProvider::ALIPAY_PAYMENT,
+            default => throw BusinessException::conflict('PAYMENT_ORIGIN_UNVERIFIED', '原收款商户待核对'),
         };
         try {
             $binding = $this->externalTenants->paymentBindingForHistory($tenantId, $provider, $bindingId);

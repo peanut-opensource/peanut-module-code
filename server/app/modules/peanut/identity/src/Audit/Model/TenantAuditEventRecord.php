@@ -6,6 +6,9 @@ namespace PeanutAdmin\Modules\Identity\Audit\Model;
 
 use PeanutAdmin\Kernel\Persistence\Model\TenantModel;
 
+/**
+ * @property int|string $id
+ */
 final class TenantAuditEventRecord extends TenantModel
 {
     /** @var string */ protected $name = 'tenant_audit_event';

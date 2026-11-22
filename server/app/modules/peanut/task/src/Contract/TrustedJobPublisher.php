@@ -30,8 +30,9 @@ final readonly class TrustedJobPublisher
         $type = \PeanutAdmin\Modules\Task\Job\Execution\NegativeFactJobEnvelope::TASK;
         $provider = $this->submissions->require($type);
         $pdo = Db::connect()->getPdo();
+        $jobConnection = (new \PeanutAdmin\Modules\Task\Job\Persistence\Model\TaskJobRecord())->db()->getConnection();
         if (!$provider instanceof NegativeFactTaskHandler || !$pdo instanceof \PDO || !$pdo->inTransaction()
-            || $this->negativeSigningKey === null || (new \PeanutAdmin\Modules\Task\Job\Persistence\Model\TaskJobRecord())->db()->getConnection()->getPdo() !== $pdo) {
+            || $this->negativeSigningKey === null || !$jobConnection instanceof \think\db\PDOConnection || $jobConnection->getPdo() !== $pdo) {
             throw TaskJobException::denied();
         }
         $submission = $provider->negativeSubmission($fact);

@@ -37,6 +37,7 @@ abstract class TenantOwnedModel extends BaseModel
         $this->policy()->applyTo($query);
     }
 
+    /** @return \think\db\Query<static> */
     final public static function withoutTenantScope(): BaseQuery
     {
         return static::withoutGlobalScope([self::TENANT_GLOBAL_SCOPE]);

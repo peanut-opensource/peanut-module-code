@@ -22,6 +22,7 @@ use think\Model;
 /** The application supplies its authorised, tenant-scoped query and new model. */
 abstract class AbstractCrudService
 {
+    /** @return BaseQuery<Model> */
     abstract protected function query(TenantContext $context): BaseQuery;
     abstract protected function newModel(TenantContext $context): Model;
     abstract protected function assertPermission(TenantContext $context, string $action): void;
@@ -192,7 +193,7 @@ abstract class AbstractCrudService
         });
     }
 
-    /** @param array{ids:list<int|string>,status:int} $params */
+    /** @param array{ids:list<int|string>,status?:int|string} $params */
     public function batchUpdateStatus(TenantContext $context, array $params): bool
     {
         $this->assertPermission($context, 'batchUpdateStatus');

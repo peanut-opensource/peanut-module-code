@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+// Notification configures code verification; Member applies the entry rate limits.
+
 // Only explicit instance overrides belong here; each consumer owns its defaults.
 $verificationOverrides = [];
 foreach ([

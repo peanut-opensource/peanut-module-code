@@ -371,7 +371,7 @@ final readonly class WorkflowQueries
         return $this->workItemQuery($c)->fieldRaw($projection);
     }
 
-    private function workItemQuery(AuthorizedOperationContext $c): BaseQuery
+    private function workItemQuery(AuthorizedOperationContext $c): \think\db\Query
     {
         return Db::name('workflow_work_item')->alias('w') // @phpstan-ignore peanut.rawDbQuery (The work-item query and all instance, node and definition joins stay within the context tenant.)
             ->join('workflow_instance i', 'i.id=w.instance_id AND i.tenant_id=w.tenant_id')

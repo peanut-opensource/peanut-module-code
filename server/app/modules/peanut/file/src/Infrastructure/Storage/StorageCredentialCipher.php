@@ -19,7 +19,7 @@ final class StorageCredentialCipher
         $iv = random_bytes(12);
         $tag = '';
         $ciphertext = openssl_encrypt($plain, self::CIPHER, self::key(), OPENSSL_RAW_DATA, $iv, $tag, self::AAD);
-        if (!is_string($ciphertext) || $tag === '') {
+        if (!is_string($ciphertext) || strlen($tag) !== 16) {
             throw new \RuntimeException('存储凭据加密失败');
         }
         return ['ciphertext' => implode('.', [self::KEY_VERSION, base64_encode($iv), base64_encode($tag), base64_encode($ciphertext)]), 'key_version' => self::KEY_VERSION];

@@ -156,7 +156,7 @@ final readonly class DepartmentAdminService
         string $mobile,
     ): array {
         [$leader, $mobile] = $this->contactFields($leader, $mobile);
-        return $this->transaction(function () use ($actor, $code, $name, $parentId, $sortOrder, $leader, $mobile): array {
+        return $this->transaction(function () use ($actor, $code, $name, $parentId, $sortOrder, $mobile): array {
             $this->lockTenant($actor->tenantId);
             if ($parentId !== null) {
                 $this->requireActive($actor->tenantId, $parentId, true);
@@ -203,7 +203,6 @@ final readonly class DepartmentAdminService
             $name,
             $sortOrder,
             $expectedRevision,
-            $leader,
             $mobile,
             $leaderMemberId,
         ): array {

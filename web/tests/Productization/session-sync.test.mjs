@@ -1,13 +1,7 @@
 import assert from 'node:assert/strict';
-import { registerHooks } from 'node:module';
 import { test } from 'node:test';
 
-// Mirror Vite resolution for extensionless and emitted session imports.
-registerHooks({
-  resolve(specifier, context, next) {
-    return next(specifier.replace(/^(\.\/session-(?:sync|storage))(?:\.js)?$/, '$1.ts'), context);
-  },
-});
+import { createPlatformSession } from '@peanut-admin/client';
 
 const data = new Map();
 const localStorage = {
@@ -35,7 +29,6 @@ test('web only picks up bearer rotations within the identity it loaded', async (
 });
 
 test('platform waits for the cross-tab refresh before taking the bearer for logout', async () => {
-  const { createPlatformSession } = await import('../../../platform/src/core/platform-session.ts');
   Object.defineProperty(navigator, 'locks', {
     configurable: true,
     value: {

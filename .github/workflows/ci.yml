@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php-static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3.24'
+          extensions: bcmath, ctype, curl, dom, fileinfo, filter, hash, iconv, json, libxml, mbstring, openssl, pcre, pdo, pdo_mysql, simplexml, sodium, tokenizer, zip
+          coverage: none
+          tools: phpstan:2.3.7
+      - name: Install locked backend dependencies
+        run: |
+          scripts/project-composer prepare
+          scripts/project-composer --working-dir=server install --no-interaction --no-progress --prefer-dist --no-scripts
+      - name: Check tenant query rules
+        run: ./scripts/phpstan-tenant-guard
+      - name: Check PHP types and unused private code
+        run: ./scripts/phpstan-quality

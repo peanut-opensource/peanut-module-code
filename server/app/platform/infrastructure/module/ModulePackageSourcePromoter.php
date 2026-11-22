@@ -153,10 +153,14 @@ final class ModulePackageSourcePromoter
                 $entries[] = $entry;
             }
         }
+        $packageKey = array_key_last($archives);
+        if ($packageKey === null) {
+            throw new ModulePackageException('MODULE_PACKAGE_PROMOTION_FAILED', 'Source transaction has no archive.');
+        }
         $this->write($base . '/next.lock', $nextLock);
         $lock = is_file($this->root . '/modules.lock') ? file_get_contents($this->root . '/modules.lock') : null;
-        $journal = ['schema_version' => 1, 'transaction' => $transaction, 'package_key' => $package->packageKey,
-            'archive_sha256' => $package->archiveSha256, 'lock_before' => is_string($lock) ? hash('sha256', $lock) : null,
+        $journal = ['schema_version' => 1, 'transaction' => $transaction, 'package_key' => $packageKey,
+            'archive_sha256' => $archives[$packageKey], 'lock_before' => is_string($lock) ? hash('sha256', $lock) : null,
             'lock_after' => hash('sha256', $nextLock), 'entries' => $entries];
         $journal['archives'] = $archives;
         $journal['plan_sha256'] = $planSha256;
@@ -174,10 +178,10 @@ final class ModulePackageSourcePromoter
         foreach ($packages as $item) {
             $package = $item['package'];
             $owned = [];
-            foreach ($item['previous']?->moduleRoots ?? [] as $directory) {
+            foreach ($item['previous']->moduleRoots ?? [] as $directory) {
                 $owned[] = substr($directory, strlen($this->root) + 1);
             }
-            foreach ($item['previous']?->frontend ?? [] as $contribution) {
+            foreach ($item['previous']->frontend ?? [] as $contribution) {
                 $owned[] = dirname($contribution['entry']);
             }
             $scopes = [dirname($package->manifestRelative)];

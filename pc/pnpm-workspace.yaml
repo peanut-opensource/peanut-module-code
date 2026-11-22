@@ -1,0 +1,5 @@
+packages:
+  - "modules/peanut-member"
+  - "modules/peanut-oauth"
+  - "modules/peanut-payment"
+  - "modules/peanut-article"

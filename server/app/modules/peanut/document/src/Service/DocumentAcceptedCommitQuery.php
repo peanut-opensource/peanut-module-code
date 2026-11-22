@@ -70,7 +70,7 @@ final readonly class DocumentAcceptedCommitQuery
     {
         $scope = $this->execution->current();
         if (!($scope instanceof \app\common\execution\AdminExecutionContext || $scope instanceof SystemExecutionContext)
-            || ($scope->tenantId() ?? 0) < 1 || $documentId < 1 || !Db::connect()->getPdo()->inTransaction()) {
+            || $scope->tenantId() < 1 || $documentId < 1 || !Db::connect()->getPdo()->inTransaction()) {
             self::denied();
         }
     }

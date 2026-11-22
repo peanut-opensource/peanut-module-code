@@ -6,6 +6,9 @@
   "license": "Apache-2.0",
   "require": {
     "php": "^8.3",
+    "aliyuncs/oss-sdk-php": "^2.4",
+    "qcloud/cos-sdk-v5": "^2.5",
+    "qiniu/php-sdk": "^7.4",
     "peanut-admin/core": "^5.0.2",
     "aws/aws-sdk-php": "^3.0",
     "peanut-business/peanut-identity": "^4.0.0-rc.32",

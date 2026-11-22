@@ -3,7 +3,14 @@
 declare(strict_types=1);
 
 $common = require dirname(__DIR__, 5) . '/api/metadata/application/common.php';
-extract($common, EXTR_SKIP);
+$ref = $common['ref'];
+$parameterRef = $common['parameterRef'];
+$responseRef = $common['responseRef'];
+$jsonBody = $common['jsonBody'];
+$success = $common['success'];
+$emptySuccess = $common['emptySuccess'];
+$query = $common['query'];
+$operation = $common['operation'];
 
 $applicationError = $responseRef('ErrorResponse');
 $applicationEnvelope = static fn(array $data): array => [

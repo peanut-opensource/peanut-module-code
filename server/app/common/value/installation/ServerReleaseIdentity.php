@@ -164,10 +164,10 @@ final readonly class ServerReleaseIdentity
                 || !is_array($marker['source_files'] ?? null) || $marker['source_files'] === []
                 || ($marker['source_files']['.peanut/application-manifest.json']['sha256'] ?? null) !== $app['manifest_sha256']
                 || ($marker['source_files']['release-versions.json']['sha256'] ?? null) !== $listed['server/.peanut/release-versions.json']
-                || !is_array($marker['projection'] ?? null) || ($marker['projection'] ?? null) !== ($app['projection'] ?? null)
+                || !is_array($marker['projection'] ?? null) || $marker['projection'] !== ($app['projection'] ?? null)
                 || preg_match($hex64, (string) ($marker['projection']['original_tree_sha256'] ?? '')) !== 1
                 || preg_match($hex64, (string) ($marker['projection']['projected_tree_sha256'] ?? '')) !== 1
-                || !is_array($marker['selection'] ?? null) || ($marker['selection'] ?? null) !== ($app['selection'] ?? null)
+                || !is_array($marker['selection'] ?? null) || $marker['selection'] !== ($app['selection'] ?? null)
                 || count($marker['selection']) !== 4
                 || preg_match($hex64, (string) ($marker['core_inputs_sha256'] ?? '')) !== 1
                 || ($marker['selection']['edition'] ?? null) !== $app['edition']
@@ -203,7 +203,7 @@ final readonly class ServerReleaseIdentity
                 || preg_match($hex40, (string) ($core['source_reference'] ?? '')) !== 1
                 || preg_match($hex64, (string) ($core['sha256'] ?? '')) !== 1
                 || preg_match('~^packages/core-php/peanut-admin-core-[0-9A-Za-z.+_-]+\.zip$~D', (string) ($core['path_in_archive'] ?? '')) !== 1
-                || count($packages) !== 1 || ($packages[0]['version'] ?? null) !== ($core['resolved_version'] ?? null)
+                || count($packages) !== 1 || ($packages[0]['version'] ?? null) !== $core['resolved_version']
                 || ($packages[0]['source']['reference'] ?? null) !== $core['source_reference']
                 || ($packages[0]['dist']['reference'] ?? null) !== $core['source_reference']
                 || ($packages[0]['dist']['url'] ?? null) !== '../' . $core['path_in_archive']
@@ -222,7 +222,7 @@ final readonly class ServerReleaseIdentity
                     || preg_match($hex64, (string) ($record['sha256'] ?? '')) !== 1
                     || preg_match('~^packages/core-web/peanut-admin-' . preg_quote(substr($package, strlen('@peanut-admin/')), '~')
                         . '-[0-9A-Za-z.+_-]+\.tgz$~D', (string) ($record['archive'] ?? '')) !== 1
-                    || ($actual['version'] ?? null) !== ($record['version'] ?? null)
+                    || ($actual['version'] ?? null) !== $record['version']
                     || ($actual['archive'] ?? null) !== ($record['archive'] ?? null)
                     || ($actual['sha256'] ?? null) !== ($record['sha256'] ?? null)) {
                     throw new RuntimeException('SERVER_RELEASE_CANDIDATE_INVALID');

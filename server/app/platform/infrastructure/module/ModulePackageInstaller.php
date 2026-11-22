@@ -258,7 +258,7 @@ final class ModulePackageInstaller
             $connection = (string) Config::get('database.default', 'mysql');
             $prefix = Config::get("database.connections.{$connection}.prefix", '');
             if (!is_string($prefix) || preg_match('/^[A-Za-z0-9_]*$/D', $prefix) !== 1) {
-                throw new RuntimeException('Database table prefix is invalid.');
+                throw new \RuntimeException('Database table prefix is invalid.');
             }
             $expected = [
                 $prefix . 'module_installation',
@@ -443,6 +443,7 @@ final class ModulePackageInstaller
             && !(($installation['status'] ?? null) === 'maintenance' && $installation['last_error_code'] === null)) {
             throw new ModulePackageException('PLUGIN_STATE_INVALID', 'Package cannot be updated from its current state.');
         }
+        $installedIsActive = ($installation['status'] ?? null) === 'active';
         $comparison = version_compare($package->packageVersion, (string) $installation['installed_version']);
         if ($comparison < 0) {
             throw new ModulePackageException('PLUGIN_DOWNGRADE_REJECTED', 'Package update cannot install an older version.');
@@ -482,7 +483,7 @@ final class ModulePackageInstaller
                 'artifact_sha256' => (string) $package->descriptor->source['sha256'],
                 'modules' => $targetModules,
             ],
-            'unchanged' => $comparison === 0 && $sameContents && $installation['status'] === 'active',
+            'unchanged' => $comparison === 0 && $installedIsActive,
         ];
     }
 

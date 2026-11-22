@@ -297,7 +297,7 @@ final readonly class PlatformUpgradeReadinessService
             || !$this->isCommit($template['source_commit'] ?? null)
             || !$this->isCommit($template['source_tree'] ?? null)
             || !$this->isSha256($template['inventory_sha256'] ?? null)
-            || !is_string($raw)) {
+           ) {
             throw new RuntimeException('UPGRADE_SOURCE_APPLICATION_MANIFEST_INVALID');
         }
         try {

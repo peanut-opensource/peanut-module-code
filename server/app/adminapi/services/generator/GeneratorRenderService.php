@@ -2099,7 +2099,7 @@ PHP, $c + compact('softRoutes', 'batchRoutes'));
         }
 
         preg_match_all('/^return\s+\[/m', $c['openApiSource'], $matches, PREG_OFFSET_CAPTURE);
-        if (count($matches[0] ?? []) !== 1) {
+        if (count($matches[0]) !== 1) {
             throw new RuntimeException('目标模块 OpenAPI 元数据没有可安全合并的顶层登记');
         }
         $offset = $matches[0][0][1];

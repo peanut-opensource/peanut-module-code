@@ -22,7 +22,7 @@ final readonly class SettingCatalogService
 {
     public function __construct(private SettingDefinitionSynchronizer $synchronizer) {}
 
-    /** @param array<string, ManifestDocument> $manifests */
+    /** @param array<array-key,mixed> $manifests */
     public function synchronize(array $manifests, DateTimeImmutable $now): void
     {
         $registry = new SettingDefinitionRegistry();

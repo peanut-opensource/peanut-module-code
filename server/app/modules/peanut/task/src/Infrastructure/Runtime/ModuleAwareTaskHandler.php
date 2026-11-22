@@ -52,7 +52,11 @@ final readonly class ModuleAwareTaskHandler implements TaskHandler, \PeanutAdmin
             }
         });
         $execution->checkpoint();
-        $this->inner->handleNegativeFact($envelope, $execution);
+        $handler = $this->inner;
+        if (!$handler instanceof \PeanutAdmin\Modules\Task\Contract\NegativeFactTaskHandler) {
+            throw TaskJobException::denied();
+        }
+        $handler->handleNegativeFact($envelope, $execution);
         $execution->assertLeaseOwned();
     }
     public function __construct(

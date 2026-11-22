@@ -101,7 +101,7 @@ final readonly class PlatformDiagnosticBundleService
                 'operation_log_payloads_and_identity' => 'excluded',
             ],
             'configuration' => [
-                'deployment_mode' => $mode?->value ?? 'unconfigured',
+                'deployment_mode' => $mode->value ?? 'unconfigured',
                 'debug_enabled' => $this->debugEnabled,
                 'php_version' => PHP_VERSION,
                 'core_package_version' => InstalledVersions::isInstalled('peanut-admin/core')

@@ -33,11 +33,6 @@ final readonly class ApplicationReleaseVersions
         'core_web',
     ];
     private const V3_KEYS = self::V2_KEYS;
-    private const CORE_WEB_PACKAGES = [
-        '@peanut-admin/client', '@peanut-admin/vue', '@peanut-admin/ui-vue',
-        '@peanut-admin/nuxt', '@peanut-admin/uniapp', '@peanut-admin/testing',
-    ];
-
     private function __construct(private array $values) {}
 
     /** Load exactly the supported fields while accepting harmless JSON key-order differences. */

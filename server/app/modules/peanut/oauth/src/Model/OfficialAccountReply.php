@@ -7,6 +7,10 @@ namespace PeanutAdmin\Modules\OAuth\Model;
 use app\common\model\TenantOwnedModel;
 use think\model\concern\SoftDelete;
 
+/**
+ * @property int $reply_type
+ * @property int $status
+ */
 class OfficialAccountReply extends TenantOwnedModel
 {
     use SoftDelete;

@@ -739,7 +739,7 @@ final readonly class IdentityCredentialRecovery
             || ($plan['target_ids'] ?? null) !== $binding['identities']
             || ($plan['password_refs'] ?? null) !== $passwordRefs
             || ($plan['run_id'] ?? null) !== $binding['run_id']
-            || ($plan['source_ref'] ?? null) !== $binding['source_ref']
+            || ($plan['source_ref']) !== $binding['source_ref']
             || !is_array($plan['allowed_operations'] ?? null)
             || array_values($plan['allowed_operations']) !== ['tenant-owner', 'platform-operator']
             || !in_array($target, $plan['allowed_operations'], true)

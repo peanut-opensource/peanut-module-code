@@ -1,6 +1,6 @@
 import { ElMessage } from 'element-plus';
 import { assertSessionGeneration, getSessionSnapshot } from '@/utils/auth';
-import { formatRequestError } from '@/utils/request-trace';
+import { formatRequestError } from '@peanut-admin/client';
 import { createSessionFetch } from '@peanut-admin/client';
 import { tenantSessionRecovery } from '@/api/tenant-session-refresh';
 

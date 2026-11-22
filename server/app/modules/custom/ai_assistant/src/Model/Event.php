@@ -6,6 +6,19 @@ namespace Custom\Modules\AiAssistant\Model;
 
 use app\common\model\TenantOwnedModel;
 
+/**
+ * @property int|string $created_by
+ * @property string $actor_type
+ * @property int|string $created_at
+ * @property string $details
+ * @property int|string $id
+ * @property int|string $parent_id
+ * @property string $request_id
+ * @property string $status
+ * @property string $title
+ * @property int|string $updated_at
+ * @property int|string $version
+ */
 final class Event extends TenantOwnedModel
 {
     protected $name = 'ai_assistant_event';

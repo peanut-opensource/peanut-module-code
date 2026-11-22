@@ -204,7 +204,7 @@ final readonly class CatalogLifecycleService
     public function finalizePackageRemoval(array $moduleKeys, bool $purge, string $now): void
     {
         \PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries::invalidateRequestInstallations();
-        Db::transaction(function () use ($moduleKeys, $purge, $now): void {
+        Db::transaction(function () use ($moduleKeys, $now): void {
             if ($moduleKeys === []) {
                 return;
             }

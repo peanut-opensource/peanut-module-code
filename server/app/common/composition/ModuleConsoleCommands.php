@@ -21,7 +21,7 @@ final class ModuleConsoleCommands
         return $this->commands;
     }
 
-    /** @param array<string, class-string<Command>> $contributions */
+    /** @param array<array-key, mixed> $contributions */
     public static function register(App $app, string $moduleKey, array $contributions): void
     {
         $registry = $app->make(\PeanutAdmin\Kernel\Module\CompiledModuleRegistry::class);

@@ -11,6 +11,22 @@ use think\model\concern\SoftDelete;
  * 充值订单 Model
  *
  * 对应表 pa_recharge_order
+ *
+ * @property int $id
+ * @property int|null $order_terminal
+ * @property string|null $transaction_id
+ * @property string $order_amount
+ * @property string|null $pay_sn
+ * @property int $pay_status
+ * @property int|null $pay_time
+ * @property int $pay_way
+ * @property int|string|null $payment_binding_id
+ * @property int|string|null $payment_grant_id
+ * @property string $payment_merchant_account_ref
+ * @property int $refund_status
+ * @property string|null $refund_transaction_id
+ * @property string $sn
+ * @property int $user_id
  */
 class RechargeOrder extends TenantOwnedModel
 {

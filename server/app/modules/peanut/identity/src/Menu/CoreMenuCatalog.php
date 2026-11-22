@@ -6,7 +6,7 @@ namespace PeanutAdmin\Modules\Identity\Menu;
 
 final class CoreMenuCatalog
 {
-    /** @return list<MenuDefinition> */
+    /** @return list<\PeanutAdmin\Kernel\Menu\MenuDefinition> */
     public static function definitions(): array
     {
         return [

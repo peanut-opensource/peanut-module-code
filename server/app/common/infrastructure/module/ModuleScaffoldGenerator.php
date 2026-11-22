@@ -224,7 +224,7 @@ final class ModuleScaffoldGenerator
         $relative = substr(dirname($target), strlen($base) + 1);
         $cursor = $base;
         $cleanupBase = $base;
-        foreach (array_filter(explode('/', $relative), 'strlen') as $segment) {
+        foreach (array_filter(explode('/', $relative), static fn(string $line): bool => $line !== '') as $segment) {
             $cursor .= '/' . $segment;
             if (is_link($cursor) || (file_exists($cursor) && !is_dir($cursor))) {
                 throw new ModuleScaffoldException('MODULE_CREATE_PATH_INVALID', 'Module target path contains an unsafe ancestor.');

@@ -8,6 +8,13 @@
 
 业务服务构造注入；Controller 公共环境由基类，共享服务优先显式 xxClass/只读属性；方法注入及有实际用途的固定 Getter 仍可用。类名由受信源码固定，不按请求/任意属性/全局状态猜依赖；遵守生命周期和模块公开面。
 
+PHP 静态分析使用两个独立入口。
+
+- `./scripts/phpstan-tenant-guard` 检查租户查询边界，保持零 baseline，开启 `reportUnmatchedIgnoredErrors: true`。
+- `./scripts/phpstan-quality` 以 PHPStan Level 5 检查常规类型和未定义符号，并检测未使用的私有方法、属性与常量，保持零 baseline。 空脚手架的静态分析从同级 Module 源码仓解析官方模块类型，也可用 `PEANUT_PHPSTAN_MODULE_ROOT` 指定其检出目录。
+
+两仓宿主按这两个入口执行 PHP 静态分析。旧 TPQ50 扫描器及其表所有权台账已废止。
+
 ## 2. 参考材料融合
 
 核对 Composer lock、自动加载与当前调用链，再对照锁定版本的框架源码和正式扩展点；将结论落实到可运行样板、生成器或检查中。不复制平行规则库，也不根据其他框架或版本的教程猜测 API。

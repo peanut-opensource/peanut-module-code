@@ -8,6 +8,16 @@ use app\common\model\TenantOwnedModel;
 use app\common\services\HtmlSanitizerService;
 use think\model\concern\SoftDelete;
 
+/**
+ * @property int|string|null $body_document_id
+ * @property int|string|null $body_revision_id
+ * @property string|null $body_snapshot_sha256
+ * @property int|string|null $body_source_state_seq
+ * @property string|null $content
+ * @property int $id
+ * @property int $cid
+ * @property int $is_show
+ */
 class Article extends TenantOwnedModel
 {
     use SoftDelete;
@@ -65,7 +75,11 @@ class Article extends TenantOwnedModel
         )->whereIn('a.cid', $categoryIds)->where('a.is_show', 1);
 
         // Use the same connection for the derived table. The inner model query owns tenant and soft-delete scope.
-        return $ranked->getConnection()->newQuery()->table($ranked->buildSql() . ' ranked')
+        $connection = $ranked->getConnection();
+        if (!$connection instanceof \think\db\Connection) {
+            throw new \LogicException('ARTICLE_QUERY_CONNECTION_UNSUPPORTED');
+        }
+        return $connection->newQuery()->table($ranked->buildSql() . ' ranked')
             ->where('category_rank', '<=', $limit)
             ->order(['cid' => 'asc', 'sort' => 'desc', 'id' => 'desc'])
             ->select()->toArray();

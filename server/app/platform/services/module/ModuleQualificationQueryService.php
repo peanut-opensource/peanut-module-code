@@ -52,7 +52,7 @@ final readonly class ModuleQualificationQueryService implements ModuleQualificat
             (string) $manifest->data['version'],
             (int) $manifest->data['schema_version'],
             $manifest->digest,
-            array_values($dependencies),
+            $dependencies,
         );
     }
 

@@ -114,7 +114,7 @@ final class DeterministicEditionArchive
                 throw new RuntimeException('EDITION_ARCHIVE_PATH_INVALID');
             }
             $stat = lstat($path);
-            if (!is_array($stat) || (!$file->isDir() && ($stat['nlink'] ?? 0) !== 1)) {
+            if (!is_array($stat) || (!$file->isDir() && $stat['nlink'] !== 1)) {
                 throw new RuntimeException('EDITION_ARCHIVE_HARDLINK_REJECTED: ' . $relative);
             }
             $type = $file->isDir() ? '5' : ($file->isFile() ? '0' : '');

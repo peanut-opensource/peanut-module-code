@@ -61,6 +61,7 @@ final class MemberProfileSelfFieldValidate extends Validate
             'email' => $this->isValidEmail($value) ?: '邮箱格式或长度不正确',
             'sex' => $this->isSex($value) ?: '性别值无效',
             'birthday' => $this->isBirthday($value) ?: '生日必须是 YYYY-MM-DD 格式的有效日期',
+            default => '不支持的资料字段',
         };
     }
 

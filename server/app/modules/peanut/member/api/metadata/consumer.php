@@ -3,7 +3,10 @@
 declare(strict_types=1);
 
 $common = require dirname(__DIR__, 5) . '/api/metadata/application/common.php';
-extract($common, EXTR_SKIP);
+$ref = $common['ref'];
+$responseRef = $common['responseRef'];
+$emptySuccess = $common['emptySuccess'];
+$operation = $common['operation'];
 $applicationError = $responseRef('ErrorResponse');
 $legacyPaths = json_decode(<<<'JSON'
 {

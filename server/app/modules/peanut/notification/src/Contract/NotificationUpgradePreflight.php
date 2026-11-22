@@ -474,7 +474,7 @@ final readonly class NotificationUpgradePreflight
             return;
         }
         if (preg_match('/^(PRIMARY KEY|UNIQUE KEY `([a-z_][a-z0-9_]*)`|KEY `([a-z_][a-z0-9_]*)`) \(([^)]+)\)$/', $line, $m)) {
-            $name = $m[1] === 'PRIMARY KEY' ? 'PRIMARY' : (($m[2] ?? '') !== '' ? $m[2] : $m[3]);
+            $name = $m[1] === 'PRIMARY KEY' ? 'PRIMARY' : (($m[2]) !== '' ? $m[2] : $m[3]);
             $schema['indexes'][$name] = ['unique' => !str_starts_with($m[1], 'KEY '), 'columns' => self::columnNames($m[4])]; return;
         }
         if (preg_match('/^CONSTRAINT `([a-z_]+)` FOREIGN KEY \(([^)]+)\) REFERENCES `(pa_[a-z_]+)` \(([^)]+)\) ON DELETE RESTRICT$/', $line, $m)) {
@@ -565,11 +565,11 @@ final readonly class NotificationUpgradePreflight
         $parse = static function (int $minimum = 0) use (&$parse, &$at, $tokens): array {
             $token = $tokens[$at++] ?? null;
             if ($token === '(') {
-                $left = $parse(); if (($tokens[$at++] ?? null) !== ')') { throw new \RuntimeException('CHECK_GROUP_UNKNOWN'); }
+                $left = $parse(); self::expectCheckToken($tokens, $at, ')', 'CHECK_GROUP_UNKNOWN');
             } elseif ($token === 'regexp_like') {
-                if (($tokens[$at++] ?? null) !== '(') { throw new \RuntimeException('CHECK_FUNCTION_UNKNOWN'); }
-                $one = $parse(); if (($tokens[$at++] ?? null) !== ',') { throw new \RuntimeException('CHECK_FUNCTION_UNKNOWN'); }
-                $two = $parse(); if (($tokens[$at++] ?? null) !== ')') { throw new \RuntimeException('CHECK_FUNCTION_UNKNOWN'); }
+                self::expectCheckToken($tokens, $at, '(', 'CHECK_FUNCTION_UNKNOWN');
+                $one = $parse(); self::expectCheckToken($tokens, $at, ',');
+                $two = $parse(); self::expectCheckToken($tokens, $at, ')');
                 $left = ['regexp', $one, $two];
             } elseif ($token !== null && preg_match('/^(?:[a-z_][a-z0-9_]*|[0-9]+|\x27.*\x27)$/sD', $token)) {
                 $left = ['value', $token];
@@ -578,10 +578,10 @@ final readonly class NotificationUpgradePreflight
             while (isset($tokens[$at], $precedence[$tokens[$at]]) && $precedence[$tokens[$at]] >= $minimum) {
                 $operator = $tokens[$at++]; $level = $precedence[$operator];
                 if ($operator === 'between') {
-                    $low = $parse(4); if (($tokens[$at++] ?? null) !== 'and') { throw new \RuntimeException('CHECK_BETWEEN_UNKNOWN'); }
+                    $low = $parse(4); self::expectCheckToken($tokens, $at, 'and', 'CHECK_BETWEEN_UNKNOWN');
                     $left = ['between', $left, $low, $parse(4)];
                 } elseif ($operator === 'in') {
-                    if (($tokens[$at++] ?? null) !== '(') { throw new \RuntimeException('CHECK_LIST_UNKNOWN'); }
+                    self::expectCheckToken($tokens, $at, '(', 'CHECK_LIST_UNKNOWN');
                     $list = []; do { $list[] = $parse(4); $end = $tokens[$at++] ?? null; } while ($end === ',');
                     if ($end !== ')') { throw new \RuntimeException('CHECK_LIST_UNKNOWN'); }
                     $left = ['in', $left, $list];
@@ -601,4 +601,12 @@ final readonly class NotificationUpgradePreflight
         $report = $this->report();
         if (!$report['may_apply']) { throw new \RuntimeException($report['code']); }
     }
+    /** @param list<string> $tokens */
+    private static function expectCheckToken(array $tokens, int &$at, string $expected, string $error = 'CHECK_FUNCTION_UNKNOWN'): void
+    {
+        if (($tokens[$at++] ?? null) !== $expected) {
+            throw new \RuntimeException($error);
+        }
+    }
+
 }

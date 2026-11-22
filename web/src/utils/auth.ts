@@ -1,9 +1,9 @@
-import { createSessionSync, type SessionSyncType } from './session-sync';
+import { createSessionSync, type SessionSyncType } from '@peanut-admin/client';
 import {
   newBrowserSessionIdentity,
   readBrowserSession,
   writeBrowserSession,
-} from './session-storage';
+} from '@peanut-admin/client';
 
 const TOKEN_KEY = 'token';
 // Modules use this identity-only stamp in durable draft and recovery keys.

@@ -28,7 +28,6 @@ final class FileAdministrationService implements FileAdministration
     public function __construct(
         private readonly StorageService $storage,
         private readonly CurrentExecutionContext $executionContext,
-        private readonly FileService $files,
         private readonly FileAuthorizationService $authorization,
     ) {}
 

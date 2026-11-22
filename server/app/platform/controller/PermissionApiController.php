@@ -43,7 +43,7 @@ final class PermissionApiController extends BasePlatformController
             || ($input['action_key'] !== null && (!is_string($input['action_key']) || trim($input['action_key']) !== $input['action_key'] || strlen($input['action_key']) > 200))) {
             throw AdminAccessException::invalid('MENU_BINDING_INVALID', 'A menu identity, permission, action and revision are required.');
         }
-        $context = $this->platformContext?->core ?? throw new \DomainException('PLATFORM_CONTEXT_REQUIRED');
+        $context = $this->platformContext->core ?? throw new \DomainException('PLATFORM_CONTEXT_REQUIRED');
         return $this->data(Db::transaction(function () use ($input, $context): array {
             $result = $this->menus->replacePermissionBinding($input['menu_key'], $input['permission_key'], $input['action_key'],
                 $input['expected_revision'], app(\app\common\contract\module\ModuleQualificationQuery::class));
@@ -86,7 +86,7 @@ final class PermissionApiController extends BasePlatformController
         if (!in_array($audience, ['tenant', 'platform'], true)) {
             throw AdminAccessException::invalid('API_INPUT_INVALID', 'A valid audience is required.');
         }
-        $context = $this->platformContext?->core ?? throw new \DomainException('PLATFORM_CONTEXT_REQUIRED');
+        $context = $this->platformContext->core ?? throw new \DomainException('PLATFORM_CONTEXT_REQUIRED');
         return $this->data(Db::transaction(function () use ($key, $name, $audience, $context): array {
             $after = $this->catalog->createCustom($key, $name, $audience);
             $this->audit->platform($context->operatorId, $context->accountId, $context->requestId,
@@ -108,7 +108,7 @@ final class PermissionApiController extends BasePlatformController
             throw AdminAccessException::invalid('API_INPUT_INVALID', 'A valid status is required.');
         }
         $revision = $this->positive($input['expected_revision']);
-        $context = $this->platformContext?->core ?? throw new \DomainException('PLATFORM_CONTEXT_REQUIRED');
+        $context = $this->platformContext->core ?? throw new \DomainException('PLATFORM_CONTEXT_REQUIRED');
         return $this->data(Db::transaction(function () use ($key, $name, $status, $revision, $context): array {
             $before = $this->catalog->bundle($key);
             $after = $this->catalog->updateCustom($key, $name, $status, $revision);
@@ -139,7 +139,7 @@ final class PermissionApiController extends BasePlatformController
         }
         $key = $this->key($input['permission_key'] ?? null);
         $revision = $this->positive($input['expected_revision']);
-        $context = $this->platformContext?->core ?? throw new \DomainException('PLATFORM_CONTEXT_REQUIRED');
+        $context = $this->platformContext->core ?? throw new \DomainException('PLATFORM_CONTEXT_REQUIRED');
         return $this->data(Db::transaction(function () use ($key, $revision, $ids, $context): array {
             $before = $this->catalog->bundle($key);
             $after = $this->catalog->replace($key, $revision, $ids, app(\PeanutAdmin\Kernel\Module\ModuleAvailability::class));

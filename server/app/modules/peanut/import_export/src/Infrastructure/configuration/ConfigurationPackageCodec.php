@@ -26,7 +26,7 @@ final class ConfigurationPackageCodec
         self::ADAPTER_CORE_SETTINGS,
     ];
 
-    /** @param list<array<string, mixed>> $entries @return array<string, mixed> */
+    /** @param list<mixed> $entries @return array<string, mixed> */
     public function create(string $scope, array $entries): array
     {
         $this->assertScope($scope);
@@ -110,7 +110,7 @@ final class ConfigurationPackageCodec
         try {
             $schema = json_decode((string) file_get_contents($schemaPath), false, 512, JSON_THROW_ON_ERROR);
             $value = json_decode(json_encode($document, JSON_THROW_ON_ERROR), false, 512, JSON_THROW_ON_ERROR);
-        } catch (JsonException|\Throwable) {
+        } catch (\Throwable) {
             throw new \runtimeException('TRANSFER_PACKAGE_INVALID');
         }
         if (!(new Validator())->validate($value, $schema)->isValid()) {
@@ -126,7 +126,7 @@ final class ConfigurationPackageCodec
         }
     }
 
-    /** @param list<array<string, mixed>> $entries */
+    /** @param list<mixed> $entries */
     private function assertEntries(array $entries): void
     {
         $seen = [];

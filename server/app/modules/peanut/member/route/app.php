@@ -60,6 +60,7 @@ if (isset($peanutRouteModules['peanut.notification'])) {
     }
 }
 
+$peanutRouteModules = $peanutRouteModules ?? [];
 Route::group(function () use ($peanutRouteModules): void {
     Route::get('user/center', [ApiUserController::class, 'center']);
     Route::get('user/info', [ApiUserController::class, 'info']);

@@ -96,7 +96,7 @@ final readonly class ModuleDefinitionRegistryFactory
         return implode('|', [
             $this->serverRoot,
             json_encode($deploymentConfig, JSON_THROW_ON_ERROR),
-            implode(':', [(string) ($stat['ino'] ?? 0), (string) ($stat['mtime'] ?? 0), (string) ($stat['size'] ?? 0)]),
+            implode(':', [(string) $stat['ino'], (string) $stat['mtime'], (string) $stat['size']]),
         ]);
     }
 
@@ -114,7 +114,7 @@ final readonly class ModuleDefinitionRegistryFactory
 
     private function runtimeStore(): File
     {
-        return new File(\think\Container::getInstance(), ['path' => $this->serverRoot . '/runtime/module-registry',
+        return new File(\think\Container::getInstance()->make(\think\App::class), ['path' => $this->serverRoot . '/runtime/module-registry',
             'prefix' => '', 'cache_subdir' => false, 'expire' => 0]);
     }
 
@@ -157,7 +157,7 @@ final readonly class ModuleDefinitionRegistryFactory
     }
 
     /**
-     * @param list<mixed> $roots
+     * @param array<array-key,mixed> $roots
      * @return list<string>
      */
     private function resolveRoots(array $roots, bool $required): array
@@ -199,7 +199,7 @@ final readonly class ModuleDefinitionRegistryFactory
         $clients = is_array($deploymentConfig['registered_client_keys'] ?? null)
             ? array_values($deploymentConfig['registered_client_keys'])
             : [];
-        if ($kernelVersion === '' || $clients === [] || !array_is_list($clients)) {
+        if ($kernelVersion === '' || $clients === []) {
             throw new ModuleException('MODULE_REGISTRY_UNAVAILABLE', 'Module deployment metadata is invalid.');
         }
 
@@ -225,7 +225,7 @@ final readonly class ModuleDefinitionRegistryFactory
         try {
             $layout = ModuleHostLayoutFactory::registerRuntimeAutoload($moduleRoots, $this->serverRoot);
         } catch (\InvalidArgumentException $exception) {
-            throw new ModuleException('MODULE_REGISTRY_CONFLICT', $exception->getMessage(), 0, $exception);
+            throw new ModuleException('MODULE_REGISTRY_CONFLICT', $exception->getMessage());
         }
 
         $kernelRoot = dirname((new \ReflectionClass(ModuleProvider::class))->getFileName(), 3);

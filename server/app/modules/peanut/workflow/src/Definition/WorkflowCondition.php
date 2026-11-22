@@ -62,7 +62,7 @@ final class WorkflowCondition
             throw WorkflowException::blocked('Invalid comparison list.');
         }
         $comparisons = array_map(static fn(mixed $b): int => self::compare($v, $b, $spec), $choices);
-        $n = $comparisons[0] ?? 0;
+        $n = $comparisons[0];
         return match ($op) {
             'eq' => $n === 0, 'ne' => $n !== 0, 'gt' => $n > 0, 'gte' => $n >= 0, 'lt' => $n < 0, 'lte' => $n <= 0,
             'in' => in_array(0, $comparisons, true), 'not_in' => !in_array(0, $comparisons, true),

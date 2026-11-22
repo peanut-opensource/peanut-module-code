@@ -56,7 +56,7 @@ final readonly class DeployedTenantModuleRegistry
     /**
      * Compile only explicitly deployed manifest roots. Missing or empty deployment input fails closed.
      *
-     * @param non-empty-list<string> $moduleRoots
+     * @param array<array-key, mixed> $moduleRoots
      */
     public static function compile(array $moduleRoots, ModuleRegistryCompiler $compiler): self
     {

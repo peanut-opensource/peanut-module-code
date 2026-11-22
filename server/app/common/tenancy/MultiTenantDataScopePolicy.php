@@ -14,15 +14,20 @@ final readonly class MultiTenantDataScopePolicy implements DataScopePolicy
 
     public function applyTo(BaseQuery $query): void
     {
-        $table = $query->getTable(true);
-        if (!is_string($table) || $table === '') {
-            throw new \LogicException('TENANT_MODEL_ROOT_TABLE_REQUIRED');
-        }
+        $table = self::rootTable($query->getTable(true));
         $aliases = $query->getOption('alias');
         $prefix = is_array($aliases) && isset($aliases[$table]) && is_string($aliases[$table]) && $aliases[$table] !== ''
             ? $aliases[$table]
             : $table;
         $query->where($prefix . '.tenant_id', $this->executionContext->tenantId());
+    }
+
+    private static function rootTable(mixed $table): string
+    {
+        if (!is_string($table) || $table === '') {
+            throw new \LogicException('TENANT_MODEL_ROOT_TABLE_REQUIRED');
+        }
+        return $table;
     }
 
     public function prepareWrite(Model $model): void

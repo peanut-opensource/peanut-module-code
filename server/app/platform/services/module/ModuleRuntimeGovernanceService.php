@@ -26,6 +26,13 @@ use PeanutAdmin\Kernel\Module\ModuleException;
 use think\facade\Db;
 
 /** Deployment-scoped retire/purge state machine; tenant licenses remain a separate boundary. */
+/**
+ * @phpstan-type RuntimeScope array{
+ *   package_key:string, package_manifest_digest:string|false, affected_modules:list<array<string,mixed>>,
+ *   descriptor?:ModuleDescriptor, manifests?:array, source_matches_installed?:bool,
+ *   installed_identity?:array, source_identity?:array
+ * }
+ */
 final class ModuleRuntimeGovernanceService
 {
     /** @param array<string,mixed> $moduleConfig @param null|callable(string):void $faultInjector */
@@ -184,7 +191,7 @@ final class ModuleRuntimeGovernanceService
         }
     }
 
-    /** @param array{package_key:string,package_manifest_digest:string,descriptor:ModuleDescriptor,affected_modules:list<array<string,mixed>>} $scope @return array<string,mixed> */
+    /** @param RuntimeScope $scope @return array<string,mixed> */
     private function buildPlan(array $scope, bool $purge): array
     {
         $moduleKeys = array_column($scope['affected_modules'], 'module_key');
@@ -227,7 +234,7 @@ final class ModuleRuntimeGovernanceService
         ];
     }
 
-    /** @return array{package_key:string,package_manifest_digest:string,affected_modules:list<array<string,mixed>>}|null */
+    /** @return RuntimeScope|null */
     private function scope(string $moduleOrPackageKey): ?array
     {
         return $this->lockedScope($moduleOrPackageKey)
@@ -332,7 +339,7 @@ final class ModuleRuntimeGovernanceService
         return ['package_key' => $descriptor->key, 'package_manifest_digest' => $descriptor->manifestDigest, 'descriptor' => $descriptor, 'affected_modules' => $affected];
     }
 
-    /** @return array{package_key:string,package_manifest_digest:string,affected_modules:list<array<string,mixed>>}|null */
+    /** @return RuntimeScope|null */
     private function quarantinedScope(string $moduleOrPackageKey): ?array
     {
         $installation = Db::name('module_installation')->where('module_key', $moduleOrPackageKey)

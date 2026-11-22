@@ -22,7 +22,6 @@ use PeanutAdmin\Kernel\Module\TenantModuleRecord;
 use PeanutAdmin\Modules\File\Service\FileAdministrationService;
 use PeanutAdmin\Modules\File\Service\FileAuthorizationService;
 use PeanutAdmin\Modules\File\Service\FileDocumentReferenceRegistry;
-use PeanutAdmin\Modules\File\Service\FileService;
 use PeanutAdmin\Modules\File\Service\Storage\StorageService;
 use PeanutAdmin\Modules\Identity\Contract\TenantSessionAccess;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
@@ -75,7 +74,7 @@ final class FileRenameTenantBoundaryTest extends TestCase
         $modules->method('tenantModule')->willReturnCallback(static fn(int $tenant, string $key) => new TenantModuleRecord($tenant, $key, 'enabled', null, null, 1));
         $access = new FileAuthorizationService($authorization, $sessions, $modules, $store, new FileDocumentReferenceRegistry($app, null));
         $storage = (new \ReflectionClass(StorageService::class))->newInstanceWithoutConstructor();
-        $files = new FileAdministrationService($storage, $current, new FileService($storage, 'https://test.invalid'), $access);
+        $files = new FileAdministrationService($storage, $current, $access);
         $rename = static function (int $tenant, int $id, string $name) use ($store, $files): void {
             $actor = TenantContext::fromValidatedSession(new ValidatedTenantSession(
                 $tenant, 'file-test-' . $tenant, $tenant, $tenant, $tenant, 'admin-web', new \DateTimeImmutable('2031-01-01T00:00:00Z'), 1, 1,

@@ -6,6 +6,14 @@ namespace Custom\Modules\AiAssistant\Model;
 
 use app\common\model\TenantOwnedModel;
 
+/**
+ * @property string $details
+ * @property string|null $candidate
+ * @property int|string $id
+ * @property string $request_hash
+ * @property string $request_id
+ * @property string $status
+ */
 final class TextGeneration extends TenantOwnedModel
 {
     protected $name = 'ai_assistant_text_generation';

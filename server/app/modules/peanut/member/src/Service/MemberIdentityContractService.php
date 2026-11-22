@@ -73,7 +73,7 @@ final class MemberIdentityContractService implements MemberIdentityCommands
         $member = Member::where([])->where('mobile', $mobile)->findOrEmpty();
         if ($member->isEmpty()) {
             $sn = Member::generateSn($context);
-            $member = Member::create([
+            $member = Member::createModel([
                 'sn' => $sn,
                 'account' => $mobile,
                 'password' => '',
@@ -163,7 +163,7 @@ final class MemberIdentityContractService implements MemberIdentityCommands
         do {
             $account = 'wx_' . strtolower(bin2hex(random_bytes(6)));
         } while (Member::where([])->withTrashed()->where('account', $account)->count() > 0);
-        $member = Member::create([
+        $member = Member::createModel([
             'sn' => $sn,
             'account' => $account,
             'password' => '',

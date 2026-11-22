@@ -46,13 +46,14 @@ final readonly class QiniuS3DownloadTransport implements StorageHttpTransport
         return is_string($host) && str_contains($host, '.s3.') && str_ends_with($host, '.qiniucs.com');
     }
 
+    /** @param array<string, mixed> $request */
     public function request(array $request): array
     {
         $parts = parse_url($request['url']);
         if (($parts['host'] ?? null) !== $this->host) {
             return $this->transport->request($request);
         }
-        if (($request['method'] ?? '') !== 'GET' || ($parts['scheme'] ?? '') !== 'https'
+        if (($request['method']) !== 'GET' || ($parts['scheme'] ?? '') !== 'https'
             || (isset($parts['user']) || isset($parts['pass'])) || isset($parts['port']) || isset($parts['fragment'])
             || !is_string($request['sink'] ?? null) || $request['sink'] === ''
             || ($request['body'] ?? '') !== '' || ($request['multipart'] ?? []) !== []) {

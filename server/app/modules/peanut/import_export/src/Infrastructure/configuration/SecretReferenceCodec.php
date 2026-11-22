@@ -68,18 +68,17 @@ final class SecretReferenceCodec
 
     /**
      * @param array<string, mixed> $bindings
-     * @param list<string> $seen
+     * @param array<string, true> $seen
      */
     public static function restore(mixed $value, array $bindings, array &$seen = []): mixed
     {
         if (self::isMarker($value)) {
-            /** @var array<string, mixed> $marker */
             $marker = $value[self::MARKER];
             $state = $marker['state'];
             $reference = $marker['reference'];
             $seen[$reference] = true;
             if ($state === 'unconfigured') {
-                return ($marker['shape'] ?? 'scalar') === 'object' ? [] : '';
+                return $marker['shape'] === 'object' ? [] : '';
             }
             if (!array_key_exists($reference, $bindings)) {
                 throw new \runtimeException('TRANSFER_SECRET_REBIND_REQUIRED');
@@ -100,7 +99,7 @@ final class SecretReferenceCodec
         return $value;
     }
 
-    /** @param array<string, mixed> $value */
+    /** @phpstan-assert-if-true array{'$secret':array{reference:string,shape:'object'|'scalar',state:'configured'|'unconfigured'}} $value */
     public static function isMarker(mixed $value): bool
     {
         if (!is_array($value) || array_is_list($value) || array_keys($value) !== [self::MARKER]) {
@@ -158,7 +157,7 @@ final class SecretReferenceCodec
             }
         }
         foreach ($bindings as $reference => $value) {
-            if (!is_string($reference) || !isset($allowed[$reference])) {
+            if (!isset($allowed[$reference])) {
                 throw new \runtimeException('TRANSFER_SECRET_REFERENCE_UNKNOWN');
             }
             if (!self::validReplacement($value)) {

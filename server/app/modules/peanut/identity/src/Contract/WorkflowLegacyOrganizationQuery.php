@@ -61,13 +61,13 @@ final class WorkflowLegacyOrganizationQuery
                 $pdo->query('SELECT id FROM `' . $prefix . $table . '` WHERE 1=0')->closeCursor();
                 $query = $pdo->prepare('SELECT COLUMN_NAME,COLUMN_TYPE,IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? ORDER BY ORDINAL_POSITION');
                 $query->execute([$prefix . $table]);
-                $known = $known && $query->fetchAll(\PDO::FETCH_ASSOC) === $columns;
+                $known = $query->fetchAll(\PDO::FETCH_ASSOC) === $columns;
                 $query = $pdo->prepare('SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?');
                 $query->execute([$prefix . $table]);
                 $known = $known && $query->fetchColumn() === $engine;
                 $query = $pdo->prepare("SELECT COLUMN_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND INDEX_NAME='PRIMARY' ORDER BY SEQ_IN_INDEX");
                 $query->execute([$prefix . $table]);
-                $known = $known && $query->fetchAll(\PDO::FETCH_COLUMN) === $keys;
+                $known = $query->fetchAll(\PDO::FETCH_COLUMN) === $keys;
             }
         }
         $schemaSha = hash('sha256', json_encode($schemas, JSON_THROW_ON_ERROR));

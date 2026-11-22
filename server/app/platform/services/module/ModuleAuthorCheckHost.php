@@ -236,7 +236,7 @@ final readonly class ModuleAuthorCheckHost
             $package = $archiveService->verify($archive, $digest, [], null, $availableVersions);
             $module = $package->modules[$moduleKey] ?? null;
             if ($package->packageKey !== $moduleKey || count($package->modules) !== 1
-                || !is_array($module) || ($module['version'] ?? null) !== $moduleVersion) {
+                || !is_array($module) || $module['version'] !== $moduleVersion) {
                 throw new ModulePackageException(
                     'MODULE_CHECK_PACKAGE_IDENTITY_MISMATCH',
                     'Package identity differs from the checked source Module.',

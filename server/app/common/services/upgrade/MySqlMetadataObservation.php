@@ -29,6 +29,14 @@ final class MySqlMetadataObservation
         }
     }
 
+    /** @param list<string> $tokens */
+    private static function expectCheckToken(array $tokens, int &$at, string $expected): void
+    {
+        if (($tokens[$at++] ?? null) !== $expected) {
+            throw new RuntimeException('MYSQL_METADATA_CHECK_UNKNOWN');
+        }
+    }
+
     /** Complete literal tokens only; preserve grouping and literal bytes for each owner's closed forms. */
     public static function checkTokens(string $sql): ?array
     {
@@ -101,17 +109,17 @@ RX;
             if (preg_match('/\A`([a-z0-9_]+)` (BIGINT UNSIGNED|INT UNSIGNED|SMALLINT UNSIGNED|TINYINT UNSIGNED|CHAR\([0-9]+\)|VARCHAR\([0-9]+\)|DATETIME\(3\)|JSON|LONGTEXT|TEXT)(?: CHARACTER SET (ascii))?(?: COLLATE (ascii_bin))? (NOT NULL|NULL)(?: DEFAULT ([0-9]+|\x27[a-z_]+\x27))?( AUTO_INCREMENT)?\z/D', $line, $m)) {
                 if (isset($schema['columns'][$m[1]])) { throw new RuntimeException('MYSQL_METADATA_CREATE_SOURCE_UNKNOWN'); }
                 $text = str_starts_with($m[2], 'CHAR(') || str_starts_with($m[2], 'VARCHAR(') || in_array($m[2], ['LONGTEXT', 'TEXT'], true);
-                $charset = $text ? (($m[3] ?? '') !== '' ? $m[3] : 'utf8mb4') : null;
+                $charset = $text ? ($m[3] !== '' ? $m[3] : 'utf8mb4') : null;
                 $default = isset($m[6]) && $m[6] !== '' ? trim($m[6], "'") : null;
                 $schema['columns'][$m[1]] = ['COLUMN_NAME' => $m[1], 'ORDINAL_POSITION' => (string) (count($schema['columns']) + 1),
                     'COLUMN_TYPE' => strtolower($m[2]), 'IS_NULLABLE' => $m[5] === 'NOT NULL' ? 'NO' : 'YES', 'COLUMN_DEFAULT' => $default,
                     'EXTRA' => ($m[7] ?? '') !== '' ? 'auto_increment' : '', 'CHARACTER_SET_NAME' => $charset,
-                    'COLLATION_NAME' => $text ? (($m[4] ?? '') !== '' ? $m[4] : $collation) : null,
+                    'COLLATION_NAME' => $text ? ($m[4] !== '' ? $m[4] : $collation) : null,
                     'COLUMN_COMMENT' => '', 'GENERATION_EXPRESSION' => ''];
                 continue;
             }
             if (preg_match('/\A(PRIMARY KEY|UNIQUE KEY `([a-z0-9_]+)`|KEY `([a-z0-9_]+)`) \(([^)]+)\)\z/D', $line, $m)) {
-                $name = $m[1] === 'PRIMARY KEY' ? 'PRIMARY' : (($m[2] ?? '') !== '' ? $m[2] : $m[3]);
+                $name = $m[1] === 'PRIMARY KEY' ? 'PRIMARY' : ($m[2] !== '' ? $m[2] : $m[3]);
                 if (isset($indexes[$name])) { throw new RuntimeException('MYSQL_METADATA_CREATE_SOURCE_UNKNOWN'); }
                 $indexes[$name] = ['unique' => !str_starts_with($m[1], 'KEY '), 'columns' => self::columnNames($m[4])]; continue;
             }
@@ -121,7 +129,7 @@ RX;
                     'delete' => ($m[5] ?? '') !== '' ? 'RESTRICT' : 'NO ACTION']; continue;
             }
             if (preg_match('/\A(?:CONSTRAINT `([a-z0-9_]+)` )?CHECK \((.*)\)\z/Ds', $line, $m)) {
-                $name = ($m[1] ?? '') !== '' ? $m[1] : $table . '_chk_' . ++$anonymous;
+                $name = $m[1] !== '' ? $m[1] : $table . '_chk_' . ++$anonymous;
                 foreach ($schema['checks'] as $check) { if ($check['CONSTRAINT_NAME'] === $name) { throw new RuntimeException('MYSQL_METADATA_CREATE_SOURCE_UNKNOWN'); } }
                 $schema['checks'][] = ['CONSTRAINT_NAME' => $name, 'CHECK_CLAUSE' => self::checkExpression($m[2]), 'ENFORCED' => 'YES']; continue;
             }
@@ -161,7 +169,7 @@ RX;
             if (preg_match('/\A`([a-z0-9_]+)`\z/D', trim($column), $m) !== 1) { throw new RuntimeException('MYSQL_METADATA_CREATE_SOURCE_UNKNOWN'); }
             $columns[] = $m[1];
         }
-        if ($columns === [] || count($columns) !== count(array_unique($columns))) { throw new RuntimeException('MYSQL_METADATA_CREATE_SOURCE_UNKNOWN'); }
+        if (count($columns) !== count(array_unique($columns))) { throw new RuntimeException('MYSQL_METADATA_CREATE_SOURCE_UNKNOWN'); }
         return $columns;
     }
 
@@ -193,13 +201,19 @@ RX;
         } finally { $statement->closeCursor(); }
     }
 
+    private static function uninitializedCheckParser(): array
+    {
+        throw new RuntimeException('MYSQL_METADATA_CHECK_UNKNOWN');
+    }
+
     /** Closed boolean forms used by fixed CREATE owners; unknown operators fail closed. */
     public static function checkExpression(string $sql): array
     {
         $tokens = self::checkTokens($sql);
         if ($tokens === null) { throw new RuntimeException('MYSQL_METADATA_CHECK_UNKNOWN'); }
-        $at = 0; $or = $and = $term = $value = null;
+        $at = 0;
         $fail = static function (): never { throw new RuntimeException('MYSQL_METADATA_CHECK_UNKNOWN'); };
+        $or = self::uninitializedCheckParser(...);
         $value = static function () use (&$at, $tokens, &$or, &$value, $fail): array {
             $token = $tokens[$at++] ?? null;
             if ($token === '(') { $node = $or(); if (($tokens[$at++] ?? null) !== ')') { $fail(); } return $node; }
@@ -208,8 +222,8 @@ RX;
             if (!is_string($token) || preg_match('/\A[a-z_][a-z0-9_]*\z/D', $token) !== 1) { $fail(); }
             if (($tokens[$at] ?? null) !== '(') { return ['column', $token]; }
             if ($token !== 'regexp_like') { $fail(); }
-            ++$at; $left = $value(); if (($tokens[$at++] ?? null) !== ',') { $fail(); }
-            $pattern = $value(); if (($tokens[$at++] ?? null) !== ')') { $fail(); }
+            ++$at; $left = $value(); self::expectCheckToken($tokens, $at, ',');
+            $pattern = $value(); self::expectCheckToken($tokens, $at, ')');
             return ['regexp', $left, $pattern];
         };
         $term = static function () use (&$at, $tokens, &$value, $fail): array {

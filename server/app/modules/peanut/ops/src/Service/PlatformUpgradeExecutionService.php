@@ -22,7 +22,6 @@ final readonly class PlatformUpgradeExecutionService
 
     public function __construct(
         private ThinkPhpOpsTaskDispatcher $tasks,
-        private string $projectRoot,
         private ApplicationRuntimeStatusProvider $runtimeStatus,
         private PlatformPermissionChecker $permissions,
     ) {}

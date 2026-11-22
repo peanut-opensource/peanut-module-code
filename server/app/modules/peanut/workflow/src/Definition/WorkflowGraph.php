@@ -247,8 +247,8 @@ final readonly class WorkflowGraph
                     throw WorkflowException::definitionInvalid('Invalid action for node type.');
                 }
             }
-            if ($node['type'] === 'end' ? $exits !== [] : $exits === []) {
-                throw WorkflowException::definitionInvalid(($node['type'] === 'end' ? 'End node has an outgoing transition: ' : 'Node has no outgoing transition: ') . $key, '/graph/nodes/' . $nodeIndexes[$key]);
+            if ($node['type'] !== 'end' && $exits === []) {
+                throw WorkflowException::definitionInvalid('Node has no outgoing transition: ' . $key, '/graph/nodes/' . $nodeIndexes[$key]);
             }
             $required = match ($node['type']) {
                 'start' => ['advance'], 'approval' => ['approve', 'reject'], 'service_task' => ['succeeded'], default => [],

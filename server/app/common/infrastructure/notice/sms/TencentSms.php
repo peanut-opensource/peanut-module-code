@@ -98,7 +98,7 @@ final class TencentSms implements SmsDriver
         if (!is_array($data) || !is_array($data['Response'] ?? null)) {
             return new SmsDriverResult(SmsDriverResult::OUTCOME_UNKNOWN, '短信服务商返回无法确认', $receipt);
         }
-        $result = $data['Response'] ?? [];
+        $result = $data['Response'];
         if (isset($result['Error'])) {
             return new SmsDriverResult(
                 SmsDriverResult::OUTCOME_FAILED,

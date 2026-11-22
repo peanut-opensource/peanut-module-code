@@ -53,7 +53,7 @@ class HotSearchApplicationService
             if (!is_array($item) || array_diff(array_keys($item), ['id', 'name', 'sort']) !== []
                 || !is_string($item['name'] ?? null)
                 || trim($item['name']) === '' || mb_strlen($item['name']) > 200
-                || (!is_int($item['sort'] ?? 0) && !is_string($item['sort'] ?? 0))
+                || (!is_int($item['sort'] ?? 0) && !is_string($item['sort']))
                 || filter_var($item['sort'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 65535]]) === false) {
                 throw BusinessException::invalid('HOT_SEARCH_INPUT_INVALID', '热门搜索词条格式错误');
             }
@@ -62,7 +62,7 @@ class HotSearchApplicationService
 
         return Db::transaction(function () use ($context, $params, $rows): bool {
             $this->applicationSettings->replaceHotSearch($context, [
-                'status' => (int) ($params['status'] ?? 0),
+                'status' => (int) $params['status'],
             ]);
             HotSearch::where([])->delete();
             if ($rows !== []) {

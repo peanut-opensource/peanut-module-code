@@ -31,7 +31,7 @@ final readonly class PlatformAuditRuntimeLogProvider implements RuntimeLogProvid
         $records = [];
         $rows = $this->auditDiagnostics->eventGroupsSince($this->since, 100);
         foreach ($rows as $row) {
-            $severity = match ((string) ($row['outcome'] ?? '')) {
+            $severity = match ((string) ($row['outcome'])) {
                 'success' => 'info',
                 'denied' => 'warning',
                 'error' => 'error',
@@ -41,12 +41,12 @@ final readonly class PlatformAuditRuntimeLogProvider implements RuntimeLogProvid
                 continue;
             }
             $records[] = new StructuredLogRecord(
-                (string) ($row['event_type'] ?? ''),
+                (string) ($row['event_type']),
                 $severity,
                 'platform.audit',
-                (string) ($row['occurred_at'] ?? ''),
+                (string) ($row['occurred_at']),
                 null,
-                min(1000000, max(1, (int) ($row['occurrences'] ?? 1))),
+                min(1000000, max(1, (int) ($row['occurrences']))),
             );
         }
         // Pagination covers only this bounded, redacted summary. A changed

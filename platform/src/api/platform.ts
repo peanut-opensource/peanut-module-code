@@ -1,10 +1,10 @@
 import axios from 'axios';
 import { createMemoryRefreshCoordinator } from '@peanut-admin/vue';
-import { formatRequestError } from '../core/request-trace';
+import { formatRequestError } from '@peanut-admin/client';
 import {
   createPlatformSession,
   type PlatformSessionSnapshot,
-} from '../core/platform-session';
+} from '@peanut-admin/client';
 import type { PlatformApiAccess } from '../core/platform-access';
 import {
   readPlan,
@@ -612,7 +612,7 @@ export interface OpsUpgradeCenterSnapshot {
 const platformSession = createPlatformSession(() => window.location.reload());
 import.meta.hot?.dispose(platformSession.dispose);
 
-export type { PlatformSessionSnapshot } from '../core/platform-session';
+export type { PlatformSessionSnapshot } from '@peanut-admin/client';
 export const getPlatformSessionSnapshot = platformSession.current;
 export const isPlatformSessionCurrent = platformSession.matches;
 const isPlatformIdentityCurrent = platformSession.sameIdentity;

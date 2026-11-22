@@ -16,7 +16,6 @@ use app\common\model\decoration\DecorationTabbarSetting;
 use PeanutAdmin\Modules\Settings\Contract\TenantSettingsQuery;
 use PeanutAdmin\Modules\Settings\Contract\TenantSettingsCommands;
 use PeanutAdmin\Kernel\Context\TenantSystemContext;
-use PeanutAdmin\Kernel\Module\CompiledModuleRegistry;
 use think\DbManager;
 use think\db\PDOConnection;
 
@@ -39,7 +38,6 @@ final readonly class ApplicationTenantBootstrapService
         private TenantSettingsCommands $settingCommands,
         private ExternalIntegrationBootstrapCommands $externalBindings,
         private DbManager $database,
-        private CompiledModuleRegistry $modules,
         private DecorationPageDefaultsService $pageDefaults,
         private ?NotificationBootstrapCommands $notifications = null,
     ) {}
@@ -121,13 +119,7 @@ final readonly class ApplicationTenantBootstrapService
                 'update_time' => 0,
             ],
         ];
-        if (!in_array('peanut.payment', $selectedModules, true)) {
-            $defaults = array_values(array_filter(
-                $defaults,
-                static fn(array $row): bool => $row['command'] !== 'refund:reconcile',
-            ));
-        }
-        if ($defaults !== []) {
+        if (in_array('peanut.payment', $selectedModules, true)) {
             $this->tasks->seedDefaults($context, $defaults);
         }
     }

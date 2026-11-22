@@ -526,12 +526,12 @@ final readonly class ThinkPhpEntitlementQuotaRepository
 
     private function assertCallerOwnedTransaction(): void
     {
-        $connection = Db::connect();
+        $connection = \think\Container::getInstance()->make(\think\DbManager::class)->connect();
         if (!$connection instanceof PDOConnection) {
             throw new RuntimeException('Entitlement quota writes require ThinkPHP PDO transaction support.');
         }
         $pdo = $connection->connect();
-        if (!$pdo instanceof PDO || !$pdo->inTransaction()) {
+        if (!$pdo->inTransaction()) {
             throw new RuntimeException('Entitlement quota writes require a caller-owned transaction.');
         }
     }

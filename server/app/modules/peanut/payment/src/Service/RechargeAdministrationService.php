@@ -268,7 +268,7 @@ class RechargeAdministrationService
             ->where('order_type', RefundEnum::ORDER_TYPE_RECHARGE)
             ->where('order_id', (int) $order->id)
             ->whereIn('refund_status', [RefundEnum::REFUND_ING, RefundEnum::REFUND_SUCCESS])
-            ->sum('refund_amount') ?? 0));
+            ->sum('refund_amount')));
         $remainingCents = $orderCents - $refundedCents;
         if ($remainingCents <= 0) {
             throw BusinessException::conflict('REFUND_AMOUNT_EXHAUSTED', '充值订单可退款金额已用尽');
@@ -480,6 +480,7 @@ class RechargeAdministrationService
         $channel = match ((int) $attempt->pay_way) {
             PaymentMethod::WECHAT => 'wechat',
             PaymentMethod::ALIPAY => 'alipay',
+            default => throw BusinessException::conflict('PAYMENT_ORIGIN_UNVERIFIED', '原收款商户待核对'),
         };
         $gateway = $this->payments->forHistory(
             (int) $attempt->tenant_id, $channel, (int) $attempt->binding_id, (string) $attempt->merchant_identity_hash,

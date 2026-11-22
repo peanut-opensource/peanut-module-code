@@ -25,7 +25,6 @@ use PeanutAdmin\Modules\File\Contract\FileDocumentReferencePolicy;
 use PeanutAdmin\Modules\File\Service\FileAdministrationService;
 use PeanutAdmin\Modules\File\Service\FileAuthorizationService;
 use PeanutAdmin\Modules\File\Service\FileDerivativeService;
-use PeanutAdmin\Modules\File\Service\FileService;
 use PeanutAdmin\Modules\File\Service\Storage\StorageService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -158,7 +157,7 @@ final class BusinessEvidenceTest extends TestCase
         $execution = new CurrentExecutionContext($this->contexts);
         $this->storage = new StorageService($this->drivers, str_repeat('s', 32), 'https://synthetic.invalid', $directory, $fileAuthorization,
             $execution, $this->audit, $capabilities, $registry);
-        $this->administration = new FileAdministrationService($this->storage, $execution, new FileService($this->storage, 'https://synthetic.invalid'), $fileAuthorization);
+        $this->administration = new FileAdministrationService($this->storage, $execution, $fileAuthorization);
         $this->derivatives = new FileDerivativeService($execution, $fileAuthorization, $this->storage);
         Db::name('storage_account')->insert(['id' => 1, 'account_key' => 'synthetic-local', 'driver' => 'local', 'name' => 'test', 'status' => 'active']);
         Db::name('storage_space')->insert(['id' => 1, 'space_key' => 'synthetic-private', 'name' => 'test', 'account_id' => 1,

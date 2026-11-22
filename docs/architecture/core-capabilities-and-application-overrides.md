@@ -4,6 +4,8 @@ Core 的价值是稳定、可复用的技术能力和可直接使用的默认实
 
 Provider、事件/命令、套餐与许可证、HTTP/CLI/Task 上下文及安装升级的完整时序和失败责任见 [框架扩展与生命周期](framework-extension-and-lifecycle.md)。
 
+PHP 与前端宿主统一通过原生锁中的 Core PHP、Core Web 包消费公共能力。宿主直接使用包的公开导出。包缺少所需能力时，更新 Core 固定制品与消费者锁，禁止引入或保留同源源码副本及旧锁兼容壳。显式本地 Core 链接仅用于源码联调。
+
 ## 1. 成熟框架依据
 
 本设计参考以下官方机制，复用当前锁定 ThinkPHP 的能力，不引入 Laravel/Symfony 运行依赖：

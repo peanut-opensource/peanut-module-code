@@ -6,6 +6,15 @@ namespace PeanutAdmin\Modules\Document\Model;
 
 use app\common\model\TenantOwnedModel;
 
+/**
+ * @property string $action
+ * @property int|string $actor_member_id
+ * @property string|null $body
+ * @property string $created_at
+ * @property int|string $id
+ * @property int|string $thread_id
+ * @property int|string $thread_revision
+ */
 final class DocumentCommentMessage extends TenantOwnedModel
 {
     protected $name = 'document_comment_message';

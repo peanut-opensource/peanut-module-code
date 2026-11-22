@@ -137,7 +137,7 @@ trait CrudTrait
 
     private function crudExtraAction(string $action, bool $read = false): Json
     {
-        $actions = defined(static::class . '::CRUD_ACTIONS') ? static::CRUD_ACTIONS : [];
+        $actions = $this->crudConstant('CRUD_ACTIONS', []);
         if (!is_array($actions)) throw new LogicException(static::class . ' has invalid CRUD_ACTIONS configuration.');
         if (($actions[$action] ?? false) !== true) {
             throw BusinessException::notFound('CRUD_ACTION_NOT_FOUND', '操作不存在');
@@ -156,11 +156,7 @@ trait CrudTrait
      */
     protected function crudService(): object
     {
-        $service = $this->crud;
-        if (!is_object($service)) {
-            throw new LogicException(static::class . '::$crud did not resolve to an object.');
-        }
-        return $service;
+        return $this->crud;
     }
 
     protected function listsInput(mixed $context): array
@@ -401,7 +397,7 @@ trait CrudTrait
 
     protected function crudValidateClass(): string
     {
-        $validate = defined(static::class . '::CRUD_VALIDATE') ? static::CRUD_VALIDATE : '';
+        $validate = $this->crudConstant('CRUD_VALIDATE', '');
         if ($validate === '' || !class_exists($validate)) {
             throw new LogicException(sprintf(
                 '%s must configure a valid CRUD_VALIDATE class.',
@@ -413,42 +409,42 @@ trait CrudTrait
 
     protected function crudAddSuccessMessage(): string
     {
-        return defined(static::class . '::CRUD_ADD_SUCCESS_MESSAGE') ? static::CRUD_ADD_SUCCESS_MESSAGE : '操作成功';
+        return $this->crudConstant('CRUD_ADD_SUCCESS_MESSAGE', '操作成功');
     }
 
     protected function crudEditSuccessMessage(): string
     {
-        return defined(static::class . '::CRUD_EDIT_SUCCESS_MESSAGE') ? static::CRUD_EDIT_SUCCESS_MESSAGE : '操作成功';
+        return $this->crudConstant('CRUD_EDIT_SUCCESS_MESSAGE', '操作成功');
     }
 
     protected function crudDeleteSuccessMessage(): string
     {
-        return defined(static::class . '::CRUD_DELETE_SUCCESS_MESSAGE') ? static::CRUD_DELETE_SUCCESS_MESSAGE : '操作成功';
+        return $this->crudConstant('CRUD_DELETE_SUCCESS_MESSAGE', '操作成功');
     }
 
     protected function crudStatusSuccessMessage(): string
     {
-        return defined(static::class . '::CRUD_STATUS_SUCCESS_MESSAGE') ? static::CRUD_STATUS_SUCCESS_MESSAGE : '操作成功';
+        return $this->crudConstant('CRUD_STATUS_SUCCESS_MESSAGE', '操作成功');
     }
 
     protected function crudNotFoundMessage(): string
     {
-        return defined(static::class . '::CRUD_NOT_FOUND_MESSAGE') ? static::CRUD_NOT_FOUND_MESSAGE : '数据不存在';
+        return $this->crudConstant('CRUD_NOT_FOUND_MESSAGE', '数据不存在');
     }
 
     protected function crudStatusField(): string
     {
-        return defined(static::class . '::CRUD_STATUS_FIELD') ? static::CRUD_STATUS_FIELD : 'is_disable';
+        return $this->crudConstant('CRUD_STATUS_FIELD', 'is_disable');
     }
 
     protected function crudStatusScene(): string
     {
-        return defined(static::class . '::CRUD_STATUS_SCENE') ? static::CRUD_STATUS_SCENE : 'status';
+        return $this->crudConstant('CRUD_STATUS_SCENE', 'status');
     }
 
     protected function crudPrimaryKey(): string
     {
-        $key = defined(static::class . '::CRUD_PRIMARY_KEY') ? (string) static::CRUD_PRIMARY_KEY : 'id';
+        $key = (string) $this->crudConstant('CRUD_PRIMARY_KEY', 'id');
         if (preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/D', $key) !== 1) {
             throw new LogicException(static::class . ' has an invalid CRUD_PRIMARY_KEY declaration.');
         }
@@ -457,9 +453,7 @@ trait CrudTrait
 
     protected function crudPrimaryKeyType(): string
     {
-        $type = strtolower(defined(static::class . '::CRUD_PRIMARY_KEY_TYPE')
-            ? (string) static::CRUD_PRIMARY_KEY_TYPE
-            : 'int');
+        $type = strtolower((string) $this->crudConstant('CRUD_PRIMARY_KEY_TYPE', 'int'));
         return match ($type) {
             'int', 'integer' => 'int',
             'string' => 'string',
@@ -471,13 +465,13 @@ trait CrudTrait
 
     protected function crudValidateLists(): bool
     {
-        return defined(static::class . '::CRUD_VALIDATE_LISTS') ? (bool) static::CRUD_VALIDATE_LISTS : false;
+        return (bool) $this->crudConstant('CRUD_VALIDATE_LISTS', false);
     }
 
     /** @return array<int|string,mixed>|null */
     protected function crudInputFields(string $scene): ?array
     {
-        $policies = defined(static::class . '::CRUD_INPUT_FIELDS') ? static::CRUD_INPUT_FIELDS : null;
+        $policies = $this->crudConstant('CRUD_INPUT_FIELDS', null);
         return is_array($policies) && isset($policies[$scene]) && is_array($policies[$scene])
             ? $policies[$scene]
             : null;
@@ -486,15 +480,21 @@ trait CrudTrait
     /** @return array<int|string,mixed>|null */
     protected function crudWritableFields(string $scene): ?array
     {
-        $policies = defined(static::class . '::CRUD_WRITABLE_FIELDS') ? static::CRUD_WRITABLE_FIELDS : null;
+        $policies = $this->crudConstant('CRUD_WRITABLE_FIELDS', null);
         return is_array($policies) && isset($policies[$scene]) && is_array($policies[$scene])
             ? $policies[$scene]
             : null;
     }
 
+    private function crudConstant(string $name, mixed $default): mixed
+    {
+        $constant = static::class . '::' . $name;
+        return defined($constant) ? constant($constant) : $default;
+    }
+
     private function assertCrudSoftDeleteEnabled(): void
     {
-        if (!defined(static::class . '::CRUD_SOFT_DELETE') || static::CRUD_SOFT_DELETE !== true) {
+        if ($this->crudConstant('CRUD_SOFT_DELETE', false) !== true) {
             throw new LogicException(static::class . ' has not enabled CRUD soft-delete actions.');
         }
     }
@@ -508,7 +508,7 @@ trait CrudTrait
             'restore', 'forceDelete', 'purge', 'batchDelete', 'batchUpdateStatus' => [$primary, 'ids'],
             default => [],
         };
-        $policies = defined(static::class . '::CRUD_CONTROL_FIELDS') ? static::CRUD_CONTROL_FIELDS : null;
+        $policies = $this->crudConstant('CRUD_CONTROL_FIELDS', null);
         $declared = is_array($policies) && isset($policies[$scene]) && is_array($policies[$scene])
             ? $policies[$scene]
             : [];

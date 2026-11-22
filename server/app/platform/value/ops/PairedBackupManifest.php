@@ -100,10 +100,10 @@ final readonly class PairedBackupManifest
         ) {
             self::invalid();
         }
-        if (($runtime['compose_file'] ?? null) !== 'server/docker/compose.yaml' || ($runtime['compose_profile'] ?? null) !== 'default') {
+        if (($runtime['compose_file'] ?? null) !== 'server/docker/compose.yaml' || ($runtime['compose_profile']) !== 'default') {
             self::invalid();
         }
-        self::stableKey($runtime['compose_profile'] ?? null, 64);
+        self::stableKey($runtime['compose_profile'], 64);
         self::databaseName($runtime['database_name'] ?? null);
         if ($runtime['compose_project'] !== $registered['deployment']['compose_project']
             || $runtime['database_name'] !== $registered['database']['database']
@@ -347,7 +347,7 @@ final readonly class PairedBackupManifest
         };
         $walk($registry);
         $find = static function (string $id) use ($rows): array {
-            $found = array_values(array_filter($rows, static fn (array $row): bool => ($row['stable_resource_id'] ?? null) === $id));
+            $found = array_values(array_filter($rows, static fn (array $row): bool => $row['stable_resource_id'] === $id));
             if (count($found) !== 1) {
                 self::invalid();
             }

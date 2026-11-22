@@ -587,7 +587,7 @@ final class NotificationStore
     {
         $messages = (new NotificationMessageRecord())->getTable();
         $outbox = (new NotificationOutboxRecord())->getTable();
-        $query->whereExists(static function (BaseQuery $delivery) use ($messages, $outbox): void {
+        $query->whereExists(static function (\think\db\Query $delivery) use ($messages, $outbox): void {
             $delivery->table($outbox)->whereColumn($outbox . '.tenant_id', '=', $messages . '.tenant_id')->whereColumn($outbox . '.message_id', '=', $messages . '.id')
                 ->where($outbox . '.channel', 'inbox')->where($outbox . '.status', 'delivered')->fieldRaw('1');
         });

@@ -14,7 +14,7 @@ final readonly class ScenarioWorkflowAuthorizationResolver implements WorkflowAu
 
     public function authorize(AuthorizedOperationContext $trustedBasis, string $resourceKey, string $operation, array $permissionKeys, string $subjectKey): AuthorizedOperationContext
     {
-        if ($permissionKeys === [] || $subjectKey === '') {
+        if ($subjectKey === '') {
             throw WorkflowException::assignmentDenied();
         }
         $context = $this->scenarios->access($resourceKey)->authorize($trustedBasis, $resourceKey, $operation, $permissionKeys, $subjectKey);

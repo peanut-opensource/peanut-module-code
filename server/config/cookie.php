@@ -1,5 +1,7 @@
 <?php
 
+// ThinkPHP Cookie::__make reads this configuration for HTTP responses, including session refresh cookies.
+
 // +----------------------------------------------------------------------
 // | Cookie设置
 // +----------------------------------------------------------------------

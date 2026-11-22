@@ -4,35 +4,35 @@
     "inputs": [
         {
             "path": "modules.lock",
-            "sha256": "993b06f65cea0f2247924114302667362f5308dd8a4aa33c1deedb8d29c22c4c"
+            "sha256": "53289fa29c465cbbb364b29770570b102c2437a6056f343179a1fa4cea6ecc05"
         },
         {
             "path": "release-versions.json",
-            "sha256": "390269fd86170f143232cdef7c07aaed59bff0f65402d1fd007ccf9a7aa19682"
+            "sha256": "1155c0d63f0f3c8ba0c6ba946e47f00af227fd7a8bcdd283b43ac1ed0a8dc2f9"
         },
         {
             "path": "server/app/api/metadata/application/adminapi.php",
-            "sha256": "0feaceed9f39397895f82324dddb4a7e1e026f9297fb65cc087741e013c83926"
+            "sha256": "29c2537c7530bf453ff2152ce364b3a85549c4bd0fed8d9a8550ce6f26d79ef0"
         },
         {
             "path": "server/app/api/metadata/application/common.php",
-            "sha256": "976adb669b7caa470786de71141d511882208e263ce666a28eed07fb56d8a18a"
+            "sha256": "c8c54bcc52055969cec0018f8074339170b0176976021cb0dca4b80e562ec28c"
         },
         {
             "path": "server/app/api/metadata/application/installation.php",
-            "sha256": "fcba70e9df8230ec665551b98d59a6ea46c8de2ac69dddabf7e7fdfb7282faf9"
+            "sha256": "f6ae5295d7ba53fe230d332ffddc08b78aac70c193a3825f346ebd8cf5206350"
         },
         {
             "path": "server/app/api/metadata/application/permission-bundles.php",
-            "sha256": "0da677707b206d0679e0457730ed3c450c51897016cceb7018b296cdced47619"
+            "sha256": "d1a61e75353a18d607506df06e26468fa8f8795b798c63e80f24983eabb6d793"
         },
         {
             "path": "server/app/api/metadata/application/platform.php",
-            "sha256": "c3054f7fb6b9553502656681aadcc164e7b916cfa31fd0a913b554ca3812a967"
+            "sha256": "8fe9567724c9c22d59bb221c35f72b7737a42c1e58f430c61ead456b4ba4a66a"
         },
         {
             "path": "server/app/api/metadata/application/shared.php",
-            "sha256": "4c0a0d74e65918dfef76d02463a3ba12a253f870a7e972e5b865e71056772fb2"
+            "sha256": "35e8250b6f63ed7d8566d524bd67e0f9c248f8d0f59b36c97a65a386301193da"
         },
         {
             "path": "server/app/api/metadata/contracts/openapi.json",
@@ -48,7 +48,7 @@
         },
         {
             "path": "server/app/modules/custom/ai_assistant/api/metadata/openapi.php",
-            "sha256": "f520fcb9e3d4447738cc5fed5fba232bdf17c2d5558f4146ff5bc4d26566f023"
+            "sha256": "23d537719ef21c57e26b60ad913acda770486b2ea9ae2123a4fa3c62b4ed4b0f"
         },
         {
             "path": "server/app/modules/custom/ai_assistant/route/app.php",
@@ -116,7 +116,7 @@
         },
         {
             "path": "server/app/modules/peanut/member/route/app.php",
-            "sha256": "cbcbab6a12f5a576c607699f91d48f5b4e1089c1c64922f8bba2a89838d5aab9"
+            "sha256": "cf5b70a325ca6d07099452ce1c3ed8ee586210a02df290f6a5318b8f1695214d"
         },
         {
             "path": "server/app/modules/peanut/notification/api/metadata/openapi.php",
@@ -11998,7 +11998,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/member/route/app.php",
-                "line": 71
+                "line": 72
             },
             "documented": true,
             "openapi_operation_id": "listCurrentMemberBalanceLogs",
@@ -13418,7 +13418,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/member/route/app.php",
-                "line": 64
+                "line": 65
             },
             "documented": true,
             "openapi_operation_id": "getMemberCenter",
@@ -13486,7 +13486,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/member/route/app.php",
-                "line": 65
+                "line": 66
             },
             "documented": true,
             "openapi_operation_id": "getMemberProfile",
@@ -32349,7 +32349,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/member/route/app.php",
-                "line": 69
+                "line": 70
             },
             "documented": true,
             "openapi_operation_id": "bindMemberMobile",
@@ -32417,7 +32417,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/member/route/app.php",
-                "line": 67
+                "line": 68
             },
             "documented": true,
             "openapi_operation_id": "changeMemberPassword",
@@ -32486,7 +32486,7 @@
             ],
             "source": {
                 "file": "server/app/modules/peanut/member/route/app.php",
-                "line": 66
+                "line": 67
             },
             "documented": true,
             "openapi_operation_id": "updateMemberProfileField",

@@ -117,7 +117,6 @@ class OperationLogApplicationService
             (string) ($params['file_name'] ?? self::EXPORT_DEFAULT_NAME),
             ['ID', '管理员', 'IP', '请求地址', '方法', '参数', '操作时间'],
             $sheetRows,
-            'operation-logs',
         );
         return ['url' => $file['url'], 'file_name' => $file['original_name']];
     }

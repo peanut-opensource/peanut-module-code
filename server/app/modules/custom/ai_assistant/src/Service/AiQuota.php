@@ -11,7 +11,6 @@ use think\Model;
 
 final readonly class AiQuota
 {
-    public function __construct(private AiAccess $access) {}
     /** Caller holds the current connection row lock, serializing a new period and its full internal totals. */
     public function reserve(TenantContext $c, array $connection, Model $task): array
     {

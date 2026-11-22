@@ -255,7 +255,7 @@ class GeneratorService
         foreach ($tables as $table) {
             foreach (GeneratorRenderService::render($table) as $file) {
                 $path = (string) $file['path'];
-                $operation = (string) ($file['operation'] ?? 'create');
+                $operation = $file['operation'];
                 $archivePath = $operation === 'merge' ? 'merge-preview/' . $path : $path;
                 if (isset($files[$archivePath])) {
                     throw new \RuntimeException('同一批次不能向同一个目标文件生成多个合并预览，请分批生成：' . $path);
@@ -456,7 +456,7 @@ class GeneratorService
                 throw new \InvalidArgumentException('关系目标字段不存在');
             }
             foreach ($relation['summary_fields'] as $summaryField) {
-                if (!in_array($summaryField, $targetColumns[(int) $relation['target_table_id']] ?? [], true)) {
+                if (!in_array($summaryField, $targetColumns[(int) $relation['target_table_id']], true)) {
                     throw new \InvalidArgumentException('关系摘要字段不存在');
                 }
                 if (in_array($summaryField, ['tenant_id', 'delete_time'], true)

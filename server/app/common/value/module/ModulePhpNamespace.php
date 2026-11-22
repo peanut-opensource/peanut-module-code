@@ -61,7 +61,7 @@ final class ModulePhpNamespace
             throw new InvalidArgumentException('Module must declare exactly one PSR-4 prefix.');
         }
         $prefix = array_key_first($psr4);
-        $path = $prefix === null ? null : $psr4[$prefix];
+        $path = $psr4[$prefix];
         if (!is_string($prefix) || !is_string($path) || $path !== 'src/') {
             throw new InvalidArgumentException('Module PSR-4 prefix must be stable and map to src/.');
         }
@@ -69,7 +69,7 @@ final class ModulePhpNamespace
     }
 
     /**
-     * @param array<string,string> $moduleRoots Module key => verified absolute module root.
+     * @param array<array-key,mixed> $moduleRoots Module key => verified absolute module root.
      * @return array<string,string> Module key => canonical PSR-4 prefix.
      */
     public static function map(array $moduleRoots): array

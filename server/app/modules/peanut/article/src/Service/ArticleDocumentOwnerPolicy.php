@@ -53,7 +53,7 @@ final readonly class ArticleDocumentOwnerPolicy implements DocumentOwnerPolicy, 
             || preg_match('/^[1-9][0-9]*$/D', $owner->objectId) !== 1 || strlen($owner->objectId) > 18) {
             throw BusinessException::notFound('ARTICLE_DOCUMENT_OWNER_INVALID', '不支持的资讯文档归属或槽位');
         }
-        $query = Article::withTrashed()->where('id', (int) $owner->objectId);
+        $query = (new Article())->db()->scope('withTrashed')->where('id', (int) $owner->objectId);
         if ($forUpdate) {
             $query->lock(true);
         }

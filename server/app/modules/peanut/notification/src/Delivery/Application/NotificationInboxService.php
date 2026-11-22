@@ -47,7 +47,7 @@ final readonly class NotificationInboxService
         ));
     }
 
-    /** @param list<string> $messageKeys */
+    /** @param list<mixed> $messageKeys */
     public function bulk(AuthorizedOperationContext $context, array $messageKeys, string $action): int
     {
         $this->assertOperation($context, 'manage');
@@ -62,10 +62,10 @@ final readonly class NotificationInboxService
                 throw NotificationException::invalid();
             }
             $this->assertMessageKey($messageKey);
-            $seen[$messageKey] = true;
+            $seen[$messageKey] = $messageKey;
         }
         return Db::transaction(
-            fn(): int => $this->repository->bulkChangeInbox($context->tenantContext, $messageKeys, $action),
+            fn(): int => $this->repository->bulkChangeInbox($context->tenantContext, array_values($seen), $action),
         );
     }
 

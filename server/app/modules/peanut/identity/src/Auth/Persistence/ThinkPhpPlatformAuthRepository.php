@@ -133,7 +133,7 @@ final class ThinkPhpPlatformAuthRepository implements PlatformAuthRepository
             $userAgentHash,
             $now,
         );
-        if ($credentialLocked && $principal !== null) {
+        if ($credentialLocked) {
             $this->recordEvent(
                 'credential_locked',
                 'denied',

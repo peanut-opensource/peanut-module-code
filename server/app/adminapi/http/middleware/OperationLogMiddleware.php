@@ -60,11 +60,11 @@ class OperationLogMiddleware
             return $response;
         } catch (\Throwable $exception) {
             $problem = $this->problems->map($exception);
-            $httpStatus = $problem?->httpStatus ?? 500;
+            $httpStatus = $problem->httpStatus ?? 500;
             $outcome = in_array($httpStatus, [401, 403], true)
                 ? AuditOutcome::Denied
                 : AuditOutcome::Error;
-            $reasonCode = $problem?->errorCode ?? 'UNHANDLED_EXCEPTION';
+            $reasonCode = $problem->errorCode ?? 'UNHANDLED_EXCEPTION';
             throw $exception;
         } finally {
             if (in_array(strtoupper((string) $request->method()), ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
