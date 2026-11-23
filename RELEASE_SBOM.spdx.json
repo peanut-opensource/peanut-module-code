@@ -841,8 +841,8 @@
     },
     {
       "name": "peanut-business/peanut-file",
-      "SPDXID": "SPDXRef-Package-composer-0cbb319d51cdd79c3f6f",
-      "versionInfo": "1.0.50-rc.19",
+      "SPDXID": "SPDXRef-Package-composer-cba87cda64e34c349b4c",
+      "versionInfo": "1.0.50-rc.20",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "NOASSERTION",
@@ -854,7 +854,7 @@
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:composer/peanut-business/peanut-file@1.0.50-rc.19"
+          "referenceLocator": "pkg:composer/peanut-business/peanut-file@1.0.50-rc.20"
         }
       ]
     },
@@ -55911,7 +55911,7 @@
     {
       "spdxElementId": "SPDXRef-Package-Peanut-Admin",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-Package-composer-0cbb319d51cdd79c3f6f",
+      "relatedSpdxElement": "SPDXRef-Package-composer-cba87cda64e34c349b4c",
       "comment": "composer; runtime"
     },
     {

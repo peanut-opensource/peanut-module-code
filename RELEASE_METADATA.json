@@ -57,7 +57,7 @@
   "source_repository": "peanut-opensource/peanut-module-code",
   "release_date": "2026-11-23",
   "legal_files": {
-    "RELEASE_SBOM.spdx.json": "282d19529eaf092f7b359c02386e708b390c5cdf2634d071ca5fd92364d29376",
-    "THIRD_PARTY_NOTICES.md": "5bf5e7a79954f648767af7cce976d44dfeece73d17282925e7afad6dd51a4abf"
+    "RELEASE_SBOM.spdx.json": "c46f0730deb6cdb6b1e4a949c8e36056edd6d9389fbf0f501070b42ca64e8f44",
+    "THIRD_PARTY_NOTICES.md": "288a4b9ee5751ad7847320ce545e1493269668f7cdf829a1ff67f234e4294d16"
   }
 }

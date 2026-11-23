@@ -277,8 +277,8 @@ before doing the next step. A timeout is followed by a status query, not another
 batch submission. The ordinary upload purpose remains its default route, rather
 than an override of an existing object's current visibility.
 
-The current complete physical route is local `public/storage` to
-`private/storage`, with controlled delivery and direct-storage denial in both
+The current complete physical route is local `storage/public` to
+`storage/private`, with controlled delivery and direct-storage denial in both
 the PHP development ingress and deployment Nginx configuration. Private bytes
 are verified before source deletion; interrupted copies are reconciled at their
 fixed private target. Other origins reject preflight until their actual version,

@@ -145,7 +145,7 @@ The application Composer lock lists 87 production packages. Development dependen
 | `peanut-business/peanut-collaboration` | `1.0.21-rc.3` | `Apache-2.0` | NOASSERTION |
 | `peanut-business/peanut-content-tools` | `1.0.4-rc.1` | `Apache-2.0` | NOASSERTION |
 | `peanut-business/peanut-document` | `1.0.28-rc.10` | `Apache-2.0` | NOASSERTION |
-| `peanut-business/peanut-file` | `1.0.50-rc.19` | `Apache-2.0` | NOASSERTION |
+| `peanut-business/peanut-file` | `1.0.50-rc.20` | `Apache-2.0` | NOASSERTION |
 | `peanut-business/peanut-identity` | `4.0.1-rc.15` | `Apache-2.0` | NOASSERTION |
 | `peanut-business/peanut-import-export` | `1.0.37-rc.7` | `Apache-2.0` | NOASSERTION |
 | `peanut-business/peanut-integration` | `1.0.31-rc.2` | `Apache-2.0` | NOASSERTION |

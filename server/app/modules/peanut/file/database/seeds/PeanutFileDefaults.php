@@ -20,7 +20,7 @@ INSERT INTO pa_storage_space (space_key,account_id,name,access_type,local_path,s
 SELECT ?,id,?,?,?,'active',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)
 FROM pa_storage_account WHERE account_key='local'
 AND NOT EXISTS (SELECT 1 FROM pa_storage_space WHERE space_key=?);
-SQL, ['local-' . $access, $access === 'public' ? '本地公开文件' : '本地私有文件', $access, $access . '/storage', 'local-' . $access]);
+SQL, ['local-' . $access, $access === 'public' ? '本地公开文件' : '本地私有文件', $access, 'storage/' . $access, 'local-' . $access]);
             $this->execute(<<<'SQL'
 INSERT INTO pa_storage_route (route_key,access_type,space_id,updated_at)
 SELECT ?,?,id,UTC_TIMESTAMP(3) FROM pa_storage_space WHERE space_key=?
