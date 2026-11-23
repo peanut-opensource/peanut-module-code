@@ -659,6 +659,9 @@ export function onPlatformSessionChange(
   return () => platformSessionListeners.delete(listener);
 }
 
+// Allow time for upstream release discovery on each catalog request attempt.
+const OFFICIAL_MODULE_UPDATES_TIMEOUT_MS = 60_000;
+
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || undefined,
   withCredentials: true,
@@ -768,12 +771,15 @@ client.interceptors.response.use(handleResponse, (error) => {
   if (response?.data && typeof response.data.code === 'number')
     return handleResponse(response);
   if (axios.isAxiosError(error)) {
-    error.message = formatRequestError(
-      response
-        ? '平台请求失败，请稍后重试'
-        : '网络请求失败，请检查网络连接后重试',
-      response
-    );
+    let message = '平台请求失败，请稍后重试';
+    if (!response) {
+      const timedOut =
+        error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT';
+      message = timedOut
+        ? '请求超时，请稍后重试'
+        : '网络请求失败，请检查网络连接后重试';
+    }
+    error.message = formatRequestError(message, response);
   }
   return Promise.reject(error);
 });
@@ -1243,6 +1249,7 @@ export const api = {
     unwrap<OfficialUpdateSnapshot>(
       client.get('/platformapi/instance-tools/modules/updates', {
         params: { channel },
+        timeout: OFFICIAL_MODULE_UPDATES_TIMEOUT_MS,
       })
     ),
   previewOfficialModule: (
