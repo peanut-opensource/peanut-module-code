@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)"
+exec "$ROOT_DIR/scripts/phpstan-tenant-guard" --configuration="$ROOT_DIR/server/phpstan-quality.neon" "$@"
