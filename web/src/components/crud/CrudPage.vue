@@ -284,13 +284,10 @@
       String(config.userId),
     ])}`;
   });
-  const effectiveColumnKey = computed(() =>
-    props.savedViews
-      ? savedViewKey.value
-        ? `${savedViewKey.value}:columns`
-        : undefined
-      : props.columnStorageKey
-  );
+  const effectiveColumnKey = computed(() => {
+    if (!props.savedViews) return props.columnStorageKey;
+    return savedViewKey.value ? `${savedViewKey.value}:columns` : undefined;
+  });
   watch(
     savedViewKey,
     (key) => {
@@ -311,7 +308,7 @@
             typeof view.filters === 'object' &&
             !Array.isArray(view.filters) &&
             Array.isArray(view.columns) &&
-            view.columns.every((key: unknown) => typeof key === 'string')
+            view.columns.every((column: unknown) => typeof column === 'string')
         );
       } catch {
         viewError.value = '无法读取已保存视图';
@@ -331,35 +328,6 @@
       viewError.value = '无法保存视图，请检查浏览器存储设置';
       return false;
     }
-  };
-  const saveCurrentView = () => {
-    const name = savedViewName.value.trim();
-    if (!name || !props.savedViews || !savedViewKey.value) return;
-    try {
-      const view: SavedView = {
-        name,
-        filters: JSON.parse(JSON.stringify(props.savedViews.filters)),
-        columns: displayedFields.value.map((field) => field.key),
-      };
-      if (
-        writeSavedViews([
-          ...savedViewItems.value.filter((item) => item.name !== name),
-          view,
-        ])
-      ) {
-        selectedView.value = name;
-        savedViewName.value = '';
-      }
-    } catch {
-      viewError.value = '无法保存当前筛选条件';
-    }
-  };
-  const applySavedView = (name: string) => {
-    const view = savedViewItems.value.find((item) => item.name === name);
-    if (!view || !props.savedViews) return;
-    cancelEdit();
-    columnSettings.value?.applyVisibility(view.columns);
-    props.savedViews.applyFilters(JSON.parse(JSON.stringify(view.filters)));
   };
   const deleteSavedView = () => {
     if (
@@ -407,6 +375,35 @@
     saving.value = false;
     editing.value = undefined;
     draft.value = {};
+  };
+  const saveCurrentView = () => {
+    const name = savedViewName.value.trim();
+    if (!name || !props.savedViews || !savedViewKey.value) return;
+    try {
+      const view: SavedView = {
+        name,
+        filters: JSON.parse(JSON.stringify(props.savedViews.filters)),
+        columns: displayedFields.value.map((field) => field.key),
+      };
+      if (
+        writeSavedViews([
+          ...savedViewItems.value.filter((item) => item.name !== name),
+          view,
+        ])
+      ) {
+        selectedView.value = name;
+        savedViewName.value = '';
+      }
+    } catch {
+      viewError.value = '无法保存当前筛选条件';
+    }
+  };
+  const applySavedView = (name: string) => {
+    const view = savedViewItems.value.find((item) => item.name === name);
+    if (!view || !props.savedViews) return;
+    cancelEdit();
+    columnSettings.value?.applyVisibility(view.columns);
+    props.savedViews.applyFilters(JSON.parse(JSON.stringify(view.filters)));
   };
   const active = useCrudTab(cancelEdit);
   watch(

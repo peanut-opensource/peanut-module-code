@@ -70,10 +70,6 @@ export interface FileProvider {
 
 /** Resolve the installed File capability from locked module contributions, if any. */
 export function resolveFileProvider(): FileProvider | null {
-  for (const contribution of contributions) {
-    if (contribution.fileProvider) {
-      return contribution.fileProvider;
-    }
-  }
-  return null;
+  const contribution = contributions.find((entry) => entry.fileProvider);
+  return contribution?.fileProvider ?? null;
 }

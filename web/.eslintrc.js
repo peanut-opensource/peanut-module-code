@@ -38,6 +38,13 @@ module.exports = {
   },
   overrides: [
     {
+      files: ['src/**/*.d.ts'],
+      rules: {
+        // Declarations allow forward type references and have no runtime initialization order.
+        'no-use-before-define': 'off',
+      },
+    },
+    {
       files: ['src/modules/peanut-rich-text/tests/**/*.ts'],
       settings: {
         'import/resolver': {

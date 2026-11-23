@@ -79,7 +79,7 @@ const useUserStore = defineStore('user', {
 
     // Login
     login(loginForm: LoginData) {
-      const generation = getSessionSnapshot().generation;
+      const { generation } = getSessionSnapshot();
       return queueSessionCookieRequest(async () => {
         const resetLoginState = () => {
           this.resetInfo();

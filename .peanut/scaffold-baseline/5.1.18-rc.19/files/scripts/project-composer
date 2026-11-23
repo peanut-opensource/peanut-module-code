@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+VERSION='2.10.2'
+SHA256='5ee7125f8a30a34d246cefdc0bc85b8a783b28f2aec968994118512350d28027'
+DOWNLOAD_URL="https://getcomposer.org/download/${VERSION}/composer.phar"
+TOOL_DIR="$ROOT/.local/toolchain"
+PHAR="$TOOL_DIR/composer-${VERSION}.phar"
+
+fail() {
+  printf 'project-composer: %s\n' "$*" >&2
+  exit 1
+}
+
+verify() {
+  [[ -f "$PHAR" && ! -L "$PHAR" ]] || fail "Composer ${VERSION} is not prepared; run scripts/project-composer prepare"
+  actual_sha256="$(shasum -a 256 "$PHAR" | awk '{print $1}')"
+  [[ "$actual_sha256" == "$SHA256" ]] || fail "refusing mismatched Composer file: .local/toolchain/composer-${VERSION}.phar"
+}
+
+if [[ "${1:-}" == 'prepare' ]]; then
+  [[ $# -eq 1 ]] || fail 'usage: scripts/project-composer prepare'
+  if [[ -e "$PHAR" ]]; then
+    verify
+  else
+    command -v curl >/dev/null 2>&1 || fail 'curl is required to prepare Composer'
+    mkdir -p "$TOOL_DIR"
+    temporary="$(mktemp "$TOOL_DIR/.composer-${VERSION}.XXXXXX")"
+    cleanup() { rm -f -- "$temporary"; }
+    trap cleanup EXIT
+    curl --fail --location --proto '=https' --proto-redir '=https' --tlsv1.2 "$DOWNLOAD_URL" --output "$temporary"
+    actual_sha256="$(shasum -a 256 "$temporary" | awk '{print $1}')"
+    [[ "$actual_sha256" == "$SHA256" ]] || fail "downloaded Composer ${VERSION} digest mismatch"
+    chmod 0755 "$temporary"
+    mv "$temporary" "$PHAR"
+    trap - EXIT
+  fi
+  php "$PHAR" --version --no-ansi
+  exit 0
+fi
+
+verify
+exec php "$PHAR" "$@"

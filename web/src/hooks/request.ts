@@ -16,7 +16,8 @@ export default function useRequest<T>(
     loading.value = false;
   };
   const reload = async (showLoading = true): Promise<void> => {
-    const current = ++revision;
+    revision += 1;
+    const current = revision;
     loading.value = showLoading;
     error.value = null;
     try {
@@ -32,6 +33,6 @@ export default function useRequest<T>(
     }
   };
   if (getCurrentScope()) onScopeDispose(cancel);
-  void reload(isLoading);
+  reload(isLoading);
   return { loading, response, error, reload, cancel };
 }

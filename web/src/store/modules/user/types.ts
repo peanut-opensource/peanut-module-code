@@ -1,5 +1,5 @@
-import type { ServerMenuRecord } from '../app/types';
 import type { components } from '@/generated/openapi';
+import type { ServerMenuRecord } from '../app/types';
 
 export type RoleType = '' | '*' | 'admin' | 'user';
 export interface ActionPermissionBinding {

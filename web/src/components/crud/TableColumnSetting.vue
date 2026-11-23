@@ -90,9 +90,9 @@
     );
   function applyVisibility(keys: readonly string[]) {
     const visible = new Set(keys);
-    for (const column of columns.value) {
+    columns.value.forEach((column) => {
       column.visible = visible.has(column.key);
-    }
+    });
   }
   defineExpose({ applyVisibility });
   const list = ref<HTMLElement>();

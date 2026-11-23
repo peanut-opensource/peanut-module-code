@@ -31,14 +31,15 @@ export default async function printContent(content: HTMLElement) {
     if (!target || !preview) throw new Error('无法创建打印文档');
 
     target.title = document.title;
-    for (const [source, destination] of [
+    const documentElements = [
       [document.documentElement, target.documentElement],
       [document.body, target.body],
-    ]) {
+    ];
+    documentElements.forEach(([source, destination]) => {
       destination.className = source.className;
       const style = source.getAttribute('style');
       if (style) destination.setAttribute('style', style);
-    }
+    });
     const base = target.createElement('base');
     base.href = document.baseURI;
     target.head.append(base);
@@ -88,7 +89,7 @@ export default async function printContent(content: HTMLElement) {
           ...pending,
           ...images.map((element) => element.decode().catch(() => undefined)),
         ]).then(() => {
-          if (!frame.isConnected) return;
+          if (!frame.isConnected) return undefined;
           // Apply the cloned styles before waiting for the fonts used by the content.
           copy.getBoundingClientRect();
           return target.fonts.ready;
