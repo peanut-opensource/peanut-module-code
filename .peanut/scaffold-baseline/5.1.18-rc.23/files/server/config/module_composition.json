@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "protocol": "peanut.application-module-composition.v1",
+  "version": "1.0.0",
+  "mandatory": [
+    "peanut.identity",
+    "peanut.file",
+    "peanut.settings",
+    "peanut.reference-codes",
+    "peanut.integration",
+    "peanut.ops"
+  ],
+  "default": [],
+  "optional": []
+}

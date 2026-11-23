@@ -1,0 +1,11 @@
+parameters:
+    customRulesetUsed: true
+    paths:
+        - app/adminapi
+        - app/api
+
+services:
+    -
+        class: PeanutAdmin\PHPStan\Rules\TenantRawQueryRule
+        tags:
+            - phpstan.rules.rule
