@@ -472,6 +472,55 @@ test(
       }
     );
     await check(
+      'both tenants navigate to the article list and fetch it in the browser',
+      async () => {
+        await Promise.all(
+          pages.map(async (page, index) => {
+            const host = hosts[index];
+            const tenant = index === 0 ? 'Tenant A' : 'Tenant B';
+            const other = index === 0 ? 'Tenant B' : 'Tenant A';
+            const response = await page.goto(
+              `http://${host}/information/detail/1`
+            );
+            assert.equal(response.status(), 200);
+            await assertArticle(page, tenant, other);
+            const documentStart = await page.evaluate(
+              () => performance.timeOrigin
+            );
+            const request = page.waitForRequest((candidate) => {
+              const url = new URL(candidate.url());
+              return (
+                url.hostname === host &&
+                url.pathname === '/api/article/lists' &&
+                candidate.method() === 'GET'
+              );
+            });
+            await Promise.all([
+              request,
+              page
+                .locator('header')
+                .getByRole('link', { name: '资讯', exact: true })
+                .click(),
+            ]);
+            await page.waitForURL(`http://${host}/information`);
+            await page
+              .getByRole('heading', { name: `${tenant} article`, exact: true })
+              .waitFor();
+            assert.equal(
+              await page
+                .getByRole('heading', { name: `${other} article`, exact: true })
+                .count(),
+              0
+            );
+            assert.equal(
+              await page.evaluate(() => performance.timeOrigin),
+              documentStart
+            );
+          })
+        );
+      }
+    );
+    await check(
       'browser execution completed without script errors or unsafe dialogs',
       () => {
         assert.deepEqual(pageErrors, []);

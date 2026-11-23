@@ -87,6 +87,10 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    // Element Plus uses both package formats; keep one Nitro module identity.
+    externals: {
+      inline: ['@ctrl/tinycolor'],
+    },
     ...(process.env.PEANUT_PC_RELEASE_STATIC === '1'
       ? {
           output: {
