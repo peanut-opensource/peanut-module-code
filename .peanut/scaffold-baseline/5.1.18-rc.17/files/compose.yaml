@@ -1,0 +1,4 @@
+# APP source checkout convenience entry. Select server/docker/.env explicitly;
+# released server-only packages start through server/docker/scripts/start.sh.
+include:
+  - deploy/docker-compose.prod.yml

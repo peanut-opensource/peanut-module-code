@@ -1,0 +1,19 @@
+includes:
+    - phpstan/quality-sources.php
+
+parameters:
+    level: 5
+    tmpDir: runtime/phpstan-quality
+    paths:
+        - app
+    stubFiles:
+        - phpstan/thinkorm.stub
+    # A connection, file or stream may change state between reads.
+    rememberPossiblyImpureFunctionValues: false
+    reportUnmatchedIgnoredErrors: true
+
+services:
+    -
+        class: PeanutAdmin\PHPStan\Rules\TenantRawQueryRule
+        tags:
+            - phpstan.rules.rule
