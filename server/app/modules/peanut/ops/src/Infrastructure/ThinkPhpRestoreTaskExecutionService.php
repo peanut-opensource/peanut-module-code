@@ -138,9 +138,11 @@ final readonly class ThinkPhpRestoreTaskExecutionService implements RestoreTaskE
         $canonical = $evidence->canonicalJson();
         $data = $evidence->toArray();
 
-        return $this->transaction(function () use ($taskKey, $executionRevision, $canonical, $data): array {
+        return $this->transaction(function () use ($taskKey, $executionRevision, $evidence, $canonical, $data): array {
             $task = $this->taskForUpdate($taskKey);
             $payload = $this->payload($task);
+            $backup = $this->backupEvidence($payload['backup_reference_key']);
+            $evidence->assertMatchesManifest($backup['manifest']);
             $existing = $this->restoreEvidence($taskKey);
             $evidenceSha256 = hash('sha256', $canonical);
             if ($existing !== null) {
@@ -152,15 +154,6 @@ final readonly class ThinkPhpRestoreTaskExecutionService implements RestoreTaskE
             if ((string) $task['status'] !== 'running' || (int) $task['revision'] !== $executionRevision) {
                 throw new RuntimeException('OPS_RESTORE_EXECUTION_FENCED');
             }
-            $backup = $this->backupEvidence($payload['backup_reference_key']);
-            if (!hash_equals($payload['backup_reference_key'], (string) $data['backup_reference_key'])
-                || !hash_equals((string) $backup['manifest_sha256'], (string) $data['manifest_sha256'])
-                || !hash_equals((string) $backup['source_commit'], (string) $data['source']['commit'])
-                || !hash_equals((string) $backup['source_tree'], (string) $data['source']['tree'])
-            ) {
-                throw new RuntimeException('OPS_RESTORE_EVIDENCE_INVALID');
-            }
-
             $verification = $data['verification'];
             $isolation = $data['isolation'];
             Db::name('ops_restore_evidence')->insert([
@@ -299,9 +292,12 @@ final readonly class ThinkPhpRestoreTaskExecutionService implements RestoreTaskE
         $manifest = PairedBackupManifest::fromJson((string) $row['manifest_json']);
         if (!hash_equals((string) $row['manifest_sha256'], hash('sha256', $manifest->canonicalJson()))
             || !hash_equals($backupReferenceKey, $manifest->backupReferenceKey())
+            || $row['source_commit'] !== $manifest->toArray()['source']['commit']
+            || $row['source_tree'] !== $manifest->toArray()['source']['tree']
         ) {
             throw new RuntimeException('OPS_RESTORE_ARTIFACT_INVALID');
         }
+        $row['manifest'] = $manifest;
         return $row;
     }
 

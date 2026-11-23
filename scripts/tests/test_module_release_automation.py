@@ -135,6 +135,61 @@ class ModuleAutomationTest(unittest.TestCase):
         self.assertEqual(self.f.calls, [])
         self.assertFalse((Path(self.temp.name) / 'output').exists())
 
+    def test_withdrawal_only_releases_one_v3_index_and_reuses_every_payload(self):
+        withdrawals = [{'key': 'peanut.file', 'version': '1.0.0', 'reason': 'Maintenance fix required'}]
+        policy_path = P['WITHDRAWAL_POLICY_PATH']
+        self.f.write(policy_path, json.dumps(withdrawals))
+        commit = self.f.commit('reviewed policy')
+        plan = self.plan()
+        self.assertEqual(plan['withdrawn'], withdrawals)
+        self.assertEqual(plan['status'], 'changes')
+        self.assertEqual(plan['summary']['changed'], 0)
+        index = self.build(plan)
+        self.assertEqual(index['schema_version'], 3)
+        self.assertEqual(index['withdrawn'], withdrawals)
+        self.assertEqual(self.f.calls, [])
+        self.assertEqual(sorted(p.name for p in (Path(self.temp.name) / 'output').glob('*.tar')), [])
+        self.assertEqual(PLAN(self.f.root, commit, json.dumps(index).encode())['status'], 'no_module_release_needed')
+        self.f.write(policy_path, '[]')
+        later = self.f.commit('withdrawal omitted')
+        with self.assertRaisesRegex(RuntimeError, 'POLICY_REGRESSION'):
+            PLAN(self.f.root, later, json.dumps(index).encode())
+
+    def test_v3_policy_must_be_a_complete_explicit_list(self):
+        prior = C['read_index'](self.f.raw, self.f.index['tag'])
+        index = dict(prior, schema_version=3, protocol='peanut.module-release-index.v3')
+        for row in index['modules']:
+            row.update(artifact_tag=index['tag'], source_sha256='a' * 64)
+        for policy in (None, {}, [{'key': 'peanut.file', 'version': '1.0.0', 'reason': ' '}]):
+            with self.assertRaisesRegex(RuntimeError, 'POLICY_INVALID'):
+                C['read_index'](json.dumps(dict(index, withdrawn=policy)).encode(), index['tag'])
+        with self.assertRaisesRegex(RuntimeError, 'POLICY_INVALID'):
+            C['read_index'](json.dumps(index).encode(), index['tag'])
+        self.assertEqual(C['read_index'](json.dumps(dict(index, withdrawn=[])).encode(), index['tag'])['withdrawn'], [])
+
+    def test_history_requires_cross_channel_cumulative_policy_and_known_version(self):
+        prior = C['read_index'](self.f.raw, self.f.index['tag'])
+        row = {'key': 'peanut.file', 'version': '1.0.0', 'reason': 'Compatibility fix required'}
+        prior.update(schema_version=3, protocol='peanut.module-release-index.v3', withdrawn=[row])
+        for entry in prior['modules']:
+            entry.update(artifact_tag=prior['tag'], source_sha256='a' * 64)
+        assets = [{'name': 'module-release-index.json'}] + [
+            {'name': item['asset'], 'digest': 'sha256:' + item['sha256'], 'size': item['bytes']}
+            for item in prior['modules']]
+        release = {'tag_name': prior['tag'], 'id': 1, 'draft': False, 'published_at': '2026-01-01T00:00:00Z'}
+        audit = PUB['history_check']
+        with patch.dict(audit.__globals__, {
+            'pages': lambda route: iter(assets if route.endswith('/assets') else [release]),
+            'asset_read': lambda *_: json.dumps(prior).encode(),
+        }):
+            next_index = dict(prior, tag='v1.0.0')
+            self.assertIsNone(audit(next_index))
+            for policy in ([], [dict(row, reason='Changed')]):
+                with self.assertRaisesRegex(RuntimeError, 'POLICY_REGRESSION'):
+                    audit(dict(next_index, withdrawn=policy))
+            with self.assertRaisesRegex(RuntimeError, 'POLICY_UNKNOWN_VERSION'):
+                audit(dict(next_index, withdrawn=[row, dict(row, version='9.9.9')]))
+
     def test_one_change_packs_one_and_checks_reverse_dependency(self):
         plan = self.changed()
         self.assertEqual(plan['summary'], {'unchanged': 1, 'changed': 1, 'blocked': 0})

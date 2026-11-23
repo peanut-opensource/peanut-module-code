@@ -20,6 +20,8 @@ artifact_tag = CATALOG['artifact_tag']
 module_identity = CATALOG['module_identity']
 canonical = CATALOG['canonical']
 compare_versions = CATALOG['compare_versions']
+withdrawals = CATALOG['withdrawals']
+WITHDRAWAL_POLICY_PATH = 'scripts/module-release-withdrawals.json'
 
 REPO = "peanut-opensource/peanut-module-code"
 # Same strict SemVer grammar as the CLI's protocol.js (numeric identifiers
@@ -207,6 +209,13 @@ def make_plan(root, commit, baseline_bytes, channel='prerelease'):
     source_ready(root, commit)
     index = read_index(baseline_bytes, json.loads(baseline_bytes)['tag']) if baseline_bytes else None
     baseline = index['commit'] if index else None
+    policy = None
+    if run(['git', 'ls-tree', '--name-only', commit, '--', WITHDRAWAL_POLICY_PATH], root).strip():
+        policy = withdrawals(json.loads(run(['git', 'show', f'{commit}:{WITHDRAWAL_POLICY_PATH}'], root)))
+    previous_policy = withdrawals(index['withdrawn']) if index and 'withdrawn' in index else None
+    if previous_policy is not None and (policy is None or any(policy.get(key) != reason for key, reason in previous_policy.items())):
+        raise RuntimeError('MODULE_RELEASE_POLICY_REGRESSION')
+    policy_changed = policy != previous_policy
     if baseline:
         run(['git', 'merge-base', '--is-ancestor', baseline, commit], root)
     previous = {row['key']: row for row in index['modules']} if index else {}
@@ -217,7 +226,9 @@ def make_plan(root, commit, baseline_bytes, channel='prerelease'):
         older = previous.get(key)
         if key not in current:
             # A stable catalog cannot silently omit a previously stable Module.
-            changes.append({'key': key, 'from': older['version'], 'to': None, 'status': 'removed_requires_review'})
+            retired = policy is not None and (key, older['version']) in policy
+            changes.append({'key': key, 'from': older['version'], 'to': None,
+                            'status': 'withdrawn' if retired else 'removed_requires_review'})
             continue
         row = current[key]
         _, paths = source_paths_at(root, commit, key)
@@ -263,10 +274,13 @@ def make_plan(root, commit, baseline_bytes, channel='prerelease'):
               'producer_sha256': source_fingerprint(root, commit, producer_paths),
               'summary': {'unchanged': sum(r['status'] == 'unchanged' for r in changes),
                           'changed': len(changed), 'blocked': len(blocked)},
-              'status': 'blocked' if blocked else 'changes' if changed else 'no_module_release_needed',
+              'status': 'blocked' if blocked else 'changes' if changed or policy_changed else 'no_module_release_needed',
               'modules': changes, 'records': records, 'blockers': blocked,
               'validation_modules': sorted(affected),
               'verification': 'source delta only; native package checks and consumer runtime evidence are distinct'}
+    if policy is not None:
+        report['withdrawn'] = [{'key': key, 'version': version, 'reason': reason}
+                               for (key, version), reason in sorted(policy.items())]
     report['plan_sha256'] = digest(canonical(report))
     return report
 
@@ -464,6 +478,8 @@ def build(root, output, tag, channel, commit, plan=None, resume=False, store=Non
         source_ready(root, commit)
         index = {'schema_version': 2, 'protocol': 'peanut.module-release-index.v2',
                  'repository': REPO, 'tag': tag, 'commit': commit, 'modules': completed}
+        if 'withdrawn' in plan:
+            index.update(schema_version=3, protocol='peanut.module-release-index.v3', withdrawn=plan['withdrawn'])
         raw = json.dumps(index, indent=2, ensure_ascii=False).encode() + b'\n'
         read_index(raw, tag)
         target = output / 'module-release-index.json'

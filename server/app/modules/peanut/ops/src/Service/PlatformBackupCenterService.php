@@ -139,6 +139,12 @@ final readonly class PlatformBackupCenterService
             }
             $evidence = RestoreVerificationEvidence::fromJson((string) $row['evidence_json']);
             $data = $evidence->toArray();
+            $backup = Db::name('ops_backup_evidence')->where('backup_reference_key', $row['backup_reference_key'])
+                ->field('manifest_json,manifest_sha256')->find();
+            if (!is_array($backup) || $backup['manifest_sha256'] !== $data['manifest_sha256']) {
+                throw new \RuntimeException('OPS_RESTORE_EVIDENCE_INVALID');
+            }
+            $evidence->assertMatchesManifest(PairedBackupManifest::fromJson((string) $backup['manifest_json']));
             if ((string) $row['target_key'] !== PairedBackupProvider::RESTORE_TARGET_KEY
                 || !hash_equals(hash('sha256', $evidence->canonicalJson()), (string) $row['evidence_sha256'])
                 || !hash_equals($data['backup_reference_key'], (string) $row['backup_reference_key'])

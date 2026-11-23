@@ -88,6 +88,8 @@ def local_catalog(directory):
 def history_check(index, resume_draft=False):
     current = {(row["key"], row["version"]): row for row in index["modules"]}
     existing_draft = None
+    policy = CATALOG["withdrawals"](index["withdrawn"]) if "withdrawn" in index else None
+    historical_versions = set()
     for release in pages(f"{API}/releases"):
         if release["tag_name"] == index["tag"]:
             if not resume_draft or existing_draft is not None:
@@ -99,6 +101,12 @@ def history_check(index, resume_draft=False):
         if len(matches) != 1:
             raise RuntimeError("MODULE_RELEASE_HISTORY_INDEX_MISSING: " + release["tag_name"])
         previous = index_read(asset_read(release, matches[0]), release["tag_name"])
+        if release.get("draft") is False and release.get("published_at"):
+            historical_versions.update((row["key"], row["version"]) for row in previous["modules"])
+            if "withdrawn" in previous:
+                older_policy = CATALOG["withdrawals"](previous["withdrawn"])
+                if policy is None or any(policy.get(key) != reason for key, reason in older_policy.items()):
+                    raise RuntimeError("MODULE_RELEASE_POLICY_REGRESSION")
         for row in previous["modules"]:
             if artifact_tag(previous, row) != previous['tag']:
                 origin = STORE.reference(previous, row)
@@ -111,6 +119,8 @@ def history_check(index, resume_draft=False):
             candidate = current.get((row["key"], row["version"]))
             if candidate is not None and module_identity(candidate) != module_identity(row):
                 raise RuntimeError("MODULE_RELEASE_VERSION_IMMUTABLE: " + row["key"] + "@" + row["version"])
+    if policy is not None and not set(policy) <= historical_versions | current.keys():
+        raise RuntimeError("MODULE_RELEASE_POLICY_UNKNOWN_VERSION")
     return existing_draft
 
 

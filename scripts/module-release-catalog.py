@@ -71,18 +71,37 @@ def module_identity(row):
     return {name: row[name] for name in fields}
 
 
+def withdrawals(rows):
+    require(isinstance(rows, list) and len(rows) <= 10_000, "POLICY_INVALID")
+    policy = {}
+    for row in rows:
+        require(isinstance(row, dict) and set(row) == {"key", "version", "reason"}, "POLICY_INVALID")
+        key, version, reason = row["key"], row["version"], row["reason"]
+        require(isinstance(key, str) and KEY.fullmatch(key)
+                and isinstance(version, str) and SEMVER.fullmatch(version)
+                and isinstance(reason, str) and reason.strip()
+                and len(reason.encode()) <= 240 and not any(ord(c) < 32 or ord(c) == 127 for c in reason)
+                and (key, version) not in policy, "POLICY_INVALID")
+        policy[key, version] = reason
+    return policy
+
+
 def read_index(data, tag):
     require(len(data) <= 4 * 1024 * 1024, "INDEX_TOO_LARGE")
     index = json.loads(data)
     require(isinstance(index, dict), "INDEX_INVALID")
     schema = index.get("schema_version")
-    require(type(schema) is int and schema in (1, 2)
+    require(type(schema) is int and schema in (1, 2, 3)
             and index.get("protocol") == f"peanut.module-release-index.v{schema}"
             and index.get("repository") == REPO and index.get("tag") == tag
             and isinstance(tag, str) and TAG.fullmatch(tag)
             and isinstance(index.get("commit"), str) and SHA1.fullmatch(index["commit"])
             and isinstance(index.get("modules"), list) and 0 < len(index["modules"]) <= 100,
             "INDEX_INVALID")
+    if schema == 3:
+        withdrawals(index.get("withdrawn"))
+    else:
+        require("withdrawn" not in index, "POLICY_INVALID")
     seen = set()
     for row in index["modules"]:
         require(isinstance(row, dict), "INDEX_ROW_INVALID")
@@ -99,7 +118,7 @@ def read_index(data, tag):
                 and isinstance(row.get("kernel_constraint"), str) and row["kernel_constraint"]
                 and isinstance(row.get("dependencies"), list)
                 and ("-rc." in tag or "-" not in version.split("+")[0]), "INDEX_ROW_INVALID")
-        if schema == 2:
+        if schema >= 2:
             require(isinstance(row.get("artifact_tag"), str) and TAG.fullmatch(row["artifact_tag"])
                     and isinstance(row.get("source_sha256"), str) and SHA256.fullmatch(row["source_sha256"]),
                     "INDEX_REFERENCE_INVALID")
