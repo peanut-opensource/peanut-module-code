@@ -3,13 +3,13 @@ interface ModuleAppConfig {
   moduleKeys: string[];
 }
 
-// Nuxt's generated config augments both the public facade and the schema package.
+// Nuxt 4 merges CustomAppConfig into its generated input and runtime config types.
 declare module 'nuxt/schema' {
-  interface AppConfig extends ModuleAppConfig {}
+  interface CustomAppConfig extends ModuleAppConfig {}
 }
 
 declare module '@nuxt/schema' {
-  interface AppConfig extends ModuleAppConfig {}
+  interface CustomAppConfig extends ModuleAppConfig {}
 }
 
 export {};

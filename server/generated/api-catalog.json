@@ -4,11 +4,11 @@
     "inputs": [
         {
             "path": "modules.lock",
-            "sha256": "53289fa29c465cbbb364b29770570b102c2437a6056f343179a1fa4cea6ecc05"
+            "sha256": "7fb5f24bf6177894ced309034257dddc451bb692ba89dfe07d18e89e6f7aeb58"
         },
         {
             "path": "release-versions.json",
-            "sha256": "1155c0d63f0f3c8ba0c6ba946e47f00af227fd7a8bcdd283b43ac1ed0a8dc2f9"
+            "sha256": "9ef82c9b49e4e1fc910d69a59c328f460c8d195b907763f4c012d06fad9f5a60"
         },
         {
             "path": "server/app/api/metadata/application/adminapi.php",
@@ -28,7 +28,7 @@
         },
         {
             "path": "server/app/api/metadata/application/platform.php",
-            "sha256": "8fe9567724c9c22d59bb221c35f72b7737a42c1e58f430c61ead456b4ba4a66a"
+            "sha256": "d73aae19c40c59bf86bdb8ee71efe2e746cb91d5f7ef6884ff4a38bb45ca770e"
         },
         {
             "path": "server/app/api/metadata/application/shared.php",
@@ -36,7 +36,7 @@
         },
         {
             "path": "server/app/api/metadata/contracts/openapi.json",
-            "sha256": "4b32dc63eecc657718ac1b02f2c9e12134fa76bfbddc87261db55e130f4a2488"
+            "sha256": "5f72421ea2fdcd678a4c6f845a3c4416b7bd80edfe672dc1570cc450fc02361f"
         },
         {
             "path": "server/app/modules/custom/ai_access/api/metadata/openapi.php",
@@ -80,7 +80,7 @@
         },
         {
             "path": "server/app/modules/peanut/file/api/metadata/openapi.php",
-            "sha256": "b581ee90d591c7ac081a5a26a0e11526cfe9c3f2153af872b57c0e097da174d8"
+            "sha256": "d1f66de7e2df4349e10d1ed089770bb0fd9e66d0f2278b3b75b409e284128c46"
         },
         {
             "path": "server/app/modules/peanut/file/route/app.php",
@@ -192,7 +192,7 @@
         },
         {
             "path": "server/route/platform.php",
-            "sha256": "7d8f6af4bd4b030fdd067c1930b6d00d1bc95a547d04452acd260644c5085eba"
+            "sha256": "b1934f31b70c78d17b673e8978c1d0270c0fca56f13680608b69d22cacfa6a21"
         },
         {
             "path": "server/route/public_api.php",
@@ -216,36 +216,36 @@
         ]
     },
     "summary": {
-        "route_count": 483,
-        "generated_api_operations": 457,
+        "route_count": 484,
+        "generated_api_operations": 458,
         "route_only_operations": 26,
-        "complete_operations": 452,
+        "complete_operations": 453,
         "partial_operations": 5,
-        "runtime_routes": 483,
-        "documented_operations": 457,
+        "runtime_routes": 484,
+        "documented_operations": 458,
         "undocumented_routes": 26,
-        "automatic_route_metadata": 483,
+        "automatic_route_metadata": 484,
         "requires_owner_contract": 26,
         "owners": 21,
         "runtime_inventory": {
-            "total": 483,
+            "total": 484,
             "methods": {
                 "DELETE": 3,
                 "GET": 213,
-                "POST": 257,
+                "POST": 258,
                 "PUT": 10
             },
             "applications": {
                 "adminapi": 342,
                 "api": 47,
                 "installation": 9,
-                "platform": 85
+                "platform": 86
             },
             "owners": {
                 "application:adminapi": 99,
                 "application:api": 7,
                 "application:installation": 9,
-                "application:platform": 74,
+                "application:platform": 75,
                 "module:custom.ai-access": 5,
                 "module:custom.ai-assistant": 20,
                 "module:peanut.article": 39,
@@ -271,7 +271,7 @@
         "application:adminapi": 99,
         "application:api": 7,
         "application:installation": 9,
-        "application:platform": 74,
+        "application:platform": 75,
         "module:custom.ai-access": 5,
         "module:custom.ai-assistant": 20,
         "module:peanut.article": 39,
@@ -14493,7 +14493,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 127
+                "line": 131
             },
             "documented": true,
             "openapi_operation_id": "getInstanceModuleTask",
@@ -14545,7 +14545,8 @@
             "errors": [
                 401,
                 403,
-                422
+                422,
+                500
             ],
             "middleware": [
                 {
@@ -15045,7 +15046,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 217
+                "line": 221
             },
             "documented": true,
             "openapi_operation_id": "listTenantPlans",
@@ -15236,7 +15237,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 142
+                "line": 146
             },
             "documented": true,
             "openapi_operation_id": "listPlatformTenantEntryBindings",
@@ -15304,7 +15305,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 232
+                "line": 236
             },
             "documented": true,
             "openapi_operation_id": "listPlatformTenants",
@@ -15578,7 +15579,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 226
+                "line": 230
             },
             "documented": true,
             "openapi_operation_id": "getTenantLicense",
@@ -15784,7 +15785,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 198
+                "line": 202
             },
             "documented": true,
             "openapi_operation_id": "listPlatformBackups",
@@ -15864,7 +15865,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 171
+                "line": 175
             },
             "documented": true,
             "openapi_operation_id": "downloadPlatformDiagnostics",
@@ -15945,7 +15946,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 160
+                "line": 164
             },
             "documented": true,
             "openapi_operation_id": "listPlatformOpsLogs",
@@ -16014,7 +16015,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 157
+                "line": 161
             },
             "documented": true,
             "openapi_operation_id": "getPlatformMaintenance",
@@ -16083,7 +16084,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 192
+                "line": 196
             },
             "documented": true,
             "openapi_operation_id": "listPlatformModuleOperations",
@@ -16153,7 +16154,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 154
+                "line": 158
             },
             "documented": true,
             "openapi_operation_id": "getPlatformOpsProviders",
@@ -16222,7 +16223,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 148
+                "line": 152
             },
             "documented": true,
             "openapi_operation_id": "getPlatformOpsStatus",
@@ -16291,7 +16292,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 201
+                "line": 205
             },
             "documented": true,
             "openapi_operation_id": "getPlatformOpsTask",
@@ -16360,7 +16361,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 151
+                "line": 155
             },
             "documented": true,
             "openapi_operation_id": "getPlatformUpgradeReadiness",
@@ -16429,7 +16430,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 195
+                "line": 199
             },
             "documented": true,
             "openapi_operation_id": "listPlatformUpgrades",
@@ -33137,7 +33138,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 115
+                "line": 119
             },
             "documented": true,
             "openapi_operation_id": "createInstanceModule",
@@ -33209,7 +33210,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 134
+                "line": 138
             },
             "documented": true,
             "openapi_operation_id": "disableInstanceModule",
@@ -33281,10 +33282,85 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 119
+                "line": 123
             },
             "documented": true,
             "openapi_operation_id": "installInstanceModule",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "5a2fdf878e0866bac460167af36cad36ee686a7843b0454e914aa08374c054d9",
+            "method": "POST",
+            "path": "/platformapi/instance-tools/modules/official-install",
+            "runtime_path": "/platformapi/instance-tools/modules/official-install",
+            "application": "platform",
+            "audience": "platform",
+            "owner": {
+                "type": "application",
+                "key": "platform"
+            },
+            "controller": "app\\platform\\controller\\PlatformModuleLifecycleController",
+            "action": "officialInstall",
+            "auth": {
+                "mode": "platform_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "platform.module.install"
+            ],
+            "prerequisite_permission_keys": [],
+            "permissions": [
+                {
+                    "kind": "platform_action",
+                    "key": "platform.module.install"
+                }
+            ],
+            "errors": [
+                401,
+                403,
+                409,
+                422,
+                500,
+                503
+            ],
+            "middleware": [
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformLoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
+                    "arguments": [
+                        "platform.module.install"
+                    ]
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformInstanceToolMiddleware",
+                    "arguments": []
+                }
+            ],
+            "source": {
+                "file": "server/route/platform.php",
+                "line": 111
+            },
+            "documented": true,
+            "openapi_operation_id": "installOfficialInstanceModule",
             "contract_quality": "complete",
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts"
@@ -33333,7 +33409,10 @@
             "errors": [
                 401,
                 403,
-                422
+                409,
+                422,
+                500,
+                503
             ],
             "middleware": [
                 {
@@ -33353,7 +33432,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 111
+                "line": 115
             },
             "documented": true,
             "openapi_operation_id": "updateOfficialInstanceModule",
@@ -33425,7 +33504,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 138
+                "line": 142
             },
             "documented": true,
             "openapi_operation_id": "syncInstanceModuleCatalog",
@@ -33497,7 +33576,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 130
+                "line": 134
             },
             "documented": true,
             "openapi_operation_id": "uninstallInstanceModule",
@@ -33569,7 +33648,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 123
+                "line": 127
             },
             "documented": true,
             "openapi_operation_id": "updateInstanceModule",
@@ -33637,7 +33716,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 244
+                "line": 248
             },
             "documented": true,
             "openapi_operation_id": "activatePlatformOperator",
@@ -33705,7 +33784,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 250
+                "line": 254
             },
             "documented": true,
             "openapi_operation_id": "closePlatformOperator",
@@ -33773,7 +33852,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 235
+                "line": 239
             },
             "documented": true,
             "openapi_operation_id": "createPlatformOperator",
@@ -33841,7 +33920,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 241
+                "line": 245
             },
             "documented": true,
             "openapi_operation_id": "replacePlatformOperatorRoles",
@@ -33909,7 +33988,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 247
+                "line": 251
             },
             "documented": true,
             "openapi_operation_id": "suspendPlatformOperator",
@@ -33977,7 +34056,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 238
+                "line": 242
             },
             "documented": true,
             "openapi_operation_id": "updatePlatformOperator",
@@ -34117,7 +34196,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 220
+                "line": 224
             },
             "documented": true,
             "openapi_operation_id": "createTenantPlan",
@@ -34185,7 +34264,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 259
+                "line": 263
             },
             "documented": true,
             "openapi_operation_id": "archivePlatformRole",
@@ -34253,7 +34332,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 253
+                "line": 257
             },
             "documented": true,
             "openapi_operation_id": "createPlatformRole",
@@ -34321,7 +34400,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 262
+                "line": 266
             },
             "documented": true,
             "openapi_operation_id": "replacePlatformRolePermissions",
@@ -34389,7 +34468,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 256
+                "line": 260
             },
             "documented": true,
             "openapi_operation_id": "updatePlatformRole",
@@ -34620,7 +34699,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 204
+                "line": 208
             },
             "documented": true,
             "openapi_operation_id": "disablePlatformTenantEntryBinding",
@@ -34688,7 +34767,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 145
+                "line": 149
             },
             "documented": true,
             "openapi_operation_id": "enablePlatformTenantEntryBinding",
@@ -34756,7 +34835,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 207
+                "line": 211
             },
             "documented": true,
             "openapi_operation_id": "activatePlatformTenant",
@@ -34824,7 +34903,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 213
+                "line": 217
             },
             "documented": true,
             "openapi_operation_id": "closePlatformTenant",
@@ -35164,7 +35243,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 210
+                "line": 214
             },
             "documented": true,
             "openapi_operation_id": "suspendPlatformTenant",
@@ -35233,7 +35312,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 168
+                "line": 172
             },
             "documented": true,
             "openapi_operation_id": "closePlatformMaintenance",
@@ -35302,7 +35381,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 176
+                "line": 180
             },
             "documented": true,
             "openapi_operation_id": "submitPlatformBackup",
@@ -35383,7 +35462,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 187
+                "line": 191
             },
             "documented": true,
             "openapi_operation_id": "submitPlatformModuleOperation",
@@ -35452,7 +35531,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 179
+                "line": 183
             },
             "documented": true,
             "openapi_operation_id": "submitPlatformRestore",
@@ -35533,7 +35612,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 182
+                "line": 186
             },
             "documented": true,
             "openapi_operation_id": "submitPlatformUpgrade",
@@ -36137,7 +36216,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 223
+                "line": 227
             },
             "documented": true,
             "openapi_operation_id": "updateTenantPlan",
@@ -36207,7 +36286,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 229
+                "line": 233
             },
             "documented": true,
             "openapi_operation_id": "updateTenantLicense",
@@ -36276,7 +36355,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 165
+                "line": 169
             },
             "documented": true,
             "openapi_operation_id": "schedulePlatformMaintenance",

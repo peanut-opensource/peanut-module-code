@@ -51,9 +51,9 @@ peanut module pack custom.example --prepare-candidate --plan-only
 peanut module pack custom.example --prepare-candidate
 ```
 
-原生等价入口为应用 `server` 目录下的 `php think module:pack custom.example --prepare-candidate`。只读计划返回旧版、下一版和精确文件清单；不写源码、锁或归档。执行准备要求原有 development/debug 本地 CLI 身份，将 `module.json`、同模块 `composer.json` 和各已声明客户端 `package.json` 同步到下一待发 patch 的 `rc.1`：例如 `1.2.3` → `1.2.4-rc.1`，已有 `1.2.4-rc.1` → `1.2.4-rc.2`。三类声明须事先同号；其他预发行格式须由作者先明确目标，不猜正式版本。准备不接受归档或签名参数，不生成归档；普通 pack 不修改源码或升版。
+使用上述 `peanut module pack` 入口，由应用自己的原生模块命令执行候选准备。只读计划返回旧版、下一版和精确文件清单；不写源码、锁或归档。执行准备要求原有 development/debug 本地 CLI 身份，将 `module.json`、同模块 `composer.json` 和各已声明客户端 `package.json` 同步到下一待发 patch 的 `rc.1`：例如 `1.2.3` → `1.2.4-rc.1`，已有 `1.2.4-rc.1` → `1.2.4-rc.2`。三类声明须事先同号；其他预发行格式须由作者先明确目标，不猜正式版本。准备不接受归档或签名参数，不生成归档；普通 pack 不修改源码或升版。
 
-准备后审阅差异，沿 `peanut module lock --write` 刷新原生模块锁，用应用已有 Composer/workspace 入口仅准备受影响依赖。例如宿主确实消费该 path 包时，在 `server` 目录执行 `composer update <计划返回的composer_package> --no-scripts --no-plugins`，审阅原生锁差异；宿主精确约束若仍指旧版，先按候选选择更新对应声明。workspace 依赖声明变化时用其原生包管理器更新锁；仅包自身版本变化且锁不编码该版本时无需空跑。不得手改锁摘要，也不把尚未完成的锁/依赖准备称为候选可采用。
+准备后审阅差异，沿 `peanut module lock --write` 刷新原生模块锁，再准备下一个模块候选。所有候选声明就绪后，用应用已有 Composer/workspace 入口统一准备受影响依赖；若本次使用 `scripts/deploy-update.sh --prepare-release`，由它统一更新宿主精确依赖、原生锁和客户端产物，无需提前重复执行单包依赖准备。例如宿主确实消费该 path 包时，在 `server` 目录执行 `composer update <计划返回的composer_package> --no-scripts --no-plugins`，审阅原生锁差异；宿主精确约束若仍指旧版，先按候选选择更新对应声明。workspace 依赖声明变化时用其原生包管理器更新锁；仅包自身版本变化且锁不编码该版本时无需空跑。不得手改锁摘要，也不把尚未完成的锁/依赖准备称为候选可采用。
 
 最终固定源码与原生锁后执行普通 `peanut module pack custom.example`，使用版本派生的默认输出路径；再按原生只读安装计划验证固定归档和 SHA。同版本内容不可变，修改来源后重新准备下一个 N，不换目录或文件名复用已占版本；同号同内容可复用原件，不能只改 tar 名或加 `+local` 掩盖变化。已经使用稳定号的本地包继续保留，后续不同内容使用更高 patch。正式发布不得覆盖本地已占用的稳定号。`custom.*` 本地候选不进入官方 `peanut.*` 发行索引；本地 RC、官方 prerelease、正式 published 和应用 adopted 分别记录。
 

@@ -1,0 +1,1 @@
+function r(r){if(void 0===r||""===r)return"service";if("privacy"===r||"service"===r)return r;throw new Error("POLICY_KIND_INVALID")}function e(r){if("string"!=typeof r||!/^[1-9][0-9]*$/.test(r))throw new Error("PAGE_ID_INVALID");const e=Number(r);if(!Number.isSafeInteger(e))throw new Error("PAGE_ID_INVALID");return e}export{e as a,r as p};

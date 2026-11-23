@@ -34,6 +34,12 @@ PHP 的 `local-core-composer` 仅在 ignored `.local/composer-core/composer.json
 
 已准备依赖的只读核验也沿用这项显式选择：确认已安装 Core 路径为所选源码后，模块的 Core 约束取现有 `.local/composer-core/composer.json` 内对应模块的开发投影，再由 Composer Semver 核验实际安装版本。其他依赖、PHP 与扩展仍按模块原声明核验；没有本地 Core 选择时，全部保留正式约束。核验不生成投影、不运行 Composer；缺少对应投影须先走上述原生准备入口，不改正式约束或把开发分支伪装成发行版本。
 
+## 固定依赖的兼容声明
+
+PC 使用固定 Nuxt / `@nuxt/kit` `4.6.4`、Vue Router `5.4.0`、Pinia `3.0.4` 与 `@pinia/nuxt` `0.11.3`，由原生 pnpm 锁定完整依赖图并执行 `--strict-peer-dependencies`。这组版本同时满足 Nuxt 的 Vue / Router 依赖和 Router 的 Pinia peer；不再保留 Nuxt 3 CLI/schema 或 Vite 的兼容覆盖。[Nuxt 官方维护计划](https://nuxt.com/docs/4.x/community/roadmap/)已将 Nuxt 3 列为结束维护。升级时必须核对所选 Node 的实际版本与 Nuxt engines，以及直接依赖是否和 Nuxt 共享同一 Vue / Router 实例。
+
+`pc/nuxt.config.ts` 显式保留 `srcDir: '.'`，延续现有页面、组件和模块贡献路径；这是 [Nuxt 4 官方迁移指南](https://nuxt.com/docs/4.x/getting-started/upgrade#new-directory-structure)支持的目录形式。继续使用默认 Nitro 2 / h3 v1 及现有公开 SSR 白名单；私有页面必须保留 `private, no-store` 与 `noindex`，服务端 API 仍通过固定上游和受控请求头转发。框架升级须验证实际 hybrid 构建与 SPA 发布、模块页面 / 组件注册及这些隐私边界。Core 的 Nuxt 传输适配器只接收调用方注入的 `$fetch`，未改变其代码与协议时复用固定 Core 归档。
+
 ## 使用
 
 使用支持该协议的 CLI，在选定 Code 根执行 `peanut release --plan` 只读检查，再执行 `peanut release`。默认从公开声明自动检测已安装工具；需要固定特殊工具、输出目录或本地 Core 时才使用 `peanut config` 或共享 profile。CLI 内部调用 `project-env` 和原生模板生产者，不要求每次手动 prepare/install/hash。当前源码已声明固定 PHP ZIP 和六个 Web TGZ，且未显式选择 Core 版本时，直接复用该组本地包及锁；包缺失或校验失败即停止，不重新解析公开版本或重建 Core。显式 `--core-php` / `--core-web` 选择公开版本；确需从已选择的 Core 源码重新构建时使用 `--with-local-core`。

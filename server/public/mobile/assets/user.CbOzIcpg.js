@@ -1,0 +1,1 @@
+import{O as e}from"./index-BtS0dyID.js";function n(){return e.get("api/user/center")}function r(){return e.get("api/user/info")}function s(n){return e.post("api/user/setInfo",{field:n.field,value:n.value})}function t(n){return e.post("api/user/changePassword",{...n})}function i(n){return e.post("api/user/bindMobile",{...n})}export{r as a,i as b,t as c,n as g,s};

@@ -14,7 +14,7 @@ import {
 } from 'node:fs';
 import { createRequire } from 'node:module';
 import { createServer } from 'node:net';
-import { resolve, sep } from 'node:path';
+import { isAbsolute, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import { createSsrUpstream } from './fixtures/ssr-upstream.mjs';
@@ -27,6 +27,29 @@ const required = (key) => {
 };
 const inside = (parent, value) => value.startsWith(parent + sep);
 const json = (path) => JSON.parse(readFileSync(path, 'utf8'));
+const resourceRegistry = () => {
+  const path = required('PEANUT_RESOURCE_REGISTRY');
+  assert.ok(isAbsolute(path), 'PEANUT_RESOURCE_REGISTRY must be absolute');
+  const registryPath = realpathSync(path);
+  assert.ok(
+    !inside(root, registryPath),
+    'Use the private Project resource registry, not the Code copy'
+  );
+  return json(registryPath).resources;
+};
+const registeredListener = (resources, id) => {
+  const matches = resources.local_listeners.filter(
+    (item) => item.stable_resource_id === id
+  );
+  assert.equal(matches.length, 1);
+  const [item] = matches;
+  assert.equal(item.owner, 'pc-ssr-qualification');
+  assert.equal(item.host, '127.0.0.1');
+  assert.equal(item.environment, 'development-test');
+  assert.equal(item.fallback, 'none');
+  assert.ok(Number.isInteger(item.port) && item.port > 0 && item.port <= 65535);
+  return item;
+};
 
 function outputDigest(directory) {
   const hash = createHash('sha256');
@@ -63,11 +86,14 @@ test(
   { timeout: 120000 },
   async (t) => {
     const pcRoot = realpathSync(required('PC_SSR_PROJECT_ROOT'));
+    assert.equal(pcRoot, realpathSync(resolve(root, 'pc')));
     const output = resolve(pcRoot, '.output');
     const entry = resolve(output, 'server/index.mjs');
     assert.ok(lstatSync(entry).isFile());
     const before = outputDigest(output);
-    assert.equal(before, required('PC_BROWSER_OUTPUT_SHA256'));
+    const expectedOutput = required('PC_SSR_OUTPUT_SHA256');
+    assert.match(expectedOutput, /^[a-f0-9]{64}$/);
+    assert.equal(before, expectedOutput);
     const temporary = realpathSync(required('TMPDIR'));
     assert.ok(inside(resolve(root, '.local/tmp'), temporary));
     const evidence = resolve(required('PC_BROWSER_EVIDENCE_DIR'));
@@ -79,55 +105,32 @@ test(
       [],
       'Never overwrite previous evidence'
     );
-    const registry = json(
-      resolve(root, 'resources/project-resources.json')
-    ).resources;
-    const find = (collection, id) => {
-      const matches = collection.filter(
-        (item) => item.stable_resource_id === id
-      );
-      assert.equal(matches.length, 1);
-      return matches[0];
-    };
-    const ssr = find(registry.local_listeners, 'peanut-pc-ssr-qualification');
-    const api = find(
-      registry.local_listeners,
+    const registry = resourceRegistry();
+    const ssr = registeredListener(registry, 'peanut-pc-ssr-qualification');
+    const api = registeredListener(
+      registry,
       'peanut-pc-ssr-synthetic-upstream'
     );
-    const tool = find(registry.tooling, 'peanut-pc-browser-qualification');
-    const lease = execFileSync(
-      'bash',
-      [
-        resolve(root, 'scripts/project-resource-lease'),
-        'show',
-        '--lease',
-        required('PC_SSR_LEASE_ID'),
-      ],
-      { cwd: root, encoding: 'utf8', timeout: 10000 }
+    const tools = registry.tooling.filter(
+      (item) => item.stable_resource_id === 'peanut-pc-browser-qualification'
     );
-    const lines = lease.trim().split('\n');
-    const boundary = lines.indexOf('resources');
-    assert.ok(boundary > 0);
-    const fields = Object.fromEntries(
-      lines.slice(0, boundary).map((line) => line.split('\t'))
-    );
-    assert.equal(fields.owner, 'pc-ssr-qualification');
-    assert.equal(fields.gate, 'pc-ssr-http-qualification');
-    assert.equal(fields.worktree, root);
-    assert.equal(fields.status, 'ACTIVE');
-    assert.ok(Number(fields.expires_at) > Date.now() / 1000 + 150);
+    assert.equal(tools.length, 1);
+    const [tool] = tools;
+    assert.equal(tool.owner, 'pc-ssr-qualification');
+    assert.deepEqual(tool.environments, ['development-test']);
+    assert.deepEqual(tool.listener_resource_ids, [
+      'peanut-pc-ssr-qualification',
+      'peanut-pc-ssr-synthetic-upstream',
+    ]);
+    assert.equal(tool.fallback, 'none');
     const head = execFileSync('git', ['rev-parse', 'HEAD'], {
       cwd: root,
       encoding: 'utf8',
     }).trim();
-    assert.equal(fields.candidate, head);
-    assert.ok(lines.includes(`tooling\t${tool.stable_resource_id}`));
-    assert.ok(lines.includes(`output-dir\t${evidence}`));
+    const sourceCommit = required('PC_SSR_SOURCE_COMMIT');
+    assert.match(sourceCommit, /^[a-f0-9]{40}$/);
+    assert.equal(head, sourceCommit);
     for (const item of [ssr, api]) {
-      assert.equal(item.host, '127.0.0.1');
-      assert.equal(item.environment, 'development-test');
-      assert.ok(lines.includes(`port\t${item.port}`));
-      assert.ok(lines.includes(`listener\t${item.stable_resource_id}`));
       await freePort(item.port);
     }
     const playwrightRoot = realpathSync(required('PC_BROWSER_PLAYWRIGHT_ROOT'));

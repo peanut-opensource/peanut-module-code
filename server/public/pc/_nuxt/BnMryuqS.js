@@ -1,0 +1,1 @@
+import{r as e}from"#entry";import{A as t,D as n,k as r,rt as i,ut as a,z as o}from"./CsjZh4Mc.js";var s=Object.assign(o({__name:`ModuleSlot`,props:{name:{}},setup(o){let s=o,c=e().moduleSlots,l=n(()=>{let e=c[s.name];return e?a(e):null});return(e,n)=>l.value?(i(),r(a(l.value),{key:0})):t(``,!0)}}),{__name:`ModuleSlot`});export{s as t};

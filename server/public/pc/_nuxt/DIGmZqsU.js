@@ -1,0 +1,1 @@
+function e(e,t){return e.post(`api/oauth/wechat/begin`,{scene:`open_pc`,return_path:t},!1)}function t(e,t,n){return e.post(`api/oauth/wechat/callback`,{scene:`open_pc`,code:t,state:n},!1)}function n(e,t){return e.post(`api/oauth/wechat/complete`,t,!1)}export{t as n,n as r,e as t};

@@ -25,7 +25,8 @@ export const richTextToPlainText = (html: string | null | undefined): string =>
         nbsp: ' ',
       };
       const normalized = value.toLowerCase();
-      if (normalized in named) return named[normalized];
+      const decoded = named[normalized];
+      if (decoded !== undefined) return decoded;
       const radix = normalized.startsWith('#x') ? 16 : 10;
       const digits = normalized.replace(/^#x?/, '');
       const codePoint = Number.parseInt(digits, radix);

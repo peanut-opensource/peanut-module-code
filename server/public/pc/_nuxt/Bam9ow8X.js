@@ -1,0 +1,1 @@
+import{c as e,o as t}from"./DFek46Di.js";import{t as n}from"./BKDSoW6C.js";var r=t(()=>{if(!n().isLoggedIn)return e(`/login`)});export{r as default};

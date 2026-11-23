@@ -14,6 +14,9 @@
     />
     <div class="toolbar">
       <el-button @click="load">刷新</el-button>
+      <el-button v-if="error" :disabled="loading" @click="retryPage"
+        >重试</el-button
+      >
       <el-button
         v-if="canCreate && canReadCatalog"
         type="primary"
@@ -21,7 +24,12 @@
         >新建套餐</el-button
       >
     </div>
-    <el-table :data="plans" empty-text="尚未创建套餐">
+    <el-table
+      :data="plans"
+      :empty-text="
+        error ? '套餐列表加载失败' : loading ? '正在加载套餐…' : '尚未创建套餐'
+      "
+    >
       <el-table-column prop="code" label="编码" />
       <el-table-column prop="name" label="名称" />
       <el-table-column label="状态"
@@ -218,7 +226,14 @@
   function message(cause: unknown) {
     return cause instanceof Error ? cause.message : '请求失败';
   }
-  const { items: plans, pagination, loading, error, load: loadPage, reload: load } = useAsyncList({
+  const {
+    items: plans,
+    pagination,
+    loading,
+    error,
+    load: loadPage,
+    reload: load,
+  } = useAsyncList({
     initialFilters: {},
     initialPageSize: 100,
     errorMessage: message,
@@ -265,26 +280,22 @@
             buckets[current - 1] = result.rows;
           }
         };
-        await Promise.all(Array.from({ length: Math.min(4, pages - 1) }, () => worker()));
+        await Promise.all(
+          Array.from({ length: Math.min(4, pages - 1) }, () => worker())
+        );
         if (!isCurrent()) return null;
         return buckets.flat();
       };
 
       const [moduleRows, bundleRows] = await Promise.all([
-        loadAllPages(
-          async (page) => {
-            const res = await api.planModules(page);
-            return { rows: res.lists, total: res.count };
-          },
-          '模块目录在读取期间变化，请重试'
-        ),
-        loadAllPages(
-          async (page) => {
-            const res = await api.permissionBundles('tenant', page);
-            return { rows: res.items, total: res.total };
-          },
-          '权限组合目录在读取期间变化，请重试'
-        ),
+        loadAllPages(async (page) => {
+          const res = await api.planModules(page);
+          return { rows: res.lists, total: res.count };
+        }, '模块目录在读取期间变化，请重试'),
+        loadAllPages(async (page) => {
+          const res = await api.permissionBundles('tenant', page);
+          return { rows: res.items, total: res.total };
+        }, '权限组合目录在读取期间变化，请重试'),
       ]);
       if (moduleRows === null || bundleRows === null || !isCurrent()) return;
       if (
@@ -360,6 +371,9 @@
   }
   function changePage(value: number) {
     void loadPage(value);
+  }
+  function retryPage() {
+    void loadPage(pagination.page);
   }
   onMounted(load);
 </script>

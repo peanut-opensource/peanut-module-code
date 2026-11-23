@@ -1,0 +1,1 @@
+import{O as o}from"./index-BtS0dyID.js";function n(n){return o.post("api/login/register",{...n},!1)}function t(n){return o.post("api/login/account",{...n},!1)}function i(){return o.post("api/login/logout")}export{i as a,t as l,n as r};

@@ -2482,9 +2482,27 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description 只读发现官方候选和源码锁版本。需要平台模块读取权限及开发实例工具权限。 */
         get: operations["checkOfficialModuleUpdates"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platformapi/instance-tools/modules/official-install": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description 官方模块安装。需要对应的平台模块操作权限及开发实例工具权限。dry_run=true 返回原生预检和选择摘要。dry_run=false 必须原样提交同一接口的选择摘要和 Idempotency-Key，返回异步任务；执行时仍重新校验权限和运行状态。 */
+        post: operations["installOfficialInstanceModule"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2500,6 +2518,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description 官方模块升级。需要对应的平台模块操作权限及开发实例工具权限。dry_run=true 返回原生预检和选择摘要。dry_run=false 必须原样提交同一接口的选择摘要和 Idempotency-Key，返回异步任务；执行时仍重新校验权限和运行状态。 */
         post: operations["updateOfficialInstanceModule"];
         delete?: never;
         options?: never;
@@ -8776,7 +8795,9 @@ export interface components {
         };
         PlatformOfficialModuleUpdate: {
             key: string;
+            /** @description 精确的 SemVer 版本，不接受版本范围。 */
             source_version: string;
+            /** @description 精确的 SemVer 版本，不接受版本范围。 */
             available_version: string | null;
             sha256: string | null;
             catalog_tag: string | null;
@@ -8785,6 +8806,28 @@ export interface components {
             /** @enum {string} */
             compatibility: "native_preflight_required";
         };
+        PlatformOfficialModuleCatalogEntry: {
+            key: string;
+            /** @description 精确的 SemVer 版本，不接受版本范围。 */
+            version: string;
+            sha256: string;
+            catalog_tag: string;
+            /** @enum {string} */
+            channel: "stable" | "prerelease";
+            editions: ("standalone" | "multi-tenant")[];
+            dependencies: {
+                module_key: string;
+                /** @description 依赖版本约束。 */
+                version: string;
+            }[];
+            kernel_constraint: string;
+            /** @description 精确的 SemVer 版本，不接受版本范围。 */
+            source_version: string | null;
+            /** @enum {string} */
+            availability: "available" | "incompatible" | "withdrawn";
+            /** @enum {string|null} */
+            reason: "EDITION_UNSUPPORTED" | "MODULE_RELEASE_WITHDRAWN" | null;
+        };
         PlatformOfficialUpdateSnapshot: {
             /** @enum {integer} */
             schema_version: 1;
@@ -8792,27 +8835,72 @@ export interface components {
             channel: "stable" | "prerelease";
             /** @enum {string} */
             edition: "standalone" | "multi-tenant";
+            /** @description 按源码锁列出的版本；不表示运行时安装状态。 */
             modules: components["schemas"]["PlatformOfficialModuleUpdate"][];
+            /** @description 所选渠道的官方候选，含未锁定的模块。availability 仅反映撤回及 Edition，采用前仍需原生预检。 */
+            catalog: components["schemas"]["PlatformOfficialModuleCatalogEntry"][];
+            /**
+             * @description verified-current 表示校验了全渠道最新 v3 撤回政策；legacy-index 表示使用兼容的历史目录协议。
+             * @enum {string}
+             */
+            withdrawal_policy: "verified-current" | "legacy-index";
             /** @enum {boolean} */
             changed: false;
             scope: string;
             scaffold: {
+                /** @description 精确的 SemVer 版本，不接受版本范围。 */
                 current_version: string;
+                /** @description 精确的 SemVer 版本，不接受版本范围。 */
                 available_version: string | null;
-                status: string;
+                /** @enum {string} */
+                status: "no_published_candidate" | "update_available" | "current";
                 /** @enum {string} */
                 upgrade_method: "native_cli_plan";
             };
         };
-        PlatformOfficialUpdatePreview: {
+        PlatformOfficialPackageRequest: {
+            module_key: string;
+            /** @description 精确的 SemVer 版本，不接受版本范围。 */
+            version: string;
+            sha256: string;
+            catalog_tag: string;
+            /**
+             * @default stable
+             * @enum {string|null}
+             */
+            channel: "stable" | "prerelease" | null;
+            /** @description 提交时原样返回同一接口预检给出的 selection_sha256。摘要绑定归档选择及由接口决定的操作。 */
+            confirm_selection_sha256?: string;
             /** @enum {boolean} */
             dry_run: true;
+        } | {
+            module_key: string;
+            /** @description 精确的 SemVer 版本，不接受版本范围。 */
+            version: string;
+            sha256: string;
+            catalog_tag: string;
+            /**
+             * @default stable
+             * @enum {string|null}
+             */
+            channel: "stable" | "prerelease" | null;
+            /** @description 提交时原样返回同一接口预检给出的 selection_sha256。摘要绑定归档选择及由接口决定的操作。 */
+            confirm_selection_sha256: string;
+            /** @enum {boolean} */
+            dry_run: false;
+        };
+        PlatformOfficialPackagePreview: {
+            /** @enum {boolean} */
+            dry_run: true;
+            /** @enum {string} */
+            operation: "install" | "update";
+            /** @description 原生预检的可扩展对象，内容随操作和现场状态变化。 */
             plan: {
                 [key: string]: components["schemas"]["ApplicationDynamicValue"];
             };
             selection_sha256: string;
         };
-        PlatformOfficialUpdateResult: components["schemas"]["PlatformOfficialUpdatePreview"] | components["schemas"]["PlatformOpsTask"];
+        PlatformOfficialPackageResult: components["schemas"]["PlatformOfficialPackagePreview"] | components["schemas"]["PlatformOpsTask"];
         TenantPlan: {
             id: number;
             code: string;
@@ -10490,7 +10578,7 @@ export interface components {
             /** @description Blank normalizes to null; otherwise an absolute http(s) URL, with trailing slashes removed. */
             access_domain: string | null;
             /** @enum {string|null} */
-            local_path: "public/storage" | "private/storage" | null;
+            local_path: "storage/public" | "storage/private" | null;
             /** @enum {string} */
             status: "active" | "read_only" | "disabled";
             /** @description Trimmed ASCII key. */
@@ -10566,7 +10654,7 @@ export interface components {
             /** @description Non-empty credential references are no longer supported. */
             credential_ref?: string | null;
         };
-        /** @description The existing account selects the driver. local: local_path must equal public/storage or private/storage for access_type, bucket must be blank; persisted local region/endpoint must be null. Cloud: bucket required and local_path blank; qcloud also needs region, aliyun an http(s) endpoint, qiniu or any public cloud space an access_domain. Blank optional strings normalize to null. Account and location are immutable after creation. */
+        /** @description The existing account selects the driver. local: local_path must equal storage/public or storage/private for access_type, bucket must be blank; persisted local region/endpoint must be null. Cloud: bucket required and local_path blank; qcloud also needs region, aliyun an http(s) endpoint, qiniu or any public cloud space an access_domain. Blank optional strings normalize to null. Account and location are immutable after creation. */
         StorageSpaceCreate: {
             account_id: number;
             /** @description Trimmed ASCII key. */
@@ -10582,7 +10670,7 @@ export interface components {
             /** @description Blank normalizes to null; otherwise an absolute http(s) URL, with trailing slashes removed. */
             access_domain?: string | null;
             /** @enum {string|null} */
-            local_path?: "public/storage" | "private/storage" | null;
+            local_path?: "storage/public" | "storage/private" | null;
         };
         /** @description Revalidates the existing immutable account/location. qiniu or a public cloud space must retain a non-blank access_domain; omitted access_domain clears it and can therefore reject. */
         StorageSpaceUpdate: {
@@ -13079,7 +13167,7 @@ export interface components {
         };
     };
     responses: {
-        /** @description Standard Peanut Admin API response */
+        /** @description Standard Peanut Module Code API response */
         ApiResponse: {
             headers: {
                 "X-Trace-Id": components["headers"]["TraceId"];
@@ -18356,30 +18444,21 @@ export interface operations {
             401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
             422: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
         };
     };
-    updateOfficialInstanceModule: {
+    installOfficialInstanceModule: {
         parameters: {
             query?: never;
-            header: {
-                "Idempotency-Key": string;
+            header?: {
+                "Idempotency-Key"?: string;
             };
             path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": {
-                    module_key: string;
-                    version: string;
-                    sha256: string;
-                    catalog_tag: string;
-                    /** @enum {string} */
-                    channel: "stable" | "prerelease";
-                    dry_run: boolean;
-                    /** @description Required on apply; exact reviewed target selection. Worker revalidates current source, dependencies and permissions. */
-                    confirm_selection_sha256?: string;
-                };
+                "application/json": components["schemas"]["PlatformOfficialPackageRequest"];
             };
         };
         responses: {
@@ -18393,13 +18472,53 @@ export interface operations {
                         /** @enum {integer} */
                         code: 20000;
                         msg: string;
-                        data: components["schemas"]["PlatformOfficialUpdateResult"];
+                        data: components["schemas"]["PlatformOfficialPackageResult"];
                     };
                 };
             };
             401: components["responses"]["ErrorResponse"];
             403: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
             422: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
+        };
+    };
+    updateOfficialInstanceModule: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformOfficialPackageRequest"];
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["PlatformOfficialPackageResult"];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+            500: components["responses"]["ErrorResponse"];
+            503: components["responses"]["ErrorResponse"];
         };
     };
     listInstanceModules: {

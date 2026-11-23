@@ -19,6 +19,8 @@ const moduleEntries = moduleFrontendEntries(
 );
 
 export default defineNuxtConfig({
+  // Keep host pages and module contributions relative to the PC root.
+  srcDir: '.',
   compatibilityDate: '2024-11-01',
   devtools: { enabled: false },
   ...rendering,
@@ -106,6 +108,14 @@ export default defineNuxtConfig({
         target: `${devProxyOrigin}/storage`,
         changeOrigin: false,
       },
+    },
+  },
+
+  postcss: {
+    plugins: {
+      // Tailwind 3's directory entry is not resolved by Nuxt 4's ESM loader.
+      'tailwindcss/nesting': false,
+      'tailwindcss/nesting/index.js': {},
     },
   },
 

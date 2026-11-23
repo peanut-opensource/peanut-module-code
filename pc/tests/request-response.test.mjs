@@ -9,6 +9,7 @@ import test from 'node:test';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const require = createRequire(import.meta.url);
 const ts = require(resolve(root, 'tools/quality/node_modules/typescript'));
+const vue = createRequire(resolve(root, 'pc/package.json'))('vue');
 const source = readFileSync(
   resolve(root, 'pc/composables/useRequest.ts'),
   'utf8'
@@ -29,8 +30,15 @@ async function publicPackage(name) {
 const client = await publicPackage('client');
 const nuxt = await publicPackage('nuxt');
 
-function request(fetch, server = false, options = {}) {
-  const calls = { cleared: 0, redirects: [], messages: [], network: [] };
+function request(fetch, server = false, options = {}, host = 'site.test') {
+  const calls = {
+    cleared: 0,
+    redirects: [],
+    messages: [],
+    network: [],
+    requestedHeaders: [],
+  };
+  let token = 'synthetic-token';
   const output = ts.transpileModule(source, {
     compilerOptions: {
       target: ts.ScriptTarget.ES2022,
@@ -53,10 +61,12 @@ function request(fetch, server = false, options = {}) {
     exports,
     Error,
     URL,
+    AbortController,
     __runtime: { server, client: !server },
     require(name) {
       if (name === '@peanut-admin/client') return client;
       if (name === '@peanut-admin/nuxt') return nuxt;
+      if (name === 'vue') return vue;
       throw new Error('Unexpected dependency: ' + name);
     },
     useRuntimeConfig: () => ({
@@ -65,13 +75,20 @@ function request(fetch, server = false, options = {}) {
       trustedHosts: 'site.test',
       forwardedProto: 'https',
     }),
-    useRequestHeaders: () => ({
-      host: 'site.test',
-      cookie: 'must-not-forward',
-    }),
+    useRequestHeaders: (names) => {
+      calls.requestedHeaders.push(...names);
+      return {
+        host,
+        cookie: 'must-not-forward',
+        authorization: 'Bearer must-not-forward',
+      };
+    },
     useUserStore: () => ({
-      token: 'synthetic-token',
-      clearSession: () => calls.cleared++,
+      token,
+      clearSession: () => {
+        token = undefined;
+        calls.cleared++;
+      },
     }),
     navigateTo: async (url) => {
       calls.redirects.push(url);
@@ -140,6 +157,10 @@ test('valid authorization failure clears the client session and redirects once',
   );
   assert.equal(h.calls.cleared, 1);
   assert.deepEqual(h.calls.redirects, ['/login']);
+  assert.equal(
+    new Headers(h.calls.network[0].options.headers).get('authorization'),
+    'Bearer synthetic-token'
+  );
 });
 
 test('optional personal extensions clear an expired session without redirecting public reading', async () => {
@@ -182,15 +203,45 @@ test('malformed HTTP payloads stay transport failures and cannot fake success', 
 
 test('SSR public requests keep trusted host context but never forward user credentials', async () => {
   const h = request(async () => ({ code: 20000, msg: '', data: null }), true);
-  await h.api.get('api/read', { page: 2 }, false);
+  await h.api.get('api/read', { page: 2 });
   const { url, options } = h.calls.network[0];
+  const headers = new Headers(options.headers);
   assert.equal(url, 'https://upstream.test/api/read');
-  assert.equal(options.headers.host, 'site.test');
-  assert.equal(options.headers.cookie, undefined);
-  assert.equal(options.headers.Authorization, undefined);
-  assert.equal(options.headers.authorization, undefined);
+  assert.deepEqual(h.calls.requestedHeaders, ['host']);
+  assert.equal(headers.get('host'), 'site.test');
+  assert.equal(headers.get('x-forwarded-host'), 'site.test');
+  assert.equal(headers.get('x-forwarded-proto'), 'https');
+  assert.equal(headers.has('cookie'), false);
+  assert.equal(headers.has('authorization'), false);
   assert.equal(options.query.page, 2);
   assert.deepEqual(h.calls.messages, []);
+});
+
+test('SSR rejects an untrusted host before making an upstream request', () => {
+  assert.throws(
+    () =>
+      request(() => assert.fail('unexpected fetch'), true, {}, 'other.test'),
+    /NUXT_SSR_FORWARD_CONTEXT_INVALID/
+  );
+});
+
+test('disposing the Vue effect scope aborts a pending request without session side effects', async () => {
+  const scope = vue.effectScope();
+  const h = scope.run(() => request(() => new Promise(() => {})));
+  try {
+    const pending = h.api.get('api/read');
+    const aborted = assert.rejects(pending, { name: 'AbortError' });
+    const signal = h.calls.network[0].options.signal;
+    assert.equal(signal.aborted, false);
+    scope.stop();
+    await aborted;
+    assert.equal(signal.aborted, true);
+    assert.equal(h.calls.cleared, 0);
+    assert.deepEqual(h.calls.redirects, []);
+    assert.deepEqual(h.calls.messages, []);
+  } finally {
+    scope.stop();
+  }
 });
 
 test('ordinary network errors remain transport errors', async () => {

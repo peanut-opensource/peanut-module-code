@@ -5,8 +5,8 @@
         "module_fragments": "server/app/modules/*/*/api/metadata/openapi.php"
     },
     "info": {
-        "title": "Peanut Admin HTTP API",
-        "version": "5.1.18-rc.10",
+        "title": "Peanut Module Code HTTP API",
+        "version": "5.1.18-rc.13",
         "description": "Application HTTP contract for the identity, Tenant, article, file and notification entry points. Runtime authorization and Tenant binding remain enforced by the server middleware.",
         "x-peanut-contract-generator": {
             "name": "scripts/generate-api-contracts.php",
@@ -972,7 +972,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 198
+                        "line": 202
                     }
                 },
                 "x-peanut-permissions": [
@@ -1050,7 +1050,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 151
+                        "line": 155
                     }
                 },
                 "x-peanut-permissions": [
@@ -1128,7 +1128,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 195
+                        "line": 199
                     }
                 },
                 "x-peanut-permissions": [
@@ -1206,7 +1206,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 192
+                        "line": 196
                     }
                 },
                 "x-peanut-permissions": [
@@ -1310,7 +1310,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 154
+                        "line": 158
                     }
                 },
                 "x-peanut-permissions": [
@@ -1388,7 +1388,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 157
+                        "line": 161
                     }
                 },
                 "x-peanut-permissions": [
@@ -1500,7 +1500,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 165
+                        "line": 169
                     }
                 },
                 "x-peanut-permissions": [
@@ -1606,7 +1606,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 168
+                        "line": 172
                     }
                 },
                 "x-peanut-permissions": [
@@ -1707,7 +1707,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 176
+                        "line": 180
                     }
                 },
                 "x-peanut-permissions": [
@@ -1819,7 +1819,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 179
+                        "line": 183
                     }
                 },
                 "x-peanut-permissions": [
@@ -1913,7 +1913,7 @@
                     "permission": "platform.ops.upgrade.manage",
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 182
+                        "line": 186
                     }
                 },
                 "x-peanut-permissions": [
@@ -2018,7 +2018,7 @@
                     "permission": "platform.ops.module.manage",
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 187
+                        "line": 191
                     }
                 },
                 "x-peanut-permissions": [
@@ -2110,7 +2110,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 201
+                        "line": 205
                     }
                 },
                 "x-peanut-permissions": [
@@ -12428,7 +12428,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 232
+                        "line": 236
                     }
                 },
                 "x-peanut-permissions": [
@@ -12601,7 +12601,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 207
+                        "line": 211
                     }
                 },
                 "x-peanut-permissions": [
@@ -12689,7 +12689,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 210
+                        "line": 214
                     }
                 },
                 "x-peanut-permissions": [
@@ -12777,7 +12777,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 213
+                        "line": 217
                     }
                 },
                 "x-peanut-permissions": [
@@ -13521,7 +13521,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 235
+                        "line": 239
                     }
                 },
                 "x-peanut-permissions": [
@@ -13631,7 +13631,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 238
+                        "line": 242
                     }
                 },
                 "x-peanut-permissions": [
@@ -13745,7 +13745,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 241
+                        "line": 245
                     }
                 },
                 "x-peanut-permissions": [
@@ -13850,7 +13850,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 244
+                        "line": 248
                     }
                 },
                 "x-peanut-permissions": [
@@ -13955,7 +13955,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 247
+                        "line": 251
                     }
                 },
                 "x-peanut-permissions": [
@@ -14060,7 +14060,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 250
+                        "line": 254
                     }
                 },
                 "x-peanut-permissions": [
@@ -14165,7 +14165,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 253
+                        "line": 257
                     }
                 },
                 "x-peanut-permissions": [
@@ -14279,7 +14279,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 256
+                        "line": 260
                     }
                 },
                 "x-peanut-permissions": [
@@ -14384,7 +14384,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 259
+                        "line": 263
                     }
                 },
                 "x-peanut-permissions": [
@@ -14497,7 +14497,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 262
+                        "line": 266
                     }
                 },
                 "x-peanut-permissions": [
@@ -15127,7 +15127,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 142
+                        "line": 146
                     }
                 },
                 "x-peanut-permissions": [
@@ -15247,7 +15247,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 145
+                        "line": 149
                     }
                 },
                 "x-peanut-permissions": [
@@ -15352,7 +15352,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 204
+                        "line": 208
                     }
                 },
                 "x-peanut-permissions": [
@@ -15423,13 +15423,20 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ErrorResponse"
                     }
                 },
                 "x-peanut-errors": [
                     "MODULE_RUNTIME_MUTATION_DISABLED",
                     "MODULE_RELEASE_CHANNEL_INVALID",
-                    "MODULE_RELEASE_ASSET_DIGEST_MISMATCH"
+                    "MODULE_RELEASE_POLICY_INVALID",
+                    "MODULE_RELEASE_POLICY_REGRESSION",
+                    "MODULE_RELEASE_ASSET_DIGEST_MISMATCH",
+                    "PLATFORM_UNEXPECTED_FAILURE"
                 ],
+                "description": "只读发现官方候选和源码锁版本。需要平台模块读取权限及开发实例工具权限。",
                 "security": [
                     {
                         "bearerAuth": {}
@@ -15457,22 +15464,23 @@
                 ]
             }
         },
-        "/platformapi/instance-tools/modules/official-update": {
+        "/platformapi/instance-tools/modules/official-install": {
             "post": {
                 "tags": [
                     "PlatformModules"
                 ],
-                "operationId": "updateOfficialInstanceModule",
+                "operationId": "installOfficialInstanceModule",
                 "parameters": [
                     {
                         "in": "header",
                         "name": "Idempotency-Key",
-                        "required": true,
+                        "required": false,
                         "schema": {
                             "type": "string",
                             "minLength": 8,
                             "maxLength": 200,
-                            "description": "Required for confirmed submission; preserved across retries."
+                            "pattern": "^[!-~]+$",
+                            "description": "仅 dry_run=false 时必填；重试同一提交沿用原值。"
                         }
                     }
                 ],
@@ -15500,7 +15508,7 @@
                                             "type": "string"
                                         },
                                         "data": {
-                                            "$ref": "#/components/schemas/PlatformOfficialUpdateResult"
+                                            "$ref": "#/components/schemas/PlatformOfficialPackageResult"
                                         }
                                     }
                                 }
@@ -15515,6 +15523,15 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "503": {
+                        "$ref": "#/components/responses/ErrorResponse"
                     }
                 },
                 "requestBody": {
@@ -15522,59 +15539,154 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "required": [
-                                    "module_key",
-                                    "version",
-                                    "sha256",
-                                    "catalog_tag",
-                                    "channel",
-                                    "dry_run"
-                                ],
-                                "properties": {
-                                    "module_key": {
-                                        "type": "string",
-                                        "pattern": "^peanut\\.[a-z][a-z0-9-]*$"
-                                    },
-                                    "version": {
-                                        "type": "string"
-                                    },
-                                    "sha256": {
-                                        "type": "string",
-                                        "pattern": "^[a-f0-9]{64}$"
-                                    },
-                                    "catalog_tag": {
-                                        "type": "string"
-                                    },
-                                    "channel": {
-                                        "type": "string",
-                                        "enum": [
-                                            "stable",
-                                            "prerelease"
-                                        ]
-                                    },
-                                    "dry_run": {
-                                        "type": "boolean"
-                                    },
-                                    "confirm_selection_sha256": {
-                                        "type": "string",
-                                        "pattern": "^[a-f0-9]{64}$",
-                                        "description": "Required on apply; exact reviewed target selection. Worker revalidates current source, dependencies and permissions."
-                                    }
-                                }
+                                "$ref": "#/components/schemas/PlatformOfficialPackageRequest"
                             }
                         }
                     }
                 },
                 "x-peanut-errors": [
                     "MODULE_RUNTIME_MUTATION_DISABLED",
+                    "MODULE_RELEASE_CHANNEL_INVALID",
                     "MODULE_RELEASE_SELECTION_INVALID",
                     "MODULE_RELEASE_SELECTION_CHANGED",
                     "MODULE_RELEASE_CONFIRMATION_REQUIRED",
+                    "MODULE_RELEASE_POLICY_INVALID",
+                    "MODULE_RELEASE_POLICY_REGRESSION",
+                    "MODULE_RELEASE_WITHDRAWN",
+                    "MODULE_RELEASE_PRERELEASE_OPT_IN_REQUIRED",
                     "MODULE_RELEASE_ASSET_DIGEST_MISMATCH",
-                    "OPS_MODULE_REQUEST_INVALID"
+                    "OPS_MODULE_REQUEST_INVALID",
+                    "OPS_IDEMPOTENCY_CONFLICT",
+                    "MAINTENANCE_WRITE_BLOCKED",
+                    "MAINTENANCE_GATE_UNAVAILABLE",
+                    "PLATFORM_UNEXPECTED_FAILURE"
                 ],
+                "description": "官方模块安装。需要对应的平台模块操作权限及开发实例工具权限。dry_run=true 返回原生预检和选择摘要。dry_run=false 必须原样提交同一接口的选择摘要和 Idempotency-Key，返回异步任务；执行时仍重新校验权限和运行状态。",
+                "security": [
+                    {
+                        "bearerAuth": {}
+                    }
+                ],
+                "x-peanut-route": {
+                    "application": "platform",
+                    "owner": {
+                        "type": "application",
+                        "key": "platform"
+                    },
+                    "controller": "app\\platform\\controller\\PlatformModuleLifecycleController",
+                    "action": "officialInstall",
+                    "permission": null,
+                    "source": {
+                        "file": "server/route/platform.php",
+                        "line": 111
+                    }
+                },
+                "x-peanut-permissions": [
+                    {
+                        "kind": "platform_action",
+                        "key": "platform.module.install"
+                    }
+                ]
+            }
+        },
+        "/platformapi/instance-tools/modules/official-update": {
+            "post": {
+                "tags": [
+                    "PlatformModules"
+                ],
+                "operationId": "updateOfficialInstanceModule",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Idempotency-Key",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "minLength": 8,
+                            "maxLength": 200,
+                            "pattern": "^[!-~]+$",
+                            "description": "仅 dry_run=false 时必填；重试同一提交沿用原值。"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "enum": [
+                                                20000
+                                            ]
+                                        },
+                                        "msg": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/PlatformOfficialPackageResult"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    },
+                    "503": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PlatformOfficialPackageRequest"
+                            }
+                        }
+                    }
+                },
+                "x-peanut-errors": [
+                    "MODULE_RUNTIME_MUTATION_DISABLED",
+                    "MODULE_RELEASE_CHANNEL_INVALID",
+                    "MODULE_RELEASE_SELECTION_INVALID",
+                    "MODULE_RELEASE_SELECTION_CHANGED",
+                    "MODULE_RELEASE_CONFIRMATION_REQUIRED",
+                    "MODULE_RELEASE_POLICY_INVALID",
+                    "MODULE_RELEASE_POLICY_REGRESSION",
+                    "MODULE_RELEASE_WITHDRAWN",
+                    "MODULE_RELEASE_PRERELEASE_OPT_IN_REQUIRED",
+                    "MODULE_RELEASE_ASSET_DIGEST_MISMATCH",
+                    "OPS_MODULE_REQUEST_INVALID",
+                    "OPS_IDEMPOTENCY_CONFLICT",
+                    "MAINTENANCE_WRITE_BLOCKED",
+                    "MAINTENANCE_GATE_UNAVAILABLE",
+                    "PLATFORM_UNEXPECTED_FAILURE"
+                ],
+                "description": "官方模块升级。需要对应的平台模块操作权限及开发实例工具权限。dry_run=true 返回原生预检和选择摘要。dry_run=false 必须原样提交同一接口的选择摘要和 Idempotency-Key，返回异步任务；执行时仍重新校验权限和运行状态。",
                 "security": [
                     {
                         "bearerAuth": {}
@@ -15591,7 +15703,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 111
+                        "line": 115
                     }
                 },
                 "x-peanut-permissions": [
@@ -15815,7 +15927,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 119
+                        "line": 123
                     }
                 },
                 "x-peanut-permissions": [
@@ -15934,7 +16046,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 123
+                        "line": 127
                     }
                 },
                 "x-peanut-permissions": [
@@ -16022,7 +16134,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 127
+                        "line": 131
                     }
                 },
                 "x-peanut-permissions": [
@@ -16132,7 +16244,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 115
+                        "line": 119
                     }
                 },
                 "x-peanut-permissions": [
@@ -16233,7 +16345,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 134
+                        "line": 138
                     }
                 },
                 "x-peanut-permissions": [
@@ -16325,7 +16437,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 138
+                        "line": 142
                     }
                 },
                 "x-peanut-permissions": [
@@ -16498,7 +16610,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 130
+                        "line": 134
                     }
                 },
                 "x-peanut-permissions": [
@@ -16661,7 +16773,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 148
+                        "line": 152
                     }
                 },
                 "x-peanut-permissions": [
@@ -16792,7 +16904,7 @@
                     "permission": "platform.ops.logs.read",
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 160
+                        "line": 164
                     }
                 },
                 "x-peanut-permissions": [
@@ -16892,7 +17004,7 @@
                     "permission": "platform.ops.logs.read",
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 171
+                        "line": 175
                     }
                 },
                 "x-peanut-permissions": [
@@ -17010,7 +17122,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 217
+                        "line": 221
                     }
                 },
                 "x-peanut-permissions": [
@@ -17099,7 +17211,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 220
+                        "line": 224
                     }
                 },
                 "x-peanut-permissions": [
@@ -17188,7 +17300,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 223
+                        "line": 227
                     }
                 },
                 "x-peanut-permissions": [
@@ -17279,7 +17391,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 226
+                        "line": 230
                     }
                 },
                 "x-peanut-permissions": [
@@ -17368,7 +17480,7 @@
                     "permission": null,
                     "source": {
                         "file": "server/route/platform.php",
-                        "line": 229
+                        "line": 233
                     }
                 },
                 "x-peanut-permissions": [
@@ -50893,21 +51005,28 @@
                 ],
                 "properties": {
                     "key": {
-                        "type": "string"
+                        "type": "string",
+                        "pattern": "^peanut\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
                     },
                     "source_version": {
-                        "type": "string"
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
+                        "description": "精确的 SemVer 版本，不接受版本范围。"
                     },
                     "available_version": {
                         "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
+                        "description": "精确的 SemVer 版本，不接受版本范围。",
                         "nullable": true
                     },
                     "sha256": {
                         "type": "string",
+                        "pattern": "^[a-f0-9]{64}$",
                         "nullable": true
                     },
                     "catalog_tag": {
                         "type": "string",
+                        "pattern": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-rc\\.(0|[1-9][0-9]*))?$",
                         "nullable": true
                     },
                     "status": {
@@ -50927,6 +51046,106 @@
                     }
                 }
             },
+            "PlatformOfficialModuleCatalogEntry": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "key",
+                    "version",
+                    "sha256",
+                    "catalog_tag",
+                    "channel",
+                    "editions",
+                    "dependencies",
+                    "kernel_constraint",
+                    "source_version",
+                    "availability",
+                    "reason"
+                ],
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "pattern": "^peanut\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                    },
+                    "version": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
+                        "description": "精确的 SemVer 版本，不接受版本范围。"
+                    },
+                    "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "catalog_tag": {
+                        "type": "string",
+                        "pattern": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-rc\\.(0|[1-9][0-9]*))?$"
+                    },
+                    "channel": {
+                        "type": "string",
+                        "enum": [
+                            "stable",
+                            "prerelease"
+                        ]
+                    },
+                    "editions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "standalone",
+                                "multi-tenant"
+                            ]
+                        }
+                    },
+                    "dependencies": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                                "module_key",
+                                "version"
+                            ],
+                            "properties": {
+                                "module_key": {
+                                    "type": "string",
+                                    "pattern": "^peanut\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                                },
+                                "version": {
+                                    "type": "string",
+                                    "description": "依赖版本约束。"
+                                }
+                            }
+                        }
+                    },
+                    "kernel_constraint": {
+                        "type": "string"
+                    },
+                    "source_version": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
+                        "description": "精确的 SemVer 版本，不接受版本范围。",
+                        "nullable": true
+                    },
+                    "availability": {
+                        "type": "string",
+                        "enum": [
+                            "available",
+                            "incompatible",
+                            "withdrawn"
+                        ]
+                    },
+                    "reason": {
+                        "type": "string",
+                        "nullable": true,
+                        "enum": [
+                            "EDITION_UNSUPPORTED",
+                            "MODULE_RELEASE_WITHDRAWN",
+                            null
+                        ]
+                    }
+                }
+            },
             "PlatformOfficialUpdateSnapshot": {
                 "type": "object",
                 "additionalProperties": false,
@@ -50935,8 +51154,10 @@
                     "channel",
                     "edition",
                     "modules",
+                    "catalog",
                     "scaffold",
                     "changed",
+                    "withdrawal_policy",
                     "scope"
                 ],
                 "properties": {
@@ -50964,7 +51185,23 @@
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/PlatformOfficialModuleUpdate"
-                        }
+                        },
+                        "description": "按源码锁列出的版本；不表示运行时安装状态。"
+                    },
+                    "catalog": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PlatformOfficialModuleCatalogEntry"
+                        },
+                        "description": "所选渠道的官方候选，含未锁定的模块。availability 仅反映撤回及 Edition，采用前仍需原生预检。"
+                    },
+                    "withdrawal_policy": {
+                        "type": "string",
+                        "enum": [
+                            "verified-current",
+                            "legacy-index"
+                        ],
+                        "description": "verified-current 表示校验了全渠道最新 v3 撤回政策；legacy-index 表示使用兼容的历史目录协议。"
                     },
                     "changed": {
                         "type": "boolean",
@@ -50986,14 +51223,23 @@
                         ],
                         "properties": {
                             "current_version": {
-                                "type": "string"
+                                "type": "string",
+                                "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
+                                "description": "精确的 SemVer 版本，不接受版本范围。"
                             },
                             "available_version": {
                                 "type": "string",
+                                "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
+                                "description": "精确的 SemVer 版本，不接受版本范围。",
                                 "nullable": true
                             },
                             "status": {
-                                "type": "string"
+                                "type": "string",
+                                "enum": [
+                                    "no_published_candidate",
+                                    "update_available",
+                                    "current"
+                                ]
                             },
                             "upgrade_method": {
                                 "type": "string",
@@ -51005,11 +51251,119 @@
                     }
                 }
             },
-            "PlatformOfficialUpdatePreview": {
+            "PlatformOfficialPackageRequest": {
+                "oneOf": [
+                    {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                            "module_key",
+                            "version",
+                            "sha256",
+                            "catalog_tag",
+                            "dry_run"
+                        ],
+                        "properties": {
+                            "module_key": {
+                                "type": "string",
+                                "pattern": "^peanut\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                            },
+                            "version": {
+                                "type": "string",
+                                "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
+                                "description": "精确的 SemVer 版本，不接受版本范围。"
+                            },
+                            "sha256": {
+                                "type": "string",
+                                "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "catalog_tag": {
+                                "type": "string",
+                                "pattern": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-rc\\.(0|[1-9][0-9]*))?$"
+                            },
+                            "channel": {
+                                "type": "string",
+                                "enum": [
+                                    "stable",
+                                    "prerelease",
+                                    null
+                                ],
+                                "nullable": true,
+                                "default": "stable"
+                            },
+                            "confirm_selection_sha256": {
+                                "type": "string",
+                                "pattern": "^[a-f0-9]{64}$",
+                                "description": "提交时原样返回同一接口预检给出的 selection_sha256。摘要绑定归档选择及由接口决定的操作。"
+                            },
+                            "dry_run": {
+                                "type": "boolean",
+                                "enum": [
+                                    true
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                            "module_key",
+                            "version",
+                            "sha256",
+                            "catalog_tag",
+                            "dry_run",
+                            "confirm_selection_sha256"
+                        ],
+                        "properties": {
+                            "module_key": {
+                                "type": "string",
+                                "pattern": "^peanut\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                            },
+                            "version": {
+                                "type": "string",
+                                "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
+                                "description": "精确的 SemVer 版本，不接受版本范围。"
+                            },
+                            "sha256": {
+                                "type": "string",
+                                "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "catalog_tag": {
+                                "type": "string",
+                                "pattern": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-rc\\.(0|[1-9][0-9]*))?$"
+                            },
+                            "channel": {
+                                "type": "string",
+                                "enum": [
+                                    "stable",
+                                    "prerelease",
+                                    null
+                                ],
+                                "nullable": true,
+                                "default": "stable"
+                            },
+                            "confirm_selection_sha256": {
+                                "type": "string",
+                                "pattern": "^[a-f0-9]{64}$",
+                                "description": "提交时原样返回同一接口预检给出的 selection_sha256。摘要绑定归档选择及由接口决定的操作。"
+                            },
+                            "dry_run": {
+                                "type": "boolean",
+                                "enum": [
+                                    false
+                                ]
+                            }
+                        }
+                    }
+                ]
+            },
+            "PlatformOfficialPackagePreview": {
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
                     "dry_run",
+                    "operation",
                     "plan",
                     "selection_sha256"
                 ],
@@ -51020,11 +51374,19 @@
                             true
                         ]
                     },
+                    "operation": {
+                        "type": "string",
+                        "enum": [
+                            "install",
+                            "update"
+                        ]
+                    },
                     "plan": {
                         "type": "object",
                         "additionalProperties": {
                             "$ref": "#/components/schemas/ApplicationDynamicValue"
-                        }
+                        },
+                        "description": "原生预检的可扩展对象，内容随操作和现场状态变化。"
                     },
                     "selection_sha256": {
                         "type": "string",
@@ -51032,10 +51394,10 @@
                     }
                 }
             },
-            "PlatformOfficialUpdateResult": {
+            "PlatformOfficialPackageResult": {
                 "oneOf": [
                     {
-                        "$ref": "#/components/schemas/PlatformOfficialUpdatePreview"
+                        "$ref": "#/components/schemas/PlatformOfficialPackagePreview"
                     },
                     {
                         "$ref": "#/components/schemas/PlatformOpsTask"
@@ -58340,8 +58702,8 @@
                         "type": "string",
                         "nullable": true,
                         "enum": [
-                            "public/storage",
-                            "private/storage",
+                            "storage/public",
+                            "storage/private",
                             null
                         ]
                     },
@@ -58754,8 +59116,8 @@
                         "type": "string",
                         "nullable": true,
                         "enum": [
-                            "public/storage",
-                            "private/storage",
+                            "storage/public",
+                            "storage/private",
                             null
                         ]
                     }
@@ -58766,7 +59128,7 @@
                     "name",
                     "access_type"
                 ],
-                "description": "The existing account selects the driver. local: local_path must equal public/storage or private/storage for access_type, bucket must be blank; persisted local region/endpoint must be null. Cloud: bucket required and local_path blank; qcloud also needs region, aliyun an http(s) endpoint, qiniu or any public cloud space an access_domain. Blank optional strings normalize to null. Account and location are immutable after creation."
+                "description": "The existing account selects the driver. local: local_path must equal storage/public or storage/private for access_type, bucket must be blank; persisted local region/endpoint must be null. Cloud: bucket required and local_path blank; qcloud also needs region, aliyun an http(s) endpoint, qiniu or any public cloud space an access_domain. Blank optional strings normalize to null. Account and location are immutable after creation."
             },
             "StorageSpaceUpdate": {
                 "type": "object",
@@ -69493,7 +69855,7 @@
         },
         "responses": {
             "ApiResponse": {
-                "description": "Standard Peanut Admin API response",
+                "description": "Standard Peanut Module Code API response",
                 "headers": {
                     "X-Trace-Id": {
                         "$ref": "#/components/headers/TraceId"

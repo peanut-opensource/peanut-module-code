@@ -13,12 +13,12 @@ import {
 } from 'node:fs';
 import { request as httpRequest } from 'node:http';
 import { createServer } from 'node:net';
-import { resolve, sep } from 'node:path';
+import { isAbsolute, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import { createSsrUpstream } from './fixtures/ssr-upstream.mjs';
 
-const root = fileURLToPath(new URL('../../../', import.meta.url));
+const root = realpathSync(fileURLToPath(new URL('../../../', import.meta.url)));
 const required = (key) => {
   assert.ok(
     process.env[key],
@@ -28,6 +28,29 @@ const required = (key) => {
 };
 const inside = (parent, value) =>
   value === parent || value.startsWith(parent + sep);
+const resourceRegistry = () => {
+  const path = required('PEANUT_RESOURCE_REGISTRY');
+  assert.ok(isAbsolute(path), 'PEANUT_RESOURCE_REGISTRY must be absolute');
+  const registryPath = realpathSync(path);
+  assert.ok(
+    !inside(root, registryPath),
+    'Use the private Project resource registry, not the Code copy'
+  );
+  return JSON.parse(readFileSync(registryPath, 'utf8')).resources;
+};
+const registeredListener = (resources, id) => {
+  const matches = resources.local_listeners.filter(
+    (item) => item.stable_resource_id === id
+  );
+  assert.equal(matches.length, 1);
+  const [item] = matches;
+  assert.equal(item.owner, 'pc-ssr-qualification');
+  assert.equal(item.host, '127.0.0.1');
+  assert.equal(item.environment, 'development-test');
+  assert.equal(item.fallback, 'none');
+  assert.ok(Number.isInteger(item.port) && item.port > 0 && item.port <= 65535);
+  return item;
+};
 
 function outputDigest(directory) {
   const hash = createHash('sha256');
@@ -112,6 +135,7 @@ test(
   { timeout: 90000 },
   async (context) => {
     const pcRoot = realpathSync(required('PC_SSR_PROJECT_ROOT'));
+    assert.equal(pcRoot, realpathSync(resolve(root, 'pc')));
     const output = resolve(pcRoot, '.output');
     const entry = resolve(output, 'server/index.mjs');
     assert.ok(lstatSync(entry).isFile());
@@ -126,52 +150,26 @@ test(
       [],
       'Preserve earlier evidence; select an empty output directory'
     );
-    const listeners = JSON.parse(
-      readFileSync(resolve(root, 'resources/project-resources.json'))
-    ).resources.local_listeners;
-    const resource = (id) => {
-      const matches = listeners.filter(
-        (item) => item.stable_resource_id === id
-      );
-      assert.equal(matches.length, 1);
-      const [item] = matches;
-      assert.equal(item.host, '127.0.0.1');
-      assert.equal(item.environment, 'development-test');
-      return item;
-    };
-    const ssr = resource('peanut-pc-ssr-qualification');
-    const api = resource('peanut-pc-ssr-synthetic-upstream');
-    const lease = execFileSync(
-      'bash',
-      [
-        resolve(root, 'scripts/project-resource-lease'),
-        'show',
-        '--lease',
-        required('PC_SSR_LEASE_ID'),
-      ],
-      { cwd: root, encoding: 'utf8', timeout: 10000 }
+    const resources = resourceRegistry();
+    const ssr = registeredListener(resources, 'peanut-pc-ssr-qualification');
+    const api = registeredListener(
+      resources,
+      'peanut-pc-ssr-synthetic-upstream'
     );
-    const lines = lease.trim().split('\n');
-    const boundary = lines.indexOf('resources');
-    assert.ok(boundary > 0);
-    const fields = Object.fromEntries(
-      lines.slice(0, boundary).map((line) => line.split('\t'))
-    );
-    assert.equal(fields.owner, 'pc-ssr-qualification');
-    assert.equal(fields.gate, 'pc-ssr-http-qualification');
-    assert.equal(fields.worktree, realpathSync(root));
-    assert.ok(Number(fields.expires_at) > Date.now() / 1000 + 120);
     const head = execFileSync('git', ['rev-parse', 'HEAD'], {
       cwd: root,
       encoding: 'utf8',
     }).trim();
-    assert.equal(fields.candidate, head);
+    const sourceCommit = required('PC_SSR_SOURCE_COMMIT');
+    assert.match(sourceCommit, /^[a-f0-9]{40}$/);
+    assert.equal(head, sourceCommit);
     for (const item of [ssr, api]) {
-      assert.ok(lines.includes(`port\t${item.port}`));
-      assert.ok(lines.includes(`listener\t${item.stable_resource_id}`));
       await freePort(item.port);
     }
     const before = outputDigest(output);
+    const expectedOutput = required('PC_SSR_OUTPUT_SHA256');
+    assert.match(expectedOutput, /^[a-f0-9]{64}$/);
+    assert.equal(before, expectedOutput);
     const upstream = createSsrUpstream();
     let child;
     let childLog = '';
