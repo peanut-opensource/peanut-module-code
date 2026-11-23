@@ -218,7 +218,7 @@ final class DocumentTaskSourceTest extends TestCase
         }
         Db::name('storage_account')->insert(['id' => 1,'account_key' => 'source-local','driver' => 'local','name' => 'source007','status' => 'active']);
         Db::name('storage_space')->insert(['id' => 1,'space_key' => 'source-private','name' => 'source007','account_id' => 1,
-            'access_type' => 'private','local_path' => 'private/storage','status' => 'active']);
+            'access_type' => 'private','local_path' => 'storage/private','status' => 'active']);
         Db::name('storage_route')->insert(['route_key' => 'default.private','access_type' => 'private','space_id' => 1]);
         $this->seedDocument(1, 1);
         $this->seedDocument(2, 2);

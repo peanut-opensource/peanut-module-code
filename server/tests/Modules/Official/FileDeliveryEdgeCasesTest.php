@@ -108,7 +108,7 @@ try {
     $context = $sessions->revalidateSession($tenant,$account,$member,$sessionKey,'admin-web','r0-export-allowed');
     $run = fn(callable $call) => $stack->run(new AdminExecutionContext($context,'r0.file.edges'),$call);
     $export = $run(fn()=>$xlsx->create('accepted-export',['name'],[['synthetic']]));
-    $storedPaths[]=$serverRoot.'/private/storage/'.$export['object_key'];
+    $storedPaths[]=$serverRoot.'/storage/private/'.$export['object_key'];
     fileAccessExpect($export['access_type']==='private' && $export['url']!=='' && preg_match('/^file_[0-9a-f]{32}$/D',$export['file_key'])===1, 'export retains stable key and returns independent authorized download');
     parse_str((string)parse_url($export['url'],PHP_URL_QUERY),$delivery);
     $opened=$storage->authorizedDownload($tenant,$delivery['file_key'],$delivery['token']);
@@ -133,7 +133,7 @@ try {
         } finally { $pdo->exec("ALTER TABLE pa_file_delivery_grant DROP CHECK {$constraint}"); }
         $s=$pdo->prepare('SELECT file_key,object_key,status FROM pa_file_object WHERE original_name LIKE ? ORDER BY id DESC LIMIT 1');
         $s->execute([$name.'%']);$failed=$s->fetch(PDO::FETCH_ASSOC);
-        $physical=$serverRoot.($operation==='public'?'/public/storage/':'/private/storage/').($failed['object_key']??'missing');
+        $physical=$serverRoot.($operation==='public'?'/storage/public/':'/storage/private/').($failed['object_key']??'missing');
         fileAccessExpect(is_array($failed) && $failed['status']==='archived' && !is_file($physical)
             && (int)$pdo->query("SELECT COUNT(*) FROM pa_file WHERE file_key='{$failed['file_key']}'")->fetchColumn()===0, 'unreturned ready object is physically compensated with no metadata');
     }
@@ -145,19 +145,19 @@ try {
         $stored=$run(fn()=>$app->make(\PeanutAdmin\Modules\File\Contract\FileUploads::class)->file($context,
             new \PeanutAdmin\Modules\File\Contract\Dto\UploadFile($input,'r0-'.$label.'.txt',strlen($bytes),'text/plain','txt'),0));
         $object=$pdo->query("SELECT object_key,media_type FROM pa_file_object WHERE file_key='{$stored['file_key']}'")->fetch(PDO::FETCH_ASSOC);
-        $storedPaths[]=$serverRoot.'/public/storage/'.$object['object_key'];
+        $storedPaths[]=$serverRoot.'/storage/public/'.$object['object_key'];
         $url=$storage->publicUrl($stored['file_key']);parse_str((string)parse_url($url,PHP_URL_QUERY),$delivery);
         $opened=$storage->authorizedDownload($tenant,$delivery['file_key'],$delivery['token']);
         fileAccessExpect($object['media_type']===$mime && $opened['disposition']==='attachment'
             && file_get_contents($opened['path'])===$bytes,'actual active/unknown MIME is attachment without altering bytes');
         $private=$run(fn()=>$storage->storePath($tenant,$member,'document.resource',$input,'r0-private-'.$label.'.txt','text/plain'));
-        $storedPaths[]=$serverRoot.'/private/storage/'.$private['object_key'];
+        $storedPaths[]=$serverRoot.'/storage/private/'.$private['object_key'];
         $url=$run(fn()=>$storage->accessUrlForTenant($tenant,$private['file_key']));parse_str((string)parse_url($url,PHP_URL_QUERY),$delivery);
         $opened=$storage->authorizedDownload($tenant,$delivery['file_key'],$delivery['token']);
         fileAccessExpect($opened['disposition']==='attachment' && file_get_contents($opened['path'])===$bytes,'private active/unknown MIME original download remains attachment');
     }
     $safe=$run(fn()=>$storage->storePath($tenant,$member,'material.image',$original,'safe.png','image/png'));
-    $storedPaths[]=$serverRoot.'/public/storage/'.$safe['object_key'];parse_str((string)parse_url($safe['url'],PHP_URL_QUERY),$delivery);
+    $storedPaths[]=$serverRoot.'/storage/public/'.$safe['object_key'];parse_str((string)parse_url($safe['url'],PHP_URL_QUERY),$delivery);
     $opened=$storage->authorizedDownload($tenant,$delivery['file_key'],$delivery['token']);
     fileAccessExpect($opened['disposition']==='inline' && hash_file('sha256',$opened['path'])===hash_file('sha256',$original),'safe verified PNG still previews inline');
     echo 'FILE_DELIVERY_EDGE_CASES_OK assertions='.$assertions.' real_mysql=8.4 local_bytes=real'.PHP_EOL;

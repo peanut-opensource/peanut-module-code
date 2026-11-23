@@ -42,15 +42,15 @@ class SystemApplicationService
                 'remark'  => '',
             ],
             [
-                'dir'     => '/public/storage',
-                'require' => 'storage目录可写',
-                'status'  => self::directoryWritable('public/storage'),
+                'dir'     => '/storage/public',
+                'require' => 'storage/public目录可写',
+                'status'  => self::directoryWritable('storage/public'),
                 'remark'  => '',
             ],
             [
-                'dir'     => '/private/storage',
-                'require' => 'private/storage目录可写且不公开',
-                'status'  => self::directoryWritable('private/storage'),
+                'dir'     => '/storage/private',
+                'require' => 'storage/private目录可写且不公开',
+                'status'  => self::directoryWritable('storage/private'),
                 'remark'  => '',
             ],
         ];

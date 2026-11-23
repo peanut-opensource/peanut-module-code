@@ -3115,14 +3115,14 @@
       const accountId = accountRecord.id;
       const isLocal = accountRecord.driver === 'local';
       const bucket = await ElMessageBox.prompt(
-        'Bucket；本地账号填写 public/storage 或 private/storage',
+        'Bucket；本地账号填写 storage/public 或 storage/private',
         '物理位置',
         {
           inputPattern: isLocal
-            ? new RegExp(`^${access.value}/storage$`)
+            ? new RegExp(`^storage/${access.value}$`)
             : /\S+/,
           inputErrorMessage: isLocal
-            ? `本地账号须填写 ${access.value}/storage`
+            ? `本地账号须填写 storage/${access.value}`
             : '必须填写 Bucket',
         }
       );

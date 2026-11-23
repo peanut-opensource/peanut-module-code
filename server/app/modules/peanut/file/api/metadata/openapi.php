@@ -60,7 +60,7 @@ $storageAccount = ['id' => $storageOutputId, 'account_key' => $storageKey, 'driv
     'credential_rotated_at' => $storageNullable, 'credential_masked' => ['type' => 'string', 'nullable' => true, 'enum' => ['********', null]],
     'status' => ['type' => 'string', 'enum' => ['active', 'disabled']]] + $storageTimes;
 $storageLocation = ['bucket' => $storageNullable, 'region' => $storageNullable, 'endpoint' => $storageUrl,
-    'access_domain' => $storageUrl, 'local_path' => ['type' => 'string', 'nullable' => true, 'enum' => ['public/storage', 'private/storage', null]]];
+    'access_domain' => $storageUrl, 'local_path' => ['type' => 'string', 'nullable' => true, 'enum' => ['storage/public', 'storage/private', null]]];
 $storageSpace = ['id' => $storageOutputId, 'space_key' => $storageKey, 'account_id' => $storageOutputId,
     'name' => $storageName, 'access_type' => $storageAccess] + $storageLocation + [
     'status' => $storageStatus, 'account_key' => $storageKey, 'driver' => $storageDriver] + $storageTimes;
@@ -92,7 +92,7 @@ $storageSchemas = [
         'credentials' => $storageOptionalCredentials, 'credential_ref' => $storageReference], ['id', 'name']),
     'StorageSpaceCreate' => $storageObject(['account_id' => $storageId, 'space_key' => $storageKey,
         'name' => $storageName, 'access_type' => $storageAccess] + $storageLocation, ['account_id', 'space_key', 'name', 'access_type']) + [
-            'description' => 'The existing account selects the driver. local: local_path must equal public/storage or private/storage for access_type, bucket must be blank; persisted local region/endpoint must be null. Cloud: bucket required and local_path blank; qcloud also needs region, aliyun an http(s) endpoint, qiniu or any public cloud space an access_domain. Blank optional strings normalize to null. Account and location are immutable after creation.',
+            'description' => 'The existing account selects the driver. local: local_path must equal storage/public or storage/private for access_type, bucket must be blank; persisted local region/endpoint must be null. Cloud: bucket required and local_path blank; qcloud also needs region, aliyun an http(s) endpoint, qiniu or any public cloud space an access_domain. Blank optional strings normalize to null. Account and location are immutable after creation.',
         ],
     'StorageSpaceUpdate' => $storageObject(['id' => $storageId, 'name' => $storageName,
         'access_domain' => $storageUrl, 'status' => $storageStatus + ['default' => 'active']], ['id', 'name']) + [

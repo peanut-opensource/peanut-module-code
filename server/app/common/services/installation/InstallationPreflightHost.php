@@ -28,8 +28,8 @@ final class InstallationPreflightHost
         'runtime-file' => 'runtime/file',
         'installation-state' => 'private/installation',
         'pending-configuration' => 'private/resources/pending',
-        'public-storage' => 'public/storage',
-        'private-storage' => 'private/storage',
+        'public-storage' => 'storage/public',
+        'private-storage' => 'storage/private',
     ];
 
     private string $serverRoot;

@@ -155,7 +155,7 @@ try {
     imagedestroy($image);
     $source = $run(fn() => $storage->storePath($tenant, $member, 'document.resource', $original, 'original.png', 'text/plain'));
     $variant = $run(fn() => $storage->storePath($tenant, $member, 'material.image-variant', $derivative, 'preview.png', 'text/plain'));
-    $storedPaths = [$serverRoot . '/private/storage/' . $source['object_key'], $serverRoot . '/public/storage/' . $variant['object_key']];
+    $storedPaths = [$serverRoot . '/storage/private/' . $source['object_key'], $serverRoot . '/storage/public/' . $variant['object_key']];
     fileAccessExpect($source['url'] === '', 'private write does not manufacture a download grant');
     $run(fn() => \PeanutAdmin\Modules\File\Model\Storage\FileImageAsset::create(['tenant_id' => $tenant,'file_key' => $source['file_key'],'width' => 16,'height' => 16,'media_type' => 'image/png','created_at' => gmdate('Y-m-d H:i:s'),'updated_at' => gmdate('Y-m-d H:i:s')]));
     $run(fn() => $app->make(\PeanutAdmin\Modules\File\Contract\FileDerivatives::class)->bind($context, $source['file_key'], 'small', $variant['file_key'], 4, 4, 'image/png'));
@@ -208,7 +208,7 @@ try {
     }
     $failedUpload = $pdo->query("SELECT file_key,object_key,status FROM pa_file_object WHERE original_name='r0-failed.png'")->fetch(PDO::FETCH_ASSOC);
     fileAccessExpect(is_array($failedUpload) && $failedUpload['status'] === 'archived'
-        && !is_file($serverRoot . '/public/storage/' . $failedUpload['object_key'])
+        && !is_file($serverRoot . '/storage/public/' . $failedUpload['object_key'])
         && (int) $pdo->query("SELECT COUNT(*) FROM pa_file WHERE file_key='{$failedUpload['file_key']}'")->fetchColumn() === 0, 'failed metadata write rolls back and exact new upload is physically compensated');
     fileAccessExpect((int) $pdo->query("SELECT COUNT(*) FROM pa_tenant_audit_event WHERE event_type='file.upload.compensated'")->fetchColumn() === 1, 'upload compensation has accurate audit');
     $pdo->exec("UPDATE pa_role SET is_builtin=1 WHERE tenant_id={$tenant} AND `key`='core.tenant-owner'");

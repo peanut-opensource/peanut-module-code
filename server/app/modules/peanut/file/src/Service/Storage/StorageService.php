@@ -1534,11 +1534,11 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             $purpose = (string) $object['purpose'];
             $target = $routes[$purpose] ??= $this->route($purpose, 'private');
             if ($target['driver'] !== 'local' || $target['bucket'] !== null || $target['access_domain'] !== null
-                || $target['local_path'] !== 'private/storage') {
+                || $target['local_path'] !== 'storage/private') {
                 throw BusinessException::conflict('FILE_VISIBILITY_ORIGIN_UNQUALIFIED', '目标不支持可核验的私有存储');
             }
             if ($object['driver'] === 'local') {
-                if ($object['bucket'] !== null || $object['access_domain'] !== null || $object['local_path'] !== 'public/storage') {
+                if ($object['bucket'] !== null || $object['access_domain'] !== null || $object['local_path'] !== 'storage/public') {
                     throw BusinessException::conflict('FILE_VISIBILITY_LOCATION_INVALID', '公开和私有存储空间不匹配');
                 }
             } elseif ($object['driver'] !== 'qiniu'
@@ -1562,7 +1562,7 @@ final readonly class StorageService implements FileStorage, FileBusinessEvidence
             }
             $destination = ['storage_space_id' => (string) $target['space_id'], 'space_key' => $target['space_key'],
                 'object_key' => $this->ownerPrefix($context->tenantId) . 'visibility/' . $batchKey . '/' . $key,
-                'access_type' => 'private', 'driver' => 'local', 'local_path' => 'private/storage'];
+                'access_type' => 'private', 'driver' => 'local', 'local_path' => 'storage/private'];
             $driver = $this->drivers->make($target, $target);
             if ($driver->inspect($destination['object_key'])->exists) {
                 throw BusinessException::conflict('FILE_VISIBILITY_TARGET_EXISTS', '目标已存在，请重新预检查');

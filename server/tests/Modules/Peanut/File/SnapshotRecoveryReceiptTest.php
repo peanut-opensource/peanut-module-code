@@ -94,7 +94,7 @@ final class SnapshotRecoveryReceiptTest extends TestCase
             $this->fileAuthorization, $execution, $this->audit, $capabilities, $registry);
         Db::name('storage_account')->insert(['id' => 1, 'account_key' => 'synthetic-local', 'driver' => 'local', 'name' => '002d', 'status' => 'active']);
         Db::name('storage_space')->insert(['id' => 1, 'space_key' => 'synthetic-private', 'name' => '002d', 'account_id' => 1,
-            'access_type' => 'private', 'local_path' => 'private/storage', 'status' => 'active']);
+            'access_type' => 'private', 'local_path' => 'storage/private', 'status' => 'active']);
         Db::name('storage_route')->insert(['route_key' => 'default.private', 'access_type' => 'private', 'space_id' => 1]);
         file_put_contents($this->directory . '/source.txt', self::BYTES);
         $this->within(function (): void {
@@ -117,7 +117,7 @@ final class SnapshotRecoveryReceiptTest extends TestCase
 
     private function path(string $key): string
     {
-        return $this->directory . '/private/storage/' . Db::name('file_object')->where('file_key', $key)->value('object_key');
+        return $this->directory . '/storage/private/' . Db::name('file_object')->where('file_key', $key)->value('object_key');
     }
 
     private function denied(callable $operation, string $code): void

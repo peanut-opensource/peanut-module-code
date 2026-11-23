@@ -92,7 +92,7 @@ final class StorageDriverFactory
     private function local(array $space): LocalStorageDriver
     {
         $relative = (string) ($space['local_path'] ?? '');
-        if (!in_array($relative, ['public/storage', 'private/storage'], true)) {
+        if (!in_array($relative, ['storage/public', 'storage/private'], true)) {
             throw new \RuntimeException('本地存储空间配置无效');
         }
         $root = rtrim($this->app->getRootPath(), DIRECTORY_SEPARATOR)

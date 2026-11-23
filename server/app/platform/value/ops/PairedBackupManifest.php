@@ -110,8 +110,8 @@ final readonly class PairedBackupManifest
         ) {
             self::invalid();
         }
-        self::storageDirectory($runtime['public_storage_directory'] ?? null, 'server/public');
-        self::storageDirectory($runtime['private_storage_directory'] ?? null, 'server/private/storage');
+        self::storageDirectory($runtime['public_storage_directory'] ?? null, 'server/storage/public');
+        self::storageDirectory($runtime['private_storage_directory'] ?? null, 'server/storage/private');
         self::storageDirectory($runtime['installation_directory'] ?? null, 'server/private/installation');
         if (count(array_unique([
             $runtime['public_storage_directory'],

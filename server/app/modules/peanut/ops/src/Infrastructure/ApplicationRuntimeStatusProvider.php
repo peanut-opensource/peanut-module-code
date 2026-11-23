@@ -129,7 +129,7 @@ final readonly class ApplicationRuntimeStatusProvider implements RuntimeStatusPr
             foreach ([
                 'server/runtime/cache', 'server/runtime/log', 'server/runtime/session',
                 'server/runtime/temp', 'server/runtime/storage', 'server/runtime/generator',
-                'server/runtime/file', 'server/public/storage', 'server/private/storage',
+                'server/runtime/file', 'server/storage/public', 'server/storage/private',
             ] as $relative) {
                 $path = $this->projectRoot . '/' . $relative;
                 if (!is_dir($path) || !is_readable($path) || !is_writable($path)) {

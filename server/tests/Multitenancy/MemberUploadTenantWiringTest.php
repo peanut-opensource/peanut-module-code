@@ -124,12 +124,12 @@ function memberUploadInstalledAssertions(
         expectMemberUpload(preg_match('/^file_[0-9a-f]{32}$/D', (string) $row['file_key']) === 1, 'member upload file identity changed');
         expectMemberUpload(str_starts_with((string) $row['object_key'], 'tenants/v1/' . $tenantId . '/material/image/'), 'member upload escaped its Tenant object namespace');
         expectMemberUpload(!str_contains((string) $row['object_key'], '/' . $otherTenantId . '/'), 'payload Tenant appeared in stored object namespace');
-        expectMemberUpload($row['driver'] === 'local' && $row['local_path'] === 'public/storage', 'member upload did not use the registered local public storage route');
+        expectMemberUpload($row['driver'] === 'local' && $row['local_path'] === 'storage/public', 'member upload did not use the registered local public storage route');
         expectMemberUpload($row['status'] === 'ready', 'member upload object was not made ready');
         expectMemberUpload((int) $row['created_by_member_id'] === $memberId, 'payload forged the storage object member owner');
         expectMemberUpload(($body['data']['file_key'] ?? null) === $row['file_key'], 'upload response did not return the canonical file identity');
 
-        $storedObject = $serverRoot . '/public/storage/' . $row['object_key'];
+        $storedObject = $serverRoot . '/storage/public/' . $row['object_key'];
         expectMemberUpload(is_file($storedObject), 'member upload object was not written to storage');
         expectMemberUpload((int) $pdo->query('SELECT COUNT(*) FROM pa_file')->fetchColumn() === $fileCountBefore + 1, 'member upload created an unexpected number of rows');
         expectMemberUpload((int) $pdo->query('SELECT COUNT(*) FROM pa_file_object')->fetchColumn() === $objectCountBefore + 1, 'member upload created an unexpected number of object rows');

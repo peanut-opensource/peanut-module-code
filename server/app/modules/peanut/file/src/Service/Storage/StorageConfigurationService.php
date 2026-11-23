@@ -203,7 +203,7 @@ final readonly class StorageConfigurationService implements StorageConfiguration
         $domain = $this->url((string) ($value['access_domain'] ?? ''));
         $local = $this->nullable((string) ($value['local_path'] ?? ''));
         if ($driver === 'local') {
-            if ($local !== ($access === StorageAccess::PUBLIC ? 'public/storage' : 'private/storage') || $bucket !== null) {
+            if ($local !== ($access === StorageAccess::PUBLIC ? 'storage/public' : 'storage/private') || $bucket !== null) {
                 throw new \InvalidArgumentException('本地目录与公开属性不匹配');
             }
         } elseif ($bucket === null || $local !== null || ($driver === 'qcloud' && $region === null)

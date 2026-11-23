@@ -11,10 +11,10 @@ Thumbs.db
 /runtime/*
 !/runtime/.gitkeep
 /public/uploads/
-/public/storage/*
-!/public/storage/.gitkeep
-/private/storage/*
-!/private/storage/.gitkeep
+/storage/public/*
+!/storage/public/.gitkeep
+/storage/private/*
+!/storage/private/.gitkeep
 /private/installation/
 /private/resources/
 /private/credential-maintenance/

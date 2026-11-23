@@ -65,8 +65,8 @@ final readonly class RestoreVerificationEvidence
             'runtime_resource_id' => $registered['runtime'],
             'compose_project' => $registered['project'],
             'database_name' => $registered['database_name'],
-            'public_storage_directory' => 'server/public',
-            'private_storage_directory' => 'server/private/storage',
+            'public_storage_directory' => 'server/storage/public',
+            'private_storage_directory' => 'server/storage/private',
             'installation_directory' => 'server/private/installation',
         ]) {
             throw new RuntimeException('OPS_RESTORE_TARGET_INVALID');

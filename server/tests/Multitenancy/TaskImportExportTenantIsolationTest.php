@@ -482,7 +482,7 @@ function assertInFlightExportRevocation(
     $bindingsBefore = $bindings->fetchAll(PDO::FETCH_ASSOC);
     $diskSnapshot = static function () use ($app): array {
         $files = [];
-        foreach (['private/storage', 'public/storage'] as $relative) {
+        foreach (['storage/private', 'storage/public'] as $relative) {
             $root = $app->getRootPath() . $relative;
             if (!is_dir($root)) {
                 continue;

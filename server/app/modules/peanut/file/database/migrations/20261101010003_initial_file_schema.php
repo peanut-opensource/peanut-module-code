@@ -123,7 +123,7 @@ CREATE TABLE `pa_storage_space` (
   UNIQUE KEY `uk_storage_space_location` (`account_id`,`bucket`,`region`),
   CONSTRAINT `fk_storage_space_account` FOREIGN KEY (`account_id`) REFERENCES `pa_storage_account` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `chk_storage_space_access` CHECK ((`access_type` in (_utf8mb4'public',_utf8mb4'private'))),
-  CONSTRAINT `chk_storage_space_local_path` CHECK (((`local_path` is null) or (`local_path` in (_utf8mb4'public/storage',_utf8mb4'private/storage')))),
+  CONSTRAINT `chk_storage_space_local_path` CHECK (((`local_path` is null) or (`local_path` in (_utf8mb4'storage/public',_utf8mb4'storage/private')))),
   CONSTRAINT `chk_storage_space_shape` CHECK ((((`local_path` is not null) and (`bucket` is null) and (`region` is null) and (`endpoint` is null)) or ((`local_path` is null) and (`bucket` is not null)))),
   CONSTRAINT `chk_storage_space_status` CHECK ((`status` in (_utf8mb4'active',_utf8mb4'read_only',_utf8mb4'disabled')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

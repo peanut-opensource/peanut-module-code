@@ -214,7 +214,7 @@ try {
     $fileSnapshot = $run(fn() => $queries->versionSnapshot($context, $resourceId, $fileVersion['revision_id']))->toArray();
     $immutableKey = $fileSnapshot['file_key'];
     $immutable = $pdo->query("SELECT * FROM pa_file_object WHERE file_key='{$immutableKey}'")->fetch(PDO::FETCH_ASSOC);
-    $immutablePath = $serverRoot . '/private/storage/' . $immutable['object_key'];
+    $immutablePath = $serverRoot . '/storage/private/' . $immutable['object_key'];
     documentExpect($immutableKey !== $source['file_key'] && is_file($immutablePath) && hash_file('sha256', $immutablePath) === $description['sha256'] && $immutable['access_type'] === 'private' && $fileSnapshot['verified_mime_type'] === 'image/png' && $pdo->query("SELECT status FROM pa_file_immutable_snapshot WHERE file_key='{$immutableKey}'")->fetchColumn() === 'claimed', 'file version owns real private immutable bytes/MIME/SHA and claimed ledger');
     $pathB = tempnam(sys_get_temp_dir(), 'b1-b-');
     $paths[] = $pathB;
@@ -230,13 +230,13 @@ try {
     documentExpect(hash_file('sha256', $opened['path']) === $description['sha256'], 'actual authorized historic download bytes');
     $capture = $run(fn() => $snapshots->captureForDocument($context, $source['file_key'], $description['sha256'], $description['revision'], 'b1-abandon'));
     $captureObject = $pdo->query("SELECT object_key FROM pa_file_object WHERE file_key='{$capture['file_key']}'")->fetch(PDO::FETCH_ASSOC);
-    $capturePath = $serverRoot . '/private/storage/' . $captureObject['object_key'];
+    $capturePath = $serverRoot . '/storage/private/' . $captureObject['object_key'];
     documentExpect(is_file($capturePath), 'unclaimed capture exists physically');
     $run(fn() => $snapshots->abandonDocumentSnapshot($context, $capture));
     documentExpect(!is_file($capturePath) && $pdo->query("SELECT status FROM pa_file_immutable_snapshot WHERE file_key='{$capture['file_key']}'")->fetchColumn() === 'abandoned', 'same-request compensation deletes actual bytes using complete original config');
     $recovery = $run(fn() => $snapshots->captureForDocument($context, $source['file_key'], $description['sha256'], $description['revision'], 'b1-recovery'));
     $recoveryObject = $pdo->query("SELECT object_key,storage_space_id FROM pa_file_object WHERE file_key='{$recovery['file_key']}'")->fetch(PDO::FETCH_ASSOC);
-    $recoveryPath = $serverRoot . '/private/storage/' . $recoveryObject['object_key'];
+    $recoveryPath = $serverRoot . '/storage/private/' . $recoveryObject['object_key'];
     $pdo->exec("UPDATE pa_file_object SET created_at=DATE_SUB(UTC_TIMESTAMP(3),INTERVAL 2 HOUR) WHERE file_key='{$recovery['file_key']}'");
     documentExpect(in_array($recovery['file_key'], array_column($run(fn() => $snapshots->pendingDocumentSnapshots($context)), 'file_key'), true), 'durable unclaimed capture discoverable after interruption');
     // Native Local IO failure: a nonempty directory at the exact registered synthetic object path cannot be unlinked.

@@ -271,7 +271,7 @@ try {
         Db::transaction(fn() => $queries->verifyPreparedVersion($context, $original, $fileOwner));
         $s = $pdo->prepare("SELECT object_key FROM pa_file_object WHERE file_key=?");
         $s->execute([$original->fileKey]);
-        documentExpect(hash_file('sha256', dirname(__DIR__, 4) . '/private/storage/' . $s->fetchColumn()) === $original->fileSha256, 'captured fixture bytes match immutable revision SHA');
+        documentExpect(hash_file('sha256', dirname(__DIR__, 4) . '/storage/private/' . $s->fetchColumn()) === $original->fileSha256, 'captured fixture bytes match immutable revision SHA');
         documentDenied(fn() => Db::transaction(function () use ($pdo, $original, $queries, $context, $fileOwner): void {
             $s = $pdo->prepare("UPDATE pa_file_object SET media_type='image/png' WHERE file_key=?");
             $s->execute([$original->fileKey]);

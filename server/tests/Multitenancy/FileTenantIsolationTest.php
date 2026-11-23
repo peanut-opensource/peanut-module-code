@@ -160,8 +160,8 @@ try {
     $betaFile = (int) $betaUpload['id'];
     $alphaObjectKey = (string) $pdo->query("SELECT object_key FROM pa_file_object WHERE file_key=" . $pdo->quote((string) $alphaUpload['file_key']))->fetchColumn();
     $betaObjectKey = (string) $pdo->query("SELECT object_key FROM pa_file_object WHERE file_key=" . $pdo->quote((string) $betaUpload['file_key']))->fetchColumn();
-    $alphaObject = $serverRoot . '/public/storage/' . $alphaObjectKey;
-    $betaObject = $serverRoot . '/public/storage/' . $betaObjectKey;
+    $alphaObject = $serverRoot . '/storage/public/' . $alphaObjectKey;
+    $betaObject = $serverRoot . '/storage/public/' . $betaObjectKey;
     expectFileTenant($alphaFile > 0 && $betaFile > 0, 'same-name Tenant files were not created');
     expectFileTenant(is_file($alphaObject) && is_file($betaObject), 'canonical storage driver did not persist both Tenant objects');
 
