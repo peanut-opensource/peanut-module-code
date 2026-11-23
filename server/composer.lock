@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f20f6c62c1ee7acccd38828082a5e8a9",
+    "content-hash": "a0f8e3d85009d57595d39d9fbd782638",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2572,11 +2572,11 @@
         },
         {
             "name": "peanut-business/peanut-file",
-            "version": "1.0.50-rc.18",
+            "version": "1.0.50-rc.19",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/file",
-                "reference": "1460211d43cebf7dab7ce7f2a39458a87d7111b0"
+                "reference": "ee25bcc6a83436e5a74cca45247434420a458bd0"
             },
             "require": {
                 "aliyuncs/oss-sdk-php": "^2.4",
@@ -2613,11 +2613,11 @@
         },
         {
             "name": "peanut-business/peanut-identity",
-            "version": "4.0.1-rc.14",
+            "version": "4.0.1-rc.15",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/identity",
-                "reference": "77fdcdb90f0aa29adc1b9054e37a5d5568e12acf"
+                "reference": "89f81e60b83938f7e15baa7f378831de16d8de4e"
             },
             "require": {
                 "ext-bcmath": "*",
@@ -2840,15 +2840,15 @@
         },
         {
             "name": "peanut-business/peanut-ops",
-            "version": "1.0.35-rc.5",
+            "version": "1.0.35-rc.6",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/ops",
-                "reference": "3abe4ddf1b3d47de92125c4abfbc23ce0214db90"
+                "reference": "29aed287e1ffda1375abe79de404bf972958b17b"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
-                "peanut-business/peanut-identity": "^4.0.0-rc.32",
+                "peanut-business/peanut-identity": "^4.0.1-rc.15",
                 "peanut-business/peanut-task": "^1.0",
                 "php": "^8.3"
             },

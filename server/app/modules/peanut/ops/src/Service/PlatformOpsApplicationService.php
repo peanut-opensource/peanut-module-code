@@ -30,6 +30,7 @@ final readonly class PlatformOpsApplicationService
         private PlatformModuleOperationExecutionService $moduleOperations,
         private PlatformBackupCenterService $backups,
         private PlatformPermissionChecker $permissions,
+        private ProviderQualificationProjection $providerQualifications,
     ) {}
 
     /** @return array<string,mixed> */
@@ -47,14 +48,7 @@ final readonly class PlatformOpsApplicationService
     /** @return array<string,mixed> */
     public function providers(PlatformContext $context, int $page = 1, int $pageSize = 20): array
     {
-        return [
-            'schema_version' => 1,
-            'generated_at' => gmdate('Y-m-d\TH:i:s\Z'),
-            'providers' => [],
-            'total' => 0,
-            'page' => $page,
-            'page_size' => $pageSize,
-        ];
+        return $this->providerQualifications->snapshot($context, $page, $pageSize);
     }
 
     /** @return array<string,mixed>|null */

@@ -1,8 +1,8 @@
 <template>
   <el-card v-loading="loading" class="backup-center-card">
-    <template #header>外部服务生产资格</template>
+    <template #header>外部服务配置与资格</template>
     <el-alert
-      title="这里只读取已记录证据；刷新不会连接外部平台、发送消息或发起资金动作。配置变化或证据过期会自动撤销资格。"
+      title="这里显示当前配置与已有验证结果。刷新只读取记录，不会连接外部平台、发送消息或发起资金动作。"
       type="info"
       :closable="false"
     />
@@ -25,23 +25,29 @@
       </el-table-column>
       <el-table-column label="配置" width="80">
         <template #default="{ row }">{{
-          row.configured ? '是' : '否'
+          row.status_code === 'NOT_IMPLEMENTED'
+            ? '—'
+            : row.configured
+            ? '是'
+            : '否'
         }}</template>
       </el-table-column>
-      <el-table-column label="连通" width="80">
+      <el-table-column label="连通" min-width="110">
         <template #default="{ row }">{{
-          row.connected ? '是' : '否'
+          verificationLabel(row.connected, row.status_code)
         }}</template>
       </el-table-column>
-      <el-table-column label="回调" width="80">
+      <el-table-column label="回调" min-width="110">
         <template #default="{ row }">{{
-          row.callback_verified ? '是' : '否'
+          verificationLabel(row.callback_verified, row.status_code)
         }}</template>
       </el-table-column>
-      <el-table-column label="生产资格" width="100">
+      <el-table-column label="生产资格" min-width="120">
         <template #default="{ row }">
           <el-tag :type="row.qualified ? 'success' : 'warning'">
-            {{ row.qualified ? '有效' : '无效' }}
+            {{
+              row.qualified ? '有效' : verificationLabel(false, row.status_code)
+            }}
           </el-tag>
         </template>
       </el-table-column>
@@ -85,14 +91,19 @@
 <script setup lang="ts">
   import type { ProviderQualificationSnapshot } from '../api/platform';
 
+  const verificationLabel = (passed: boolean, code: string): string => {
+    if (passed) return '已验证';
+    return code === 'NOT_IMPLEMENTED' ? '未接入核验' : '未验证';
+  };
+
   const reasonLabel = (code: string): string =>
     ((
       {
-        NOT_IMPLEMENTED: '尚未实现',
+        NOT_IMPLEMENTED: '尚未接入资格核验',
         CONFIGURATION_REQUIRED: '尚未配置',
         PROVIDER_RECENT_FAILURE: '近期存在失败证据',
         PROVIDER_EVIDENCE_STALE: '证据已过期',
-        CONNECTIVITY_EVIDENCE_REQUIRED: '需要连通证据',
+        CONNECTIVITY_EVIDENCE_REQUIRED: '缺少连通验证证据',
         CALLBACK_EVIDENCE_REQUIRED: '需要回调验证证据',
         PRODUCTION_QUALIFICATION_REQUIRED: '尚未完成生产资格验证',
         PROVIDER_PRODUCTION_QUALIFIED: '生产资格有效',

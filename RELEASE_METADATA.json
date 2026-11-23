@@ -3,7 +3,7 @@
   "protocol": "peanut.release-metadata.v3",
   "product": "Peanut Module Code",
   "application_identity": "peanut-business/peanut-module-code",
-  "source_product_version": "5.1.18-rc.15",
+  "source_product_version": "5.1.18-rc.16",
   "instance_version": "1.0.0",
   "status": "generated-application-baseline",
   "release_policy": "replace this metadata from an immutable application release candidate before publishing",
@@ -57,7 +57,7 @@
   "source_repository": "peanut-opensource/peanut-module-code",
   "release_date": "2026-11-23",
   "legal_files": {
-    "RELEASE_SBOM.spdx.json": "2b546b3b34b7587c85d17333417bf5c6b50d68d26cd9751818f7e2196b6d6027",
-    "THIRD_PARTY_NOTICES.md": "eddb34c342d036cde9e6d47a245418e359f846fccd26921846b0ac8576d371c9"
+    "RELEASE_SBOM.spdx.json": "282d19529eaf092f7b359c02386e708b390c5cdf2634d071ca5fd92364d29376",
+    "THIRD_PARTY_NOTICES.md": "5bf5e7a79954f648767af7cce976d44dfeece73d17282925e7afad6dd51a4abf"
   }
 }

@@ -181,13 +181,33 @@ final readonly class StorageQualificationQueries
         return $record;
     }
 
+    public function countSubjects(): int
+    {
+        return (int) Db::name('storage_account')->count();
+    }
+
     /** @return list<array{account_key:string,driver:string,configured:bool,credential_rotated_at:string|null,config_digest:string}> */
-    public function subjects(string $digestKey): array
+    public function subjects(string $digestKey, int $offset = 0, ?int $limit = null): array
     {
         if (strlen($digestKey) < 32) {
             throw new \InvalidArgumentException('PROVIDER_QUALIFICATION_DIGEST_KEY_INVALID');
         }
-        $rows = Db::name('storage_account')->alias('a')
+
+        $query = Db::name('storage_account')->alias('a');
+        if ($limit !== null) {
+            if ($offset < 0 || $limit < 1 || $limit > 100) {
+                throw new \InvalidArgumentException('PROVIDER_QUALIFICATION_PAGE_INVALID');
+            }
+            $ids = Db::name('storage_account')->order('id')->limit($offset, $limit)->column('id');
+            if ($ids === []) {
+                return [];
+            }
+            $query->whereIn('a.id', $ids);
+        } elseif ($offset !== 0) {
+            throw new \InvalidArgumentException('PROVIDER_QUALIFICATION_PAGE_INVALID');
+        }
+
+        $rows = $query
             ->leftJoin('storage_space s', "s.account_id=a.id AND s.status='active'")
             ->field('a.id,a.account_key,a.driver,a.credential_ciphertext,a.credential_key_version,a.credential_rotated_at,a.status,a.updated_at')
             ->fieldRaw('COUNT(s.id) AS active_space_count,MAX(s.updated_at) AS space_updated_at')

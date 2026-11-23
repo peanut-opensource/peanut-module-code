@@ -66,13 +66,27 @@ final readonly class AdminDirectoryQuery
     }
 
     /**
-     * Complete active-tenant selection for an already authorized platform qualification overview.
+     * Active tenants, ordered by ID, for an already authorized platform qualification overview.
      * Includes tenants without configured bindings; this metadata is not an access grant.
      * @return list<int>
      */
-    public function activeTenantIdsForQualification(): array
+    public function activeTenantIdsForQualification(int $offset = 0, ?int $limit = null): array
     {
-        return array_map('intval', Tenant::where('status', 'active')->order('id')->column('id'));
+        $query = Tenant::where('status', 'active')->order('id');
+        if ($limit !== null) {
+            if ($offset < 0 || $limit < 1 || $limit > 100) {
+                throw new \InvalidArgumentException('PROVIDER_QUALIFICATION_PAGE_INVALID');
+            }
+            $query->limit($offset, $limit);
+        } elseif ($offset !== 0) {
+            throw new \InvalidArgumentException('PROVIDER_QUALIFICATION_PAGE_INVALID');
+        }
+        return array_map('intval', $query->column('id'));
+    }
+
+    public function countActiveTenantsForQualification(): int
+    {
+        return (int) Tenant::where('status', 'active')->count();
     }
 
     /**
