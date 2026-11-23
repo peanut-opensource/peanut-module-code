@@ -1,0 +1,5 @@
+# APP runtime settings come from server/docker/.env, selected explicitly:
+# docker compose --env-file server/docker/.env -f compose.yaml up -d --no-build
+# All service and directory-mount definitions have one owner.
+include:
+  - ../server/docker/compose.yaml

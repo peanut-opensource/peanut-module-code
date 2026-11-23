@@ -1,0 +1,21 @@
+export default {
+  'menu.system.maintenance': 'Maintenance',
+  'systemMaintenance.server.title': 'Server Info',
+  'systemMaintenance.env.title': 'Environment Check',
+  'systemMaintenance.env.option': 'Item',
+  'systemMaintenance.env.require': 'Requirement',
+  'systemMaintenance.env.status': 'Status',
+  'systemMaintenance.auth.title': 'Directory Permissions',
+  'systemMaintenance.auth.dir': 'Directory',
+  'systemMaintenance.auth.require': 'Requirement',
+  'systemMaintenance.status.ok': 'Pass',
+  'systemMaintenance.status.fail': 'Fail',
+  'systemMaintenance.status.writable': 'Writable',
+  'systemMaintenance.status.readonly': 'Read-only',
+  'systemMaintenance.cache.title': 'Cache Management',
+  'systemMaintenance.cache.desc':
+    'Clear system cache and temporary files. Business data is not affected.',
+  'systemMaintenance.cache.clear': 'Clear Cache',
+  'systemMaintenance.cache.confirm': 'Clear system cache?',
+  'systemMaintenance.cache.success': 'Cleared successfully',
+};

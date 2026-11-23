@@ -8,6 +8,8 @@
 
 MT 薄模板不携带官方模块作者源码。使用支持组合的 CLI，以明确的模块渠道和固定索引运行 `create --plan`，在返回的 staged consumer 内配置工具，按自身 `server/composer.lock` 安装起始依赖；然后复用同一 `--composition-stage` 取得原生计划，以审阅后的 `--plan-sha256` 采用完整源码。CLI 返回 `source-created` 后，复核工具登记的根路径，运行 `python3 scripts/project-env run -- bash scripts/deploy-update.sh --prepare-first-install`（不要求产品 Git），准备最终依赖、API、Admin/Platform 和 registry。全过程不连接数据库；缺少必选源码时 HTTP 明确返回 `INSTALL_MODULE_SOURCE_MISSING`，不能直接执行数据库安装。详细协议见[默认模块组合](../architecture/module-composition.md)。
 
+首次准备在报告成功前，还会使用本应用锁定的 Core 和 Identity 执行权限目录同步、核对权限键及菜单定义；该检查使用内存仓储，不读取实例环境或连接数据库。`INSTALL_SEED_CONTRACT_SOURCE_REQUIRED` 表示必需源码或锁身份不完整，`INSTALL_SEED_CONTRACT_UNAVAILABLE` 表示当前组合未通过初始化合同。应采用兼容的固定模块归档并重新准备，再继续首次安装。已经出现部分安装状态的实例继续遵守原生状态与恢复合同，保留数据库和安装记录。
+
 生产首次安装从产品已定版 `main` 的固定提交取得程序和已受管的后台静态文件，在全新空目录、空库准备 PHP 锁定依赖和生产配置，启动后走同一安装页面向导。前端在开发／发行机器的定版环节构建并随 Git 提交；生产不需要 Node、npm、pnpm 或前端压缩包。正式准备／更新命令见[交付合同](application-release.md#1-产品定版与前端准备)。
 
 生成 APP 的网页首次配置支持 `development` 与 `production`，使用有效 Setup Token；来源身份由 `.peanut/application-manifest.json` 与 `release-versions.json` 校验，Edition、版本及两份声明的摘要绑定到私有配置回执。Docker 中网页只提交 pending 输入，原生入口关闭流量并停止 PHP 后重新核对身份和 token，再由 owner 发布配置。非 Docker 部署由同一 PHP 用户写入和读取首配私有文件，源码目录可以由独立部署用户持有。已有配置、安装身份和部分失败继续阻止重复首次配置。带 `development-runtime.json` 的开发运行布局与内部候选仍只允许 `development`，不能用于生产。

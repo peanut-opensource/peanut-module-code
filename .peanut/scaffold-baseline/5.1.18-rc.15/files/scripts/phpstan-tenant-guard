@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)"
+SERVER_DIR="$ROOT_DIR/server"
+
+PHPSTAN_BIN="${PEANUT_PHPSTAN_BIN:-}"
+if [[ -z "$PHPSTAN_BIN" ]]; then
+    for candidate in \
+        "$SERVER_DIR/vendor/bin/phpstan" \
+        "$ROOT_DIR/tools/phpstan/vendor/bin/phpstan" \
+        "$ROOT_DIR/../peanut-admin-core-php/vendor/bin/phpstan"
+    do
+        if [[ -x "$candidate" ]]; then
+            PHPSTAN_BIN="$candidate"
+            break
+        fi
+    done
+fi
+
+if [[ -z "$PHPSTAN_BIN" ]] && command -v phpstan >/dev/null 2>&1; then
+    PHPSTAN_BIN="$(command -v phpstan)"
+fi
+
+if [[ -z "$PHPSTAN_BIN" ]]; then
+    echo "phpstan binary not found. Set PEANUT_PHPSTAN_BIN or install phpstan." >&2
+    exit 1
+fi
+
+cd "$SERVER_DIR"
+exec "$PHPSTAN_BIN" analyse \
+    --no-progress \
+    --memory-limit=512M \
+    --autoload-file="$SERVER_DIR/phpstan/bootstrap.php" \
+    "$@"

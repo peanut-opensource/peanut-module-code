@@ -116,6 +116,7 @@ PHP
     fi
     printf '%s\n' '{"operation":"compile","arguments":[]}' | php -d zend.exception_ignore_args=1 server/module
     if $prepare_first_install; then
+      php -d display_errors=0 -d log_errors=0 -d zend.exception_ignore_args=1 scripts/check-installation-contract.php
       printf '[deploy-update] Prepared %s %s for first installation.\n' "$declared_version" "$edition"
       return
     fi
