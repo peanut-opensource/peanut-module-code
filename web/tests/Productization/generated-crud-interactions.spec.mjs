@@ -15,9 +15,12 @@ import ElementPlus, {
 } from 'element-plus';
 import Page from 'generated:crud-view';
 import permission from '../../src/directive/permission/index';
+import TableColumnSetting from '../../src/components/crud/TableColumnSetting.vue';
 import useCrudModal from '../../src/hooks/useCrudModal';
 import useCrudTable from '../../src/hooks/useCrudTable';
 
+const identity = vi.hoisted(() => ({ tenantId: undefined, accountId: undefined }));
+vi.mock('@/store', () => ({ useUserStore: () => identity }));
 const policy = vi.hoisted(() => ({ allow: true, observed: [] }));
 vi.mock('@/hooks/permission', () => ({
   hasPermission(keys) {
@@ -115,6 +118,9 @@ beforeEach(async () => {
   wrappers = [];
   warnings = [];
   policy.allow = true;
+  identity.tenantId = undefined;
+  identity.accountId = undefined;
+  localStorage.clear();
   policy.observed = [];
   originalAdapter = axios.defaults.adapter;
   axios.defaults.adapter = async (config) => {
@@ -156,6 +162,9 @@ describe(`native generated ${example}`, () => {
     expect(wrapper.findComponent(ElTable).props('rowKey')).toBe(primary);
     expect(wrapper.text()).toContain('current row');
     expect(wrapper.text()).toContain('标题');
+    expect(wrapper.findComponent(TableColumnSetting).props('storageKey')).toBe(
+      `peanut:crud:${prefix}:columns`
+    );
     expect(wrapper.text()).not.toContain('api_secret');
     expect(pending[0].config.url).toBe(`/adminapi/${prefix}.list`);
     expect(pending[0].config.params).toEqual({ page_no: 1, page_size: 15 });
@@ -169,6 +178,30 @@ describe(`native generated ${example}`, () => {
     await drain();
     expect(wrapper.text()).toContain('page two');
     expect(pagination.props('currentPage')).toBe(2);
+  });
+
+  it('renders the generated detail audit history from the response', async () => {
+    const wrapper = await loaded();
+    await button(wrapper, '详情').trigger('click');
+    await drain();
+    expect(pending[1].config.url).toBe(`/adminapi/${prefix}.detail`);
+    pending[1].resolve({
+      ...row('after title'),
+      audit_history: [{
+        id: 'event-1',
+        occurred_at: '2026-11-21 01:00:00',
+        before: { title: 'previous title' },
+        after: { title: 'after title' },
+      }],
+    });
+    await drain();
+    const history = wrapper.get('.detail-history');
+    expect(history.text()).toContain('2026-11-21 01:00:00 UTC');
+    const toggle = history.get('[role="button"][aria-expanded]');
+    await toggle.trigger('click');
+    expect(toggle.attributes('aria-expanded')).toBe('true');
+    expect(history.text()).toContain('previous title');
+    expect(history.text()).toContain('after title');
   });
 
   it('renders loading, failure, retry and successful empty results distinctly', async () => {
@@ -606,3 +639,43 @@ if (example === 'string-plain') {
     expect(modal.visible.value).toBe(false);
   });
 }
+
+
+it('sends only the changed scalar field in a row edit', async () => {
+  const wrapper = await loaded();
+  const edit = wrapper.findAllComponents(ElButton).filter((item) => item.text() === '编辑');
+  expect(edit).toHaveLength(2);
+  await edit[0].trigger('click');
+  const input = wrapper.find('.el-table__body input');
+  await input.setValue('changed title');
+  await button(wrapper, '确定').trigger('click');
+  await drain();
+  expect(pending[1].config.url).toBe(`/adminapi/${prefix}.edit`);
+  expect(JSON.parse(pending[1].config.data)).toEqual({ [primary]: key, title: 'changed title' });
+  pending[1].resolve([]);
+  await drain();
+  expect(pending[2].config.url).toBe(`/adminapi/${prefix}.list`);
+  pending[2].resolve(result([row('changed title')]));
+  await drain();
+});
+
+it('persists and reapplies search filters under the tenant and account identity', async () => {
+  identity.tenantId = '27';
+  identity.accountId = '51';
+  const wrapper = await loaded();
+  await wrapper.find('.crud-page__search input').setValue('saved filter');
+  await wrapper.find('input[placeholder="视图名称"]').setValue('My view');
+  await button(wrapper, '保存视图').trigger('click');
+  const key = `peanut:crud:views:${JSON.stringify([prefix, '27', '51'])}`;
+  expect(JSON.parse(localStorage.getItem(key))).toEqual(
+    expect.arrayContaining([expect.objectContaining({
+      name: 'My view', filters: expect.objectContaining({ title: 'saved filter' }),
+    })])
+  );
+  await wrapper.find('.crud-page__search input').setValue('');
+  await button(wrapper, '应用视图').trigger('click');
+  await drain();
+  expect(pending[1].config.params).toEqual({ page_no: 1, page_size: 15, title: 'saved filter' });
+  pending[1].resolve(result());
+  await drain();
+});

@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import re
 import sys
+from collections.abc import Iterator
+from os import walk
 from pathlib import Path
 
 
@@ -12,13 +14,36 @@ ROOT = Path(__file__).resolve().parent.parent
 SKIP_PARTS = {"node_modules", "vendor", "tests", "fixtures"}
 SKIP_PREFIXES = ("scaffold/releases/", "docs/maintenance/", "docs/product-status/audits/")
 SOURCE_SUFFIXES = {".php", ".py", ".sh", ".ts", ".js", ".mjs", ".yml", ".yaml"}
+NON_SOURCE_DIRS = {".git", ".local", ".peanut", ".worktree", ".worktrees", "__pycache__", "dist", ".nuxt", ".output", "node_modules", "vendor"}
+NON_SOURCE_PATHS = {
+    "backups", "output", "release", "Release", "scaffold/releases",
+    "server/docker/mysql", "server/docker/secrets", "server/docker/tls",
+    "server/private", "server/storage", "server/public/storage", "server/runtime",
+}
+ENV_SOURCE_FILES = {".env.example", ".env.standalone", ".env.multi-tenant"}
+
+
+def source_files(root: Path) -> Iterator[Path]:
+    for directory, children, files in walk(root):
+        parent = Path(directory)
+        children[:] = [
+            name for name in children
+            if name not in NON_SOURCE_DIRS and (parent / name).relative_to(ROOT).as_posix() not in NON_SOURCE_PATHS
+        ]
+        for name in files:
+            path = parent / name
+            if path.is_symlink() or path.name.endswith(".env"):
+                continue
+            if path.name.startswith(".env") and path.name not in ENV_SOURCE_FILES:
+                continue
+            yield path
 
 
 def active_sources() -> list[Path]:
     roots = ["scripts", "server", "web/config", "platform", "pc", "uniapp", "deploy", ".github/workflows"]
     files: list[Path] = []
     for root in roots:
-        for path in (ROOT / root).rglob("*"):
+        for path in source_files(ROOT / root):
             relative = path.relative_to(ROOT).as_posix()
             script_without_suffix = relative.startswith("scripts/") and path.suffix == ""
             if not path.is_file() or (path.suffix not in SOURCE_SUFFIXES and not script_without_suffix):
@@ -57,12 +82,8 @@ def database_environment_contract(errors: list[str]) -> None:
     deprecated_file_alias_documentation = {
         "docs/development/current-code-lifecycle.md",
     }
-    for path in ROOT.rglob("*"):
-        if not path.is_file():
-            continue
+    for path in source_files(ROOT):
         relative = path.relative_to(ROOT).as_posix()
-        if relative.startswith("scaffold/releases/") or any(part in {"node_modules", "vendor", ".git", ".local", "__pycache__"} for part in path.relative_to(ROOT).parts):
-            continue
         text = path.read_text(encoding="utf-8", errors="replace")
         if file_alias in text and relative not in deprecated_file_alias_documentation:
             errors.append(f"deprecated MySQL root password file variable is forbidden: {relative}")

@@ -2,7 +2,7 @@
   "name": "peanut-business/peanut-ops",
   "description": "First-party platform operations ownership module",
   "type": "library",
-  "version": "1.0.35-rc.4",
+  "version": "1.0.35-rc.5",
   "license": "Apache-2.0",
   "require": {
     "php": "^8.3",

@@ -56,7 +56,7 @@ final readonly class Dependencies
      * @param null|callable(array<string,mixed>):array<string,mixed> $consume
      */
     public function prepareRelease(ModuleLockResolver $resolver, array $clients, ?array $selectedModuleKeys = null,
-        array $installed = [], ?callable $consume = null): array
+        array $installed = [], ?callable $consume = null, bool $publicRelease = false): array
     {
         if (PHP_SAPI !== 'cli') {
             throw new ModulePackageException('MODULE_RELEASE_PREPARATION_REQUIRED', 'Release preparation requires the deployment CLI.');
@@ -72,8 +72,8 @@ final readonly class Dependencies
             }
             $roots = $selected;
         }
-        return $this->withLock(function () use ($roots, $resolver, $installed, $clients, $consume): array {
-            $prepared = $this->prepare($roots, $resolver, $installed, $clients);
+        return $this->withLock(function () use ($roots, $resolver, $installed, $clients, $consume, $publicRelease): array {
+            $prepared = $this->prepare($roots, $resolver, $installed, $clients, publicRelease: $publicRelease);
             return $consume === null ? $prepared : $consume($prepared);
         });
     }
@@ -192,7 +192,7 @@ final readonly class Dependencies
         }
     }
 
-    private function prepare(array $moduleRoots, ModuleLockResolver $resolver, array $installed, ?array $releaseClients = null, bool $verifyOnly = false): array
+    private function prepare(array $moduleRoots, ModuleLockResolver $resolver, array $installed, ?array $releaseClients = null, bool $verifyOnly = false, bool $publicRelease = false): array
     {
         $project = dirname($this->serverRoot);
         $known = [];
@@ -324,11 +324,12 @@ final readonly class Dependencies
             }
             $frontend = [];
             foreach (array_keys($clients) as $client) {
-                $entry = $this->frontendEntry($client);
+                $publicEntry = $this->frontendEntry($client, true);
+                $entry = is_file($project . '/' . $publicEntry) ? $publicEntry : $this->frontendEntry($client);
                 if (!is_file($project . '/' . $entry)) {
                     throw new ModulePackageException('MODULE_RELEASE_PREPARATION_REQUIRED', 'Prepare the selected Module frontend through scripts/deploy-update.sh --prepare-release before HTTP installation.');
                 }
-                $this->verifyPublicBuild($client, $entry);
+                $this->verifyPublicBuild($entry);
                 $frontend[$client] = ['entry' => $entry];
             }
             return ['status' => 'dependencies-already-installed', 'operations' => [], 'optional_modules' => $optional, 'optional_packages' => [], 'frontend_adoption' => $frontend];
@@ -355,23 +356,23 @@ final readonly class Dependencies
                     'unavailable_reason' => $present ? null : 'OPTIONAL_PACKAGE_NOT_INSTALLED'];
             }
         }
-        $frontend = $this->adoptFrontend(array_keys($clients));
+        $frontend = $this->adoptFrontend(array_keys($clients), $publicRelease);
         return ['status' => 'dependencies-installed', 'operations' => $operations, 'optional_modules' => $optional, 'optional_packages' => $optionalPackages, 'frontend_adoption' => $frontend];
     }
 
-    private function frontendEntry(string $client): string
+    private function frontendEntry(string $client, bool $publicRelease = false): string
     {
         return match ($client) {
             'web' => 'server/public/admin/index.html',
             'platform' => 'server/public/platform/index.html',
-            'pc' => 'pc/.output/server/index.mjs',
-            'uniapp' => 'uniapp/dist/build/h5/index.html',
+            'pc' => $publicRelease ? 'server/public/pc/index.html' : 'pc/.output/server/index.mjs',
+            'uniapp' => $publicRelease ? 'server/public/mobile/index.html' : 'uniapp/dist/build/h5/index.html',
             default => throw new ModulePackageException('MODULE_FRONTEND_ADOPTION_REQUIRED', 'The required client has no Module contribution reader.'),
         };
     }
 
     /** Build the clients whose native entries consume the selected Module contributions. */
-    private function adoptFrontend(array $clients): array
+    private function adoptFrontend(array $clients, bool $publicRelease = false): array
     {
         // Every package changes modules.lock, including backend-only packages.
         // Catalog activation reads its source hashes before any client is required.
@@ -394,18 +395,20 @@ final readonly class Dependencies
                 '--core-dir', $selection['web_core_dir'], '--client', implode(',', $clients)], $project);
         }
         foreach ($clients as $client) {
-            if (in_array($client, ['web', 'platform'], true)) {
-                $target = dirname($this->serverRoot) . '/' . dirname($this->frontendEntry($client));
+            $entry = $this->frontendEntry($client, $publicRelease);
+            $target = $project . '/' . dirname($entry);
+            if (str_starts_with($entry, 'server/public/')) {
                 if (is_link($this->serverRoot . '/public') || is_link($target) || (file_exists($target) && !is_dir($target))) {
-                    throw new ModulePackageException('MODULE_FRONTEND_TARGET_INVALID', 'The application admin static destination must be an ordinary directory.');
+                    throw new ModulePackageException('MODULE_FRONTEND_TARGET_INVALID', 'The application static destination must be an ordinary directory.');
                 }
             }
-            [$key, $command, $entry] = match ($client) {
-                'web' => ['admin-web', ['pnpm', 'run', 'build', '--mode', $edition, '--outDir', '../server/public/admin', '--emptyOutDir'], $this->frontendEntry($client)],
-                'platform' => ['platform-web', ['pnpm', 'run', 'build', '--outDir', '../server/public/platform', '--emptyOutDir'], 'server/public/platform/index.html'],
-                'pc' => ['pc-web', ['pnpm', 'run', 'build'], 'pc/.output/server/index.mjs'],
-                'uniapp' => ['uniapp', ['pnpm', 'run', 'build:h5'], 'uniapp/dist/build/h5/index.html'],
-                default => throw new ModulePackageException('MODULE_FRONTEND_CLIENT_INVALID', 'Unsupported frontend client.'),
+            [$key, $command] = match ($client) {
+                'web' => ['admin-web', ['pnpm', 'run', 'build', '--mode', $edition, '--outDir', $target, '--emptyOutDir']],
+                'platform' => ['platform-web', ['pnpm', 'run', 'build', '--outDir', $target, '--emptyOutDir']],
+                'pc' => ['pc-web', ['pnpm', 'run', $publicRelease ? 'generate:release' : 'build']],
+                'uniapp' => ['uniapp', $publicRelease
+                    ? ['pnpm', 'run', 'build:h5', '--outDir', $target]
+                    : ['pnpm', 'run', 'build:h5']],
             };
             // Vite/Nuxt copy public inputs verbatim, including dotfiles and linked file contents.
             $publicInput = $project . '/' . $client . ($client === 'uniapp' ? '/src/static' : '/public');
@@ -413,7 +416,7 @@ final readonly class Dependencies
                 $this->verifyPublicAssets($publicInput);
             }
             $result = $this->run($command, dirname($this->serverRoot) . '/' . $client);
-            $this->verifyPublicBuild($client, $entry);
+            $this->verifyPublicBuild($entry);
             if (!is_file(dirname($this->serverRoot) . '/' . $entry)) {
                 throw new ModulePackageException('MODULE_FRONTEND_ADOPTION_REQUIRED', "The native {$key} build did not produce its application entry.");
             }
@@ -422,9 +425,9 @@ final readonly class Dependencies
         return $results;
     }
 
-    private function verifyPublicBuild(string $client, string $entry): void
+    private function verifyPublicBuild(string $entry): void
     {
-        $publicOutput = $client === 'pc' ? 'pc/.output/public' : dirname($entry);
+        $publicOutput = $entry === 'pc/.output/server/index.mjs' ? 'pc/.output/public' : dirname($entry);
         $this->verifyPublicAssets(dirname($this->serverRoot) . '/' . $publicOutput, built: true);
     }
 

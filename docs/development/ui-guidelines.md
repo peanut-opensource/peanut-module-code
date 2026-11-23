@@ -18,6 +18,23 @@
 
 应用品牌输入保留在应用自有 `server/config/brand.json`，派生客户端品牌及公共可选默认值统一由现有 `scripts/sync-brand-assets.mjs` 生成。Web构建和类型检查先调用该入口；不在页面Store复制默认值、不要求覆盖应用品牌文件来补新字段。更改生成链后，须在真实生成应用中运行受影响入口，不能只用Code自带品牌配置的构建代替。
 
+## 前端复用与组合边界
+
+业务模块、UI 组件和 Composable 可以组合使用：模块负责业务交付与启停，组件负责呈现，Composable 负责可复用状态和交互。一个业务模块可提供多个页面和组件，不因复用一个表格或请求状态就创建新的业务模块。
+
+| 能力 | 现有归属与入口 | 采用方式 |
+| --- | --- | --- |
+| 框架中立 HTTP / 会话 / 错误合同 | Web Core `@peanut-admin/client` | 传入应用配置和平台 transport，不引用业务 SDK |
+| 异步列表、CRUD 表单、取消与活动域 | Web Core `@peanut-admin/vue`；宿主 `web/src/hooks/useCrudTable/useCrudModal` | 宿主薄封装注入标签活动域；业务提供 loader/save 与类型 |
+| 无业务状态、Page / Shell、主题合同 | Web Core `@peanut-admin/ui-vue` | 用 props、slots 和主题输入组合；应用保留品牌覆盖 |
+| 表格、列设置、常用视图与应用呈现 | Code `web/src/components/crud/`、`web/src/core/runtime.ts`、Platform presentation | 复用共享组件；复杂树形或编辑工作区保留领域交互，不强套普通 CRUD |
+| 业务页面、业务组件及模块 SDK | 所属模块声明的前端贡献根 | 与模块内容、版本、依赖及权限一起发行；共享底层能力来自固定 Core 包 |
+| Web / PC / UniApp 组装 | `modules.lock`、模块 frontend entry 与各端原生 adapter | Web 使用显式贡献；PC 接 Nuxt module；UniApp 在构建时生成受保护页面，入口冲突明确拒绝 |
+
+列表消费者同时接入 loading、数据、分页与 error。`CrudPage` 的可选 error 和 retry 复用原有列表状态：初次失败显示失败与重试，刷新失败保留旧行并说明数据未刷新，成功空结果才显示空态。重试沿原 loader 和当前查询/页码，不另建请求或缓存机制；全局错误提示仍按原拦截器处理，取消请求不显示失败。
+
+本轮固定源码对照为 [Vben v5.7.0](https://github.com/vbenjs/vue-vben-admin/tree/63a38dce49ba109f61607994e21ba921d8e970e9) 的 Core / effects / app adapter 分层、[vue-pure-admin v7.0.0](https://github.com/pure-admin/vue-pure-admin/tree/b8177a202dceb1412d3bf56f3d15483dc1606c9c) 的业务 hook 与表格工具组合，以及 [Nuxt v4.6.4](https://github.com/nuxt/nuxt/tree/b9a6b687018a87db72832620beec55bf46abd623) 的组件 / Composable / layer 扩展。可复用包与应用适配分开、扩展优先级明确、有状态逻辑可单独验证，是采用的原则；实际运行栈和权限继续由上述既有入口负责。Nuxt Layers 的覆盖规则适用于 Nuxt 应用，不替代所有端的模块锁或原生三方模板升级。
+
 ## 色彩与主题
 
 | 用途 | 唯一现有入口 | 使用约定 |

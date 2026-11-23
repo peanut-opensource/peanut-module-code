@@ -5,7 +5,7 @@
     "module_fragments": "server/app/modules/*/*/api/metadata/openapi.php"
   },
   "info": {
-    "title": "Peanut Admin HTTP API",
+    "title": "Peanut Module Code HTTP API",
     "version": "3.0.0",
     "description": "Application HTTP contract for the identity, Tenant, article, file and notification entry points. Runtime authorization and Tenant binding remain enforced by the server middleware."
   },
@@ -1996,7 +1996,7 @@
   },
   "responses": {
     "ApiResponse": {
-        "description": "Standard Peanut Admin API response",
+        "description": "Standard Peanut Module Code API response",
         "headers": {
           "X-Trace-Id": {"$ref": "#/components/headers/TraceId"}
         },

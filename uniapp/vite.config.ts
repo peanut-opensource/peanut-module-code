@@ -1,4 +1,4 @@
-import { dirname } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv } from 'vite';
 import uni from '@dcloudio/vite-plugin-uni';
@@ -13,6 +13,10 @@ export default defineConfig(async ({ mode, command }) => {
     environment.VITE_API_PROXY_TARGET || 'http://127.0.0.1:20180';
   return {
     base: '/mobile/',
+    build: {
+      emptyOutDir: process.env.UNI_OUTPUT_DIR === resolve(configDir, '../server/public/mobile')
+        ? true : undefined,
+    },
     plugins: [await prepareModulePages({ mode, command }), uni()],
     define: {
       'import.meta.env.VITE_APP_BASE_URL': JSON.stringify(

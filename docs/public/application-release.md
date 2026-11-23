@@ -10,16 +10,21 @@
 scripts/deploy-update.sh --prepare-release --version=<声明中的产品版本>
 ```
 
-版本参数只核对 APP 声明，不改版本；省略时采用当前声明，不写死版本或部署目录。准备动作读取 APP 原有身份与依赖声明，验证构建所消费的 Web 归档和 PHP 锁／本地归档，将 `modules.lock` 已选模块作为真实 Composer path 包及客户端 workspace 一次加入原生依赖图，保留宿主依赖并由 Composer、pnpm/npm 更新对应锁。随后各构建一次 admin 和适用的 multi-tenant platform。Admin 显式使用 standalone/multi-tenant mode，API 保持同源。审阅模块依赖声明及原生锁变化；PC/H5 后置，保留其源码与既有产物。
+版本参数只核对 APP 声明，不改版本；省略时采用当前声明，不写死版本或部署目录。准备动作读取 APP 原有身份与依赖声明，验证构建所消费的 Web 归档和 PHP 锁／本地归档，将 `modules.lock` 已选模块作为真实 Composer path 包及客户端 workspace 一次加入原生依赖图，保留宿主依赖并由 Composer、pnpm/npm 更新对应锁。随后构建 Admin、MT Edition 的 Platform，以及应用包含相应源码时的 PC 静态版和 UniApp H5。Admin 显式使用 standalone/multi-tenant mode，各端使用生产同源 API。审阅模块依赖声明及原生锁变化。
 
-输出是普通 HTML、JS、CSS 等文件：`server/public/admin`，以及 MT 的 `server/public/platform`。这两个目录作为产品 Git 的受管发行内容；准备动作只清对应静态目录，拒绝链接、特殊类型或仍被忽略的目标。它不启动业务、安装数据库、修改 main/tag 或自动提交。
+各端的 HTML、JS 和 CSS 写入应用自己的公开目录，与后端及同一版本的 manifest/lock 一起审阅和提交。PC 发行使用静态生成，PC 的 Node SSR 及小程序、原生 App 使用各自的交付入口。准备命令只处理目标静态目录，拒绝链接、特殊类型或被忽略的目标。
 
-审阅构建差异并把静态目录与同一版本的源码、manifest/lock 一起提交；MT 同时提交平台目录。例如：
+| 客户端 | Git 发版目录 |
+| --- | --- |
+| Admin | `server/public/admin/` |
+| Platform（MT） | `server/public/platform/` |
+| PC 静态版 | `server/public/pc/` |
+| UniApp H5 | `server/public/mobile/` |
 
 ```sh
 git add -- server/public/admin
-# MT 另执行：
-git add -- server/public/platform
+# MT 另执行：git add -- server/public/platform
+# 包含 PC 或 H5 源码的应用，分别提交 server/public/pc 或 server/public/mobile。
 ```
 
 其他源码及版本文件按本批精确写集提交，不批量暂存无关改动。完成必要业务确认及 main/tag 审核后，固定最终提交；构建成功不等于公开发行、完整资格或生产采用成功。Node、npm、pnpm、前端源码编译均不属于生产步骤。
@@ -29,7 +34,7 @@ git add -- server/public/platform
 | 对象 | 管理方式 |
 | --- | --- |
 | 后端及前端源码、迁移、脚本、默认配置、依赖 manifest/lock | 产品 Git 跟踪 |
-| 发版构建的 admin、MT platform 静态文件 | 与对应源码一起提交，生产由 Git 原样采用 |
+| 发版构建的 Admin、MT Platform、PC 静态版和 H5 文件 | 与对应源码一起提交，生产由 Git 原样采用 |
 | vendor、node_modules、开发构建缓存 | 实例或开发依赖，不提交 |
 | .env、凭据、证书、仓库授权 | 实例秘密，未跟踪且忽略 |
 | uploads、DB/卷、安装身份、防重装标记及运行数据 | 原位保留，程序更新不覆盖 |
@@ -39,7 +44,7 @@ git add -- server/public/platform
 ## 3. 生产首次安装
 
 1. 核产品固定 main/tag、全新空源码目录与空库。已有或 partial 实例按其实际状态处理，不借首装重建数据。
-2. 从产品 Git 获取定版提交，确认已跟踪的 admin/index.html 及适用 platform/index.html，连同静态资源完整到位。生产不安装前端依赖、不构建前端。
+2. 从产品 Git 获取定版提交，确认所选版本的 Admin、MT Platform、PC 静态版及 H5 入口和资源已作为 Git 文件到位。生产不安装前端依赖、不构建前端。
 3. 准备生产配置、固定 PHP 依赖和运行环境。挂载式 Docker 的 `server/docker/scripts/start.sh -p <实例项目名>` 复用原生 prepare-vendor：新完整 APP 的 vendor 缺失时按原 Composer 锁准备、检查并封印；已完成且有效则复用，已有损坏 vendor 或 installed 实例不在线覆盖。固定 PHP/Nginx 镜像、配置和原 Compose 项目沿该实例登记采用。
 4. 启动 PHP/public，通过[安装页面向导](installation.md)完成安装和真实后台访问。保留当次安装身份与防重装保护。
 

@@ -11,6 +11,7 @@ Thumbs.db
 /runtime/*
 !/runtime/.gitkeep
 /public/uploads/
+/public/storage
 /storage/public/*
 !/storage/public/.gitkeep
 /storage/private/*

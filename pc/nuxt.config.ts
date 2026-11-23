@@ -85,6 +85,14 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    ...(process.env.PEANUT_PC_RELEASE_STATIC === '1'
+      ? {
+          output: {
+            dir: resolve(import.meta.dirname, '.nuxt/release'),
+            publicDir: resolve(import.meta.dirname, '../server/public/pc'),
+          },
+        }
+      : {}),
     devProxy: {
       '/api': {
         target: devProxyTarget,

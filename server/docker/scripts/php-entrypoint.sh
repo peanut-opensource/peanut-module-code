@@ -17,10 +17,16 @@ cd "$SERVER_ROOT"
 [ ! -L private ] && [ ! -L public ] && [ ! -L docker ] && [ ! -L docker/secrets ] || {
     echo "server parent path is a symlink" >&2; exit 1;
 }
-for path in runtime runtime/upgrade public/storage private/storage private/installation private/resources private/resources/pending runtime/cache runtime/log runtime/session runtime/temp runtime/storage runtime/generator runtime/file; do
+for path in runtime runtime/upgrade storage storage/public storage/private private/installation private/resources private/resources/pending runtime/cache runtime/log runtime/session runtime/temp runtime/storage runtime/generator runtime/file; do
     [ ! -L "$path" ] || { echo "runtime path is a symlink: $path" >&2; exit 1; }
     mkdir -p "$path"
 done
+if [ ! -e public/storage ] && [ ! -L public/storage ]; then
+    ln -s ../storage/public public/storage
+fi
+[ "$(readlink public/storage)" = ../storage/public ] && [ ! -e private/storage ] && [ ! -L private/storage ] || {
+    echo "legacy storage layout requires the host docker/scripts/start.sh migration" >&2; exit 1;
+}
 close_startup_traffic() {
     [ ! -L runtime/upgrade ] || { echo 'startup guard directory is a symlink' >&2; return 1; }
     rm -f runtime/upgrade/.traffic-ready

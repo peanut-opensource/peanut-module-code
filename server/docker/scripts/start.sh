@@ -13,7 +13,7 @@ file_mode() { stat -c '%a' "$1" 2>/dev/null || stat -f '%Lp' "$1"; }
 umask 077
 for path in "$SERVER_DIR/public" "$SERVER_DIR/private" "$SERVER_DIR/docker" \
     "$DOCKER_DIR/mysql" "$DOCKER_DIR/secrets" "$SERVER_DIR/runtime" \
-    "$SERVER_DIR/public/storage" "$SERVER_DIR/private/storage" \
+    "$SERVER_DIR/storage" "$SERVER_DIR/storage/public" "$SERVER_DIR/storage/private" \
     "$SERVER_DIR/private/installation" "$SERVER_DIR/private/resources" "$SERVER_DIR/private/maintenance" \
     "$SERVER_DIR/private/resources/pending" "$SERVER_DIR/runtime/cache" "$SERVER_DIR/runtime/log" \
     "$SERVER_DIR/runtime/session" "$SERVER_DIR/runtime/temp" "$SERVER_DIR/runtime/storage" \
@@ -43,6 +43,9 @@ server = pathlib.Path(sys.argv[1])
 spec = importlib.util.spec_from_file_location('native_compose', server / 'docker/scripts/configure-collaboration.py')
 module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
 arguments = module.compose_arguments(server) + sys.argv[2:]
+if any(not path.is_symlink() and path.is_dir() for path in (server / 'public/storage', server / 'private/storage')):
+    if module.run(server, arguments + ['ps', '--status', 'running', '-q', 'php']).strip():
+        sys.exit('legacy storage has a running PHP writer; use scripts/deploy-update.sh with this Compose project to stop writers before migration')
 print('existing' if module.registered_database_services(server, arguments) else 'bundled')
 PY
 )
@@ -97,10 +100,11 @@ unset root_password
 fi
 mkdir -p "$SERVER_DIR/runtime"
 "$SCRIPT_DIR/prepare-vendor.sh" start "$SERVER_DIR" "$php_image"
+python3 "$SCRIPT_DIR/migrate-storage-layout.py" "$SERVER_DIR"
 
 if [ "$database_source" = bundled ]; then mkdir -p "$DOCKER_DIR/mysql"; fi
 mkdir -p "$DOCKER_DIR/secrets" \
-    "$SERVER_DIR/public/storage" "$SERVER_DIR/private/storage" \
+    "$SERVER_DIR/storage/public" "$SERVER_DIR/storage/private" \
     "$SERVER_DIR/private/installation" "$SERVER_DIR/private/resources" "$SERVER_DIR/private/maintenance" \
     "$SERVER_DIR/private/resources/pending" "$SERVER_DIR/runtime/cache" "$SERVER_DIR/runtime/log" \
     "$SERVER_DIR/runtime/session" "$SERVER_DIR/runtime/temp" "$SERVER_DIR/runtime/storage" \

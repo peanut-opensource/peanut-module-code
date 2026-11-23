@@ -9,6 +9,7 @@ for command_name in jq gzip sha256sum tar openssl; do
 done
 
 project_root="$(pwd -P)"
+source "$project_root/scripts/ops-storage-archives.sh"
 [[ -f "$project_root/server/docker/compose.yaml" && -f "$project_root/server/think" ]] || die 'run from an APP mounted deployment root'
 backend_env="$project_root/server/.env"
 [[ -f "$backend_env" && ! -L "$backend_env" && "$(stat -c '%a %h' "$backend_env")" == '600 1' ]] || die 'private backend environment is unsafe'
@@ -142,8 +143,7 @@ jq -e \
   --arg tree "$source_tree" \
   --arg deployment "$deployment_id" --arg database "$database_id" --arg application "$application_id" --arg backup "$backup_resource_id" \
   --arg dbname "$database_name" --arg project "$compose_project" \
-  '.schema_version == 4
-   and .backup_reference_key == $reference
+  '.backup_reference_key == $reference
    and .provider_key == "peanut.paired-db-files"
    and .source.commit == $commit
    and .source.tree == $tree
@@ -151,8 +151,6 @@ jq -e \
    and .resources.application == $application and .resources.backup == $backup
    and .runtime.database_name == $dbname and .runtime.compose_project == $project
    and .runtime.compose_file == "server/docker/compose.yaml"
-   and .runtime.public_storage_directory == "server/public"
-   and .runtime.private_storage_directory == "server/private/storage"
    and .runtime.installation_directory == "server/private/installation"
    and ([.artifacts[].filename] | sort) == ["database.sql.gz", "php-installation.tar.gz", "php-private-storage.tar.gz", "php-storage.tar.gz"]' \
   "$backup_dir/manifest.json" >/dev/null
@@ -161,26 +159,10 @@ for artifact in database.sql.gz php-storage.tar.gz php-private-storage.tar.gz ph
   actual_sha="$(sudo -n sha256sum "$backup_dir/$artifact" | awk '{print $1}')"
   [[ "$actual_sha" == "$expected_sha" ]] || false
 done
-sudo -n python3 - "$backup_dir" <<'PY'
-import pathlib,sys,tarfile
-root=pathlib.Path(sys.argv[1])
-for name in ("php-storage.tar.gz","php-private-storage.tar.gz","php-installation.tar.gz"):
-    seen=set()
-    with tarfile.open(root/name,"r:gz") as archive:
-        for entry in archive:
-            raw=entry.name
-            while raw.startswith("./"): raw=raw[2:]
-            if raw==".": raw=""
-            path=pathlib.PurePosixPath(raw)
-            if raw.startswith("/") or ".." in path.parts or "\\" in raw or "//" in raw \
-                    or any(ord(c)<32 for c in raw) or (not entry.isdir() and not entry.isfile()):
-                raise SystemExit("unsafe backup archive member")
-            key=str(path)
-            if key in seen: raise SystemExit("duplicate backup archive member")
-            seen.add(key)
-            if name=="php-storage.tar.gz" and (not path.parts or path.parts[0] not in ("storage","uploads")):
-                raise SystemExit("public archive includes program files")
-PY
+# verify-manifest has authenticated the exact schema and storage path pair.
+archive_layout="$(jq -er 'if .schema_version == 5 then "public"
+  elif .runtime.public_storage_directory == "server/public" then "storage" else "flat" end' "$backup_dir/manifest.json")"
+verify_storage_archives "$backup_dir" "$archive_layout"
 
 target_json="$(resource_json "$(jq -er .restore_verification_resource_id <<<"$deployment_json")")"
 jq -e --arg source "$deployment_id" '.restore_target_key == "isolated-new-target"
@@ -210,8 +192,10 @@ jq -e --arg project "$target_project" '.compose_project == $project and .fallbac
   <<<"$target_runtime_json" >/dev/null || false
 target_container="$target_project-mysql-1"
 target_mysql_directory="$target_root/server/docker/mysql"
-target_storage_directory="$target_root/server/public"
-target_private_storage_directory="$target_root/server/private/storage"
+public_storage_path="$(jq -er .runtime.public_storage_directory "$backup_dir/manifest.json")"
+private_storage_path="$(jq -er .runtime.private_storage_directory "$backup_dir/manifest.json")"
+target_storage_directory="$target_root/$public_storage_path"
+target_private_storage_directory="$target_root/$private_storage_path"
 target_installation_directory="$target_root/server/private/installation"
 target_network="${target_project}_default"
 
@@ -225,8 +209,8 @@ protected_runtime_identity() {
     sudo -n docker inspect "$container" \
       --format 'container={{.Name}} id={{.Id}} image={{.Image}} status={{.State.Status}} mounts={{json .Mounts}}'
   done
-  for path in "$project_root/server/docker/mysql" "$project_root/server/public/storage" \
-      "$project_root/server/private/storage" "$project_root/server/private/installation"; do
+  for path in "$project_root/server/docker/mysql" "$project_root/server/storage/public" \
+      "$project_root/server/storage/private" "$project_root/server/private/installation"; do
     sudo -n stat -c 'directory=%n inode=%i device=%d mode=%a' "$path"
   done
 }
@@ -255,7 +239,7 @@ done
 target_parent="$(dirname "$target_root")"
 [[ -d "$target_parent" && ! -L "$target_parent" && "$(realpath -e "$target_parent")" == "$target_parent" ]] || false
 sudo -n mkdir -m 0700 "$target_root"
-sudo -n install -d -m 0700 "$target_mysql_directory" "$target_storage_directory" "$target_private_storage_directory" "$target_installation_directory"
+sudo -n install -d -m 0700 "$target_mysql_directory" "$target_installation_directory"
 mysql_root_password="$(openssl rand -hex 32)"
 sudo -n docker network create --internal "$target_network" >/dev/null
 
@@ -286,18 +270,8 @@ sudo -n gzip -dc "$backup_dir/database.sql.gz" \
       'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot "$1"' sh "$target_database"
 
 failure_code='OPS_RESTORE_FILES_FAILED'
-sudo -n gzip -dc "$backup_dir/php-storage.tar.gz" \
-  | sudo -n docker run --rm --network none -i \
-      --mount "type=bind,source=$target_storage_directory,target=/restore" \
-      --entrypoint tar "$php_image" -xf - -C /restore
-sudo -n gzip -dc "$backup_dir/php-private-storage.tar.gz" \
-  | sudo -n docker run --rm --network none -i \
-      --mount "type=bind,source=$target_private_storage_directory,target=/restore" \
-      --entrypoint tar "$php_image" -xf - -C /restore
-sudo -n gzip -dc "$backup_dir/php-installation.tar.gz" \
-  | sudo -n docker run --rm --network none -i \
-      --mount "type=bind,source=$target_installation_directory,target=/restore" \
-      --entrypoint tar "$php_image" -xf - -C /restore
+restore_storage_archives "$backup_dir" "$archive_layout" "$target_root/server" "$target_private_storage_directory" "$php_image"
+extract_storage_archive "$backup_dir/php-installation.tar.gz" "$target_installation_directory" "$php_image"
 sudo -n docker run --rm --network none \
   --mount "type=bind,source=$target_installation_directory,target=/restore,readonly" \
   --entrypoint sh "$php_image" -c \
@@ -333,8 +307,11 @@ tenant_member_count="$(mysql_scalar 'SELECT COUNT(*) FROM pa_tenant_member')"
   || false
 
 failure_code='OPS_RESTORE_FILES_FAILED'
-storage_metrics="$(sudo -n docker run --rm --network none \
-  --mount "type=bind,source=$target_storage_directory,target=/restore,readonly" \
+public_mounts=(--mount "type=bind,source=$target_storage_directory,target=/restore/storage,readonly")
+if [[ "$archive_layout" != storage ]] && sudo -n test -d "$target_root/server/public/uploads"; then
+  public_mounts+=(--mount "type=bind,source=$target_root/server/public/uploads,target=/restore/uploads,readonly")
+fi
+storage_metrics="$(sudo -n docker run --rm --network none "${public_mounts[@]}" \
   --entrypoint sh "$php_image" -c \
   'find /restore -type f | wc -l; du -sb /restore | cut -f1')"
 storage_file_count="$(sed -n '1p' <<<"$storage_metrics" | tr -d '[:space:]')"
@@ -383,6 +360,7 @@ evidence_json="$(jq -c -n \
   --arg target_database_resource "$(jq -r .stable_resource_id <<<"$target_database_json")" \
   --arg target_runtime_resource "$(jq -r .stable_resource_id <<<"$target_runtime_json")" \
   --arg project "$target_project" --arg database "$target_database" \
+  --arg public_storage_path "$public_storage_path" --arg private_storage_path "$private_storage_path" \
   --argjson table_count "$table_count" \
   --argjson schema_migration_count "$schema_migration_count" \
   --argjson critical_table_count "$critical_table_count" \
@@ -404,7 +382,7 @@ evidence_json="$(jq -c -n \
     manifest_sha256:$manifest_sha256,source:{commit:$source_commit,tree:$source_tree},
     target:{deployment_resource_id:$target_deployment,database_resource_id:$target_database_resource,
       runtime_resource_id:$target_runtime_resource,compose_project:$project,database_name:$database,
-      public_storage_directory:"server/public",private_storage_directory:"server/private/storage",
+      public_storage_directory:$public_storage_path,private_storage_directory:$private_storage_path,
       installation_directory:"server/private/installation"},
     verification:{table_count:$table_count,schema_migration_count:$schema_migration_count,
       critical_table_count:$critical_table_count,account_count:$account_count,

@@ -2,6 +2,8 @@
 
 ## Execution discipline
 
+- For cross-layer development, consume fixed local Core packages, then a fixed Scaffold template, then versioned Module packages through the native dependency and upgrade entries. Batch related changes before packaging; reuse unchanged packages and valid checks. Explicit source linking is a development aid and does not prove package adoption. Never overwrite a version with different contents.
+
 - ST and MT templates contain Host source and a bootstrap Composer lock. Bind the exact selected Edition across template, staged APP, native source plan and each Module's declared Composer editions; reject incompatible modules. Use CLI create's fixed release composition and reviewed staged adopt before running the native pre-install `scripts/deploy-update.sh --prepare-first-install` (no Git required) for final Module dependencies, API, clients and registry. Missing required Module source is an uninstalled prerequisite; do not copy author trees or vendor from another application. Database installation and runtime acceptance remain separate.
 
 - Start or resume from the current requested result, unfinished work, valid evidence and running handles. Keep one owner for dependent implementation through delivery; delegate only independent work with clear write boundaries. Do not reassign stages, create extra reviewers or replay completed work merely to report progress.
@@ -16,7 +18,5 @@
 ## Project rule entry
 
 Before project work, read [the project rule index](docs/README.md) and, when present, [the application-owned rules](docs/project-rules.md), then load only the topics needed for the current task. Project identity, architecture, tool commands, runtime resources, Git policy and acceptance requirements belong in those documents, not in this reusable entry. If a required entry is missing, locate the existing project authority before making dependent changes.
-
-For official Module enhancement and cross-application upgrades, follow the sequence in [module development and delivery](docs/public/module-development.md#可用的开发与交付入口).
 
 For maintainer work, also read `docs/maintenance/agent-project-rules.md` when present. These entry links do not grant testing, publication, deployment or data-operation permission.

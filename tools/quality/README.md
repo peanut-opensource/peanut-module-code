@@ -19,7 +19,7 @@
 
 - **Web 后台**：`cd web && npx vue-tsc --noEmit --skipLibCheck`
 - **UniApp 端**：`cd uniapp && npx vue-tsc --noEmit --skipLibCheck`
-- **Platform / PC 端**：按对应目录 `package.json` 中的 `typecheck` / `build` 脚本执行
+- **Platform / PC 端**：按对应目录 `package.json` 中的 `type:check` / `build` 脚本执行
 - **文章 HTML 浏览器测试**：`node scripts/tests/article-html-browser-test.mjs`
 - **模块发布自动化测试**：`python3 -m unittest scripts/tests/test_module_release_automation.py`
 - **产品化端到端测试目录**：

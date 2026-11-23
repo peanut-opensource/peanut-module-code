@@ -241,7 +241,7 @@
     "license": "Apache-2.0",
     "authors": [
         {
-            "name": "花生科技"
+            "name": "\u82b1\u751f\u79d1\u6280"
         }
     ],
     "provide": {
@@ -261,10 +261,10 @@
         "topthink/think-migration": "3.1.1",
         "peanut-business/peanut-content-tools": "1.0.4-rc.1",
         "peanut-business/peanut-identity": "4.0.1-rc.14",
-        "peanut-business/peanut-file": "1.0.50-rc.17",
+        "peanut-business/peanut-file": "1.0.50-rc.18",
         "peanut-business/peanut-task": "1.0.36-rc.7",
         "peanut-business/peanut-integration": "1.0.31-rc.2",
-        "peanut-business/peanut-ops": "1.0.35-rc.4",
+        "peanut-business/peanut-ops": "1.0.35-rc.5",
         "peanut-business/peanut-reference-codes": "1.0.29-rc.4",
         "peanut-business/peanut-settings": "1.0.30-rc.1",
         "peanut-business/peanut-chart": "1.0.3",

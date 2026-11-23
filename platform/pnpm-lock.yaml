@@ -12,14 +12,14 @@ importers:
         specifier: 2.3.2
         version: 2.3.2(vue@3.5.41(typescript@5.9.3))
       '@peanut-admin/client':
-        specifier: file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz
-        version: file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz
+        specifier: file:../packages/core-web/peanut-admin-client-5.1.3-rc.24.tgz
+        version: file:../packages/core-web/peanut-admin-client-5.1.3-rc.24.tgz
       '@peanut-admin/ui-vue':
-        specifier: file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.23.tgz
-        version: file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.23.tgz(@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.1.3-rc.23.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz)(pinia@2.0.23(typescript@5.9.3)(vue@3.5.41(typescript@5.9.3)))(vue@3.5.41(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.41(typescript@5.9.3)))(vue@3.5.41(typescript@5.9.3))
+        specifier: file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.24.tgz
+        version: file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.24.tgz(@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.1.3-rc.24.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.24.tgz)(pinia@2.0.23(typescript@5.9.3)(vue@3.5.41(typescript@5.9.3)))(vue@3.5.41(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.41(typescript@5.9.3)))(vue@3.5.41(typescript@5.9.3))
       '@peanut-admin/vue':
-        specifier: file:../packages/core-web/peanut-admin-vue-5.1.3-rc.23.tgz
-        version: file:../packages/core-web/peanut-admin-vue-5.1.3-rc.23.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz)(pinia@2.0.23(typescript@5.9.3)(vue@3.5.41(typescript@5.9.3)))(vue@3.5.41(typescript@5.9.3))
+        specifier: file:../packages/core-web/peanut-admin-vue-5.1.3-rc.24.tgz
+        version: file:../packages/core-web/peanut-admin-vue-5.1.3-rc.24.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.24.tgz)(pinia@2.0.23(typescript@5.9.3)(vue@3.5.41(typescript@5.9.3)))(vue@3.5.41(typescript@5.9.3))
       axios:
         specifier: 0.34.0
         version: 0.34.0
@@ -41,13 +41,13 @@ importers:
     devDependencies:
       '@vitejs/plugin-vue':
         specifier: 5.2.4
-        version: 5.2.4(vite@6.4.3)(vue@3.5.41(typescript@5.9.3))
+        version: 5.2.4(vite@6.4.4)(vue@3.5.41(typescript@5.9.3))
       typescript:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: 6.4.3
-        version: 6.4.3
+        specifier: 6.4.4
+        version: 6.4.4
       vue-tsc:
         specifier: 3.2.5
         version: 3.2.5(typescript@5.9.3)
@@ -256,26 +256,26 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz':
-    resolution: {integrity: sha512-viemp9fc0Nm5WO2V3M8+0rSh1qEDkIURxuZj+ISSuFBd7ZBrN1xkXrirWTEuWRQjWu0hCk3Eb2DeYWpRZ4Ymvw==, tarball: file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz}
-    version: 5.1.3-rc.23
+  '@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.24.tgz':
+    resolution: {integrity: sha512-Vd8DS4xqmuKoqym9F42Ww1QWaftx6/QGf0DMEAVY3/pZOJj4OlZiTTnzP0h8wplFVHQoko7LUjIXDvJi97x23A==, tarball: file:../packages/core-web/peanut-admin-client-5.1.3-rc.24.tgz}
+    version: 5.1.3-rc.24
     engines: {node: '>=22.12.0 <23'}
 
-  '@peanut-admin/ui-vue@file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.23.tgz':
-    resolution: {integrity: sha512-lY68cf6Pu8unBACGLdxwUMReymd73W5d2WmyiBY5IjAweG4RRgbIX0KoKvdGEXE7s2dpql7C8X7Qj6mjx4v/QA==, tarball: file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.23.tgz}
-    version: 5.1.3-rc.23
+  '@peanut-admin/ui-vue@file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.24.tgz':
+    resolution: {integrity: sha512-TgjLXtR1nTdLEnsGdf3FcTbbh/3ixuWhEtXmLW4UJEjQWKlt0+PNk4Wc5EZuo+hIOfyynL0lSl98htzGm23SiQ==, tarball: file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.24.tgz}
+    version: 5.1.3-rc.24
     engines: {node: '>=22.12.0 <23'}
     peerDependencies:
-      '@peanut-admin/vue': 5.1.3-rc.23
+      '@peanut-admin/vue': 5.1.3-rc.24
       element-plus: ^2.14.3
       vue: ^3.4.21
 
-  '@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.1.3-rc.23.tgz':
-    resolution: {integrity: sha512-y0uVB6VYJ9cFH4LUF+3bIialPXB9YrJ0I7FemlgL0SeW3NZel/UdSJe4k4+Yk2Qtna2GmmwbBbaa/UkhSvoBvQ==, tarball: file:../packages/core-web/peanut-admin-vue-5.1.3-rc.23.tgz}
-    version: 5.1.3-rc.23
+  '@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.1.3-rc.24.tgz':
+    resolution: {integrity: sha512-hVr3QCGJ2E0M74KVVNfwqCmHuyCymizUUIBfzyGn48GvJC5+VBjPit/EhfF/1u4XAYrQErdIgEtxBNSjRZZabA==, tarball: file:../packages/core-web/peanut-admin-vue-5.1.3-rc.24.tgz}
+    version: 5.1.3-rc.24
     engines: {node: '>=22.12.0 <23'}
     peerDependencies:
-      '@peanut-admin/client': 5.1.3-rc.23
+      '@peanut-admin/client': 5.1.3-rc.24
       pinia: '>=2.0.23 <5'
       vue: ^3.4.21
 
@@ -697,8 +697,8 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  vite@6.4.3:
-    resolution: {integrity: sha512-NTKlcQjlAK7MlQoyb6LgaqHc8sso/pVyUJYWMws3jg21uTJw/LddqIFPcPqP6PzpgbIcZyKI85sFE4HBrQDA8A==}
+  vite@6.4.4:
+    resolution: {integrity: sha512-xGjU/SyjeNyb0E4KxXBvYz/1C+3JXuujvf2hXNOtnlcE+58o5ajd9N2/n2VhkiJvpCP2qQasnUpx5PXNeI+p1Q==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
     hasBin: true
     peerDependencies:
@@ -888,17 +888,17 @@ snapshots:
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true
 
-  '@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz': {}
+  '@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.24.tgz': {}
 
-  '@peanut-admin/ui-vue@file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.23.tgz(@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.1.3-rc.23.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz)(pinia@2.0.23(typescript@5.9.3)(vue@3.5.41(typescript@5.9.3)))(vue@3.5.41(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.41(typescript@5.9.3)))(vue@3.5.41(typescript@5.9.3))':
+  '@peanut-admin/ui-vue@file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.24.tgz(@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.1.3-rc.24.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.24.tgz)(pinia@2.0.23(typescript@5.9.3)(vue@3.5.41(typescript@5.9.3)))(vue@3.5.41(typescript@5.9.3)))(element-plus@2.14.3(vue@3.5.41(typescript@5.9.3)))(vue@3.5.41(typescript@5.9.3))':
     dependencies:
-      '@peanut-admin/vue': file:../packages/core-web/peanut-admin-vue-5.1.3-rc.23.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz)(pinia@2.0.23(typescript@5.9.3)(vue@3.5.41(typescript@5.9.3)))(vue@3.5.41(typescript@5.9.3))
+      '@peanut-admin/vue': file:../packages/core-web/peanut-admin-vue-5.1.3-rc.24.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.24.tgz)(pinia@2.0.23(typescript@5.9.3)(vue@3.5.41(typescript@5.9.3)))(vue@3.5.41(typescript@5.9.3))
       element-plus: 2.14.3(vue@3.5.41(typescript@5.9.3))
       vue: 3.5.41(typescript@5.9.3)
 
-  '@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.1.3-rc.23.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz)(pinia@2.0.23(typescript@5.9.3)(vue@3.5.41(typescript@5.9.3)))(vue@3.5.41(typescript@5.9.3))':
+  '@peanut-admin/vue@file:../packages/core-web/peanut-admin-vue-5.1.3-rc.24.tgz(@peanut-admin/client@file:../packages/core-web/peanut-admin-client-5.1.3-rc.24.tgz)(pinia@2.0.23(typescript@5.9.3)(vue@3.5.41(typescript@5.9.3)))(vue@3.5.41(typescript@5.9.3))':
     dependencies:
-      '@peanut-admin/client': file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz
+      '@peanut-admin/client': file:../packages/core-web/peanut-admin-client-5.1.3-rc.24.tgz
       pinia: 2.0.23(typescript@5.9.3)(vue@3.5.41(typescript@5.9.3))
       vue: 3.5.41(typescript@5.9.3)
 
@@ -989,9 +989,9 @@ snapshots:
 
   '@types/web-bluetooth@0.0.21': {}
 
-  '@vitejs/plugin-vue@5.2.4(vite@6.4.3)(vue@3.5.41(typescript@5.9.3))':
+  '@vitejs/plugin-vue@5.2.4(vite@6.4.4)(vue@3.5.41(typescript@5.9.3))':
     dependencies:
-      vite: 6.4.3
+      vite: 6.4.4
       vue: 3.5.41(typescript@5.9.3)
 
   '@volar/language-core@2.4.28':
@@ -1335,7 +1335,7 @@ snapshots:
 
   typescript@5.9.3: {}
 
-  vite@6.4.3:
+  vite@6.4.4:
     dependencies:
       esbuild: 0.25.12
       fdir: 6.5.0(picomatch@4.0.7)

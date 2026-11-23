@@ -9,6 +9,7 @@ command -v gzip >/dev/null || die 'gzip is required'
 command -v sha256sum >/dev/null || die 'sha256sum is required'
 
 project_root="$(pwd -P)"
+source "$project_root/scripts/ops-storage-archives.sh"
 [[ -f "$project_root/server/docker/compose.yaml" && -f "$project_root/server/think" ]] || die 'run from an APP mounted deployment root'
 backend_env="$project_root/server/.env"
 [[ -f "$backend_env" && ! -L "$backend_env" && "$(stat -c '%a %h' "$backend_env")" == '600 1' ]] || die 'private backend environment is unsafe'
@@ -135,25 +136,25 @@ source_commit="$(jq -r .application.commit "$deployment_receipt")"
 source_tree="$(jq -r .application.tree "$deployment_receipt")"
 release_key="v$(jq -r .application.version "$deployment_receipt")"
 mysql_mount="$project_root/server/docker/mysql"
-storage_mount="$project_root/server/public"
-private_storage_mount="$project_root/server/private/storage"
+storage_mount="$project_root/server/storage/public"
+private_storage_mount="$project_root/server/storage/private"
 installation_mount="$project_root/server/private/installation"
-for data_path in "$mysql_mount" "$storage_mount/storage" "$private_storage_mount" "$installation_mount"; do
+for data_path in "$mysql_mount" "$storage_mount" "$private_storage_mount" "$installation_mount"; do
   [[ -d "$data_path" && ! -L "$data_path" && "$(realpath -e "$data_path")" == "$data_path" ]] || false
   [[ -z "$(sudo -n find "$data_path" -type l -print -quit)" ]] || false
   [[ -z "$(sudo -n find "$data_path" -type f -links +1 -print -quit)" ]] || false
 done
-[[ ! -L "$storage_mount/uploads" ]] || false
-[[ ! -d "$storage_mount/uploads" || -z "$(sudo -n find "$storage_mount/uploads" -type l -print -quit)" ]] || false
-[[ ! -d "$storage_mount/uploads" || -z "$(sudo -n find "$storage_mount/uploads" -type f -links +1 -print -quit)" ]] || false
+[[ ! -L "$project_root/server/public/uploads" ]] || false
+[[ ! -d "$project_root/server/public/uploads" || -z "$(sudo -n find "$project_root/server/public/uploads" -type l -print -quit)" ]] || false
+[[ ! -d "$project_root/server/public/uploads" || -z "$(sudo -n find "$project_root/server/public/uploads" -type f -links +1 -print -quit)" ]] || false
 
 for marker in installed.json baseline.json; do
   sudo -n test -f "$installation_mount/$marker" \
     && ! sudo -n test -L "$installation_mount/$marker" \
     || { failure_code='OPS_BACKUP_RUNTIME_FAILED'; false; }
 done
-public_data_bytes="$(sudo -n du -sb "$storage_mount/storage" | awk '{print $1}')"
-[[ ! -d "$storage_mount/uploads" ]] || public_data_bytes="$(( public_data_bytes + $(sudo -n du -sb "$storage_mount/uploads" | awk '{print $1}') ))"
+public_data_bytes="$(sudo -n du -sb "$storage_mount" | awk '{print $1}')"
+[[ ! -d "$project_root/server/public/uploads" ]] || public_data_bytes="$(( public_data_bytes + $(sudo -n du -sb "$project_root/server/public/uploads" | awk '{print $1}') ))"
 source_bytes="$(( $(sudo -n du -sb "$mysql_mount" | awk '{print $1}') + public_data_bytes + $(sudo -n du -sb "$private_storage_mount" | awk '{print $1}') + $(sudo -n du -sb "$installation_mount" | awk '{print $1}') ))"
 required_bytes="$(( source_bytes * 2 + 1073741824 ))"
 available_bytes="$(df -PB1 "$project_root" | awk 'NR==2 {print $4}')"
@@ -194,9 +195,7 @@ failure_code='OPS_BACKUP_DATABASE_FAILED'
   | gzip -9 | sudo -n tee "$backup_dir/database.sql.gz" >/dev/null
 
 failure_code='OPS_BACKUP_FILES_FAILED'
-public_paths=(storage)
-[[ ! -d "$storage_mount/uploads" ]] || public_paths+=(uploads)
-sudo -n tar --one-file-system --numeric-owner -C "$storage_mount" -czf "$backup_dir/php-storage.tar.gz" "${public_paths[@]}"
+pack_public_archive "$project_root/server" "$backup_dir/php-storage.tar.gz"
 sudo -n tar --one-file-system --numeric-owner -C "$private_storage_mount" -czf "$backup_dir/php-private-storage.tar.gz" .
 sudo -n tar --one-file-system --numeric-owner -C "$installation_mount" -czf "$backup_dir/php-installation.tar.gz" .
 completed_at="$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)"
@@ -225,10 +224,10 @@ jq -c -n \
   --argjson files_bytes "$files_bytes" --arg files_sha "$files_sha" \
   --argjson private_files_bytes "$private_files_bytes" --arg private_files_sha "$private_files_sha" \
   --argjson installation_bytes "$installation_bytes" --arg installation_sha "$installation_sha" \
-  '{schema_version:4,backup_reference_key:$backup_reference_key,provider_key:$provider_key,
+  '{schema_version:5,backup_reference_key:$backup_reference_key,provider_key:$provider_key,
     source:{commit:$commit,tree:$tree,release_key:(if $release_key=="" then null else $release_key end)},
     resources:{deployment:$deployment,database:$database,application:$application,backup:$backup},
-    runtime:{compose_project:$project,compose_file:"server/docker/compose.yaml",compose_profile:"default",database_name:$dbname,public_storage_directory:"server/public",private_storage_directory:"server/private/storage",installation_directory:"server/private/installation",images:$images},
+    runtime:{compose_project:$project,compose_file:"server/docker/compose.yaml",compose_profile:"default",database_name:$dbname,public_storage_directory:"server/storage/public",private_storage_directory:"server/storage/private",installation_directory:"server/private/installation",images:$images},
     consistency_window:{mode:"application-write-quiescence",started_at:$started_at,completed_at:$completed_at},
     capacity_preflight:{source_bytes:$source_bytes,required_bytes:$required_bytes,available_bytes:$available_bytes,available_inodes:$available_inodes},
     artifacts:[{kind:"database",filename:"database.sql.gz",bytes:$database_bytes,sha256:$database_sha},{kind:"public_files",filename:"php-storage.tar.gz",bytes:$files_bytes,sha256:$files_sha},{kind:"private_files",filename:"php-private-storage.tar.gz",bytes:$private_files_bytes,sha256:$private_files_sha},{kind:"installation_state",filename:"php-installation.tar.gz",bytes:$installation_bytes,sha256:$installation_sha}],

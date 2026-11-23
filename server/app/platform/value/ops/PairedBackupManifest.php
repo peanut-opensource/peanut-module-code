@@ -17,7 +17,7 @@ use InvalidArgumentException;
  */
 final readonly class PairedBackupManifest
 {
-    public const SCHEMA_VERSION = 4;
+    public const SCHEMA_VERSION = 5;
     public const DATABASE_ARTIFACT = 'database.sql.gz';
     public const PUBLIC_FILES_ARTIFACT = 'php-storage.tar.gz';
     public const PRIVATE_FILES_ARTIFACT = 'php-private-storage.tar.gz';
@@ -58,7 +58,7 @@ final readonly class PairedBackupManifest
             'artifacts',
             'responsibility',
         ]);
-        if (($manifest['schema_version'] ?? null) !== self::SCHEMA_VERSION
+        if (!in_array($manifest['schema_version'] ?? null, [4, self::SCHEMA_VERSION], true)
             || !is_string($manifest['backup_reference_key'] ?? null)
             || preg_match('/^backup_[a-f0-9]{32}$/D', $manifest['backup_reference_key']) !== 1
             || ($manifest['provider_key'] ?? null) !== PairedBackupProvider::PROVIDER_KEY
@@ -110,8 +110,9 @@ final readonly class PairedBackupManifest
         ) {
             self::invalid();
         }
-        self::storageDirectory($runtime['public_storage_directory'] ?? null, 'server/storage/public');
-        self::storageDirectory($runtime['private_storage_directory'] ?? null, 'server/storage/private');
+        $legacy = $manifest['schema_version'] === 4 && $runtime['public_storage_directory'] === 'server/public';
+        self::storageDirectory($runtime['public_storage_directory'], $legacy ? 'server/public' : 'server/storage/public');
+        self::storageDirectory($runtime['private_storage_directory'], $legacy ? 'server/private/storage' : 'server/storage/private');
         self::storageDirectory($runtime['installation_directory'] ?? null, 'server/private/installation');
         if (count(array_unique([
             $runtime['public_storage_directory'],
@@ -155,7 +156,7 @@ final readonly class PairedBackupManifest
         }
 
         return new self([
-            'schema_version' => self::SCHEMA_VERSION,
+            'schema_version' => $manifest['schema_version'],
             'backup_reference_key' => $manifest['backup_reference_key'],
             'provider_key' => PairedBackupProvider::PROVIDER_KEY,
             'source' => [

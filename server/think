@@ -3,6 +3,15 @@
 
 use think\App;
 
+// Prepare the host data layout before the local development HTTP server starts.
+if (($argv[1] ?? null) === 'run') {
+    $process = proc_open(['python3', __DIR__ . '/docker/scripts/migrate-storage-layout.py', __DIR__],
+        [STDIN, STDOUT, STDERR], $pipes);
+    if (!is_resource($process) || proc_close($process) !== 0) {
+        exit(1);
+    }
+}
+
 require __DIR__ . '/vendor/autoload.php';
 
 // 应用初始化

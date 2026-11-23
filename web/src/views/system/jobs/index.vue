@@ -7,6 +7,7 @@
       <CrudPage
         :loading="loading"
         :data="renderData"
+        :error="listError"
         :pagination="pagination"
         :fields="columns"
         :column-storage-key="columnStorageKey"
@@ -16,6 +17,7 @@
         hide-search-actions
         pagination-layout="total, prev, pager, next"
         @page-change="fetchList"
+        @retry="fetchList(pagination.page)"
       >
         <template #search>
           <PageToolbar :label="$t('systemJobs.form.search')">
@@ -317,6 +319,7 @@
   const {
     data: records,
     loading,
+    error: listError,
     pagination,
     searchForm: formModel,
     fetchList,

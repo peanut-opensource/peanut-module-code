@@ -38,9 +38,9 @@ services:
           size: 1048576
           mode: 0000
       - ../private/installation:/var/www/peanut-http/server/private/installation
-      - ../private/storage:/var/www/peanut-http/server/private/storage
+      - ../storage/private:/var/www/peanut-http/server/storage/private
       - ../private/resources/pending:/var/www/peanut-http/server/private/resources/pending
-      - ../public/storage:/var/www/peanut-http/server/public/storage
+      - ../storage/public:/var/www/peanut-http/server/storage/public
       - ../runtime/cache:/var/www/peanut-http/server/runtime/cache
       - ../runtime/log:/var/www/peanut-http/server/runtime/log
       - ../runtime/session:/var/www/peanut-http/server/runtime/session
@@ -70,6 +70,7 @@ services:
       - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-21080}:80"
     volumes:
       - ../public:/var/www/peanut-admin/server/public:ro
+      - ../storage/public:/var/www/peanut-admin/server/storage/public:ro
       - ../runtime/upgrade:/var/www/peanut-admin/server/runtime/upgrade:ro
       - ./conf/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:

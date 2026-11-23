@@ -37,7 +37,7 @@
       show-icon
     />
     <el-card v-if="canReadUpdates" class="backup-center-card">
-      <template #header>官方发行更新（开发者）</template>
+      <template #header>官方模块目录与更新（开发者）</template>
       <div class="toolbar developer-toolbar">
         <el-select
           v-model="releaseChannel"
@@ -52,7 +52,7 @@
           :loading="updatesLoading"
           :disabled="officialBusy"
           @click="checkOfficialUpdates"
-          >检查官方更新</el-button
+          >刷新官方目录</el-button
         >
       </div>
       <el-alert
@@ -74,6 +74,51 @@
           <code>peanut upgrade --check</code>
           和原生升级计划；模块升级不会替换应用自有代码。</p
         >
+        <p v-if="officialUpdates.withdrawal_policy === 'legacy-index'">
+          此官方目录未提供撤回名单，不能据此确认版本尚未撤回。
+        </p>
+        <h3>可发现的官方模块</h3>
+        <el-input
+          v-model="catalogSearch"
+          clearable
+          aria-label="筛选官方模块"
+          placeholder="按模块标识筛选"
+        />
+        <el-table
+          :data="visibleOfficialCatalog"
+          empty-text="当前渠道没有匹配模块"
+        >
+          <el-table-column prop="key" label="模块" min-width="200" />
+          <el-table-column prop="version" label="发行版本" min-width="140" />
+          <el-table-column label="本地源码" min-width="150">
+            <template #default="{ row }">{{
+              row.source_version || '未采用'
+            }}</template>
+          </el-table-column>
+          <el-table-column label="兼容性" min-width="190">
+            <template #default="{ row }">
+              {{ catalogAvailability(row) }}
+              <div>Kernel {{ row.kernel_constraint }}</div>
+            </template>
+          </el-table-column>
+          <el-table-column label="前置模块" min-width="240">
+            <template #default="{ row }">{{
+              catalogDependencies(row)
+            }}</template>
+          </el-table-column>
+          <el-table-column label="操作" min-width="140">
+            <template #default="{ row }">
+              <el-button
+                v-if="canInstall"
+                :disabled="row.availability !== 'available'"
+                :loading="officialBusy"
+                @click="previewCatalog(row)"
+                >预检安装</el-button
+              >
+            </template>
+          </el-table-column>
+        </el-table>
+        <h3>已采用模块的更新</h3>
         <el-table :data="officialUpdates.modules">
           <el-table-column prop="key" label="官方模块" min-width="200" />
           <el-table-column
@@ -103,8 +148,8 @@
           </el-table-column>
         </el-table>
         <p
-          >发现新版不代表已兼容或已安装。确认前执行原生依赖、Edition、迁移与安装状态预检；版本及
-          SHA-256 始终固定。</p
+          >发现新版不代表已兼容或已安装。已采用源码的模块仍可预检安装；预检核对源码、依赖、Edition
+          和迁移计划，任务执行时再次核对安装状态。版本及 SHA-256 始终固定。</p
         >
       </template>
       <template v-if="officialPreview && officialSelection">
@@ -119,11 +164,13 @@
         >
         <StructuredDetails :value="officialPreview.plan" />
         <el-button
-          v-if="canUpdateOfficial"
+          v-if="canSubmitOfficial"
           type="primary"
           :loading="officialBusy"
           @click="applyOfficial"
-          >确认计划并提交升级任务</el-button
+          >确认所选版本并提交{{
+            officialOperation === 'install' ? '安装' : '升级'
+          }}任务</el-button
         >
       </template>
     </el-card>
@@ -383,6 +430,7 @@
     RuntimeModuleStatus,
     ModuleOperationTask,
     OfficialModuleUpdate,
+    OfficialModuleCatalogEntry,
     OfficialModuleSelection,
     OfficialUpdateSnapshot,
     OfficialUpdatePreview,
@@ -421,6 +469,18 @@
   const officialUpdates = ref<OfficialUpdateSnapshot | null>(null);
   const officialSelection = ref<OfficialModuleSelection | null>(null);
   const officialPreview = ref<OfficialUpdatePreview | null>(null);
+  const officialOperation = ref<'install' | 'update'>('update');
+  const canSubmitOfficial = computed(() =>
+    officialOperation.value === 'install'
+      ? props.canInstall
+      : props.canUpdateOfficial
+  );
+  const catalogSearch = ref('');
+  const visibleOfficialCatalog = computed(() =>
+    (officialUpdates.value?.catalog || []).filter((row) =>
+      row.key.toLowerCase().includes(catalogSearch.value.trim().toLowerCase())
+    )
+  );
   let officialIdempotency = '';
   const updateLabels: Record<string, string> = {
     update_available: '有更新，需原生预检',
@@ -453,6 +513,20 @@
     }
   }
 
+  function catalogAvailability(row: OfficialModuleCatalogEntry): string {
+    if (row.availability === 'withdrawn') return '此版本已撤回';
+    if (row.reason === 'EDITION_UNSUPPORTED') return '不支持当前应用形态';
+    return row.availability === 'available' ? '可选，需原生预检' : '当前不可用';
+  }
+
+  function catalogDependencies(row: OfficialModuleCatalogEntry): string {
+    return (
+      row.dependencies
+        .map((item) => item.module_key + ' ' + item.version)
+        .join('；') || '无'
+    );
+  }
+
   async function previewOfficial(row: OfficialModuleUpdate): Promise<void> {
     if (
       !props.canUpdateOfficial ||
@@ -461,20 +535,49 @@
       !row.catalog_tag
     )
       return;
+    await previewOfficialCandidate(
+      {
+        module_key: row.key,
+        version: row.available_version,
+        sha256: row.sha256,
+        catalog_tag: row.catalog_tag,
+        channel: releaseChannel.value,
+      },
+      'update'
+    );
+  }
+
+  async function previewCatalog(
+    row: OfficialModuleCatalogEntry
+  ): Promise<void> {
+    if (!props.canInstall || row.availability !== 'available') return;
+    await previewOfficialCandidate(
+      {
+        module_key: row.key,
+        version: row.version,
+        sha256: row.sha256,
+        catalog_tag: row.catalog_tag,
+        channel: row.channel,
+      },
+      'install'
+    );
+  }
+
+  async function previewOfficialCandidate(
+    selection: OfficialModuleSelection,
+    operation: 'install' | 'update'
+  ): Promise<void> {
+    officialOperation.value = operation;
     officialBusy.value = true;
     updatesError.value = '';
     officialPreview.value = null;
     officialIdempotency = '';
-    const selection: OfficialModuleSelection = {
-      module_key: row.key,
-      version: row.available_version,
-      sha256: row.sha256,
-      catalog_tag: row.catalog_tag,
-      channel: releaseChannel.value,
-    };
     officialSelection.value = selection;
     try {
-      officialPreview.value = await api.previewOfficialModule(selection);
+      officialPreview.value = await api.previewOfficialModule(
+        selection,
+        operation
+      );
     } catch (cause) {
       updatesError.value =
         cause instanceof Error ? cause.message : '模块预检未通过';
@@ -485,17 +588,25 @@
 
   async function applyOfficial(): Promise<void> {
     if (
-      !props.canUpdateOfficial ||
+      !canSubmitOfficial.value ||
       !officialSelection.value ||
       !officialPreview.value
     )
       return;
     const selection = { ...officialSelection.value };
+    const operation = officialOperation.value;
+    const action = operation === 'install' ? '安装' : '升级';
     const digest = officialPreview.value.selection_sha256;
     try {
       await ElMessageBox.confirm(
-        `将 ${selection.module_key} 升级到 ${selection.version}，可能执行迁移并使相关模块短暂不可用。确认按已预检计划提交？`,
-        '确认模块升级',
+        '将' +
+          action +
+          ' ' +
+          selection.module_key +
+          ' ' +
+          selection.version +
+          '，可能执行迁移并使相关模块短暂不可用。任务执行时会重新核对权限、依赖和迁移状态。确认提交？',
+        '确认模块' + action,
         { type: 'warning' }
       );
     } catch {
@@ -503,20 +614,22 @@
     }
     officialBusy.value = true;
     updatesError.value = '';
-    officialIdempotency ||= `official-module-${Array.from(
-      crypto.getRandomValues(new Uint8Array(16)),
-      (value) => value.toString(16).padStart(2, '0')
-    ).join('')}`;
+    officialIdempotency ||=
+      'official-module-' +
+      Array.from(crypto.getRandomValues(new Uint8Array(16)), (value) =>
+        value.toString(16).padStart(2, '0')
+      ).join('');
     try {
       packageTask.value = await api.applyOfficialModule(
         selection,
         digest,
-        officialIdempotency
+        officialIdempotency,
+        operation
       );
       officialPreview.value = null;
     } catch (cause) {
       updatesError.value =
-        cause instanceof Error ? cause.message : '模块升级任务提交失败';
+        cause instanceof Error ? cause.message : '模块任务提交失败';
     } finally {
       officialBusy.value = false;
     }

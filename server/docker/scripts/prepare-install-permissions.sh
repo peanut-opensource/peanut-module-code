@@ -142,8 +142,8 @@ elif [ "${blocked:-0}" -eq 1 ] || {
 fi
 
 # Change only named directories. Never traverse storage, uploads, or code.
-for path in private runtime public private/storage private/installation private/resources private/resources/pending \
-    runtime/upgrade public/storage runtime/cache runtime/log runtime/session runtime/temp runtime/storage runtime/generator runtime/file; do
+for path in private runtime public storage storage/public storage/private private/installation private/resources private/resources/pending \
+    runtime/upgrade runtime/cache runtime/log runtime/session runtime/temp runtime/storage runtime/generator runtime/file; do
     safe_dir "$path"
     owner=$(stat -c %u "$path")
     [ "$owner" -eq 0 ] || [ "$owner" -eq "$root_uid" ] || [ "$owner" -eq "$app_uid" ] || {
@@ -154,12 +154,12 @@ done
 # owned by the deployment owner, never by the application process.
 chown "$root_uid" private runtime runtime/upgrade
 chmod 0755 runtime/upgrade
-for path in private private/storage private/installation private/resources private/resources/pending runtime public/storage runtime/cache runtime/log runtime/session runtime/temp runtime/storage runtime/generator runtime/file; do
+for path in private storage storage/public storage/private private/installation private/resources private/resources/pending runtime runtime/cache runtime/log runtime/session runtime/temp runtime/storage runtime/generator runtime/file; do
     chgrp "$app_gid" "$path"
     case "$path" in
         private) chmod 0750 "$path" ;;
         runtime) chmod 1775 "$path" ;;
-        public/storage) chmod 0775 "$path" ;;
+        storage|storage/public) chmod 0775 "$path" ;;
         *) chmod 0770 "$path" ;;
     esac
 done

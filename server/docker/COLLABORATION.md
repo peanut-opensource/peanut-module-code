@@ -189,7 +189,7 @@ changes transport or authorizes a restart, drain or loss of unresolved saves.
 ## Source development with host PHP and TLS
 
 An already installed source checkout can keep its registered host PHP listener
-and use `compose.source-collaboration.yaml` explicitly. This composition starts
+and use `deploy/docker-compose.source-collaboration.yml` explicitly. This composition starts
 only a TLS ingress: it does not mount PHP source, adopt deployment identities,
 seal vendor, change host file ownership, start MySQL, or start Node. It is never
 selected by the APP startup composition above. Docker must actually reach the
@@ -205,14 +205,13 @@ management port **only at 127.0.0.1:8443** and WSS only on loopback. The product
 overlay retains container-only management TLS. Neither endpoint disables the
 existing HMAC, token, tenant, document or current-permission checks.
 
-In an ignored, private `server/docker/.env.source-collaboration`, set the
-registered `SOURCE_COLLABORATION_PROJECT` and numeric `SOURCE_PHP_PORT`. After
+From the APP root, copy `deploy/source-collaboration.env.example` to
+`server/docker/.env.source-collaboration` and set the registered `SOURCE_COLLABORATION_PROJECT` and numeric `SOURCE_PHP_PORT`. After
 normal configuration publication, use both that file and `collaboration.env`:
 
 ```sh
-cd server/docker
-docker compose --env-file collaboration.env --env-file .env.source-collaboration -f compose.source-collaboration.yaml config --quiet
-docker compose --env-file collaboration.env --env-file .env.source-collaboration -f compose.source-collaboration.yaml up -d
+docker compose --env-file server/docker/collaboration.env --env-file server/docker/.env.source-collaboration -f deploy/docker-compose.source-collaboration.yml config --quiet
+docker compose --env-file server/docker/collaboration.env --env-file server/docker/.env.source-collaboration -f deploy/docker-compose.source-collaboration.yml up -d
 ```
 
 Start the independent Node service from its repository root with the selected

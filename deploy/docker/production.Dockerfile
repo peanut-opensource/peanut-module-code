@@ -123,7 +123,8 @@ RUN if [ -n "$PEANUT_DEPLOYMENT_RECEIPT_BASE64" ]; then \
         printf '%s' "$PEANUT_DEPLOYMENT_RECEIPT_BASE64" | base64 --decode > DEPLOYMENT_RECEIPT.json; \
         chmod 0444 DEPLOYMENT_RECEIPT.json; \
     fi \
-    && mkdir -p server/runtime server/public/storage server/private/storage server/private/installation \
+    && mkdir -p server/runtime server/storage/public server/storage/private server/private/installation \
+    && ln -sfn ../storage/public server/public/storage \
     && cd server \
     && printf '%s\n' \
         'APP_ENV=production' \
@@ -143,7 +144,7 @@ RUN if [ -n "$PEANUT_DEPLOYMENT_RECEIPT_BASE64" ]; then \
     && cd .. \
     && chmod +x server/think server/database/seed-demo-data.php /usr/local/bin/peanut-php-entrypoint \
     && ln -s /var/www/peanut-admin/server/database/seed-demo-data.php /usr/local/bin/peanut-seed-demo-data \
-    && chown -R www-data:www-data server/runtime server/public/storage server/private/storage server/private/installation
+    && chown -R www-data:www-data server/runtime server/storage/public server/storage/private server/private/installation
 
 EXPOSE 9000
 
@@ -167,4 +168,5 @@ COPY --from=mobile-builder /build/uniapp/dist/build/h5 /var/www/peanut-admin/ser
 COPY --from=pc-builder /build/pc/.output/public /var/www/peanut-admin/server/public/pc
 RUN chmod +x /docker-entrypoint.d/40-select-admin.sh \
     && chmod +x /docker-entrypoint.d/41-select-pc.sh \
-    && mkdir -p /var/www/peanut-admin/server/public/storage
+    && mkdir -p /var/www/peanut-admin/server/storage/public \
+    && ln -sfn ../storage/public /var/www/peanut-admin/server/public/storage

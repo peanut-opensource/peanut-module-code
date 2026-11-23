@@ -98,7 +98,28 @@
     <div v-if="selection.length && $slots.batch" class="crud-page__batch">
       <slot name="batch" :selection="selection" />
     </div>
+    <div
+      v-if="error && !loading && data.length === 0"
+      class="crud-page__load-error"
+      role="alert"
+    >
+      <el-alert title="列表加载失败，请重试" type="error" :closable="false" />
+      <el-button type="primary" @click="$emit('retry')">重试</el-button>
+    </div>
+    <div
+      v-if="error && !loading && data.length > 0"
+      class="crud-page__load-error"
+      role="alert"
+    >
+      <el-alert
+        title="列表加载失败，当前仍显示上次结果"
+        type="warning"
+        :closable="false"
+      />
+      <el-button type="primary" @click="$emit('retry')">重试</el-button>
+    </div>
     <el-table
+      v-if="!error || loading || data.length > 0"
       v-loading="loading"
       :class="tableClass"
       :data="tableData"
@@ -195,6 +216,7 @@
   const props = defineProps<{
     loading: boolean;
     data: readonly TRow[];
+    error?: string | null;
     pagination: { page: number; pageSize: number; total: number };
     rowKey?: string;
     showSummary?: boolean;
@@ -224,7 +246,7 @@
     ) => Promise<void>;
   }>();
   const emit = defineEmits<{
-    (event: 'search' | 'reset'): void;
+    (event: 'search' | 'reset' | 'retry'): void;
     (event: 'applyView' | 'saveView', value: string): void;
     (event: 'edited', value: TRow): void;
     (event: 'pageChange' | 'sizeChange', value: number): void;
@@ -485,6 +507,13 @@
 </script>
 
 <style scoped>
+  .crud-page__load-error {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
   .crud-page__search,
   .crud-page__toolbar,
   .crud-page__batch {

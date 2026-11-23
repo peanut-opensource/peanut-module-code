@@ -32,7 +32,7 @@ class FirstStartVendorTest(unittest.TestCase):
         self.server = self.root / "server"
         self.bin = self.root / "bin"
         self.bin.mkdir()
-        for name in ("start.sh", "configure-collaboration.py", "prepare-vendor.sh", "vendor-state.py"):
+        for name in ("start.sh", "configure-collaboration.py", "prepare-vendor.sh", "vendor-state.py", "migrate-storage-layout.py"):
             target = self.server / "docker/scripts" / name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(SCRIPTS / name, target)
@@ -47,6 +47,8 @@ class FirstStartVendorTest(unittest.TestCase):
 import json, os, pathlib, sys
 args=sys.argv[1:]
 with open(os.environ["DOCKER_SENTINEL_LOG"], "a") as out: out.write(json.dumps(args)+"\\n")
+if args[:1] == ["compose"] and "ps" in args and os.environ.get("FIXTURE_RUNNING_PHP"):
+    print("running-php")
 if args[:1] == ["run"]:
     if os.environ.get("DOCKER_SENTINEL_FAIL"): sys.exit(42)
     mounts=[a for a in args if a.startswith("type=bind,src=") and a.endswith(",dst=/srv")]
@@ -152,6 +154,52 @@ sys.exit(0)
         self.assertIn("server/.env is unsafe", result.stderr)
         self.assertEqual(self.commands(), [])
         self.assertTrue((self.server / ".env").is_symlink())
+
+    def test_running_writer_blocks_only_legacy_migration_for_selected_project(self):
+        self.complete_vendor()
+        legacy = self.server / "private/storage/item"
+        write(legacy, b"original")
+        entry = [str(self.server / "docker/scripts/start.sh"), "-p", "fixture-project"]
+        self.env["FIXTURE_RUNNING_PHP"] = "1"
+        blocked = subprocess.run(entry, env=self.env, text=True, capture_output=True)
+        self.assertNotEqual(blocked.returncode, 0)
+        self.assertIn("running PHP writer", blocked.stderr)
+        self.assertEqual(legacy.read_bytes(), b"original")
+        self.assertFalse((self.server / "storage/private/item").exists())
+        self.assertEqual(len(self.commands()), 1)
+        self.assertEqual(self.commands()[0][-7:], ["-p", "fixture-project", "ps", "--status", "running", "-q", "php"])
+        legacy.write_bytes(b"last write before stop")
+        del self.env["FIXTURE_RUNNING_PHP"]
+        ready = subprocess.run(entry, env=self.env, text=True, capture_output=True)
+        self.assertEqual(ready.returncode, 0, ready.stderr)
+        self.assertEqual((self.server / "storage/private/item").read_bytes(), b"last write before stop")
+        self.env["FIXTURE_RUNNING_PHP"] = "1"
+        ready = subprocess.run(entry, env=self.env, text=True, capture_output=True)
+        self.assertEqual(ready.returncode, 0, ready.stderr)
+        self.assertEqual(sum("ps" in call for call in self.commands()), 2)
+
+    def test_storage_conflict_preserves_both_spaces_and_retry_moves_bytes(self):
+        self.complete_vendor()
+        old = self.server / "public/storage/tenant/photo"
+        new = self.server / "storage/public/tenant/photo"
+        private = self.server / "private/storage/customer.bin"
+        write(old, b"old public")
+        write(new, b"existing public")
+        write(private, b"private")
+        result = self.run_start()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("storage migration conflict", result.stderr)
+        self.assertEqual((old.read_bytes(), new.read_bytes(), private.read_bytes()),
+                         (b"old public", b"existing public", b"private"))
+        new.rename(new.with_name("other"))
+        for _ in range(2):
+            result = self.run_start()
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(os.readlink(self.server / "public/storage"), "../storage/public")
+            self.assertEqual(new.read_bytes(), b"old public")
+            self.assertEqual((self.server / "storage/private/customer.bin").read_bytes(), b"private")
+            self.assertEqual(new.with_name("other").read_bytes(), b"existing public")
+            self.assertFalse(private.parent.exists())
 
     def test_protected_and_linked_paths_are_rejected(self):
         extra = [{"path": "server/private/installation/secret.json", "sha256": "0" * 64, "mode": 0o644}]

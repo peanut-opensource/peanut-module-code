@@ -34,6 +34,16 @@ final class PlatformModuleLifecycleController extends BasePlatformController
     /** The same developer gate and native worker apply to local and official packages. */
     public function officialUpdate()
     {
+        return $this->officialPackageOperation('update');
+    }
+
+    public function officialInstall()
+    {
+        return $this->officialPackageOperation('install');
+    }
+
+    private function officialPackageOperation(string $operation)
+    {
         if ($this->platformContext === null) {
             throw new ModuleLifecycleException('MODULE_CONTEXT_INVALID', 'A validated Platform session is required.');
         }
@@ -51,9 +61,9 @@ final class PlatformModuleLifecycleController extends BasePlatformController
             || preg_match('/^[\x21-\x7e]+$/D', $idempotency) !== 1
             || !is_string($input['confirm_selection_sha256'] ?? null)
             || preg_match('/^[a-f0-9]{64}$/D', $input['confirm_selection_sha256']) !== 1)) {
-            throw new ModulePackageException('MODULE_RELEASE_CONFIRMATION_REQUIRED', 'Confirm the reviewed native plan with an Idempotency-Key.');
+            throw new ModulePackageException('MODULE_RELEASE_CONFIRMATION_REQUIRED', 'Confirm the selected package and operation with an Idempotency-Key; the worker rechecks current runtime state.');
         }
-        $digest = hash('sha256', json_encode($selection, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+        $digest = hash('sha256', json_encode($selection + ['operation' => $operation], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
         if (!$input['dry_run'] && !hash_equals($digest, $input['confirm_selection_sha256'])) {
             throw new ModulePackageException('MODULE_RELEASE_SELECTION_CHANGED', 'The reviewed target changed; request a fresh preview.');
         }
@@ -69,20 +79,17 @@ final class PlatformModuleLifecycleController extends BasePlatformController
             $path = realpath(stream_get_meta_data($file)['uri']);
             unset($package['bytes']);
             if ($input['dry_run']) {
-                $plan = $this->moduleRuntime->update($path, $package['sha256'], null, true, $this->platformContext->core);
-                return $this->data(['dry_run' => true, 'plan' => $plan, 'selection_sha256' => $digest]);
+                $plan = $operation === 'install'
+                    ? $this->moduleRuntime->install($path, $package['sha256'], null, $this->platformContext->core, null, true)
+                    : $this->moduleRuntime->update($path, $package['sha256'], null, true, $this->platformContext->core);
+                return $this->data(['dry_run' => true, 'operation' => $operation, 'plan' => $plan, 'selection_sha256' => $digest]);
             }
             // The original idempotent queue owns retries. Do not repeat source preflight here:
             // a previous request may already be running after its HTTP response was lost.
             // The worker rechecks current version, permissions, dependencies and migration state.
-            return $this->data($this->moduleRuntime->update(
-                $path,
-                $package['sha256'],
-                null,
-                false,
-                $this->platformContext->core,
-                $idempotency,
-            ));
+            return $this->data($operation === 'install'
+                ? $this->moduleRuntime->install($path, $package['sha256'], null, $this->platformContext->core, $idempotency)
+                : $this->moduleRuntime->update($path, $package['sha256'], null, false, $this->platformContext->core, $idempotency));
         } finally {
             fclose($file);
         }

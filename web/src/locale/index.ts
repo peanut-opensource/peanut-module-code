@@ -21,7 +21,6 @@ const i18n = createI18n({
   locale: defaultLocale,
   fallbackLocale: 'en-US',
   legacy: false,
-  allowComposition: true,
   messages: {
     'en-US': { ...en, ...moduleMessages('en-US') },
     'zh-CN': { ...cn, ...moduleMessages('zh-CN') },

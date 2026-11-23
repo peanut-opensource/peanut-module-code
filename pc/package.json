@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "description": "Peanut Module Code PC client",
     "private": true,
-    "author": "花生科技",
+    "author": "\u82b1\u751f\u79d1\u6280",
     "homepage": "https://github.com/peanut-business/peanut-admin-code",
     "repository": {
         "type": "git",
@@ -17,12 +17,13 @@
         "build": "nuxt build",
         "generate": "nuxt generate",
         "preview": "nuxt preview",
-        "type:check": "nuxt typecheck"
+        "type:check": "nuxt typecheck",
+        "generate:release": "NUXT_PC_RENDER_MODE=spa PEANUT_PC_RELEASE_STATIC=1 nuxt generate"
     },
     "dependencies": {
         "@element-plus/nuxt": "^1.0.10",
-        "@peanut-admin/client": "file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz",
-        "@peanut-admin/nuxt": "file:../packages/core-web/peanut-admin-nuxt-5.1.3-rc.23.tgz",
+        "@peanut-admin/client": "file:../packages/core-web/peanut-admin-client-5.1.3-rc.24.tgz",
+        "@peanut-admin/nuxt": "file:../packages/core-web/peanut-admin-nuxt-5.1.3-rc.24.tgz",
         "@pinia/nuxt": "^0.5.5",
         "dompurify": "^3.4.17",
         "element-plus": "^2.9.1",
@@ -38,5 +39,10 @@
         "typescript": "5.9.3",
         "vue-tsc": "3.2.5"
     },
-    "packageManager": "pnpm@9.15.6"
+    "packageManager": "pnpm@9.15.6",
+    "pnpm": {
+        "overrides": {
+            "@nuxt/vite-builder@3.21.11>vite": "7.3.7"
+        }
+    }
 }

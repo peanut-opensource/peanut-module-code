@@ -59,14 +59,15 @@ final readonly class RestoreVerificationEvidence
             'compose_project', 'database_name', 'public_storage_directory', 'private_storage_directory', 'installation_directory',
         ]);
         $registered = self::registeredTarget();
+        $legacy = $target['public_storage_directory'] === 'server/public';
         if ($target !== [
             'deployment_resource_id' => $registered['deployment'],
             'database_resource_id' => $registered['database'],
             'runtime_resource_id' => $registered['runtime'],
             'compose_project' => $registered['project'],
             'database_name' => $registered['database_name'],
-            'public_storage_directory' => 'server/storage/public',
-            'private_storage_directory' => 'server/storage/private',
+            'public_storage_directory' => $legacy ? 'server/public' : 'server/storage/public',
+            'private_storage_directory' => $legacy ? 'server/private/storage' : 'server/storage/private',
             'installation_directory' => 'server/private/installation',
         ]) {
             throw new RuntimeException('OPS_RESTORE_TARGET_INVALID');
@@ -123,6 +124,21 @@ final readonly class RestoreVerificationEvidence
     public function toArray(): array
     {
         return $this->data;
+    }
+
+    public function assertMatchesManifest(PairedBackupManifest $manifest): void
+    {
+        $backup = $manifest->toArray();
+        $target = $this->data['target'];
+        if ($this->data['backup_reference_key'] !== $manifest->backupReferenceKey()
+            || !hash_equals($this->data['manifest_sha256'], hash('sha256', $manifest->canonicalJson()))
+            || $this->data['source']['commit'] !== $backup['source']['commit']
+            || $this->data['source']['tree'] !== $backup['source']['tree']
+            || $target['public_storage_directory'] !== $backup['runtime']['public_storage_directory']
+            || $target['private_storage_directory'] !== $backup['runtime']['private_storage_directory']
+        ) {
+            throw new RuntimeException('OPS_RESTORE_EVIDENCE_INVALID');
+        }
     }
 
     public function canonicalJson(): string

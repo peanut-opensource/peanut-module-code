@@ -32,7 +32,7 @@ def ordinary(path):
         raise ValueError(f"missing or unsafe file: {path}")
 
 
-PROTECTED = ("runtime/", "public/storage/", "public/uploads/", "private/storage/",
+PROTECTED = ("runtime/", "storage/public/", "storage/private/", "public/storage/", "public/uploads/", "private/storage/",
              "private/installation/", "private/resources/", "docker/mysql/", "docker/secrets/",
              "vendor/", ".git/")
 PROTECTED_FILES = {".env", "docker/.env"}

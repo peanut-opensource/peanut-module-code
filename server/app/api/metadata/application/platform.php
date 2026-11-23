@@ -346,37 +346,90 @@ $schemas = [
     ],
 ];
 
+$officialModuleKey = ['type' => 'string', 'pattern' => '^peanut\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*$'];
+$officialVersion = ['type' => 'string', 'pattern' => '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$',
+    'description' => '精确的 SemVer 版本，不接受版本范围。'];
+$officialCatalogTag = ['type' => 'string', 'pattern' => '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-rc\.(0|[1-9][0-9]*))?$'];
+$officialSha256 = ['type' => 'string', 'pattern' => '^[a-f0-9]{64}$'];
+$officialChannel = ['type' => 'string', 'enum' => ['stable', 'prerelease']];
+$officialEditions = ['type' => 'string', 'enum' => ['standalone', 'multi-tenant']];
 $schemas['PlatformOfficialModuleUpdate'] = [
     'type' => 'object', 'additionalProperties' => false,
     'required' => ['key', 'source_version', 'available_version', 'sha256', 'catalog_tag', 'status', 'compatibility'],
     'properties' => [
-        'key' => ['type' => 'string'], 'source_version' => ['type' => 'string'],
-        'available_version' => $nullableString, 'sha256' => $nullableString, 'catalog_tag' => $nullableString,
+        'key' => $officialModuleKey, 'source_version' => $officialVersion,
+        'available_version' => $officialVersion + ['nullable' => true],
+        'sha256' => $officialSha256 + ['nullable' => true], 'catalog_tag' => $officialCatalogTag + ['nullable' => true],
         'status' => ['type' => 'string', 'enum' => ['update_available', 'current', 'source_newer', 'no_published_candidate']],
         'compatibility' => ['type' => 'string', 'enum' => ['native_preflight_required']],
     ],
 ];
+$officialCatalogProperties = [
+    'key' => $officialModuleKey, 'version' => $officialVersion,
+    'sha256' => $officialSha256, 'catalog_tag' => $officialCatalogTag, 'channel' => $officialChannel,
+    'editions' => ['type' => 'array', 'items' => $officialEditions],
+    'dependencies' => ['type' => 'array', 'items' => [
+        'type' => 'object', 'additionalProperties' => false, 'required' => ['module_key', 'version'],
+        'properties' => ['module_key' => $officialModuleKey, 'version' => ['type' => 'string', 'description' => '依赖版本约束。']],
+    ]],
+    'kernel_constraint' => ['type' => 'string'],
+    'source_version' => $officialVersion + ['nullable' => true],
+    'availability' => ['type' => 'string', 'enum' => ['available', 'incompatible', 'withdrawn']],
+    'reason' => ['type' => 'string', 'nullable' => true, 'enum' => ['EDITION_UNSUPPORTED', 'MODULE_RELEASE_WITHDRAWN', null]],
+];
+$schemas['PlatformOfficialModuleCatalogEntry'] = [
+    'type' => 'object', 'additionalProperties' => false,
+    'required' => array_keys($officialCatalogProperties), 'properties' => $officialCatalogProperties,
+];
 $schemas['PlatformOfficialUpdateSnapshot'] = [
     'type' => 'object', 'additionalProperties' => false,
-    'required' => ['schema_version', 'channel', 'edition', 'modules', 'scaffold', 'changed', 'scope'],
+    'required' => ['schema_version', 'channel', 'edition', 'modules', 'catalog', 'scaffold', 'changed', 'withdrawal_policy', 'scope'],
     'properties' => [
         'schema_version' => ['type' => 'integer', 'enum' => [1]],
-        'channel' => ['type' => 'string', 'enum' => ['stable', 'prerelease']],
-        'edition' => ['type' => 'string', 'enum' => ['standalone', 'multi-tenant']],
-        'modules' => ['type' => 'array', 'items' => $ref('PlatformOfficialModuleUpdate')],
+        'channel' => $officialChannel, 'edition' => $officialEditions,
+        'modules' => ['type' => 'array', 'items' => $ref('PlatformOfficialModuleUpdate'),
+            'description' => '按源码锁列出的版本；不表示运行时安装状态。'],
+        'catalog' => ['type' => 'array', 'items' => $ref('PlatformOfficialModuleCatalogEntry'),
+            'description' => '所选渠道的官方候选，含未锁定的模块。availability 仅反映撤回及 Edition，采用前仍需原生预检。'],
+        'withdrawal_policy' => ['type' => 'string', 'enum' => ['verified-current', 'legacy-index'],
+            'description' => 'verified-current 表示校验了全渠道最新 v3 撤回政策；legacy-index 表示使用兼容的历史目录协议。'],
         'changed' => ['type' => 'boolean', 'enum' => [false]], 'scope' => ['type' => 'string'],
         'scaffold' => ['type' => 'object', 'additionalProperties' => false,
             'required' => ['current_version', 'available_version', 'status', 'upgrade_method'],
-            'properties' => ['current_version' => ['type' => 'string'], 'available_version' => $nullableString,
-                'status' => ['type' => 'string'], 'upgrade_method' => ['type' => 'string', 'enum' => ['native_cli_plan']]]],
+            'properties' => ['current_version' => $officialVersion, 'available_version' => $officialVersion + ['nullable' => true],
+                'status' => ['type' => 'string', 'enum' => ['no_published_candidate', 'update_available', 'current']],
+                'upgrade_method' => ['type' => 'string', 'enum' => ['native_cli_plan']]]],
     ],
 ];
-$schemas['PlatformOfficialUpdatePreview'] = [
-    'type' => 'object', 'additionalProperties' => false, 'required' => ['dry_run', 'plan', 'selection_sha256'],
-    'properties' => ['dry_run' => ['type' => 'boolean', 'enum' => [true]], 'plan' => $dynamicMap,
-        'selection_sha256' => ['type' => 'string', 'pattern' => '^[a-f0-9]{64}$']],
+$officialSelection = [
+    'module_key' => $officialModuleKey, 'version' => $officialVersion, 'sha256' => $officialSha256,
+    'catalog_tag' => $officialCatalogTag,
+    'channel' => ['type' => 'string', 'enum' => ['stable', 'prerelease', null], 'nullable' => true, 'default' => 'stable'],
+    'confirm_selection_sha256' => $officialSha256 + [
+        'description' => '提交时原样返回同一接口预检给出的 selection_sha256。摘要绑定归档选择及由接口决定的操作。',
+    ],
 ];
-$schemas['PlatformOfficialUpdateResult'] = ['oneOf' => [$ref('PlatformOfficialUpdatePreview'), $ref('PlatformOpsTask')]];
+$officialSelectionRequired = ['module_key', 'version', 'sha256', 'catalog_tag', 'dry_run'];
+$schemas['PlatformOfficialPackageRequest'] = [
+    'oneOf' => [
+        ['type' => 'object', 'additionalProperties' => false,
+            'required' => $officialSelectionRequired,
+            'properties' => $officialSelection + ['dry_run' => ['type' => 'boolean', 'enum' => [true]]]],
+        ['type' => 'object', 'additionalProperties' => false,
+            'required' => [...$officialSelectionRequired, 'confirm_selection_sha256'],
+            'properties' => $officialSelection + ['dry_run' => ['type' => 'boolean', 'enum' => [false]]]],
+    ],
+];
+$schemas['PlatformOfficialPackagePreview'] = [
+    'type' => 'object', 'additionalProperties' => false, 'required' => ['dry_run', 'operation', 'plan', 'selection_sha256'],
+    'properties' => [
+        'dry_run' => ['type' => 'boolean', 'enum' => [true]],
+        'operation' => ['type' => 'string', 'enum' => ['install', 'update']],
+        'plan' => $dynamicMap + ['description' => '原生预检的可扩展对象，内容随操作和现场状态变化。'],
+        'selection_sha256' => $officialSha256,
+    ],
+];
+$schemas['PlatformOfficialPackageResult'] = ['oneOf' => [$ref('PlatformOfficialPackagePreview'), $ref('PlatformOpsTask')]];
 
 $pageData = static fn(string $item): array => [
     'type' => 'object', 'additionalProperties' => false, 'required' => ['lists', 'count', 'pageNo', 'pageSize'],
@@ -573,29 +626,33 @@ $add($paths, 'POST', '/platformapi/tenant-entry-bindings/disable', $operation(
     errors: ['TENANT_ENTRY_INPUT_INVALID', 'TENANT_ENTRY_BINDING_NOT_FOUND'],
 ));
 
-// Local package upload remains multipart; official updates use a fixed catalog identity, never a URL.
+// 本地包上传保留 multipart。官方入口仅接受固定目录中的包身份。
 $add($paths, 'GET', '/platformapi/instance-tools/modules/updates', $operation(
     'checkOfficialModuleUpdates',
     'PlatformModules',
-    $responses('PlatformOfficialUpdateSnapshot'),
-    [$query('channel', ['type' => 'string', 'enum' => ['stable', 'prerelease'], 'default' => 'stable'])],
-    errors: ['MODULE_RUNTIME_MUTATION_DISABLED', 'MODULE_RELEASE_CHANNEL_INVALID', 'MODULE_RELEASE_ASSET_DIGEST_MISMATCH'],
+    $responses('PlatformOfficialUpdateSnapshot') + ['500' => $error],
+    [$query('channel', $officialChannel + ['default' => 'stable'])],
+    errors: ['MODULE_RUNTIME_MUTATION_DISABLED', 'MODULE_RELEASE_CHANNEL_INVALID', 'MODULE_RELEASE_POLICY_INVALID',
+        'MODULE_RELEASE_POLICY_REGRESSION', 'MODULE_RELEASE_ASSET_DIGEST_MISMATCH', 'PLATFORM_UNEXPECTED_FAILURE'],
+    description: '只读发现官方候选和源码锁版本。需要平台模块读取权限及开发实例工具权限。',
 ));
-$add($paths, 'POST', '/platformapi/instance-tools/modules/official-update', $operation(
-    'updateOfficialInstanceModule',
-    'PlatformModules',
-    $responses('PlatformOfficialUpdateResult'),
-    [$header('Idempotency-Key', ['type' => 'string', 'minLength' => 8, 'maxLength' => 200, 'description' => 'Required for confirmed submission; preserved across retries.'])],
-    requestBody: $jsonBody(['type' => 'object', 'additionalProperties' => false,
-        'required' => ['module_key', 'version', 'sha256', 'catalog_tag', 'channel', 'dry_run'],
-        'properties' => ['module_key' => ['type' => 'string', 'pattern' => '^peanut\\.[a-z][a-z0-9-]*$'],
-            'version' => ['type' => 'string'], 'sha256' => ['type' => 'string', 'pattern' => '^[a-f0-9]{64}$'],
-            'catalog_tag' => ['type' => 'string'], 'channel' => ['type' => 'string', 'enum' => ['stable', 'prerelease']],
-            'dry_run' => ['type' => 'boolean'], 'confirm_selection_sha256' => ['type' => 'string', 'pattern' => '^[a-f0-9]{64}$',
-                'description' => 'Required on apply; exact reviewed target selection. Worker revalidates current source, dependencies and permissions.']]]),
-    errors: ['MODULE_RUNTIME_MUTATION_DISABLED', 'MODULE_RELEASE_SELECTION_INVALID', 'MODULE_RELEASE_SELECTION_CHANGED',
-        'MODULE_RELEASE_CONFIRMATION_REQUIRED', 'MODULE_RELEASE_ASSET_DIGEST_MISMATCH', 'OPS_MODULE_REQUEST_INVALID'],
-));
+foreach (['install' => '安装', 'update' => '升级'] as $officialOperation => $label) {
+    $add($paths, 'POST', '/platformapi/instance-tools/modules/official-' . $officialOperation, $operation(
+        $officialOperation . 'OfficialInstanceModule',
+        'PlatformModules',
+        $responses('PlatformOfficialPackageResult') + ['409' => $error, '500' => $error, '503' => $error],
+        [$header('Idempotency-Key', ['type' => 'string', 'minLength' => 8, 'maxLength' => 200, 'pattern' => '^[!-~]+$',
+            'description' => '仅 dry_run=false 时必填；重试同一提交沿用原值。'], false)],
+        requestBody: $jsonBody($ref('PlatformOfficialPackageRequest')),
+        errors: ['MODULE_RUNTIME_MUTATION_DISABLED', 'MODULE_RELEASE_CHANNEL_INVALID', 'MODULE_RELEASE_SELECTION_INVALID',
+            'MODULE_RELEASE_SELECTION_CHANGED', 'MODULE_RELEASE_CONFIRMATION_REQUIRED', 'MODULE_RELEASE_POLICY_INVALID',
+            'MODULE_RELEASE_POLICY_REGRESSION', 'MODULE_RELEASE_WITHDRAWN', 'MODULE_RELEASE_PRERELEASE_OPT_IN_REQUIRED',
+            'MODULE_RELEASE_ASSET_DIGEST_MISMATCH', 'OPS_MODULE_REQUEST_INVALID', 'OPS_IDEMPOTENCY_CONFLICT',
+            'MAINTENANCE_WRITE_BLOCKED', 'MAINTENANCE_GATE_UNAVAILABLE', 'PLATFORM_UNEXPECTED_FAILURE'],
+        description: "官方模块{$label}。需要对应的平台模块操作权限及开发实例工具权限。dry_run=true 返回原生预检和选择摘要。"
+            . 'dry_run=false 必须原样提交同一接口的选择摘要和 Idempotency-Key，返回异步任务；执行时仍重新校验权限和运行状态。',
+    ));
+}
 
 // 实例级 Module 工具；本地安装是 multipart tar。
 $add($paths, 'GET', '/platformapi/instance-tools/modules', $operation(

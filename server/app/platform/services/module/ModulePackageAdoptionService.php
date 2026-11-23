@@ -76,9 +76,10 @@ final readonly class ModulePackageAdoptionService
             || hash_file('sha256', $indexPath) !== $identity['sha256']) {
             throw new ModulePackageException('MODULE_COMPOSITION_INDEX_INVALID', 'Provide one independently pinned index file.');
         }
-        $index = json_decode((string) file_get_contents($indexPath), true, 512, JSON_THROW_ON_ERROR);
+        $indexBytes = (string) file_get_contents($indexPath);
+        $index = json_decode($indexBytes, true, 512, JSON_THROW_ON_ERROR);
         $indexVersion = $index['schema_version'] ?? null;
-        if (!in_array($indexVersion, [1, 2], true)
+        if (!in_array($indexVersion, [1, 2, 3], true)
             || ($index['protocol'] ?? null) !== 'peanut.module-release-index.v' . $indexVersion
             || ($index['repository'] ?? null) !== 'peanut-opensource/peanut-module-code'
             || ($index['repository'] ?? null) !== ($identity['repository'] ?? null)
@@ -88,6 +89,16 @@ final readonly class ModulePackageAdoptionService
             || $index['commit'] !== ($identity['commit'] ?? null)
             || !is_array($index['modules'] ?? null) || !array_is_list($index['modules']) || $index['modules'] === [] || count($index['modules']) > 100) {
             throw new ModulePackageException('MODULE_COMPOSITION_INDEX_INVALID', 'Release index identity differs from its pin.');
+        }
+        $withdrawn = OfficialModuleReleaseService::withdrawalPolicy($index, $indexBytes);
+        if (array_key_exists('withdrawn', $request)) {
+            $requestPolicy = OfficialModuleReleaseService::withdrawals($request['withdrawn']);
+            foreach ($withdrawn as $identityKey => $reason) {
+                if (($requestPolicy[$identityKey] ?? null) !== $reason) {
+                    throw new ModulePackageException('MODULE_RELEASE_POLICY_REGRESSION', 'Current policy omits a withdrawal in the fixed catalog.');
+                }
+            }
+            $withdrawn = $requestPolicy;
         }
         $catalog = [];
         foreach ($index['modules'] as $row) {
@@ -104,7 +115,7 @@ final readonly class ModulePackageAdoptionService
                 || ($row['license'] ?? null) !== 'Apache-2.0') {
                 throw new ModulePackageException('MODULE_COMPOSITION_INDEX_INVALID', 'Invalid or duplicate catalog entry.');
             }
-            if ($indexVersion === 2) {
+            if ($indexVersion >= 2) {
                 if (!is_string($row['artifact_tag'] ?? null)
                     || preg_match('/^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-rc\.(0|[1-9][0-9]*))?$/D', $row['artifact_tag']) !== 1
                     || !is_string($row['source_sha256'] ?? null)
@@ -148,6 +159,11 @@ final readonly class ModulePackageAdoptionService
                 continue;
             }
             $keep = isset($current[$key]) && version_compare($current[$key]->version, $row['version']) > 0;
+            if (!$keep && isset($withdrawn[$key . '@' . $row['version']])) {
+                $selected[$key] = true;
+                $diagnostics[] = ['code' => 'MODULE_RELEASE_WITHDRAWN', 'module_key' => $key, 'version' => $row['version']];
+                continue;
+            }
             $selected[$key] = $keep ? 'retain-higher' : 'candidate';
             $graph[$key] = $keep ? $graph[$key] : ['version' => $row['version'], 'dependencies' => $row['dependencies']];
             foreach ($graph[$key]['dependencies'] as $dependency) {

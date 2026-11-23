@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "private": true,
     "description": "Peanut Module Code instance platform control plane",
-    "author": "花生科技",
+    "author": "\u82b1\u751f\u79d1\u6280",
     "license": "Apache-2.0",
     "homepage": "https://github.com/peanut-business/peanut-admin-code",
     "repository": {
@@ -21,20 +21,20 @@
     },
     "dependencies": {
         "@element-plus/icons-vue": "2.3.2",
-        "@peanut-admin/ui-vue": "file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.23.tgz",
-        "@peanut-admin/vue": "file:../packages/core-web/peanut-admin-vue-5.1.3-rc.23.tgz",
+        "@peanut-admin/ui-vue": "file:../packages/core-web/peanut-admin-ui-vue-5.1.3-rc.24.tgz",
+        "@peanut-admin/vue": "file:../packages/core-web/peanut-admin-vue-5.1.3-rc.24.tgz",
         "axios": "0.34.0",
         "element-plus": "2.14.3",
         "openapi-fetch": "0.17.0",
         "pinia": "2.0.23",
         "vue": "3.5.41",
         "vue-router": "4.0.14",
-        "@peanut-admin/client": "file:../packages/core-web/peanut-admin-client-5.1.3-rc.23.tgz"
+        "@peanut-admin/client": "file:../packages/core-web/peanut-admin-client-5.1.3-rc.24.tgz"
     },
     "devDependencies": {
         "@vitejs/plugin-vue": "5.2.4",
         "typescript": "5.9.3",
-        "vite": "6.4.3",
+        "vite": "6.4.4",
         "vue-tsc": "3.2.5"
     },
     "packageManager": "pnpm@9.15.6"

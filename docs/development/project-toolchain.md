@@ -36,7 +36,7 @@ PHP 的 `local-core-composer` 仅在 ignored `.local/composer-core/composer.json
 
 ## 使用
 
-使用支持该协议的 CLI，在选定 Code 根执行 `peanut release --plan` 只读检查，再执行 `peanut release`。默认从公开声明自动检测已安装工具；需要固定特殊工具、输出目录或本地 Core 时才使用 `peanut config` 或共享 profile。CLI 内部调用 `project-env` 和原生模板生产者，不要求每次手动 prepare/install/hash。需要本地 Core 随模板携带时显式选择 `--with-local-core`。
+使用支持该协议的 CLI，在选定 Code 根执行 `peanut release --plan` 只读检查，再执行 `peanut release`。默认从公开声明自动检测已安装工具；需要固定特殊工具、输出目录或本地 Core 时才使用 `peanut config` 或共享 profile。CLI 内部调用 `project-env` 和原生模板生产者，不要求每次手动 prepare/install/hash。当前源码已声明固定 PHP ZIP 和六个 Web TGZ，且未显式选择 Core 版本时，直接复用该组本地包及锁；包缺失或校验失败即停止，不重新解析公开版本或重建 Core。显式 `--core-php` / `--core-web` 选择公开版本；确需从已选择的 Core 源码重新构建时使用 `--with-local-core`。
 
 ### 日常制包与正式发行的最短路径
 

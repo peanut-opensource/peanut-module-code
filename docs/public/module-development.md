@@ -4,11 +4,11 @@
 
 使用新版宿主装配（模块命令及自有绑定迁移）的模块，在自己的 Composer require 中声明 `peanut-admin/module-composition-host`。具备该装配的宿主提供 `1.0.0`；模板计划按实际采用的宿主 Composer 声明校验，运行编译在加载 Provider 前拒绝缺失或不兼容的能力。采用新版模块前先更新宿主，或在同一源码计划中更新两者；旧计划工具须先更新，不能依据相同的产品版本推断兼容。
 
-模块是交付单元。后端实现、各客户端贡献、权限、事件、迁移和公开合同可以位于不同源码目录，但由同一个稳定模块 key 和版本汇集。模块之间只能使用公开 Query、Command、Event、Job 或 DTO 合同；不要读取别的模块私表、导入其 Model，或调用内部 Controller。
+模块是交付单元。后端实现、各客户端贡献、权限、事件、迁移和公开合同可以位于不同源码目录，但由同一个稳定模块 key 和版本汇集。跨模块写入由所属模块的公开 Command、Event 或 Job 合同承担；只读查询优先使用公开 Query/DTO。当前同库模块按[模块调用规则](../architecture/module-development-delivery.md#3-模块之间怎样调用)允许有租户隔离、最小字段的模型关联、预加载和 JOIN，不把来源模块的可写 ORM 对象或敏感字段作为公开能力，也不调用内部 Controller。
 
 模块包至少应声明负责人、版本、依赖、兼容产品范围、迁移、权限、菜单与客户端贡献。安装前核验可信来源、许可、归档摘要及逐文件清单。当前实现允许可信外部SHA-256作为来源证明；签名是另一个可选的可信证明分支，不要求每个模块作者配置私钥。没有可信摘要或有效签名时拒绝。PHP模块在应用进程内运行，不是安全沙箱；普通租户不能上传任意PHP、Shell、类名或路径执行。
 
-模块自己的 `composer.json` 依赖也必须与目标应用相容；宿主的 Composer 安装成功，不代表其未参与依赖解析的模块声明已经验证。`module.json` 与 Composer 的版本约束使用 Composer SemVer 语义，按实际使用的公开 API 声明最低所需版本与兼容范围。稳定 `1.x` 合同可用 `^1.0.1` 表达至少 `1.0.1`、小于 `2.0.0` 的兼容版本，不逐个枚举补丁；真实不兼容的公开 API 变更须升 major，再由消费者适配约束，不能把所有依赖无条件改成 caret。约束声明兼容范围，实际采用仍由审阅的固定归档、`modules.lock` 与 `composer.lock` 锁定。源码联合开发可沿用当前开发 Core，发行构建则需在隔离副本中同步宿主和模块的实际发布依赖，再用原生包管理器验证。源码接收返回 `source_declarations`、`dependencies_installed=false` 和后续待办，只表示源码已采用。完整安装/升级共用原生依赖执行：Composer 将模块作为 path 包参与宿主求解，模块开发依赖由原生开发 metapackage 参与；Web 使用 pnpm workspace，其余端使用 npm workspace，保留各依赖类别。原生失败阻止整体可用并保留原因、退出码及恢复状态。
+模块自己的 `composer.json` 依赖也必须与目标应用相容；宿主的 Composer 安装成功，不代表其未参与依赖解析的模块声明已经验证。`module.json` 与 Composer 的版本约束使用 Composer SemVer 语义，按实际使用的公开 API 声明最低所需版本与兼容范围。稳定 `1.x` 合同可用 `^1.0.1` 表达至少 `1.0.1`、小于 `2.0.0` 的兼容版本，不逐个枚举补丁；真实不兼容的公开 API 变更须升 major，再由消费者适配约束，不能把所有依赖无条件改成 caret。约束声明兼容范围，实际采用仍由审阅的固定归档、`modules.lock` 与 `composer.lock` 锁定。源码联合开发可沿用当前开发 Core，发行构建则需在隔离副本中同步宿主和模块的实际发布依赖，再用原生包管理器验证。源码接收返回 `source_declarations`、`dependencies_installed=false` 和后续待办，只表示源码已采用。完整安装/升级共用原生依赖执行：Composer 将模块作为 path 包参与宿主求解，模块开发依赖由原生开发 metapackage 参与；各客户端使用自己的 pnpm workspace 和原生锁，保留各依赖类别。原生失败阻止整体可用并保留原因、退出码及恢复状态。
 
 打包收集模块后端及已声明客户端的完整源码与资源，包括生成的 API 声明；递归前跳过 `vendor`、`node_modules`、`.cache`、`.vite`、`.nuxt`、`.output`、`.next`、`.turbo`、`.parcel-cache`、`coverage`、`tmp`、`temp` 和 `unpackage` 目录。普通 `build`、`dist` 目录可能被源码、包入口或资源引用，因此保留。作者无需为打包删除本地依赖；路径越界、符号链接、环境配置和凭据仍拒绝交付。
 
@@ -35,7 +35,8 @@
 | API metadata、路由或权限目录 | 原生 API 生成；同包同版本的目录变化使用 `module sync --module=<key>`，不重装模块 |
 | module.json/包版本/依赖或迁移 | `module lock --write`；仅准备变化的原生依赖，再 `reconcile --selected-installed=<key>` 采用受影响的已安装图。准备已完成时加 `--prepared-release` |
 | Web 或其他客户端源码/API 类型 | 只构建有实际变化的客户端；后端采用复用该次准备，不在每个模块生命周期重复构建 |
-| Core 源码联调 | 用既有 `core-dev` 选择并链接实际修改的 Core；开发修改直接生效，定版再冻结，不反复发行 Core |
+| Core 变更交付 | 相关修改收敛并通过 Core 自身验证后，用既有冻结入口发行一个固定本地开发版本；脚手架通过归档和原生锁采用，再进行必要消费者验证。Core 未变时复用原包 |
+| 显式 Core 源码联调 | 用既有 `core-dev` 选择并链接实际修改的 Core，仅用于同批定位；跨层交付恢复固定发行包，不把源码链接结果作为包验收 |
 | 本地模板供其他应用升级 | 汇总通用修改后一次 `peanut release`；其内部已准备锁、依赖、API、inventory 和双 Edition，不先手工重跑相同步骤 |
 | 已有应用采用模板 | 完整保全已有 WIP；当前模块源码与锁有差异时，先用 `module lock --write` 固定实际源码，再 `peanut upgrade --plan` 审阅精确写集并决定真实冲突，最后 `--apply-plan`；CLI 已执行 verify。仅按采用后的实际变化补依赖、模块或客户端准备 |
 

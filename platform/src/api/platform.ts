@@ -53,6 +53,20 @@ export interface OfficialModuleUpdate {
   compatibility: 'native_preflight_required';
 }
 
+export interface OfficialModuleCatalogEntry {
+  key: string;
+  version: string;
+  sha256: string;
+  catalog_tag: string;
+  channel: 'stable' | 'prerelease';
+  editions: Array<'standalone' | 'multi-tenant'>;
+  dependencies: Array<{ module_key: string; version: string }>;
+  kernel_constraint: string;
+  source_version: string | null;
+  availability: 'available' | 'incompatible' | 'withdrawn';
+  reason: string | null;
+}
+
 export interface OfficialModuleSelection {
   module_key: string;
   version: string;
@@ -66,6 +80,8 @@ export interface OfficialUpdateSnapshot {
   channel: 'stable' | 'prerelease';
   edition: 'standalone' | 'multi-tenant';
   modules: OfficialModuleUpdate[];
+  catalog: OfficialModuleCatalogEntry[];
+  withdrawal_policy: 'verified-current' | 'legacy-index';
   scaffold: {
     current_version: string;
     available_version: string | null;
@@ -78,6 +94,7 @@ export interface OfficialUpdateSnapshot {
 
 export interface OfficialUpdatePreview {
   dry_run: true;
+  operation: 'install' | 'update';
   plan: Record<string, unknown>;
   selection_sha256: string;
 }
@@ -1228,9 +1245,12 @@ export const api = {
         params: { channel },
       })
     ),
-  previewOfficialModule: (selection: OfficialModuleSelection) =>
+  previewOfficialModule: (
+    selection: OfficialModuleSelection,
+    operation: 'install' | 'update' = 'update'
+  ) =>
     unwrap<OfficialUpdatePreview>(
-      client.post('/platformapi/instance-tools/modules/official-update', {
+      client.post('/platformapi/instance-tools/modules/official-' + operation, {
         ...selection,
         dry_run: true,
       })
@@ -1238,11 +1258,12 @@ export const api = {
   applyOfficialModule: (
     selection: OfficialModuleSelection,
     selectionSha: string,
-    idempotencyKey: string
+    idempotencyKey: string,
+    operation: 'install' | 'update' = 'update'
   ) =>
     unwrap<ModuleOperationTask>(
       client.post(
-        '/platformapi/instance-tools/modules/official-update',
+        '/platformapi/instance-tools/modules/official-' + operation,
         {
           ...selection,
           dry_run: false,

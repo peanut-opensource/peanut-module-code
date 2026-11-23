@@ -8,6 +8,7 @@ import {
   readFileSync,
   readdirSync,
   realpathSync,
+  rmSync,
   statSync,
   symlinkSync,
   writeFileSync,
@@ -174,6 +175,25 @@ const coreIdentity = {
   mode: selectedCore ? 'selected-compiled' : 'native-lock',
   packages: {},
 };
+// The generated replay and host sources share the same installed peers.
+// Use their canonical declarations to avoid duplicate Vue Ref identities.
+coreIdentity.peers = {};
+for (const name of ['vue', 'pinia', 'element-plus']) {
+  const packageRoot = path.join(webRoot, 'node_modules', name);
+  const manifest = JSON.parse(read(path.join(packageRoot, 'package.json')));
+  assert.equal(typeof manifest.types, 'string');
+  // Canonical package paths retain pnpm's transitive declaration resolution.
+  const types = exactFile(
+    realpathSync(path.resolve(packageRoot, manifest.types))
+  );
+  assert.ok(within(realpathSync(packageRoot), types));
+  corePaths[name] = [types];
+  coreIdentity.peers[name] = {
+    version: manifest.version,
+    types,
+    sha256: sha256(read(types)),
+  };
+}
 if (selectedCore) {
   const coreRoot = realpathSync(selectedCore);
   const commit = process.env.PEANUT_CRUD_CORE_COMMIT;
@@ -192,25 +212,6 @@ if (selectedCore) {
   );
   coreIdentity.commit = commit;
   coreIdentity.root = coreRoot;
-  // Compiled Core is consumed with the application's real peer packages,
-  // not the separate Core checkout's development Vue/Pinia type identities.
-  coreIdentity.peers = {};
-  for (const name of ['vue', 'pinia', 'element-plus']) {
-    const packageRoot = path.join(webRoot, 'node_modules', name);
-    const manifest = JSON.parse(read(path.join(packageRoot, 'package.json')));
-    assert.equal(typeof manifest.types, 'string');
-    // Canonical package paths retain pnpm's transitive declaration resolution.
-    const types = exactFile(
-      realpathSync(path.resolve(packageRoot, manifest.types))
-    );
-    assert.ok(within(realpathSync(packageRoot), types));
-    corePaths[name] = [types];
-    coreIdentity.peers[name] = {
-      version: manifest.version,
-      types,
-      sha256: sha256(read(types)),
-    };
-  }
   for (const name of ['client', 'vue', 'ui-vue']) {
     const packageRoot = path.join(coreRoot, 'packages', name);
     const manifest = JSON.parse(read(path.join(packageRoot, 'package.json')));
@@ -275,6 +276,10 @@ after(() => {
     path.join(reportDirectory, 'result.json'),
     JSON.stringify(report, null, 2) + '\n'
   );
+  // The test runner sets the final exit code after its suite hooks finish.
+  process.once('exit', (code) => {
+    if (code === 0) rmSync(work, { recursive: true, force: true });
+  });
   console.log(
     `CRUD_CONSUMER_REPORT ${path.join(reportDirectory, 'result.json')}`
   );
@@ -333,6 +338,12 @@ function resolveLocal(file, specifier) {
       return exactFile(path.join(outputRoot, relative));
     const host = path.join(root, relative);
     if (existsSync(host) && statSync(host).isFile()) return exactFile(host);
+    // A merged contribution also retains the pre-existing fixture route.
+    const fixtureModule = 'web/src/modules/fixture-delivery-record/';
+    if (file === fixtureModule + 'contribution.ts' && relative.startsWith(fixtureModule)) {
+      const fixture = path.join(webRoot, 'tests/fixtures/modules/fixture-delivery-record', relative.slice(fixtureModule.length));
+      if (existsSync(fixture) && statSync(fixture).isFile()) return exactFile(fixture);
+    }
   }
   assert.fail(`Missing generated consumer import: ${file} -> ${specifier}`);
 }
@@ -390,6 +401,9 @@ test('actual generated template components exist in the installed and registered
     const { descriptor } = sfc.parse(read(path.join(outputRoot, file)), {
       filename: file,
     });
+    assert.match(descriptor.template.content, /:fields="columns"/);
+    assert.match(descriptor.template.content, /column-storage-key="peanut:crud:[^"]+:columns"/);
+    assert.match(descriptor.template.content, /:audit-history="detailRecord\?\.audit_history"/);
     const compiledScript = sfc.compileScript(descriptor, {
       id: 'crud-consumer',
     });

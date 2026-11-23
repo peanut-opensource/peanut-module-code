@@ -45,26 +45,58 @@ final class OfficialModuleReleaseService
             $this->ensure(!isset($current[$key]) && $this->version($row['version'] ?? null), 'SOURCE_LOCK_INVALID');
             $current[$key] = $row['version'];
         }
+        $releases = $this->moduleReleases();
+        $currentIndex = $releases === [] ? null : $this->catalog($releases[0]);
+        $withdrawn = $currentIndex['withdrawn_by_identity'] ?? [];
+        $hasPolicy = ($currentIndex['schema_version'] ?? null) === 3;
         $latest = [];
+        $discovery = [];
         $identities = [];
-        foreach ($this->listReleases(self::MODULE_REPO) as $release) {
-            if (($release['draft'] ?? null) !== false || empty($release['published_at'])
-                || !in_array(self::INDEX, array_column($release['assets'] ?? [], 'name'), true)) {
+        foreach ($releases as $release) {
+            if ($hasPolicy && $channel === 'stable' && $release['prerelease']) {
+                continue;
+            }
+            if (!$hasPolicy && !in_array(self::INDEX, array_column($release['assets'] ?? [], 'name'), true)) {
                 continue;
             }
             $index = $this->catalog($release);
+            $this->ensure($hasPolicy || $index['schema_version'] !== 3, 'POLICY_REGRESSION');
+            $this->assertPolicyHistory($index, $withdrawn);
             foreach ($index['modules'] as $row) {
                 $identity = $row['key'] . '@' . $row['version'];
                 $this->ensure(!isset($identities[$identity]) || $this->identity($row) === $identities[$identity], 'VERSION_IDENTITY_CONFLICT');
                 $identities[$identity] = $this->identity($row);
-                if (!isset($current[$row['key']]) || !in_array($edition, $row['editions'], true)
-                    || ($channel === 'stable' && ($release['prerelease'] || str_contains(explode('+', $row['version'])[0], '-')))) {
+                if ($channel === 'stable' && ($release['prerelease'] || str_contains(explode('+', $row['version'])[0], '-'))) {
                     continue;
                 }
-                if (!isset($latest[$row['key']]) || Comparator::greaterThan($row['version'], $latest[$row['key']]['version'])) {
-                    $latest[$row['key']] = $row + ['catalog_tag' => $index['tag']];
+                $key = $row['key'];
+                $target = $row + ['catalog_tag' => $index['tag']];
+                if (!isset($discovery[$key]) || Comparator::greaterThan($row['version'], $discovery[$key]['version'])) {
+                    $discovery[$key] = $target;
+                }
+                if (isset($withdrawn[$identity]) || !in_array($edition, $row['editions'], true)) {
+                    continue;
+                }
+                if (!isset($latest[$key]) || Comparator::greaterThan($row['version'], $latest[$key]['version'])) {
+                    $latest[$key] = $target;
                 }
             }
+            if ($hasPolicy) {
+                break;
+            }
+        }
+        ksort($discovery, SORT_STRING);
+        $catalog = [];
+        foreach ($discovery as $key => $row) {
+            $revoked = isset($withdrawn[$key . '@' . $row['version']]);
+            $compatible = in_array($edition, $row['editions'], true);
+            $catalog[] = array_intersect_key($row, array_flip([
+                'key', 'version', 'sha256', 'catalog_tag', 'editions', 'dependencies', 'kernel_constraint',
+            ])) + [
+                'channel' => $channel, 'source_version' => $current[$key] ?? null,
+                'availability' => $revoked ? 'withdrawn' : ($compatible ? 'available' : 'incompatible'),
+                'reason' => $revoked ? 'MODULE_RELEASE_WITHDRAWN' : ($compatible ? null : 'EDITION_UNSUPPORTED'),
+            ];
         }
         ksort($current, SORT_STRING);
         $modules = [];
@@ -99,7 +131,8 @@ final class OfficialModuleReleaseService
             $scaffold['status'] = Comparator::greaterThan($scaffold['available_version'], $scaffold['current_version']) ? 'update_available' : 'current';
         }
         return ['schema_version' => 1, 'channel' => $channel, 'edition' => $edition,
-            'modules' => $modules, 'scaffold' => $scaffold, 'changed' => false,
+            'modules' => $modules, 'catalog' => $catalog, 'scaffold' => $scaffold, 'changed' => false,
+            'withdrawal_policy' => $hasPolicy ? 'verified-current' : 'legacy-index',
             'scope' => 'published version discovery and source lock; runtime admission and tests not run'];
     }
 
@@ -116,8 +149,22 @@ final class OfficialModuleReleaseService
         $this->ensure(is_string($key) && preg_match(self::KEY, $key) === 1 && $this->version($version)
             && is_string($sha) && preg_match(self::SHA, $sha) === 1
             && is_string($tag) && preg_match(self::TAG, $tag) === 1, 'SELECTION_INVALID');
+        $releases = $this->moduleReleases();
+        $this->ensure($releases !== [], 'POLICY_UNAVAILABLE');
+        $currentIndex = $this->catalog($releases[0]);
+        $withdrawn = $currentIndex['withdrawn_by_identity'];
+        if ($currentIndex['schema_version'] !== 3) {
+            foreach ($releases as $historical) {
+                if (in_array(self::INDEX, array_column($historical['assets'] ?? [], 'name'), true)) {
+                    $this->ensure($this->catalog($historical)['schema_version'] !== 3, 'POLICY_REGRESSION');
+                }
+            }
+        }
+        $this->ensure(!isset($withdrawn[$key . '@' . $version]), 'WITHDRAWN');
         $release = $this->release($tag);
         $index = $this->catalog($release);
+        $this->ensure($currentIndex['schema_version'] === 3 || $index['schema_version'] !== 3, 'POLICY_REGRESSION');
+        $this->assertPolicyHistory($index, $withdrawn);
         $this->ensure($channel === 'prerelease' || (!$release['prerelease'] && !str_contains(explode('+', $version)[0], '-')), 'PRERELEASE_OPT_IN_REQUIRED');
         $matches = array_values(array_filter($index['modules'], static fn(array $row): bool => $row['key'] === $key));
         $this->ensure(count($matches) === 1 && $matches[0]['version'] === $version && $matches[0]['sha256'] === $sha, 'SELECTION_CHANGED');
@@ -159,14 +206,16 @@ final class OfficialModuleReleaseService
         if (isset($this->catalogs[$tag])) {
             return $this->catalogs[$tag];
         }
-        $index = $this->json($this->asset($release, self::MODULE_REPO, self::INDEX, 4194304));
+        $bytes = $this->asset($release, self::MODULE_REPO, self::INDEX, 4194304);
+        $index = $this->json($bytes);
         $schema = $index['schema_version'] ?? null;
-        $this->ensure(in_array($schema, [1, 2], true) && ($index['protocol'] ?? null) === 'peanut.module-release-index.v' . $schema
+        $this->ensure(in_array($schema, [1, 2, 3], true) && ($index['protocol'] ?? null) === 'peanut.module-release-index.v' . $schema
             && ($index['repository'] ?? null) === self::MODULE_REPO && ($index['tag'] ?? null) === $tag
             && is_string($index['commit'] ?? null) && preg_match('/^[a-f0-9]{40}$/D', $index['commit']) === 1
             && is_array($index['modules'] ?? null) && array_is_list($index['modules'])
             && count($index['modules']) > 0 && count($index['modules']) <= 100, 'INDEX_INVALID');
-        $this->ensure($schema !== 2 || ($release['immutable'] ?? null) === true, 'IMMUTABLE_RELEASE_REQUIRED');
+        $this->ensure($schema === 1 || ($release['immutable'] ?? null) === true, 'IMMUTABLE_RELEASE_REQUIRED');
+        $index['withdrawn_by_identity'] = self::withdrawalPolicy($index, $bytes);
         $seen = [];
         foreach ($index['modules'] as $row) {
             $this->ensure(is_array($row), 'INDEX_ROW_INVALID');
@@ -190,7 +239,7 @@ final class OfficialModuleReleaseService
                     && preg_match(self::KEY, $dependency['module_key']) === 1
                     && is_string($dependency['version'] ?? null) && $dependency['version'] !== '', 'INDEX_DEPENDENCY_INVALID');
             }
-            $this->ensure($schema === 2
+            $this->ensure($schema >= 2
                 ? (is_string($row['artifact_tag'] ?? null) && preg_match(self::TAG, $row['artifact_tag']) === 1
                     && is_string($row['source_sha256'] ?? null) && preg_match(self::SHA, $row['source_sha256']) === 1)
                 : !array_key_exists('artifact_tag', $row), 'INDEX_REFERENCE_INVALID');
@@ -200,6 +249,54 @@ final class OfficialModuleReleaseService
             $seen[$key] = true;
         }
         return $this->catalogs[$tag] = $index;
+    }
+
+    public static function withdrawalPolicy(array $index, string $bytes): array
+    {
+        if (($index['schema_version'] ?? null) !== 3) {
+            self::ensure(!array_key_exists('withdrawn', $index), 'POLICY_INVALID');
+            return [];
+        }
+        // JSON arrays and objects must remain distinct even for an empty policy.
+        $document = json_decode($bytes, false, 512, JSON_THROW_ON_ERROR);
+        self::ensure(is_array($document->withdrawn ?? null), 'POLICY_INVALID');
+        return self::withdrawals($index['withdrawn']);
+    }
+
+    public static function withdrawals(mixed $rows): array
+    {
+        self::ensure(is_array($rows) && array_is_list($rows) && count($rows) <= 10000, 'POLICY_INVALID');
+        $withdrawn = [];
+        foreach ($rows as $row) {
+            self::ensure(is_array($row) && count($row) === 3
+                && is_string($row['key'] ?? null) && preg_match(self::KEY, $row['key']) === 1
+                && self::version($row['version'] ?? null) && is_string($row['reason'] ?? null)
+                && strlen($row['reason']) <= 240 && preg_match('/\S/u', $row['reason']) === 1
+                && preg_match('/[\x00-\x1f\x7f]/', $row['reason']) === 0, 'POLICY_INVALID');
+            $identity = $row['key'] . '@' . $row['version'];
+            self::ensure(!isset($withdrawn[$identity]), 'POLICY_INVALID');
+            $withdrawn[$identity] = $row['reason'];
+        }
+        return $withdrawn;
+    }
+
+    private function assertPolicyHistory(array $index, array $withdrawn): void
+    {
+        foreach ($index['withdrawn_by_identity'] as $identity => $reason) {
+            $this->ensure(($withdrawn[$identity] ?? null) === $reason, 'POLICY_REGRESSION');
+        }
+    }
+
+    private function moduleReleases(): array
+    {
+        $releases = array_values(array_filter($this->listReleases(self::MODULE_REPO), static fn(array $release): bool =>
+            ($release['draft'] ?? null) === false && !empty($release['published_at'])));
+        foreach ($releases as $release) {
+            $this->releaseIdentity($release, self::MODULE_REPO);
+        }
+        usort($releases, static fn(array $a, array $b): int =>
+            strcmp($b['published_at'], $a['published_at']) ?: $b['id'] <=> $a['id']);
+        return $releases;
     }
 
     private function listReleases(string $repository): array
@@ -221,7 +318,7 @@ final class OfficialModuleReleaseService
     {
         $tag = $release['tag_name'] ?? null;
         $this->ensure(is_string($tag) && preg_match(self::TAG, $tag) === 1
-            && ($release['draft'] ?? null) === false && !empty($release['published_at'])
+            && ($release['draft'] ?? null) === false && is_string($release['published_at'] ?? null) && $release['published_at'] !== ''
             && is_bool($release['prerelease'] ?? null) && is_int($release['id'] ?? null) && $release['id'] > 0
             && ($release['url'] ?? null) === 'https://api.github.com/repos/' . $repository . '/releases/' . $release['id']
             && ($release['html_url'] ?? null) === 'https://github.com/' . $repository . '/releases/tag/' . rawurlencode($tag)
@@ -285,12 +382,12 @@ final class OfficialModuleReleaseService
         $this->ensure(in_array($channel, ['stable', 'prerelease'], true), 'CHANNEL_INVALID');
     }
 
-    private function version(mixed $value): bool
+    private static function version(mixed $value): bool
     {
         return is_string($value) && preg_match(self::SEMVER, $value) === 1;
     }
 
-    private function ensure(bool $valid, string $code): void
+    private static function ensure(bool $valid, string $code): void
     {
         if (!$valid) {
             throw new ModulePackageException('MODULE_RELEASE_' . $code, 'Official release verification failed: ' . $code);

@@ -31,13 +31,15 @@ UI/CLI共用服务。开发可创建模块、编辑声明、生成/检查/预览
 
 ## 4. 文档与注释的交付要求
 
-### 官方版本发现及模块升级
+### 官方模块目录、安装与升级
 
-开发者中心的“官方发行更新”显式查询官方 GitHub Release，默认稳定渠道；RC 需要主动选择。页面区分 `modules.lock` 中的源码版本、公开可用版本和数据库安装状态，发现新版不代表兼容或安装成功。脚手架更新显示同主版本的正式候选，源码升级继续使用 `peanut upgrade --check`、原生计划及应用自有代码保全合同。
+开发者中心的“官方模块目录与更新”显式查询官方 GitHub Release，默认稳定渠道；RC 需要主动选择。目录列出可发现模块、依赖、Edition/Kernel 条件和撤回状态，并区分 `modules.lock` 中的源码版本、公开可用版本和数据库安装状态。已采用源码仍可进行安装预检，不能用源码锁推断运行已安装；发现新版不代表兼容或安装成功。脚手架更新显示同主版本的正式候选，源码升级继续使用 `peanut upgrade --check`、原生计划及应用自有代码保全合同。
 
-`GET instance-tools/modules/updates` 和 `POST instance-tools/modules/official-update` 均同时经过平台登录、对应 `platform.module.read/update` 权限和 development/debug 实例工具门禁；普通租户和生产普通管理会话无权使用。新路由通过原 API metadata/目录生成链登记，不写入另一份手工权限目录。
+`GET instance-tools/modules/updates`、`POST instance-tools/modules/official-install` 和 `POST instance-tools/modules/official-update` 均经过平台登录、分别对应的 `platform.module.read/install/update` 权限和 development/debug 实例工具门禁；普通租户和生产普通管理会话无权使用。新路由通过原 API metadata/目录生成链登记，不写入另一份手工权限目录。
 
-模块升级固定目录 Tag、模块版本、包 SHA-256 和渠道。服务验证目录及包的独立 GitHub API digest，v2 目录的旧包引用必须回读不可变原始 Release，禁止引用链、任意 URL、本机路径或 Shell 参数。页面先调用原生模块预检；确认时提交 `selection_sha256` 及稳定的 `Idempotency-Key`，由现有 Ops 模块任务队列处理。响应丢失时沿原幂等键查询/重试，不重建任务；Worker 按实时源版本、权限、依赖与迁移再次准入。选择摘要只确认目标，不冒充环境不变或数据库事务证明。
+模块安装/升级固定操作、目录 Tag、模块版本、包 SHA-256 和渠道。服务验证目录及包的独立 GitHub API digest，v2 目录的旧包引用必须回读不可变原始 Release，禁止引用链、任意 URL、本机路径或 Shell 参数。页面先调用原生模块预检；确认时提交 `selection_sha256` 及稳定的 `Idempotency-Key`，由现有 Ops 模块任务队列处理。响应丢失时沿原幂等键查询/重试，不重建任务；Worker 按实时源版本、权限、依赖与迁移再次准入。选择摘要只确认目标，不冒充环境不变或数据库事务证明。
+
+v3 目录的当前全渠道累积撤回策略同时约束目录呈现和固定包选择；稳定渠道不会漏掉最新 RC 中的撤回。已撤回条目保留可见撤回状态，禁用新的在线选择，不自动卸载既有实例。旧 v1/v2 目录显示未提供撤回名单，不能标成已验证当前未撤回。安装预检验证源码、依赖、Edition 和迁移计划，运行安装状态由原任务再次核对；部署、租户开通和人员权限各有独立事实来源。
 
 发现/预检不发布模块，也不自动执行脚手架升级。运行安装结果仍以原任务状态和应用验收为准；协议测试、Vue 组件测试和读公开目录成功，不能代替真实应用首装/跨租户验证。
 

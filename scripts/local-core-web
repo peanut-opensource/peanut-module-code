@@ -28,7 +28,13 @@ PACKAGES=(client vue ui-vue nuxt uniapp testing)
 packages_for_client() {
     case "$1" in
         web) printf '%s\n' 'client vue ui-vue' ;;
-        platform) printf '%s\n' 'vue ui-vue' ;;
+        platform)
+            if node -e 'const m = require(process.argv[1]); process.exit(m.dependencies?.["@peanut-admin/client"] ? 0 : 1)' \
+                    "$ROOT_DIR/platform/package.json"; then
+                printf '%s\n' 'client'
+            fi
+            printf '%s\n' 'vue ui-vue'
+            ;;
         pc) printf '%s\n' 'client nuxt' ;;
         uniapp) printf '%s\n' 'client uniapp' ;;
     esac

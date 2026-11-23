@@ -108,6 +108,10 @@ Route::get('instance-tools/modules/updates', [PlatformModuleLifecycleController:
     ->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.module.read')
     ->middleware(PlatformInstanceToolMiddleware::class);
+Route::post('instance-tools/modules/official-install', [PlatformModuleLifecycleController::class, 'officialInstall'])
+    ->middleware(PlatformLoginMiddleware::class)
+    ->middleware(PlatformPermissionMiddleware::class, 'platform.module.install')
+    ->middleware(PlatformInstanceToolMiddleware::class);
 Route::post('instance-tools/modules/official-update', [PlatformModuleLifecycleController::class, 'officialUpdate'])
     ->middleware(PlatformLoginMiddleware::class)
     ->middleware(PlatformPermissionMiddleware::class, 'platform.module.update')

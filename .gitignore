@@ -7,7 +7,7 @@
 **/node_modules
 
 # Production deployment secrets
-# Released admin/platform static files are tracked in each product Git release.
+# Released static files under server/public are tracked in each product Git release.
 deploy/production.env
 /.env
 /.local/
@@ -36,8 +36,6 @@ deploy/production.env
 /server/docker/scripts/scaffold-runtime/ScaffoldPathGuard.php
 /server/docker/scripts/ops-backup-worker
 /server/docker/scripts/ops-restore-worker
-/server/public/pc/
-/server/public/mobile/
 /server/docker/mysql/*
 !/server/docker/mysql/.gitkeep
 /server/docker/secrets/*
