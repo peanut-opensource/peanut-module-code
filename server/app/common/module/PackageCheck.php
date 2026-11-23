@@ -277,9 +277,10 @@ final readonly class PackageCheck
     /**
      * @param array<string,array{version:string,dependencies:list<array{module_key:string,version:string}>}> $modules
      * @param array<string,string> $availableVersions
+     * @param list<string> $preferredRoots Selected roots to visit first, without changing dependency edges.
      * @return list<string>
      */
-    public function dependencyOrder(array $modules, array $availableVersions): array
+    public function dependencyOrder(array $modules, array $availableVersions, array $preferredRoots = []): array
     {
         $matcher = new StrictVersionConstraintMatcher();
         $visiting = [];
@@ -318,8 +319,11 @@ final readonly class PackageCheck
         };
         $keys = array_keys($modules);
         sort($keys, SORT_STRING);
-        foreach ($keys as $key) {
-            $visit($key);
+        // Root priority never overrides the prerequisite edges visited inside the DFS.
+        foreach (array_unique([...$preferredRoots, ...$keys]) as $key) {
+            if (isset($modules[$key])) {
+                $visit($key);
+            }
         }
         return $ordered;
     }

@@ -1,0 +1,57 @@
+{
+    "schema_version": 3,
+    "protocol": "peanut.release-metadata.v3",
+    "product": "Peanut Module Code",
+    "application_identity": "peanut-business/peanut-module-code",
+    "source_product_version": "5.1.18-rc.18",
+    "instance_version": "1.0.0",
+    "status": "generated-application-baseline",
+    "release_policy": "replace this metadata from an immutable application release candidate before publishing",
+    "public_runtime_dependencies": {
+        "composer": {
+            "package": "peanut-admin/core",
+            "constraint": "5.1.3-rc.23",
+            "resolved_version": "5.1.3-rc.23",
+            "source_type": "git",
+            "source_url": "https://github.com/peanut-business/peanut-admin-core-php.git",
+            "source_reference": "cf56b4adc42f021444e42c1a8be3ec66b06a665d"
+        },
+        "npm": {
+            "source_type": "git",
+            "source_url": "https://github.com/peanut-business/peanut-admin-core-web.git",
+            "source_reference": "02a23f69da6585a4076605f58cb8ab86657c1ce6",
+            "packages": {
+                "@peanut-admin/client": {
+                    "version": "5.1.3-rc.24",
+                    "archive": "packages/core-web/peanut-admin-client-5.1.3-rc.24.tgz",
+                    "sha256": "15f1d94ecea649f4caec7711c886a67b5311a1921256d64bbad89558a74926bc"
+                },
+                "@peanut-admin/vue": {
+                    "version": "5.1.3-rc.24",
+                    "archive": "packages/core-web/peanut-admin-vue-5.1.3-rc.24.tgz",
+                    "sha256": "81389dd5a073858e3e570a85b2c3a60f09c56f667d2eef73e844d928bb614803"
+                },
+                "@peanut-admin/ui-vue": {
+                    "version": "5.1.3-rc.24",
+                    "archive": "packages/core-web/peanut-admin-ui-vue-5.1.3-rc.24.tgz",
+                    "sha256": "dd41fb4d9e7cd7947c361e494c652be84519a558dc53572518b8f1f6e91b8eb7"
+                },
+                "@peanut-admin/nuxt": {
+                    "version": "5.1.3-rc.24",
+                    "archive": "packages/core-web/peanut-admin-nuxt-5.1.3-rc.24.tgz",
+                    "sha256": "13b5b1c38cafcfe825cc77fae8b22ace2c99a92897bc19bcd40bf38630430c3f"
+                },
+                "@peanut-admin/uniapp": {
+                    "version": "5.1.3-rc.24",
+                    "archive": "packages/core-web/peanut-admin-uniapp-5.1.3-rc.24.tgz",
+                    "sha256": "03ba651c554fcf054492cdf970bf5c83ac11002d0c6ee78cf5fe1220d0bbcc24"
+                },
+                "@peanut-admin/testing": {
+                    "version": "5.1.3-rc.24",
+                    "archive": "packages/core-web/peanut-admin-testing-5.1.3-rc.24.tgz",
+                    "sha256": "9941166c1a4027eb27bfc7f76530eb9061f38180b6e7ac44fd96d6df1146c875"
+                }
+            }
+        }
+    }
+}

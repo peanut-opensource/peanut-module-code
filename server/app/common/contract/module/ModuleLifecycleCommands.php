@@ -30,8 +30,9 @@ interface ModuleLifecycleCommands
     /** Reads a release reconcile action without changing installation, catalog or migration state.
      * Optional native consumer runs before the same package advisory lock is released.
      * Prepared release plans use upgrade recovery rules for previously activated failed installations.
+     * The catalog owner may be scheduled earlier in this same read-only release plan.
      */
-    public function reconcilePlan(string $pluginKey, bool $preserveDisabled = false, ?callable $consumePlan = null, bool $preparedRelease = false): array;
+    public function reconcilePlan(string $pluginKey, bool $preserveDisabled = false, ?callable $consumePlan = null, bool $preparedRelease = false, bool $catalogOwnerScheduled = false): array;
 
     /** A consumer is allowed only for dry-run and runs inside the existing package lock.
      * @return array<string,mixed>

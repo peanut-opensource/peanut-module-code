@@ -7,6 +7,7 @@ namespace app\command;
 use app\platform\exception\module\ModuleLifecycleException;
 use app\platform\exception\module\ModulePackageException;
 use app\platform\composition\module\ModuleDefinitionRegistryFactory;
+use app\platform\infrastructure\module\ModuleCatalogApplier;
 use app\platform\infrastructure\module\ModuleLockResolver;
 use app\platform\value\module\ModuleDescriptor;
 use app\common\module\PackageCheck;
@@ -161,12 +162,17 @@ final class ModuleReconcile extends ModuleContextualCommand
             }
             $resolver = ModuleLockResolver::forRuntime(dirname(__DIR__, 2), $lock);
             $selection = $this->releaseModuleSelection($resolver->all(), $preparedRelease);
-            $this->dependencyOrderedPlugins($resolver, $selection['reconcile'], $config);
+            $ordered = $this->dependencyOrderedPlugins($resolver, $selection['reconcile'], $config);
             $packages = [];
-            foreach ([...$selection['reconcile'], ...$selection['preserved_disabled']] as $key) {
-                $packages[] = $service->reconcilePlan(
-                    $key, in_array($key, $selection['preserved_disabled'], true), null, $preparedRelease,
-                );
+            $catalogOwnerScheduled = false;
+            foreach ([...$ordered, ...$selection['preserved_disabled']] as $key) {
+                $preserveDisabled = in_array($key, $selection['preserved_disabled'], true);
+                $plan = $service->reconcilePlan($key, $preserveDisabled, null, $preparedRelease, $catalogOwnerScheduled);
+                $packages[] = $plan;
+                if (!$preserveDisabled && ($plan['may_apply'] ?? false)
+                    && in_array(ModuleCatalogApplier::AUTHORIZATION_CATALOG_OWNER, array_column($plan['modules'], 'module_key'), true)) {
+                    $catalogOwnerScheduled = true;
+                }
             }
             return ['readonly' => true, 'packages' => $packages,
                 'preserved_uninstalled' => $selection['preserved_uninstalled'],
@@ -228,7 +234,8 @@ final class ModuleReconcile extends ModuleContextualCommand
             $available = $useInstalledDependencies
                 ? Db::name('module_installation')->where('status', 'active')->column('installed_version', 'module_key')
                 : [];
-            return (new PackageCheck($server))->dependencyOrder($packages, $available);
+            $catalogOwner = $owners[ModuleCatalogApplier::AUTHORIZATION_CATALOG_OWNER] ?? null;
+            return (new PackageCheck($server))->dependencyOrder($packages, $available, $catalogOwner === null ? [] : [$catalogOwner]);
         } catch (ModulePackageException $exception) {
             throw new ModuleLifecycleException($exception->errorCode, $exception->getMessage());
         }

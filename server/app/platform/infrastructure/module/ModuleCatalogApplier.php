@@ -20,6 +20,8 @@ use think\facade\Db;
 /** The single application entry point for applying, retiring, and purging Module catalog contributions. */
 final readonly class ModuleCatalogApplier
 {
+    public const AUTHORIZATION_CATALOG_OWNER = 'peanut.identity';
+
     public function __construct(
         private SettingCatalogService $settings,
         private ModuleAuthorizationCatalogSynchronizer $authorization,
@@ -123,6 +125,72 @@ final readonly class ModuleCatalogApplier
     public function plan(array $moduleKeys, bool $purge): array
     {
         return (new ModuleCatalogMutationRepository($this->settings, $this->identityLifecycle))->plan($moduleKeys, $purge);
+    }
+
+    /** Check the locked owner’s catalog shape; fresh installation can precede Identity activation. */
+    public function authorizationCatalogSchemaReady(ManifestDocument $owner): bool
+    {
+        if (($owner->data['key'] ?? null) !== self::AUTHORIZATION_CATALOG_OWNER) {
+            return false;
+        }
+        $ownedTables = array_fill_keys($owner->data['database']['owned_tables'] ?? [], true);
+        // Shared read/write projections of the Identity permission, API and menu catalogs.
+        $endpoints = ['id', 'method', 'path', 'audience', 'module_key', 'access_mode', 'status',
+            'default_permission_keys', 'prerequisite_permission_keys', 'created_at', 'updated_at', 'retired_at'];
+        $menus = ['id', 'key', 'module_key', 'scope', 'parent_key', 'type', 'name', 'route_name', 'route_path',
+            'component_key', 'icon', 'sort_order', 'required_permission_id', 'client_keys_json', 'status',
+            'manifest_digest', 'created_at', 'updated_at', 'upstream_defaults_json', 'menu_conflict_json',
+            'is_show', 'is_cache', 'is_disable'];
+        $permissions = ['id', 'key', 'module_key', 'type', 'name', 'risk_level', 'status', 'manifest_version',
+            'created_at', 'updated_at', 'retired_at'];
+        $required = match (true) {
+            isset($ownedTables['pa_system_api']) => [
+                'system_api' => $endpoints,
+                'system_menu' => [...$menus, 'source'],
+                'permission' => [...$permissions, 'revision', 'api_configured'],
+            ],
+            isset($ownedTables['pa_api_endpoint'], $ownedTables['pa_menu_definition'], $ownedTables['pa_permission_api_config']) => [
+                'api_endpoint' => $endpoints,
+                'menu_definition' => $menus,
+                'permission' => $permissions,
+                'permission_api_config' => ['permission_id', 'revision', 'configured', 'updated_at'],
+                'protected_resource' => ['id', 'key', 'module_key', 'name', 'ownership', 'provider_key', 'status',
+                    'manifest_version', 'manifest_digest', 'created_at', 'updated_at', 'retired_at'],
+                'target_type' => ['id', 'key', 'module_key', 'name', 'resolver_key', 'catalog_provider_key', 'id_format',
+                    'status', 'manifest_version', 'manifest_digest', 'created_at', 'updated_at'],
+                'data_condition_definition' => ['id', 'key', 'module_key', 'category', 'target_mode', 'config_schema_json',
+                    'status', 'manifest_version', 'manifest_digest', 'created_at', 'updated_at'],
+                'resource_operation' => ['id', 'protected_resource_id', 'operation', 'access_mode', 'target_cardinality',
+                    'permission_match', 'audit_level', 'status', 'manifest_digest', 'created_at', 'updated_at'],
+                'resource_operation_permission' => ['id', 'resource_operation_id', 'permission_id', 'sort_order'],
+                'resource_operation_target_type' => ['id', 'resource_operation_id', 'target_type_id', 'target_role',
+                    'input_mode', 'policy_selection_permission_id', 'status'],
+                'resource_operation_condition' => ['id', 'resource_operation_id', 'condition_definition_id',
+                    'selector_resource_key', 'selector_resource_key_norm', 'status'],
+            ],
+            default => [],
+        };
+        if ($required === []) {
+            return false;
+        }
+        $required['permission_api'] = ['id', 'permission_id', 'api_id', 'created_at'];
+        $required['tenant'] = ['authorization_revision', 'revision', 'updated_at'];
+
+        $prefix = (string) Db::connect()->getConfig('prefix');
+        $missing = [];
+        foreach ($required as $table => $fields) {
+            $missing[$prefix . $table] = array_fill_keys($fields, true);
+        }
+        $columns = Db::table('information_schema.COLUMNS')->alias('catalog_column')
+            ->join('information_schema.TABLES catalog_table', 'catalog_table.TABLE_SCHEMA=catalog_column.TABLE_SCHEMA AND catalog_table.TABLE_NAME=catalog_column.TABLE_NAME')
+            ->where('catalog_column.TABLE_SCHEMA', Db::raw('DATABASE()'))
+            ->where('catalog_table.TABLE_TYPE', 'BASE TABLE')
+            ->whereIn('catalog_column.TABLE_NAME', array_keys($missing))
+            ->field('catalog_column.TABLE_NAME as table_name,catalog_column.COLUMN_NAME as column_name')->select()->toArray();
+        foreach ($columns as $column) {
+            unset($missing[$column['table_name']][$column['column_name']]);
+        }
+        return array_filter($missing) === [];
     }
 
     public function catalogRevision(): string

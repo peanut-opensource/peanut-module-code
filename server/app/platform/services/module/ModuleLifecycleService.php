@@ -105,6 +105,7 @@ final class ModuleLifecycleService implements ModuleLifecycleCommands
                 && $this->sameIdentity($plugin, $current))) {
             throw new ModuleLifecycleException('PLUGIN_ALREADY_INSTALLED', 'Use module upgrade for an installed package.');
         }
+        $this->assertCatalogOwnerReady($plugin);
         $dependencies = $preparedDependencies ?? $this->prepareDependencies($plugin);
         $manifests = $this->pluginManifests($plugin);
         $this->assertPreflightOwnership($plugin, $manifests, false);
@@ -139,6 +140,7 @@ final class ModuleLifecycleService implements ModuleLifecycleCommands
     {
         $moduleKeys = [];
         $clients = [];
+        $firstChange = null;
         foreach ($pluginKeys as $key) {
             $plugin = $this->resolver->require($key);
             $this->assertTrustEligible($plugin);
@@ -149,6 +151,9 @@ final class ModuleLifecycleService implements ModuleLifecycleCommands
             if (version_compare($plugin->version, (string) $current['installed_version'], '<')) {
                 throw new ModuleLifecycleException('PLUGIN_DOWNGRADE_REJECTED', 'Upgrade cannot install an older Plugin version.');
             }
+            if ($firstChange === null && ($current['status'] !== 'active' || !$this->sameIdentity($plugin, $current))) {
+                $firstChange = $plugin;
+            }
             foreach ($plugin->moduleRoots as $moduleKey => $root) {
                 $moduleKeys[$moduleKey] = true;
                 $manifest = (new ManifestLoader())->load($root)->data;
@@ -156,6 +161,9 @@ final class ModuleLifecycleService implements ModuleLifecycleCommands
                     $clients[explode('/', $contribution['root'])[0]] = true;
                 }
             }
+        }
+        if ($firstChange !== null) {
+            $this->assertCatalogOwnerReady($firstChange);
         }
         $serverRoot = rtrim(app()->getRootPath(), '/');
         return (new Dependencies($serverRoot))->prepareRelease($this->resolver, array_keys($clients),
@@ -186,9 +194,10 @@ final class ModuleLifecycleService implements ModuleLifecycleCommands
     }
 
     /** Uses the native lock/manifest/ownership rules, without entering lifecycle mutation or recovery. */
-    public function reconcilePlan(string $pluginKey, bool $preserveDisabled = false, ?callable $consumePlan = null, bool $preparedRelease = false): array
+    public function reconcilePlan(string $pluginKey, bool $preserveDisabled = false, ?callable $consumePlan = null,
+        bool $preparedRelease = false, bool $catalogOwnerScheduled = false): array
     {
-        return $this->nativeReadPlan($pluginKey, false, $preserveDisabled, $consumePlan, $preparedRelease);
+        return $this->nativeReadPlan($pluginKey, false, $preserveDisabled, $consumePlan, $preparedRelease, $catalogOwnerScheduled);
     }
 
     /** Read only the actual install/resume policy; release plans retain their independent active-state gate. */
@@ -210,16 +219,17 @@ final class ModuleLifecycleService implements ModuleLifecycleCommands
             'same_identity' => $sameIdentity, 'higher_version' => $forwardRepair];
     }
 
-    private function nativeReadPlan(string $pluginKey, bool $install, bool $preserveDisabled, ?callable $consumePlan, bool $preparedRelease = false): array
+    private function nativeReadPlan(string $pluginKey, bool $install, bool $preserveDisabled, ?callable $consumePlan,
+        bool $preparedRelease = false, bool $catalogOwnerScheduled = false): array
     {
-        return $this->withPackageLock($pluginKey, function () use ($pluginKey, $install, $preserveDisabled, $consumePlan, $preparedRelease): array {
+        return $this->withPackageLock($pluginKey, function () use ($pluginKey, $install, $preserveDisabled, $consumePlan, $preparedRelease, $catalogOwnerScheduled): array {
             $plugin = $this->resolver->require($pluginKey);
             $this->assertTrustEligible($plugin);
             $manifests = $this->pluginManifests($plugin);
             $current = $this->pluginInstallation($pluginKey, false);
             if (!$install && $preparedRelease && is_array($current)
                 && $current['status'] === 'failed' && $current['activated_at'] !== null) {
-                return $this->upgradeLocked($pluginKey, true, $consumePlan);
+                return $this->upgradeLocked($pluginKey, true, $consumePlan, catalogOwnerScheduled: $catalogOwnerScheduled);
             }
             $recovery = null; $installAction = 'planned_install';
             if ($install && is_array($current)) {
@@ -250,6 +260,9 @@ final class ModuleLifecycleService implements ModuleLifecycleCommands
                 : ($this->sameIdentity($plugin, $current) ? 'planned_unchanged' : 'planned_upgrade')));
             $willMigrate = in_array($action, ['planned_install', 'planned_upgrade', 'planned_reactivate'], true);
             $migrationPlan = $this->migrationPlan($manifests);
+            if ($willMigrate && !$catalogOwnerScheduled && ($blocker = $this->catalogOwnerBlocker($plugin)) !== null) {
+                $migrationPlan['blockers'][] = $blocker;
+            }
             $applicationMigrations = $migrationPlan['migrations'];
             $pending = array_filter($applicationMigrations, static fn(array $row): bool => $row['disposition'] === 'pending');
             $modules = [];
@@ -318,7 +331,8 @@ final class ModuleLifecycleService implements ModuleLifecycleCommands
         return $this->withPackageLock($pluginKey, fn(): array => $this->upgradeLocked($pluginKey, $dryRun, $consumePlan));
     }
 
-    private function upgradeLocked(string $pluginKey, bool $dryRun, ?callable $consumePlan = null, ?array $preparedDependencies = null): array
+    private function upgradeLocked(string $pluginKey, bool $dryRun, ?callable $consumePlan = null,
+        ?array $preparedDependencies = null, bool $catalogOwnerScheduled = false): array
     {
         $plugin = $this->resolver->require($pluginKey);
         $this->assertTrustEligible($plugin);
@@ -335,6 +349,9 @@ final class ModuleLifecycleService implements ModuleLifecycleCommands
         if (!is_array($current)) {
             throw new ModuleLifecycleException('PLUGIN_NOT_INSTALLED', 'Plugin must be installed before upgrade.');
         }
+        if (!$dryRun && ($current['status'] !== 'active' || !$this->sameIdentity($plugin, $current))) {
+            $this->assertCatalogOwnerReady($plugin);
+        }
         // Activation writes the catalog and active state in one transaction. After interruption,
         // finish only that transaction for a previously active, fully migrated, identical target.
         if ($current['status'] === 'upgrading' && $current['activated_at'] !== null && $current['last_error_code'] === null
@@ -342,13 +359,13 @@ final class ModuleLifecycleService implements ModuleLifecycleCommands
             $dependencies = (new Dependencies(rtrim(app()->getRootPath(), '/')))->verifyInstalled(
                 $plugin, $this->resolver, $this->installedModules(),
             );
-            return $this->withMigrationLock($plugin, function (ModuleDescriptor $plugin) use ($dependencies, $dryRun, $consumePlan, $current): array {
+            return $this->withMigrationLock($plugin, function (ModuleDescriptor $plugin) use ($dependencies, $dryRun, $consumePlan, $current, $catalogOwnerScheduled): array {
                 $manifests = $this->pluginManifests($plugin);
                 $this->assertPreflightOwnership($plugin, $manifests, true);
                 $this->assertMigrationsComplete($manifests);
                 $this->assertModuleSchema($manifests);
                 if ($dryRun) {
-                    $plan = $this->plan($plugin, $manifests, $current)
+                    $plan = $this->plan($plugin, $manifests, $current, $catalogOwnerScheduled)
                         + ['dry_run' => true, 'operation' => 'upgrade'];
                     return $consumePlan === null ? $plan : $consumePlan($plan);
                 }
@@ -375,7 +392,7 @@ final class ModuleLifecycleService implements ModuleLifecycleCommands
             $prepared = $dependencies !== null;
             $manifests = $this->pluginManifests($plugin);
             $this->assertPreflightOwnership($plugin, $manifests, true);
-            $plan = $this->plan($plugin, $manifests, $current);
+            $plan = $this->plan($plugin, $manifests, $current, $catalogOwnerScheduled);
             if ($dryRun) {
                 $plan += ['dry_run' => true, 'operation' => 'upgrade'];
                 return $consumePlan === null ? $plan : $consumePlan($plan);
@@ -688,12 +705,15 @@ final class ModuleLifecycleService implements ModuleLifecycleCommands
     }
 
     /** @param array<string,ManifestDocument> $manifests @param array<string,mixed> $current */
-    private function plan(ModuleDescriptor $plugin, array $manifests, array $current): array
+    private function plan(ModuleDescriptor $plugin, array $manifests, array $current, bool $catalogOwnerScheduled = false): array
     {
         $migrationPlan = $this->migrationPlan($manifests);
         $pending = array_values(array_filter($migrationPlan['migrations'],
             static fn(array $row): bool => $row['disposition'] === 'pending'));
         $willMigrate = !$this->sameIdentity($plugin, $current) || $current['status'] !== 'active';
+        if ($willMigrate && !$catalogOwnerScheduled && ($blocker = $this->catalogOwnerBlocker($plugin)) !== null) {
+            $migrationPlan['blockers'][] = $blocker;
+        }
         $missingSchemaTables = $this->missingSchemaTables($manifests);
         $mayApply = $migrationPlan['blockers'] === [] && ($willMigrate || $pending === []);
         $modules = array_map(static fn(string $key): array => ['module_key' => $key], array_keys($manifests));
@@ -710,6 +730,36 @@ final class ModuleLifecycleService implements ModuleLifecycleCommands
             'rollback' => ['automatic' => false, 'requires_verified_backup' => $pending !== []],
             'trust' => $plugin->trustResult(),
         ];
+    }
+
+    /** @return array{code:string,message:string}|null */
+    private function catalogOwnerBlocker(ModuleDescriptor $plugin): ?array
+    {
+        $ownerKey = ModuleCatalogApplier::AUTHORIZATION_CATALOG_OWNER;
+        if (isset($plugin->moduleRoots[$ownerKey])) {
+            return null;
+        }
+        foreach ($this->resolver->all() as $descriptor) {
+            if (isset($descriptor->moduleRoots[$ownerKey])) {
+                $owner = (new ManifestLoader())->load($descriptor->moduleRoots[$ownerKey]);
+                if ($this->catalogs->authorizationCatalogSchemaReady($owner)) {
+                    return null;
+                }
+                break;
+            }
+        }
+        return [
+            'code' => 'MODULE_CATALOG_OWNER_MIGRATION_REQUIRED',
+            'message' => 'Reconcile the locked Identity Module before applying another package to the shared authorization catalog.',
+        ];
+    }
+
+    private function assertCatalogOwnerReady(ModuleDescriptor $plugin): void
+    {
+        $blocker = $this->catalogOwnerBlocker($plugin);
+        if ($blocker !== null) {
+            throw new ModuleLifecycleException($blocker['code'], $blocker['message']);
+        }
     }
 
     /** @param array<string,ManifestDocument> $manifests */
