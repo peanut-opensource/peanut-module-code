@@ -123,7 +123,7 @@ $schemas = [
             'username' => ['type' => 'string'], 'nickname' => ['type' => 'string'],
             'name' => ['type' => 'string'], 'avatar' => ['type' => 'string'],
             'role' => ['type' => 'string', 'enum' => ['admin', 'user']],
-            'root' => ['type' => 'boolean'],
+            'root' => ['type' => 'integer', 'enum' => [0, 1]],
             'roles' => $ref('StringList'),
             'menu' => ['type' => 'array', 'items' => $ref('AdminMenuNode')],
             'permissions' => $ref('StringList'),

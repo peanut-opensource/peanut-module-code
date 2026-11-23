@@ -1,15 +1,22 @@
 <template>
   <el-dialog
     :model-value="true"
+    class="pa-page-form-dialog"
     :title="`${role.name} · 数据权限`"
     width="760px"
+    align-center
     :close-on-click-modal="false"
     @close="$emit('close')"
   >
     <p>角色动作权限不自动授予数据范围。组内条件同时满足，多个组取并集。</p>
     <el-alert v-if="error" :title="error" type="error" :closable="false" />
     <div v-loading="loading">
+      <el-empty
+        v-if="!loading && !error && total === 0"
+        description="当前应用暂无可配置的数据权限"
+      />
       <el-select
+        v-if="total > 0"
         v-model="selected"
         placeholder="选择资源操作"
         style="width: 100%"
@@ -24,14 +31,16 @@
         />
       </el-select>
       <el-pagination
+        v-if="total > 0"
         :disabled="saving || loading"
         :current-page="page"
         :page-size="20"
         :total="total"
+        :pager-count="5"
         layout="prev, pager, next"
         @current-change="loadOperations"
       />
-      <el-space v-if="selected !== null" style="margin: 12px 0">
+      <el-space v-if="selected !== null" wrap style="margin: 12px 0">
         <el-button :disabled="saving || loading" @click="loadPolicy"
           >重新读取</el-button
         >
@@ -43,7 +52,7 @@
         >
         <span v-if="revision !== null">修订 {{ revision }}</span>
       </el-space>
-      <el-form v-if="policy" label-width="90px" :disabled="saving || loading">
+      <el-form v-if="policy" label-position="top" :disabled="saving || loading">
         <el-form-item label="状态"
           ><el-select v-model="policy.status"
             ><el-option value="active" label="启用" /><el-option
@@ -129,7 +138,7 @@
               >移除条件</el-button
             >
           </div>
-          <el-space
+          <el-space wrap
             ><el-button
               :disabled="group.conditions.length >= 20"
               @click="

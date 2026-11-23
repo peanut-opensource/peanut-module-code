@@ -16,15 +16,11 @@ export default function useUser() {
     } catch {
       failed = true;
     }
-    if (failed) {
-      const current = getSessionSnapshot();
-      cleared =
-        current.generation === session.generation + 2 && current.token === null;
-    }
-    if (!cleared) return;
+    if (!cleared && !failed) return;
     const afterLogout = getSessionSnapshot();
+    // Clearing the local session advances its identity generation once.
     if (
-      afterLogout.generation !== session.generation + 2 ||
+      afterLogout.generation !== session.generation + 1 ||
       afterLogout.token !== null
     )
       return;

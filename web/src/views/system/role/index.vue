@@ -161,9 +161,11 @@
 
     <el-dialog
       v-model="authVisible"
+      class="pa-page-form-dialog"
       :title="$t('systemRole.modal.authTitle')"
       :close-on-click-modal="false"
       width="560px"
+      align-center
     >
       <div v-loading="authLoading" style="width: 100%">
         <h4>{{ $t('systemRole.auth.bundles') }}</h4>
@@ -521,13 +523,34 @@
 </script>
 
 <style scoped lang="less">
-
   .action-permissions {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    max-height: 240px;
-    overflow: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
     margin-top: 8px;
+
+    :deep(.el-checkbox) {
+      min-width: 0;
+      height: auto;
+      align-items: flex-start;
+      margin: 0;
+      padding-block: 6px;
+    }
+
+    :deep(.el-checkbox__input) {
+      flex: none;
+      margin-top: 3px;
+    }
+
+    :deep(.el-checkbox__label) {
+      min-width: 0;
+      line-height: 20px;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    small {
+      display: block;
+    }
   }
 </style>

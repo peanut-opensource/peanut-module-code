@@ -7724,7 +7724,8 @@ export interface components {
             avatar: string;
             /** @enum {string} */
             role: "admin" | "user";
-            root: boolean;
+            /** @enum {integer} */
+            root: 0 | 1;
             roles: components["schemas"]["StringList"];
             menu: components["schemas"]["AdminMenuNode"][];
             permissions: components["schemas"]["StringList"];

@@ -40,7 +40,7 @@ final readonly class CorePermissionCatalogSynchronizer
             $key,
             $moduleKey,
             'api',
-            $key,
+            CorePermissionCatalog::NAMES[$key] ?? $key,
             match (true) {
                 str_contains($key, 'provision-owner') => 'critical',
                 in_array($key, ['core.member.effective-access.read', 'core.generator.read', 'core.generator.manage', 'core.generator.generate', 'core.system.read', 'platform.upgrade.read', 'platform.ops.read', 'platform.ops.logs.read'], true) => 'sensitive',
