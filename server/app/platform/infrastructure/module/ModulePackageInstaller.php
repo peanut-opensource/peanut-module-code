@@ -122,6 +122,7 @@ final class ModulePackageInstaller
                     &$lifecycleStarted,
                     &$plan,
                 ): array {
+                    $lifecycleCompleted = false;
                     try {
                         $current = $this->currentDescriptors();
                         $plan = $operation === 'update' ? $this->updatePlan($package, $current) : $this->installPlan($package, $current);
@@ -169,9 +170,10 @@ final class ModulePackageInstaller
 
                         (new ModuleArtifactWriter($this->serverRoot))->writeLock();
                         $resolver = new ModuleLockResolver($this->serverRoot, '../modules.lock');
+                        $registries = new \app\platform\composition\module\ModuleDefinitionRegistryFactory($this->serverRoot);
                         $lifecycle = new ModuleLifecycleService(
                             $resolver,
-                            new \app\platform\composition\module\ModuleDefinitionRegistryFactory($this->serverRoot),
+                            $registries,
                             $this->moduleConfig,
                             $this->catalogs,
                             new \PeanutAdmin\Modules\Identity\Contract\TenantModuleStateQueries(),
@@ -180,6 +182,58 @@ final class ModulePackageInstaller
                         $result = $operation === 'update'
                             ? $lifecycle->upgrade($package->packageKey, false)
                             : $lifecycle->install($package->packageKey);
+                        $lifecycleCompleted = true;
+                        $runtimeLock = (string) ($this->moduleConfig['module_lock'] ?? '');
+                        $runtimeLockPath = str_starts_with($runtimeLock, '/') ? $runtimeLock : $this->serverRoot . '/' . $runtimeLock;
+                        // Source HTTP consumes this canonical lock; published server projections retain their own publisher.
+                        if (!is_file($this->serverRoot . '/.peanut/release-identity.json')
+                            && realpath($runtimeLockPath) === realpath($lockPath)) {
+                            $coldCatalogSync = $operation === 'update'
+                                && PHP_SAPI === 'cli'
+                                && strtolower(trim((string) Config::get('peanut.environment'))) === 'development'
+                                && app()->isDebug();
+                            try {
+                                $registries->publishCompiled(
+                                    $registries->fromModuleLock($resolver, $this->moduleConfig, false),
+                                    $this->moduleConfig,
+                                    $resolver->all(),
+                                );
+                            } catch (\Throwable $exception) {
+                                throw new ModulePackageException(
+                                    'MODULE_REGISTRY_PUBLICATION_REQUIRED',
+                                    $coldCatalogSync
+                                        ? 'Module lifecycle completed. Preserve the applied state, run peanut module compile, then peanut module sync --module=' . $package->packageKey . ' before serving HTTP.'
+                                        : 'Module lifecycle completed. Preserve the applied state and run peanut module compile before serving HTTP.',
+                                    0,
+                                    $exception,
+                                    ['lifecycle_state' => 'completed', 'lifecycle_operation' => $result['operation'] ?? null,
+                                        'recovery_operation' => 'compile', 'recovery_arguments' => [],
+                                        'recovery_steps' => [
+                                            ['operation' => 'compile', 'arguments' => []],
+                                            ...($coldCatalogSync ? [['operation' => 'sync', 'arguments' => ['--module=' . $package->packageKey]]] : []),
+                                        ],
+                                        'publication_error_code' => $exception instanceof \PeanutAdmin\Kernel\Module\ModuleException
+                                            ? $exception->errorCode : 'MODULE_REGISTRY_COMPILE_FAILED'],
+                                );
+                            }
+                            if ($coldCatalogSync) {
+                                try {
+                                    // PHP cannot replace classes already loaded before source promotion.
+                                    // The native scoped sync uses the adopted code after the lifecycle transaction commits.
+                                    $result['catalog_synchronization'] = (new \app\common\module\Dependencies($this->serverRoot))
+                                        ->synchronizeRuntimeCatalog($package->packageKey);
+                                } catch (\Throwable $exception) {
+                                    throw new ModulePackageException(
+                                        'MODULE_CATALOG_SYNC_REQUIRED',
+                                        'Module lifecycle completed. Preserve the applied state and run peanut module sync --module=' . $package->packageKey . '.',
+                                        0,
+                                        $exception,
+                                        ['lifecycle_state' => 'completed', 'lifecycle_operation' => $result['operation'] ?? null,
+                                            'recovery_operation' => 'sync', 'recovery_arguments' => ['--module=' . $package->packageKey]],
+                                    );
+                                }
+                            }
+                        }
                         if ($operation === 'install') {
                             $this->clearQuarantine($package->packageKey);
                         }
@@ -201,6 +255,10 @@ final class ModulePackageInstaller
                             'plan' => $plan,
                         ];
                     } catch (\Throwable $exception) {
+                        if ($lifecycleCompleted) {
+                            // Post-activation recovery must retain the adopted source, lock, DB and any old-source backup.
+                            throw $exception;
+                        }
                         if (!$lifecycleStarted) {
                             if (is_string($lockBefore)) {
                                 $this->writeAtomic($lockPath, $lockBefore);

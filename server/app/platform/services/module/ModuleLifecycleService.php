@@ -408,7 +408,7 @@ final class ModuleLifecycleService implements ModuleLifecycleCommands
                 if (!$plan['may_apply'] || $plan['pending_migrations'] !== []) {
                     throw new ModuleLifecycleException('MODULE_MIGRATION_REQUIRED', 'An unchanged active package has pending Module migrations; review its locked identity before resuming.');
                 }
-                return $plan + ['dry_run' => false, 'operation' => 'unchanged', 'dependencies' => $dependencies];
+                return $plan + $plugin->publicIdentity() + ['dry_run' => false, 'operation' => 'unchanged', 'dependencies' => $dependencies];
             }
             if (!$plan['may_apply']) {
                 throw new ModuleLifecycleException('MODULE_MIGRATION_REQUIRED', 'The selected Module migration plan cannot be applied.');

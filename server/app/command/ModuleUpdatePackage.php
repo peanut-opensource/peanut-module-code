@@ -57,6 +57,8 @@ final class ModuleUpdatePackage extends ModuleContextualCommand
             'PLUGIN_DOWNGRADE_REJECTED' => 'Build a version higher than the installed Package and review its fixed content digest.',
             'PACKAGE_VERSION_IDENTITY_CONFLICT' => 'Publish changed contents under a higher immutable version.',
             'PLUGIN_UPDATE_SCOPE_CHANGED' => 'Keep the existing Bundle member set; deliver membership changes as a separately approved lifecycle decision.',
+            'MODULE_REGISTRY_PUBLICATION_REQUIRED' => 'Preserve the applied state and run the returned recovery_steps in order in this source application; do not replay installation.',
+            'MODULE_CATALOG_SYNC_REQUIRED' => 'Preserve the applied state and run the returned scoped peanut module sync operation; do not roll back source or database.',
             'PACKAGE_UPDATE_RECOVERY_REQUIRED' => 'Keep maintenance active and use the returned recovery pointer with a verified paired backup.',
             'PLUGIN_NOT_INSTALLED' => 'Install the Package before requesting an update.',
             default => 'Correct the reported preflight condition and rerun dry-run before updating.',

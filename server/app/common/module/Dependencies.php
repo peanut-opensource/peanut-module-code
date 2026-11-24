@@ -29,6 +29,19 @@ final readonly class Dependencies
         return $this->withLock(fn(): array => $this->prepare($plugin->moduleRoots, $resolver, $installed));
     }
 
+    /** Run adopted catalog code in a fresh PHP process through the existing native bridge.
+     * @return array<string,mixed>
+     */
+    public function synchronizeRuntimeCatalog(string $moduleKey): array
+    {
+        ModuleKey::fromString($moduleKey);
+        return $this->run(
+            ['php', '-d', 'zend.exception_ignore_args=1', $this->serverRoot . '/module'],
+            dirname($this->serverRoot),
+            json_encode(['operation' => 'sync', 'arguments' => ['--module=' . $moduleKey]], JSON_THROW_ON_ERROR),
+        );
+    }
+
     /** Verify release-machine output without changing native manifests or invoking build tools. */
     public function verifyInstalled(ModuleDescriptor $plugin, ModuleLockResolver $resolver, array $installed): array
     {
@@ -622,7 +635,7 @@ final readonly class Dependencies
         }
     }
 
-    private function run(array $command, string $directory): array
+    private function run(array $command, string $directory, ?string $stdin = null): array
     {
         $project = dirname($this->serverRoot);
         $tool = $command[0];
@@ -641,7 +654,7 @@ final readonly class Dependencies
             return $this->execute([$this->automaticEnvironmentPython(),
                 $project . '/scripts/project-env', '--root', $project, '--state-root', $project,
                 '--tools', $this->automaticEnvironmentScope($tool), 'run', '--', ...$command],
-                $directory, $tool);
+                $directory, $tool, $stdin);
         }
         // Historical APPs still bind the original private host and explicit prepared state.
         $host = $this->json($project . '/.local/toolchain/host.json');
@@ -651,16 +664,23 @@ final readonly class Dependencies
         }
         $runner = [...$python, $project . '/scripts/project-env', '--root', $project];
         $this->execute([...$runner, 'prepare'], $project, 'project-env');
-        return $this->execute([...$runner, 'exec', '--', ...$command], $directory, $tool);
+        return $this->execute([...$runner, 'exec', '--', ...$command], $directory, $tool, $stdin);
     }
 
-    private function execute(array $command, string $directory, string $tool): array
+    private function execute(array $command, string $directory, string $tool, ?string $stdin = null): array
     {
         $output = tmpfile();
         if ($output === false) { throw new ModulePackageException('MODULE_DEPENDENCIES_UNAVAILABLE', 'Cannot capture native dependency output.'); }
+        $input = null;
         try {
+            if ($stdin !== null) {
+                $input = tmpfile();
+                if ($input === false || fwrite($input, $stdin) !== strlen($stdin) || !rewind($input)) {
+                    throw new ModulePackageException('MODULE_DEPENDENCY_PROCESS_FAILED', 'Cannot prepare native operation input.');
+                }
+            }
             $process = proc_open($command,
-                [0 => ['file', '/dev/null', 'r'], 1 => $output, 2 => $output], $pipes, $directory);
+                [0 => $input ?? ['file', '/dev/null', 'r'], 1 => $output, 2 => $output], $pipes, $directory);
             if (!is_resource($process)) {
                 throw new ModulePackageException('MODULE_DEPENDENCY_PROCESS_FAILED', 'Cannot start the registered dependency tool.');
             }
@@ -673,6 +693,9 @@ final readonly class Dependencies
             }
             return ['tool' => $tool, 'exit_code' => $exit, 'directory' => $directory, 'output' => $text];
         } finally {
+            if (is_resource($input)) {
+                fclose($input);
+            }
             fclose($output);
         }
     }

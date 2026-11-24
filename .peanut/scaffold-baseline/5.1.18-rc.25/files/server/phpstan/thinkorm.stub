@@ -1,0 +1,110 @@
+<?php
+
+namespace {
+    /** The framework returns typed environment values and preserves the supplied default. */
+    function env(?string $name = null, mixed $default = null): mixed {}
+}
+
+namespace think {
+    /**
+     * @template TKey of array-key
+     * @template-covariant TValue
+     */
+    class Collection {}
+    abstract class Model {}
+}
+
+namespace think\db {
+    use Closure;
+    use think\Collection;
+    use think\Model;
+
+
+    interface ConnectionInterface {}
+    abstract class PDOConnection {}
+    /**
+     * @template-covariant TRow of Model|array<string, mixed> = Model|array<string, mixed>
+     */
+    abstract class BaseQuery
+    {
+        /**
+         * @template TEmpty
+         * @param mixed $data
+         * @param (Closure(self): TEmpty)|null $closure
+         * @return TRow|TEmpty|null
+         */
+        public function find($data = null, ?Closure $closure = null) {}
+
+        /**
+         * @param mixed $data
+         * @return TRow
+         */
+        public function findOrEmpty($data = null) {}
+
+        /**
+         * @param mixed $data
+         * @return TRow
+         */
+        public function findOrFail($data = null) {}
+
+        /**
+         * @param list<int|string> $data
+         * @return Collection<int, TRow>
+         */
+        public function select(array $data = []): Collection {}
+    }
+
+    /**
+     * @template-covariant TRow of Model|array<string, mixed> = Model|array<string, mixed>
+     * @extends BaseQuery<TRow>
+     */
+    class Query extends BaseQuery {}
+    class Raw {}
+}
+
+namespace think\facade {
+    use think\db\ConnectionInterface;
+    use think\db\PDOConnection;
+    use think\db\Query;
+    use think\db\Raw;
+
+    /**
+     * DbManager forwards these methods to the configured PDO connection.
+     * Explicitly selected connections retain the framework interface.
+     *
+     * @method static ($name is null ? PDOConnection : ConnectionInterface) connect(string|array<string, mixed>|null $name = null, bool $force = false)
+     * @method static Query<array<string, mixed>> name(string $name)
+     * @method static Query<array<string, mixed>> table(string|array<array-key, string>|Raw $table)
+     * @method static list<array<string, mixed>> query(string $sql, array<array-key, mixed> $bind = [], bool $master = false)
+     * @method static int execute(string $sql, array<array-key, mixed> $bind = [])
+     * @method static Raw raw(string $value, array<array-key, mixed> $bind = [])
+     * @method static mixed transaction(callable $callback)
+     */
+    class Db {}
+}
+
+
+namespace Phinx\Db\Table {
+    class Column {}
+}
+
+namespace think\migration\db {
+    class Table
+    {
+        /**
+         * @param string|\Phinx\Db\Table\Column $columnName
+         * @param string|null $type
+         * @param array<string,mixed> $options
+         * @return $this
+         */
+        public function addColumn($columnName, $type = null, $options = []) {}
+    }
+}
+
+namespace think\migration\command {
+    class Migrate
+    {
+        /** @var array<int, object>|null */
+        protected $migrations;
+    }
+}
