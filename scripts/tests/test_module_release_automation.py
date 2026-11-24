@@ -5,6 +5,8 @@ import contextlib
 import hashlib
 import io
 import json
+import os
+import sys
 from pathlib import Path
 import runpy
 import subprocess
@@ -127,6 +129,138 @@ class ModuleAutomationTest(unittest.TestCase):
         with self.f.patches(), contextlib.redirect_stdout(io.StringIO()):
             return BUILD(self.f.root, Path(self.temp.name) / 'output', 'v1.0.0-rc.2', 'prerelease',
                          plan['source_commit'], plan, resume, self.f)
+
+
+    def cli(self, cwd, args):
+        previous = Path.cwd()
+        try:
+            os.chdir(cwd)
+            with patch.object(sys, 'argv', ['build-module-release-index', *args]), \
+                    self.f.patches(), patch.dict(BUILD.__globals__, {'ReleaseStore': lambda: self.f}), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                P['main']()
+        finally:
+            os.chdir(previous)
+
+    def test_cli_relative_report_from_empty_subdirectory_with_spaces(self):
+        cwd = Path(self.temp.name) / 'call site' / 'empty child'
+        cwd.mkdir(parents=True)
+        self.cli(cwd, [
+            '--source-root', os.path.relpath(self.f.root, cwd),
+            '--source-commit', self.f.base, '--plan-only',
+            '--baseline-index', os.path.relpath(self.f.baseline_file, cwd),
+            '--baseline-sha256', SHA(self.f.raw), '--report', 'reports/frozen plan.json',
+        ])
+        report = cwd / 'reports/frozen plan.json'
+        self.assertEqual(json.loads(report.read_text()), self.plan())
+        self.assertEqual(self.f.calls, [])
+        self.assertFalse((self.f.root / 'reports').exists())
+
+    def test_cli_report_atomically_replaces_leaf_symlink(self):
+        cwd = Path(self.temp.name) / 'report call site'
+        cwd.mkdir()
+        target = cwd / 'preserved target.json'
+        original = b'original unrelated bytes\n'
+        target.write_bytes(original)
+        for absolute in (False, True):
+            with self.subTest(absolute=absolute):
+                report = cwd / ('absolute.json' if absolute else 'relative.json')
+                report.symlink_to(target)
+                self.cli(cwd, [
+                    '--source-root', str(self.f.root), '--source-commit', self.f.base,
+                    '--plan-only', '--baseline-index', str(self.f.baseline_file),
+                    '--baseline-sha256', SHA(self.f.raw),
+                    '--report', str(report) if absolute else report.name,
+                ])
+                self.assertEqual(target.read_bytes(), original)
+                self.assertFalse(report.is_symlink())
+                self.assertEqual(json.loads(report.read_text()), self.plan())
+        self.assertEqual(self.f.calls, [])
+
+    def test_cli_output_checks_lexical_and_resolved_source_ownership(self):
+        self.f.manifest('file', '1.0.1')
+        outside = Path(self.temp.name) / 'outside'
+        outside.mkdir()
+        (self.f.root / 'owned-link').symlink_to(outside, target_is_directory=True)
+        self.f.commit('fixed module and alias fixture')
+        plan = self.plan()
+        plan_file = Path(self.temp.name) / 'alias plan.json'
+        P['write_json'](plan_file, plan)
+        (outside / 'source-link').symlink_to(self.f.root, target_is_directory=True)
+        for output in ('source/owned-link/catalog', 'source/release/../owned-link/catalog',
+                       'outside/source-link/owned'):
+            with self.subTest(output=output):
+                with self.assertRaisesRegex(RuntimeError, 'OUTPUT_MUST_BE_OUTSIDE_SOURCE_OR_IN_RELEASE'):
+                    self.cli(Path(self.temp.name), [
+                        '--source-root', 'source', '--source-commit', plan['source_commit'],
+                        '--plan-file', plan_file.name, '--plan-sha256', plan['plan_sha256'],
+                        '--tag', 'v1.0.0-rc.2', '--output', output,
+                    ])
+        self.assertFalse((outside / 'catalog').exists())
+        self.assertFalse((self.f.root / 'owned').exists())
+        self.assertEqual(self.f.calls, [])
+
+    def test_cli_dangling_output_link_does_not_create_target(self):
+        plan = self.changed()
+        plan_file = Path(self.temp.name) / 'link plan.json'
+        P['write_json'](plan_file, plan)
+        target = Path(self.temp.name) / 'unallocated target'
+        link = Path(self.temp.name) / 'output link'
+        link.symlink_to(target, target_is_directory=True)
+        with self.assertRaises(FileExistsError):
+            self.cli(Path(self.temp.name), [
+                '--source-root', 'source', '--source-commit', plan['source_commit'],
+                '--plan-file', plan_file.name, '--plan-sha256', plan['plan_sha256'],
+                '--tag', 'v1.0.0-rc.2', '--output', link.name,
+            ])
+        self.assertTrue(link.is_symlink())
+        self.assertFalse(target.exists())
+        self.assertEqual(self.f.calls, [])
+
+    def test_cli_relative_output_failure_resumes_with_absolute_paths(self):
+        plan = self.changed()
+        plan_file = Path(self.temp.name) / 'frozen plan.json'
+        P['write_json'](plan_file, plan)
+        cwd = Path(self.temp.name) / 'call site'
+        cwd.mkdir()
+        output = cwd / 'local artifacts'
+        args = [
+            '--source-root', os.path.relpath(self.f.root, cwd),
+            '--source-commit', plan['source_commit'],
+            '--plan-file', os.path.relpath(plan_file, cwd),
+            '--plan-sha256', plan['plan_sha256'],
+            '--tag', 'v1.0.0-rc.2', '--output', 'local artifacts',
+        ]
+        self.f.fail_check_once = True
+        with self.assertRaisesRegex(RuntimeError, 'injected native check failure'):
+            self.cli(cwd, args)
+        self.assertEqual(json.loads((output / 'build-state.json').read_text())['status'], 'failed')
+        packed = output / 'peanut.file-1.0.1.tar'
+        original = packed.read_bytes()
+        self.f.calls.clear()
+        absolute = args.copy()
+        for option, path in (('--source-root', self.f.root), ('--plan-file', plan_file), ('--output', output)):
+            absolute[absolute.index(option) + 1] = str(path)
+        self.cli(Path(self.temp.name), [*absolute, '--resume'])
+        self.assertEqual(packed.read_bytes(), original)
+        self.assertFalse(any(operation == 'pack' for operation, _ in self.f.calls))
+        self.assertEqual(json.loads((output / 'build-state.json').read_text())['status'], 'complete')
+        self.assertTrue((output / 'module-release-index.json').is_file())
+
+    def test_cli_relative_output_cannot_bypass_source_ownership(self):
+        plan = self.changed()
+        plan_file = Path(self.temp.name) / 'plan.json'
+        P['write_json'](plan_file, plan)
+        cwd = Path(self.temp.name) / 'call site'
+        cwd.mkdir()
+        with self.assertRaisesRegex(RuntimeError, 'OUTPUT_MUST_BE_OUTSIDE_SOURCE_OR_IN_RELEASE'):
+            self.cli(cwd, [
+                '--source-root', '../source', '--source-commit', plan['source_commit'],
+                '--plan-file', '../plan.json', '--plan-sha256', plan['plan_sha256'],
+                '--tag', 'v1.0.0-rc.2', '--output', '../source/release/../owned',
+            ])
+        self.assertFalse((self.f.root / 'owned').exists())
+        self.assertEqual(self.f.calls, [])
 
     def test_zero_changes_skips_output_and_native_checks(self):
         plan = self.plan()

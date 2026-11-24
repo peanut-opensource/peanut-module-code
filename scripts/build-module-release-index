@@ -350,7 +350,11 @@ def build(root, output, tag, channel, commit, plan=None, resume=False, store=Non
     if not TAG.fullmatch(tag) or channel not in ("stable", "prerelease") or (("-rc." in tag) != (channel == "prerelease")):
         raise RuntimeError("MODULE_RELEASE_TAG_CHANNEL_INVALID")
     source_ready(root, commit)
-    if output.is_relative_to(root) and not output.is_relative_to(root / "release"):
+    # Preserve the lexical output for filesystem writes (including symlink
+    # rejection by mkdir), but enforce ownership on both path interpretations.
+    output = output.absolute()
+    if any(candidate.is_relative_to(root) and not candidate.is_relative_to(root / "release")
+           for candidate in (pathlib.Path(os.path.abspath(output)), output.resolve())):
         raise RuntimeError("MODULE_RELEASE_OUTPUT_MUST_BE_OUTSIDE_SOURCE_OR_IN_RELEASE")
     if output.exists() and not resume:
         raise RuntimeError("MODULE_RELEASE_OUTPUT_EXISTS")
@@ -503,9 +507,12 @@ def build(root, output, tag, channel, commit, plan=None, resume=False, store=Non
         lock.close()
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--source-root", type=pathlib.Path, required=True)
-    parser.add_argument("--output", type=pathlib.Path)
+    parser = argparse.ArgumentParser(
+        description="Plan or build a fixed official module catalog without publishing.",
+        epilog="Local paths are resolved from the invoking working directory, not --source-root. Absolute paths remain supported.",
+    )
+    parser.add_argument("--source-root", type=pathlib.Path, required=True, help="Fixed source checkout; relative to the invoking directory")
+    parser.add_argument("--output", type=pathlib.Path, help="Build output; relative to the invoking directory")
     parser.add_argument("--tag")
     parser.add_argument("--channel", choices=["stable", "prerelease"])
     parser.add_argument("--plan-only", action="store_true")
@@ -514,7 +521,7 @@ def main():
     parser.add_argument('--baseline-release', help='Exact published catalog tag; default discovers the latest appropriate catalog once')
     parser.add_argument('--plan-file', type=pathlib.Path)
     parser.add_argument('--plan-sha256')
-    parser.add_argument('--report', type=pathlib.Path)
+    parser.add_argument('--report', type=pathlib.Path, help='Plan report; relative to the invoking directory')
     parser.add_argument('--github-output', type=pathlib.Path)
     parser.add_argument('--resume', action='store_true')
     parser.add_argument("--source-commit", required=True)
@@ -543,9 +550,7 @@ def main():
             _, data = ReleaseStore().baseline(channel, args.baseline_release)
         plan = make_plan(root, args.source_commit, data, channel)
     if args.report:
-        if not args.report.is_absolute():
-            parser.error('--report must be an absolute output path')
-        write_json(args.report, plan)
+        write_json(args.report.absolute(), plan)
     if args.github_output:
         with args.github_output.open('a', encoding='utf8') as output:
             output.write('release_required=' + ('true' if plan['status'] == 'changes' else 'false') + '\n')
@@ -557,8 +562,8 @@ def main():
         if plan['status'] == 'blocked':
             raise SystemExit(2)
         return
-    if not args.output or not args.output.is_absolute() or not args.tag:
-        parser.error('build requires absolute --output and --tag')
+    if not args.output or not args.tag:
+        parser.error('build requires --output and --tag')
     build(root, args.output, args.tag, channel, args.source_commit, plan, args.resume)
 
 if __name__ == "__main__":
