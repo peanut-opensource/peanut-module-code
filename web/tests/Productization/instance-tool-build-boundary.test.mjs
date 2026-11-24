@@ -1,7 +1,6 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'fs';
-import { resolve } from 'path';
-import { tmpdir } from 'os';
-import { fileURLToPath } from 'url';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { loadConfigFromFile } from 'vite';
 
 function expect(condition, message) {
@@ -9,26 +8,25 @@ function expect(condition, message) {
 }
 
 const webRoot = resolve(fileURLToPath(new URL('../..', import.meta.url)));
+const configFile = resolve(webRoot, 'vite.config.ts');
 const virtualId = 'virtual:peanut-instance-tool-routes';
 
-async function virtualRouteSource(command, mode, deploymentMode, configFile) {
-  const envDirectory = mkdtempSync(resolve(tmpdir(), 'pa-vite-boundary-'));
-  const envFile = resolve(envDirectory, '.env');
-  const previousEnvFile = process.env.PEANUT_CLIENT_ENV_FILE;
-  writeFileSync(envFile, `VITE_DEPLOYMENT_MODE=${deploymentMode}\n`);
-  process.env.PEANUT_CLIENT_ENV_FILE = envFile;
+async function virtualRouteSource(command, mode, deploymentMode) {
+  const previousMode = process.env.VITE_DEPLOYMENT_MODE;
+  process.env.VITE_DEPLOYMENT_MODE = deploymentMode;
   let loaded;
   try {
     loaded = await loadConfigFromFile(
       { command, mode },
-      resolve(webRoot, configFile),
-      webRoot
+      configFile,
+      webRoot,
+      'silent',
+      undefined,
+      'runner'
     );
   } finally {
-    if (previousEnvFile === undefined)
-      delete process.env.PEANUT_CLIENT_ENV_FILE;
-    else process.env.PEANUT_CLIENT_ENV_FILE = previousEnvFile;
-    rmSync(envDirectory, { recursive: true, force: true });
+    if (previousMode === undefined) delete process.env.VITE_DEPLOYMENT_MODE;
+    else process.env.VITE_DEPLOYMENT_MODE = previousMode;
   }
   expect(loaded !== null, `${configFile} could not be loaded`);
   const plugin = loaded.config.plugins?.find(
@@ -47,8 +45,7 @@ async function virtualRouteSource(command, mode, deploymentMode, configFile) {
 const standaloneDev = await virtualRouteSource(
   'serve',
   'development',
-  'standalone',
-  'config/vite.config.dev.ts'
+  'standalone'
 );
 expect(
   standaloneDev.includes('/src/router/routes/modules/dev-tools.ts'),
@@ -58,26 +55,24 @@ expect(
 const multiTenantDev = await virtualRouteSource(
   'serve',
   'development',
-  'multi-tenant',
-  'config/vite.config.dev.ts'
+  'multi-tenant'
 );
 expect(
   multiTenantDev.trim() === 'export default [];',
   'serve/multi-tenant generated a dev-tools import edge'
 );
-const standaloneBuild = await virtualRouteSource(
-  'build',
-  'production',
-  'standalone',
-  'config/vite.config.prod.ts'
-);
-expect(
-  standaloneBuild.trim() === 'export default [];',
-  'build/standalone generated a dev-tools import edge'
-);
+for (const mode of ['production', 'standalone', 'multi-tenant']) {
+  const edition = mode === 'multi-tenant' ? mode : 'standalone';
+  const bundle = await virtualRouteSource('build', mode, edition);
+  expect(
+    bundle.trim() === 'export default [];',
+    `build/${mode} generated a dev-tools import edge`
+  );
+}
 
-const routeIndex = await import('fs').then(({ readFileSync }) =>
-  readFileSync(resolve(webRoot, 'src/router/routes/index.ts'), 'utf8')
+const routeIndex = readFileSync(
+  resolve(webRoot, 'src/router/routes/index.ts'),
+  'utf8'
 );
 expect(
   routeIndex.includes("'!./modules/dev-tools.ts'") &&

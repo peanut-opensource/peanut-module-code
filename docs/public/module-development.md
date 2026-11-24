@@ -25,6 +25,13 @@
 
 完整调用是 `peanut module reconcile --release-locked --plan-only`，审阅后再按实际准备状态采用。该命令由 CLI 经 `server/module` 桥接，不登记为 `php think module:reconcile`；`ops-module:request` / `ops-module:task` 管理制品交付任务，不代替锁定源码采用。源码更新后须先按应用原生锁准备实际依赖，再编译声明并完成已安装模块采用；仅更新 Git 或运行 compile 不会更新数据库安装身份。具体 Git 更新顺序见[产品更新入口](application-release.md)。
 
+### Admin Web 模块静态资源
+
+- 页面使用的图片、字体和样式放在模块的 Admin Web 贡献目录内，由 TypeScript、Vue 或 CSS 引入。Vite 按构建配置内联小文件或生成带内容摘要的文件名，并处理 `/admin/` 子路径。
+- 需要保留文件名和路径的随包资源放在 `web/src/modules/<vendor>-<module>/public/`。Vite 开发服务和生产构建读取 `modules.lock` 所选的 Admin Web 贡献，在 `/admin/module-assets/<vendor>.<module>/<relative-path>` 提供文件原始字节，例如通过 `${import.meta.env.BASE_URL}module-assets/acme.delivery-record/catalog.json` 引用。文件名和目录名使用字母、数字、下划线、点或连字符，首字符使用字母、数字或下划线。两种入口都拒绝链接、重名路径和 PHP 文件。
+- `module-assets/` 由锁定模块拥有。应用自己的 `web/public/` 文件仍走宿主发布路径，新模块资源不得覆盖应用已拥有的路径。开发服务和部署配置对该命名空间返回 `Cache-Control: no-store`，缺失文件返回 404。升级替换同一 URL 的字节，从组合移除模块后通过完整重建移除其文件。模块实例或租户的启用状态控制业务访问，已交付静态文件是公开内容。
+- 用户上传、租户私有附件和历史文件引用继续通过 File 模块、对象存储和访问授权管理。不要把用户数据放进模块源树或这条公开发布路径。
+
 ## 可用的开发与交付入口
 
 日常开发先判断哪些输入发生变化，只执行对应行；同一原生入口已完成的准备不再手工重复。正式候选先固定实际模块组合、原生依赖和模块锁，再生成受影响的 API、inventory 等派生结果；核对最终版本及来源摘要，不在后续源码或锁变化后沿用旧结果。下表不授权自动测试、公开发行或生产部署。

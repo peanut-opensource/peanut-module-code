@@ -38,9 +38,6 @@ main() {
   fi
   edition="$(python3 -c 'import json; print(json.load(open(".peanut/application-manifest.json"))["application"]["edition"])')"
   case "$edition" in standalone) clients=admin ;; multi-tenant) clients=admin,platform ;; *) fail 'invalid application Edition' ;; esac
-  if $prepare_first_install; then
-    python3 server/docker/scripts/migrate-storage-layout.py "$ROOT/server"
-  fi
   if $prepare_release || $prepare_first_install; then
     [[ -z "$target" && "$compose_project" == - && "$branch" == main ]] || fail 'release preparation runs on the development/release machine'
     declared_version="$(python3 -c 'import json; print(json.load(open(".peanut/application-manifest.json"))["application"]["version"])')"
@@ -80,6 +77,10 @@ PHP
     for destination in "${static_dirs[@]}"; do
       static_target "$destination"
     done
+    if $prepare_first_install; then
+      # Reject source, lock and destination failures before moving existing storage.
+      python3 server/docker/scripts/migrate-storage-layout.py "$ROOT/server"
+    fi
     NODE_ENV=production VITE_API_BASE_URL='' VITE_APP_BASE_URL='' NUXT_PUBLIC_API_BASE='' \
       PEANUT_RELEASE_EXTRA_CLIENTS="$(IFS=,; printf '%s' "${extra_clients[*]:-}")" php -d zend.exception_ignore_args=1 <<'PHP'
 <?php

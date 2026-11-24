@@ -6,6 +6,9 @@
 import type { Plugin } from 'vite';
 import compressPlugin from 'vite-plugin-compression';
 
+// Generating a compressed sibling could overwrite a file owned by a Module.
+const filter = /^(?!.*[/\\]module-assets[/\\]).*\.(js|mjs|json|css|html)$/i;
+
 export default function configCompressPlugin(
   compress: 'gzip' | 'brotli',
   deleteOriginFile = false
@@ -16,6 +19,7 @@ export default function configCompressPlugin(
     plugins.push(
       compressPlugin({
         ext: '.gz',
+        filter,
         deleteOriginFile,
       })
     );
@@ -26,6 +30,7 @@ export default function configCompressPlugin(
       compressPlugin({
         ext: '.br',
         algorithm: 'brotliCompress',
+        filter,
         deleteOriginFile,
       })
     );

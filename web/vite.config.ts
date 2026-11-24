@@ -1,5 +1,18 @@
-import { existsSync, readFileSync, realpathSync } from 'node:fs';
-import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
+import {
+  existsSync,
+  lstatSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+} from 'node:fs';
+import {
+  dirname,
+  extname,
+  isAbsolute,
+  relative,
+  resolve,
+  sep,
+} from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   defineConfig,
@@ -7,6 +20,7 @@ import {
   type ConfigEnv,
   type OutputChunk,
   type Plugin,
+  type ResolvedConfig,
   type UserConfig,
 } from 'vite';
 import vue from '@vitejs/plugin-vue';
@@ -21,21 +35,28 @@ const configDir = dirname(fileURLToPath(import.meta.url));
 interface ModuleLockDocument {
   schema_version: number;
   modules: Array<{
+    key: string;
     frontend: Array<{ client_key: string; entry: string }>;
   }>;
 }
 
-function lockedAdminContributions(): string[] {
+function lockedAdminModuleIdentities(): Array<{ key: string; entry: string }> {
   const lock = JSON.parse(
     readFileSync(resolve(configDir, '../modules.lock'), 'utf8')
   ) as ModuleLockDocument;
   if (lock.schema_version !== 1 || !Array.isArray(lock.modules)) {
     throw new Error('modules.lock is invalid');
   }
-  return lock.modules
-    .flatMap((module) => module.frontend || [])
-    .filter((identity) => identity.client_key === 'admin-web')
-    .map((identity) => identity.entry)
+  return lock.modules.flatMap(({ key, frontend }) =>
+    (frontend || [])
+      .filter((identity) => identity.client_key === 'admin-web')
+      .map(({ entry }) => ({ key, entry }))
+  );
+}
+
+function lockedAdminContributions(): string[] {
+  return lockedAdminModuleIdentities()
+    .map(({ entry }) => entry)
     .sort();
 }
 
@@ -84,6 +105,146 @@ function moduleContributionManifest(entriesForBuild: () => string[]): Plugin {
       return `${imports.join('\n')}\nexport default [${entries
         .map((_, index) => `contribution${index}`)
         .join(',')}];`;
+    },
+  };
+}
+
+const moduleAssetDirectory = 'module-assets';
+const moduleAssetContentTypes: Record<string, string> = {
+  '.avif': 'image/avif',
+  '.css': 'text/css',
+  '.gif': 'image/gif',
+  '.html': 'text/html',
+  '.ico': 'image/x-icon',
+  '.jpeg': 'image/jpeg',
+  '.jpg': 'image/jpeg',
+  '.js': 'text/javascript',
+  '.json': 'application/json',
+  '.mjs': 'text/javascript',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.ttf': 'font/ttf',
+  '.txt': 'text/plain',
+  '.wasm': 'application/wasm',
+  '.webp': 'image/webp',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.xml': 'application/xml',
+};
+
+function modulePublicAssetSources(hostPublicDir: string): Map<string, string> {
+  const assets = new Map<string, string>();
+  const paths = new Set<string>();
+  const collect = (directory: string, output: string): void => {
+    for (const item of readdirSync(directory, { withFileTypes: true })) {
+      const source = resolve(directory, item.name);
+      const fileName = `${output}/${item.name}`;
+      const foldedPath = fileName.toLowerCase();
+      if (
+        !/^[a-z0-9_][a-z0-9_.-]*$/i.test(item.name) ||
+        item.name.toLowerCase() === 'node_modules' ||
+        /\.php$/i.test(item.name) ||
+        paths.has(foldedPath) ||
+        (!item.isDirectory() &&
+          (!item.isFile() || lstatSync(source).nlink !== 1))
+      ) {
+        throw new Error(
+          `Invalid or conflicting Module public asset: ${source}`
+        );
+      }
+      paths.add(foldedPath);
+      if (item.isDirectory()) collect(source, fileName);
+      else assets.set(fileName, source);
+    }
+  };
+
+  for (const { key, entry } of lockedAdminModuleIdentities()) {
+    if (
+      !/^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$/.test(key) ||
+      entry !== `web/src/modules/${key.replace('.', '-')}/contribution.ts`
+    ) {
+      throw new Error(`Invalid locked Admin module identity: ${key}`);
+    }
+    const contribution = resolveContributionImport(entry);
+    const root = resolve(configDir, dirname(contribution.slice(1)), 'public');
+    const rootStat = lstatSync(root, { throwIfNoEntry: false });
+    if (!rootStat) continue;
+    if (!rootStat.isDirectory()) {
+      throw new Error(
+        `Module public asset root must be an ordinary directory: ${root}`
+      );
+    }
+    if (
+      hostPublicDir &&
+      existsSync(hostPublicDir) &&
+      readdirSync(hostPublicDir).some(
+        (name) => name.toLowerCase() === moduleAssetDirectory
+      )
+    ) {
+      throw new Error(
+        `The ${moduleAssetDirectory} output is reserved for locked Admin modules: ${hostPublicDir}`
+      );
+    }
+    collect(root, `${moduleAssetDirectory}/${key}`);
+  }
+  return assets;
+}
+
+function modulePublicAssets(): Plugin {
+  let resolvedConfig: ResolvedConfig;
+  return {
+    name: 'peanut-module-public-assets',
+    configResolved(config) {
+      resolvedConfig = config;
+    },
+    configureServer({ config, middlewares }) {
+      const prefix = `${config.base}${moduleAssetDirectory}`;
+      modulePublicAssetSources(config.publicDir);
+      // Vite applies host and CORS checks before post hooks and writes SPA HTML after them.
+      return () => {
+        middlewares.use((request, response, next) => {
+          const path = (request.originalUrl ?? request.url ?? '').split(
+            '?',
+            1
+          )[0];
+          if (path !== prefix && !path.startsWith(`${prefix}/`)) {
+            return next();
+          }
+          response.setHeader('Cache-Control', 'no-store');
+          if (request.method !== 'GET' && request.method !== 'HEAD') {
+            response.statusCode = 405;
+            response.setHeader('Allow', 'GET, HEAD');
+            return response.end();
+          }
+          const sources = modulePublicAssetSources(config.publicDir);
+          const source = sources.get(path.slice(config.base.length));
+          if (!source) {
+            response.statusCode = 404;
+            return response.end();
+          }
+          const content = readFileSync(source);
+          const contentType =
+            moduleAssetContentTypes[extname(source).toLowerCase()];
+          response.setHeader(
+            'Content-Type',
+            contentType || 'application/octet-stream'
+          );
+          response.setHeader('Content-Length', content.byteLength);
+          return response.end(request.method === 'HEAD' ? undefined : content);
+        });
+      };
+    },
+    buildStart() {
+      if (resolvedConfig.command !== 'build') return;
+      for (const [fileName, source] of modulePublicAssetSources(
+        resolvedConfig.publicDir
+      )) {
+        this.emitFile({
+          type: 'asset',
+          fileName,
+          source: new Uint8Array(readFileSync(source)),
+        });
+      }
     },
   };
 }
@@ -152,6 +313,7 @@ export function createBaseConfig(
     base: '/admin/',
     plugins: [
       moduleContributionManifest(contributionEntries),
+      modulePublicAssets(),
       instanceToolRouteManifest(instanceToolsCompiled),
       vue(),
       vueJsx(),
