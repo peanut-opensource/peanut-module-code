@@ -38,39 +38,83 @@ final class ThinkPhpPlatformAuthorizationRepository implements \PeanutAdmin\Kern
 
     public function permissions(int $operatorId): EffectivePermissionSet
     {
+        $facts = $this->roleFacts($operatorId);
+        $permissions = [];
+        $ownerPermissions = [];
+        foreach ($facts['roles'] as $role) {
+            foreach ($role['permission_keys'] as $key) {
+                $permissions[] = $key;
+            }
+            if ($role['owner_dynamic']) {
+                $ownerPermissions = self::bootstrapOwnerPermissionKeys();
+            }
+        }
+
+        return new EffectivePermissionSet([...$permissions, ...$ownerPermissions]);
+    }
+
+    /**
+     * @return array{status: ?string, account_id: ?int, roles: array<int, array{
+     *     status: ?string, permission_keys: list<string>, unresolved_grant: bool, owner_dynamic: bool
+     * }>}
+     */
+    public function roleFacts(int $operatorId): array
+    {
         $rows = PlatformOperator::alias('operator')
-            ->join('platform_operator_role operator_role', 'operator_role.platform_operator_id = operator.id')
-            ->join(
-                'platform_role role',
-                "role.id = operator_role.platform_role_id AND role.status = 'active'",
-            )
-            ->leftJoin('platform_role_permission role_permission', 'role_permission.platform_role_id = role.id')
+            ->leftJoin('platform_operator_role operator_role', 'operator_role.platform_operator_id = operator.id')
+            ->leftJoin('platform_role role', 'role.id = operator_role.platform_role_id')
+            ->leftJoin('platform_role_permission role_permission', "role_permission.platform_role_id = role.id AND role.status = 'active'")
             ->leftJoin(
                 'permission permission',
                 "permission.id = role_permission.permission_id AND permission.status = 'active' AND permission.key LIKE 'platform.%'",
             )
             ->where('operator.id', $operatorId)
-            ->where('operator.status', 'active')
-            ->field(['role.key' => 'role_key', 'role.is_builtin', 'permission.key' => 'permission_key'])
+            ->field([
+                'operator.status' => 'operator_status', 'operator.account_id',
+                'operator_role.platform_role_id' => 'role_id',
+                'role.key' => 'role_key', 'role.status' => 'role_status', 'role.is_builtin',
+                'role_permission.permission_id' => 'granted_permission_id', 'permission.key' => 'permission_key',
+            ])
             ->distinct(true)
             ->order('role.key')
             ->order('permission.key')
             ->select()
             ->toArray();
 
-        $permissions = [];
-        $isBootstrapOwner = false;
+        $status = $rows[0]['operator_status'] ?? null;
+        $roles = [];
         foreach ($rows as $row) {
-            $isBootstrapOwner = $isBootstrapOwner
-                || ($row['role_key'] === 'platform.bootstrap-owner' && (int) $row['is_builtin'] === 1);
-            if (is_string($row['permission_key'])) {
-                $permissions[] = $row['permission_key'];
+            if ($row['role_id'] === null) {
+                continue;
+            }
+
+            $roleId = (int) $row['role_id'];
+            $active = $status === 'active' && $row['role_status'] === 'active';
+            $roles[$roleId] ??= [
+                'status' => $row['role_status'],
+                'permission_keys' => [],
+                'unresolved_grant' => false,
+                'owner_dynamic' => $active && $row['role_key'] === 'platform.bootstrap-owner'
+                    && (int) $row['is_builtin'] === 1,
+            ];
+            if ($active && is_string($row['permission_key'])) {
+                $roles[$roleId]['permission_keys'][] = $row['permission_key'];
+            }
+            if ($active && $row['granted_permission_id'] !== null && $row['permission_key'] === null) {
+                $roles[$roleId]['unresolved_grant'] = true;
             }
         }
-        if ($isBootstrapOwner) {
-            $permissions = [...$permissions, ...CorePermissionCatalog::PLATFORM];
-        }
 
-        return new EffectivePermissionSet($permissions);
+        return [
+            'status' => $status,
+            'account_id' => $status === null ? null : (int) $rows[0]['account_id'],
+            'roles' => $roles,
+        ];
+    }
+
+    /** @return list<string> */
+    public static function bootstrapOwnerPermissionKeys(): array
+    {
+        return CorePermissionCatalog::PLATFORM;
     }
 }

@@ -70,6 +70,7 @@
       "PeanutAdmin\\Modules\\Identity\\Contract\\WorkflowOrganizationQuery",
       "PeanutAdmin\\Modules\\Identity\\Contract\\WorkflowLegacyOrganizationQuery",
       "PeanutAdmin\\Modules\\Identity\\Contract\\PlatformDirectoryQueries",
+      "PeanutAdmin\\Modules\\Identity\\Contract\\PlatformRoleAuthorizationPreview",
       "PeanutAdmin\\Modules\\Identity\\Contract\\TenantModuleStateQueries",
       "PeanutAdmin\\Modules\\Identity\\Contract\\TenantAuthorizationReadFence",
       "PeanutAdmin\\Modules\\Identity\\DataPermission\\Application\\DataPolicyAdminService",

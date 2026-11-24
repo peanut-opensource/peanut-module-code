@@ -51,6 +51,25 @@ final class ApiPermissionCatalog
             ->whereIn('permission.key', $permissionKeys)
             ->field('endpoint.method,endpoint.path,endpoint.module_key,endpoint.prerequisite_permission_keys')
             ->distinct(true)->order('endpoint.path,endpoint.method')->select()->toArray();
+        return array_map(
+            static fn(array $row): array => ['method' => (string) $row['method'], 'path' => (string) $row['path']],
+            $this->applyPlatformAccessConstraints($rows, $permissionKeys, $modules, $mutationLocked),
+        );
+    }
+
+    /**
+     * The same independent constraints apply to legacy and candidate primary bindings.
+     *
+     * @param list<array<string,mixed>> $rows
+     * @param list<string> $permissionKeys
+     * @return list<array<string,mixed>>
+     */
+    public function applyPlatformAccessConstraints(
+        array $rows,
+        array $permissionKeys,
+        ModuleAvailability $modules,
+        bool $mutationLocked = false,
+    ): array {
         $available = [];
         $access = [];
         foreach ($rows as $row) {
@@ -62,7 +81,7 @@ final class ApiPermissionCatalog
             $owner = (string) $row['module_key'];
             $available[$owner] ??= $this->moduleAvailable($row, $modules);
             if ($available[$owner]) {
-                $access[] = ['method' => (string) $row['method'], 'path' => (string) $row['path']];
+                $access[] = $row;
             }
         }
         return $access;
