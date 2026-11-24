@@ -1,9 +1,34 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const checkOnly = process.argv.includes('--check');
+const {
+  values: { check: checkOnly, client: clients },
+} = parseArgs({
+  options: {
+    check: { type: 'boolean', default: false },
+    client: { type: 'string', multiple: true },
+  },
+});
+const targetsByClient = {
+  web: { manifest: 'web/src/generated/brand.json', assets: 'web/public/brand' },
+  pc: { manifest: 'pc/generated/brand.json', assets: 'pc/public/brand' },
+  uniapp: {
+    manifest: 'uniapp/src/generated/brand.json',
+    assets: 'uniapp/src/static/brand',
+  },
+};
+if (
+  clients &&
+  (clients.length !== 1 || !Object.hasOwn(targetsByClient, clients[0]))
+) {
+  throw new Error('--client must be one of web, pc, or uniapp');
+}
+const targets = clients
+  ? [targetsByClient[clients[0]]]
+  : Object.values(targetsByClient);
 const manifestSource = join(repositoryRoot, 'server/config/brand.json');
 const assetSource = join(repositoryRoot, 'server/public/brand');
 const manifest = JSON.parse(await readFile(manifestSource, 'utf8'));
@@ -19,18 +44,17 @@ const sidebarFooterDefaults = {
   sidebar_footer_license: true,
   sidebar_footer_about: true,
 };
-const generatedManifest = `${JSON.stringify({
-  ...manifest,
-  sidebar_footer: {
-    ...sidebarFooterDefaults,
-    ...(manifest.sidebar_footer ?? {}),
+const generatedManifest = `${JSON.stringify(
+  {
+    ...manifest,
+    sidebar_footer: {
+      ...sidebarFooterDefaults,
+      ...(manifest.sidebar_footer ?? {}),
+    },
   },
-}, null, 2)}\n`;
-const manifestTargets = [
-  'web/src/generated/brand.json',
-  'pc/generated/brand.json',
-  'uniapp/src/generated/brand.json',
-];
+  null,
+  2
+)}\n`;
 const assetNames = [
   'favicon.svg',
   'logo.svg',
@@ -40,11 +64,6 @@ const assetNames = [
   'menu.svg',
   'docs.svg',
   'support.svg',
-];
-const assetTargets = [
-  'web/public/brand',
-  'pc/public/brand',
-  'uniapp/src/static/brand',
 ];
 
 async function sync(target, content) {
@@ -59,11 +78,12 @@ async function sync(target, content) {
   await writeFile(path, content);
 }
 
-for (const target of manifestTargets) await sync(target, generatedManifest);
+for (const { manifest: target } of targets)
+  await sync(target, generatedManifest);
 for (const assetName of assetNames) {
   const content = await readFile(join(assetSource, assetName), 'utf8');
-  for (const targetDirectory of assetTargets) {
-    await sync(`${targetDirectory}/${assetName}`, content);
+  for (const { assets } of targets) {
+    await sync(`${assets}/${assetName}`, content);
   }
 }
 

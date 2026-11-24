@@ -14,6 +14,8 @@ scripts/deploy-update.sh --prepare-release --version=<声明中的产品版本>
 
 各端的 HTML、JS 和 CSS 写入应用自己的公开目录，与后端及同一版本的 manifest/lock 一起审阅和提交。PC 发行使用静态生成，PC 的 Node SSR 及小程序、原生 App 使用各自的交付入口。准备命令只处理目标静态目录，拒绝链接、特殊类型或被忽略的目标。
 
+单独运行 Admin 的 `build` 或 `type:check` 时，品牌预处理只同步 Web 自己的生成文件，不改写 PC 或 UniApp 的品牌产物。品牌脚本也可在 APP 根显式执行 `node scripts/sync-brand-assets.mjs --client web`；`--client pc`、`--client uniapp` 分别选择对应端，`--check` 可与同一选择组合。未指定 `--client` 时保留原先同步所有端的行为。上述客户端范围不改变 `--prepare-release` 对产品所含客户端的完整准备要求。
+
 | 客户端 | Git 发版目录 |
 | --- | --- |
 | Admin | `server/public/admin/` |
@@ -82,6 +84,8 @@ bash -c "$(git show "$target:scripts/deploy-update.sh")" "$PWD/scripts/deploy-up
 `$0` 保持原实例入口路径，固定脚本仍完整解析后再更新自身文件，并执行同一 pending、停写、ff-only 与恢复流程；后续直接使用正常入口。
 
 Docker 模式沿用实例的 Compose 参数、overlay 和 vendor receipt。维护者先排空其他业务写者。入口停止 nginx/php，在原目录快进到目标提交并按需准备 PHP 依赖。随后在同一 php 服务的工作目录和网络内，依次执行 `migrate:run`、模块编译、锁定模块采用和 `clear --cache`，最后由 `start.sh` 恢复服务。宿主 PHP 模式由调用者负责停写和进程恢复。
+
+挂载式 Compose 入口采用停服后更新原目录、再启动服务的部署方式。运行中的容器仍绑定原目录时，重命名或互换宿主静态子目录不属于受支持的热部署入口。独立复现曾在这种目录互换后读到旧首页；具体原因尚未确认，不能据此归因于浏览器或 Nginx 缓存。需要更新静态文件时，沿本节原生流程让服务采用同一固定提交，并在启动后核对首页及其引用资源的实际 HTTP 内容。
 
 已安装 Docker 实例的 Composer 输入变化由同一 Git 更新入口在停写后处理：原 vendor 必须在旧 HEAD 上通过校验，采用新 HEAD 后调用原生 prepare-vendor 的 maintenance 模式。它将旧 vendor 保留在 runtime/vendor-previous-*，在实例实根按固定锁执行 no-scripts/no-plugins Composer install、既有 service discovery/vendor publish 和 receipt seal/check；失败恢复旧 vendor，保留 pending 并保持服务停止，不能把旧依赖与新程序重新开放。重新执行同一 pending 时按新锁校验或继续准备，不要求旧 vendor 匹配新锁。成功仍保留旧 vendor 供 owner 恢复。固定 PHP 镜像沿原实例配置，普通 start 仍禁止自动修复已安装实例的依赖。宿主模式沿原锁准备流程。
 

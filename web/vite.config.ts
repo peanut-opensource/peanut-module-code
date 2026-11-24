@@ -1,3 +1,5 @@
+/// <reference path="./config/vite-plugin-eslint.d.ts" />
+
 import {
   existsSync,
   lstatSync,
@@ -18,7 +20,6 @@ import {
   defineConfig,
   loadEnv,
   type ConfigEnv,
-  type OutputChunk,
   type Plugin,
   type ResolvedConfig,
   type UserConfig,
@@ -383,7 +384,7 @@ function assertNoInstanceTools(): Plugin {
     generateBundle(_options, bundle) {
       Object.values(bundle).forEach((output) => {
         if (output.type !== 'chunk') return;
-        Object.keys((output as OutputChunk).modules).forEach((moduleId) => {
+        Object.keys(output.modules).forEach((moduleId) => {
           const normalized = normalize(moduleId);
           if (
             normalized === forbiddenRoute ||
