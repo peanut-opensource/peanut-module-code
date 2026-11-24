@@ -2,6 +2,16 @@
 
 `peanut.identity` 是必需核心模块，账号、员工成员、组织、角色、会话和安全审计由它维护；客户档案属于 Member。正式 PHP 导出以 [`module.json`](module.json) 的 `contracts.exports` 为准，容器绑定由 [`ModuleProvider`](src/ModuleProvider.php) 登记。消费者声明模块依赖并构造注入公开合同，不读取 Identity 私表或持久化 Model。
 
+## 平台角色迁移等价性审计
+
+[`PlatformRoleAuthorizationPreview::auditCatalog($context, $candidate, $modules)`](src/Contract/PlatformRoleAuthorizationPreview.php) 是独立于目标操作员的只读 PHP 入口。它复核平台角色、权限 API 和操作员读取权限，按正式平台角色目录审计指定角色，成员关系为零的角色也在范围内。既有目标操作员预览继续提供当前操作员的角色组合与限制对照。
+
+候选包含 `role_ids`（1 至 200 项）、与目标操作员预览相同的 `nodes`，以及 `role_assignments`。每项分配提供 `role_id`、`expected_revision` 和 `node_keys`。用显式空 `node_keys` 表示该角色没有候选节点，省略分配则列为未覆盖。相同角色的重复声明须具有同一规范化修订和节点集合。
+
+结果区分目录总数、范围是否覆盖整个目录和本批是否等价。逐角色结果包括当前状态、平台操作员分配条数、输入与观察到的修订、直接 API 关系差异和按当前模块可用性推演的单角色有效能力差异。动态 Bootstrap Owner 授权、保留的非 HTTP 权限键和所比较 API 涉及的保留前置权限键分别列出。直连 API 不授予其前置权限，单角色等价结论限于当前审计批次与给定模块状态。未来实际操作员的角色组合和 Demo 写入限制须按当时的目标操作员验证。
+
+审计在原生事务中只读取当前源数据。期望修订核对角色行；API 目录以及权限与 API 的绑定有独立变化路径。结果用于审计，后续执行应重新读取相应目录与绑定并复核等价性，写入仍按现有入口的授权与修订要求执行。
+
 ## 首次安装与菜单编号
 
 `4.0.0-rc.53` 在既有 `ReserveCustomMenuIds` 之前增加 `20261107005900_initialize_menu_allocation_metadata.php`：通过同一个原生 PDO 连接执行 `SHOW CREATE TABLE pa_system_menu`，打开新建空表的真实自增元数据。它不插入占位菜单、不修改已有 ID，也不更换会话级元数据缓存设置。原有编号保留迁移及初始结构字节保持不变。原生迁移运行器仍按未执行版本逐条执行；已有更高版本账本不代替这条新增迁移。安装是否完成以真实迁移账本和安装回执为准。

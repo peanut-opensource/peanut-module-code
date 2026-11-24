@@ -6,8 +6,11 @@ namespace PeanutAdmin\Modules\Identity\Contract;
 
 use PeanutAdmin\Kernel\Authorization\Application\AdminAccessException;
 use PeanutAdmin\Kernel\Context\PlatformContext;
+use DateTimeImmutable;
 use PeanutAdmin\Kernel\Module\ModuleAvailability;
+use PeanutAdmin\Kernel\Module\ModuleException;
 use PeanutAdmin\Kernel\Platform\Authorization\PlatformAuthorizationEvaluator;
+use PeanutAdmin\Kernel\Tenancy\TenantScope;
 use PeanutAdmin\Modules\Identity\Authorization\ApiPermissionCatalog;
 use PeanutAdmin\Modules\Identity\Platform\Authorization\ThinkPhpPlatformAuthorizationRepository;
 use PeanutAdmin\Modules\Identity\Policy\DemoAccountPolicy;
@@ -33,10 +36,7 @@ final readonly class PlatformRoleAuthorizationPreview
         ModuleAvailability $modules,
         bool $mutationLocked = false,
     ): array {
-        foreach (['platform.role.read', 'platform.permission.api.read', 'platform.operator.read'] as $permission) {
-            // The existing evaluator reads actual role grants, independently of the HTTP request grant.
-            $this->authorization->assertAllowed($context, $permission);
-        }
+        $this->assertReadAllowed($context);
         $this->fields($candidate, ['operator_id', 'nodes', 'role_assignments']);
         $operatorId = $this->positiveId($candidate['operator_id']);
         $nodes = $this->nodes($candidate['nodes']);
@@ -45,6 +45,258 @@ final readonly class PlatformRoleAuthorizationPreview
         return Db::transaction(
             fn(): array => $this->compare($operatorId, $nodes, $assignments, $modules, $mutationLocked),
         );
+    }
+
+    /**
+     * Audits a bounded, explicit batch of platform roles independently of operator membership.
+     *
+     * @return array<string,mixed>
+     */
+    public function auditCatalog(PlatformContext $context, array $candidate, ModuleAvailability $modules): array
+    {
+        $this->assertReadAllowed($context);
+        $this->fields($candidate, ['role_ids', 'nodes', 'role_assignments']);
+        $roleIds = array_values(array_unique(array_map($this->positiveId(...), $this->list($candidate['role_ids'], 200))));
+        if ($roleIds === []) {
+            throw $this->invalid();
+        }
+        sort($roleIds, SORT_NUMERIC);
+        $nodes = $this->nodes($candidate['nodes']);
+        $revisions = [];
+        $selections = [];
+        foreach ($this->list($candidate['role_assignments'], 200) as $assignment) {
+            $assignment = $this->fields($assignment, ['role_id', 'expected_revision', 'node_keys']);
+            $roleId = $this->positiveId($assignment['role_id']);
+            $revision = $this->positiveId($assignment['expected_revision']);
+            if (isset($revisions[$roleId]) && $revisions[$roleId] !== $revision) {
+                throw $this->invalid();
+            }
+            $revisions[$roleId] = $revision;
+            $selections[] = ['role_id' => $roleId, 'node_keys' => $assignment['node_keys']];
+        }
+        $assignments = $this->assignments($selections);
+        ksort($assignments, SORT_NUMERIC);
+
+        return Db::transaction(
+            fn(): array => $this->compareCatalog($roleIds, $nodes, $assignments, $revisions, $modules),
+        );
+    }
+
+    private function assertReadAllowed(PlatformContext $context): void
+    {
+        foreach (['platform.role.read', 'platform.permission.api.read', 'platform.operator.read'] as $permission) {
+            // The existing evaluator reads actual role grants, independently of the HTTP request grant.
+            $this->authorization->assertAllowed($context, $permission);
+        }
+    }
+
+    private function compareCatalog(
+        array $roleIds,
+        array $nodes,
+        array $assignments,
+        array $revisions,
+        ModuleAvailability $modules,
+    ): array {
+        $modules = $this->catalogModuleAvailability($modules);
+        $catalogTotal = (int) Db::name('platform_role')->count();
+        $facts = $this->catalogRoleFacts($roleIds);
+        $memberCounts = Db::name('platform_operator_role')->whereIn('platform_role_id', $roleIds)
+            ->group('platform_role_id')->column('COUNT(*)', 'platform_role_id');
+        $apis = $this->activeApis();
+        $ownerKeys = $this->roles->bootstrapOwnerPermissionKeys();
+        $allKeys = [];
+        foreach ($facts as $fact) {
+            $allKeys = [...$allKeys, ...$fact['permission_keys'], ...($fact['owner_dynamic'] ? $ownerKeys : [])];
+        }
+        $unresolved = [];
+        $legacy = $this->legacyBindings(array_values(array_unique($allKeys)), $apis, $unresolved);
+        $unresolvedPermissions = array_fill_keys(array_column($unresolved, 'permission_key'), true);
+        $nodeApis = $this->nodeApis($nodes, $apis, $unresolved);
+        $scope = array_fill_keys($roleIds, true);
+        foreach (array_diff_key($assignments, $scope) as $roleId => $_nodeKeys) {
+            $unresolved[] = ['code' => 'role_assignment_outside_scope', 'role_id' => (string) $roleId];
+        }
+
+        $reports = [];
+        foreach ($roleIds as $roleId) {
+            $role = $facts[$roleId] ?? null;
+            $extra = ['role_id' => (string) $roleId];
+            $assigned = array_key_exists($roleId, $assignments);
+            $active = ($role['status'] ?? null) === 'active';
+            $expected = $revisions[$roleId] ?? null;
+            $observed = $role['revision'] ?? null;
+            if ($role === null || !$active) {
+                $unresolved[] = ['code' => $role === null ? 'role_missing' : 'role_inactive', ...$extra];
+            }
+            if (!$assigned) {
+                $unresolved[] = ['code' => 'role_assignment_missing', ...$extra];
+            } elseif ($observed !== null && $expected !== $observed) {
+                $unresolved[] = ['code' => 'role_revision_mismatch', ...$extra];
+            }
+            if ($role['unresolved_grant'] ?? false) {
+                $unresolved[] = ['code' => 'legacy_role_grant_not_active_platform', ...$extra];
+            }
+
+            $roleKeys = $role['permission_keys'] ?? [];
+            $ownerDynamic = $role['owner_dynamic'] ?? false;
+            $keys = array_values(array_unique([...$roleKeys, ...($ownerDynamic ? $ownerKeys : [])]));
+            sort($keys, SORT_STRING);
+            $before = $this->apiIds($roleKeys, $legacy);
+            $allNodesAssignable = true;
+            $after = $active
+                ? $this->assignedApiIds($assignments[$roleId] ?? [], $nodeApis, $extra, $unresolved, $allNodesAssignable)
+                : [];
+            $dynamicIds = $ownerDynamic ? $this->apiIds($ownerKeys, $legacy) : [];
+            $beforeWithOwner = [...$before, ...$dynamicIds];
+            $afterWithOwner = [...$after, ...$dynamicIds];
+            $relation = $this->difference($before, $after);
+            $capability = $this->difference(
+                $this->effectiveIds($beforeWithOwner, $apis, $keys, $modules, false),
+                $this->effectiveIds($afterWithOwner, $apis, $keys, $modules, false),
+            );
+            $comparable = $assigned && $active && $expected === $observed && $allNodesAssignable && !$role['unresolved_grant']
+                && array_intersect_key($unresolvedPermissions, array_fill_keys($keys, true)) === [];
+            $reports[] = [
+                ...$extra,
+                'role_key' => $role['key'] ?? null,
+                'status' => $role['status'] ?? null,
+                'member_count' => $role === null ? null : (int) ($memberCounts[$roleId] ?? 0),
+                'expected_revision' => $expected,
+                'observed_revision' => $observed,
+                'relation_equal' => $comparable && $relation === ['added' => [], 'removed' => []],
+                'capability_equal' => $comparable && $capability === ['added' => [], 'removed' => []],
+                'relation' => $relation,
+                'capability' => $capability,
+                'owner_dynamic' => $ownerDynamic,
+                'non_http_permission_keys' => array_values(array_filter($keys, static fn(string $key): bool => ($legacy[$key] ?? []) === [])),
+                'prerequisite_permission_keys' => $this->prerequisiteKeys([...$beforeWithOwner, ...$afterWithOwner], $apis, $keys),
+            ];
+        }
+
+        return [
+            'catalog_total' => $catalogTotal,
+            'scope_covers_catalog' => count($facts) === $catalogTotal && count($facts) === count($roleIds),
+            'equivalent' => $unresolved === [] && !in_array(false, array_column($reports, 'relation_equal'), true)
+                && !in_array(false, array_column($reports, 'capability_equal'), true),
+            'roles' => $reports,
+            'unresolved' => $unresolved,
+        ];
+    }
+
+    /** Reuse the native deployment decision across the before/after projections in this transaction. */
+    private function catalogModuleAvailability(ModuleAvailability $modules): ModuleAvailability
+    {
+        return new class($modules) implements ModuleAvailability {
+            /** @var array<string, ModuleException|null> */
+            private array $deployments = [];
+
+            public function __construct(private readonly ModuleAvailability $modules) {}
+
+            public function assertDeployment(string $moduleKey, bool $lock = false): void
+            {
+                if ($lock) {
+                    $this->modules->assertDeployment($moduleKey, true);
+                    return;
+                }
+                if (!array_key_exists($moduleKey, $this->deployments)) {
+                    try {
+                        $this->modules->assertDeployment($moduleKey);
+                        $this->deployments[$moduleKey] = null;
+                    } catch (ModuleException $exception) {
+                        $this->deployments[$moduleKey] = $exception;
+                    }
+                }
+                if ($this->deployments[$moduleKey] !== null) {
+                    throw $this->deployments[$moduleKey];
+                }
+            }
+
+            public function assertAvailable(TenantScope $scope, string $moduleKey, DateTimeImmutable $now, bool $lock = false): void
+            {
+                $this->modules->assertAvailable($scope, $moduleKey, $now, $lock);
+            }
+
+            public function assertTenant(TenantScope $scope, string $moduleKey, DateTimeImmutable $now, bool $lock = false): void
+            {
+                $this->modules->assertTenant($scope, $moduleKey, $now, $lock);
+            }
+        };
+    }
+
+    private function catalogRoleFacts(array $roleIds): array
+    {
+        // Use the granting scope of roleFacts(), keeping invalid links visible rather than turning them into empty grants.
+        $rows = Db::name('platform_role')->alias('role')
+            ->leftJoin('platform_role_permission binding', "binding.platform_role_id = role.id AND role.status = 'active'")
+            ->leftJoin('permission permission', "permission.id = binding.permission_id AND permission.status = 'active' AND permission.key LIKE 'platform.%'")
+            ->whereIn('role.id', $roleIds)
+            ->field('role.id,role.key AS role_key,role.status,role.is_builtin,role.revision,binding.permission_id,permission.key AS permission_key')
+            ->order('role.id,permission.key')->select()->toArray();
+
+        $facts = [];
+        foreach ($rows as $row) {
+            $roleId = (int) $row['id'];
+            $facts[$roleId] ??= [
+                'key' => $row['role_key'],
+                'status' => $row['status'],
+                'revision' => (int) $row['revision'],
+                'owner_dynamic' => $row['status'] === 'active' && $row['role_key'] === 'platform.bootstrap-owner' && (int) $row['is_builtin'] === 1,
+                'permission_keys' => [],
+                'unresolved_grant' => false,
+            ];
+            if (is_string($row['permission_key'])) {
+                $facts[$roleId]['permission_keys'][] = $row['permission_key'];
+            } elseif ($row['permission_id'] !== null) {
+                $facts[$roleId]['unresolved_grant'] = true;
+            }
+        }
+
+        return $facts;
+    }
+
+    private function prerequisiteKeys(array $apiIds, array $apis, array $permissionKeys): array
+    {
+        $prerequisites = [];
+        foreach (array_intersect_key($apis, array_fill_keys($apiIds, true)) as $api) {
+            foreach (json_decode($api['prerequisite_permission_keys'], true, 32, JSON_THROW_ON_ERROR) as $key) {
+                $prerequisites[$key] = true;
+            }
+        }
+
+        return array_values(array_filter($permissionKeys, static fn(string $key): bool => isset($prerequisites[$key])));
+    }
+
+    private function activeApis(): array
+    {
+        $apis = [];
+        foreach (Db::name('system_api')->where('audience', 'platform')->where('access_mode', 'platform_permission')
+            ->where('status', 'active')
+            ->field('id,method,path,module_key,default_permission_keys,prerequisite_permission_keys')
+            ->order('path,method')->select()->toArray() as $api) {
+            $apis[$api['id']] = $api;
+        }
+
+        return $apis;
+    }
+
+    private function assignedApiIds(
+        array $nodeKeys,
+        array $nodeApis,
+        array $extra,
+        array &$unresolved,
+        bool &$allNodesAssignable,
+    ): array {
+        $ids = [];
+        foreach ($nodeKeys as $nodeKey) {
+            if (!array_key_exists($nodeKey, $nodeApis)) {
+                $unresolved[] = ['code' => 'role_node_not_assignable', 'node_key' => $nodeKey, ...$extra];
+                $allNodesAssignable = false;
+                continue;
+            }
+            $ids = array_merge($ids, $nodeApis[$nodeKey]);
+        }
+
+        return $ids;
     }
 
     private function compare(
@@ -63,13 +315,7 @@ final readonly class PlatformRoleAuthorizationPreview
         $permissionKeys = $this->roles->permissions($operatorId)->keys();
         $unresolved = $active ? [] : [['code' => 'operator_inactive']];
 
-        $apis = [];
-        foreach (Db::name('system_api')->where('audience', 'platform')->where('access_mode', 'platform_permission')
-            ->where('status', 'active')
-            ->field('id,method,path,module_key,default_permission_keys,prerequisite_permission_keys')
-            ->order('path,method')->select()->toArray() as $api) {
-            $apis[$api['id']] = $api;
-        }
+        $apis = $this->activeApis();
         $legacy = $this->legacyBindings($permissionKeys, $apis, $unresolved);
         $nodeApis = $this->nodeApis($nodes, $apis, $unresolved);
         foreach ($assignments as $roleId => $nodeKeys) {
@@ -100,14 +346,13 @@ final readonly class PlatformRoleAuthorizationPreview
             $after = [];
             $allNodesAssignable = true;
             if ($active && $role['status'] === 'active') {
-                foreach ($assignments[$roleId] ?? [] as $nodeKey) {
-                    if (!array_key_exists($nodeKey, $nodeApis)) {
-                        $unresolved[] = ['code' => 'role_node_not_assignable', 'node_key' => $nodeKey, ...$extra];
-                        $allNodesAssignable = false;
-                        continue;
-                    }
-                    $after = array_merge($after, $nodeApis[$nodeKey]);
-                }
+                $after = $this->assignedApiIds(
+                    $assignments[$roleId] ?? [],
+                    $nodeApis,
+                    $extra,
+                    $unresolved,
+                    $allNodesAssignable,
+                );
             }
             if ($role['owner_dynamic']) {
                 $dynamicIds = $this->apiIds($this->roles->bootstrapOwnerPermissionKeys(), $legacy);
