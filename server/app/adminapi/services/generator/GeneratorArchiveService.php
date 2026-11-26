@@ -127,14 +127,16 @@ class GeneratorArchiveService
 
     private static function adminDirectory(int $adminId): string
     {
-        return rtrim(runtime_path(), DIRECTORY_SEPARATOR)
+        // The resolved archive is canonical, while macOS runtime paths may use /var -> /private/var.
+        $runtimeRoot = realpath(runtime_path()) ?: runtime_path();
+        return rtrim($runtimeRoot, DIRECTORY_SEPARATOR)
             . DIRECTORY_SEPARATOR . 'generator' . DIRECTORY_SEPARATOR . $adminId;
     }
 
     private static function runtimeDescendant(string $relativePath, bool $mustExist): string
     {
         $relative = self::safeEntryPath($relativePath);
-        $runtime = rtrim(runtime_path(), DIRECTORY_SEPARATOR);
+        $runtime = rtrim(realpath(runtime_path()) ?: runtime_path(), DIRECTORY_SEPARATOR);
         $target = $runtime . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
         self::assertDescendant($target, $runtime);
         if ($mustExist && !file_exists($target)) {

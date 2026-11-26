@@ -2363,6 +2363,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platformapi/roles/permissions/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["previewPlatformRoleAuthorization"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platformapi/roles/permissions/catalog-audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["auditPlatformRoleAuthorizationCatalog"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platformapi/tenants/provision": {
         parameters: {
             query?: never;
@@ -3419,6 +3451,23 @@ export interface paths {
         put?: never;
         /** @description 当前 task.view/review 范围、原UUID及对象CAS；撤回只终止旧采纳可用性。重做先保留旧固定版本，再显式建立新Task；替代须指定另一当前已采纳任务及其版本，不自动批准制作或发起外部生成。 */
         post: operations["aiAssistantCandidateLifecycle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/peanut.article.hello": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取既有受授权的文章模块 Hello 响应 */
+        get: operations["getArticleHello"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -7186,6 +7235,151 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/adminapi/api/v1/workflow/definitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Existing tenant-authorized definition list; only the bounded WorkflowQueries::definitions storage projection, never a read of every definition followed by per-row detail calls. */
+        get: operations["listWorkflowDefinitions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getWorkflowDesignerDefinition"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/scenario": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getWorkflowDesignerScenario"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["saveWorkflowDesignerDraft"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/definitions/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["validateWorkflowDesignerGraph"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/definitions/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["previewWorkflowDesignerGraph"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["publishWorkflowDesignerDefinition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["activateWorkflowDesignerDefinition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["retireWorkflowDesignerDefinition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/summary": {
         parameters: {
             query?: never;
@@ -7196,6 +7390,269 @@ export interface paths {
         get: operations["getWorkflowStartSummary"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/instances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["startWorkflowInstance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/inbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getWorkflowInbox"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/instances/{instanceKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getWorkflowRuntimeInstance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/tasks/{workItemKey}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["claimWorkflowTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/tasks/{workItemKey}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["releaseWorkflowTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/tasks/{workItemKey}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["decideWorkflowTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/tasks/{workItemKey}/completions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["completeWorkflowTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/tasks/{workItemKey}/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["returnWorkflowTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/tasks/{workItemKey}/resubmit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["resubmitWorkflowTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/instances/{instanceKey}/diagnostics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Current Workflow diagnostics.read plus current Task jobs.read authorization; optional Task jobs.manage only determines available recovery actions. */
+        get: operations["getWorkflowTaskDiagnostics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/instances/{instanceKey}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Requires current Workflow diagnostics.read, Task jobs.manage, terminal original Task and exact instance/node/job revisions; cannot infer Task state from UI. */
+        post: operations["reconcileWorkflowServiceTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/instances/{instanceKey}/recover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Requires current Workflow diagnostics.retry, Task jobs.manage and authorized current business effect; recovery of dead original job is bound to the same frozen effect identity. */
+        post: operations["recoverWorkflowServiceTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/instances/{instanceKey}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Only initiating member before substantive action, with current Workflow instance.withdraw authorization. */
+        post: operations["withdrawWorkflowInstance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/instances/{instanceKey}/terminate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Requires Workflow instance.terminate. Outstanding Task effects require current Task jobs.manage, cancelled terminal evidence and matching original Task revision. */
+        post: operations["terminateWorkflowInstance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/instances/{instanceKey}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Requires Workflow diagnostics.retry. Ordinary blocked node retry may not replace an existing Task job or resolve frozen assignee pools implicitly. */
+        post: operations["retryBlockedWorkflowInstance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adminapi/api/v1/workflow/instances/{instanceKey}/reassign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Requires Workflow diagnostics.reassign and current eligible assignee in the same tenant; CAS on both instance and work-item revision. */
+        post: operations["reassignWorkflowPendingItem"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8138,7 +8595,12 @@ export interface components {
         };
         GeneratorPreviewFile: {
             path: string;
+            language: string;
             content: string;
+            /** @enum {string} */
+            operation: "create" | "merge" | "unchanged" | "conflict";
+            base_sha256?: string;
+            proposed_sha256?: string;
         };
         GeneratorDownload: {
             download_token: string;
@@ -8902,6 +9364,84 @@ export interface components {
             selection_sha256: string;
         };
         PlatformOfficialPackageResult: components["schemas"]["PlatformOfficialPackagePreview"] | components["schemas"]["PlatformOpsTask"];
+        PlatformRoleAuthorizationCandidate: {
+            operator_id: number | string;
+            nodes: {
+                key: string;
+                parent_key: string | null;
+                /** @enum {string} */
+                type: "group" | "page" | "action" | "operation";
+                api_ids: string[];
+            }[];
+            role_assignments: {
+                role_id: number | string;
+                node_keys: string[];
+            }[];
+        };
+        PlatformRoleAuthorizationPreview: {
+            operator_id: string;
+            capability_equal: boolean;
+            relation_coverage_complete: boolean;
+            owner_dynamic: boolean;
+            added: string[];
+            removed: string[];
+            non_http_permission_keys: string[];
+            roles: {
+                role_id: string;
+                relation_equal: boolean;
+                owner_dynamic: boolean;
+                added: string[];
+                removed: string[];
+            }[];
+            unresolved: {
+                code: string;
+                role_id?: string;
+                node_key?: string;
+                api_id?: string;
+                permission_key?: string;
+            }[];
+        };
+        PlatformRoleAuthorizationCatalogCandidate: {
+            role_ids: (number | string)[];
+            role_assignments: {
+                role_id: number | string;
+                expected_revision: number | string;
+                node_keys: string[];
+            }[];
+        };
+        PlatformRoleAuthorizationCatalogAudit: {
+            catalog_total: number;
+            scope_covers_catalog: boolean;
+            equivalent: boolean;
+            roles: {
+                role_id: string;
+                role_key: string | null;
+                status: string | null;
+                member_count: number | null;
+                expected_revision: number | null;
+                observed_revision: number | null;
+                relation_equal: boolean;
+                capability_equal: boolean;
+                relation: {
+                    added: string[];
+                    removed: string[];
+                };
+                capability: {
+                    added: string[];
+                    removed: string[];
+                };
+                owner_dynamic: boolean;
+                non_http_permission_keys: string[];
+                prerequisite_permission_keys: string[];
+            }[];
+            unresolved: {
+                code: string;
+                role_id?: string;
+                node_key?: string;
+                api_id?: string;
+                permission_key?: string;
+            }[];
+        };
         TenantPlan: {
             id: number;
             code: string;
@@ -9210,6 +9750,16 @@ export interface components {
             data: components["schemas"]["AiRequestReceipt"];
             code?: number;
             msg?: string;
+        };
+        ArticleHelloResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            /** @enum {string} */
+            msg: "success";
+            data: {
+                /** @enum {string} */
+                message: "Hello";
+            };
         };
         ArticleHtmlMigrationRequest: {
             id: components["schemas"]["ArticlePositiveIntegerInput"];
@@ -13110,6 +13660,242 @@ export interface components {
             code: 20000;
             msg: string;
             data: components["schemas"]["TaskExpressionItem"][];
+        };
+        WorkflowDesignerGraphNode: {
+            key: string;
+            label: string;
+            /** @enum {string} */
+            type: "start" | "approval" | "human_task" | "exclusive_gateway" | "service_task" | "end";
+            config: Record<string, never>;
+        };
+        WorkflowDesignerGraphTransition: {
+            key: string;
+            from: string;
+            to: string;
+            action: string;
+            operation: string | null;
+            permission_keys: string[];
+            return_edge: boolean;
+            max_traversals: number | null;
+        };
+        WorkflowDesignerGraph: {
+            /** @enum {integer} */
+            contract_version: 2;
+            scenario_contract_version: number;
+            subject_resource_key: string;
+            subject_read_operation: string;
+            subject_start_operation: string;
+            start_permission_keys: string[];
+            required_capabilities: string[];
+            nodes: components["schemas"]["WorkflowDesignerGraphNode"][];
+            transitions: components["schemas"]["WorkflowDesignerGraphTransition"][];
+        };
+        WorkflowDesignerLayout: {
+            nodes: {
+                key: string;
+                x: number;
+                y: number;
+            }[];
+            viewport: {
+                x: number;
+                y: number;
+                zoom: number;
+            } | null;
+        };
+        WorkflowDesignerDefinitionVersion: {
+            version: number;
+            graph_sha256: string;
+            published_at: string;
+        };
+        WorkflowDesignerDefinition: {
+            definition_id: string;
+            module_key: string;
+            workflow_key: string;
+            status: string;
+            draft_revision: number;
+            latest_version: number;
+            active_version: number | null;
+            graph: components["schemas"]["WorkflowDesignerGraph"];
+            layout: components["schemas"]["WorkflowDesignerLayout"];
+            versions: components["schemas"]["WorkflowDesignerDefinitionVersion"][];
+        };
+        WorkflowDesignerScenarioField: {
+            /** @enum {string} */
+            type: "boolean" | "integer" | "string" | "enum" | "datetime" | "decimal";
+            nullable: boolean;
+            values?: string[];
+        };
+        WorkflowDesignerScenarioAction: {
+            action_key: string;
+            contract_version: number;
+            input_schema: Record<string, never>;
+        };
+        WorkflowDesignerScenario: {
+            scenario_contract_version: number;
+            fields: {
+                [key: string]: components["schemas"]["WorkflowDesignerScenarioField"];
+            };
+            result_codes: string[];
+            capabilities: string[];
+            actions: components["schemas"]["WorkflowDesignerScenarioAction"][];
+        };
+        WorkflowDesignerIssue: {
+            code: string;
+            message: string;
+            path?: string;
+            node_key?: string;
+            field?: string;
+        };
+        WorkflowDesignerValidationReceipt: {
+            issues: components["schemas"]["WorkflowDesignerIssue"][];
+        };
+        WorkflowDesignerSaveReceipt: {
+            definition_id: string;
+            draft_revision: number;
+            issues: components["schemas"]["WorkflowDesignerIssue"][];
+        };
+        WorkflowDesignerPreviewBasis: {
+            initiator_member_id: string;
+            business_department_key: string | null;
+            previous_actor_member_id: string | null;
+            subject_type: string;
+            subject_key: string;
+        };
+        WorkflowDesignerPreviewMember: {
+            member_id: string;
+            source_kind: string;
+        };
+        WorkflowDesignerPreviewNode: {
+            node_key: string;
+            members: components["schemas"]["WorkflowDesignerPreviewMember"][];
+        };
+        WorkflowDesignerPreviewReceipt: {
+            /** @enum {boolean} */
+            simulated: true;
+            nodes: components["schemas"]["WorkflowDesignerPreviewNode"][];
+            issues: components["schemas"]["WorkflowDesignerIssue"][];
+        };
+        WorkflowDesignerPublishReceipt: {
+            definition_id: string;
+            version: number;
+            active_version: number;
+            draft_revision: number;
+        };
+        WorkflowDesignerStatusReceipt: {
+            definition_id: string;
+            draft_revision: number;
+            active_version: number | null;
+            /** @enum {string} */
+            status: "active" | "retired";
+        };
+        WorkflowDesignerWritableLayout: {
+            nodes: {
+                key: string;
+                x: number;
+                y: number;
+            }[];
+            viewport: {
+                x: number;
+                y: number;
+                zoom: number;
+            };
+        };
+        WorkflowStartInput: {
+            module_key: string;
+            workflow_key: string;
+            subject_type: string;
+            subject_key: string;
+            subject_revision_key: string;
+            expected_revision: number;
+            business_department_key: string | null;
+            attachment_file_keys: string[];
+        };
+        WorkflowInboxWorkItem: {
+            work_item_key: string;
+            instance_key: string;
+            node_execution_key: string;
+            label: string;
+            type: string;
+            revision: number;
+            instance_revision: number;
+            node_revision: number;
+            /** @enum {string} */
+            status: "pending" | "completed" | "cancelled";
+            /** @enum {string} */
+            assignment_state: "assigned" | "unassigned";
+            owner_member_id: string | null;
+            assignee_member_id: string | null;
+            relations: string[];
+            decision: string | null;
+        };
+        WorkflowRuntimeWorkItem: components["schemas"]["WorkflowInboxWorkItem"] & {
+            available_actions: string[];
+        };
+        WorkflowRuntimeActiveNode: {
+            node_execution_key: string;
+            label: string;
+            status: string;
+            revision: number;
+            task_termination_evidence_required: boolean;
+        };
+        WorkflowRuntimeReassignItem: {
+            work_item_key: string;
+            label: string;
+            revision: number;
+        };
+        WorkflowRuntimeBlocker: {
+            code: string;
+            message: string;
+            node_execution_key: string | null;
+        };
+        WorkflowRuntimeInstance: {
+            instance_key: string;
+            subject_type: string;
+            subject_key: string;
+            subject_revision_key: string;
+            status: string;
+            result_code: string | null;
+            revision: number;
+            active_nodes: components["schemas"]["WorkflowRuntimeActiveNode"][];
+            own_work_items: components["schemas"]["WorkflowRuntimeWorkItem"][];
+            reassign_work_items: components["schemas"]["WorkflowRuntimeReassignItem"][];
+            available_actions: string[];
+            event_cursor: number;
+            blocker: components["schemas"]["WorkflowRuntimeBlocker"] | null;
+        };
+        WorkflowInboxPage: {
+            items: (components["schemas"]["WorkflowInboxWorkItem"] | components["schemas"]["WorkflowRuntimeInstance"])[];
+        };
+        WorkflowTaskDiagnosticJob: {
+            job_key: string;
+            status: string;
+            revision: number;
+            last_error_code: string | null;
+        };
+        WorkflowTaskDiagnosticNode: {
+            node_execution_key: string;
+            node_revision: number;
+            status: string;
+            job: components["schemas"]["WorkflowTaskDiagnosticJob"];
+            available_actions: ("reconcile" | "retry_original" | "reauthorize")[];
+        };
+        WorkflowTaskDiagnostics: {
+            instance_key: string;
+            revision: number;
+            items: components["schemas"]["WorkflowTaskDiagnosticNode"][];
+        };
+        WorkflowDefinitionListItem: {
+            definition_id: string;
+            module_key: string;
+            workflow_key: string;
+            /** @enum {string} */
+            status: "draft" | "active" | "retired";
+            draft_revision: number;
+            latest_version: number;
+            active_version: number | null;
+        };
+        WorkflowDefinitionListPage: {
+            items: components["schemas"]["WorkflowDefinitionListItem"][];
         };
         /** @description Persisted event-time metadata only. File preview, original download and management require separate current authorization; a changed source must not be delivered as the historical bytes. */
         WorkflowAttachment: {
@@ -18128,6 +18914,72 @@ export interface operations {
             422: components["responses"]["ErrorResponse"];
         };
     };
+    previewPlatformRoleAuthorization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformRoleAuthorizationCandidate"];
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["PlatformRoleAuthorizationPreview"];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
+    auditPlatformRoleAuthorizationCatalog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformRoleAuthorizationCatalogCandidate"];
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 20000;
+                        msg: string;
+                        data: components["schemas"]["PlatformRoleAuthorizationCatalogAudit"];
+                    };
+                };
+            };
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
+        };
+    };
     provisionPlatformTenant: {
         parameters: {
             query?: never;
@@ -20626,6 +21478,28 @@ export interface operations {
             403: components["responses"]["ErrorResponse"];
             404: components["responses"]["ErrorResponse"];
             409: components["responses"]["ErrorResponse"];
+        };
+    };
+    getArticleHello: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 读取既有受授权的文章模块 Hello 响应成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArticleHelloResponse"];
+                };
+            };
+            401: components["responses"]["ArticleErrorResponse"];
+            403: components["responses"]["ArticleErrorResponse"];
         };
     };
     articleHtmlMigrationPreview: {
@@ -27800,6 +28674,361 @@ export interface operations {
             403: components["responses"]["ErrorResponse"];
         };
     };
+    listWorkflowDefinitions: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowDefinitionListPage"];
+                        meta: {
+                            request_id: string;
+                            page?: number;
+                            page_size?: number;
+                            total?: number;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    getWorkflowDesignerDefinition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleKey: string;
+                workflowKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowDesignerDefinition"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    getWorkflowDesignerScenario: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleKey: string;
+                workflowKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowDesignerScenario"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    saveWorkflowDesignerDraft: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                moduleKey: string;
+                workflowKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_revision: number | null;
+                    graph: components["schemas"]["WorkflowDesignerGraph"];
+                    layout: components["schemas"]["WorkflowDesignerWritableLayout"];
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowDesignerSaveReceipt"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    validateWorkflowDesignerGraph: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    graph: components["schemas"]["WorkflowDesignerGraph"];
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowDesignerValidationReceipt"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    previewWorkflowDesignerGraph: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    graph: components["schemas"]["WorkflowDesignerGraph"];
+                    basis: components["schemas"]["WorkflowDesignerPreviewBasis"];
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowDesignerPreviewReceipt"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    publishWorkflowDesignerDefinition: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                moduleKey: string;
+                workflowKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_revision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowDesignerPublishReceipt"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    activateWorkflowDesignerDefinition: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                moduleKey: string;
+                workflowKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_revision: number;
+                    version: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowDesignerStatusReceipt"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    retireWorkflowDesignerDefinition: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                moduleKey: string;
+                workflowKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_revision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowDesignerStatusReceipt"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
     getWorkflowStartSummary: {
         parameters: {
             query: {
@@ -27834,6 +29063,698 @@ export interface operations {
             403: components["responses"]["WorkflowRuntimeError"];
             404: components["responses"]["WorkflowRuntimeError"];
             409: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    startWorkflowInstance: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkflowStartInput"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowRuntimeInstance"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    getWorkflowInbox: {
+        parameters: {
+            query?: {
+                filter?: "assigned" | "claimable" | "completed" | "initiated" | "participant" | "watcher";
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowInboxPage"];
+                        meta: {
+                            request_id: string;
+                            page?: number;
+                            page_size?: number;
+                            total?: number;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    getWorkflowRuntimeInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instanceKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowRuntimeInstance"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    claimWorkflowTask: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                workItemKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    node_execution_key: string;
+                    expected_revision: number;
+                    expected_node_revision: number;
+                    expected_task_revision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowRuntimeInstance"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    releaseWorkflowTask: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                workItemKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    node_execution_key: string;
+                    expected_revision: number;
+                    expected_node_revision: number;
+                    expected_task_revision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowRuntimeInstance"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    decideWorkflowTask: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                workItemKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    node_execution_key: string;
+                    expected_revision: number;
+                    expected_node_revision: number;
+                    expected_task_revision: number;
+                    /** @enum {string} */
+                    decision: "approve";
+                    comment: string | null;
+                    attachment_file_keys: string[];
+                } | {
+                    node_execution_key: string;
+                    expected_revision: number;
+                    expected_node_revision: number;
+                    expected_task_revision: number;
+                    /** @enum {string} */
+                    decision: "reject";
+                    comment: string;
+                    attachment_file_keys: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowRuntimeInstance"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    completeWorkflowTask: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                workItemKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    node_execution_key: string;
+                    expected_revision: number;
+                    expected_node_revision: number;
+                    expected_task_revision: number;
+                    comment: string | null;
+                    attachment_file_keys: string[];
+                    input: Record<string, never>;
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowRuntimeInstance"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    returnWorkflowTask: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                workItemKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    node_execution_key: string;
+                    expected_revision: number;
+                    expected_node_revision: number;
+                    expected_task_revision: number;
+                    comment: string;
+                    attachment_file_keys: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowRuntimeInstance"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    resubmitWorkflowTask: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                workItemKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    node_execution_key: string;
+                    expected_revision: number;
+                    expected_node_revision: number;
+                    expected_task_revision: number;
+                    comment: string | null;
+                    attachment_file_keys: string[];
+                    subject_revision_key: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowRuntimeInstance"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    getWorkflowTaskDiagnostics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instanceKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowTaskDiagnostics"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    reconcileWorkflowServiceTask: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                instanceKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_revision: number;
+                    node_execution_key: string;
+                    expected_node_revision: number;
+                    expected_job_revision: number;
+                    comment: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowRuntimeInstance"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    recoverWorkflowServiceTask: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                instanceKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_revision: number;
+                    node_execution_key: string;
+                    expected_node_revision: number;
+                    expected_job_revision: number;
+                    /** @enum {string} */
+                    strategy: "retry_original" | "reauthorize";
+                    comment: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowRuntimeInstance"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    withdrawWorkflowInstance: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                instanceKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_revision: number;
+                    comment: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowRuntimeInstance"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    terminateWorkflowInstance: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                instanceKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_revision: number;
+                    comment: string;
+                } | {
+                    expected_revision: number;
+                    comment: string;
+                    expected_job_revision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowRuntimeInstance"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    retryBlockedWorkflowInstance: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                instanceKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_revision: number;
+                    comment: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowRuntimeInstance"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
+        };
+    };
+    reassignWorkflowPendingItem: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                instanceKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_revision: number;
+                    comment: string;
+                    work_item_key: string;
+                    assignee_member_id: string;
+                    expected_task_revision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Current-authorized Workflow runtime result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WorkflowRuntimeInstance"];
+                        meta: {
+                            request_id: string;
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["WorkflowRuntimeError"];
+            401: components["responses"]["WorkflowRuntimeError"];
+            403: components["responses"]["WorkflowRuntimeError"];
+            404: components["responses"]["WorkflowRuntimeError"];
+            409: components["responses"]["WorkflowRuntimeError"];
+            422: components["responses"]["WorkflowRuntimeError"];
         };
     };
     getWorkflowFrozenMaterials: {

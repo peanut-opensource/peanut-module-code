@@ -44,9 +44,18 @@ final class ModuleGenerateCrud extends ContextualCommand
                 (string) $input->getArgument('table_name'),
                 (string) $app->config->get('deployment.mode'),
                 $root,
+                true,
             );
             if ($write) {
-                self::apply($root, $files);
+                $conflicts = array_column(array_filter(
+                    $files, static fn(array $file): bool => $file['operation'] === 'conflict',
+                ), 'path');
+                if ($conflicts !== []) {
+                    throw new RuntimeException('CRUD_CREATE_TARGET_CONFLICT: ' . implode(', ', $conflicts));
+                }
+                self::apply($root, array_values(array_filter(
+                    $files, static fn(array $file): bool => $file['operation'] !== 'unchanged',
+                )));
             }
         } finally {
             if (is_resource($lock)) {
@@ -55,7 +64,11 @@ final class ModuleGenerateCrud extends ContextualCommand
         }
 
         foreach ($files as $file) {
-            $output->writeln(sprintf('%s %s', $file['operation'], $file['path']));
+            $output->writeln(sprintf('%s %s%s', $file['operation'], $file['path'],
+                $file['operation'] === 'conflict'
+                    ? ' current=' . $file['base_sha256'] . ' proposed=' . $file['proposed_sha256']
+                    : '',
+            ));
         }
         return 0;
     }

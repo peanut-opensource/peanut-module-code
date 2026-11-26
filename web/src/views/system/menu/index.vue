@@ -67,11 +67,21 @@
         <el-table-column :label="$t('systemMenu.columns.status')" width="90">
           <template #default="{ row }">
             <el-switch
-              v-permission="['core.menu.manage']"
+              v-if="canManageMenus()"
               :model-value="row.status === 'active' && row.is_disable === 0"
               :disabled="row.status !== 'active'"
               @change="(v: string | number | boolean) => handleStatus(row, v as boolean)"
             />
+            <el-tag
+              v-else
+              :type="row.status !== 'active' ? 'info' : row.is_disable === 0 ? 'success' : 'danger'"
+            >{{
+              row.status !== 'active'
+                ? $t('systemMenu.status.retired')
+                : row.is_disable === 0
+                  ? $t('systemMenu.status.enabled')
+                  : $t('systemMenu.status.disabled')
+            }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column
@@ -279,6 +289,8 @@
 
 <script lang="ts" setup>
   import { computed, ref, reactive, onBeforeUnmount } from 'vue';
+  import { useRoute } from 'vue-router';
+  import { hasPermission } from '@/hooks/permission';
   import { useI18n } from 'vue-i18n';
   import { ElMessage } from 'element-plus';
   import type { FormInstance, TagProps } from 'element-plus';
@@ -300,6 +312,8 @@
   } from '@/api/system/menu';
 
   const { t } = useI18n();
+  const route = useRoute();
+  const canManageMenus = () => hasPermission('core.menu.manage', route.path);
   const { loading, setLoading } = useLoading(true);
   const renderData = ref<MenuRecord[]>([]);
 

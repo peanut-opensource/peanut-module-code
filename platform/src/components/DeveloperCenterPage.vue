@@ -26,7 +26,7 @@
         :loading="runtimeLoading"
         @click="loadRuntime(1)"
       >
-        读取安装与依赖状态
+        {{ platformDeveloperRuntimeRead.label }}
       </el-button>
     </div>
     <el-alert v-if="error" :title="error" type="error" show-icon />
@@ -52,11 +52,11 @@
           :loading="updatesLoading"
           :disabled="officialBusy"
           @click="checkOfficialUpdates"
-          >刷新官方目录</el-button
+          >{{ platformDeveloperOfficialUpdatesRead.label }}</el-button
         >
       </div>
       <el-alert
-        v-if="updatesError"
+        v-if="updatesError && !officialSelection"
         :title="updatesError"
         type="error"
         show-icon
@@ -109,7 +109,7 @@
           <el-table-column label="操作" min-width="140">
             <template #default="{ row }">
               <el-button
-                v-if="canInstall"
+                v-if="canInstallOfficial"
                 :disabled="row.availability !== 'available'"
                 :loading="officialBusy"
                 @click="previewCatalog(row)"
@@ -152,7 +152,7 @@
           和迁移计划，任务执行时再次核对安装状态。版本及 SHA-256 始终固定。</p
         >
       </template>
-      <template v-if="officialPreview && officialSelection">
+      <template v-if="officialSelection && (officialPreview || updatesError)">
         <h3
           >{{ officialSelection.module_key }} →
           {{ officialSelection.version }}</h3
@@ -162,10 +162,20 @@
             officialSelection.sha256
           }}</code></p
         >
-        <StructuredDetails :value="officialPreview.plan" />
+        <el-alert
+          v-if="updatesError"
+          :title="updatesError"
+          type="error"
+          show-icon
+        />
+        <StructuredDetails
+          v-if="officialPreview"
+          :value="officialPreview.plan"
+        />
         <el-button
-          v-if="canSubmitOfficial"
+          v-if="officialPreview && canSubmitOfficial"
           type="primary"
+          :disabled="packageLoading"
           :loading="officialBusy"
           @click="applyOfficial"
           >确认所选版本并提交{{
@@ -210,6 +220,7 @@
         <el-button
           type="primary"
           :loading="packageLoading"
+          :disabled="officialBusy"
           @click="submitPackage"
           >校验并提交任务</el-button
         >
@@ -231,7 +242,11 @@
         <p v-if="packageTask.status === 'succeeded'"
           >依赖、模块生命周期及当前支持的客户端采用已完成。</p
         >
-        <el-button :loading="packageLoading" @click="refreshPackageTask"
+        <el-button
+          v-if="canReadTasks"
+          :loading="packageLoading"
+          :disabled="officialBusy"
+          @click="refreshPackageTask"
           >刷新任务状态</el-button
         >
         <el-alert
@@ -436,8 +451,11 @@
     OfficialUpdatePreview,
   } from '../api/platform';
 
+  import { platformDeveloperOfficialUpdatesRead, platformDeveloperRuntimeRead } from '../core/platform-shell-definitions';
+
   const props = defineProps<{
     canReadUpdates: boolean;
+    canInstallOfficial: boolean;
     canUpdateOfficial: boolean;
     canReadRuntime: boolean;
     canInstall: boolean;
@@ -472,7 +490,7 @@
   const officialOperation = ref<'install' | 'update'>('update');
   const canSubmitOfficial = computed(() =>
     officialOperation.value === 'install'
-      ? props.canInstall
+      ? props.canInstallOfficial
       : props.canUpdateOfficial
   );
   const catalogSearch = ref('');
@@ -550,7 +568,7 @@
   async function previewCatalog(
     row: OfficialModuleCatalogEntry
   ): Promise<void> {
-    if (!props.canInstall || row.availability !== 'available') return;
+    if (!props.canInstallOfficial || row.availability !== 'available') return;
     await previewOfficialCandidate(
       {
         module_key: row.key,
@@ -567,6 +585,7 @@
     selection: OfficialModuleSelection,
     operation: 'install' | 'update'
   ): Promise<void> {
+    if (officialBusy.value || updatesLoading.value) return;
     officialOperation.value = operation;
     officialBusy.value = true;
     updatesError.value = '';
@@ -588,6 +607,8 @@
 
   async function applyOfficial(): Promise<void> {
     if (
+      officialBusy.value ||
+      packageLoading.value ||
       !canSubmitOfficial.value ||
       !officialSelection.value ||
       !officialPreview.value
@@ -597,8 +618,9 @@
     const operation = officialOperation.value;
     const action = operation === 'install' ? '安装' : '升级';
     const digest = officialPreview.value.selection_sha256;
+    officialBusy.value = true;
     try {
-      await ElMessageBox.confirm(
+      const confirmed = await ElMessageBox.confirm(
         '将' +
           action +
           ' ' +
@@ -608,18 +630,14 @@
           '，可能执行迁移并使相关模块短暂不可用。任务执行时会重新核对权限、依赖和迁移状态。确认提交？',
         '确认模块' + action,
         { type: 'warning' }
-      );
-    } catch {
-      return;
-    }
-    officialBusy.value = true;
-    updatesError.value = '';
-    officialIdempotency ||=
-      'official-module-' +
-      Array.from(crypto.getRandomValues(new Uint8Array(16)), (value) =>
-        value.toString(16).padStart(2, '0')
-      ).join('');
-    try {
+      ).catch(() => false);
+      if (!confirmed) return;
+      updatesError.value = '';
+      officialIdempotency ||=
+        'official-module-' +
+        Array.from(crypto.getRandomValues(new Uint8Array(16)), (value) =>
+          value.toString(16).padStart(2, '0')
+        ).join('');
       packageTask.value = await api.applyOfficialModule(
         selection,
         digest,
@@ -627,6 +645,7 @@
         operation
       );
       officialPreview.value = null;
+      officialSelection.value = null;
     } catch (cause) {
       updatesError.value =
         cause instanceof Error ? cause.message : '模块任务提交失败';
@@ -699,6 +718,7 @@
 
   async function submitPackage(): Promise<void> {
     if (
+      officialBusy.value ||
       packageLoading.value ||
       (packageOperation.value === 'install'
         ? !props.canInstall
@@ -735,15 +755,23 @@
   }
 
   async function refreshPackageTask(): Promise<void> {
-    if (!props.canReadTasks || !packageTask.value) return;
+    if (
+      !props.canReadTasks ||
+      !packageTask.value ||
+      packageLoading.value ||
+      officialBusy.value
+    )
+      return;
+    const taskKey = packageTask.value.task_key;
     packageLoading.value = true;
     packageError.value = '';
     try {
-      packageTask.value = await api.moduleOperationTask(
-        packageTask.value.task_key
-      );
-      if (packageTask.value.status === 'succeeded')
-        await loadRuntime(runtimePage.value);
+      const task = await api.moduleOperationTask(taskKey);
+      if (packageTask.value?.task_key !== taskKey) return;
+      if (task.task_key !== taskKey)
+        throw new Error('返回的任务与当前回执不一致，请重新刷新。');
+      packageTask.value = task;
+      if (task.status === 'succeeded') await loadRuntime(runtimePage.value);
     } catch (cause) {
       packageError.value =
         cause instanceof Error ? cause.message : '模块任务状态读取失败';

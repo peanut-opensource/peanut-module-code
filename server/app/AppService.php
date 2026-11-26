@@ -631,7 +631,9 @@ class AppService extends Service
         $this->app->bind(
             \app\platform\services\module\OfficialModuleReleaseService::class,
             fn(): \app\platform\services\module\OfficialModuleReleaseService =>
-                new \app\platform\services\module\OfficialModuleReleaseService(dirname(__DIR__, 2), new \GuzzleHttp\Client()),
+                new \app\platform\services\module\OfficialModuleReleaseService(
+                    dirname(__DIR__, 2), new \GuzzleHttp\Client(), $this->app->make(CurrentExecutionContext::class),
+                ),
         );
         $this->app->bind(
             \app\platform\services\developer\DeveloperCenterCatalogService::class,

@@ -36,7 +36,7 @@
     >
     <el-dialog
       v-model="visible"
-      title="维护当前许可证"
+      :title="platformTenantLicenseUpdate.label"
       width="min(600px, 94vw)"
       :close-on-click-modal="false"
     >
@@ -104,6 +104,8 @@
   import { ElMessage } from 'element-plus';
   import { api } from '../api/platform';
   import type { Plan, TenantLicense } from '../api/tenant-license';
+  import { platformTenantLicenseUpdate } from '../core/platform-shell-definitions';
+
   const props = defineProps<{ tenantId: number; canManage: boolean }>();
   const emit = defineEmits<{ (event: 'saved'): void }>();
   const license = ref<TenantLicense | null>(null);

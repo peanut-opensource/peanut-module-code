@@ -97,9 +97,16 @@
           <el-table-column :label="$t('systemJobs.columns.status')" width="90"
             ><template #default="{ row }"
               ><el-switch
-                v-permission="['core.job.update']"
+                v-if="canAccess('core.job.update')"
                 :model-value="row.status === 1"
-                @change="(v: string | number | boolean) => handleStatus(row, v as boolean)" /></template
+                @change="(v: string | number | boolean) => handleStatus(row, v as boolean)" />
+              <el-tag v-else :type="row.status === 1 ? 'success' : 'info'">
+                {{
+                  row.status === 1
+                    ? $t('systemJobs.status.normal')
+                    : $t('systemJobs.status.stopped')
+                }}
+              </el-tag></template
           ></el-table-column>
           <el-table-column
             :label="$t('systemJobs.columns.operations')"

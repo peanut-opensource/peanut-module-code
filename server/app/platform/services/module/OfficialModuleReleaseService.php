@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace app\platform\services\module;
 
+use app\common\execution\CurrentExecutionContext;
+use app\common\value\http\OutboundHttpAttemptObservation;
 use Composer\Semver\Comparator;
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
@@ -24,7 +27,11 @@ final class OfficialModuleReleaseService
     private array $catalogs = [];
     private array $releases = [];
 
-    public function __construct(private readonly string $projectRoot, private readonly ClientInterface $http) {}
+    public function __construct(
+        private readonly string $projectRoot,
+        private readonly ClientInterface $http,
+        private readonly ?CurrentExecutionContext $executionContext = null,
+    ) {}
 
     /** Source lock versions are not misrepresented as successful runtime installation. */
     public function updates(string $channel = 'stable'): array
@@ -339,7 +346,9 @@ final class OfficialModuleReleaseService
 
     private function request(string $url, int $limit): string
     {
-        $response = $this->http->request('GET', $url, ['connect_timeout' => 10, 'timeout' => 35, 'read_timeout' => 35, 'stream' => true,
+        $startedAt = hrtime(true);
+        try {
+            $response = $this->http->request('GET', $url, ['connect_timeout' => 10, 'timeout' => 35, 'read_timeout' => 35, 'stream' => true,
             'headers' => ['Accept' => str_starts_with($url, 'https://api.github.com/') ? 'application/vnd.github+json' : 'application/octet-stream', 'User-Agent' => 'Peanut-Developer-Updates'],
             'allow_redirects' => ['max' => 5, 'protocols' => ['https'], 'strict' => true,
                 'on_redirect' => static function (RequestInterface $request, ResponseInterface $response, UriInterface $uri): void {
@@ -347,18 +356,47 @@ final class OfficialModuleReleaseService
                         throw new ModulePackageException('MODULE_RELEASE_REDIRECT_DENIED', 'Release redirect left the official distribution hosts.');
                     }
                 }]]);
+        } catch (\Throwable $exception) {
+            if ($this->executionContext !== null) {
+                if ($exception instanceof RequestException && $exception->hasResponse()) {
+                    OutboundHttpAttemptObservation::response(
+                        $this->executionContext, 'GET', $url, 1, $startedAt,
+                        $exception->getResponse()->getStatusCode(), 'headers',
+                    );
+                } else {
+                    OutboundHttpAttemptObservation::failure(
+                        $this->executionContext, 'GET', $url, 1, $startedAt, $exception, 'headers',
+                    );
+                }
+            }
+            throw $exception;
+        }
+        if ($this->executionContext !== null) {
+            OutboundHttpAttemptObservation::response($this->executionContext, 'GET', $url, 1, $startedAt, $response->getStatusCode(), 'headers');
+        }
         $this->ensure($response->getStatusCode() === 200, 'DOWNLOAD_FAILED');
         $stream = $response->getBody();
         $data = '';
+        $readStartedAt = hrtime(true);
         try {
-            while (!$stream->eof()) {
-                $chunk = $stream->read(min(65536, $limit + 1 - strlen($data)));
-                $this->ensure($chunk !== '' || $stream->eof(), 'DOWNLOAD_STALLED');
-                $data .= $chunk;
-                $this->ensure(strlen($data) <= $limit, 'DOWNLOAD_TOO_LARGE');
+            try {
+                while (!$stream->eof()) {
+                    $chunk = $stream->read(min(65536, $limit + 1 - strlen($data)));
+                    $this->ensure($chunk !== '' || $stream->eof(), 'DOWNLOAD_STALLED');
+                    $data .= $chunk;
+                    $this->ensure(strlen($data) <= $limit, 'DOWNLOAD_TOO_LARGE');
+                }
+            } finally {
+                $stream->close();
             }
-        } finally {
-            $stream->close();
+        } catch (\Throwable $exception) {
+            if ($this->executionContext !== null) {
+                OutboundHttpAttemptObservation::failure($this->executionContext, 'GET', $url, 1, $readStartedAt, $exception, 'body');
+            }
+            throw $exception;
+        }
+        if ($this->executionContext !== null) {
+            OutboundHttpAttemptObservation::response($this->executionContext, 'GET', $url, 1, $readStartedAt, 200, 'body');
         }
         return $data;
     }

@@ -55,6 +55,7 @@ ACTUAL_LIST="$TMP_DIR/.actual-artifacts"
   printf '%s\n' \
     'server/generated/openapi.json' \
     'server/generated/api-catalog.json' \
+    'server/generated/platform-role-source.json' \
     'web/src/generated/openapi.d.ts'
   if [[ -d "$TMP_DIR/web/src/modules" ]]; then
     find "$TMP_DIR/web/src/modules" -path '*/generated/openapi.ts' -type f -print \
@@ -65,6 +66,7 @@ ACTUAL_LIST="$TMP_DIR/.actual-artifacts"
   printf '%s\n' \
     'server/generated/openapi.json' \
     'server/generated/api-catalog.json' \
+    'server/generated/platform-role-source.json' \
     'web/src/generated/openapi.d.ts'
   if [[ -d "$APPLICATION_ROOT/web/src/modules" ]]; then
     find "$APPLICATION_ROOT/web/src/modules" -path '*/generated/openapi.ts' -print \

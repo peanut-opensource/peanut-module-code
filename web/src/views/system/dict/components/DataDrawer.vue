@@ -25,6 +25,20 @@
         />
       </el-col>
     </el-row>
+    <div v-if="listError && !loading" role="alert" style="margin-bottom: 16px">
+      <el-alert
+        :title="
+          renderData.length
+            ? $t('systemDict.data.loadFailedRetained')
+            : $t('systemDict.data.loadFailed')
+        "
+        :type="renderData.length ? 'warning' : 'error'"
+        :closable="false"
+      />
+      <el-button type="primary" @click="fetchData(pagination.current)">
+        {{ $t('systemDict.data.retry') }}
+      </el-button>
+    </div>
     <el-table row-key="id" :loading="loading" :data="renderData" border>
       <el-table-column
         prop="name"
@@ -42,9 +56,14 @@
       <el-table-column :label="$t('systemDict.data.columns.status')" width="80"
         ><template #default="{ row }"
           ><el-switch
-            v-permission="['peanut.reference-codes.manage']"
+            v-if="canManageDict()"
             :model-value="row.is_disable === 0"
-            @change="(v: string | number | boolean) => handleStatus(row, v as boolean)" /></template
+            @change="(v: string | number | boolean) => handleStatus(row, v as boolean)" />
+          <el-tag v-else :type="row.is_disable === 0 ? 'success' : 'info'">{{
+            row.is_disable === 0
+              ? $t('systemDict.status.enabled')
+              : $t('systemDict.status.disabled')
+          }}</el-tag></template
       ></el-table-column>
       <el-table-column
         :label="$t('systemDict.data.columns.operations')"
@@ -134,6 +153,8 @@
 <script lang="ts" setup>
   import { computed, ref, reactive, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRoute } from 'vue-router';
+  import { hasPermission } from '@/hooks/permission';
   import { ElMessage } from 'element-plus';
   import type { FormInstance } from 'element-plus';
   import { Plus } from '@element-plus/icons-vue';
@@ -161,9 +182,13 @@
   });
 
   const { t } = useI18n();
+  const route = useRoute();
+  const canManageDict = () => hasPermission('peanut.reference-codes.manage', route.path);
   const { loading, setLoading } = useLoading(false);
   const renderData = ref<DictDataRecord[]>([]);
+  const listError = ref(false);
   const keyword = ref('');
+  let requestSequence = 0;
 
   const pagination = reactive({
     current: 1,
@@ -174,7 +199,9 @@
 
   const fetchData = async (page = 1) => {
     if (!props.typeId) return;
+    const sequence = ++requestSequence;
     setLoading(true);
+    listError.value = false;
     try {
       const params: DictDataListParams = {
         type_id: props.typeId,
@@ -183,11 +210,14 @@
         page_size: pagination.pageSize,
       };
       const { data } = await getDictDataList(params);
+      if (sequence !== requestSequence) return;
       renderData.value = data.lists;
       pagination.current = data.pageNo;
       pagination.total = data.count;
+    } catch {
+      if (sequence === requestSequence) listError.value = true;
     } finally {
-      setLoading(false);
+      if (sequence === requestSequence) setLoading(false);
     }
   };
 
@@ -196,7 +226,14 @@
   // 抽屉打开或切换类型时刷新
   watch(
     () => [props.visible, props.typeId],
-    ([vis]) => {
+    ([vis, typeId], previous) => {
+      if (previous && previous[1] !== typeId) {
+        requestSequence++;
+        renderData.value = [];
+        pagination.total = 0;
+        listError.value = false;
+        setLoading(false);
+      }
       if (vis) {
         keyword.value = '';
         pagination.current = 1;

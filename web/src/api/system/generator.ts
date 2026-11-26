@@ -103,6 +103,9 @@ export interface GeneratorPreviewFile {
   path: string;
   language: string;
   content: string;
+  operation: 'create' | 'merge' | 'unchanged' | 'conflict';
+  base_sha256?: string;
+  proposed_sha256?: string;
 }
 
 export interface GeneratorGenerateResult {

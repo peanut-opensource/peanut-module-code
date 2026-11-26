@@ -438,7 +438,7 @@
           v-for="file in previewFiles"
           :key="file.path"
           :name="file.path"
-          :label="file.path"
+          :label="`${previewStatusText[file.operation]} · ${file.path}`"
         >
           <el-text style="display: block; margin-bottom: 8px">{{
             file.path
@@ -454,6 +454,24 @@
           <el-tag type="primary" style="margin-bottom: 8px">
             {{ file.language }}
           </el-tag>
+          <el-tag
+            :type="previewStatusType[file.operation]"
+            style="margin: 0 0 8px 8px"
+            >{{ previewStatusText[file.operation] }}</el-tag
+          >
+          <el-alert
+            v-if="file.operation === 'conflict'"
+            type="warning"
+            :closable="false"
+            title="生成文件已有人工修改：以下仅为建议内容，不会覆盖现有源码"
+            style="margin-bottom: 8px"
+          />
+          <el-text v-if="file.base_sha256" tag="p" size="small">
+            当前 SHA-256：{{ file.base_sha256 }}
+          </el-text>
+          <el-text v-if="file.proposed_sha256" tag="p" size="small">
+            建议 SHA-256：{{ file.proposed_sha256 }}
+          </el-text>
           <pre class="code-preview"><code>{{ file.content }}</code></pre>
         </el-tab-pane>
       </el-tabs>
@@ -725,6 +743,18 @@
     }
   };
 
+  const previewStatusText = {
+    create: '新增',
+    merge: '待合并',
+    unchanged: '无变化',
+    conflict: '冲突',
+  } as const;
+  const previewStatusType = {
+    create: 'success',
+    merge: 'warning',
+    unchanged: 'info',
+    conflict: 'danger',
+  } as const;
   const previewVisible = ref(false);
   const previewFiles = ref<GeneratorPreviewFile[]>([]);
   const previewActiveKey = ref('');

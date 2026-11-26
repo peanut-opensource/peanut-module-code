@@ -16,7 +16,7 @@ use app\common\persistence\AdvisoryLockUnavailable;
 use think\facade\Config;
 use think\facade\Db;
 
-/** Promotes one verified package overlay, rebuilds the canonical lock, then invokes the shared lifecycle. */
+/** Promotes one verified package overlay, updates its lock entry, then invokes the shared lifecycle. */
 final class ModulePackageInstaller
 {
     /**
@@ -107,6 +107,9 @@ final class ModulePackageInstaller
             $recoveryRoot = null;
             $lockPath = $this->projectRoot() . '/modules.lock';
             $lockBefore = is_file($lockPath) ? file_get_contents($lockPath) : null;
+            if ($lockBefore === false) {
+                throw new ModuleLifecycleException('PLUGIN_LOCK_INVALID', 'Unable to read modules.lock before package promotion.');
+            }
             $lifecycleStarted = false;
             $plan = null;
             $lockName = 'pa:module-runtime:' . substr(hash('sha256', $package->packageKey), 0, 40);
@@ -168,8 +171,9 @@ final class ModulePackageInstaller
                             $promoted[] = $target;
                         }
 
-                        (new ModuleArtifactWriter($this->serverRoot))->writeLock();
+                        $this->writeAtomic($lockPath, ModulePackageSourcePromoter::lockWithPackage($package, $lockBefore));
                         $resolver = new ModuleLockResolver($this->serverRoot, '../modules.lock');
+                        $resolver->require($package->packageKey);
                         $registries = new \app\platform\composition\module\ModuleDefinitionRegistryFactory($this->serverRoot);
                         $lifecycle = new ModuleLifecycleService(
                             $resolver,
@@ -657,7 +661,7 @@ final class ModulePackageInstaller
     private function writeAtomic(string $path, string $contents): void
     {
         $temporary = $path . '.tmp-' . bin2hex(random_bytes(8));
-        if (file_put_contents($temporary, $contents, LOCK_EX) === false || !rename($temporary, $path)) {
+        if (file_put_contents($temporary, $contents, LOCK_EX) !== strlen($contents) || !rename($temporary, $path)) {
             if (is_file($temporary)) {
                 unlink($temporary);
             }

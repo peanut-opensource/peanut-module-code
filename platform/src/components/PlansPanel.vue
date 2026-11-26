@@ -21,7 +21,7 @@
         v-if="canCreate && canReadCatalog"
         type="primary"
         @click="open()"
-        >新建套餐</el-button
+        >{{ platformPlanActions.create.label }}</el-button
       >
     </div>
     <el-table
@@ -50,7 +50,7 @@
       <el-table-column v-if="canUpdate && canReadCatalog" label="操作"
         ><template #default="{ row }"
           ><el-button link type="primary" @click="open(row)"
-            >编辑</el-button
+            >{{ platformPlanActions.update.label }}</el-button
           ></template
         ></el-table-column
       >
@@ -175,16 +175,16 @@
   import { api } from '../api/platform';
   import type { Plan, PlanModule } from '../api/tenant-license';
   import type { PermissionBundle } from '../api/permission-bundles';
+  import { platformPlanActions, platformPlanCatalogReads } from '../core/platform-shell-definitions';
 
   const props = defineProps<{
     canApi: (method: string, path: string) => boolean;
   }>();
-  const canCreate = computed(() => props.canApi('POST', '/platformapi/plans'));
-  const canUpdate = computed(() => props.canApi('PUT', '/platformapi/plans'));
+  const canCreate = computed(() => props.canApi(...platformPlanActions.create.endpoints[0]));
+  const canUpdate = computed(() => props.canApi(...platformPlanActions.update.endpoints[0]));
   const canReadCatalog = computed(
     () =>
-      props.canApi('GET', '/platformapi/instance-tools/modules') &&
-      props.canApi('GET', '/platformapi/permission/bundles')
+      platformPlanCatalogReads.every(([method, path]) => props.canApi(method, path))
   );
   const modules = ref<PlanModule[]>([]);
   const bundles = ref<PermissionBundle[]>([]);

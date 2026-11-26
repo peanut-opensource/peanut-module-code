@@ -18,10 +18,11 @@ class GeneratorService
         private readonly GeneratorImportPersistence $imports,
         private readonly ThinkPhpGeneratorMetadata $metadata,
         private readonly string $databasePrefix,
+        private readonly ?string $sourceRoot = null,
     ) {}
 
     /** Render a source table directly without persisting a generator draft. */
-    public function renderSource(string $module, string $tableName, string $edition, string $root): array
+    public function renderSource(string $module, string $tableName, string $edition, string $root, bool $reviewExisting = false): array
     {
         GeneratorRenderService::assertRegisteredModule($module, $root);
         $definition = $this->metadata->definitions([$tableName])[$tableName];
@@ -31,7 +32,7 @@ class GeneratorService
             'entity_name' => $this->entityName($tableName),
             'data_owner' => 'tenant-orm',
             'target_edition' => $edition,
-        ], $root);
+        ], $root, $reviewExisting);
     }
 
     public function sourceTables(array $params): PageResult
@@ -237,7 +238,7 @@ class GeneratorService
     public function preview(int $adminId, int $id): array
     {
         $tables = $this->snapshotTables($adminId, [$id]);
-        return GeneratorRenderService::render($tables[0]);
+        return GeneratorRenderService::render($tables[0], $this->sourceRoot, true);
     }
 
     public function generate(int $adminId, array $ids): array
@@ -250,22 +251,33 @@ class GeneratorService
             '',
             'Create files are stored at their final repository paths. Existing Module-owned files are never overwritten:',
             'their complete proposed contents are stored under `merge-preview/` and must be applied only after the recorded SHA-256 still matches.',
+            'Unchanged files are omitted; conflicting generated files are proposals, never replacements.',
             '',
         ];
         foreach ($tables as $table) {
-            foreach (GeneratorRenderService::render($table) as $file) {
+            foreach (GeneratorRenderService::render($table, $this->sourceRoot, true) as $file) {
                 $path = (string) $file['path'];
                 $operation = $file['operation'];
-                $archivePath = $operation === 'merge' ? 'merge-preview/' . $path : $path;
+                if ($operation === 'unchanged') {
+                    $mergeGuide[] = '- unchanged: `' . $path . '` (omitted)';
+                    continue;
+                }
+                $archivePath = in_array($operation, ['merge', 'conflict'], true)
+                    ? 'merge-preview/' . $path : $path;
                 if (isset($files[$archivePath])) {
                     throw new \RuntimeException('同一批次不能向同一个目标文件生成多个合并预览，请分批生成：' . $path);
                 }
                 $file['path'] = $archivePath;
                 $files[$archivePath] = $file;
-                if ($operation === 'merge') {
+                if (in_array($operation, ['merge', 'conflict'], true)) {
                     $mergeGuide[] = '- target: `' . $path . '`';
+                    $mergeGuide[] = '  status: `' . $operation . '`';
                     $mergeGuide[] = '  preview: `' . $archivePath . '`';
                     $mergeGuide[] = '  base_sha256: `' . (string) ($file['base_sha256'] ?? '') . '`';
+                    if ($operation === 'conflict') {
+                        $mergeGuide[] = '  proposed_sha256: `' . $file['proposed_sha256'] . '`';
+                        $mergeGuide[] = '  action: review manually; do not overwrite customized source';
+                    }
                 }
             }
         }

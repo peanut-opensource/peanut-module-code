@@ -4,7 +4,32 @@ import type { Client, ClientOptions } from 'openapi-fetch';
 import type { paths } from '@/generated/openapi';
 
 export interface ModuleApiOperations {
+  listWorkflowDefinitions: paths['/adminapi/api/v1/workflow/definitions']['get'];
+  getWorkflowDesignerDefinition: paths['/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}']['get'];
+  getWorkflowDesignerScenario: paths['/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/scenario']['get'];
+  saveWorkflowDesignerDraft: paths['/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/draft']['put'];
+  validateWorkflowDesignerGraph: paths['/adminapi/api/v1/workflow/definitions/validate']['post'];
+  previewWorkflowDesignerGraph: paths['/adminapi/api/v1/workflow/definitions/preview']['post'];
+  publishWorkflowDesignerDefinition: paths['/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/publish']['post'];
+  activateWorkflowDesignerDefinition: paths['/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/activate']['post'];
+  retireWorkflowDesignerDefinition: paths['/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/retire']['post'];
   getWorkflowStartSummary: paths['/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/summary']['get'];
+  startWorkflowInstance: paths['/adminapi/api/v1/workflow/instances']['post'];
+  getWorkflowInbox: paths['/adminapi/api/v1/workflow/inbox']['get'];
+  getWorkflowRuntimeInstance: paths['/adminapi/api/v1/workflow/instances/{instanceKey}']['get'];
+  claimWorkflowTask: paths['/adminapi/api/v1/workflow/tasks/{workItemKey}/claim']['post'];
+  releaseWorkflowTask: paths['/adminapi/api/v1/workflow/tasks/{workItemKey}/release']['post'];
+  decideWorkflowTask: paths['/adminapi/api/v1/workflow/tasks/{workItemKey}/decisions']['post'];
+  completeWorkflowTask: paths['/adminapi/api/v1/workflow/tasks/{workItemKey}/completions']['post'];
+  returnWorkflowTask: paths['/adminapi/api/v1/workflow/tasks/{workItemKey}/return']['post'];
+  resubmitWorkflowTask: paths['/adminapi/api/v1/workflow/tasks/{workItemKey}/resubmit']['post'];
+  getWorkflowTaskDiagnostics: paths['/adminapi/api/v1/workflow/instances/{instanceKey}/diagnostics']['get'];
+  reconcileWorkflowServiceTask: paths['/adminapi/api/v1/workflow/instances/{instanceKey}/reconcile']['post'];
+  recoverWorkflowServiceTask: paths['/adminapi/api/v1/workflow/instances/{instanceKey}/recover']['post'];
+  withdrawWorkflowInstance: paths['/adminapi/api/v1/workflow/instances/{instanceKey}/withdraw']['post'];
+  terminateWorkflowInstance: paths['/adminapi/api/v1/workflow/instances/{instanceKey}/terminate']['post'];
+  retryBlockedWorkflowInstance: paths['/adminapi/api/v1/workflow/instances/{instanceKey}/retry']['post'];
+  reassignWorkflowPendingItem: paths['/adminapi/api/v1/workflow/instances/{instanceKey}/reassign']['post'];
   getWorkflowFrozenMaterials: paths['/adminapi/api/v1/workflow/instances/{instanceKey}/materials']['get'];
   getWorkflowEvents: paths['/adminapi/api/v1/workflow/instances/{instanceKey}/events']['get'];
   getWorkflowNotificationDiagnostics: paths['/adminapi/api/v1/workflow/instances/{instanceKey}/notifications']['get'];
@@ -14,7 +39,32 @@ export interface ModuleApiOperations {
 export function createModuleApi(client: Client<paths>) {
   const pathClient = wrapAsPathBasedClient(client);
   return {
+    listWorkflowDefinitions: pathClient['/adminapi/api/v1/workflow/definitions'].GET,
+    getWorkflowDesignerDefinition: pathClient['/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}'].GET,
+    getWorkflowDesignerScenario: pathClient['/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/scenario'].GET,
+    saveWorkflowDesignerDraft: pathClient['/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/draft'].PUT,
+    validateWorkflowDesignerGraph: pathClient['/adminapi/api/v1/workflow/definitions/validate'].POST,
+    previewWorkflowDesignerGraph: pathClient['/adminapi/api/v1/workflow/definitions/preview'].POST,
+    publishWorkflowDesignerDefinition: pathClient['/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/publish'].POST,
+    activateWorkflowDesignerDefinition: pathClient['/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/activate'].POST,
+    retireWorkflowDesignerDefinition: pathClient['/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/retire'].POST,
     getWorkflowStartSummary: pathClient['/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/summary'].GET,
+    startWorkflowInstance: pathClient['/adminapi/api/v1/workflow/instances'].POST,
+    getWorkflowInbox: pathClient['/adminapi/api/v1/workflow/inbox'].GET,
+    getWorkflowRuntimeInstance: pathClient['/adminapi/api/v1/workflow/instances/{instanceKey}'].GET,
+    claimWorkflowTask: pathClient['/adminapi/api/v1/workflow/tasks/{workItemKey}/claim'].POST,
+    releaseWorkflowTask: pathClient['/adminapi/api/v1/workflow/tasks/{workItemKey}/release'].POST,
+    decideWorkflowTask: pathClient['/adminapi/api/v1/workflow/tasks/{workItemKey}/decisions'].POST,
+    completeWorkflowTask: pathClient['/adminapi/api/v1/workflow/tasks/{workItemKey}/completions'].POST,
+    returnWorkflowTask: pathClient['/adminapi/api/v1/workflow/tasks/{workItemKey}/return'].POST,
+    resubmitWorkflowTask: pathClient['/adminapi/api/v1/workflow/tasks/{workItemKey}/resubmit'].POST,
+    getWorkflowTaskDiagnostics: pathClient['/adminapi/api/v1/workflow/instances/{instanceKey}/diagnostics'].GET,
+    reconcileWorkflowServiceTask: pathClient['/adminapi/api/v1/workflow/instances/{instanceKey}/reconcile'].POST,
+    recoverWorkflowServiceTask: pathClient['/adminapi/api/v1/workflow/instances/{instanceKey}/recover'].POST,
+    withdrawWorkflowInstance: pathClient['/adminapi/api/v1/workflow/instances/{instanceKey}/withdraw'].POST,
+    terminateWorkflowInstance: pathClient['/adminapi/api/v1/workflow/instances/{instanceKey}/terminate'].POST,
+    retryBlockedWorkflowInstance: pathClient['/adminapi/api/v1/workflow/instances/{instanceKey}/retry'].POST,
+    reassignWorkflowPendingItem: pathClient['/adminapi/api/v1/workflow/instances/{instanceKey}/reassign'].POST,
     getWorkflowFrozenMaterials: pathClient['/adminapi/api/v1/workflow/instances/{instanceKey}/materials'].GET,
     getWorkflowEvents: pathClient['/adminapi/api/v1/workflow/instances/{instanceKey}/events'].GET,
     getWorkflowNotificationDiagnostics: pathClient['/adminapi/api/v1/workflow/instances/{instanceKey}/notifications'].GET,

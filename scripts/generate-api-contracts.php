@@ -83,6 +83,18 @@ try {
             if ($catalogOutput === '' || !str_starts_with($catalogOutput, '/')) {
                 throw new RuntimeException('--catalog-output must be an absolute path');
             }
+            // --check --catalog-output is also the native consumer/staged-app
+            // catalog projection. Reuse the already generated Shell artifact
+            // without requiring frontend dependencies or rebuilding a package.
+            $roleSourceInput = $repositoryRoot . '/server/generated/platform-role-source.json';
+            if (is_file($roleSourceInput) && !is_link($roleSourceInput)) {
+                $digest = hash_file('sha256', $roleSourceInput);
+                if (!is_string($digest)) {
+                    throw new RuntimeException('Could not hash the staged Platform role source.');
+                }
+                $catalog['inputs'][] = ['path' => 'server/generated/platform-role-source.json', 'sha256' => $digest];
+                usort($catalog['inputs'], static fn(array $a, array $b): int => strcmp($a['path'], $b['path']));
+            }
             writeJson($catalogOutput, $catalog);
         }
         printf(
@@ -106,6 +118,37 @@ try {
     if ($resolvedProjectRoot !== null) {
         writeJson(generatedArtifactPath($resolvedProjectRoot, 'docs/api/openapi.yaml'), $contract);
     }
+    // The existing Shell definitions are the only editable source for Platform
+    // page/button/no-menu candidate nodes. Emit a source-bound, read-only projection
+    // alongside the native API catalog; no second hand-maintained role directory.
+    $roleNodesProcess = proc_open([
+        'node', $toolRoot . '/scripts/generate-platform-role-source.mjs', $repositoryRoot,
+    ], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $roleNodesPipes, $repositoryRoot);
+    if (!is_resource($roleNodesProcess)) {
+        throw new RuntimeException('Platform role source generation could not be started.');
+    }
+    fclose($roleNodesPipes[0]);
+    $roleNodesOutput = stream_get_contents($roleNodesPipes[1]);
+    $roleNodesError = stream_get_contents($roleNodesPipes[2]);
+    fclose($roleNodesPipes[1]);
+    fclose($roleNodesPipes[2]);
+    if (proc_close($roleNodesProcess) !== 0 || !is_string($roleNodesOutput)) {
+        throw new RuntimeException('Platform role source generation failed: ' . trim((string) $roleNodesError));
+    }
+    $roleNodes = json_decode($roleNodesOutput, true, 64, JSON_THROW_ON_ERROR);
+    if (($roleNodes['schema_version'] ?? null) !== 1 || !is_array($roleNodes['nodes'] ?? null)) {
+        throw new RuntimeException('Platform role source generation produced an invalid projection.');
+    }
+    $roleSourcePath = generatedArtifactPath($outputRoot, 'server/generated/platform-role-source.json');
+    writeJson($roleSourcePath, $roleNodes);
+    $roleSourceDigest = hash_file('sha256', $roleSourcePath);
+    if (!is_string($roleSourceDigest)) {
+        throw new RuntimeException('Could not hash the generated Platform role source.');
+    }
+    // Bind the projection's exact bytes to the existing source-freshness check.
+    // It cannot be substituted independently of the native API catalog.
+    $catalog['inputs'][] = ['path' => 'server/generated/platform-role-source.json', 'sha256' => $roleSourceDigest];
+    usort($catalog['inputs'], static fn(array $a, array $b): int => strcmp($a['path'], $b['path']));
     writeJson(generatedArtifactPath($outputRoot, 'server/generated/api-catalog.json'), $catalog);
     writeModuleTypes($repositoryRoot, $outputRoot, $typeContract, $routes, $declarations['module_operations']);
     $generatedTypes = generatedArtifactPath($outputRoot, 'web/src/generated/openapi.d.ts');

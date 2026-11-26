@@ -268,7 +268,7 @@
         "peanut-business/peanut-reference-codes": "1.0.29-rc.4",
         "peanut-business/peanut-settings": "1.0.30-rc.1",
         "peanut-business/peanut-chart": "1.0.3",
-        "peanut-business/peanut-article": "1.0.21-rc.18",
+        "peanut-business/peanut-article": "1.0.21-rc.19",
         "peanut-business/artifact-revision": "4.0.0",
         "peanut-business/peanut-collaboration": "1.0.21-rc.3",
         "peanut-business/peanut-document": "1.0.28-rc.10",
@@ -279,7 +279,7 @@
         "peanut-business/peanut-oauth": "1.0.13-rc.4",
         "peanut-business/peanut-payment": "1.0.30-rc.3",
         "peanut-business/peanut-rich-text": "1.0.19-rc.1",
-        "peanut-business/workflow": "4.0.2-rc.7",
+        "peanut-business/workflow": "4.0.2-rc.8",
         "peanut-business/peanut-chart-examples": "1.0.5-rc.1",
         "custom/custom-ai-access": "1.0.1-rc.3",
         "custom/custom-ai-assistant": "1.2.5-rc.2"

@@ -18,13 +18,14 @@ final class OutboundHttpAttemptObservation
         int $attempt,
         int $startedAt,
         int $status,
+        ?string $phase = null,
     ): void {
         $category = match (true) {
             $status < 400 => 'success',
             $status < 500 => 'http_4xx',
             default => 'http_5xx',
         };
-        self::write($executionContext, $method, $url, $attempt, $startedAt, $category, $status);
+        self::write($executionContext, $method, $url, $attempt, $startedAt, $category, $status, null, $phase);
     }
 
     public static function failure(
@@ -34,13 +35,14 @@ final class OutboundHttpAttemptObservation
         int $attempt,
         int $startedAt,
         \Throwable $exception,
+        ?string $phase = null,
     ): void {
         $category = $exception instanceof ConnectException
             && ((int) ($exception->getHandlerContext()['errno'] ?? 0) === 28
                 || str_contains(strtolower($exception->getMessage()), 'timed out'))
             ? 'timeout'
             : 'transport';
-        self::write($executionContext, $method, $url, $attempt, $startedAt, $category, null, $exception);
+        self::write($executionContext, $method, $url, $attempt, $startedAt, $category, null, $exception, $phase);
     }
 
     private static function write(
@@ -52,6 +54,7 @@ final class OutboundHttpAttemptObservation
         string $category,
         ?int $status = null,
         ?\Throwable $exception = null,
+        ?string $phase = null,
     ): void {
         $attributes = [
             'method' => strtoupper($method),
@@ -63,6 +66,9 @@ final class OutboundHttpAttemptObservation
         ];
         if ($status !== null) {
             $attributes['status'] = $status;
+        }
+        if ($phase !== null) {
+            $attributes['phase'] = $phase;
         }
         if ($exception !== null) {
             $attributes['exception'] = $exception::class;

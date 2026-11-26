@@ -239,7 +239,7 @@
           ><el-breadcrumb-item>{{ title }}</el-breadcrumb-item></el-breadcrumb
         >
         <el-alert
-          v-if="error && view !== 'audit'"
+          v-if="error && view !== platformAuditPage.view"
           :title="error"
           type="error"
           show-icon
@@ -247,11 +247,11 @@
         />
         <template v-if="view === 'overview'">
           <div class="metric-grid">
-            <el-card v-if="canApi('GET', '/platformapi/tenants')"
+            <el-card v-if="canApi(...platformTenantsPage.endpoints[0])"
               ><span>租户总数</span><strong>{{ tenantTotal }}</strong></el-card
             >
-            <el-card v-if="canApi('GET', '/platformapi/operators')"
-              ><span>实例平台操作员</span
+            <el-card v-if="canApi(...platformOperatorsPage.endpoints[0])"
+              ><span>{{ platformOperatorsPage.label }}</span
               ><strong>{{ operatorTotal }}</strong></el-card
             >
             <el-card
@@ -299,7 +299,7 @@
                 :title="opsErrors.upgrades"
                 type="warning"
                 :closable="false" /><el-card
-                v-if="canApi('GET', '/platformapi/v1/ops/upgrade-readiness')"
+                v-if="canApi(...platformOpsUpgradeReadiness.endpoints[0])"
                 v-loading="upgradeReadinessLoading"
                 class="backup-center-card"
                 ><template #header>升级就绪</template
@@ -382,17 +382,14 @@
                   ></template
                 ><el-empty v-else description="升级就绪投影尚未加载" /></el-card
               ><el-card
-                v-if="canApi('GET', '/platformapi/v1/ops/upgrades')"
+                v-if="canApi(...platformOpsUpgradeHistory.endpoints[0])"
                 v-loading="upgradeCenterLoading"
                 class="backup-center-card"
                 ><template #header
                   ><div class="card-header"
                     ><span>应用升级执行</span
                     ><el-button
-                      v-if="
-                        can('platform.ops.upgrade.manage') &&
-                        canApi('GET', '/platformapi/v1/ops/upgrade-readiness')
-                      "
+                      v-if="canUseEndpoints(platformOpsUpgradeExecute.endpoints)"
                       type="primary"
                       :loading="upgradeSubmitting"
                       :disabled="
@@ -401,7 +398,7 @@
                         !!activeUpgrade
                       "
                       @click="executeUpgrade"
-                      >执行固定升级</el-button
+                      >{{ platformOpsUpgradeExecute.label }}</el-button
                     ></div
                   ></template
                 ><el-alert
@@ -614,24 +611,24 @@
             /></template>
             <template #diagnostics
               ><div
-                v-if="canApi('GET', '/platformapi/v1/ops/diagnostics')"
+                v-if="canApi(...platformOpsDiagnosticsDownload.endpoints[0])"
                 class="toolbar"
                 ><el-button
                   :loading="diagnosticLoading"
                   @click="downloadDiagnosticBundle"
-                  >下载脱敏诊断包（最近 1 小时）</el-button
+                  >{{ platformOpsDiagnosticsDownload.label }}（最近 1 小时）</el-button
                 ></div
               ></template
             >
           </ops-console-page>
         </template>
-        <template v-else-if="view === 'tenants'"
+        <template v-else-if="view === platformTenantsPage.view"
           ><div class="toolbar"
             ><el-button
-              v-if="can('platform.tenant.create')"
+              v-if="can(platformTenantCreate.key)"
               type="primary"
               @click="openProvisionDialog"
-              >新建租户</el-button
+              >{{ platformTenantCreate.label }}</el-button
             ></div
           ><el-table
             v-loading="loading"
@@ -654,48 +651,48 @@
             /><el-table-column label="操作" width="300"
               ><template #default="{ row }"
                 ><el-button
-                  v-if="canApi('GET', '/platformapi/tenants/detail')"
+                  v-if="canApi(...platformTenantDetail.endpoints[0])"
                   link
                   type="primary"
                   @click="showTenant(row)"
-                  >详情</el-button
+                  >{{ platformTenantDetail.label }}</el-button
                 ><el-button
-                  v-if="canView('modules')"
+                  v-if="canView(platformTenantEntitlementsPage.view)"
                   link
                   type="primary"
                   @click="
                     targetTenantId = row.id;
-                    selectView('modules');
+                    selectView(platformTenantEntitlementsPage.view);
                   "
                   >许可证</el-button
                 ><el-button
                   v-if="
                     row.status !== 'active' &&
                     row.status !== 'closed' &&
-                    canApi('POST', '/platformapi/tenants/activate')
+                    canApi(...platformTenantTransitions.activate.endpoints[0])
                   "
                   link
                   type="success"
                   @click="changeTenant(row, 'activate')"
-                  >启用</el-button
+                  >{{ platformTenantTransitions.activate.label }}</el-button
                 ><el-button
                   v-if="
                     row.status === 'active' &&
-                    canApi('POST', '/platformapi/tenants/suspend')
+                    canApi(...platformTenantTransitions.suspend.endpoints[0])
                   "
                   link
                   type="warning"
                   @click="changeTenant(row, 'suspend')"
-                  >暂停</el-button
+                  >{{ platformTenantTransitions.suspend.label }}</el-button
                 ><el-button
                   v-if="
                     row.status !== 'closed' &&
-                    canApi('POST', '/platformapi/tenants/close')
+                    canApi(...platformTenantTransitions.close.endpoints[0])
                   "
                   link
                   type="danger"
                   @click="changeTenant(row, 'close')"
-                  >关闭</el-button
+                  >{{ platformTenantTransitions.close.label }}</el-button
                 ></template
               ></el-table-column
             ></el-table
@@ -707,12 +704,12 @@
             @current-change="changeTenantPage"
           />
         </template>
-        <template v-else-if="view === 'owners'"
+        <template v-else-if="view === platformTenantOwnerInvitationsPage.view"
           ><tenant-picker /><div class="two-col"
             ><el-card
               ><template #header>发起租户所有者邀请</template
               ><el-form
-                v-if="can('platform.tenant.provision-owner')"
+                v-if="canApi(...platformTenantOwnerInvitationActions.create.endpoints[0])"
                 label-position="top"
                 @submit.prevent="sendInvitation"
                 ><el-form-item label="所有者邮箱"
@@ -730,7 +727,7 @@
                   type="primary"
                   :loading="loading"
                   :disabled="!targetTenant"
-                  >发送邀请</el-button
+                  >{{ platformTenantOwnerInvitationActions.create.label }}</el-button
                 ></el-form
               ></el-card
             ><el-card
@@ -771,27 +768,27 @@
                 ><el-button
                   v-if="
                     row.status === 'pending' &&
-                    canApi('POST', '/platformapi/tenants/invitations/resend')
+                    canApi(...platformTenantOwnerInvitationActions.resend.endpoints[0])
                   "
                   link
                   type="primary"
                   @click="resendInvitation(row)"
-                  >重发</el-button
+                  >{{ platformTenantOwnerInvitationActions.resend.label }}</el-button
                 ><el-button
                   v-if="
                     row.status === 'pending' &&
-                    canApi('POST', '/platformapi/tenants/invitations/revoke')
+                    canApi(...platformTenantOwnerInvitationActions.revoke.endpoints[0])
                   "
                   link
                   type="danger"
                   @click="revokeInvitation(row)"
-                  >撤销</el-button
+                  >{{ platformTenantOwnerInvitationActions.revoke.label }}</el-button
                 ></template
               ></el-table-column
             ></el-table
           ></template
         >
-        <template v-else-if="view === 'endpoints'"
+        <template v-else-if="view === platformTenantEntryBindingsPage.view"
           ><tenant-picker /><el-alert
             v-if="!targetTenant"
             title="当前显示全部租户入口；选择租户后可启用绑定。"
@@ -802,7 +799,7 @@
               ><template #header>启用入口绑定</template
               ><el-form
                 v-if="
-                  canApi('POST', '/platformapi/tenant-entry-bindings/enable')
+                  canApi(...platformTenantEntryBindingActions.enable.endpoints[0])
                 "
                 label-position="top"
                 @submit.prevent="enableBinding"
@@ -825,7 +822,7 @@
                   type="primary"
                   :disabled="!targetTenant"
                   :loading="loading"
-                  >启用绑定</el-button
+                  >{{ platformTenantEntryBindingActions.enable.label }}</el-button
                 ></el-form
               ></el-card
             ><el-card
@@ -860,19 +857,19 @@
                 ><el-button
                   v-if="
                     row.status === 'active' &&
-                    canApi('POST', '/platformapi/tenant-entry-bindings/disable')
+                    canApi(...platformTenantEntryBindingActions.disable.endpoints[0])
                   "
                   link
                   type="danger"
                   @click="disableBinding(row)"
-                  >停用</el-button
+                  >{{ platformTenantEntryBindingActions.disable.label }}</el-button
                 ></template
               ></el-table-column
             ></el-table
           ></template
         >
-        <PlansPanel v-else-if="view === 'plans'" :can-api="canApi" />
-        <template v-else-if="view === 'modules'"
+        <PlansPanel v-else-if="view === platformPlansPage.view" :can-api="canApi" />
+        <template v-else-if="view === platformTenantEntitlementsPage.view"
           ><el-alert
             title="模块权益由当前许可证的套餐及有效期派生；实例安装与成员授权分别管理。此表只读。"
             type="info"
@@ -880,10 +877,7 @@
             v-if="targetTenantId"
             :key="targetTenantId"
             :tenant-id="Number(targetTenantId)"
-            :can-manage="
-              can('platform.tenant.license.manage') &&
-              canApi('GET', '/platformapi/plans')
-            "
+            :can-manage="canUseEndpoints(platformTenantLicenseUpdate.endpoints)"
             @saved="loadView" /><el-empty
             v-if="!targetTenant"
             description="请先选择操作目标租户" /><el-table
@@ -913,21 +907,19 @@
               prop="disabled_reason"
               label="停用原因" /></el-table
         ></template>
-        <template v-else-if="view.startsWith('storage-')">
+        <template v-else-if="Object.hasOwn(storageSections, view)">
           <el-alert
             title="存储账号、存储空间与上传路由分别管理。调整上传路由只影响新文件，已有文件保持原存储位置。"
             type="info"
             :closable="false"
           />
-          <template v-if="view === 'storage-accounts'">
+          <template v-if="view === platformStoragePages.accounts.view">
             <div class="toolbar"
               ><el-button
-                v-if="
-                  canApi('POST', '/platformapi/infrastructure/storage/account')
-                "
+                v-if="canApi(...platformStorageAccountCreate.endpoints[0])"
                 type="primary"
                 @click="createStorageAccount"
-                >新增存储账号</el-button
+                >{{ platformStorageAccountCreate.label }}</el-button
               ></div
             >
             <el-table
@@ -945,13 +937,10 @@
               >
             </el-table>
           </template>
-          <template v-else-if="view === 'storage-spaces'">
+          <template v-else-if="view === platformStoragePages.spaces.view">
             <div class="toolbar"
               ><el-button
-                v-if="
-                  canApi('POST', '/platformapi/infrastructure/storage/space') &&
-                  canReadStorage('accounts')
-                "
+                v-if="canCreateStorageSpace()"
                 :loading="storageOptionsLoading"
                 type="primary"
                 @click="createStorageSpace"
@@ -998,10 +987,7 @@
             <el-table-column prop="space_name" label="目标存储空间" />
             <el-table-column prop="driver" label="供应商" />
             <el-table-column
-              v-if="
-                canApi('POST', '/platformapi/infrastructure/storage/route') &&
-                canReadStorage('spaces')
-              "
+              v-if="canChangeStorageRoute()"
               label="调整存储空间"
               min-width="220"
             >
@@ -1035,14 +1021,14 @@
             </el-table-column>
           </el-table>
         </template>
-        <template v-else-if="view === 'operators'">
+        <template v-else-if="view === platformOperatorsPage.view">
           <div class="toolbar">
             <p>管理平台操作员。角色、状态变更按各自权限执行。</p>
             <el-button
-              v-if="can('platform.operator.create')"
+              v-if="can(platformOperatorCreate.key)"
               type="primary"
               @click="operatorDialog = true"
-              >创建操作员</el-button
+              >{{ platformOperatorCreate.label }}</el-button
             >
           </div>
           <el-table
@@ -1066,51 +1052,48 @@
             <el-table-column label="操作" min-width="300">
               <template #default="{ row }">
                 <el-button
-                  v-if="can('platform.operator.update')"
+                  v-if="can(platformOperatorUpdate.key)"
                   link
                   @click="editOperator(row)"
-                  >编辑</el-button
+                  >{{ platformOperatorUpdate.label }}</el-button
                 >
                 <el-button
-                  v-if="
-                    can('platform.operator.role.assign') &&
-                    can('platform.role.read')
-                  "
+                  v-if="canAssignOperatorRoles()"
                   link
                   type="primary"
                   @click="assignOperatorRoles(row)"
-                  >分配角色</el-button
+                  >{{ platformOperatorRolesAssign.label }}</el-button
                 >
                 <el-button
                   v-if="
                     row.status !== 'active' &&
                     row.status !== 'closed' &&
-                    canApi('POST', '/platformapi/operators/activate')
+                    canApi(...platformOperatorTransitions.activate.endpoints[0])
                   "
                   link
                   type="success"
                   @click="transitionOperator(row, 'activate')"
-                  >启用</el-button
+                  >{{ platformOperatorTransitions.activate.label }}</el-button
                 >
                 <el-button
                   v-if="
                     row.status === 'active' &&
-                    canApi('POST', '/platformapi/operators/suspend')
+                    canApi(...platformOperatorTransitions.suspend.endpoints[0])
                   "
                   link
                   type="warning"
                   @click="transitionOperator(row, 'suspend')"
-                  >暂停</el-button
+                  >{{ platformOperatorTransitions.suspend.label }}</el-button
                 >
                 <el-button
                   v-if="
                     row.status !== 'closed' &&
-                    canApi('POST', '/platformapi/operators/close')
+                    canApi(...platformOperatorTransitions.close.endpoints[0])
                   "
                   link
                   type="danger"
                   @click="transitionOperator(row, 'close')"
-                  >关闭</el-button
+                  >{{ platformOperatorTransitions.close.label }}</el-button
                 >
               </template>
             </el-table-column>
@@ -1123,14 +1106,19 @@
             @current-change="changeOperatorPage"
           />
         </template>
-        <template v-else-if="view === 'roles'">
+        <template v-else-if="view === platformRolesPage.view">
           <div class="toolbar">
             <p>维护平台角色的基本信息。权限分配在独立的角色授权页面进行。</p>
             <el-button
-              v-if="can('platform.role.create')"
+              v-if="canPreviewRoleAuthorization()"
+              :disabled="loading"
+              @click="roleAuthorizationPreviewOpen = true"
+            >只读候选预览</el-button>
+            <el-button
+              v-if="can(platformRoleCreate.key)"
               type="primary"
               @click="roleDialog = true"
-              >创建角色</el-button
+              >{{ platformRoleCreate.label }}</el-button
             >
           </div>
           <el-table
@@ -1160,14 +1148,14 @@
             <el-table-column label="操作" min-width="230">
               <template #default="{ row }">
                 <el-button
-                  v-if="can('platform.role.update')"
+                  v-if="can(platformRoleUpdate.key)"
                   link
                   :disabled="row.status !== 'active'"
                   @click="editRole(row)"
-                  >编辑</el-button
+                  >{{ platformRoleUpdate.label }}</el-button
                 >
                 <el-button
-                  v-if="canView('role-permissions')"
+                  v-if="canView(platformRoleAuthorizationPage.view)"
                   link
                   type="primary"
                   @click="openRolePermissions(row)"
@@ -1175,14 +1163,14 @@
                 >
                 <el-button
                   v-if="
-                    can('platform.role.archive') &&
+                    can(platformRoleArchive.key) &&
                     !row.is_builtin &&
                     row.status === 'active'
                   "
                   link
                   type="danger"
                   @click="archiveRole(row)"
-                  >归档</el-button
+                  >{{ platformRoleArchive.label }}</el-button
                 >
                 <span v-if="row.status === 'archived'" class="muted"
                   >已归档</span
@@ -1198,7 +1186,7 @@
             @current-change="changeRolePage"
           />
         </template>
-        <template v-else-if="view === 'role-permissions'">
+        <template v-else-if="view === platformRoleAuthorizationPage.view">
           <div class="toolbar">
             <el-select
               :model-value="permissionRole?.id"
@@ -1222,6 +1210,11 @@
               placeholder="搜索权限名称或标识"
               style="max-width: 340px"
             />
+            <el-button
+              v-if="canPreviewRoleAuthorization()"
+              :disabled="loading"
+              @click="roleAuthorizationPreviewOpen = true"
+            >只读候选预览</el-button>
           </div>
           <el-card>
             <template #header>{{
@@ -1258,34 +1251,34 @@
               </el-checkbox>
             </el-checkbox-group>
             <el-button
-              v-if="can('platform.role.permission.assign')"
+              v-if="canApi(...platformRolePermissionAssign.endpoints[0])"
               type="primary"
               :disabled="!canEditPermissions || permissionSubmitting"
               :loading="permissionSubmitting"
               @click="savePermissions"
-              >保存角色授权</el-button
+              >{{ platformRolePermissionAssign.label }}</el-button
             >
           </el-card>
         </template>
         <PermissionBundlesPanel
-          v-else-if="view === 'permission-bundles'"
-          key="permission-bundles"
+          v-else-if="view === platformPermissionBundlesPage.view"
+          :key="platformPermissionBundlesPage.view"
           section="bundles"
           :can-api="canApi"
         />
         <PermissionBundlesPanel
-          v-else-if="view === 'permission-apis'"
-          key="permission-apis"
+          v-else-if="view === platformPermissionApisPage.view"
+          :key="platformPermissionApisPage.view"
           section="apis"
           :can-api="canApi"
         />
         <PermissionBundlesPanel
-          v-else-if="view === 'permission-menus'"
-          key="permission-menus"
+          v-else-if="view === platformPermissionMenusPage.view"
+          :key="platformPermissionMenusPage.view"
           section="menus"
           :can-api="canApi"
         />
-        <template v-else-if="view === 'audit'"
+        <template v-else-if="view === platformAuditPage.view"
           ><p
             v-if="auditLoadState === 'loading'"
             role="status"
@@ -1324,36 +1317,23 @@
               layout="prev, pager, next, total"
               @current-change="changeAuditPage" /></template
         ></template>
-        <template v-else-if="view === 'developer'"
+        <template v-else-if="view === platformDeveloperPage.view"
           ><developer-center-page
-            :can-read-updates="
-              canApi('GET', '/platformapi/instance-tools/modules/updates')
-            "
-            :can-update-official="
-              canApi(
-                'POST',
-                '/platformapi/instance-tools/modules/official-update'
-              )
-            "
-            :can-read-runtime="
-              canApi('GET', '/platformapi/instance-tools/modules')
-            "
-            :can-install="
-              canApi('POST', '/platformapi/instance-tools/modules/install')
-            "
-            :can-update="
-              canApi('POST', '/platformapi/instance-tools/modules/update')
-            "
-            :can-read-tasks="
-              canApi(
-                'GET',
-                '/platformapi/instance-tools/modules/tasks/{task_key}'
-              )
-            "
+            v-bind="developerModuleAccess"
+            :can-read-updates="canApi(...platformDeveloperOfficialUpdatesRead.endpoints[0])"
+            :can-read-runtime="canApi(...platformDeveloperRuntimeRead.endpoints[0])"
+            :can-read-tasks="canApi(...platformModuleTaskRead.endpoints[0])"
         /></template> </el-main
     ></el-container>
   </component>
   <TenantDetailsDialog v-model="tenantDetailVisible" :detail="tenantDetail" />
+  <RoleAuthorizationPreview
+    v-if="roleAuthorizationPreviewOpen && canPreviewRoleAuthorization()"
+    :can-preview="canPreviewRoleAuthorization"
+    :can-catalog-audit="canAuditRoleAuthorizationCatalog"
+    :load-directory="loadRoleAuthorizationPreviewDirectory"
+    @close="roleAuthorizationPreviewOpen = false"
+  />
   <el-dialog
     v-model="roleDialog"
     title="创建平台角色"
@@ -1371,11 +1351,11 @@
         ><el-input v-model="roleForm.description" type="textarea"
       /></el-form-item>
       <el-button
-        v-if="can('platform.role.create')"
+        v-if="can(platformRoleCreate.key)"
         native-type="submit"
         type="primary"
         :loading="loading"
-        >创建角色</el-button
+        >{{ platformRoleCreate.label }}</el-button
       >
     </el-form>
   </el-dialog>
@@ -1401,11 +1381,11 @@
           autocomplete="new-password"
       /></el-form-item>
       <el-button
-        v-if="can('platform.operator.create')"
+        v-if="can(platformOperatorCreate.key)"
         native-type="submit"
         type="primary"
         :loading="loading"
-        >创建操作员</el-button
+        >{{ platformOperatorCreate.label }}</el-button
       >
     </el-form>
   </el-dialog>
@@ -1444,7 +1424,7 @@
         ><el-input v-model="operatorRoleReason" type="textarea"
       /></el-form-item>
       <el-button
-        v-if="can('platform.operator.role.assign')"
+        v-if="can(platformOperatorRolesAssign.key)"
         native-type="submit"
         type="primary"
         :loading="loading"
@@ -1517,6 +1497,7 @@
     provide,
     reactive,
     ref,
+    watch,
   } from 'vue';
   import {
     ElMessage,
@@ -1567,12 +1548,78 @@
   import ProviderQualificationCard from './components/ProviderQualificationCard.vue';
   import DeveloperCenterPage from './components/DeveloperCenterPage.vue';
   import PermissionBundlesPanel from './components/PermissionBundlesPanel.vue';
+  import RoleAuthorizationPreview from './components/RoleAuthorizationPreview.vue';
+  import {
+    allowsRoleAuthorizationPreview,
+    allowsRoleAuthorizationCatalogAudit,
+    readRoleAuthorizationPreviewDirectory,
+  } from './api/role-authorization-preview';
   import TenantDetailsDialog from './components/TenantDetailsDialog.vue';
   import {
     allowsPlatformAction,
     allowsPlatformApi,
+    platformDeveloperModuleAccess,
     type PlatformApiAccess,
   } from './core/platform-access';
+  import {
+    organizationAccessNavigation,
+    platformAuditPage,
+    platformDeveloperOfficialUpdatesRead,
+    platformDeveloperPage,
+    platformDeveloperRuntimeRead,
+    platformModuleTaskRead,
+    platformOperationsNavigation,
+    platformOpsBackupsPage,
+    platformOpsBackupCreate,
+    platformOpsDiagnosticsDownload,
+    platformOpsDiagnosticsPage,
+    platformOpsLogs,
+    platformOpsMaintenancePage,
+    platformOpsMaintenanceClose,
+    platformOpsMaintenanceSchedule,
+    platformOpsOverviewPage,
+    platformOpsProvidersPage,
+    platformOpsRestoreVerify,
+    platformOpsTaskRead,
+    platformOpsUpgradeExecute,
+    platformOpsUpgradeHistory,
+    platformOpsUpgradeReadiness,
+    platformOpsUpgradesPage,
+    platformOperatorCreate,
+    platformOperatorRolesAssign,
+    platformOperatorsPage,
+    platformOperatorTransitions,
+    platformOperatorUpdate,
+    platformPermissionApisPage,
+    platformPermissionBundlesPage,
+    platformPermissionMenusPage,
+    platformPlansPage,
+    platformRoleArchive,
+    platformRoleAuthorizationPage,
+    platformRoleCreate,
+    platformRolePermissionAssign,
+    platformRolesPage,
+    platformRoleUpdate,
+    platformStorageAccountCreate,
+    platformStorageNavigation,
+    platformStoragePages,
+    platformStorageReadAlternatives,
+    platformStorageRouteUpdateActions,
+    platformStorageSpaceCreateActions,
+    platformTenancyNavigation,
+    platformTenantCreate,
+    platformTenantDetail,
+    platformTenantEntitlementsPage,
+    platformTenantEntryBindingActions,
+    platformTenantEntryBindingsPage,
+    platformTenantLicenseUpdate,
+    platformTenantOwnerInvitationActions,
+    platformTenantOwnerInvitationsPage,
+    platformTenantOwnerRead,
+    platformTenantsPage,
+    platformTenantTransitions,
+    platformViewHash,
+  } from './core/platform-shell-definitions';
   import PlansPanel from './components/PlansPanel.vue';
   import TenantLicensePanel from './components/TenantLicensePanel.vue';
   import {
@@ -1664,7 +1711,7 @@
     purposes: [],
   });
   const storageOptionsLoading = ref(false);
-  type StorageSection = 'accounts' | 'spaces' | 'routes';
+  type StorageSection = keyof typeof platformStoragePages;
   const owner = ref<TenantOwner | null>(null);
   const targetTenantId = ref<number | null>(null);
   let viewRequest = 0;
@@ -1680,6 +1727,7 @@
   );
   const permissionRole = ref<PlatformRole | null>(null);
   const permissionSubmitting = ref(false);
+  const roleAuthorizationPreviewOpen = ref(false);
   const platformPermissions = ref<string[]>([]);
   const apiAccess = ref<PlatformApiAccess[]>([]);
   const accessRevision = ref(0);
@@ -1751,110 +1799,127 @@
   });
   const canApi = (method: string, path: string) =>
     allowsPlatformApi(apiAccess.value, method, path);
+  const canUseEndpoints = (endpoints: readonly (readonly [string, string])[]) =>
+    endpoints.every(([method, path]) => canApi(method, path));
+  const canAssignOperatorRoles = () =>
+    canUseEndpoints(platformOperatorRolesAssign.endpoints);
+  const canPreviewRoleAuthorization = () =>
+    (view.value === platformRolesPage.view ||
+      view.value === platformRoleAuthorizationPage.view) &&
+    allowsRoleAuthorizationPreview(canApi);
+  const canAuditRoleAuthorizationCatalog = () =>
+    canPreviewRoleAuthorization() && allowsRoleAuthorizationCatalogAudit(canApi);
+  watch([view, canPreviewRoleAuthorization], () => {
+    roleAuthorizationPreviewOpen.value = false;
+  });
   const can = (permission: string) =>
     allowsPlatformAction(apiAccess.value, permission);
+  const developerModuleAccess = computed(() =>
+    platformDeveloperModuleAccess(apiAccess.value)
+  );
   const storageSections: Record<string, StorageSection> = {
-    'storage-accounts': 'accounts',
-    'storage-spaces': 'spaces',
-    'storage-routes': 'routes',
+    [platformStoragePages.accounts.view]: 'accounts',
+    [platformStoragePages.spaces.view]: 'spaces',
+    [platformStoragePages.routes.view]: 'routes',
+  };
+  const canReadStorageSection = (section: StorageSection) => {
+    const [method, path] = platformStorageReadAlternatives[section][0];
+    return canApi(method, path);
   };
   const canReadStorage = (section: StorageSection) =>
-    canApi('GET', '/platformapi/infrastructure/storage/' + section) ||
-    canApi('GET', '/platformapi/infrastructure/storage');
+    platformStorageReadAlternatives[section].some(([method, path]) => canApi(method, path));
+  const canCreateStorageSpace = () =>
+    Object.values(platformStorageSpaceCreateActions).some(({ endpoints }) => canUseEndpoints(endpoints));
+  const canChangeStorageRoute = () =>
+    Object.values(platformStorageRouteUpdateActions).some(({ endpoints }) => canUseEndpoints(endpoints));
   const opsSections: Record<string, OpsConsoleSection> = {
-    ops: 'overview',
-    maintenance: 'maintenance',
-    backups: 'backups',
-    upgrades: 'upgrades',
-    diagnostics: 'diagnostics',
-    providers: 'providers',
+    [platformOpsOverviewPage.view]: 'overview',
+    [platformOpsMaintenancePage.view]: 'maintenance',
+    [platformOpsBackupsPage.view]: 'backups',
+    [platformOpsUpgradesPage.view]: 'upgrades',
+    [platformOpsDiagnosticsPage.view]: 'diagnostics',
+    [platformOpsProvidersPage.view]: 'providers',
   };
-  const viewRequirements: Record<string, Array<[string, string]>> = {
+  const viewRequirements: Record<
+    string,
+    readonly (readonly [string, string])[]
+  > = {
     'overview': [],
-    'tenants': [['GET', '/platformapi/tenants']],
-    'owners': [
-      ['GET', '/platformapi/tenants'],
-      ['GET', '/platformapi/tenants/invitations'],
-    ],
-    'endpoints': [
-      ['GET', '/platformapi/tenants'],
-      ['GET', '/platformapi/tenant-entry-bindings'],
-    ],
-    'modules': [
-      ['GET', '/platformapi/tenants'],
-      ['GET', '/platformapi/tenants/license'],
-      ['GET', '/platformapi/tenants/modules'],
-    ],
-    'plans': [['GET', '/platformapi/plans']],
-    'operators': [['GET', '/platformapi/operators']],
-    'roles': [['GET', '/platformapi/roles']],
-    'role-permissions': [
-      ['GET', '/platformapi/roles'],
-      ['GET', '/platformapi/permissions'],
-    ],
-    'permission-bundles': [['GET', '/platformapi/permission/bundles']],
-    'permission-apis': [['GET', '/platformapi/permission/apis']],
-    'permission-menus': [['GET', '/platformapi/permission/menus']],
-    'ops': [['GET', '/platformapi/v1/ops/status']],
-    'maintenance': [['GET', '/platformapi/v1/ops/maintenance']],
-    'backups': [['GET', '/platformapi/v1/ops/backups']],
-    'providers': [['GET', '/platformapi/v1/ops/providers']],
-    'developer': [['GET', '/platformapi/developer-center/catalog']],
-    'audit': [['GET', '/platformapi/audit']],
+    [platformTenantsPage.view]: platformTenantsPage.endpoints,
+    [platformTenantOwnerInvitationsPage.view]: platformTenantOwnerInvitationsPage.endpoints,
+    [platformTenantEntryBindingsPage.view]: platformTenantEntryBindingsPage.endpoints,
+    [platformTenantEntitlementsPage.view]: platformTenantEntitlementsPage.endpoints,
+    [platformPlansPage.view]: platformPlansPage.endpoints,
+    [platformOperatorsPage.view]: platformOperatorsPage.endpoints,
+    [platformRolesPage.view]: platformRolesPage.endpoints,
+    [platformRoleAuthorizationPage.view]: platformRoleAuthorizationPage.endpoints,
+    [platformPermissionBundlesPage.view]: platformPermissionBundlesPage.endpoints,
+    [platformPermissionApisPage.view]: platformPermissionApisPage.endpoints,
+    [platformPermissionMenusPage.view]: platformPermissionMenusPage.endpoints,
+    [platformOpsOverviewPage.view]: platformOpsOverviewPage.endpoints,
+    [platformOpsMaintenancePage.view]: platformOpsMaintenancePage.endpoints,
+    [platformOpsBackupsPage.view]: platformOpsBackupsPage.endpoints,
+    [platformOpsProvidersPage.view]: platformOpsProvidersPage.endpoints,
+    [platformDeveloperPage.view]: platformDeveloperPage.endpoints,
+    [platformAuditPage.view]: platformAuditPage.endpoints,
   };
   const canView = (name: string) => {
     if (Object.hasOwn(storageSections, name))
       return canReadStorage(storageSections[name]!);
-    if (name === 'upgrades')
-      return (
-        canApi('GET', '/platformapi/v1/ops/upgrade-readiness') ||
-        canApi('GET', '/platformapi/v1/ops/upgrades')
-      );
-    if (name === 'diagnostics')
-      return (
-        canApi('GET', '/platformapi/v1/ops/logs') ||
-        canApi('GET', '/platformapi/v1/ops/diagnostics')
+    const alternateReadPage = [
+      platformOpsUpgradesPage,
+      platformOpsDiagnosticsPage,
+    ].find((page) => page.view === name);
+    if (alternateReadPage)
+      return alternateReadPage.readAlternatives.some(
+        ({ endpoints: [[method, path]] }) => canApi(method, path)
       );
     return (
       Object.hasOwn(viewRequirements, name) &&
-      viewRequirements[name]!.every(([method, path]) => canApi(method, path))
+      canUseEndpoints(viewRequirements[name]!)
     );
   };
   const navigationGroups = [
     {
-      key: 'tenant-operations',
-      title: '租户运营',
-      items: ['tenants', 'owners', 'endpoints', 'modules', 'plans'],
-    },
-    {
-      key: 'organization-access',
-      title: '组织与权限',
+      key: platformTenancyNavigation.id,
+      title: platformTenancyNavigation.label,
       items: [
-        'operators',
-        'roles',
-        'role-permissions',
-        'permission-bundles',
-        'permission-apis',
-        'permission-menus',
+        platformTenantsPage.view,
+        platformTenantOwnerInvitationsPage.view,
+        platformTenantEntryBindingsPage.view,
+        platformTenantEntitlementsPage.view,
+        platformPlansPage.view,
       ],
     },
     {
-      key: 'storage',
-      title: '存储管理',
-      items: ['storage-accounts', 'storage-spaces', 'storage-routes'],
+      key: organizationAccessNavigation.id,
+      title: organizationAccessNavigation.label,
+      items: [
+        platformOperatorsPage.view,
+        platformRolesPage.view,
+        platformRoleAuthorizationPage.view,
+        platformPermissionBundlesPage.view,
+        platformPermissionApisPage.view,
+        platformPermissionMenusPage.view,
+      ],
     },
     {
-      key: 'operations-audit',
-      title: '运维与审计',
+      key: platformStorageNavigation.id,
+      title: platformStorageNavigation.label,
+      items: Object.values(platformStoragePages).map((page) => page.view),
+    },
+    {
+      key: platformOperationsNavigation.id,
+      title: platformOperationsNavigation.label,
       items: [
-        'ops',
-        'maintenance',
-        'backups',
-        'upgrades',
-        'diagnostics',
-        'providers',
-        'developer',
-        'audit',
+        platformOpsOverviewPage.view,
+        platformOpsMaintenancePage.view,
+        platformOpsBackupsPage.view,
+        platformOpsUpgradesPage.view,
+        platformOpsDiagnosticsPage.view,
+        platformOpsProvidersPage.view,
+        platformDeveloperPage.view,
+        platformAuditPage.view,
       ],
     },
   ];
@@ -1872,8 +1937,8 @@
     return (
       (
         {
-          governance: 'role-permissions',
-          storage: 'storage-accounts',
+          governance: platformRoleAuthorizationPage.view,
+          storage: platformStoragePages.accounts.view,
           upgrade: 'upgrades',
         } as Record<string, string>
       )[name] || name
@@ -1897,6 +1962,7 @@
     tenantDetailVisible.value = false;
     permissionRole.value = null;
     permissionSelection.value = [];
+    roleAuthorizationPreviewOpen.value = false;
     permissionCatalogState.value = 'idle';
     provisionDialog.value = false;
     roleDialog.value = false;
@@ -1923,7 +1989,7 @@
   const permissionEditingBlockedReason = computed(() => {
     if (!can('platform.permission.read'))
       return '缺少读取权限目录的权限，无法安全编辑。';
-    if (!can('platform.role.permission.assign'))
+    if (!canApi(...platformRolePermissionAssign.endpoints[0]))
       return '缺少分配角色权限的权限，无法保存。';
     if (permissionCatalogState.value === 'loading')
       return '权限目录正在加载，暂不能编辑或保存。';
@@ -1948,7 +2014,7 @@
   });
   const canEditPermissions = computed(
     () =>
-      view.value === 'role-permissions' &&
+      view.value === platformRoleAuthorizationPage.view &&
       !loading.value &&
       !permissionEditingBlockedReason.value
   );
@@ -1968,19 +2034,13 @@
     ],
     logSources: ['platform.audit'],
     canRead: () => can('platform.ops.read'),
-    canBackup: () => can('platform.ops.backup.manage'),
-    canRestore: () => can('platform.ops.restore.manage'),
-    canMaintain: () =>
-      can('platform.ops.maintenance.manage') &&
-      canApi('GET', '/platformapi/v1/ops/maintenance'),
-    canReadMaintenance: () => canApi('GET', '/platformapi/v1/ops/maintenance'),
-    canCloseMaintenance: () =>
-      canApi(
-        'POST',
-        '/platformapi/v1/ops/maintenance/{maintenance_key}/close'
-      ) && canApi('GET', '/platformapi/v1/ops/maintenance'),
-    canReadTask: () => canApi('GET', '/platformapi/v1/ops/tasks/{task_key}'),
-    canReadLogs: () => can('platform.ops.logs.read'),
+    canBackup: () => canApi(...platformOpsBackupCreate.endpoints[0]),
+    canRestore: () => canApi(...platformOpsRestoreVerify.endpoints[0]),
+    canMaintain: () => canUseEndpoints(platformOpsMaintenanceSchedule.endpoints),
+    canReadMaintenance: () => canApi(...platformOpsMaintenancePage.endpoints[0]),
+    canCloseMaintenance: () => canUseEndpoints(platformOpsMaintenanceClose.endpoints),
+    canReadTask: () => canApi(...platformOpsTaskRead.endpoints[0]),
+    canReadLogs: () => can(platformOpsLogs.key),
   });
   provide(opsConsoleRuntimeKey, opsRuntime);
   const credentials = reactive({ email: '', password: '' });
@@ -2060,28 +2120,28 @@
   const roleForm = reactive({ key: '', name: '', description: '' });
   const labels: Record<string, string> = {
     'overview': '概览',
-    'ops': '运维概览',
-    'maintenance': '维护窗口',
-    'backups': '备份与恢复',
-    'upgrades': '应用升级',
-    'diagnostics': '运行诊断',
-    'providers': '服务提供者',
-    'tenants': '租户与生命周期',
-    'owners': '租户所有者邀请管理',
-    'endpoints': '入口域名与客户端',
-    'modules': '租户许可证与模块权益',
-    'plans': '套餐管理',
-    'developer': '开发者中心',
-    'storage-accounts': '存储账号',
-    'storage-spaces': '存储空间',
-    'storage-routes': '上传路由',
-    'operators': '实例平台操作员',
-    'roles': '平台角色',
-    'role-permissions': '角色授权',
-    'permission-bundles': '权限包管理',
-    'permission-apis': 'API 目录与关联',
-    'permission-menus': '菜单与按钮权限',
-    'audit': '平台审计',
+    [platformOpsOverviewPage.view]: platformOpsOverviewPage.label,
+    [platformOpsMaintenancePage.view]: platformOpsMaintenancePage.label,
+    [platformOpsBackupsPage.view]: platformOpsBackupsPage.label,
+    [platformOpsUpgradesPage.view]: platformOpsUpgradesPage.label,
+    [platformOpsDiagnosticsPage.view]: platformOpsDiagnosticsPage.label,
+    [platformOpsProvidersPage.view]: platformOpsProvidersPage.label,
+    [platformTenantsPage.view]: platformTenantsPage.label,
+    [platformTenantOwnerInvitationsPage.view]: platformTenantOwnerInvitationsPage.label,
+    [platformTenantEntryBindingsPage.view]: platformTenantEntryBindingsPage.label,
+    [platformTenantEntitlementsPage.view]: platformTenantEntitlementsPage.label,
+    [platformPlansPage.view]: platformPlansPage.label,
+    [platformDeveloperPage.view]: platformDeveloperPage.label,
+    [platformStoragePages.accounts.view]: platformStoragePages.accounts.label,
+    [platformStoragePages.spaces.view]: platformStoragePages.spaces.label,
+    [platformStoragePages.routes.view]: platformStoragePages.routes.label,
+    [platformOperatorsPage.view]: platformOperatorsPage.label,
+    [platformRolesPage.view]: platformRolesPage.label,
+    [platformRoleAuthorizationPage.view]: platformRoleAuthorizationPage.label,
+    [platformPermissionBundlesPage.view]: platformPermissionBundlesPage.label,
+    [platformPermissionApisPage.view]: platformPermissionApisPage.label,
+    [platformPermissionMenusPage.view]: platformPermissionMenusPage.label,
+    [platformAuditPage.view]: platformAuditPage.label,
   };
   const title = computed(() => labels[view.value]);
   const targetTenant = computed(() =>
@@ -2257,11 +2317,13 @@
       throw new Error('目录未完整加载，已停止编辑');
     return items;
   }
+  const loadRoleAuthorizationPreviewDirectory = (signal: AbortSignal) =>
+    readRoleAuthorizationPreviewDirectory(api, canPreviewRoleAuthorization, signal);
   async function loadTenants(
     isCurrent: () => boolean = () => true,
     all = true
   ) {
-    if (!canApi('GET', '/platformapi/tenants')) return;
+    if (!canApi(...platformTenantsPage.endpoints[0])) return;
     if (all) {
       const rows = await readSelectionPages((page) => api.tenants(page));
       if (!isCurrent()) return;
@@ -2296,7 +2358,7 @@
     if (!canView(view.value)) view.value = 'overview';
   }
   async function loadBackupCenter(page = 1) {
-    if (!canApi('GET', '/platformapi/v1/ops/backups')) return;
+    if (!canApi(...platformOpsBackupsPage.endpoints[0])) return;
     const current = ++backupCenterRequest;
     backupCenterLoading.value = true;
     opsErrors.value.backups = '';
@@ -2312,7 +2374,7 @@
     }
   }
   async function loadUpgradeReadiness() {
-    if (!canApi('GET', '/platformapi/v1/ops/upgrade-readiness')) return;
+    if (!canApi(...platformOpsUpgradeReadiness.endpoints[0])) return;
     const access = accessRevision.value;
     upgradeReadinessLoading.value = true;
     opsErrors.value.readiness = '';
@@ -2328,7 +2390,7 @@
     }
   }
   async function loadUpgradeCenter() {
-    if (!canApi('GET', '/platformapi/v1/ops/upgrades')) return;
+    if (!canApi(...platformOpsUpgradeHistory.endpoints[0])) return;
     const access = accessRevision.value;
     upgradeCenterLoading.value = true;
     opsErrors.value.upgrades = '';
@@ -2344,7 +2406,7 @@
     }
   }
   async function loadProviderQualifications(page = 1) {
-    if (!canApi('GET', '/platformapi/v1/ops/providers')) return;
+    if (!canApi(...platformOpsProvidersPage.endpoints[0])) return;
     const current = ++providerQualificationsRequest;
     providerQualificationsLoading.value = true;
     opsErrors.value.providers = '';
@@ -2362,27 +2424,30 @@
     }
   }
   async function loadOpsView(section: string) {
-    if (section === 'ops') await opsRuntime.load('overview');
-    else if (section === 'maintenance') await opsRuntime.load('maintenance');
-    else if (section === 'backups') await loadBackupCenter();
-    else if (section === 'upgrades')
+    if (section === platformOpsOverviewPage.view)
+      await opsRuntime.load('overview');
+    else if (section === platformOpsMaintenancePage.view)
+      await opsRuntime.load('maintenance');
+    else if (section === platformOpsBackupsPage.view) await loadBackupCenter();
+    else if (section === platformOpsUpgradesPage.view)
       await Promise.all([loadUpgradeReadiness(), loadUpgradeCenter()]);
     else if (
-      section === 'diagnostics' &&
-      canApi('GET', '/platformapi/v1/ops/logs')
+      section === platformOpsDiagnosticsPage.view &&
+      canApi(...platformOpsLogs.endpoints[0])
     )
       await opsRuntime.loadLogs();
-    else if (section === 'providers') await loadProviderQualifications();
+    else if (section === platformOpsProvidersPage.view)
+      await loadProviderQualifications();
   }
   async function readStorageSection(
     section: StorageSection
   ): Promise<Partial<StorageSnapshot>> {
-    if (canApi('GET', '/platformapi/infrastructure/storage/' + section)) {
+    if (canReadStorageSection(section)) {
       if (section === 'accounts') return api.storageAccounts();
       if (section === 'spaces') return api.storageSpaces();
       return api.storageRoutes();
     }
-    if (!canApi('GET', '/platformapi/infrastructure/storage'))
+    if (!canApi(...platformStorageReadAlternatives[section][1]))
       throw new Error('缺少读取此存储目录的权限');
     const snapshot = await api.storageSnapshot();
     return { [section]: snapshot[section] };
@@ -2391,15 +2456,14 @@
     if (
       !visible ||
       storageOptionsLoading.value ||
-      !canReadStorage('spaces') ||
-      !canApi('POST', '/platformapi/infrastructure/storage/route')
+      !canChangeStorageRoute()
     )
       return;
     const request = viewRequest;
     storageOptionsLoading.value = true;
     try {
       const result = await readStorageSection('spaces');
-      if (request === viewRequest && view.value === 'storage-routes')
+      if (request === viewRequest && view.value === platformStoragePages.routes.view)
         storage.value.spaces = result.spaces || [];
     } catch (cause) {
       if (request === viewRequest) error.value = message(cause);
@@ -2433,10 +2497,10 @@
     }
     loading.value = true;
     error.value = '';
-    if (requestedView === 'endpoints') {
+    if (requestedView === platformTenantEntryBindingsPage.view) {
       bindingLoadState.value = 'loading';
       bindings.value = [];
-    } else if (requestedView === 'audit') {
+    } else if (requestedView === platformAuditPage.view) {
       auditLoadState.value = 'loading';
       audits.value = [];
       auditTotal.value = 0;
@@ -2444,27 +2508,27 @@
     try {
       if (requestedView === 'overview') {
         await Promise.all([
-          canApi('GET', '/platformapi/tenants')
+          canApi(...platformTenantsPage.endpoints[0])
             ? api.tenants(1, 1).then((result) => {
                 if (isCurrentRequest()) tenantTotal.value = result.count;
               })
             : Promise.resolve(),
-          canApi('GET', '/platformapi/operators')
+          canApi(...platformOperatorsPage.endpoints[0])
             ? api.operators(1, 1).then((result) => {
                 if (isCurrentRequest()) operatorTotal.value = result.count;
               })
             : Promise.resolve(),
         ]);
-      } else if (requestedView === 'tenants') {
+      } else if (requestedView === platformTenantsPage.view) {
         await loadTenants(isCurrentRequest, false);
-      } else if (requestedView === 'owners') {
+      } else if (requestedView === platformTenantOwnerInvitationsPage.view) {
         await loadTenants(isCurrentRequest);
         if (!isCurrentRequest()) return;
         const tenantId = targetTenantId.value;
         const ownerData = tenantId
           ? await Promise.all([
               api.invitations(tenantId).then((result) => result.lists),
-              canApi('GET', '/platformapi/tenants/owner')
+              canApi(...platformTenantOwnerRead.endpoints[0])
                 ? api.tenantOwner(tenantId)
                 : Promise.resolve(null),
             ])
@@ -2472,7 +2536,7 @@
         if (!isCurrentTenantRequest(tenantId)) return;
         if (ownerData) [invitations.value, owner.value] = ownerData;
         else [invitations.value, owner.value] = [[], null];
-      } else if (requestedView === 'endpoints') {
+      } else if (requestedView === platformTenantEntryBindingsPage.view) {
         await loadTenants(isCurrentRequest);
         if (!isCurrentRequest()) return;
         const tenantId = targetTenantId.value;
@@ -2480,7 +2544,7 @@
         if (!isCurrentTenantRequest(tenantId)) return;
         bindings.value = bindingData;
         bindingLoadState.value = 'ready';
-      } else if (requestedView === 'modules') {
+      } else if (requestedView === platformTenantEntitlementsPage.view) {
         await loadTenants(isCurrentRequest);
         if (!isCurrentRequest()) return;
         const tenantId = targetTenantId.value;
@@ -2489,7 +2553,7 @@
           : [];
         if (!isCurrentTenantRequest(tenantId)) return;
         modules.value = moduleData;
-      } else if (requestedView.startsWith('storage-')) {
+      } else if (Object.hasOwn(storageSections, requestedView)) {
         const result = await readStorageSection(
           storageSections[requestedView]!
         );
@@ -2501,19 +2565,19 @@
             purposes: [],
             ...result,
           };
-      } else if (requestedView === 'operators') {
+      } else if (requestedView === platformOperatorsPage.view) {
         const result = await api.operators(operatorPage.value);
         if (isCurrentRequest()) {
           operators.value = result.lists;
           operatorTotal.value = result.count;
         }
-      } else if (requestedView === 'roles') {
+      } else if (requestedView === platformRolesPage.view) {
         const result = await api.roles(rolePage.value);
         if (isCurrentRequest()) {
           roles.value = result.lists;
           roleTotal.value = result.count;
         }
-      } else if (requestedView === 'role-permissions') {
+      } else if (requestedView === platformRoleAuthorizationPage.view) {
         const selectedId = permissionRole.value?.id;
         const [roleRows] = await Promise.all([
           readSelectionPages((page) => api.roles(page)),
@@ -2527,7 +2591,7 @@
         permissionSelection.value = [
           ...(permissionRole.value?.permission_keys || []),
         ];
-      } else if (requestedView === 'audit') {
+      } else if (requestedView === platformAuditPage.view) {
         const requestedPage = auditPage.value;
         const result = await api.audit(requestedPage, auditPageSize);
         if (!isCurrentRequest() || requestedPage !== auditPage.value) return;
@@ -2544,8 +2608,10 @@
     } catch (cause) {
       if (isCurrentRequest()) {
         error.value = message(cause);
-        if (requestedView === 'endpoints') bindingLoadState.value = 'error';
-        if (requestedView === 'audit') auditLoadState.value = 'error';
+        if (requestedView === platformTenantEntryBindingsPage.view)
+          bindingLoadState.value = 'error';
+        if (requestedView === platformAuditPage.view)
+          auditLoadState.value = 'error';
         if (!hasPlatformSession()) authenticated.value = false;
       }
     } finally {
@@ -2603,7 +2669,7 @@
   }
   async function downloadDiagnosticBundle() {
     if (
-      !canApi('GET', '/platformapi/v1/ops/diagnostics') ||
+      !canApi(...platformOpsDiagnosticsDownload.endpoints[0]) ||
       diagnosticLoading.value
     )
       return;
@@ -2632,9 +2698,7 @@
   }
   async function executeUpgrade() {
     if (
-      !can('platform.ops.upgrade.manage') ||
-      !canApi('GET', '/platformapi/v1/ops/upgrade-readiness') ||
-      !canApi('GET', '/platformapi/v1/ops/upgrades') ||
+      !canUseEndpoints(platformOpsUpgradeExecute.endpoints) ||
       upgradeSubmitting.value ||
       activeUpgrade.value ||
       upgradeReadiness.value?.preflight.state !== 'ready' ||
@@ -2647,13 +2711,16 @@
         '确认执行固定升级',
         { type: 'warning' }
       );
-      if (view.value !== 'upgrades' || !can('platform.ops.upgrade.manage'))
+      if (
+        view.value !== platformOpsUpgradesPage.view ||
+        !canApi(...platformOpsUpgradeExecute.endpoints[0])
+      )
         return;
       upgradeSubmitting.value = true;
       error.value = '';
       await api.submitUpgrade();
       ElMessage.success('升级任务已提交，等待登记的 deployment-control worker');
-      await loadOpsView('upgrades');
+      await loadOpsView(platformOpsUpgradesPage.view);
     } catch (cause) {
       if (cause !== 'cancel' && cause !== 'close') error.value = message(cause);
     } finally {
@@ -2667,13 +2734,14 @@
         error.value = '当前账号无权访问此页面';
         return;
       }
-      if (next === 'audit' && view.value !== 'audit') auditPage.value = 1;
+      if (next === platformAuditPage.view && view.value !== platformAuditPage.view)
+        auditPage.value = 1;
       if (view.value !== next) {
         storageOptionsLoading.value = false;
         if (opsSections[view.value] || opsSections[next]) opsRuntime.dispose();
       }
       view.value = next;
-      const hash = '#/' + next;
+      const hash = platformViewHash(next);
       if (window.location.hash !== hash) window.history.pushState({}, '', hash);
       closeNavigation();
       await loadView();
@@ -2766,13 +2834,13 @@
     window.location.replace('/admin/');
   }
   function openProvisionDialog() {
-    if (!can('platform.tenant.create')) return;
+    if (!can(platformTenantCreate.key)) return;
     provisionError.value = '';
     provisionFormRef.value?.clearValidate();
     provisionDialog.value = true;
   }
   async function createTenant() {
-    if (loading.value || !can('platform.tenant.create')) return;
+    if (loading.value || !can(platformTenantCreate.key)) return;
     provisionError.value = '';
     const valid = await provisionFormRef.value?.validate().catch(() => false);
     if (!valid) return;
@@ -2804,16 +2872,14 @@
   }
   async function changeTenant(
     tenant: Tenant,
-    action: 'activate' | 'suspend' | 'close'
+    action: keyof typeof platformTenantTransitions
   ) {
-    if (!canApi('POST', '/platformapi/tenants/' + action) || loading.value)
-      return;
-    const actionLabel = { activate: '启用', suspend: '暂停', close: '关闭' }[
-      action
-    ];
+    const transition = platformTenantTransitions[action];
+    const [method, path] = transition.endpoints[0];
+    if (!canApi(method, path) || loading.value) return;
     try {
       await ElMessageBox.confirm(
-        `确认${actionLabel} ${tenant.display_name}？`,
+        `确认${transition.label} ${tenant.display_name}？`,
         '确认生命周期变更',
         { type: 'warning' }
       );
@@ -2830,7 +2896,7 @@
     }
   }
   async function showTenant(tenant: Tenant) {
-    if (!canApi('GET', '/platformapi/tenants/detail')) return;
+    if (!canApi(...platformTenantDetail.endpoints[0])) return;
     const request = viewRequest;
     error.value = '';
     loading.value = true;
@@ -2839,7 +2905,7 @@
       const detail = await api.tenantDetail(tenant.id);
       if (
         request !== viewRequest ||
-        !canApi('GET', '/platformapi/tenants/detail')
+        !canApi(...platformTenantDetail.endpoints[0])
       )
         return;
       tenantDetail.value = detail;
@@ -2917,7 +2983,7 @@
     }
   }
   async function sendInvitation() {
-    if (!canApi('POST', '/platformapi/tenants/invitations') || loading.value)
+    if (!canApi(...platformTenantOwnerInvitationActions.create.endpoints[0]) || loading.value)
       return;
     if (!targetTenantId.value) return;
     loading.value = true;
@@ -2938,7 +3004,7 @@
   }
   async function resendInvitation(item: Invitation) {
     if (
-      !canApi('POST', '/platformapi/tenants/invitations/resend') ||
+      !canApi(...platformTenantOwnerInvitationActions.resend.endpoints[0]) ||
       loading.value
     )
       return;
@@ -2957,7 +3023,7 @@
   }
   async function revokeInvitation(item: Invitation) {
     if (
-      !canApi('POST', '/platformapi/tenants/invitations/revoke') ||
+      !canApi(...platformTenantOwnerInvitationActions.revoke.endpoints[0]) ||
       loading.value
     )
       return;
@@ -2972,7 +3038,7 @@
   }
   async function enableBinding() {
     if (
-      !canApi('POST', '/platformapi/tenant-entry-bindings/enable') ||
+      !canApi(...platformTenantEntryBindingActions.enable.endpoints[0]) ||
       loading.value
     )
       return;
@@ -2988,7 +3054,7 @@
   }
   async function disableBinding(item: EntryBinding) {
     if (
-      !canApi('POST', '/platformapi/tenant-entry-bindings/disable') ||
+      !canApi(...platformTenantEntryBindingActions.disable.endpoints[0]) ||
       loading.value
     )
       return;
@@ -3008,7 +3074,7 @@
   }
   async function createStorageAccount() {
     if (
-      !canApi('POST', '/platformapi/infrastructure/storage/account') ||
+      !canApi(...platformStorageAccountCreate.endpoints[0]) ||
       loading.value
     )
       return;
@@ -3066,8 +3132,7 @@
   }
   async function createStorageSpace() {
     if (
-      !canApi('POST', '/platformapi/infrastructure/storage/space') ||
-      !canReadStorage('accounts') ||
+      !canCreateStorageSpace() ||
       loading.value ||
       storageOptionsLoading.value
     )
@@ -3140,8 +3205,7 @@
       );
       if (
         request !== viewRequest ||
-        !canApi('POST', '/platformapi/infrastructure/storage/space') ||
-        !canReadStorage('accounts')
+        !canCreateStorageSpace()
       )
         return;
       await run(
@@ -3167,8 +3231,7 @@
   }
   async function changeStorageRoute(route: StorageRoute, spaceId: number) {
     if (
-      !canApi('POST', '/platformapi/infrastructure/storage/route') ||
-      !canReadStorage('spaces') ||
+      !canChangeStorageRoute() ||
       loading.value ||
       storageOptionsLoading.value
     )
@@ -3190,9 +3253,8 @@
         '调整上传路由'
       );
       if (
-        view.value !== 'storage-routes' ||
-        !canApi('POST', '/platformapi/infrastructure/storage/route') ||
-        !canReadStorage('spaces')
+        view.value !== platformStoragePages.routes.view ||
+        !canChangeStorageRoute()
       )
         return;
       await run(
@@ -3209,7 +3271,7 @@
     }
   }
   async function createOperator() {
-    if (!can('platform.operator.create') || loading.value) return;
+    if (!can(platformOperatorCreate.key) || loading.value) return;
     await run(async () => {
       if (operatorForm.initial_password)
         await validateNewPassword(operatorForm.initial_password);
@@ -3223,7 +3285,7 @@
     }, '平台操作员已创建');
   }
   async function editOperator(item: Operator) {
-    if (!can('platform.operator.update') || loading.value) return;
+    if (!can(platformOperatorUpdate.key) || loading.value) return;
     try {
       const name = await ElMessageBox.prompt(
         '显示名',
@@ -3247,12 +3309,7 @@
     }
   }
   async function assignOperatorRoles(item: Operator) {
-    if (
-      !can('platform.operator.role.assign') ||
-      !can('platform.role.read') ||
-      loading.value
-    )
-      return;
+    if (!canAssignOperatorRoles() || loading.value) return;
     const request = viewRequest;
     loading.value = true;
     error.value = '';
@@ -3287,7 +3344,7 @@
     const item = assigningOperator.value;
     if (
       !item ||
-      !can('platform.operator.role.assign') ||
+      !can(platformOperatorRolesAssign.key) ||
       !operatorRoleReason.value.trim() ||
       loading.value
     )
@@ -3302,17 +3359,15 @@
   }
   async function transitionOperator(
     item: Operator,
-    action: 'activate' | 'suspend' | 'close'
+    action: keyof typeof platformOperatorTransitions
   ) {
-    if (!canApi('POST', '/platformapi/operators/' + action) || loading.value)
-      return;
-    const actionLabel = { activate: '启用', suspend: '暂停', close: '关闭' }[
-      action
-    ];
+    const transition = platformOperatorTransitions[action];
+    const [method, path] = transition.endpoints[0];
+    if (!canApi(method, path) || loading.value) return;
     try {
       const reason = await ElMessageBox.prompt(
         '变更原因',
-        `${actionLabel} ${item.display_name}`,
+        `${transition.label} ${item.display_name}`,
         { inputPattern: /\S+/, inputErrorMessage: '必须填写原因' }
       );
       await run(
@@ -3324,7 +3379,7 @@
     }
   }
   async function createRole() {
-    if (!can('platform.role.create') || loading.value) return;
+    if (!can(platformRoleCreate.key) || loading.value) return;
     await run(async () => {
       await api.createRole({ ...roleForm });
       roleDialog.value = false;
@@ -3333,7 +3388,7 @@
   }
   async function editRole(item: PlatformRole) {
     if (
-      !can('platform.role.update') ||
+      !can(platformRoleUpdate.key) ||
       roles.value.find((role) => role.id === item.id)?.status !== 'active'
     ) {
       error.value = '角色已归档、不可用或缺少编辑权限，不能编辑。';
@@ -3353,7 +3408,7 @@
         inputErrorMessage: '必须填写原因',
       });
       if (
-        !can('platform.role.update') ||
+        !can(platformRoleUpdate.key) ||
         roles.value.find((role) => role.id === item.id)?.status !== 'active'
       ) {
         error.value = '角色状态或编辑权限已变化，请刷新后重试。';
@@ -3369,15 +3424,15 @@
   }
   function choosePermissionRole(id: number) {
     const item = roles.value.find((role) => role.id === id);
-    if (!item || !canView('role-permissions')) return;
+    if (!item || !canView(platformRoleAuthorizationPage.view)) return;
     permissionRole.value = item;
     permissionSelection.value = [...item.permission_keys];
   }
   async function openRolePermissions(item: PlatformRole) {
-    if (!canView('role-permissions')) return;
+    if (!canView(platformRoleAuthorizationPage.view)) return;
     permissionRole.value = item;
     permissionSelection.value = [...item.permission_keys];
-    await selectView('role-permissions');
+    await selectView(platformRoleAuthorizationPage.view);
   }
   async function savePermissions() {
     if (
@@ -3413,7 +3468,7 @@
   }
   async function archiveRole(item: PlatformRole) {
     if (
-      !can('platform.role.archive') ||
+      !can(platformRoleArchive.key) ||
       item.is_builtin ||
       item.status !== 'active' ||
       loading.value

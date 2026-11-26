@@ -457,8 +457,16 @@ $schemas = [
         ],
     ],
     'GeneratorPreviewFile' => [
-        'type' => 'object', 'additionalProperties' => false, 'required' => ['path', 'content'],
-        'properties' => ['path' => ['type' => 'string'], 'content' => ['type' => 'string']],
+        'type' => 'object', 'additionalProperties' => false,
+        'required' => ['path', 'language', 'content', 'operation'],
+        'properties' => [
+            'path' => ['type' => 'string'],
+            'language' => ['type' => 'string'],
+            'content' => ['type' => 'string'],
+            'operation' => ['type' => 'string', 'enum' => ['create', 'merge', 'unchanged', 'conflict']],
+            'base_sha256' => ['type' => 'string', 'pattern' => '^[a-f0-9]{64}$'],
+            'proposed_sha256' => ['type' => 'string', 'pattern' => '^[a-f0-9]{64}$'],
+        ],
     ],
     'GeneratorDownload' => [
         'type' => 'object', 'additionalProperties' => false, 'required' => ['download_token', 'file_name', 'expires_in'],
@@ -770,7 +778,8 @@ $flatDirectoryParams = $directoryParams;
 $flatDirectoryParams[0] = $query('mode', ['type' => 'string', 'enum' => ['search', 'resolve']], true);
 $add($paths, 'GET', '/adminapi/dept/leaderDept', $operation('listDepartmentLeaderOptions', 'Departments', $directoryResponses, $flatDirectoryParams));
 $add($paths, 'GET', '/adminapi/dept/leader-candidates', $operation(
-    'listDepartmentLeaderCandidates', 'Departments',
+    'listDepartmentLeaderCandidates',
+    'Departments',
     ['200' => $success(['type' => 'object', 'additionalProperties' => false,
         'required' => ['items', 'total', 'page_no', 'page_size'], 'properties' => [
             'items' => ['type' => 'array', 'maxItems' => 50, 'items' => ['type' => 'object',

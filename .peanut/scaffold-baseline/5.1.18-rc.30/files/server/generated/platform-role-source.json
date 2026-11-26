@@ -1,0 +1,1137 @@
+{
+    "schema_version": 1,
+    "source_path": "platform/src/core/platform-shell-definitions.ts",
+    "source_sha256": "57e30e18f260babc06f6aea678d2fc5141d440543bb73b6c9003d5f924397e1b",
+    "nodes": [
+        {
+            "key": "platform.tenancy",
+            "parent_key": null,
+            "type": "group",
+            "route_path": null,
+            "api_endpoints": [],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.tenant.list",
+            "parent_key": "platform.tenancy",
+            "type": "page",
+            "route_path": "/platform/#/tenants",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/tenants"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.tenant.create",
+            "parent_key": "platform.tenant.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/tenants/provision"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.tenant.detail",
+            "parent_key": "platform.tenant.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/tenants/detail"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.tenant.activate",
+            "parent_key": "platform.tenant.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/tenants/activate"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.tenant.suspend",
+            "parent_key": "platform.tenant.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/tenants/suspend"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.tenant.close",
+            "parent_key": "platform.tenant.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/tenants/close"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.tenant.owner-invitation.list",
+            "parent_key": "platform.tenancy",
+            "type": "page",
+            "route_path": "/platform/#/owners",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/tenants"
+                ],
+                [
+                    "GET",
+                    "/platformapi/tenants/invitations"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.tenant.owner.read",
+            "parent_key": "platform.tenant.owner-invitation.list",
+            "type": "operation",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/tenants/owner"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.tenant.owner-invitation.create",
+            "parent_key": "platform.tenant.owner-invitation.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/tenants/invitations"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.tenant.owner-invitation.resend",
+            "parent_key": "platform.tenant.owner-invitation.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/tenants/invitations/resend"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.tenant.owner-invitation.revoke",
+            "parent_key": "platform.tenant.owner-invitation.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/tenants/invitations/revoke"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.tenant.entry-binding.list",
+            "parent_key": "platform.tenancy",
+            "type": "page",
+            "route_path": "/platform/#/endpoints",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/tenants"
+                ],
+                [
+                    "GET",
+                    "/platformapi/tenant-entry-bindings"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.tenant.entry-binding.enable",
+            "parent_key": "platform.tenant.entry-binding.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/tenant-entry-bindings/enable"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.tenant.entry-binding.disable",
+            "parent_key": "platform.tenant.entry-binding.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/tenant-entry-bindings/disable"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.tenant.entitlements",
+            "parent_key": "platform.tenancy",
+            "type": "page",
+            "route_path": "/platform/#/modules",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/tenants"
+                ],
+                [
+                    "GET",
+                    "/platformapi/tenants/license"
+                ],
+                [
+                    "GET",
+                    "/platformapi/tenants/modules"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.tenant.license.update",
+            "parent_key": "platform.tenant.entitlements",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "PUT",
+                    "/platformapi/tenants/license"
+                ],
+                [
+                    "GET",
+                    "/platformapi/plans"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.plan.list",
+            "parent_key": "platform.tenancy",
+            "type": "page",
+            "route_path": "/platform/#/plans",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/plans"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.plan.create",
+            "parent_key": "platform.plan.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/plans"
+                ],
+                [
+                    "GET",
+                    "/platformapi/instance-tools/modules"
+                ],
+                [
+                    "GET",
+                    "/platformapi/permission/bundles"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.plan.update",
+            "parent_key": "platform.plan.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "PUT",
+                    "/platformapi/plans"
+                ],
+                [
+                    "GET",
+                    "/platformapi/instance-tools/modules"
+                ],
+                [
+                    "GET",
+                    "/platformapi/permission/bundles"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.governance",
+            "parent_key": null,
+            "type": "group",
+            "route_path": null,
+            "api_endpoints": [],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.operator.list",
+            "parent_key": "platform.governance",
+            "type": "page",
+            "route_path": "/platform/#/operators",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/operators"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.operator.create",
+            "parent_key": "platform.operator.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/operators/create"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.operator.update",
+            "parent_key": "platform.operator.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/operators/update"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.operator.role.assign",
+            "parent_key": "platform.operator.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/roles"
+                ],
+                [
+                    "POST",
+                    "/platformapi/operators/roles/replace"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.operator.activate",
+            "parent_key": "platform.operator.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/operators/activate"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.operator.suspend",
+            "parent_key": "platform.operator.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/operators/suspend"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.operator.close",
+            "parent_key": "platform.operator.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/operators/close"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.role.list",
+            "parent_key": "platform.governance",
+            "type": "page",
+            "route_path": "/platform/#/roles",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/roles"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.role.create",
+            "parent_key": "platform.role.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/roles/create"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.role.update",
+            "parent_key": "platform.role.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/roles/update"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.role.archive",
+            "parent_key": "platform.role.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/roles/archive"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.governance.workbench",
+            "parent_key": "platform.governance",
+            "type": "page",
+            "route_path": "/platform/#/role-permissions",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/roles"
+                ],
+                [
+                    "GET",
+                    "/platformapi/permissions"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.role.permission.assign",
+            "parent_key": "platform.governance.workbench",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/roles/permissions/replace"
+                ],
+                [
+                    "GET",
+                    "/platformapi/permissions"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.permission.bundle.list",
+            "parent_key": "platform.governance",
+            "type": "page",
+            "route_path": "/platform/#/permission-bundles",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/permission/bundles"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.permission.bundle.create",
+            "parent_key": "platform.permission.bundle.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/permission/bundles"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.permission.bundle.update",
+            "parent_key": "platform.permission.bundle.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "PUT",
+                    "/platformapi/permission/bundles"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.permission.api.list",
+            "parent_key": "platform.governance",
+            "type": "page",
+            "route_path": "/platform/#/permission-apis",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/permission/apis"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.permission.api.binding.read",
+            "parent_key": "platform.permission.api.list",
+            "type": "operation",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/permission/apis/bindings"
+                ],
+                [
+                    "GET",
+                    "/platformapi/permission/bundles"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.permission.api.binding.update",
+            "parent_key": "platform.permission.api.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "PUT",
+                    "/platformapi/permission/apis/bindings"
+                ],
+                [
+                    "GET",
+                    "/platformapi/permission/apis/bindings"
+                ],
+                [
+                    "GET",
+                    "/platformapi/permission/bundles"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.permission.menu.list",
+            "parent_key": "platform.governance",
+            "type": "page",
+            "route_path": "/platform/#/permission-menus",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/permission/menus"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.permission.menu.binding.update",
+            "parent_key": "platform.permission.menu.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "PUT",
+                    "/platformapi/permission/menus/binding"
+                ],
+                [
+                    "GET",
+                    "/platformapi/permission/bundles"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.role.authorization.preview",
+            "parent_key": null,
+            "type": "operation",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/roles/permissions/preview"
+                ],
+                [
+                    "GET",
+                    "/platformapi/operators"
+                ],
+                [
+                    "GET",
+                    "/platformapi/roles"
+                ],
+                [
+                    "GET",
+                    "/platformapi/permission/apis"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.role.authorization.catalog-audit",
+            "parent_key": null,
+            "type": "operation",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/roles/permissions/catalog-audit"
+                ],
+                [
+                    "GET",
+                    "/platformapi/operators"
+                ],
+                [
+                    "GET",
+                    "/platformapi/roles"
+                ],
+                [
+                    "GET",
+                    "/platformapi/permission/apis"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.storage",
+            "parent_key": null,
+            "type": "group",
+            "route_path": null,
+            "api_endpoints": [],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.storage.account.list",
+            "parent_key": "platform.storage",
+            "type": "page",
+            "route_path": "/platform/#/storage-accounts",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/infrastructure/storage/accounts"
+                ]
+            ],
+            "api_owner": "peanut.file"
+        },
+        {
+            "key": "platform.storage.space.list",
+            "parent_key": "platform.storage",
+            "type": "page",
+            "route_path": "/platform/#/storage-spaces",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/infrastructure/storage/spaces"
+                ]
+            ],
+            "api_owner": "peanut.file"
+        },
+        {
+            "key": "platform.storage.route.list",
+            "parent_key": "platform.storage",
+            "type": "page",
+            "route_path": "/platform/#/storage-routes",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/infrastructure/storage/routes"
+                ]
+            ],
+            "api_owner": "peanut.file"
+        },
+        {
+            "key": "platform.storage.account.create",
+            "parent_key": "platform.storage.account.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/infrastructure/storage/account"
+                ]
+            ],
+            "api_owner": "peanut.file"
+        },
+        {
+            "key": "platform.storage.space.create.fine",
+            "parent_key": "platform.storage.space.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/infrastructure/storage/space"
+                ],
+                [
+                    "GET",
+                    "/platformapi/infrastructure/storage/accounts"
+                ]
+            ],
+            "api_owner": "peanut.file"
+        },
+        {
+            "key": "platform.storage.space.create.legacy",
+            "parent_key": "platform.storage.space.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/infrastructure/storage/space"
+                ],
+                [
+                    "GET",
+                    "/platformapi/infrastructure/storage"
+                ]
+            ],
+            "api_owner": "peanut.file"
+        },
+        {
+            "key": "platform.storage.route.update.fine",
+            "parent_key": "platform.storage.route.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/infrastructure/storage/route"
+                ],
+                [
+                    "GET",
+                    "/platformapi/infrastructure/storage/spaces"
+                ]
+            ],
+            "api_owner": "peanut.file"
+        },
+        {
+            "key": "platform.storage.route.update.legacy",
+            "parent_key": "platform.storage.route.list",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/infrastructure/storage/route"
+                ],
+                [
+                    "GET",
+                    "/platformapi/infrastructure/storage"
+                ]
+            ],
+            "api_owner": "peanut.file"
+        },
+        {
+            "key": "platform.storage.legacy.read",
+            "parent_key": "platform.storage",
+            "type": "operation",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/infrastructure/storage"
+                ]
+            ],
+            "api_owner": "peanut.file"
+        },
+        {
+            "key": "platform.operations",
+            "parent_key": null,
+            "type": "group",
+            "route_path": null,
+            "api_endpoints": [],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.ops.console",
+            "parent_key": "platform.operations",
+            "type": "page",
+            "route_path": "/platform/#/ops",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/v1/ops/status"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.ops.maintenance",
+            "parent_key": "platform.operations",
+            "type": "page",
+            "route_path": "/platform/#/maintenance",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/v1/ops/maintenance"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.ops.maintenance.schedule",
+            "parent_key": "platform.ops.maintenance",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "PUT",
+                    "/platformapi/v1/ops/maintenance"
+                ],
+                [
+                    "GET",
+                    "/platformapi/v1/ops/maintenance"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.ops.maintenance.close",
+            "parent_key": "platform.ops.maintenance",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/v1/ops/maintenance/{maintenance_key}/close"
+                ],
+                [
+                    "GET",
+                    "/platformapi/v1/ops/maintenance"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.ops.backups",
+            "parent_key": "platform.operations",
+            "type": "page",
+            "route_path": "/platform/#/backups",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/v1/ops/backups"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.ops.backup.create",
+            "parent_key": "platform.ops.backups",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/v1/ops/tasks/backup"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.ops.restore.verify",
+            "parent_key": "platform.ops.backups",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/v1/ops/tasks/restore"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.ops.task.read",
+            "parent_key": "platform.ops.backups",
+            "type": "operation",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/v1/ops/tasks/{task_key}"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.upgrade.status",
+            "parent_key": "platform.operations",
+            "type": "page",
+            "route_path": "/platform/#/upgrades",
+            "api_endpoints": [],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.upgrade.readiness.read",
+            "parent_key": "platform.upgrade.status",
+            "type": "operation",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/v1/ops/upgrade-readiness"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.upgrade.history.read",
+            "parent_key": "platform.upgrade.status",
+            "type": "operation",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/v1/ops/upgrades"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.ops.upgrade.execute",
+            "parent_key": "platform.upgrade.status",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/v1/ops/tasks/upgrade"
+                ],
+                [
+                    "GET",
+                    "/platformapi/v1/ops/upgrade-readiness"
+                ],
+                [
+                    "GET",
+                    "/platformapi/v1/ops/upgrades"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.ops.diagnostics",
+            "parent_key": "platform.operations",
+            "type": "page",
+            "route_path": "/platform/#/diagnostics",
+            "api_endpoints": [],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.ops.logs.read",
+            "parent_key": "platform.ops.diagnostics",
+            "type": "operation",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/v1/ops/logs"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.ops.diagnostics.download",
+            "parent_key": "platform.ops.diagnostics",
+            "type": "operation",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/v1/ops/diagnostics"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.ops.providers",
+            "parent_key": "platform.operations",
+            "type": "page",
+            "route_path": "/platform/#/providers",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/v1/ops/providers"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.developer.catalog",
+            "parent_key": "platform.operations",
+            "type": "page",
+            "route_path": "/platform/#/developer",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/developer-center/catalog"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.developer.runtime.read",
+            "parent_key": "platform.developer.catalog",
+            "type": "operation",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/instance-tools/modules"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.developer.official-updates.read",
+            "parent_key": "platform.developer.catalog",
+            "type": "operation",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/instance-tools/modules/updates"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.developer.module.upload-install",
+            "parent_key": "platform.developer.catalog",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/instance-tools/modules/install"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.developer.module.upload-update",
+            "parent_key": "platform.developer.catalog",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/instance-tools/modules/update"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.developer.module.official-install",
+            "parent_key": "platform.developer.catalog",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/instance-tools/modules/official-install"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.developer.module.official-update",
+            "parent_key": "platform.developer.catalog",
+            "type": "action",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "POST",
+                    "/platformapi/instance-tools/modules/official-update"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.audit.list",
+            "parent_key": "platform.operations",
+            "type": "page",
+            "route_path": "/platform/#/audit",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/audit"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.module.operation-task.read",
+            "parent_key": null,
+            "type": "operation",
+            "route_path": null,
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/instance-tools/modules/tasks/{task_key}"
+                ]
+            ],
+            "api_owner": "platform"
+        }
+    ]
+}

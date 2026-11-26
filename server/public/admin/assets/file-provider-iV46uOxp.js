@@ -1,1 +1,0 @@
-import{aU as r}from"./index-BGg_9iDG.js";const i={10:"image/*",20:"video/*",30:".zip,.rar,.txt,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.7z,.gz,.mp3,.wav,.ogg"};function t(){for(const o of r)if(o.fileProvider)return o.fileProvider;return null}export{i as d,t as r};

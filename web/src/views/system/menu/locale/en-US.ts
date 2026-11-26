@@ -28,6 +28,9 @@ export default {
   'systemMenu.columns.perms': 'Required bundle',
   'systemMenu.columns.sort': 'Sort',
   'systemMenu.columns.status': 'Enabled',
+  'systemMenu.status.enabled': 'Enabled',
+  'systemMenu.status.disabled': 'Disabled',
+  'systemMenu.status.retired': 'Retired',
   'systemMenu.columns.operations': 'Operations',
 
   'systemMenu.type.M': 'Directory',

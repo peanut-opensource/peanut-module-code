@@ -172,6 +172,14 @@ $bodyOperation = $bodyObject([
 
 $articleContract = [
     'paths' => [
+        // Existing authenticated Article Admin GET, present since the original
+        // module adoption. No proven deprecation; retain its actual wire contract
+        // without creating a new menu, route or permission.
+        '/adminapi/peanut.article.hello' => ['get' => $operation(
+            'getArticleHello',
+            '读取既有受授权的文章模块 Hello 响应',
+            'ArticleHelloResponse',
+        )],
         '/adminapi/peanut.article.document.html-preview' => ['get' => $operation(
             'articleHtmlMigrationPreview',
             '读取未发布旧资讯的原 HTML 与当前来源版本供显式转换预览',
@@ -434,6 +442,25 @@ $articleContract = [
     ],
     'components' => [
         'schemas' => [
+            // HelloController::index -> BaseAdminController::data -> JsonResponseFactory.
+            // Keep the literal legacy payload; do not claim it is an Article list.
+            'ArticleHelloResponse' => [
+                'type' => 'object',
+                'additionalProperties' => false,
+                'required' => ['code', 'msg', 'data'],
+                'properties' => [
+                    'code' => ['type' => 'integer', 'enum' => [20000]],
+                    'msg' => ['type' => 'string', 'enum' => ['success']],
+                    'data' => [
+                        'type' => 'object',
+                        'additionalProperties' => false,
+                        'required' => ['message'],
+                        'properties' => [
+                            'message' => ['type' => 'string', 'enum' => ['Hello']],
+                        ],
+                    ],
+                ],
+            ],
             'ArticleHtmlMigrationRequest' => $bodyObject([
                 'id' => $positiveIntegerInput, 'request_id' => $bodyKey,
                 'confirmed' => ['type' => 'boolean', 'enum' => [true]],

@@ -4,15 +4,15 @@
     "inputs": [
         {
             "path": "modules.lock",
-            "sha256": "4770008d77a760216cfc776cd92260077456f7e8aa996b45c5cda621e519c883"
+            "sha256": "e3e398214e2e176a54d09139cf4e70b1b7e4bed54e30fefdc24b33c76f0e4566"
         },
         {
             "path": "release-versions.json",
-            "sha256": "ab155a00b624772c64feae7d75c1ae345dee08a3d313defe4f3f555b1d455671"
+            "sha256": "162f4b4b143086bea8da16957d6cbf470f587a751b82a4d08062d3772cd5fd37"
         },
         {
             "path": "server/app/api/metadata/application/adminapi.php",
-            "sha256": "50413161ef3628db777e60ca99f89c8b432a672de7b7e07570b85f0973370ccd"
+            "sha256": "5d3370b53fd1a2e01bf7f4ec2d44dc999421c717e73ce70c9170464803c0e303"
         },
         {
             "path": "server/app/api/metadata/application/common.php",
@@ -28,7 +28,7 @@
         },
         {
             "path": "server/app/api/metadata/application/platform.php",
-            "sha256": "d73aae19c40c59bf86bdb8ee71efe2e746cb91d5f7ef6884ff4a38bb45ca770e"
+            "sha256": "642bd617ae1b550c2fe7aa757b1458378a94226a2af980790dce1c7da8d37d3f"
         },
         {
             "path": "server/app/api/metadata/application/shared.php",
@@ -56,7 +56,7 @@
         },
         {
             "path": "server/app/modules/peanut/article/api/metadata/openapi.php",
-            "sha256": "e5d37ab29ea195eb3ee30a65864a8a76f6d40189288107cbb37c03ebf36ed621"
+            "sha256": "ce55e269e37a6f919b58e7815165d9da14f36afdb92db365bcc2a8945b7e56f8"
         },
         {
             "path": "server/app/modules/peanut/article/route/app.php",
@@ -168,7 +168,7 @@
         },
         {
             "path": "server/app/modules/peanut/workflow/api/metadata/openapi.php",
-            "sha256": "92b3c67805b1b3d5de5624af5dd77a7e72c5aa4ad5612087eee176779de24846"
+            "sha256": "dc566251c48ad8e3ac00fc8fe93aee77ae7833cedc3866136064688309c41497"
         },
         {
             "path": "server/app/modules/peanut/workflow/route/app.php",
@@ -183,6 +183,10 @@
             "sha256": "8ef1d99149c332ed2d0bacf3577d1a11a9f14b5d7ababadf6a85a80b1909beb7"
         },
         {
+            "path": "server/generated/platform-role-source.json",
+            "sha256": "0b988d3f755ef7b6b91b6029bb1e167421895ffca386c1f76e84b38a65dc88af"
+        },
+        {
             "path": "server/route/admin.php",
             "sha256": "cbe6ee22b1c3b16af578db9783ef1a3eb3ea33306ea4db4ba11bc7421ff316ac"
         },
@@ -192,7 +196,7 @@
         },
         {
             "path": "server/route/platform.php",
-            "sha256": "b1934f31b70c78d17b673e8978c1d0270c0fca56f13680608b69d22cacfa6a21"
+            "sha256": "63b411fe31f95c138935bc630d8ba39fc51b5b32b3f58656f7ce1c0f4ff07af5"
         },
         {
             "path": "server/route/public_api.php",
@@ -216,36 +220,36 @@
         ]
     },
     "summary": {
-        "route_count": 484,
-        "generated_api_operations": 458,
-        "route_only_operations": 26,
-        "complete_operations": 453,
+        "route_count": 486,
+        "generated_api_operations": 486,
+        "route_only_operations": 0,
+        "complete_operations": 481,
         "partial_operations": 5,
-        "runtime_routes": 484,
-        "documented_operations": 458,
-        "undocumented_routes": 26,
-        "automatic_route_metadata": 484,
-        "requires_owner_contract": 26,
+        "runtime_routes": 486,
+        "documented_operations": 486,
+        "undocumented_routes": 0,
+        "automatic_route_metadata": 486,
+        "requires_owner_contract": 0,
         "owners": 21,
         "runtime_inventory": {
-            "total": 484,
+            "total": 486,
             "methods": {
                 "DELETE": 3,
                 "GET": 213,
-                "POST": 258,
+                "POST": 260,
                 "PUT": 10
             },
             "applications": {
                 "adminapi": 342,
                 "api": 47,
                 "installation": 9,
-                "platform": 86
+                "platform": 88
             },
             "owners": {
                 "application:adminapi": 99,
                 "application:api": 7,
                 "application:installation": 9,
-                "application:platform": 75,
+                "application:platform": 77,
                 "module:custom.ai-access": 5,
                 "module:custom.ai-assistant": 20,
                 "module:peanut.article": 39,
@@ -271,7 +275,7 @@
         "application:adminapi": 99,
         "application:api": 7,
         "application:installation": 9,
-        "application:platform": 75,
+        "application:platform": 77,
         "module:custom.ai-access": 5,
         "module:custom.ai-assistant": 20,
         "module:peanut.article": 39,
@@ -290,372 +294,7 @@
         "module:peanut.task": 10,
         "module:peanut.workflow": 30
     },
-    "documentation_gaps": [
-        {
-            "method": "GET",
-            "path": "/adminapi/api/v1/workflow/definitions",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/design.php",
-                "line": 16
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "GET",
-            "path": "/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/design.php",
-                "line": 23
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "GET",
-            "path": "/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/scenario",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/design.php",
-                "line": 24
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "GET",
-            "path": "/adminapi/api/v1/workflow/inbox",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/app.php",
-                "line": 22
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "GET",
-            "path": "/adminapi/api/v1/workflow/instances/{instanceKey}",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/app.php",
-                "line": 26
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "GET",
-            "path": "/adminapi/api/v1/workflow/instances/{instanceKey}/diagnostics",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/app.php",
-                "line": 28
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "GET",
-            "path": "/adminapi/peanut.article.hello",
-            "owner": {
-                "type": "module",
-                "key": "peanut.article"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/article/route/app.php",
-                "line": 48
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/article/api/metadata/openapi.php"
-        },
-        {
-            "method": "POST",
-            "path": "/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/activate",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/design.php",
-                "line": 21
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "POST",
-            "path": "/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/publish",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/design.php",
-                "line": 21
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "POST",
-            "path": "/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/retire",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/design.php",
-                "line": 21
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "POST",
-            "path": "/adminapi/api/v1/workflow/definitions/preview",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/design.php",
-                "line": 18
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "POST",
-            "path": "/adminapi/api/v1/workflow/definitions/validate",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/design.php",
-                "line": 17
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "POST",
-            "path": "/adminapi/api/v1/workflow/instances",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/app.php",
-                "line": 23
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "POST",
-            "path": "/adminapi/api/v1/workflow/instances/{instanceKey}/reassign",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/app.php",
-                "line": 40
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "POST",
-            "path": "/adminapi/api/v1/workflow/instances/{instanceKey}/reconcile",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/app.php",
-                "line": 27
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "POST",
-            "path": "/adminapi/api/v1/workflow/instances/{instanceKey}/recover",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/app.php",
-                "line": 29
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "POST",
-            "path": "/adminapi/api/v1/workflow/instances/{instanceKey}/retry",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/app.php",
-                "line": 40
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "POST",
-            "path": "/adminapi/api/v1/workflow/instances/{instanceKey}/terminate",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/app.php",
-                "line": 40
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "POST",
-            "path": "/adminapi/api/v1/workflow/instances/{instanceKey}/withdraw",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/app.php",
-                "line": 40
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "POST",
-            "path": "/adminapi/api/v1/workflow/tasks/{workItemKey}/claim",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/app.php",
-                "line": 37
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "POST",
-            "path": "/adminapi/api/v1/workflow/tasks/{workItemKey}/completions",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/app.php",
-                "line": 37
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "POST",
-            "path": "/adminapi/api/v1/workflow/tasks/{workItemKey}/decisions",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/app.php",
-                "line": 37
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "POST",
-            "path": "/adminapi/api/v1/workflow/tasks/{workItemKey}/release",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/app.php",
-                "line": 37
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "POST",
-            "path": "/adminapi/api/v1/workflow/tasks/{workItemKey}/resubmit",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/app.php",
-                "line": 37
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "POST",
-            "path": "/adminapi/api/v1/workflow/tasks/{workItemKey}/return",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/app.php",
-                "line": 37
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        },
-        {
-            "method": "PUT",
-            "path": "/adminapi/api/v1/workflow/definitions/{moduleKey}/{workflowKey}/draft",
-            "owner": {
-                "type": "module",
-                "key": "peanut.workflow"
-            },
-            "source": {
-                "file": "server/app/modules/peanut/workflow/route/design.php",
-                "line": 19
-            },
-            "reason": "Runtime metadata is known; request, response and business-error contracts require the route owner.",
-            "module_fragment": "server/app/modules/peanut/workflow/api/metadata/openapi.php"
-        }
-    ],
+    "documentation_gaps": [],
     "endpoints": [
         {
             "api_id": "035b82544b4411f2c26aff37cc462b63393aeb8edeeeee51deb2357eb2cc86d8",
@@ -2380,8 +2019,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -2408,12 +2051,15 @@
                 "file": "server/app/modules/peanut/workflow/route/design.php",
                 "line": 16
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "listWorkflowDefinitions",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -2423,12 +2069,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -2463,8 +2104,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -2491,12 +2136,15 @@
                 "file": "server/app/modules/peanut/workflow/route/design.php",
                 "line": 23
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "getWorkflowDesignerDefinition",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -2506,12 +2154,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -2546,8 +2189,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -2574,12 +2221,15 @@
                 "file": "server/app/modules/peanut/workflow/route/design.php",
                 "line": 24
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "getWorkflowDesignerScenario",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -2589,12 +2239,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -2713,8 +2358,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -2741,12 +2390,15 @@
                 "file": "server/app/modules/peanut/workflow/route/app.php",
                 "line": 22
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "getWorkflowInbox",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -2756,12 +2408,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -2796,8 +2443,11 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409
             ],
             "middleware": [
                 {
@@ -2824,12 +2474,15 @@
                 "file": "server/app/modules/peanut/workflow/route/app.php",
                 "line": 26
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "getWorkflowRuntimeInstance",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -2839,12 +2492,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -2879,8 +2527,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -2907,12 +2559,15 @@
                 "file": "server/app/modules/peanut/workflow/route/app.php",
                 "line": 28
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "getWorkflowTaskDiagnostics",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -2922,12 +2577,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -7537,12 +7187,15 @@
                 "file": "server/app/modules/peanut/article/route/app.php",
                 "line": 48
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "getArticleHello",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-article/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -7552,12 +7205,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -18587,8 +18235,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -18615,12 +18267,15 @@
                 "file": "server/app/modules/peanut/workflow/route/design.php",
                 "line": 21
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "activateWorkflowDesignerDefinition",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -18630,12 +18285,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -18670,8 +18320,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -18698,12 +18352,15 @@
                 "file": "server/app/modules/peanut/workflow/route/design.php",
                 "line": 21
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "publishWorkflowDesignerDefinition",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -18713,12 +18370,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -18753,8 +18405,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -18781,12 +18437,15 @@
                 "file": "server/app/modules/peanut/workflow/route/design.php",
                 "line": 21
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "retireWorkflowDesignerDefinition",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -18796,12 +18455,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -18836,8 +18490,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -18864,12 +18522,15 @@
                 "file": "server/app/modules/peanut/workflow/route/design.php",
                 "line": 18
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "previewWorkflowDesignerGraph",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -18879,12 +18540,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -18919,8 +18575,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -18947,12 +18607,15 @@
                 "file": "server/app/modules/peanut/workflow/route/design.php",
                 "line": 17
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "validateWorkflowDesignerGraph",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -18962,12 +18625,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -19002,8 +18660,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -19030,12 +18692,15 @@
                 "file": "server/app/modules/peanut/workflow/route/app.php",
                 "line": 23
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "startWorkflowInstance",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -19045,12 +18710,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -19169,8 +18829,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -19197,12 +18861,15 @@
                 "file": "server/app/modules/peanut/workflow/route/app.php",
                 "line": 40
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "reassignWorkflowPendingItem",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -19212,12 +18879,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -19252,8 +18914,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -19280,12 +18946,15 @@
                 "file": "server/app/modules/peanut/workflow/route/app.php",
                 "line": 27
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "reconcileWorkflowServiceTask",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -19295,12 +18964,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -19335,8 +18999,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -19363,12 +19031,15 @@
                 "file": "server/app/modules/peanut/workflow/route/app.php",
                 "line": 29
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "recoverWorkflowServiceTask",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -19378,12 +19049,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -19418,8 +19084,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -19446,12 +19116,15 @@
                 "file": "server/app/modules/peanut/workflow/route/app.php",
                 "line": 40
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "retryBlockedWorkflowInstance",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -19461,12 +19134,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -19501,8 +19169,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -19529,12 +19201,15 @@
                 "file": "server/app/modules/peanut/workflow/route/app.php",
                 "line": 40
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "terminateWorkflowInstance",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -19544,12 +19219,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -19584,8 +19254,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -19612,12 +19286,15 @@
                 "file": "server/app/modules/peanut/workflow/route/app.php",
                 "line": 40
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "withdrawWorkflowInstance",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -19627,12 +19304,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -19667,8 +19339,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -19695,12 +19371,15 @@
                 "file": "server/app/modules/peanut/workflow/route/app.php",
                 "line": 37
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "claimWorkflowTask",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -19710,12 +19389,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -19750,8 +19424,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -19778,12 +19456,15 @@
                 "file": "server/app/modules/peanut/workflow/route/app.php",
                 "line": 37
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "completeWorkflowTask",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -19793,12 +19474,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -19833,8 +19509,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -19861,12 +19541,15 @@
                 "file": "server/app/modules/peanut/workflow/route/app.php",
                 "line": 37
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "decideWorkflowTask",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -19876,12 +19559,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -19916,8 +19594,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -19944,12 +19626,15 @@
                 "file": "server/app/modules/peanut/workflow/route/app.php",
                 "line": 37
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "releaseWorkflowTask",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -19959,12 +19644,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -19999,8 +19679,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -20027,12 +19711,15 @@
                 "file": "server/app/modules/peanut/workflow/route/app.php",
                 "line": 37
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "resubmitWorkflowTask",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -20042,12 +19729,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -20082,8 +19764,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -20110,12 +19796,15 @@
                 "file": "server/app/modules/peanut/workflow/route/app.php",
                 "line": 37
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "returnWorkflowTask",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -20125,12 +19814,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -34355,6 +34039,190 @@
             }
         },
         {
+            "api_id": "e99865ee437e01421f4f1f6fce75c10b29eb8d6989274864c9602f4d4d0f818a",
+            "method": "POST",
+            "path": "/platformapi/roles/permissions/catalog-audit",
+            "runtime_path": "/platformapi/roles/permissions/catalog-audit",
+            "application": "platform",
+            "audience": "platform",
+            "owner": {
+                "type": "application",
+                "key": "platform"
+            },
+            "controller": "app\\platform\\controller\\PlatformControlPlaneQueryController",
+            "action": "auditRoleCatalog",
+            "auth": {
+                "mode": "platform_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "platform.role.read"
+            ],
+            "prerequisite_permission_keys": [
+                "platform.permission.api.read",
+                "platform.operator.read"
+            ],
+            "permissions": [
+                {
+                    "kind": "platform_action",
+                    "key": "platform.permission.api.read"
+                },
+                {
+                    "kind": "platform_action",
+                    "key": "platform.operator.read"
+                },
+                {
+                    "kind": "platform_action",
+                    "key": "platform.role.read"
+                }
+            ],
+            "errors": [
+                401,
+                403,
+                404,
+                422
+            ],
+            "middleware": [
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformLoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
+                    "arguments": [
+                        "platform.permission.api.read"
+                    ]
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
+                    "arguments": [
+                        "platform.operator.read"
+                    ]
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
+                    "arguments": [
+                        "platform.role.read"
+                    ]
+                }
+            ],
+            "source": {
+                "file": "server/route/platform.php",
+                "line": 273
+            },
+            "documented": true,
+            "openapi_operation_id": "auditPlatformRoleAuthorizationCatalog",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
+            "api_id": "82b682a8afec05c8cd6736c7709e0bd17f8cf024867b1b753bf774c2cf7765b2",
+            "method": "POST",
+            "path": "/platformapi/roles/permissions/preview",
+            "runtime_path": "/platformapi/roles/permissions/preview",
+            "application": "platform",
+            "audience": "platform",
+            "owner": {
+                "type": "application",
+                "key": "platform"
+            },
+            "controller": "app\\platform\\controller\\PlatformControlPlaneQueryController",
+            "action": "previewRolePermissions",
+            "auth": {
+                "mode": "platform_permission",
+                "exception_registration": null
+            },
+            "default_permission_keys": [
+                "platform.role.read"
+            ],
+            "prerequisite_permission_keys": [
+                "platform.permission.api.read",
+                "platform.operator.read"
+            ],
+            "permissions": [
+                {
+                    "kind": "platform_action",
+                    "key": "platform.permission.api.read"
+                },
+                {
+                    "kind": "platform_action",
+                    "key": "platform.operator.read"
+                },
+                {
+                    "kind": "platform_action",
+                    "key": "platform.role.read"
+                }
+            ],
+            "errors": [
+                401,
+                403,
+                404,
+                422
+            ],
+            "middleware": [
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformLoginMiddleware",
+                    "arguments": []
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
+                    "arguments": [
+                        "platform.permission.api.read"
+                    ]
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
+                    "arguments": [
+                        "platform.operator.read"
+                    ]
+                },
+                {
+                    "class": "app\\platform\\http\\middleware\\PlatformPermissionMiddleware",
+                    "arguments": [
+                        "platform.role.read"
+                    ]
+                }
+            ],
+            "source": {
+                "file": "server/route/platform.php",
+                "line": 266
+            },
+            "documented": true,
+            "openapi_operation_id": "previewPlatformRoleAuthorization",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts"
+            ],
+            "documentation": {
+                "status": "documented",
+                "automatic_metadata": [
+                    "route",
+                    "owner",
+                    "controller",
+                    "middleware",
+                    "auth",
+                    "permissions",
+                    "source"
+                ],
+                "requires_owner_contract": []
+            }
+        },
+        {
             "api_id": "104766d4054fcf0ac38ec9bf1e8c19075b0c1c6c61972107556d10fc971f364f",
             "method": "POST",
             "path": "/platformapi/roles/permissions/replace",
@@ -34400,7 +34268,7 @@
             ],
             "source": {
                 "file": "server/route/platform.php",
-                "line": 266
+                "line": 280
             },
             "documented": true,
             "openapi_operation_id": "replacePlatformRolePermissions",
@@ -35753,8 +35621,12 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -35781,12 +35653,15 @@
                 "file": "server/app/modules/peanut/workflow/route/design.php",
                 "line": 19
             },
-            "documented": false,
-            "openapi_operation_id": null,
-            "contract_quality": "route_only",
-            "sdk_consumers": [],
+            "documented": true,
+            "openapi_operation_id": "saveWorkflowDesignerDraft",
+            "contract_quality": "complete",
+            "sdk_consumers": [
+                "web/src/generated/openapi.d.ts",
+                "web/src/modules/peanut-workflow/generated/openapi.ts"
+            ],
             "documentation": {
-                "status": "route_only",
+                "status": "documented",
                 "automatic_metadata": [
                     "route",
                     "owner",
@@ -35796,12 +35671,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "operationId",
-                    "parameters_or_request_body",
-                    "response_schemas",
-                    "business_errors"
-                ]
+                "requires_owner_contract": []
             }
         },
         {

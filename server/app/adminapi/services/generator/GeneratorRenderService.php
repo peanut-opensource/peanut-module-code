@@ -16,34 +16,45 @@ final class GeneratorRenderService
      * @param array<string,mixed> $table 已由调用方校验归属的生成器表快照
      * @return list<array{path:string,language:string,content:string,operation:string,base_sha256?:string}>
      */
-    public static function render(array $table, ?string $sourceRoot = null): array
+    public static function render(array $table, ?string $sourceRoot = null, bool $reviewExisting = false): array
     {
         $root = self::repositoryRoot($sourceRoot);
         $context = self::context($table, $root);
         $files = [
-            self::createFile($context['modelPath'], 'php', self::renderModel($context), $root),
-            self::createFile($context['servicePath'], 'php', self::renderService($context), $root),
-            self::createFile($context['controllerPath'], 'php', self::renderController($context), $root),
-            self::createFile($context['validatePath'], 'php', self::renderValidate($context), $root),
-            self::createFile($context['apiPath'], 'typescript', self::renderApi($context), $root),
-            self::createFile($context['viewPath'], 'vue', self::renderView($context), $root),
-            self::createFile($context['frontendContributionFragmentPath'], 'typescript', self::renderFrontendContribution($context), $root),
-            self::createFile($context['routeFragmentPath'], 'php', self::renderRouteFragment($context), $root),
-            self::createFile($context['openApiFragmentPath'], 'php', self::renderOpenApiFragment($context), $root),
+            self::createFile($context['modelPath'], 'php', self::renderModel($context), $root, $reviewExisting),
+            self::createFile($context['servicePath'], 'php', self::renderService($context), $root, $reviewExisting),
+            self::createFile($context['controllerPath'], 'php', self::renderController($context), $root, $reviewExisting),
+            self::createFile($context['validatePath'], 'php', self::renderValidate($context), $root, $reviewExisting),
+            self::createFile($context['apiPath'], 'typescript', self::renderApi($context), $root, $reviewExisting),
+            self::createFile($context['viewPath'], 'vue', self::renderView($context), $root, $reviewExisting),
+            self::createFile($context['frontendContributionFragmentPath'], 'typescript', self::renderFrontendContribution($context), $root, $reviewExisting),
+            self::createFile($context['routeFragmentPath'], 'php', self::renderRouteFragment($context), $root, $reviewExisting),
+            self::createFile($context['openApiFragmentPath'], 'php', self::renderOpenApiFragment($context), $root, $reviewExisting),
         ];
 
         foreach ([
             ['manifestPath', 'json', self::mergeManifest($context), 'manifestSource'],
-            ['permissionsPath', 'json', self::mergePermissions($context), 'permissionsSource'],
-            ['routePath', 'php', self::mergeRouteRegistry($context), 'routeSource'],
-            ['frontendContributionPath', 'typescript', self::mergeFrontendContribution($context), 'frontendContributionSource'],
+            ['permissionsPath', 'json', self::mergePermissions($context, $reviewExisting), 'permissionsSource'],
+            ['routePath', 'php', self::mergeRouteRegistry($context, $reviewExisting), 'routeSource'],
+            ['frontendContributionPath', 'typescript', self::mergeFrontendContribution($context, $reviewExisting), 'frontendContributionSource'],
         ] as [$pathKey, $language, $content, $sourceKey]) {
             $files[] = self::mergeFile($context[$pathKey], $language, $content, $context[$sourceKey]);
         }
-        $openApiRegistry = self::mergeOpenApiRegistry($context);
+        $openApiRegistry = self::mergeOpenApiRegistry($context, $reviewExisting);
         $files[] = $context['openApiExists']
             ? self::mergeFile($context['openApiPath'], 'php', $openApiRegistry, $context['openApiSource'])
-            : self::createFile($context['openApiPath'], 'php', $openApiRegistry, $root);
+            : self::createFile($context['openApiPath'], 'php', $openApiRegistry, $root, $reviewExisting);
+        if ($reviewExisting) {
+            // Re-preview is a read-only comparison. Byte-identical merges do not need
+            // a rewrite; handwritten extensions in separate owned files are untouched.
+            foreach ($files as &$file) {
+                if ($file['operation'] === 'merge'
+                    && hash_equals($file['base_sha256'], hash('sha256', $file['content']))) {
+                    $file['operation'] = 'unchanged';
+                }
+            }
+            unset($file);
+        }
         return $files;
     }
 
@@ -54,11 +65,22 @@ final class GeneratorRenderService
     }
 
     /** @return array{path:string,language:string,content:string,operation:string} */
-    private static function createFile(string $path, string $language, string $content, string $root): array
+    private static function createFile(string $path, string $language, string $content, string $root, bool $reviewExisting = false): array
     {
         $absolute = $root . '/' . $path;
-        if (file_exists($absolute) || is_link($absolute)) {
-            throw new RuntimeException('生成目标已存在，不能覆盖：' . $path);
+        if (is_link($absolute)) {
+            throw new RuntimeException('生成目标不允许符号链接：' . $path);
+        }
+        if (file_exists($absolute)) {
+            if (!$reviewExisting || !is_file($absolute)) {
+                throw new RuntimeException('生成目标已存在，不能覆盖：' . $path);
+            }
+            $existing = self::readFile($path, $root);
+            return compact('path', 'language', 'content') + [
+                'operation' => hash_equals(hash('sha256', $existing), hash('sha256', $content)) ? 'unchanged' : 'conflict',
+                'base_sha256' => hash('sha256', $existing),
+                'proposed_sha256' => hash('sha256', $content),
+            ];
         }
         return compact('path', 'language', 'content') + ['operation' => 'create'];
     }
@@ -2034,7 +2056,7 @@ PHP, $c + compact('softRoutes', 'batchRoutes'));
         return self::json($manifest);
     }
 
-    private static function mergePermissions(array $c): string
+    private static function mergePermissions(array $c, bool $reviewExisting = false): string
     {
         try {
             $permissions = json_decode($c['permissionsSource'], true, 64, JSON_THROW_ON_ERROR);
@@ -2062,31 +2084,38 @@ PHP, $c + compact('softRoutes', 'batchRoutes'));
         if ($c['capabilities']['batchUpdateStatus']) $actions['batchUpdateStatus'] = ['action', 'sensitive', '批量修改状态'];
         foreach ($actions as $action => [$type, $risk, $verb]) {
             $key = $c['permissionPrefix'] . '.' . $action;
+            $expected = ['key' => $key, 'type' => $type, 'name' => $verb . $c['title'], 'risk_level' => $risk];
             if (in_array($key, $existing, true)) {
-                throw new RuntimeException('目标模块已登记同名权限：' . $key);
+                if (!$reviewExisting || count(array_filter($permissions, static fn(array $entry): bool => ($entry['key'] ?? null) === $key)) !== 1
+                    || !in_array($expected, $permissions, true)) {
+                    throw new RuntimeException('目标模块已登记同名或已修改权限，不能自动合并：' . $key);
+                }
+                continue; // Byte-identical generator-owned entry; keep all other permissions unchanged.
             }
-            $permissions[] = ['key' => $key, 'type' => $type, 'name' => $verb . $c['title'], 'risk_level' => $risk];
+            $permissions[] = $expected;
         }
         return self::json($permissions);
     }
 
-    private static function mergeRouteRegistry(array $c): string
+    private static function mergeRouteRegistry(array $c, bool $reviewExisting = false): string
     {
         $include = "require __DIR__ . '/generated/{$c['resource']}.php';";
         if (str_contains($c['routeSource'], $include)) {
-            throw new RuntimeException('目标模块已登记同名生成路由');
+            if ($reviewExisting && substr_count($c['routeSource'], $include) === 1) return $c['routeSource'];
+            throw new RuntimeException('目标模块已登记重复生成路由');
         }
         return rtrim($c['routeSource']) . "\n\n{$include}\n";
     }
 
-    private static function mergeOpenApiRegistry(array $c): string
+    private static function mergeOpenApiRegistry(array $c, bool $reviewExisting = false): string
     {
         $include = "require __DIR__ . '/generated/{$c['resource']}.php'";
         if (!$c['openApiExists']) {
             return "<?php\ndeclare(strict_types=1);\n\nreturn {$include};\n";
         }
         if (str_contains($c['openApiSource'], $include)) {
-            throw new RuntimeException('目标模块已登记同名接口元数据');
+            if ($reviewExisting && substr_count($c['openApiSource'], $include) === 1) return $c['openApiSource'];
+            throw new RuntimeException('目标模块已登记重复接口元数据');
         }
         // Extend the registry forms emitted by this generator and the published consumer fragments.
         $source = rtrim($c['openApiSource']);
@@ -2111,12 +2140,13 @@ PHP, $c + compact('softRoutes', 'batchRoutes'));
         return $trimmed . "\n\nreturn array_replace_recursive(\$base, {$include});\n";
     }
 
-    private static function mergeFrontendContribution(array $c): string
+    private static function mergeFrontendContribution(array $c, bool $reviewExisting = false): string
     {
         $variable = 'generated' . $c['entity'] . 'Contribution';
         $import = "import {$variable} from './generated/{$c['resource']}/contribution';";
         if (str_contains($c['frontendContributionSource'], $import)) {
-            throw new RuntimeException('目标模块已登记同名生成前端贡献');
+            if ($reviewExisting && substr_count($c['frontendContributionSource'], $import) === 1) return $c['frontendContributionSource'];
+            throw new RuntimeException('目标模块已登记重复生成前端贡献');
         }
         $export = 'export default contribution;';
         if (substr_count($c['frontendContributionSource'], $export) !== 1) {

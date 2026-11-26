@@ -434,23 +434,10 @@ final readonly class ModulePackageAdoptionService
                     ];
                 }
                 sort($routes, SORT_STRING);
-                $next = is_file($lockPath) ? json_decode((string) file_get_contents($lockPath), true, 512, JSON_THROW_ON_ERROR) : ['schema_version' => 1, 'modules' => []];
-                $descriptor = $package->descriptor;
-                $incoming = ['key' => $descriptor->key, 'version' => $descriptor->version,
-                    'source' => $descriptor->source, 'trust' => $descriptor->trust,
-                    'composer' => $descriptor->composer, 'npm' => $descriptor->npm, 'frontend' => $descriptor->frontend,
-                    'modules' => [['key' => $descriptor->key, 'root' => dirname($package->manifestRelative)]],
-                    'manifest' => $package->manifestRelative, 'manifest_sha256' => $descriptor->manifestDigest];
-                $entries = [];
-                foreach ($next['modules'] as $entry) {
-                    $entries[$entry['key']] = $entry;
-                }
-                $entries[$package->packageKey] = $incoming;
-                ksort($entries, SORT_STRING);
-                $next['modules'] = array_values($entries);
                 $unchanged = $previous !== null && $previous->version === $package->packageVersion && $localSourceMatches;
                 if (!$unchanged) {
-                    $promoter->promote($package, json_encode($next, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n", $previous);
+                    $currentLock = is_file($lockPath) ? (string) file_get_contents($lockPath) : null;
+                    $promoter->promote($package, ModulePackageSourcePromoter::lockWithPackage($package, $currentLock), $previous);
                 }
                 return ['status' => 'development-adopted', 'operation' => $unchanged ? 'unchanged' : 'adopted',
                     'package_key' => $package->packageKey, 'version' => $package->packageVersion,

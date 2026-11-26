@@ -6,10 +6,12 @@ APP_DIR="$ROOT_DIR"
 CORE_DIR=""
 LOCAL_CORE_MODE=0
 RESOURCE_ID=""
-REGISTRY=""
 
 die() { printf 'scaffold-doctor: %s\n' "$*" >&2; exit 1; }
-usage() { printf '%s\n' "Usage: $0 --resource-id <registered-id> [--path <application>] [--core-dir <core>]"; }
+usage() {
+  printf '%s\n' "Usage: $0 --resource-id <registered-id> [--path <application>] [--core-dir <core>]" \
+    'Resource registry: explicit PEANUT_RESOURCE_REGISTRY (absolute file path), otherwise the application-owned resources/project-resources.json.'
+}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -27,15 +29,17 @@ if [[ "$LOCAL_CORE_MODE" == 1 ]]; then
   [[ -d "$CORE_DIR" ]] || die "core checkout is missing: $CORE_DIR"
   CORE_DIR="$(CDPATH= cd -- "$CORE_DIR" && pwd)"
 fi
-REGISTRY="$APP_DIR/resources/project-resources.json"
-[[ -f "$REGISTRY" ]] || die "resource registry missing: $REGISTRY"
+REGISTRY="${PEANUT_RESOURCE_REGISTRY:-$APP_DIR/resources/project-resources.json}"
+[[ "$REGISTRY" == /* && ! -L "$REGISTRY" ]] || die 'resource registry must be an absolute, non-symlink file'
+[[ -f "$REGISTRY" && -r "$REGISTRY" ]] || die "resource registry missing or unreadable: $REGISTRY"
 jq -e --arg id "$RESOURCE_ID" '.. | objects | select(.stable_resource_id == $id)' "$REGISTRY" >/dev/null || die "resource is not registered: $RESOURCE_ID"
 COMPOSER_BIN="$APP_DIR/scripts/project-composer"
 
 for tool in php node; do command -v "$tool" >/dev/null || die "$tool is unavailable"; done
 [[ -x "$COMPOSER_BIN" ]] || die "project Composer entry point is unavailable: $COMPOSER_BIN"
-if command -v pnpm >/dev/null; then PM=pnPM; elif command -v npm >/dev/null; then PM=npm; else die 'pnpm or npm is unavailable'; fi
-printf 'tooling=php:%s composer:%s node:%s package-manager:%s\n' "$(php -r 'echo PHP_VERSION;')" "$("$COMPOSER_BIN" --version --no-ansi | head -1)" "$(node --version)" "$PM"
+if command -v pnpm >/dev/null; then PM=pnpm; elif command -v npm >/dev/null; then PM=npm; else die 'pnpm or npm is unavailable'; fi
+COMPOSER_VERSION="$("$COMPOSER_BIN" --version --no-ansi)" || die 'unable to read the application Composer version'
+printf 'tooling=php:%s composer:%s node:%s package-manager:%s\n' "$(php -r 'echo PHP_VERSION;')" "${COMPOSER_VERSION%%$'\n'*}" "$(node --version)" "$PM"
 
 for file in server/composer.json server/composer.lock web/package.json web/pnpm-lock.yaml modules.lock RELEASE_METADATA.json release-versions.json; do
   [[ -f "$APP_DIR/$file" ]] || die "missing required dependency/manifest file: $file"

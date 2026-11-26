@@ -27,6 +27,9 @@ export default {
   'systemMenu.columns.perms': '所需权限包',
   'systemMenu.columns.sort': '排序',
   'systemMenu.columns.status': '启用',
+  'systemMenu.status.enabled': '启用',
+  'systemMenu.status.disabled': '停用',
+  'systemMenu.status.retired': '已退役',
   'systemMenu.columns.operations': '操作',
 
   'systemMenu.type.M': '目录',

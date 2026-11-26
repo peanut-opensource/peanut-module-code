@@ -27,7 +27,7 @@
         type="primary"
         :disabled="saving || loading || !!error"
         @click="create"
-        >创建权限包</el-button
+        >{{ platformPermissionBundleCreate.label }}</el-button
       >
     </el-space>
     <el-alert v-if="error" :title="error" type="error" :closable="false" />
@@ -60,7 +60,7 @@
             link
             :disabled="saving"
             @click="edit(row)"
-            >编辑</el-button
+            >{{ platformPermissionBundleUpdate.label }}</el-button
           ></template
         ></el-table-column
       >
@@ -395,15 +395,25 @@
     PermissionBundle,
     PermissionMenuBinding,
   } from '../api/permission-bundles';
+  import {
+    platformPermissionApisPage,
+    platformPermissionApiBindingRead,
+    platformPermissionApiBindingUpdate,
+    platformPermissionBundleCreate,
+    platformPermissionBundlesPage,
+    platformPermissionBundleUpdate,
+    platformPermissionMenusPage,
+    platformPermissionMenuBindingUpdate,
+  } from '../core/platform-shell-definitions';
 
   const props = defineProps<{
     section: 'bundles' | 'apis' | 'menus';
     canApi: (method: string, path: string) => boolean;
   }>();
   const panelTitles = {
-    bundles: '权限包管理',
-    apis: 'API 目录与关联',
-    menus: '菜单与按钮权限',
+    bundles: platformPermissionBundlesPage.label,
+    apis: platformPermissionApisPage.label,
+    menus: platformPermissionMenusPage.label,
   };
   const panelDescriptions = {
     bundles:
@@ -413,21 +423,21 @@
       '维护租户菜单和按钮引用的权限包；更改导航显示不会自动授予角色业务权限。',
   };
   const canCreate = computed(() =>
-    props.canApi('POST', '/platformapi/permission/bundles')
+    props.canApi(...platformPermissionBundleCreate.endpoints[0])
   );
   const canUpdate = computed(() =>
-    props.canApi('PUT', '/platformapi/permission/bundles')
+    props.canApi(...platformPermissionBundleUpdate.endpoints[0])
   );
   const canReadBundles = computed(() =>
-    props.canApi('GET', '/platformapi/permission/bundles')
+    props.canApi(...platformPermissionBundlesPage.endpoints[0])
   );
   const canReadBindings = computed(() =>
-    props.canApi('GET', '/platformapi/permission/apis/bindings')
+    props.canApi(...platformPermissionApiBindingRead.endpoints[0])
   );
   const canManage = computed(() =>
     props.section === 'menus'
-      ? props.canApi('PUT', '/platformapi/permission/menus/binding')
-      : props.canApi('PUT', '/platformapi/permission/apis/bindings')
+      ? props.canApi(...platformPermissionMenuBindingUpdate.endpoints[0])
+      : props.canApi(...platformPermissionApiBindingUpdate.endpoints[0])
   );
   const accessModeLabel = (mode: string) =>
     ((

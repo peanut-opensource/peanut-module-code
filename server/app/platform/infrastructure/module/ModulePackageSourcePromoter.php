@@ -114,6 +114,32 @@ final class ModulePackageSourcePromoter
         return $pinned;
     }
 
+    /** Merge the verified package into the existing lock without discovering unrelated source. */
+    public static function lockWithPackage(VerifiedModulePackage $package, ?string $currentLock): string
+    {
+        $lock = $currentLock === null
+            ? ['schema_version' => 1, 'modules' => []]
+            : json_decode($currentLock, true, 512, JSON_THROW_ON_ERROR);
+        $entries = array_column($lock['modules'], null, 'key');
+        $descriptor = $package->descriptor;
+        $entries[$package->packageKey] = [
+            'key' => $descriptor->key,
+            'version' => $descriptor->version,
+            'source' => $descriptor->source,
+            'trust' => $descriptor->trust,
+            'composer' => $descriptor->composer,
+            'npm' => $descriptor->npm,
+            'frontend' => $descriptor->frontend,
+            'modules' => [['key' => $descriptor->key, 'root' => dirname($package->manifestRelative)]],
+            'manifest' => $package->manifestRelative,
+            'manifest_sha256' => $descriptor->manifestDigest,
+        ];
+        ksort($entries, SORT_STRING);
+        $lock['modules'] = array_values($entries);
+
+        return json_encode($lock, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n";
+    }
+
     /** Prepare all recovery inputs before exposing a journal; after that point recovery always rolls forward. */
     public function promote(VerifiedModulePackage $package, string $nextLock, ?ModuleDescriptor $previous): void
     {

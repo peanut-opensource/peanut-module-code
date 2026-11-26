@@ -4,6 +4,7 @@ import type { Client, ClientOptions } from 'openapi-fetch';
 import type { paths } from '@/generated/openapi';
 
 export interface ModuleApiOperations {
+  getArticleHello: paths['/adminapi/peanut.article.hello']['get'];
   articleHtmlMigrationPreview: paths['/adminapi/peanut.article.document.html-preview']['get'];
   migrateArticleHtml: paths['/adminapi/peanut.article.document.html-migrate']['post'];
   articleBodyEditor: paths['/adminapi/peanut.article.document.editor']['get'];
@@ -47,6 +48,7 @@ export interface ModuleApiOperations {
 export function createModuleApi(client: Client<paths>) {
   const pathClient = wrapAsPathBasedClient(client);
   return {
+    getArticleHello: pathClient['/adminapi/peanut.article.hello'].GET,
     articleHtmlMigrationPreview: pathClient['/adminapi/peanut.article.document.html-preview'].GET,
     migrateArticleHtml: pathClient['/adminapi/peanut.article.document.html-migrate'].POST,
     articleBodyEditor: pathClient['/adminapi/peanut.article.document.editor'].GET,

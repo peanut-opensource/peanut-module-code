@@ -28,6 +28,32 @@
 
 平台角色资料、角色授权、权限包、API目录与关联、菜单与按钮引用各有独立页面。角色读取、分配继续使用 `platform.role.read`、`platform.role.permission.assign`；权限包目录读取使用 `platform.permission.read`，自建定义维护使用 `platform.permission.bundle.manage`；API目录与关联读取使用 `platform.permission.api.read`，关联保存使用 `platform.permission.api.manage`；菜单与按钮引用读取/保存分别使用 `platform.permission.menu.read`、`platform.permission.menu.manage`。页面、读取动作和写入动作分别授权，不因进入角色页面获得其他管理能力。
 
+平台直接 API 关联目前提供只读迁移预览入口 `POST /platformapi/roles/permissions/preview`。调用者须同时拥有 `platform.role.read`、`platform.permission.api.read` 和 `platform.operator.read`；Identity 服务再次按真实角色权限复核，不能用本次 API 的自定义主要关联代替这些读取权限。请求中的 `operator_id` 仅指定被核对的操作员，调用者身份仍来自已验证的平台会话。
+
+候选由 `nodes` 和 `role_assignments` 组成。节点使用平台稳定 key，类型为 group/page/action/operation；page 表示菜单、action 表示按钮、operation 表示不进入导航的操作。节点直接引用已登记 API ID，候选不经权限包转授；group 只组织结构，不自动授予后代。每个节点必须显式给出 `api_ids`，每个角色必须显式给出 `node_keys`，空数组与缺字段分别处理。单列表内重复关系按集合去重；同一节点或角色重复出现时，只有规范化后完整定义相同才可去重，空/非空或其他冲突定义返回422，不能合并后吞掉清空意图。一个请求最多1000个节点、200个角色、2000条直接API关系和2000个角色节点选择；跨域、缺父、环、退役和悬空关联均须解释，不静默丢弃。API ID、方法、路径、前置权限和模块状态以服务端目录为准。
+
+预览分别返回 `capability_equal`（操作员当前有效API能力）与 `relation_coverage_complete`（逐角色关系覆盖），以及 `added`、`removed`、`unresolved`。多角色覆盖相同API不能掩盖遗漏某个角色的关系；显式空的旧实例关联不从源码默认补回。内置Bootstrap Owner动态能力、非HTTP动作、独立前置权限、模块可用性及演示账号约束保留现行语义。本次覆盖所选操作员的全部当前角色关系；省略其中一个角色会报告未覆盖，不把没有关联到该操作员的角色算作已迁移。结果只说明当次候选与当前授权的比较，不是保存请求、迁移许可或后续请求的授权凭据。
+
+Platform 的“平台角色”和“角色授权”页在当前会话具备预览及读取目录的精确 API 能力时，提供同一个“只读候选预览”。默认范围包括 Platform Shell 的授权页面和已接入的操作。概览沿用当前会话入口。候选通过相同的 HTTP 方法与规范路径在已登记目录查找有效的 Platform 授权 API ID。找不到有效唯一的关联时停止预览并显示原因。高级模式可以显式输入自定义候选 JSON。
+
+应用升级和运行诊断各保留择一入口。预览中的页面节点显示结构，具体读取能力由所属子节点单独选择。运维控制、任务轮询及诊断下载的原门禁和请求参数继续生效。
+
+存储管理关联 File 的存储账号、存储空间、上传路由和旧聚合目录读取，以及三个现有管理操作。当前 Platform API 目录缺少 File 来源时，预览提示覆盖缺口并保留其他范围。识别到相关目录条目时，候选关联须由有效且唯一的 File Platform API 提供。新增空间、调整上传路由各提供两个候选选项，分别依赖分项读取或旧聚合读取。每个选项只关联一种读取方式。页面仍优先分项读取，缺少分项权限时可沿原入口读取聚合目录。
+
+租户所有者邀请、入口绑定、许可证和套餐的修改保持各自现有门禁。选择套餐和读取表单目录的 API 归属相应操作。开发者中心的页面目录、安装状态、官方目录、上传安装和官方安装分别关联对应的 API。官方模块预检和确认提交共用所选官方操作的 API。
+
+角色授权、分配操作员角色及原角色授权保存的候选各包含其必需读取和操作。菜单与按钮权限页的租户菜单内容继续由原治理页面消费。API 详情、绑定编辑及运维操作的候选反映当前门禁和请求。只读候选预览在两个角色页面复用同一个操作。备份与恢复的任务状态仍由界面主动刷新。
+
+选择操作员后，为需要比较的角色选择节点或明确清空，未提供的角色关系保持缺省。预览用当前候选范围计算操作员有效能力、逐角色关系覆盖、新增、移除及未解决项。原“保存角色授权”独立运行。
+
+该入口由Scaffold负责路由及响应装配，Identity负责关系、授权和比较。候选应用写入口、角色授权树保存和运行期直接授权切换尚未交付。既有角色写入、权限包消费者及租户套餐合同继续生效。新增API须随相容的Identity候选采用并由原生目录流程登记后才能在实例调用，开发源码验证不等于实例已完成升级。
+
+全角色只读审计 `POST /platformapi/roles/permissions/catalog-audit` 只接受 `role_ids` 和 `role_assignments(role_id, expected_revision, node_keys)`，不接受客户端 `nodes` 或 `api_ids`。明确 `[]` 与未提交选择不同；角色无成员也可以审计。沿用 `platform.role.read`、`platform.permission.api.read` 和 `platform.operator.read` 三项读取权限。
+
+正式节点没有第二份手工目录：原生 `scripts/generate-api-contracts.php` 从现有 `platform/src/core/platform-shell-definitions.ts` 生成 `server/generated/platform-role-source.json`。`PlatformRoleNodeSource` 验证 Shell 源摘要，且生成节点制品的字节 SHA-256 也被原生 API 目录的 `inputs` 绑定并由 `GeneratedApiCatalog::load` 检查，核节点引用的 method/path/API ID、归属、受众、默认和前置权限与当前登记 `system_api` 一致；group/page 另核 `system_menu` 登记的来源、父子、route、scope、客户端及有效状态。按钮和无菜单操作来自 Shell 原正式声明，不伪称已额外写入菜单表。File 可选分支只在实际目录存在时纳入，缺少或漂移即拒绝。
+
+服务端向 Identity `auditCatalog` 传入重新生成的权威节点关系，客户端只能引用已知且可选的 node key；伪造节点、API 映射及未知 key 被拒绝。解析和等价比较位于同一只读事务，但**不构成迁移许可**。当前真实角色保存仍由 `PlatformAccessAdminService::replaceRolePermissions` 写 `platform_role_permission`，运行权限仍由 `ThinkPhpPlatformAuthorizationRepository` 从旧权限包投影；没有安全的直接关系生产写入/鉴权消费者，本包不增直接授权生产表、双写或切换，固定旧版包也不自动包含新源码。
+
 运维按运行状态、维护窗口、备份与恢复、版本与升级、日志与诊断、供应商资格分为独立页面，继续复用各自已有 API。每个页面只读取自己获准的接口；只有升级历史读取权限的账号不额外请求运行状态或升级就绪检查。日志与诊断仍要求源码规定的全部前置权限。源菜单使用 hash 入口，原 `platform.upgrade.status` 稳定 key 保留，默认引用改为其实际读取 API 使用的 `platform.ops.read`；这不是角色补权，实例已定制菜单引用仍保留。
 
 存储账号、存储空间、上传路由分别使用 `platform.storage.account.read`、`platform.storage.space.read`、`platform.storage.route.read` 读取独立列表。既有聚合读取 API 保留身份与显式实例关联，源码默认改为独立 `platform.storage.legacy.read`，该包只登记、不自动授予旧角色。未定制 `platform.ops.read` 默认包的已有角色通过同一迁移继承三个细读子能力；分别撤销后，不再因持有原运维读取包而从聚合入口取回数据。已明确配置的包不自动补权，界面只有在确实获准旧聚合 API 时使用兼容读取。空间创建另外需要账号目录，调整路由另外需要空间目录；没有相应目录读取能力时不加载、不提供依赖它的编辑入口。

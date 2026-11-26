@@ -579,6 +579,151 @@ foreach ($roleRequests as $route => $definition) {
     ));
 }
 
+// A candidate is a read-only direct API graph, never a replacement grant request.
+$previewId = ['oneOf' => [$positiveId, ['type' => 'string', 'pattern' => '^[1-9][0-9]*$']]];
+$previewNodeKey = ['type' => 'string', 'maxLength' => 160, 'pattern' => '^platform\\.[a-z0-9][a-z0-9_-]*(?:\\.[a-z0-9][a-z0-9_-]*)*$'];
+$previewApiId = ['type' => 'string', 'pattern' => '^[a-f0-9]{64}$'];
+$previewApiIds = ['type' => 'array', 'items' => $previewApiId];
+$schemas['PlatformRoleAuthorizationCandidate'] = [
+    'type' => 'object', 'additionalProperties' => false,
+    'required' => ['operator_id', 'nodes', 'role_assignments'],
+    'properties' => [
+        'operator_id' => $previewId,
+        'nodes' => [
+            'type' => 'array', 'maxItems' => 1000,
+            'items' => [
+                'type' => 'object', 'additionalProperties' => false,
+                'required' => ['key', 'parent_key', 'type', 'api_ids'],
+                'properties' => [
+                    'key' => $previewNodeKey,
+                    'parent_key' => $previewNodeKey + ['nullable' => true],
+                    'type' => ['type' => 'string', 'enum' => ['group', 'page', 'action', 'operation']],
+                    'api_ids' => $previewApiIds + ['maxItems' => 2000],
+                ],
+            ],
+        ],
+        'role_assignments' => [
+            'type' => 'array', 'maxItems' => 200,
+            'items' => [
+                'type' => 'object', 'additionalProperties' => false,
+                'required' => ['role_id', 'node_keys'],
+                'properties' => [
+                    'role_id' => $previewId,
+                    'node_keys' => ['type' => 'array', 'maxItems' => 1000, 'items' => $previewNodeKey],
+                ],
+            ],
+        ],
+    ],
+];
+$schemas['PlatformRoleAuthorizationPreview'] = [
+    'type' => 'object', 'additionalProperties' => false,
+    'required' => ['operator_id', 'capability_equal', 'relation_coverage_complete', 'owner_dynamic', 'added', 'removed', 'non_http_permission_keys', 'roles', 'unresolved'],
+    'properties' => [
+        'operator_id' => ['type' => 'string', 'pattern' => '^[1-9][0-9]*$'],
+        'capability_equal' => ['type' => 'boolean'],
+        'relation_coverage_complete' => ['type' => 'boolean'],
+        'owner_dynamic' => ['type' => 'boolean'],
+        'added' => $previewApiIds,
+        'removed' => $previewApiIds,
+        'non_http_permission_keys' => $stringList,
+        'roles' => [
+            'type' => 'array',
+            'items' => [
+                'type' => 'object', 'additionalProperties' => false,
+                'required' => ['role_id', 'relation_equal', 'owner_dynamic', 'added', 'removed'],
+                'properties' => [
+                    'role_id' => ['type' => 'string', 'pattern' => '^[1-9][0-9]*$'],
+                    'relation_equal' => ['type' => 'boolean'], 'owner_dynamic' => ['type' => 'boolean'],
+                    'added' => $previewApiIds, 'removed' => $previewApiIds,
+                ],
+            ],
+        ],
+        'unresolved' => [
+            'type' => 'array',
+            'items' => [
+                'type' => 'object', 'additionalProperties' => false, 'required' => ['code'],
+                'properties' => [
+                    'code' => ['type' => 'string'],
+                    'role_id' => ['type' => 'string'],
+                    'node_key' => ['type' => 'string'],
+                    'api_id' => ['type' => 'string'],
+                    'permission_key' => ['type' => 'string'],
+                ],
+            ],
+        ],
+    ],
+];
+$add($paths, 'POST', '/platformapi/roles/permissions/preview', $operation(
+    'previewPlatformRoleAuthorization',
+    'PlatformAccess',
+    $responses('PlatformRoleAuthorizationPreview') + ['404' => $error],
+    requestBody: $jsonBody($ref('PlatformRoleAuthorizationCandidate')),
+));
+
+// Reuse the same native node contract for a bounded audit of roles independent of membership.
+$schemas['PlatformRoleAuthorizationCatalogCandidate'] = [
+    'type' => 'object', 'additionalProperties' => false,
+    'required' => ['role_ids', 'role_assignments'],
+    'properties' => [
+        'role_ids' => ['type' => 'array', 'minItems' => 1, 'maxItems' => 200, 'items' => $previewId],
+        'role_assignments' => [
+            'type' => 'array', 'maxItems' => 200,
+            'items' => [
+                'type' => 'object', 'additionalProperties' => false,
+                'required' => ['role_id', 'expected_revision', 'node_keys'],
+                'properties' => [
+                    'role_id' => $previewId, 'expected_revision' => $previewId,
+                    'node_keys' => ['type' => 'array', 'maxItems' => 1000, 'items' => $previewNodeKey],
+                ],
+            ],
+        ],
+    ],
+];
+$schemas['PlatformRoleAuthorizationCatalogAudit'] = [
+    'type' => 'object', 'additionalProperties' => false,
+    'required' => ['catalog_total', 'scope_covers_catalog', 'equivalent', 'roles', 'unresolved'],
+    'properties' => [
+        'catalog_total' => ['type' => 'integer', 'minimum' => 0],
+        'scope_covers_catalog' => ['type' => 'boolean'], 'equivalent' => ['type' => 'boolean'],
+        'roles' => [
+            'type' => 'array',
+            'items' => [
+                'type' => 'object', 'additionalProperties' => false,
+                'required' => ['role_id', 'role_key', 'status', 'member_count', 'expected_revision', 'observed_revision',
+                    'relation_equal', 'capability_equal', 'relation', 'capability', 'owner_dynamic',
+                    'non_http_permission_keys', 'prerequisite_permission_keys'],
+                'properties' => [
+                    'role_id' => ['type' => 'string', 'pattern' => '^[1-9][0-9]*$'],
+                    'role_key' => $nullableString, 'status' => $nullableString,
+                    'member_count' => $nullableInteger, 'expected_revision' => $nullableInteger,
+                    'observed_revision' => $nullableInteger,
+                    'relation_equal' => ['type' => 'boolean'], 'capability_equal' => ['type' => 'boolean'],
+                    'relation' => [
+                        'type' => 'object', 'additionalProperties' => false,
+                        'required' => ['added', 'removed'],
+                        'properties' => ['added' => $previewApiIds, 'removed' => $previewApiIds],
+                    ],
+                    'capability' => [
+                        'type' => 'object', 'additionalProperties' => false,
+                        'required' => ['added', 'removed'],
+                        'properties' => ['added' => $previewApiIds, 'removed' => $previewApiIds],
+                    ],
+                    'owner_dynamic' => ['type' => 'boolean'],
+                    'non_http_permission_keys' => $stringList,
+                    'prerequisite_permission_keys' => $stringList,
+                ],
+            ],
+        ],
+        'unresolved' => $schemas['PlatformRoleAuthorizationPreview']['properties']['unresolved'],
+    ],
+];
+$add($paths, 'POST', '/platformapi/roles/permissions/catalog-audit', $operation(
+    'auditPlatformRoleAuthorizationCatalog',
+    'PlatformAccess',
+    $responses('PlatformRoleAuthorizationCatalogAudit') + ['404' => $error],
+    requestBody: $jsonBody($ref('PlatformRoleAuthorizationCatalogCandidate')),
+));
+
 // Tenant owner 邀请、入口域名与 TenantModule。
 $invitationIssue = static fn(bool $withTenant): array => [
     'type' => 'object', 'additionalProperties' => false,
