@@ -1794,11 +1794,11 @@
         },
         {
             "key": "peanut.workflow",
-            "version": "4.0.2-rc.8",
+            "version": "4.0.2-rc.9",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "68dcf706eb4b95587f7eec08cf0b817fca2395afcf5d2a83f48369e0b7b66a88"
+                "sha256": "10bfe837902995eee5e13ca95dd0a06a5bdecd396a0ec42449dd93525e836751"
             },
             "trust": {
                 "channel": "bundled",
@@ -1814,7 +1814,7 @@
                     "modules": [
                         {
                             "key": "peanut.workflow",
-                            "version": "4.0.2-rc.8",
+                            "version": "4.0.2-rc.9",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -1833,22 +1833,22 @@
             "composer": [
                 {
                     "name": "peanut-business/workflow",
-                    "version": "4.0.2-rc.8",
-                    "sha256": "75d70df2f88e0b2edd97e915c33879f0ee97dd6e35edbc66c4591f3437c1726e"
+                    "version": "4.0.2-rc.9",
+                    "sha256": "08deed9c81a46d43954cb6c5eed5c3f47a5406c5d3f343117d60f82146fb335c"
                 }
             ],
             "npm": [
                 {
                     "name": "@peanut-modules/workflow-web",
-                    "version": "4.0.2-rc.8",
-                    "integrity": "sha256-PKtkUYuNSzmXrFuFocUaePQiSTuKi5xyPKqnmcLvApI="
+                    "version": "4.0.2-rc.9",
+                    "integrity": "sha256-gZkNUi4ikEscnufccI0zWFgtC7uwbKQLEGdhjUVKmyE="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "admin-web",
                     "package": "@peanut-modules/workflow-web",
-                    "version": "4.0.2-rc.8",
+                    "version": "4.0.2-rc.9",
                     "entry": "web/src/modules/peanut-workflow/contribution.ts",
                     "sha256": "e28a5cc8ec4dac9380b9b4675b86cd58f7e121cedd22a91fd9b9c39b1668b901"
                 }
@@ -1860,7 +1860,7 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/workflow/module.json",
-            "manifest_sha256": "ad189fd5717ac080246edb7472b7bd940144fb10aa244426534df5da8a5815c9"
+            "manifest_sha256": "9f934ad8a3f8dd9a5bc55a00dbe65c97ad4e97940e6913e851eb6fffe15ca3a1"
         }
     ]
 }

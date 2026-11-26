@@ -1,1 +1,0 @@
-import{aU as r}from"./index-DhBOc-oR.js";const d={10:"image/*",20:"video/*",30:".zip,.rar,.txt,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.7z,.gz,.mp3,.wav,.ogg"};function l(){const e=r.find(o=>o.fileProvider);return(e==null?void 0:e.fileProvider)??null}export{d,l as r};

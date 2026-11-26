@@ -1,6 +1,7 @@
 import { RouteLocationNormalized, RouteRecordRaw } from 'vue-router';
 import { useAppStore, useUserStore } from '@/store';
 import { REDIRECT_ROUTE_NAME } from '@/router/constants';
+import { validRouteMeta } from '@/router/route-meta';
 import { permissionEvaluator } from '@/core/runtime';
 import { evaluateRequiredPermissions } from '@peanut-admin/vue';
 
@@ -74,12 +75,20 @@ export default function usePermission() {
   const accessRouter = (
     route: RouteLocationNormalized | RouteRecordRaw
   ): boolean => {
-    if (!route.meta?.requiresAuth) return true;
-    const required = route.meta.requiredPermissions;
-    const tenant = route.meta.tenantModuleKey;
+    // A malformed runtime route must never default to an unprotected page.
+    if (!validRouteMeta(route as RouteRecordRaw)) return false;
+    const required = route.meta?.requiredPermissions;
+    const tenant = route.meta?.tenantModuleKey;
     if (
       tenant !== undefined &&
-      (!moduleKey(tenant) || !permissionRequirement(required))
+      (!moduleKey(tenant) || !permissionRequirement(required) || route.meta?.requiresAuth !== true)
+    )
+      return false;
+    if (!route.meta?.requiresAuth) return true;
+    // Menu admission and the route's own permission are cumulative, never substitutes.
+    if (
+      required !== undefined &&
+      !hasPermission(required, route.path, userStore.permissions)
     )
       return false;
     if (appStore.menuFromServer) {
@@ -106,11 +115,6 @@ export default function usePermission() {
         );
       });
     }
-    if (
-      required !== undefined &&
-      !hasPermission(required, route.path, userStore.permissions)
-    )
-      return false;
     const { roles } = route.meta;
     return (
       roles === undefined ||

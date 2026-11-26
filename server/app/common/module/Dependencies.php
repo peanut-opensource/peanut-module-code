@@ -335,6 +335,9 @@ final readonly class Dependencies
             foreach ($runtimeRequirements as $requirements) {
                 PackageCheck::assertComposerRequirements($requirements);
             }
+            if ($verifyOnly) {
+                $this->assertPreparedPathMirrors($moduleRoots, $composer);
+            }
             $frontend = [];
             foreach (array_keys($clients) as $client) {
                 $publicEntry = $this->frontendEntry($client, true);
@@ -371,6 +374,76 @@ final readonly class Dependencies
         }
         $frontend = $this->adoptFrontend(array_keys($clients), $publicRelease);
         return ['status' => 'dependencies-installed', 'operations' => $operations, 'optional_modules' => $optional, 'optional_packages' => $optionalPackages, 'frontend_adoption' => $frontend];
+    }
+
+    /**
+     * Composer's installed version/lock cannot identify changes inside a mirrored path package.
+     * The preflight is read-only and limited to explicit selected Module source roots; routine
+     * HTTP admission must not hash the full Module tree for every request.
+     *
+     * @param array<string,string> $moduleRoots
+     * @param array<string,mixed> $composer
+     */
+    private function assertPreparedPathMirrors(array $moduleRoots, array $composer): void
+    {
+        $repositories = $composer['repositories'] ?? [];
+        if (!is_array($repositories)) {
+            throw new ModulePackageException('MODULE_DEPENDENCY_SOURCE_CONFLICT', 'Composer repositories are invalid.');
+        }
+        foreach ($moduleRoots as $key => $root) {
+            $package = $this->json($root . '/composer.json');
+            $name = $package['name'] ?? null;
+            if (!is_string($name) || preg_match('#^[a-z0-9_.-]+/[a-z0-9_.-]+$#D', $name) !== 1) {
+                throw new ModulePackageException('MODULE_DEPENDENCY_SOURCE_CONFLICT', 'Module Composer package name is invalid.');
+            }
+            $relative = substr($root, strlen($this->serverRoot) + 1);
+            $mirroredPath = false;
+            foreach ($repositories as $repository) {
+                if (is_array($repository)
+                    && ($repository['type'] ?? null) === 'path'
+                    && ($repository['url'] ?? null) === $relative
+                    && ($repository['options']['symlink'] ?? false) === false) {
+                    $mirroredPath = true;
+                    break;
+                }
+            }
+            if (!$mirroredPath) {
+                continue;
+            }
+            $source = $root . '/src';
+            $target = $this->serverRoot . '/vendor/' . $name . '/src';
+            if (is_link($root) || is_link(dirname($target)) || is_link(dirname($source))
+                || is_link($target) || !is_dir($source) || !is_dir($target)
+                || realpath($source) !== $source || realpath($target) !== $target
+                || self::preparedMirrorDigests($source) !== self::preparedMirrorDigests($target)) {
+                throw new ModulePackageException(
+                    'MODULE_DEPENDENCY_SOURCE_MIRROR_CHANGED',
+                    "Selected Module {$key} differs from its installed Composer path mirror. Reprepare the selected locked package dependencies.",
+                );
+            }
+        }
+    }
+
+    /** @return array<string,string> */
+    private static function preparedMirrorDigests(string $directory): array
+    {
+        $result = [];
+        $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST);
+        foreach ($files as $file) {
+            if ($file->isLink() || (!$file->isFile() && !$file->isDir())) {
+                throw new ModulePackageException('MODULE_DEPENDENCY_SOURCE_MIRROR_CHANGED', 'Composer path mirror contains an unsafe entry.');
+            }
+            if ($file->isFile()) {
+                $digest = hash_file('sha256', $file->getPathname());
+                if (!is_string($digest)) {
+                    throw new ModulePackageException('MODULE_DEPENDENCY_SOURCE_MIRROR_CHANGED', 'Composer path mirror cannot be hashed.');
+                }
+                $result[substr($file->getPathname(), strlen($directory) + 1)] = $digest;
+            }
+        }
+        ksort($result, SORT_STRING);
+        return $result;
     }
 
     private function frontendEntry(string $client, bool $publicRelease = false): string

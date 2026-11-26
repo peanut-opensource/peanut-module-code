@@ -53,13 +53,14 @@ expect(
   'Tenant and demo reset fields remain optional in the state contract'
 );
 
-const publicConfig = read('server/app/api/logic/IndexLogic.php');
+const publicConfig = read('server/app/adminapi/controller/config/ConfigController.php');
 expect(
-  publicConfig.includes('TenantEntryBindingResolver::ADMIN_CLIENT'),
+  publicConfig.includes('TenantEntryBindingResolver::ADMIN_CLIENT') &&
+    publicConfig.includes('$this->entries->system('),
   'public brand config ignores the bound Admin Host'
 );
 expect(
-  publicConfig.includes("'tenantName' => self::entryTenantName()"),
+  publicConfig.includes("'tenantName' => $this->tenants->activeName($context->tenantId)"),
   'public brand config omits the bound Tenant name'
 );
 
@@ -88,7 +89,7 @@ const loginController = read(
 );
 expect(
   loginController.includes('switchable_tenant_count') &&
-    loginController.includes('DemoAccountPolicy::isDemoEmail'),
+    loginController.includes('$this->demoAccounts->isDemoEmail('),
   'Tenant switch or demo-account capability is not account-specific'
 );
 
