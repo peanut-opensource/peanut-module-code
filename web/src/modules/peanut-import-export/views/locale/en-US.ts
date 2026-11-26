@@ -56,6 +56,7 @@ export default {
   'configurationTransfer.message.applied': 'Configuration package applied',
   'configurationTransfer.error.invalidJson':
     'The package is not a valid JSON object',
+  'configurationTransfer.error.applyUnconfirmed': 'Re-export and preview the current state before submitting again.',
   'configurationTransfer.error.requestFailed': 'Configuration transfer failed',
   'menu.system.importExportOperations': 'Import and export operations',
   'importExport.title': 'Import and export operations',

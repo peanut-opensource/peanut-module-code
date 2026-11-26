@@ -93,7 +93,7 @@
             v-permission="['peanut.import-export.configuration.apply']"
             type="success"
             :loading="applying"
-            :disabled="!plan?.can_apply"
+            :disabled="!canApply"
             @click="handleApply"
           >
             {{ $t('configurationTransfer.operation.apply') }}
@@ -201,6 +201,16 @@
   const exporting = ref(false);
   const planning = ref(false);
   const applying = ref(false);
+  // A successful dry-run is a review of ONE immutable input revision, not
+  // permission to apply any later package, secret or conflict policy.
+  const inputGeneration = ref(0);
+  const plannedGeneration = ref<number | null>(null);
+  const canApply = computed(() =>
+    plan.value?.can_apply === true &&
+    plan.value.status === 'ready' &&
+    plannedGeneration.value === inputGeneration.value &&
+    !planning.value && !applying.value
+  );
 
   const secretReferences = computed(() => {
     const references = new Set<string>();
@@ -227,7 +237,17 @@
         }
       });
     },
-    { immediate: true }
+    { immediate: true, flush: 'sync' }
+  );
+
+  watch(
+    [packageText, conflictPolicy, secretBindings],
+    () => {
+      inputGeneration.value += 1;
+      plan.value = null;
+      plannedGeneration.value = null;
+    },
+    { deep: true, flush: 'sync' }
   );
 
   const statusType = computed(() => {
@@ -293,46 +313,76 @@
   };
 
   const handleDryRun = async () => {
+    if (planning.value || applying.value) return;
     planning.value = true;
+    plan.value = null;
+    plannedGeneration.value = null;
+    const basis = inputGeneration.value;
     try {
-      const { data } = await dryRunTenantConfiguration(request());
-      plan.value = data;
+      const payload = request();
+      const { data } = await dryRunTenantConfiguration(payload);
+      // A slow dry-run for an older package must not authorize current inputs.
+      if (basis === inputGeneration.value) {
+        plan.value = data;
+        plannedGeneration.value = basis;
+      }
     } catch (error) {
-      ElMessage.error(
-        error instanceof Error
-          ? error.message
-          : t('configurationTransfer.error.requestFailed')
-      );
+      if (basis === inputGeneration.value)
+        ElMessage.error(
+          error instanceof Error
+            ? error.message
+            : t('configurationTransfer.error.requestFailed')
+        );
     } finally {
       planning.value = false;
     }
   };
 
   const handleApply = async () => {
-    if (!plan.value?.can_apply) return;
-    try {
-      await ElMessageBox.confirm(
-        t('configurationTransfer.confirm.apply'),
-        t('configurationTransfer.confirm.title'),
-        { type: 'warning' }
-      );
-    } catch {
-      return;
-    }
-
+    if (!canApply.value || !plan.value) return;
+    const basis = inputGeneration.value;
+    const checksum = plan.value.checksum;
+    // Lock the entire review+confirm+HTTP lifecycle against double-clicks.
     applying.value = true;
     try {
-      const { data } = await applyTenantConfiguration(request());
-      plan.value = data;
+      try {
+        await ElMessageBox.confirm(
+          t('configurationTransfer.confirm.apply'),
+          t('configurationTransfer.confirm.title'),
+          { type: 'warning' }
+        );
+      } catch {
+        return;
+      }
+      if (basis !== inputGeneration.value ||
+        plannedGeneration.value !== basis ||
+        !plan.value?.can_apply || plan.value.status !== 'ready' ||
+        plan.value.checksum !== checksum)
+        return;
+      const payload = request();
+      const { data } = await applyTenantConfiguration(payload);
+      const editedDuringRequest = basis !== inputGeneration.value;
+      // Clear the secrets before assigning the final applied receipt; the
+      // reactive input watcher invalidates the old preview synchronously.
       Object.keys(secretBindings).forEach((reference) => {
         secretBindings[reference] = '';
       });
+      if (!editedDuringRequest) {
+        plan.value = data;
+        plannedGeneration.value = inputGeneration.value;
+      } else {
+        plan.value = null;
+        plannedGeneration.value = null;
+      }
       ElMessage.success(t('configurationTransfer.message.applied'));
     } catch (error) {
+      plan.value = null;
+      plannedGeneration.value = null;
       ElMessage.error(
-        error instanceof Error
+        (error instanceof Error
           ? error.message
-          : t('configurationTransfer.error.requestFailed')
+          : t('configurationTransfer.error.requestFailed')) +
+          ' ' + t('configurationTransfer.error.applyUnconfirmed')
       );
     } finally {
       applying.value = false;

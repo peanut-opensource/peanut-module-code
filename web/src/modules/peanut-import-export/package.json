@@ -1,6 +1,6 @@
 {
   "name": "@peanut-admin/peanut-import-export",
-  "version": "1.0.37-rc.8",
+  "version": "1.0.37-rc.9",
   "private": true,
   "license": "Apache-2.0",
   "type": "module",

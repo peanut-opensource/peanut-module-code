@@ -55,6 +55,7 @@ export default {
   'configurationTransfer.message.exported': '配置包已下载',
   'configurationTransfer.message.applied': '配置包已应用',
   'configurationTransfer.error.invalidJson': '配置包不是有效的 JSON 对象',
+  'configurationTransfer.error.applyUnconfirmed': '请先重新导出并预检当前状态，不要直接重复提交。',
   'configurationTransfer.error.requestFailed': '配置转移请求失败',
   'menu.system.importExportOperations': '导入导出任务',
   'importExport.title': '导入导出任务',

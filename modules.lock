@@ -860,11 +860,11 @@
         },
         {
             "key": "peanut.import-export",
-            "version": "1.0.37-rc.8",
+            "version": "1.0.37-rc.9",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "e6f230a64c341f132b59ea39cd784837d594157f99222d2906375beb3a66b308"
+                "sha256": "bdd1911cada6ecdb6a7313906b50fa2df079c14961f0619f169ab8ffe54b010f"
             },
             "trust": {
                 "channel": "bundled",
@@ -880,7 +880,7 @@
                     "modules": [
                         {
                             "key": "peanut.import-export",
-                            "version": "1.0.37-rc.8",
+                            "version": "1.0.37-rc.9",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -915,22 +915,22 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-import-export",
-                    "version": "1.0.37-rc.8",
-                    "sha256": "44b1e40c365a83b436bc9585038db90d4d2170b0bc335f7fdfe5dec47f8eaee9"
+                    "version": "1.0.37-rc.9",
+                    "sha256": "2454b66fed6e7de5de2be8a829a2643f0e8a5a08c040bf9dc3073c82e5f460e2"
                 }
             ],
             "npm": [
                 {
                     "name": "@peanut-admin/peanut-import-export",
-                    "version": "1.0.37-rc.8",
-                    "integrity": "sha256-zc0IZdlLTopLg343EkFgaHluJfx7qUctYEVocHPjW7E="
+                    "version": "1.0.37-rc.9",
+                    "integrity": "sha256-WW0LZdhUgz3gzKaxX+4+fWQNmQzVWnVfdVOgqnZmnMo="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "admin-web",
                     "package": "@peanut-admin/peanut-import-export",
-                    "version": "1.0.37-rc.8",
+                    "version": "1.0.37-rc.9",
                     "entry": "web/src/modules/peanut-import-export/contribution.ts",
                     "sha256": "98462e8a7accf81e065377f06fd47eeaee8c0269dd6c039595899d28c5e1500d"
                 }
@@ -942,7 +942,7 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/import_export/module.json",
-            "manifest_sha256": "877e82edaf2950c22e7636922f706fe4981bf60111c9709c81049cad5942c695"
+            "manifest_sha256": "2d18d5e5757d47d25d1c69b8f9f121068747fdfd734bab89dfe6ebb521844d29"
         },
         {
             "key": "peanut.integration",

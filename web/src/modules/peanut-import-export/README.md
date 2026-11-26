@@ -55,3 +55,28 @@ onBeforeUnmount(runtime.dispose);
 `OperationLogExportApplicationService` 与宿主 `OperationLogExportProvider` 是真实
 导出消费者；配置迁移另用 `ConfigurationTransferCommands/Queries`，不通过 CSV
 运行时混用配置包协议。
+
+
+## 配置包预览与写入确认
+
+配置迁移页面由本模块自己的 `views/index.vue` 提供，使用原生
+`POST /adminapi/peanut.import-export.configuration.dry-run` 与
+`POST /adminapi/peanut.import-export.configuration.apply`。HTTP 读写能力由
+Identity/配置适配器的原生租户权限继续判断，不能仅靠按钮可见性通过授权。
+
+一次可应用 dry-run 只对应当时的**完整输入**：包 JSON 文本、冲突策略、
+每个占位密钥的当前绑定。用户修改任何一项即立即撤销页面保存的可应用
+预览；运行中的旧 dry-run 即使最后返回成功，也不能恢复对新输入的应用
+资格。确认框期间检查输入修订及服务端返回的预览摘要，防止确认时替换目标。
+同一页面最多允许一次 dry-run / apply 请求，不自动重发不确定的写操作。
+
+后端 `ConfigurationTransferApplicationService::apply` 会再次构造当前规划、
+检查密钥重绑定和冲突，并在同一数据库事务内写入各适配器及审计；
+前端修订锁**不取代**服务端校验。HTTP apply 已执行但响应丢失时，
+不得凭网络异常推定没有生效。页面清除旧预览，提示重新导出当前配置、
+复核后再决定是否提交。成功后清空密码输入；保留服务器返回的已应用回执，
+且不允许再次对其执行 apply。
+
+定向回归使用当前 Vue SFC 脚本的真实响应/修订控制，
+不需要业务库、密钥或外部 HTTP；真实有权租户的干跑→变更→恢复→
+事务写入/撤销验收另行按原资源登记进行。
