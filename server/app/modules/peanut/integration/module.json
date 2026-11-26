@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "key": "peanut.integration",
-  "name": "External Integrations",
+  "name": "外部集成",
   "description": "Tenant-owned external bindings, machine identities and webhook delivery lifecycle.",
-  "version": "1.0.31-rc.5",
+  "version": "1.0.31-rc.6",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-integration",

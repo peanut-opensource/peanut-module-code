@@ -26,7 +26,7 @@ export default {
   'menu.decoration.mobile': '移动端装修',
   'menu.decoration.tabbar': 'Tabbar 装修',
   'menu.decoration.pc': 'PC 装修',
-  'menu.devTools': '开发工具',
+  'menu.devTools': '本地实例开发工具',
   'menu.devTools.code': '代码生成器',
   'menu.devTools.modules': '模块治理',
   'navbar.action.locale': '切换为中文',

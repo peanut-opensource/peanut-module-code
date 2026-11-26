@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "key": "peanut.document",
-  "name": "Business Documents",
+  "name": "业务文档",
   "description": "Business-owned documents, committed immutable versions and controlled File references.",
-  "version": "1.0.28-rc.10",
+  "version": "1.0.28-rc.11",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-document",

@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "key": "peanut.chart",
-  "name": "Charts",
+  "name": "图表组件",
   "description": "Public ECharts components for application and Module consumers.",
-  "version": "1.0.3",
+  "version": "1.0.4-rc.1",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-chart",

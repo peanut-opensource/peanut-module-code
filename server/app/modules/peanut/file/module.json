@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "key": "peanut.file",
-  "name": "File and Media",
+  "name": "文件与媒体",
   "description": "Tenant-owned media library, uploads and private file metadata.",
-  "version": "1.0.50-rc.23",
+  "version": "1.0.50-rc.24",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-file",

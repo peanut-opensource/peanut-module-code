@@ -1,7 +1,7 @@
 {
     "schema_version": 1,
     "source_path": "platform/src/core/platform-shell-definitions.ts",
-    "source_sha256": "57e30e18f260babc06f6aea678d2fc5141d440543bb73b6c9003d5f924397e1b",
+    "source_sha256": "5016395b71b87eaa7b9c2262b260ebb55feef1b376978460f7886bf04183fdc0",
     "nodes": [
         {
             "key": "platform.tenancy",
@@ -1017,8 +1017,16 @@
             "api_owner": "platform"
         },
         {
+            "key": "platform.developer.tools",
+            "parent_key": null,
+            "type": "group",
+            "route_path": null,
+            "api_endpoints": [],
+            "api_owner": "platform"
+        },
+        {
             "key": "platform.developer.catalog",
-            "parent_key": "platform.operations",
+            "parent_key": "platform.developer.tools",
             "type": "page",
             "route_path": "/platform/#/developer",
             "api_endpoints": [

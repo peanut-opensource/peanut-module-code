@@ -1,6 +1,6 @@
 {
   "name": "@peanut-admin/peanut-notification",
-  "version": "1.0.33-rc.3",
+  "version": "1.0.33-rc.4",
   "private": true,
   "license": "Apache-2.0",
   "type": "module",

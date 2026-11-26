@@ -621,9 +621,20 @@ export const platformAuditPage = {
   endpoints: [['GET', '/platformapi/audit']],
 } as const;
 
+// Instance-level developer capabilities belong to the Platform control plane.
+// Tenant self-service features remain in the Admin menu with tenant permissions.
+export const platformDeveloperNavigation = {
+  id: 'platform-developer-tools',
+  key: 'platform.developer.tools',
+  parentKey: null,
+  type: 'group',
+  label: '开发者工具',
+  endpoints: [],
+} as const;
+
 export const platformDeveloperPage = {
   key: 'platform.developer.catalog',
-  parentKey: platformOperationsNavigation.key,
+  parentKey: platformDeveloperNavigation.key,
   type: 'page',
   view: 'developer',
   label: '开发者中心',
@@ -773,6 +784,7 @@ export const platformShellPreviewDefinitions = [
   platformOpsDiagnosticsPage,
   ...platformOpsDiagnosticsPage.readAlternatives,
   platformOpsProvidersPage,
+  platformDeveloperNavigation,
   platformDeveloperPage,
   platformDeveloperRuntimeRead,
   platformDeveloperOfficialUpdatesRead,

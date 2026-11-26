@@ -1,7 +1,7 @@
 <template>
   <section v-loading="loading">
     <el-alert
-      title="模块声明、注册、安装与运行状态分别展示；安装与升级任务在后台完成后才能使用。"
+      title="仅平台实例级开发工具：模块声明、注册、安装与运行状态分别展示；租户自助功能由租户 Admin 按本租户权限提供，不在此安装或跨租户授权。"
       type="info"
       :closable="false"
     />

@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "key": "peanut.payment",
-  "name": "Payment",
+  "name": "支付管理",
   "description": "Tenant-owned payment settings, recharge orders and refund processing.",
-  "version": "1.0.30-rc.3",
+  "version": "1.0.30-rc.4",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-payment",

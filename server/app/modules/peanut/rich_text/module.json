@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "key": "peanut.rich-text",
-  "name": "Structured Rich Text",
+  "name": "结构化富文本",
   "description": "Tiptap/ProseMirror content projection and editor/viewer adapters; document lifecycle belongs to peanut.document.",
-  "version": "1.0.19-rc.3",
+  "version": "1.0.19-rc.4",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-rich-text",

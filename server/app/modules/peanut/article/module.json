@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "key": "peanut.article",
-  "name": "Article Content",
+  "name": "文章内容管理",
   "description": "Tenant-owned article and category content with member collections.",
-  "version": "1.0.21-rc.19",
+  "version": "1.0.21-rc.20",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-article",

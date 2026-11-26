@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "key": "peanut.notification",
-  "name": "Notification",
+  "name": "通知中心",
   "description": "Tenant-owned notification channels, scenes, templates and delivery logs.",
-  "version": "1.0.33-rc.3",
+  "version": "1.0.33-rc.4",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-notification",

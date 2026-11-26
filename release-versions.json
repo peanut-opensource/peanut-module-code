@@ -1,9 +1,9 @@
 {
     "schema_version": 3,
     "protocol": "peanut.release-versions.v3",
-    "source_product_version": "5.1.18-rc.35",
+    "source_product_version": "5.1.18-rc.36",
     "instance_version": "1.0.0",
-    "scaffold_template": "5.1.18-rc.35",
+    "scaffold_template": "5.1.18-rc.36",
     "generated_instance_default": "0.1.0",
     "core_php": {
         "package": "peanut-admin/core",

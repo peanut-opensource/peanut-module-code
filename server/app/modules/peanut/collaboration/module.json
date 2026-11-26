@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "key": "peanut.collaboration",
-  "name": "Document Collaboration",
+  "name": "文档协同",
   "description": "Authenticated native collaboration rooms with batched Document persistence and immutable save targets.",
-  "version": "1.0.21-rc.3",
+  "version": "1.0.21-rc.4",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-collaboration",

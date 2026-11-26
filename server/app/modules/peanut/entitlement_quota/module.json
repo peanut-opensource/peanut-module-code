@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "key": "peanut.entitlement-quota",
-  "name": "EntitlementQuota",
+  "name": "权益与配额",
   "description": "可选商业额度记录；使用方显式提供计量与额度策略，不作为普通业务的必需依赖。",
-  "version": "4.0.0",
+  "version": "4.0.1-rc.1",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/entitlement-quota",

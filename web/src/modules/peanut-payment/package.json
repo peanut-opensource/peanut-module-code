@@ -1,6 +1,6 @@
 {
   "name": "@peanut-admin/peanut-payment",
-  "version": "1.0.30-rc.3",
+  "version": "1.0.30-rc.4",
   "private": true,
   "license": "Apache-2.0",
   "type": "module",

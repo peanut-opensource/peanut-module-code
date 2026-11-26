@@ -1565,6 +1565,7 @@
     organizationAccessNavigation,
     platformAuditPage,
     platformDeveloperOfficialUpdatesRead,
+    platformDeveloperNavigation,
     platformDeveloperPage,
     platformDeveloperRuntimeRead,
     platformModuleTaskRead,
@@ -1918,9 +1919,13 @@
         platformOpsUpgradesPage.view,
         platformOpsDiagnosticsPage.view,
         platformOpsProvidersPage.view,
-        platformDeveloperPage.view,
         platformAuditPage.view,
       ],
+    },
+    {
+      key: platformDeveloperNavigation.id,
+      title: platformDeveloperNavigation.label,
+      items: [platformDeveloperPage.view],
     },
   ];
   const visibleNavigationGroups = computed(() =>

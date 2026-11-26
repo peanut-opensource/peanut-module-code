@@ -25,6 +25,7 @@ final class CoreMenuCatalog
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('platform.governance', 'platform', 'platform', null, 'group', '组织与权限', null, null, null, null, ['platform-web'], 10, 'Landmark'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('platform.tenancy', 'platform', 'platform', null, 'group', '租户运营', null, null, null, null, ['platform-web'], 5, 'Building2'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('platform.operations', 'platform', 'platform', null, 'group', '运维与审计', null, null, null, null, ['platform-web'], 20, 'Activity'),
+            new \PeanutAdmin\Kernel\Menu\MenuDefinition('platform.developer.tools', 'platform', 'platform', null, 'group', '开发者工具', null, null, null, null, ['platform-web'], 25, 'CodeXml'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('platform.tenant.list', 'platform', 'platform', 'platform.tenancy', 'page', '租户管理', 'platform.tenants.list', '/platform/#/tenants', 'platform.tenant.list', 'platform.tenant.read', ['platform-web'], 11, 'Building2'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('platform.tenant.owner-invitation.list', 'platform', 'platform', 'platform.tenancy', 'page', '租户所有者邀请管理', 'platform.tenants.owners', '/platform/#/owners', 'platform.tenant.owner-invitation.list', 'platform.tenant.provision-owner', ['platform-web'], 12, 'Mail'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('platform.tenant.entry-binding.list', 'platform', 'platform', 'platform.tenancy', 'page', '入口域名与客户端', 'platform.tenants.endpoints', '/platform/#/endpoints', 'platform.tenant.entry-binding.list', 'platform.tenant.read', ['platform-web'], 13, 'Globe'),
@@ -47,7 +48,7 @@ final class CoreMenuCatalog
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('platform.ops.backups', 'platform', 'platform', 'platform.operations', 'page', '备份与恢复', 'platform.ops.backups', '/platform/#/backups', 'platform.ops.backups', 'platform.ops.read', ['platform-web'], 19, 'Archive'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('platform.ops.diagnostics', 'platform', 'platform', 'platform.operations', 'page', '日志与诊断', 'platform.ops.diagnostics', '/platform/#/diagnostics', 'platform.ops.diagnostics', 'platform.ops.logs.read', ['platform-web'], 20, 'FileSearch'),
             new \PeanutAdmin\Kernel\Menu\MenuDefinition('platform.ops.providers', 'platform', 'platform', 'platform.operations', 'page', '供应商资格', 'platform.ops.providers', '/platform/#/providers', 'platform.ops.providers', 'platform.ops.read', ['platform-web'], 21, 'BadgeCheck'),
-            new \PeanutAdmin\Kernel\Menu\MenuDefinition('platform.developer.catalog', 'platform', 'platform', 'platform.operations', 'page', '开发者中心', 'platform.developer.catalog', '/platform/#/developer', 'platform.developer.catalog', 'platform.module.read', ['platform-web'], 22, 'CodeXml'),
+            new \PeanutAdmin\Kernel\Menu\MenuDefinition('platform.developer.catalog', 'platform', 'platform', 'platform.developer.tools', 'page', '开发者中心', 'platform.developer.catalog', '/platform/#/developer', 'platform.developer.catalog', 'platform.module.read', ['platform-web'], 22, 'CodeXml'),
         ];
     }
 

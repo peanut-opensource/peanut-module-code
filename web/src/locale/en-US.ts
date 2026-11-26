@@ -26,7 +26,7 @@ export default {
   'menu.decoration.mobile': 'Mobile Decoration',
   'menu.decoration.tabbar': 'Tabbar Decoration',
   'menu.decoration.pc': 'PC Decoration',
-  'menu.devTools': 'Developer Tools',
+  'menu.devTools': 'Local Instance Tools',
   'menu.devTools.code': 'Code Generator',
   'menu.devTools.modules': 'Module Governance',
   'navbar.action.locale': 'Switch to English',

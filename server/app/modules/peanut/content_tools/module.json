@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "key": "peanut.content-tools",
-  "name": "Content Tools",
+  "name": "内容工具",
   "description": "Trusted content adapter registration and capability selection; object permissions remain with Document/File.",
-  "version": "1.0.4-rc.2",
+  "version": "1.0.4-rc.3",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-content-tools",

@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "key": "peanut.member",
-  "name": "Member CRM",
+  "name": "会员管理",
   "description": "Tenant-owned customer profiles, tags, balances and member sessions.",
-  "version": "1.0.28-rc.7",
+  "version": "1.0.28-rc.8",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-member",
