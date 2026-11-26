@@ -69,6 +69,13 @@ final class BusinessEvidenceTest extends TestCase
         class_alias(BusinessEvidenceFixture\Directory::class, 'PeanutAdmin\\Modules\\Identity\\Contract\\AdminDirectoryQuery');
         $server = $this->server;
         spl_autoload_register(static function (string $class) use ($server): void {
+            $prefix = 'PeanutAdmin\\Modules\\ContentTools\\';
+            if (str_starts_with($class, $prefix)) {
+                $path = $server . '/app/modules/peanut/content_tools/src/' . str_replace('\\', '/', substr($class, strlen($prefix))) . '.php';
+                if (is_file($path)) require_once $path;
+            }
+        }, true, true);
+        spl_autoload_register(static function (string $class) use ($server): void {
             $prefix = 'PeanutAdmin\\Modules\\File\\';
             if (str_starts_with($class, $prefix)) {
                 $path = $server . '/app/modules/peanut/file/src/' . str_replace('\\', '/', substr($class, strlen($prefix))) . '.php';
@@ -152,6 +159,8 @@ final class BusinessEvidenceTest extends TestCase
         $this->drivers = new Drivers($this->root);
         $this->audit = new BusinessEvidenceFixture\Audit();
         $tools = ContentToolRegistry::withBuiltins();
+        self::assertSame(realpath($server . '/app/modules/peanut/content_tools/src/Service/ContentToolRegistry.php'),
+            (new ReflectionClass(ContentToolRegistry::class))->getFileName());
         $tools->register(new SurfaceAdapterRegistration('fixture.text', 'peanut.content-tools', '1.0.0', ['file_resource'], ['text/plain'], ['view']));
         $capabilities = new ContentCapabilitiesService($tools);
         $execution = new CurrentExecutionContext($this->contexts);
@@ -271,6 +280,94 @@ final class BusinessEvidenceTest extends TestCase
     private function path(string $key): string
     {
         return $this->root . '/storage/private/' . Db::name('file_object')->where('file_key', $key)->value('object_key');
+    }
+
+    public function testUploadedBmpAndIcoHaveAuthorizedImagePreviewCapability(): void
+    {
+        Db::name('storage_space')->insert(['id' => 2, 'space_key' => 'synthetic-public', 'name' => 'test', 'account_id' => 1,
+            'access_type' => 'public', 'local_path' => 'storage/public', 'status' => 'active']);
+        Db::name('storage_route')->insert(['route_key' => 'default.public', 'access_type' => 'public', 'space_id' => 2]);
+        $db = think\Container::getInstance()->make(think\DbManager::class);
+        $policy = new \app\common\tenancy\MultiTenantDataScopePolicy(new CurrentExecutionContext($this->contexts));
+        think\Model::maker(static function (think\Model $model) use ($db, $policy): void {
+            $model->setOption('db', $db);
+            if ($model instanceof \app\common\model\TenantOwnedModel) $model->setDataScopePolicy($policy);
+        });
+        $this->within(function (): void {
+            $service = new \PeanutAdmin\Modules\File\Service\FileUploadService(
+                $this->storage, new CurrentExecutionContext($this->contexts),
+            );
+            $fixtures = [
+                'bmp' => ['Qk06AAAAAAAAADYAAAAoAAAAAQAAAAEAAAABABgAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAD/AA==', 'image/bmp'],
+                'ico' => ['AAABAAEAAQEAAAEAIABEAAAAFgAAAIlQTkcNChoKAAAADUlIRFIAAAABAAAAAQgEAAAAtRwMAgAAAAtJREFUeNpj/P8fAAMDAgDvmvdbAAAAAElFTkSuQmCC', 'image/vnd.microsoft.icon'],
+            ];
+            foreach ($fixtures as $ext => [$encoded, $mime]) {
+                $source = $this->root . '/owned-preview.' . $ext;
+                file_put_contents($source, base64_decode($encoded, true));
+                $stored = $service->image($this->actor, new UploadFile($source, 'owned-preview.' . $ext,
+                    filesize($source), $mime, $ext), 0, $this->actor->memberId);
+                self::assertSame($mime, Db::name('file_object')->where('file_key', $stored['file_key'])->value('media_type'));
+            }
+            $list = $this->administration->lists(['type' => 10, 'page_no' => 1, 'page_size' => 10]);
+            self::assertCount(2, $list->items);
+            $seen = [];
+            foreach ($list->items as $item) {
+                $mime = $item['verified_mime_type'];
+                $seen[] = $mime;
+                self::assertSame('ready', $item['visibility_state']);
+                self::assertSame('available', $item['preview_state'], $mime);
+                self::assertSame('builtin.image', $item['capabilities']['viewerAdapterId'], $mime);
+                self::assertSame($mime, $item['preview_access']['media_type'], $mime);
+                self::assertSame('original', $item['preview_access']['bytes'], $mime);
+                parse_str((string) parse_url($item['preview_access']['url'], PHP_URL_QUERY), $delivery);
+                $served = $this->storage->authorizedDownload($this->actor->tenantId, $item['file_key'], (string) $delivery['token']);
+                self::assertSame('inline', $served['disposition'], $mime);
+                self::assertSame($mime, $served['media_type'], $mime);
+            }
+            self::assertEqualsCanonicalizing(array_column($fixtures, 1), $seen);
+            $this->deniedPermissions = ['peanut.file.download-original'];
+            foreach ($this->administration->lists(['type' => 10])->items as $item) {
+                self::assertSame('preview_unavailable', $item['preview_state']);
+                self::assertArrayNotHasKey('preview_access', $item);
+            }
+        });
+    }
+
+    public function testGeneratedWavUsesAuthorizedInlineAudioPreview(): void
+    {
+        Db::name('storage_space')->insert(['id' => 2, 'space_key' => 'synthetic-public', 'name' => 'test', 'account_id' => 1,
+            'access_type' => 'public', 'local_path' => 'storage/public', 'status' => 'active']);
+        Db::name('storage_route')->insert(['route_key' => 'default.public', 'access_type' => 'public', 'space_id' => 2]);
+        $db = think\Container::getInstance()->make(think\DbManager::class);
+        $policy = new \app\common\tenancy\MultiTenantDataScopePolicy(new CurrentExecutionContext($this->contexts));
+        think\Model::maker(static function (think\Model $model) use ($db, $policy): void {
+            $model->setOption('db', $db);
+            if ($model instanceof \app\common\model\TenantOwnedModel) $model->setDataScopePolicy($policy);
+        });
+        $this->within(function (): void {
+            $source = $this->root . '/owned-preview.wav';
+            file_put_contents($source, base64_decode('UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQQAAAAAAAAA', true));
+            self::assertSame('audio/x-wav', (new \finfo(FILEINFO_MIME_TYPE))->file($source));
+            $service = new \PeanutAdmin\Modules\File\Service\FileUploadService(
+                $this->storage, new CurrentExecutionContext($this->contexts),
+            );
+            $stored = $service->file($this->actor, new UploadFile($source, 'owned-preview.wav',
+                filesize($source), 'audio/x-wav', 'wav'), 0, $this->actor->memberId);
+            $list = $this->administration->lists(['type' => 30, 'page_no' => 1, 'page_size' => 10]);
+            self::assertCount(1, $list->items);
+            $item = $list->items[0];
+            self::assertSame($stored['file_key'], $item['file_key']);
+            self::assertSame('available', $item['preview_state']);
+            self::assertSame('builtin.audio', $item['capabilities']['viewerAdapterId']);
+            parse_str((string) parse_url($item['preview_access']['url'], PHP_URL_QUERY), $delivery);
+            $served = $this->storage->authorizedDownload($this->actor->tenantId, $item['file_key'], (string) $delivery['token']);
+            self::assertSame('audio/x-wav', $served['media_type']);
+            self::assertSame('inline', $served['disposition']);
+            $this->deniedPermissions = ['peanut.file.download-original'];
+            $revoked = $this->administration->lists(['type' => 30])->items[0];
+            self::assertSame('preview_unavailable', $revoked['preview_state']);
+            self::assertArrayNotHasKey('preview_access', $revoked);
+        });
     }
 
     public function testPreviewableWebpAndGifMaterialUploadsFollowPublicPurposeAndRejectSpoofedExtensions(): void

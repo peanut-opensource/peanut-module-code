@@ -51,7 +51,7 @@ final class ContentToolRegistry
     {
         $registry = new self();
         foreach ([
-            'image' => ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'],
+            'image' => ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif', 'image/bmp', 'image/x-ms-bmp', 'image/vnd.microsoft.icon', 'image/x-icon'],
             'pdf' => ['application/pdf'],
             'audio' => ['audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/x-wav', 'audio/webm', 'audio/mp4'],
             'video' => ['video/mp4', 'video/webm', 'video/ogg'],
