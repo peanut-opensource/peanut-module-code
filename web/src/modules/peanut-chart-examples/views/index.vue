@@ -45,6 +45,7 @@
   import { PageContent, PageHeader } from '@peanut-admin/ui-vue';
   import { Chart, type EChartsOption } from '@peanut-admin/peanut-chart/charts';
   import { useAppStore } from '@/store';
+  import { downloadChartPng } from '../src/png-download';
 
   const app = useAppStore();
   const dark = computed(() => app.theme === 'dark');
@@ -61,10 +62,12 @@
   };
   const exportImage = () => {
     if (!lineChart.value || !lineChartReady.value || loading.value) return;
-    const link = document.createElement('a');
-    link.href = lineChart.value.getDataURL({ type: 'png', pixelRatio: 2 });
-    link.download = 'chart-example.png';
-    link.click();
+    try {
+      downloadChartPng(lineChart.value);
+      interaction.value = 'PNG 下载已触发';
+    } catch {
+      interaction.value = '导出 PNG 失败，请重试';
+    }
   };
 
   const categories = ['周一', '周二', '周三', '周四', '周五'];

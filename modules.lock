@@ -394,11 +394,11 @@
         },
         {
             "key": "peanut.chart-examples",
-            "version": "1.0.5-rc.1",
+            "version": "1.0.5-rc.2",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "3e1f8279b40f1cd34847a4d4672d658b43ead6990e1f834c77255042803c73c9"
+                "sha256": "21f20d524d8e5e16a815aa982f39422d7dd90ab2697685ca6596dd89d0ecfde9"
             },
             "trust": {
                 "channel": "bundled",
@@ -414,7 +414,7 @@
                     "modules": [
                         {
                             "key": "peanut.chart-examples",
-                            "version": "1.0.5-rc.1",
+                            "version": "1.0.5-rc.2",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -433,22 +433,22 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-chart-examples",
-                    "version": "1.0.5-rc.1",
-                    "sha256": "c1648aee6dd2c7c733504e063d8f8cf3057fa212cba03e1c16fac86bcb4ce7b0"
+                    "version": "1.0.5-rc.2",
+                    "sha256": "e3c57bb7fcf87711e01a6097f3ca752df4352ff95e5204c174fb709e4899fe31"
                 }
             ],
             "npm": [
                 {
                     "name": "@peanut-admin/peanut-chart-examples",
-                    "version": "1.0.5-rc.1",
-                    "integrity": "sha256-svK9/7rIHWmOvITUnUDAUJdQ1RpCd8dGwLVtGHs4R78="
+                    "version": "1.0.5-rc.2",
+                    "integrity": "sha256-dYuaerdmKmIYbuMJQoHppmat8z9DJxu7HUGn9IdQxnk="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "admin-web",
                     "package": "@peanut-admin/peanut-chart-examples",
-                    "version": "1.0.5-rc.1",
+                    "version": "1.0.5-rc.2",
                     "entry": "web/src/modules/peanut-chart-examples/contribution.ts",
                     "sha256": "eafbd4f2a9b438ba17f5ee29501edebc7ce9b22fe617035ef00dbe37f778d868"
                 }
@@ -460,7 +460,7 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/chart_examples/module.json",
-            "manifest_sha256": "c14de4ef73da289a656d14050db9d067fde5d730856c88e1fe84ed470ac68dce"
+            "manifest_sha256": "afa34d1add91198d276d89ba7c8dba3239a464eecc8d1b6eb5b98ceea0d3114a"
         },
         {
             "key": "peanut.collaboration",
