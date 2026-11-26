@@ -22,6 +22,14 @@ export interface TaskJobError {
   readonly requestId: string | null;
   readonly status: number | null;
 }
+export interface TaskJobActionFeedback {
+  readonly operation: 'cancel' | 'retry';
+  readonly jobKey: string;
+  readonly kind: 'success' | 'error';
+  readonly error: TaskJobError | null;
+  readonly requestId: string | null;
+  readonly refreshFailed: boolean;
+}
 export interface TaskJobState {
   items: TaskJob[];
   status: TaskStatus;
@@ -31,6 +39,7 @@ export interface TaskJobState {
   loading: boolean;
   mutating: boolean;
   error: TaskJobError | null;
+  actionFeedback: TaskJobActionFeedback | null;
 }
 export interface TaskJobRuntime {
   readonly state: TaskJobState;
@@ -80,6 +89,7 @@ export const createTaskJobRuntime = (
     loading: false,
     mutating: false,
     error: null,
+    actionFeedback: null,
   });
   const controllers = new Set<AbortController>();
   let generation = 0;
@@ -124,6 +134,12 @@ export const createTaskJobRuntime = (
       state.page = list.page;
       state.pageSize = list.pageSize;
       state.total = list.total;
+      // A successful explicit reload unblocks a previously failed mutation
+      // for this row without silently replaying it.
+      if (state.actionFeedback?.kind === 'error')
+        state.actionFeedback = null;
+      else if (state.actionFeedback?.refreshFailed)
+        state.actionFeedback = { ...state.actionFeedback, refreshFailed: false };
     } catch {
       if (current === generation)
         state.error = {
@@ -140,25 +156,49 @@ export const createTaskJobRuntime = (
     job: TaskJob,
     operation: 'cancel' | 'retry'
   ): Promise<void> => {
-    if (!options.canManage() || state.mutating) return;
+    if (!options.canManage() || state.mutating ||
+      (state.actionFeedback?.kind === 'error' &&
+        state.actionFeedback.jobKey === job.jobKey)) return;
     state.mutating = true;
+    state.actionFeedback = null;
     state.error = null;
+    let observedRequestId: string | null = null;
     try {
       const result = await run((signal) =>
         options.transport[operation](job.jobKey, job.revision, signal)
       );
+      observedRequestId = result.headers.get('X-Request-Id');
       if (result.status !== 200) {
-        state.error = failure(result);
+        const actionError = failure(result);
+        state.actionFeedback = {
+          operation, jobKey: job.jobKey, kind: 'error',
+          error: actionError, requestId: actionError.requestId, refreshFailed: false,
+        };
         return;
       }
-      parseTaskResponse(result.body);
+      const returned = parseTaskResponse(result.body);
+      if (returned.jobKey !== job.jobKey ||
+          (operation === 'cancel' && returned.status !== 'cancelled') ||
+          (operation === 'retry' && returned.status !== 'queued'))
+        throw new Error('TASK_ACTION_RESPONSE_MISMATCH');
+      // A server-confirmed mutation is not undone by a failed list refresh.
+      // Never automatically resubmit it, even after an unknown response.
+      state.actionFeedback = {
+        operation, jobKey: job.jobKey, kind: 'success',
+        error: null, requestId: observedRequestId, refreshFailed: false,
+      };
       await load();
+      if (state.error && state.actionFeedback?.kind === 'success')
+        state.actionFeedback = { ...state.actionFeedback, refreshFailed: true };
     } catch {
-      state.error = {
-        message: 'The task action could not be completed.',
-        messageKey: 'taskJobs.error.actionFailed',
-        requestId: null,
-        status: null,
+      state.actionFeedback = {
+        operation, jobKey: job.jobKey, kind: 'error',
+        error: {
+          message: 'The task action could not be confirmed. Refresh before retrying.',
+          messageKey: 'taskJobs.error.actionUnconfirmed',
+          requestId: null,
+          status: null,
+        }, requestId: observedRequestId, refreshFailed: false,
       };
     } finally {
       state.mutating = false;

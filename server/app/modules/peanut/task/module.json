@@ -3,7 +3,7 @@
   "key": "peanut.task",
   "name": "任务调度",
   "description": "Tenant-owned schedules and trusted background task execution.",
-  "version": "1.0.36-rc.8",
+  "version": "1.0.36-rc.9",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-task",

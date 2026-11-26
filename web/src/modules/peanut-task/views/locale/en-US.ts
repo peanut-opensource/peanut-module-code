@@ -31,6 +31,10 @@ export default {
   'taskJobs.error.requestId': 'Request ID',
   'taskJobs.error.requestFailed': 'Task request failed ({status}).',
   'taskJobs.error.serviceUnavailable': 'The task service could not be reached.',
+  'taskJobs.feedback.cancelled': 'The server confirmed the cancellation. Check the refreshed job state.',
+  'taskJobs.feedback.retried': 'The server confirmed the retry. Check the latest job state.',
+  'taskJobs.feedback.refreshFailed': 'The action succeeded, but refreshing the list failed. Reload before trying another operation.',
+  'taskJobs.error.actionUnconfirmed': 'The action result is unconfirmed. Reload the job before considering a retry.',
   'taskJobs.error.actionFailed': 'The task action could not be completed.',
   'taskJobs.error.permissionDenied':
     'You do not have permission to read task jobs.',

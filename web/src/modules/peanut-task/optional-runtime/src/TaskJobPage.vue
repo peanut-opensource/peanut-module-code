@@ -8,7 +8,7 @@
     PageToolbar,
     SessionExpiredState,
   } from '@peanut-admin/ui-vue';
-  import { ElButton, ElPagination, ElPopconfirm } from 'element-plus';
+  import { ElAlert, ElButton, ElPagination, ElPopconfirm } from 'element-plus';
   import { computed, onMounted } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useTaskJobRuntime } from './runtime';
@@ -22,6 +22,20 @@
       ? t(state.error.messageKey, { status: state.error.status ?? '' })
       : state.error?.message ?? ''
   );
+  const actionMessage = computed(() => {
+    const feedback = state.actionFeedback;
+    if (!feedback) return '';
+    if (feedback.kind === 'success')
+      return t(feedback.operation === 'cancel'
+        ? 'taskJobs.feedback.cancelled' : 'taskJobs.feedback.retried');
+    return feedback.error?.messageKey
+      ? t(feedback.error.messageKey, { status: feedback.error.status ?? '' })
+      : feedback.error?.message ?? '';
+  });
+  const actionNeedsReload = (jobKey: string): boolean =>
+    state.actionFeedback?.jobKey === jobKey &&
+    (state.actionFeedback.kind === 'error' ||
+      state.actionFeedback.refreshFailed);
   const statusLabel = (status: string): string =>
     t(`taskJobs.status.${status}`);
   const statuses = [
@@ -65,6 +79,25 @@
         {{ statusLabel(status) }}
       </ElButton>
     </PageToolbar>
+    <section
+      v-if="state.actionFeedback"
+      class="task-action-feedback"
+      :role="state.actionFeedback.kind === 'error' ? 'alert' : 'status'"
+      aria-live="polite"
+    >
+      <ElAlert
+        :title="actionMessage"
+        :type="state.actionFeedback.kind === 'success' ? 'success' : 'error'"
+        :closable="false"
+        show-icon
+      />
+      <p v-if="state.actionFeedback.requestId">
+        {{ $t('taskJobs.error.requestId') }}: {{ state.actionFeedback.requestId }}
+      </p>
+      <p v-if="state.actionFeedback.refreshFailed">
+        {{ $t('taskJobs.feedback.refreshFailed') }}
+      </p>
+    </section>
 
     <SessionExpiredState
       v-if="state.error?.status === 401"
@@ -127,7 +160,7 @@
                     :aria-label="
                       $t('taskJobs.aria.cancel', { name: job.taskType })
                     "
-                    :disabled="!canManage || state.mutating"
+                    :disabled="!canManage || state.mutating || actionNeedsReload(job.jobKey)"
                   >
                     {{ $t('taskJobs.action.cancel') }}
                   </ElButton>
@@ -146,7 +179,7 @@
                     :aria-label="
                       $t('taskJobs.aria.retry', { name: job.taskType })
                     "
-                    :disabled="!canManage || state.mutating"
+                    :disabled="!canManage || state.mutating || actionNeedsReload(job.jobKey)"
                   >
                     {{ $t('taskJobs.action.retry') }}
                   </ElButton>
@@ -174,6 +207,13 @@
 <style scoped>
   .task-state {
     padding: 24px 0;
+  }
+  .task-action-feedback {
+    margin: 12px 0;
+  }
+  .task-action-feedback p {
+    margin: 6px 0 0;
+    color: var(--el-text-color-secondary);
   }
   .task-table-wrap {
     overflow-x: auto;

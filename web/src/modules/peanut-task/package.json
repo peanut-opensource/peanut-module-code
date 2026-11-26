@@ -1,6 +1,6 @@
 {
   "name": "@peanut-admin/peanut-task",
-  "version": "1.0.36-rc.8",
+  "version": "1.0.36-rc.9",
   "private": true,
   "license": "Apache-2.0",
   "type": "module",
