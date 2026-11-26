@@ -101,7 +101,14 @@ final class PlatformRoleDirectGrantStore
     public function catalogDigest(array $nodes, bool $lock = false): string
     {
         $apis = Db::name('system_api')->where('audience', 'platform')->order('id');
-        $bindings = Db::name('permission_api')->order('permission_id,api_id');
+        // Platform source digests must not drift when a tenant menu/admin API
+        // binding changes. Audience and route ownership are independent RBAC
+        // domains; only platform-audience bindings belong to this snapshot.
+        $bindings = Db::name('permission_api')->alias('binding')
+            ->join('system_api api', 'api.id = binding.api_id')
+            ->where('api.audience', 'platform')
+            ->field('binding.permission_id,binding.api_id')
+            ->order('binding.permission_id,binding.api_id');
         // Permission activation/retirement changes the effective projection
         // even when neither the API record nor its binding rows change.
         $permissions = Db::name('permission')->whereLike('key', 'platform.%')->order('id');

@@ -121,6 +121,29 @@ final class PlatformRoleDirectSourceVerticalTest extends TestCase
             fn(): string => $this->direct->source());
     }
 
+    public function testTenantApiMappingChangeCannotInvalidatePlatformDirectRoleSource(): void
+    {
+        $candidate = $this->completeCandidate();
+        $digest = $this->direct->catalogDigest($candidate['nodes']);
+        $tenantApi = str_repeat('e', 64);
+        $statement = $this->db->prepare(
+            'SELECT COUNT(*) FROM pa_permission_api WHERE permission_id=? AND api_id=?',
+        );
+        $statement->execute([21, $tenantApi]);
+        self::assertSame(1, (int) $statement->fetchColumn());
+        $this->db->prepare('DELETE FROM pa_permission_api WHERE permission_id=? AND api_id=?')
+            ->execute([21, $tenantApi]);
+        self::assertSame($digest, $this->direct->catalogDigest($candidate['nodes']),
+            'A tenant menu/API grant change must not invalidate independent Platform direct role source.');
+        $platformApi = str_repeat('a', 64);
+        $statement->execute([11, $platformApi]);
+        self::assertSame(1, (int) $statement->fetchColumn());
+        $this->db->prepare('DELETE FROM pa_permission_api WHERE permission_id=? AND api_id=?')
+            ->execute([11, $platformApi]);
+        self::assertNotSame($digest, $this->direct->catalogDigest($candidate['nodes']),
+            'A real Platform API grant change must still invalidate the direct source digest.');
+    }
+
     public function testFormalRoleSaveAndAtomicSingleSwitchFeedTheSameAuthorizationConsumer(): void
     {
         $original = $this->roles->permissions(22)->keys();
