@@ -306,16 +306,20 @@
   }
   async function showInstance(key: string) {
     if (!lifecycle.valid()) return;
+    // A successful user action has already returned an authoritative instance
+    // receipt. Keep it visible while refreshing that same instance; a failed
+    // secondary GET must never erase the confirmed action or imply a retry.
+    const sameInstance = instance.value?.instance_key === key;
     if (selectedInstanceKey !== key) {
       selectedInstanceKey = key;
-      selectionGeneration += 1;
+      if (!sameInstance) selectionGeneration += 1;
       selectedTask.value = null;
       action.value = '';
       comment.value = '';
       reassignTaskKey.value = '';
       newAssignee.value = '';
       dialog.value = false;
-      notice.value = '';
+      if (!sameInstance) notice.value = '';
     }
     closeAttachment();
     controller?.abort();
@@ -324,8 +328,10 @@
     const epoch = requestEpoch;
     loading.value = true;
     error.value = '';
-    instance.value = null;
-    events.value = [];
+    if (!sameInstance) {
+      instance.value = null;
+      events.value = [];
+    }
     try {
       const detail = await api.instance(key, controller.signal);
       const history = await api.events(key, '0', controller.signal);
@@ -450,7 +456,17 @@
           ? '本次操作已记录，下一步骤阻塞，请查看原因。'
           : '操作已记录，以当前流程状态为准。';
       await showInstance(result.instance_key);
+      const detailRefreshError = error.value;
       if (!props.instanceKey) await load();
+      // The authoritative POST succeeded. The subsequent inbox refresh may
+      // clear the detail-read error; never conceal that secondary failure or
+      // invite the user to repeat the completed mutation.
+      if (detailRefreshError && !error.value &&
+          lifecycle.valid() &&
+          instance.value?.instance_key === result.instance_key) {
+        error.value = detailRefreshError;
+        notice.value = '本次操作已记录，服务器已确认；但刷新流程详情失败。请手动核对最新状态，不要重复提交。';
+      }
     } catch (cause) {
       if (!stillSelected()) return;
       fail(cause);

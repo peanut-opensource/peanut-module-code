@@ -471,25 +471,55 @@
       changed.value ||
       conflict.value ||
       revision.value === null ||
-      definitionScope.value !== `${selectedModuleKey.value}:${selectedWorkflowKey.value}` ||
+      definitionScope.value !== selectedModuleKey.value + ':' + selectedWorkflowKey.value ||
       !allowedPublish.value ||
       !lifecycle.valid()
     )
       return;
+    const moduleKey = selectedModuleKey.value;
+    const workflowKey = selectedWorkflowKey.value;
+    const expectedRevision = revision.value;
+    const originalScope = definitionScope.value;
     busy.value = true;
     error.value = '';
+    let serverConfirmed = false;
     try {
-      await api.publish(
-        selectedModuleKey.value,
-        selectedWorkflowKey.value,
-        revision.value,
-        crypto.randomUUID()
-      );
-      if (lifecycle.valid())
-        notice.value = '新版本已发布；在途实例仍使用原固定版本。';
-      if (lifecycle.valid()) await refreshPublishedDefinition();
+      // The native service publishes AND immediately activates the latest
+      // version. An explicit decision is required before this CAS mutation.
+      try {
+        await ElMessageBox.confirm(
+          '发布将立即激活当前已保存草稿（修订 ' + expectedRevision +
+            '）。后续新流程实例使用新版本；在途实例保留原固定版本。确认发布？',
+          '发布并激活流程',
+          { type: 'warning', confirmButtonText: '确认发布并激活', cancelButtonText: '返回编辑' }
+        );
+      } catch {
+        return;
+      }
+      // Confirmation is asynchronous. Do not send a stale definition after
+      // identity loss, a scope change, or a newer server revision.
+      if (!lifecycle.valid() || !allowedPublish.value ||
+        changed.value || conflict.value ||
+        selectedModuleKey.value !== moduleKey ||
+        selectedWorkflowKey.value !== workflowKey ||
+        definitionScope.value !== originalScope ||
+        revision.value !== expectedRevision)
+        return;
+      await api.publish(moduleKey, workflowKey, expectedRevision, crypto.randomUUID());
+      serverConfirmed = true;
+      if (!lifecycle.valid() ||
+        definitionScope.value !== originalScope ||
+        selectedModuleKey.value !== moduleKey ||
+        selectedWorkflowKey.value !== workflowKey)
+        return;
+      notice.value = '已发布并激活新版本。后续新实例采用该版本，在途实例继续使用原固定版本。';
+      await refreshPublishedDefinition();
     } catch (cause) {
-      if (lifecycle.valid()) fail(cause);
+      if (lifecycle.valid()) {
+        if (serverConfirmed)
+          notice.value = '发布与激活已由服务器确认；但刷新定义失败。请先读取服务器修订，不要重复发布。';
+        fail(cause);
+      }
     } finally {
       if (lifecycle.valid()) busy.value = false;
     }
@@ -508,21 +538,48 @@
     const version = activationVersion.value;
     if (!definition.value?.versions.some((item) => item.version === version))
       return;
+    const moduleKey = selectedModuleKey.value;
+    const workflowKey = selectedWorkflowKey.value;
+    const expectedRevision = revision.value;
+    const originalScope = definitionScope.value;
     busy.value = true;
     error.value = '';
+    let serverConfirmed = false;
     try {
-      await api.activate(
-        selectedModuleKey.value,
-        selectedWorkflowKey.value,
-        revision.value,
-        version,
-        crypto.randomUUID()
-      );
-      if (!lifecycle.valid()) return;
-      notice.value = `已激活版本 ${version}；在途实例仍使用原固定版本。`;
+      try {
+        await ElMessageBox.confirm(
+          '将已发布版本 ' + version +
+            ' 设为当前激活版本；仅后续新流程实例切换，在途实例继续使用原固定版本。确认激活？',
+          '激活流程版本',
+          { type: 'warning', confirmButtonText: '确认激活', cancelButtonText: '返回' }
+        );
+      } catch {
+        return;
+      }
+      if (!lifecycle.valid() || !allowedPublish.value ||
+        changed.value || conflict.value ||
+        selectedModuleKey.value !== moduleKey ||
+        selectedWorkflowKey.value !== workflowKey ||
+        definitionScope.value !== originalScope ||
+        revision.value !== expectedRevision ||
+        activationVersion.value !== version ||
+        !definition.value?.versions.some((item) => item.version === version))
+        return;
+      await api.activate(moduleKey, workflowKey, expectedRevision, version, crypto.randomUUID());
+      serverConfirmed = true;
+      if (!lifecycle.valid() ||
+        definitionScope.value !== originalScope ||
+        selectedModuleKey.value !== moduleKey ||
+        selectedWorkflowKey.value !== workflowKey)
+        return;
+      notice.value = '已激活版本 ' + version + '；后续新实例使用该版本，在途实例保留原固定版本。';
       await refreshPublishedDefinition();
     } catch (cause) {
-      if (lifecycle.valid()) fail(cause);
+      if (lifecycle.valid()) {
+        if (serverConfirmed)
+          notice.value = '版本激活已由服务器确认；但刷新定义失败。请先读取服务器修订，不要重复激活。';
+        fail(cause);
+      }
     } finally {
       if (lifecycle.valid()) busy.value = false;
     }

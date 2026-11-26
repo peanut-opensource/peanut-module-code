@@ -105,14 +105,16 @@ function fixture() {
       assert.deepEqual(parsed.errors, []);
       assert.ok(parsed.descriptor.scriptSetup);
       source = parsed.descriptor.scriptSetup.content;
-      // Bind only the Vite environment value; do not replace application logic.
-      source = source.replaceAll('import.meta.env.VITE_API_BASE_URL', "'/'");
       // Vite-only lazy module lookups are not evaluated by this VM unit fixture.
       source = source.replaceAll(
         /import\.meta\.glob\(\s*'\/src\/modules\/[^']*'\s*\)/g,
         '({})'
       );
     }
+    // The fixture executes both SFC scripts and their real TypeScript imports
+    // in CommonJS VM; Vite-only env and HMR expressions are never executed.
+    source = source.replaceAll('import.meta.env.VITE_API_BASE_URL', "'/'");
+    source = source.replaceAll('import.meta.hot?.dispose(sessionSync.dispose);', '');
     const result = ts.transpileModule(source, {
       fileName: file.endsWith('.vue') ? `${file}.ts` : file,
       compilerOptions: {
@@ -136,6 +138,30 @@ function fixture() {
             return load(path.join(root, 'web/src/utils/auth.ts'));
           if (name === '@/hooks/permission')
             return { hasPermission: () => true };
+          if (name === '@/api/tenant-session-fetch')
+            return { tenantSessionFetch: () => {
+              throw new Error('Workflow source fixture must not call live HTTP');
+            } };
+          if (name === '@peanut-admin/client')
+            return {
+              // The real auth.ts script is executed unchanged; this fixture
+              // only supplies a deterministic browser storage/session adapter.
+              createSessionSync: () => ({
+                publish() {}, dispose() {},
+              }),
+              newBrowserSessionIdentity: () => 'synthetic-next-identity',
+              readBrowserSession: (_state, tokenKey, identityKey) => ({
+                token: localStorage.getItem(tokenKey),
+                identity: localStorage.getItem(identityKey),
+              }),
+              writeBrowserSession: (_state, tokenKey, snapshot) => {
+                if (snapshot.token === null) localStorage.removeItem(tokenKey);
+                else localStorage.setItem(tokenKey, snapshot.token);
+                if (snapshot.identity === null)
+                  localStorage.removeItem('peanut-admin-session');
+                else localStorage.setItem('peanut-admin-session', snapshot.identity);
+              },
+            };
           if (name === '@peanut-admin/vue')
             return {
               registerTenantDisposer(key, close) {
@@ -147,6 +173,7 @@ function fixture() {
           if (name === 'vue-router')
             return {
               onBeforeRouteLeave() {},
+              useRoute: () => ({ path: '/workflow/designer' }),
               useRouter: () => ({ push: async () => {} }),
             };
           if (name === 'element-plus')
@@ -302,7 +329,7 @@ test('ordinary token refresh survives, while localStorage clear invalidates the 
   );
   const auth = f.load(path.join(root, 'web/src/utils/auth.ts'));
   try {
-    auth.setToken('refreshed-same-session');
+    auth.setToken('refreshed-same-session', 'session-refreshed');
     f.window.emit('storage', { key: 'token', storageArea: f.localStorage });
     assert.equal(app.state.valid(), true);
     assert.equal(closed, 0);
@@ -339,8 +366,8 @@ test('unmount cleans subscriptions even when the owning page cleanup throws', ()
 test('designer identity loss clears private state and a pending confirmation cannot start another load', async () => {
   const f = fixture();
   const exposed = [
-    'moduleKey',
-    'workflowKey',
+    'selectedModuleKey',
+    'selectedWorkflowKey',
     'changed',
     'revision',
     'error',
@@ -366,8 +393,8 @@ test('designer identity loss clears private state and a pending confirmation can
   const s = app.state;
   try {
     for (const key of [
-      'moduleKey',
-      'workflowKey',
+      'selectedModuleKey',
+      'selectedWorkflowKey',
       'error',
       'notice',
       'previewInitiator',
@@ -392,8 +419,8 @@ test('designer identity loss clears private state and a pending confirmation can
     await pending;
     assert.equal(f.calls.definitions, 0);
     for (const key of [
-      'moduleKey',
-      'workflowKey',
+      'selectedModuleKey',
+      'selectedWorkflowKey',
       'error',
       'notice',
       'previewInitiator',
@@ -539,6 +566,8 @@ test('runtime keeps a current action when the inbox refreshes in the same identi
     active_nodes: [],
   };
   f.api.instanceAction = async () => pendingAction.promise;
+  f.api.instance = async () => ({ ...current, status: 'completed' });
+  f.api.events = async () => [];
   const app = mount(
     () =>
       f.load(path.join(workflow, 'runtime/WorkflowRuntimePage.vue'), [
@@ -674,3 +703,209 @@ for (const boundary of ['fetch', 'body']) {
     );
   });
 }
+
+function designerPublicationFixture() {
+  const f = fixture();
+  const exposed = [
+    'selectedModuleKey', 'selectedWorkflowKey', 'definitionScope',
+    'revision', 'definition', 'activationVersion',
+    'changed', 'conflict', 'busy', 'error', 'notice', 'state',
+    'publish', 'activate',
+  ];
+  const app = mount(
+    () => f.load(path.join(workflow, 'designer/WorkflowDesignerPage.vue'), exposed).__state
+  );
+  const s = app.state;
+  s.selectedModuleKey.value = 'peanut.sample';
+  s.selectedWorkflowKey.value = 'approval';
+  s.definitionScope.value = 'peanut.sample:approval';
+  s.revision.value = 7;
+  return { f, app, s };
+}
+
+test('publish is a confirmed, server-scoped operation; cancel does not send a POST', async () => {
+  const { f, app, s } = designerPublicationFixture();
+  let posts = 0;
+  f.api.publish = async () => { posts += 1; };
+  try {
+    const pending = s.publish();
+    assert.equal(s.busy.value, true, 'confirmation is an exclusive mutation');
+    assert.equal(posts, 0);
+    f.confirm.reject(new Error('user cancelled'));
+    await pending;
+    assert.equal(posts, 0);
+    assert.equal(s.busy.value, false);
+    assert.equal(s.error.value, '');
+  } finally {
+    app.unmount();
+  }
+});
+
+test('publish rejects stale revision while modal is pending and cannot publish a different definition', async () => {
+  const { f, app, s } = designerPublicationFixture();
+  let posts = 0;
+  f.api.publish = async () => { posts += 1; };
+  try {
+    const pending = s.publish();
+    s.revision.value = 8;
+    f.confirm.resolve(true);
+    await pending;
+    assert.equal(posts, 0);
+    assert.equal(s.busy.value, false);
+    assert.equal(s.notice.value, '');
+  } finally {
+    app.unmount();
+  }
+});
+
+test('confirmed publish uses fixed revision, activates server version and refreshes authoritative definition', async () => {
+  const { f, app, s } = designerPublicationFixture();
+  const sends = [];
+  const starting = { graph: s.state.value.graph, layout: s.state.value.layout };
+  f.api.publish = async (...args) => {
+    sends.push(args);
+    return { version: 1, draft_revision: 8, active_version: 1 };
+  };
+  f.api.definition = async () => ({
+    ...starting, draft_revision: 8, active_version: 1, versions: [{ version: 1 }],
+  });
+  try {
+    const pending = s.publish();
+    assert.equal(sends.length, 0);
+    f.confirm.resolve(true);
+    await pending;
+    assert.equal(sends.length, 1);
+    assert.equal(sends[0][0], 'peanut.sample');
+    assert.equal(sends[0][1], 'approval');
+    assert.equal(sends[0][2], 7);
+    assert.match(s.notice.value, /已发布并激活新版本/);
+    assert.equal(s.revision.value, 8);
+    assert.equal(s.conflict.value, false);
+    assert.equal(s.busy.value, false);
+  } finally {
+    app.unmount();
+  }
+});
+
+test('changing activation selection during confirmation invalidates the pending POST', async () => {
+  const { f, app, s } = designerPublicationFixture();
+  let calls = 0;
+  f.api.activate = async () => { calls += 1; };
+  s.definition.value = { versions: [{ version: 2 }, { version: 3 }] };
+  s.activationVersion.value = 2;
+  try {
+    const pending = s.activate();
+    s.activationVersion.value = 3;
+    f.confirm.resolve(true);
+    await pending;
+    assert.equal(calls, 0);
+    assert.equal(s.busy.value, false);
+  } finally {
+    app.unmount();
+  }
+});
+
+test('confirmed activate sends fixed version and CAS revision exactly once', async () => {
+  const { f, app, s } = designerPublicationFixture();
+  const sends = [];
+  s.definition.value = { versions: [{ version: 2 }] };
+  s.activationVersion.value = 2;
+  const snapshot = { graph: s.state.value.graph, layout: s.state.value.layout };
+  f.api.activate = async (...args) => { sends.push(args); };
+  f.api.definition = async () => ({
+    ...snapshot, draft_revision: 8, active_version: 2, versions: [{ version: 2 }],
+  });
+  try {
+    const pending = s.activate();
+    assert.equal(sends.length, 0);
+    f.confirm.resolve(true);
+    await pending;
+    assert.equal(sends.length, 1);
+    assert.deepEqual(sends[0].slice(0, 4), ['peanut.sample', 'approval', 7, 2]);
+    assert.match(s.notice.value, /已激活版本 2/);
+    assert.equal(s.busy.value, false);
+  } finally {
+    app.unmount();
+  }
+});
+
+test('successful workflow action remains visible when its secondary details refresh fails', async () => {
+  const f = fixture();
+  const current = {
+    instance_key: 'instance-confirmed',
+    status: 'running',
+    reassign_work_items: [],
+    active_nodes: [],
+  };
+  let posts = 0;
+  f.api.instanceAction = async () => {
+    posts += 1;
+    return { ...current, status: 'completed' };
+  };
+  f.api.instance = async () => {
+    throw new Error('Workflow detail refresh unavailable');
+  };
+  const app = mount(
+    () => f.load(path.join(workflow, 'runtime/WorkflowRuntimePage.vue'), [
+      'instance', 'action', 'comment', 'notice',
+      'error', 'submit', 'submitting',
+    ]).__state
+  );
+  const s = app.state;
+  try {
+    s.instance.value = current;
+    s.action.value = 'retry';
+    s.comment.value = 'synthetic user acknowledgement';
+    await s.submit();
+    assert.equal(posts, 1);
+    assert.equal(s.instance.value.instance_key, current.instance_key);
+    assert.equal(s.instance.value.status, 'completed');
+    assert.match(s.notice.value, /操作已记录/);
+    assert.match(s.notice.value, /刷新流程详情失败/);
+    assert.match(s.error.value, /请求失败/);
+    assert.equal(s.submitting.value, false);
+  } finally {
+    app.unmount();
+  }
+});
+
+test('server-confirmed publish with failed definition refresh never claims POST failed', async () => {
+  const { f, app, s } = designerPublicationFixture();
+  let posts = 0;
+  f.api.publish = async () => { posts += 1; };
+  // The existing native fixture rejects unexpected refreshes, simulating a
+  // second GET failing after publish already committed on the server.
+  try {
+    const pending = s.publish();
+    f.confirm.resolve(true);
+    await pending;
+    assert.equal(posts, 1);
+    assert.match(s.notice.value, /发布与激活已由服务器确认/);
+    assert.match(s.notice.value, /不要重复发布/);
+    assert.equal(s.conflict.value, true);
+    assert.equal(s.busy.value, false);
+  } finally {
+    app.unmount();
+  }
+});
+
+test('server-confirmed activation with failed definition refresh keeps success and blocks a second write', async () => {
+  const { f, app, s } = designerPublicationFixture();
+  let posts = 0;
+  f.api.activate = async () => { posts += 1; };
+  s.definition.value = { versions: [{ version: 2 }] };
+  s.activationVersion.value = 2;
+  try {
+    const pending = s.activate();
+    f.confirm.resolve(true);
+    await pending;
+    assert.equal(posts, 1);
+    assert.match(s.notice.value, /版本激活已由服务器确认/);
+    assert.match(s.notice.value, /不要重复激活/);
+    assert.equal(s.conflict.value, true);
+    await s.activate();
+    assert.equal(posts, 1);
+  } finally {
+    app.unmount();
+  }
+});
