@@ -14,6 +14,13 @@
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $requestPath = rawurldecode($requestPath);
 
+// A decoded NUL cannot be used as a filesystem path (realpath would throw).
+if (str_contains($requestPath, "\0")) {
+    http_response_code(404);
+    header('Cache-Control: no-store');
+    return true;
+}
+
 // Match the deployed Nginx ingress: tenant objects are available only through
 // File's controlled delivery route, which rechecks current visibility and grants.
 // The development server must not serve an existing object as a static file.
@@ -56,6 +63,58 @@ if ($requestPath === '/') {
 
 if ($requestPath === '/admin') {
     header('Location: /admin/', true, 302);
+    return true;
+}
+
+// Stable Module public assets are published only from the locked Admin build.
+// Unlike SPA routes, missing/retired assets must never return index.html.
+$moduleAssetsPrefix = '/admin/module-assets';
+if ($requestPath === $moduleAssetsPrefix || str_starts_with($requestPath, $moduleAssetsPrefix . '/')) {
+    header('Cache-Control: no-store');
+    if (!in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'HEAD'], true)) {
+        http_response_code(405);
+        header('Allow: GET, HEAD');
+        return true;
+    }
+
+    $relative = substr($requestPath, strlen($moduleAssetsPrefix) + 1);
+    $safeName = preg_match('#^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*(?:/[A-Za-z0-9_][A-Za-z0-9_.-]*)+$#D', $relative) === 1
+        && preg_match('/\.php$/i', $relative) !== 1;
+    $root = $safeName ? realpath(__DIR__ . '/admin/module-assets') : false;
+    $file = $root === false ? false : realpath(__DIR__ . $requestPath);
+    if (!$safeName || $root === false || $file === false
+        || !str_starts_with($file, $root . DIRECTORY_SEPARATOR)
+        || !is_file($file)) {
+        http_response_code(404);
+        return true;
+    }
+    // PHP's built-in server discards router headers when returning false.
+    // Serve the original bytes here so stable Module URLs keep no-store.
+    $type = match (strtolower(pathinfo($file, PATHINFO_EXTENSION))) {
+        'avif' => 'image/avif',
+        'css' => 'text/css',
+        'gif' => 'image/gif',
+        'html' => 'text/html',
+        'ico' => 'image/x-icon',
+        'jpeg', 'jpg' => 'image/jpeg',
+        'js', 'mjs' => 'text/javascript',
+        'json' => 'application/json',
+        'png' => 'image/png',
+        'svg' => 'image/svg+xml',
+        'ttf' => 'font/ttf',
+        'txt' => 'text/plain',
+        'wasm' => 'application/wasm',
+        'webp' => 'image/webp',
+        'woff' => 'font/woff',
+        'woff2' => 'font/woff2',
+        'xml' => 'application/xml',
+        default => 'application/octet-stream',
+    };
+    header('Content-Type: ' . $type);
+    header('Content-Length: ' . filesize($file));
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+        readfile($file);
+    }
     return true;
 }
 
