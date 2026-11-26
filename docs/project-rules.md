@@ -18,3 +18,14 @@
 - **持续复用而非反复首装：** 在本应用根运行 `peanut module lock --check` 和 `peanut module reconcile --release-locked --plan-only`；一致的已安装模块不重装。日后仅对真正新增模块执行原生 install，对变更模块按真实依赖闭包和可恢复计划执行原生 reconcile；修改源码、模块锁或安装身份后按现有规范刷新编译及 API 派生结果。切勿直接写安装账本或伪造版本。
 - **安装与租户授权严格分离：** 安装为 active 只说明此实例部署且启用模块运行代码；租户可见菜单和 API 权限仍以有效套餐许可证、租户入口、成员角色与 HTTP 原生授权为准。**24/24 安装成功不等于所有租户拥有 24 个菜单，也不等于 24 个模块全部通过真实业务验收。** 本次未调整任何许可证、套餐或成员权限。
 - **恢复与验证边界：** 本次源码／依赖锁和专库压缩备份、原生升级前后只读计划保存在 `.local/recovery/module-baseline-20261126/`（受限权限、禁止提交和输出凭据）；5020 服务由原登记 Service Manager 维护。业务验收继续复用当前实例、现有合成数据和受控身份。依赖准备采用离线设置，Composer 无法完整拉取远端安全公告，**不能据此声称联网依赖审计通过**。具体本次执行过程与未完成项目以 Project 唯一工业台账为准。
+
+
+## 2026-11-26 · 主入口开发侧栏验收纠偏（安装24/24不等于菜单通过）
+
+- **阶段结果：** 原“24个模块active / lock READY”只表示安装与目录来源验收。**主开发入口42个Admin模块页面的实际登录、权限与浏览器展示仍为NOT_RUN，不得标记全模块业务基线PASS。** 当前真实源为Scaffold MT `5.1.18-rc.32`、Module dev `9d550aeb`、原服务`127.0.0.1:5020`。
+- **主入口权属：** `http://127.0.0.1:5020/admin/`的`admin-web`绑定`tenant_id=1/code=default`。主租户有效`application-default` plan1无到期，选中全部24模块。QA2是别的host和过期许可，不得当主入口。
+- **菜单分层清点：** 15个Module作者提供**42个tenant Admin page＋1个group**，另9个Module无独立Admin菜单但提供backend/Platform/ContentTools等能力；Core菜单12个（6个页面/6个组）。数据库`pa_system_menu`中所有42个Module page均active、show=1、disabled=0，对应permission和plan1 ceiling均有效。当前Vite静态路由递归77条，42/42 Module page路径均命中，缺失父级0；由真实菜单源合成“已授权服务器菜单”通过前端现行`mapServerMenu`处理，**42/42可投影**，不是有效会话真实菜单响应。
+- **缺失层：** 当前主租户只有一个active`core.tenant-owner`，该角色显式Module授权0。Identity保护固定内置Owner只自动拥有Core的`CorePermissionCatalog::TENANT`，不能通过`role/permissions`直接修改内置Owner；业务Module必须先建立普通`application.admin.*`角色，赋予**有效套餐内可分配**权限，再给当前主开发成员追加该普通角色且**保留Owner原角色**。因此主入口“侧栏只有基础部分”的可证根因在租户成员角色的模块授权层，不在安装/manifest/同步/静态路由。
+- **身份现况：** 主Owner account2/credential2均active未锁，现存`server/private/credentials/initial-administrators.json#admin`账号标识和密码哈希均**不匹配**，禁止再当当前开发凭据；现有私有凭据没有当前Owner可验证密码。原生`identity:credential-recover`初始模式缺已批准initial-binding／plan，current-existing-shared要求Platform与Tenant共享账号，当前独立账号不满足，不得假造凭据和批准文件。平台account1的`server/private/credentials/platform-dev-recovery-20261124-module.json#platform`经离线凭据哈希比较为active+match；本轮尝试独立平台HTTP认证被安全检查执行前拒绝，**不得换工具重试**。
+- **桌面正式接管：** 开发已创建`server/private/credentials/module-main-default-owner-20261126.json#admin`（0600）的**待激活**身份，只有desktop通过现有授权Platform session在`/platform/#/owners`发起tenant1的原生Owner邀请并从正式`/adminapi/tenant/owner-invitations/accept`消费token（不暴露token或密码），才会成为可登录账号；原主Owner不能直接重置。然后在主`/admin/app/roles`建立普通“模块开发管理员”角色，按有效plan1选全当前可分配模块权限，并在`/admin/app/members`编辑新Owner的角色数组以**保留`core.tenant-owner`并追加普通角色**（两个Core端点已核guard），重新认证并核`POST /adminapi/user/info`和`POST /adminapi/user/menu` 200＋42条Module page实际可见与代表业务API 200/403。直到取得这个桌面回执都保持`MAIN_ADMIN_MENU_NOT_YET_ACCEPTED`。
+- **私有可复核结果：** `.local/recovery/main-dev-sidebar-20261126/`包含当前数据库55菜单、Vite77条路由、42/42合成映射及本阶段状态四份0600 JSON；无原始token、密码、凭据哈希。保持24安装模块、Identity rc.17、原5020服务和开发库不变，不改正式许可证、角色表或G18隔离。
