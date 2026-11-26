@@ -240,11 +240,10 @@
     </el-dialog>
     <section v-if="section === 'menus'">
       <el-divider />
-      <h3>租户菜单与按钮引用</h3>
-      <p
-        >选择已有权限包作为菜单或按钮的访问条件；角色授权和 API
-        关联分别保存。页面及已有动作标识保持原身份。</p
-      >
+      <h3>租户目录 → 菜单 → 按钮</h3>
+      <p>目录层级以正式实例菜单登记为准，按节点展开。当前版本保留既有
+        permission_key/权限包授权和原角色权限，不把这张树表当作已完成的直接 API 保存。
+        后续 G18 单源切换必须先验证现有角色、租户许可和服务端 API 拒绝边界。</p>
       <el-space wrap>
         <el-input
           v-model="menuSearch"
@@ -267,31 +266,48 @@
       <el-table
         v-loading="menuLoading"
         :data="visibleMenuBindings"
-        max-height="440"
+        max-height="600"
         row-key="menu_key"
-        empty-text="暂无菜单或按钮"
+        default-expand-all
+        :tree-props="{ children: 'children' }"
+        empty-text="暂无目录、菜单或按钮"
       >
-        <el-table-column prop="name" label="名称" />
-        <el-table-column label="类型" width="80"
+        <el-table-column prop="name" label="目录 / 菜单 / 按钮" min-width="210" />
+        <el-table-column label="类型" width="85"
           ><template #default="{ row }">{{
-            row.type === 'A' ? '按钮' : '菜单'
+            row.type === 'M' ? '目录' : row.type === 'A' ? '按钮' : '菜单'
           }}</template></el-table-column
         >
         <el-table-column prop="page_path" label="所属页面" />
         <el-table-column prop="action_key" label="动作标识" />
-        <el-table-column prop="permission_key" label="当前权限包" />
+        <el-table-column prop="permission_key" label="当前授权标识（旧合同）" min-width="170" />
+        <el-table-column
+          v-if="canReadApis && canReadBundles"
+          label="当前关联 API（正式目录只读投影）"
+          min-width="310"
+        >
+          <template #default="{ row }">
+            <template v-if="row.type !== 'M'">
+              <div v-for="endpoint in effectiveMenuApis(row)" :key="endpoint.id">
+                {{ endpoint.method }} {{ endpoint.path }}
+              </div>
+              <span v-if="effectiveMenuApis(row).length === 0">无已登记关联</span>
+            </template>
+          </template>
+        </el-table-column>
         <el-table-column
           v-if="canManage && canReadBundles"
-          label="操作"
-          width="100"
+          label="兼容维护"
+          width="120"
           ><template #default="{ row }"
             ><el-button
+              v-if="row.type !== 'M'"
               link
               :disabled="
                 saving || loading || menuLoading || !!error || !!menuError
               "
               @click="openMenuBinding(row)"
-              >编辑引用</el-button
+              >旧权限引用</el-button
             ></template
           ></el-table-column
         >
@@ -299,7 +315,7 @@
     </section>
     <el-dialog
       v-model="menuVisible"
-      title="菜单与按钮权限包引用"
+      title="历史菜单权限引用（兼容维护，非直接API授权）"
       width="min(620px, 94vw)"
       :close-on-click-modal="false"
       :close-on-press-escape="!saving"
@@ -389,6 +405,7 @@
   import { computed, onBeforeUnmount, ref, watch } from 'vue';
   import { ElMessage } from 'element-plus';
   import { api } from '../api/platform';
+  import { permissionMenuTree } from '../core/permission-menu-tree';
   import type {
     PermissionApi,
     PermissionAudience,
@@ -420,7 +437,7 @@
       '维护权限包的名称、状态和来源。角色授权、API 关联与菜单引用分别在各自页面管理。',
     apis: '查看接口目录、源默认权限和前置条件；按权限包维护本实例的 API 关联。',
     menus:
-      '维护租户菜单和按钮引用的权限包；更改导航显示不会自动授予角色业务权限。',
+      '正式目录 / 菜单 / 按钮树，显示原有API关联。直接节点/API保存仍需G18单源写入与服务端授权迁移，当前兼容维护不代替直接授权。',
   };
   const canCreate = computed(() =>
     props.canApi(...platformPermissionBundleCreate.endpoints[0])
@@ -430,6 +447,9 @@
   );
   const canReadBundles = computed(() =>
     props.canApi(...platformPermissionBundlesPage.endpoints[0])
+  );
+  const canReadApis = computed(() =>
+    props.canApi(...platformPermissionApisPage.endpoints[0])
   );
   const canReadBindings = computed(() =>
     props.canApi(...platformPermissionApiBindingRead.endpoints[0])
@@ -504,12 +524,21 @@
     )
   );
   const visibleMenuBindings = computed(() =>
-    menuBindings.value.filter((item) =>
-      `${item.name} ${item.page_path} ${item.action_key} ${item.permission_key}`
-        .toLowerCase()
-        .includes(menuSearch.value.toLowerCase().trim())
-    )
+    permissionMenuTree(menuBindings.value, menuSearch.value)
   );
+  // Resolve in memory from two bounded, independently authorized catalogs.
+  // No per-row HTTP fetch, no permission grant, and no fake direct API binding.
+  const effectiveApiIndex = computed(() => {
+    const directory = new Map(apis.value.map((row) => [row.id, row]));
+    return new Map(bundles.value
+      .filter((bundle) => bundle.audience === 'tenant')
+      .map((bundle) => [bundle.key, bundle.api_ids
+        .map((id) => directory.get(id))
+        .filter((api): api is PermissionApi =>
+          api !== undefined && api.audience === 'tenant' && api.status === 'active')]));
+  });
+  const effectiveMenuApis = (row: PermissionMenuBinding): PermissionApi[] =>
+    row.type === 'M' ? [] : (effectiveApiIndex.value.get(row.permission_key) ?? []);
   const canSaveMenuBinding = computed(() => {
     const row = selectedMenu.value;
     return (
@@ -593,7 +622,16 @@
     await runLoad(async () => {
       if (props.section === 'menus') {
         await loadMenuBindings(request);
-        if (canReadBundles.value) {
+        if (canReadBundles.value && canReadApis.value) {
+          const [bundleRows, apiRows] = await Promise.all([
+            readAll((page) => api.permissionBundles('tenant', page)),
+            readAll((page) => api.permissionApis('tenant', page)),
+          ]);
+          if (request === generation) {
+            bundles.value = bundleRows;
+            apis.value = apiRows;
+          }
+        } else if (canReadBundles.value) {
           const rows = await readAll((page) =>
             api.permissionBundles('tenant', page)
           );
@@ -636,7 +674,7 @@
   }
 
   function openMenuBinding(row: PermissionMenuBinding) {
-    if (!canManage.value || !canReadBundles.value) return;
+    if (row.type === 'M' || !canManage.value || !canReadBundles.value) return;
     selectedMenu.value = row;
     menuPermissionKey.value = row.permission_key;
     menuActionKey.value = row.action_key;

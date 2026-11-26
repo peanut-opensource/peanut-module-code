@@ -27,7 +27,7 @@ export interface PermissionApi {
 export interface PermissionMenuBinding {
   menu_key: string;
   parent_key: string | null;
-  type: 'C' | 'A';
+  type: 'M' | 'C' | 'A';
   name: string;
   page_path: string;
   action_key: string;
@@ -96,7 +96,8 @@ export function readPermissionMenuBinding(
   value: unknown
 ): PermissionMenuBinding {
   const row = record(value);
-  if (row.type !== 'C' && row.type !== 'A') throw new Error('菜单引用类型异常');
+  if (row.type !== 'M' && row.type !== 'C' && row.type !== 'A')
+    throw new Error('目录/菜单/按钮类型异常');
   return {
     menu_key: string(row.menu_key),
     parent_key: row.parent_key === null ? null : string(row.parent_key),

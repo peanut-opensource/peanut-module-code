@@ -26,7 +26,28 @@ final class PermissionApiController extends BasePlatformController
     public function menus()
     {
         $this->fields($this->request->get(), []);
+        // The native menu owner returns C/A bindings only. Include the real
+        // tenant-scoped directory records as read-only parents instead of
+        // manufacturing labels or a second menu catalog in the frontend.
+        // This read has no effect on role permissions or instance API grants.
         $items = $this->menus->permissionBindings();
+        $directories = Db::name('system_menu')->where('scope', 'tenant')
+            ->where('type', 'group')->field('key,parent_key,name')
+            ->order('sort_order,id')->select()->toArray();
+        foreach ($directories as $directory) {
+            $row = [
+                'menu_key' => (string) $directory['key'],
+                'parent_key' => $directory['parent_key'] === null ? null : (string) $directory['parent_key'],
+                'type' => 'M',
+                'name' => (string) $directory['name'],
+                'page_path' => '',
+                'action_key' => '',
+                'permission_key' => '',
+                'default_permission_key' => '',
+            ];
+            $row['revision'] = hash('sha256', json_encode($row, JSON_THROW_ON_ERROR));
+            $items[] = $row;
+        }
         return $this->data(['items' => $items, 'total' => count($items)]);
     }
 
