@@ -62,6 +62,36 @@ abstract class IntegrationAdminController extends BaseAdminController
 
     protected function problem(IntegrationSecurityException $exception): ApiProblem
     {
+        // Native request provenance, only for rejected Integration JSON in
+        // a development runtime. No request values, headers, IDs or secrets.
+        // This distinguishes body parsing, revision validation, and native
+        // service failures that previously all mapped to the same 42200.
+        if ($exception->problemCode === 'INTEGRATION_INPUT_INVALID' && $this->app->isDebug()) {
+            try {
+                $raw = $this->request->getContent();
+                $json = json_decode($raw, true);
+                $post = $this->request->post();
+                \app\common\infrastructure\runtime\OperationalLog::warning(
+                    $this->executionContext(),
+                    'integration.input_rejected_origin',
+                    [
+                        'source_file' => basename($exception->getFile()),
+                        'source_line' => $exception->getLine(),
+                        'request_shared_with_app' => $this->request === $this->app->request,
+                        'content_type' => $this->request->contentType(),
+                        'raw_bytes' => strlen($raw),
+                        'json_type' => get_debug_type($json),
+                        'json_field_names' => is_array($json) ? array_keys($json) : [],
+                        'json_revision_type' => is_array($json) ? get_debug_type($json['revision'] ?? null) : 'absent',
+                        'post_field_names' => is_array($post) ? array_keys($post) : [],
+                        'post_revision_type' => is_array($post) ? get_debug_type($post['revision'] ?? null) : 'absent',
+                        'route_field_names' => array_keys($this->request->route(false)),
+                    ],
+                );
+            } catch (\Throwable) {
+                // Diagnostics must never alter the original HTTP decision.
+            }
+        }
         $status = match ($exception->problemCode) {
             'INTEGRATION_PERMISSION_DENIED', 'MACHINE_SCOPE_DENIED' => 403,
             'MACHINE_IDENTITY_NOT_FOUND', 'WEBHOOK_ENDPOINT_NOT_FOUND', 'SESSION_DEVICE_NOT_FOUND' => 404,
