@@ -2,7 +2,7 @@
   "name": "custom/custom-ai-access",
   "description": "Tenant AI provider, credential and model configuration and invocation",
   "type": "peanut-admin-module",
-  "version": "1.0.1-rc.3",
+  "version": "1.0.1-rc.4",
   "license": "Apache-2.0",
   "extra": {
     "peanut": {
