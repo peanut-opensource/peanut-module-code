@@ -14,7 +14,19 @@ abstract class IntegrationAdminController extends BaseAdminController
     /** @param list<string> $allowed @return array<string,mixed> */
     protected function body(array $allowed): array
     {
-        $body = $this->request->post();
+        // HTTP JSON is the native Integration write contract. Read its raw
+        // object instead of trusting a mutable ThinkPHP POST parser cache, which
+        // may differ on parameterized routes (notably :identityKey/rotate).
+        // Unknown fields are still refused; route keys are never body fields.
+        if (str_contains(strtolower((string) $this->request->contentType()), 'json')) {
+            try {
+                $body = json_decode($this->request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+            } catch (\JsonException) {
+                throw IntegrationSecurityException::invalid();
+            }
+        } else {
+            $body = $this->request->post();
+        }
         if (!is_array($body) || array_is_list($body) || array_diff(array_keys($body), $allowed) !== []) {
             throw IntegrationSecurityException::invalid();
         }
