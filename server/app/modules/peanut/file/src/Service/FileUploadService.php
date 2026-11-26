@@ -15,8 +15,6 @@ use app\common\execution\CurrentExecutionContext;
 use PeanutAdmin\Kernel\Context\AuthenticatedMemberContext;
 use PeanutAdmin\Modules\File\Service\Storage\StorageService;
 use PeanutAdmin\Kernel\Auth\TenantContext;
-use PeanutAdmin\FileMedia\Media\ImageMetadata;
-use PeanutAdmin\FileMedia\Media\ImageMetadataInspector;
 use think\facade\Db;
 
 final class FileUploadService implements FileUploads
@@ -74,7 +72,7 @@ final class FileUploadService implements FileUploads
         $originName = $uploaded->originalName;
         $name = mb_substr((string) pathinfo($originName, PATHINFO_FILENAME), 0, 120) . '.' . $ext;
         $imageMetadata = $type === FileEnum::IMAGE
-            ? (new ImageMetadataInspector(FileEnum::MAX_SIZE[FileEnum::IMAGE]))->inspect($uploaded->path)
+            ? (new FileUploadImageInspector())->inspect($uploaded)
             : null;
         $purpose = match ($type) {
             FileEnum::IMAGE => 'material.image',
@@ -92,8 +90,8 @@ final class FileUploadService implements FileUploads
             $purpose,
             $uploaded->path,
             $name,
-            $imageMetadata instanceof ImageMetadata
-                ? $imageMetadata->mediaType
+            $imageMetadata !== null
+                ? $imageMetadata['media_type']
                 : ($uploaded->mediaType !== '' ? $uploaded->mediaType : 'application/octet-stream'),
         );
 
@@ -116,14 +114,14 @@ final class FileUploadService implements FileUploads
                     'name' => $name,
                     'file_key' => $stored['file_key'],
                 ]);
-                if ($imageMetadata instanceof ImageMetadata) {
+                if ($imageMetadata !== null) {
                     $now = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d H:i:s.v');
                     FileImageAsset::create([
                         'tenant_id' => $tenantId,
                         'file_key' => $stored['file_key'],
-                        'width' => $imageMetadata->width,
-                        'height' => $imageMetadata->height,
-                        'media_type' => $imageMetadata->mediaType,
+                        'width' => $imageMetadata['width'],
+                        'height' => $imageMetadata['height'],
+                        'media_type' => $imageMetadata['media_type'],
                         'created_at' => $now,
                         'updated_at' => $now,
                     ]);

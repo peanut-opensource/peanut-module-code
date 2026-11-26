@@ -4,7 +4,7 @@
     "inputs": [
         {
             "path": "modules.lock",
-            "sha256": "c4272aad91458a1fd1023312b78e73a6347f87c2fb45fb2ac0230a9786005a14"
+            "sha256": "1b4dafc0cf5a347c95cb4223c48ba5b5c9dabe51fa1c23099682406cccf587f0"
         },
         {
             "path": "release-versions.json",
@@ -80,7 +80,7 @@
         },
         {
             "path": "server/app/modules/peanut/file/api/metadata/openapi.php",
-            "sha256": "d1f66de7e2df4349e10d1ed089770bb0fd9e66d0f2278b3b75b409e284128c46"
+            "sha256": "94828616c554c36c25e25efb6f26fe480e8b04c43a1c01577007968084cbb5be"
         },
         {
             "path": "server/app/modules/peanut/file/route/app.php",

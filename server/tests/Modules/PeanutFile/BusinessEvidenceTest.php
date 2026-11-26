@@ -273,6 +273,63 @@ final class BusinessEvidenceTest extends TestCase
         return $this->root . '/storage/private/' . Db::name('file_object')->where('file_key', $key)->value('object_key');
     }
 
+    public function testPreviewableWebpAndGifMaterialUploadsFollowPublicPurposeAndRejectSpoofedExtensions(): void
+    {
+        // Material images are PUBLIC by the existing StoragePurpose contract;
+        // use only the isolated fixture route and its disposable local directory.
+        Db::name('storage_space')->insert(['id' => 2, 'space_key' => 'synthetic-public', 'name' => 'test', 'account_id' => 1,
+            'access_type' => 'public', 'local_path' => 'storage/public', 'status' => 'active']);
+        Db::name('storage_route')->insert(['route_key' => 'default.public', 'access_type' => 'public', 'space_id' => 2]);
+        // Match the real host tenant-scope auto-fill for File::createModel.
+        $db = think\Container::getInstance()->make(think\DbManager::class);
+        $policy = new \app\common\tenancy\MultiTenantDataScopePolicy(new CurrentExecutionContext($this->contexts));
+        think\Model::maker(static function (think\Model $model) use ($db, $policy): void {
+            $model->setOption('db', $db);
+            if ($model instanceof \app\common\model\TenantOwnedModel) {
+                $model->setDataScopePolicy($policy);
+            }
+        });
+        $this->within(function (): void {
+            $service = new \PeanutAdmin\Modules\File\Service\FileUploadService(
+                $this->storage, new CurrentExecutionContext($this->contexts),
+            );
+            $samples = [
+                'webp' => ['UklGRk4AAABXRUJQVlA4IEIAAABQAwCdASpAADAAPpFIoEwlpCMiIqgAsBIJZwAAFCsf27U0mAD+9Vi///ucD//ZwP/9nA/jr/9eqWuTo/lpbBwAAAA=', 'image/webp', 64, 48],
+                'gif' => ['R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', 'image/gif', 1, 1],
+                'png' => ['iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a91sAAAAASUVORK5CYII=', 'image/png', 1, 1],
+            ];
+            foreach ($samples as $extension => [$encoded, $mime, $width, $height]) {
+                $source = $this->root . '/material.' . $extension;
+                file_put_contents($source, base64_decode($encoded, true));
+                $uploaded = new UploadFile($source, 'material.' . $extension, (int) filesize($source), $mime, $extension);
+                $stored = $service->image($this->actor, $uploaded, 0, $this->actor->memberId);
+                self::assertSame(10, $stored['type']);
+                self::assertSame('ready', Db::name('file_object')->where('file_key', $stored['file_key'])->value('status'));
+                self::assertSame('public', Db::name('file_object')->where('file_key', $stored['file_key'])->value('access_type'));
+                self::assertSame($mime, Db::name('file_object')->where('file_key', $stored['file_key'])->value('media_type'));
+                $asset = Db::name('file_image_asset')->where('file_key', $stored['file_key'])->find();
+                self::assertSame([$width, $height, $mime], [(int) $asset['width'], (int) $asset['height'], $asset['media_type']]);
+                self::assertFileExists($this->root . '/storage/public/' . Db::name('file_object')->where('file_key', $stored['file_key'])->value('object_key'));
+            }
+            $before = (int) Db::name('file_object')->count();
+            $spoof = $this->root . '/material.webp';
+            $this->denied(
+                fn() => $service->image($this->actor, new UploadFile($spoof, 'mismatched.jpg', (int) filesize($spoof), 'image/webp', 'jpg'), 0),
+                'FILE_IMAGE_INVALID',
+            );
+            $this->denied(
+                fn() => $service->image($this->actor, new UploadFile($spoof, 'unsupported.avif', (int) filesize($spoof), 'image/avif', 'avif'), 0),
+                'FILE_EXTENSION_NOT_ALLOWED',
+            );
+            $this->denied(
+                fn() => $service->video($this->actor, new UploadFile($spoof, 'unsupported.webm', (int) filesize($spoof), 'video/webm', 'webm'), 0),
+                'FILE_EXTENSION_NOT_ALLOWED',
+            );
+            self::assertSame($before, (int) Db::name('file_object')->count(), 'Rejected inputs cannot reserve storage');
+            self::assertSame(3, $this->drivers->puts, 'Only validated material images are written');
+        });
+    }
+
     public function testTrustedMetadataAndIdempotentOriginalKey(): void
     {
         $this->within(function (): void {

@@ -18,8 +18,8 @@ export type FileType = 10 | 20 | 30;
 
 /** Shared chooser hint; the File upload service enforces extension and size limits. */
 export const fileUploadAccept: Record<FileType, string> = {
-  10: 'image/*',
-  20: 'video/*',
+  10: '.jpg,.jpeg,.png,.gif,.webp,.ico,.bmp',
+  20: '.wmv,.avi,.mpg,.mpeg,.3gp,.mov,.mp4,.flv,.f4v,.rmvb,.mkv',
   30: '.zip,.rar,.txt,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.7z,.gz,.mp3,.wav,.ogg',
 };
 

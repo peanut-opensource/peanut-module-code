@@ -250,19 +250,19 @@ return [
             'tags' => ['File'], 'operationId' => 'uploadAdminImage',
             'requestBody' => $uploadBody,
             'responses' => ['200' => $uploadResponse, '400' => $typedError, '401' => $typedError, '403' => $typedError],
-            'x-peanut-errors' => ['UPLOAD_FILE_REQUIRED'],
+            'x-peanut-errors' => ['UPLOAD_FILE_REQUIRED', 'FILE_EXTENSION_NOT_ALLOWED', 'FILE_SIZE_EXCEEDED', 'FILE_IMAGE_INVALID'],
         ]],
         '/adminapi/peanut.file.upload.video' => ['post' => [
             'tags' => ['File'], 'operationId' => 'uploadAdminVideo',
             'requestBody' => $uploadBody,
             'responses' => ['200' => $uploadResponse, '400' => $typedError, '401' => $typedError, '403' => $typedError],
-            'x-peanut-errors' => ['UPLOAD_FILE_REQUIRED'],
+            'x-peanut-errors' => ['UPLOAD_FILE_REQUIRED', 'FILE_EXTENSION_NOT_ALLOWED', 'FILE_SIZE_EXCEEDED'],
         ]],
         '/api/upload/image' => ['x-peanut-required-modules' => ['peanut.member'], 'post' => [
             'tags' => ['File'], 'operationId' => 'uploadMemberImage',
             'requestBody' => $uploadBody,
             'responses' => ['200' => $uploadResponse, '400' => $typedError, '401' => $typedError, '403' => $typedError],
-            'x-peanut-errors' => ['UPLOAD_FILE_REQUIRED'],
+            'x-peanut-errors' => ['UPLOAD_FILE_REQUIRED', 'FILE_EXTENSION_NOT_ALLOWED', 'FILE_SIZE_EXCEEDED', 'FILE_IMAGE_INVALID'],
         ]],
         '/adminapi/peanut.file.move' => ['post' => [
             'tags' => ['File'], 'operationId' => 'moveFiles',

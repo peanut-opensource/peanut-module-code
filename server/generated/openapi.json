@@ -32500,7 +32500,10 @@
                     }
                 },
                 "x-peanut-errors": [
-                    "UPLOAD_FILE_REQUIRED"
+                    "UPLOAD_FILE_REQUIRED",
+                    "FILE_EXTENSION_NOT_ALLOWED",
+                    "FILE_SIZE_EXCEEDED",
+                    "FILE_IMAGE_INVALID"
                 ],
                 "security": [
                     {
@@ -32584,7 +32587,9 @@
                     }
                 },
                 "x-peanut-errors": [
-                    "UPLOAD_FILE_REQUIRED"
+                    "UPLOAD_FILE_REQUIRED",
+                    "FILE_EXTENSION_NOT_ALLOWED",
+                    "FILE_SIZE_EXCEEDED"
                 ],
                 "security": [
                     {
@@ -32671,7 +32676,10 @@
                     }
                 },
                 "x-peanut-errors": [
-                    "UPLOAD_FILE_REQUIRED"
+                    "UPLOAD_FILE_REQUIRED",
+                    "FILE_EXTENSION_NOT_ALLOWED",
+                    "FILE_SIZE_EXCEEDED",
+                    "FILE_IMAGE_INVALID"
                 ],
                 "security": [
                     {
