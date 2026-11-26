@@ -34,6 +34,7 @@ export interface LicenseInput {
 
 export interface PlanModule {
   module_key: string;
+  name: string;
   status: string;
   tenant: { enableable: boolean; required: boolean; requires: string[] };
 }
@@ -51,6 +52,7 @@ export function readPlanModules(value: unknown) {
       throw new Error('套餐模块租户属性异常');
     return {
       module_key: text(row.module_key),
+      name: text(row.name),
       status: text(row.status),
       tenant: {
         enableable: tenant.enableable,

@@ -169,6 +169,7 @@ export interface OfficialUpdatePreview {
 
 export interface RuntimeModuleStatus {
   module_key: string;
+  name: string;
   version: string;
   status: string;
   tenant_enabled_count: number;
@@ -1493,6 +1494,8 @@ export const api = {
         typeof item !== 'object' ||
         !('module_key' in item) ||
         typeof item.module_key !== 'string' ||
+        !('name' in item) ||
+        typeof item.name !== 'string' ||
         !('version' in item) ||
         typeof item.version !== 'string' ||
         !('status' in item) ||
@@ -1513,6 +1516,7 @@ export const api = {
       }
       return {
         module_key: item.module_key,
+        name: item.name,
         version: item.version,
         status: item.status,
         tenant_enabled_count: item.tenant_enabled_count,

@@ -171,7 +171,8 @@ const tenancyNodes = [
   ]),
 ];
 const developerNodes = [
-  [developerPage, 'platform.operations', 'page', [['GET', developerCatalogPath]]],
+  ['platform.developer.tools', null, 'group', []],
+  [developerPage, 'platform.developer.tools', 'page', [['GET', developerCatalogPath]]],
   ['platform.developer.runtime.read', developerPage, 'operation', [['GET', instanceModulesPath]]],
   ['platform.developer.official-updates.read', developerPage, 'operation', [['GET', instanceModulesPath + '/updates']]],
   ...[['upload-install', 'install'], ['upload-update', 'update'],
@@ -493,7 +494,7 @@ test('the default preview projects the real Platform Shell branches and a no-men
   assert.equal(panel.candidateMode.value, 'shell');
   assert.equal(panel.candidateText.value, '');
   assert.match(panel.candidate.value.notice, /当前 Platform API 目录未见 File 存储来源/);
-  const [tenancy, groupNode, previewOperation, catalogAuditOperation, operations, operation] =
+  const [tenancy, groupNode, previewOperation, catalogAuditOperation, operations, developerTools, operation] =
     panel.candidate.value.data.tree;
   const [tenantsPage] = tenancy.children;
   for (const [key, view] of opsReadPages) {
@@ -525,10 +526,12 @@ test('the default preview projects the real Platform Shell branches and a no-men
   ]);
   assert.equal(operations.label, '运维与审计');
   assert.match(auditPage.source, /#\/audit$/);
-  const developer = operations.children.find((child) => child.key === developerPage);
+  assert.equal(developerTools.key, 'platform.developer.tools');
+  assert.equal(developerTools.label, '开发者工具');
+  const developer = developerTools.children.find((child) => child.key === developerPage);
   assert.match(developer.source, /#\/developer$/);
   assert.deepEqual(plain(developer.children.map((child) => child.key)),
-    developerNodes.slice(1).map(([key]) => key));
+    developerNodes.slice(2).map(([key]) => key));
   const [operatorsNode, pageNode, workbench, bundlesPage, apisPage, menusPage] =
     groupNode.children;
   const [operatorAction] = operatorsNode.children;
@@ -1503,7 +1506,11 @@ test('native Platform role-node source is bound to the Shell definition and curr
   assert.equal(manifest.schema_version, 1);
   assert.equal(manifest.source_path, 'platform/src/core/platform-shell-definitions.ts');
   assert.equal(manifest.source_sha256, createHash('sha256').update(source).digest('hex'));
-  assert.equal(manifest.nodes.length, 80);
+  assert.equal(manifest.nodes.length, 81);
+  const developerGroup = manifest.nodes.find((node) => node.key === 'platform.developer.tools');
+  assert.equal(developerGroup?.type, 'group');
+  assert.equal(developerGroup?.parent_key, null);
+  assert.equal(manifest.nodes.find((node) => node.key === developerPage)?.parent_key, developerGroup.key);
   assert.equal(new Set(manifest.nodes.map((node) => node.key)).size, manifest.nodes.length);
   const byKey = Object.fromEntries(manifest.nodes.map((node) => [node.key, node]));
   for (const [key, type, path, parent] of [

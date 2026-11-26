@@ -431,3 +431,65 @@ test('official preflight delivers a dependency rejection after the default timeo
     [route + 'update', false, 15_000],
   ]);
 });
+
+test('Platform Module list preserves canonical Chinese names and technical keys without changing entitlements', async (t) => {
+  const calls = [];
+  const row = {
+    module_key: 'peanut.file',
+    name: '文件与媒体',
+    version: '1.0.50-rc.24',
+    status: 'active',
+    tenant_enabled_count: 1,
+    dependencies: [],
+    optional_dependencies: [],
+    pending_actions: [],
+    tenant: { enableable: true, required: false, requires: [] },
+  };
+  const api = fixture(t, async (config) => {
+    calls.push([config.method, config.url]);
+    assert.equal(config.url, '/platformapi/instance-tools/modules');
+    return envelope(config, { lists: [row], count: 1 });
+  });
+  const runtime = await api.runtimeModules('', 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(runtime.lists[0])), {
+    module_key: row.module_key,
+    name: row.name,
+    version: row.version,
+    status: row.status,
+    tenant_enabled_count: row.tenant_enabled_count,
+    dependencies: [],
+    optional_dependencies: [],
+    pending_actions: [],
+  });
+  const planModules = await api.planModules(1);
+  assert.deepEqual(JSON.parse(JSON.stringify(planModules.lists[0])), {
+    module_key: row.module_key,
+    name: row.name,
+    status: row.status,
+    tenant: row.tenant,
+  });
+  assert.deepEqual(calls, [
+    ['get', '/platformapi/instance-tools/modules'],
+    ['get', '/platformapi/instance-tools/modules'],
+  ]);
+});
+
+test('a Module list with missing author display name is rejected rather than mislabeled', async (t) => {
+  const api = fixture(t, async (config) =>
+    envelope(config, {
+      lists: [{
+        module_key: 'peanut.file',
+        version: '1.0.50-rc.24',
+        status: 'active',
+        tenant_enabled_count: 0,
+        dependencies: [],
+        optional_dependencies: [],
+        pending_actions: [],
+        tenant: { enableable: true, required: false, requires: [] },
+      }],
+      count: 1,
+    })
+  );
+  await assert.rejects(api.runtimeModules(), { message: 'Invalid Module installation row' });
+  await assert.rejects(api.planModules(), { message: '套餐或许可证字段格式异常' });
+});

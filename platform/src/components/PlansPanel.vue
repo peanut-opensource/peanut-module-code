@@ -39,7 +39,8 @@
       >
       <el-table-column label="模块"
         ><template #default="{ row }">{{
-          row.module_keys.join('、') || '无可选模块'
+          row.module_keys.map((key: string) => moduleLabel(key)).join('、') ||
+          '无可选模块'
         }}</template></el-table-column
       >
       <el-table-column label="权限组合"
@@ -102,20 +103,22 @@
               v-for="item in optionalModules"
               :key="item.module_key"
               :value="item.module_key"
-              :label="item.module_key"
+              :label="moduleLabel(item.module_key, item.name)"
               :disabled="item.status !== 'active'"
             />
           </el-select>
         </el-form-item>
-        <p>必需底座（无需购买）：{{ requiredModules.join('、') || '无' }}</p>
+        <p>必需底座（无需购买）：{{
+          requiredModules.map((key) => moduleLabel(key)).join('、') || '无'
+        }}</p>
         <p v-for="item in selectedModules" :key="item.module_key"
-          >{{ item.module_key }} 依赖：{{
-            item.tenant.requires.join('、') || '无'
+          >{{ moduleLabel(item.module_key, item.name) }} 依赖：{{
+            item.tenant.requires.map((key) => moduleLabel(key)).join('、') || '无'
           }}</p
         >
         <el-alert
           v-if="missingDependencies.length"
-          :title="`请同时选择依赖模块：${missingDependencies.join('、')}`"
+          :title="`请同时选择依赖模块：${missingDependencies.map((key) => moduleLabel(key)).join('、')}`"
           type="warning"
           :closable="false"
         />
@@ -130,7 +133,7 @@
               v-for="item in bundles"
               :key="item.key"
               :value="item.key"
-              :label="`${item.name} (${item.key}) · ${item.module_key}`"
+              :label="`${item.name} (${item.key}) · ${moduleLabel(item.module_key)}`"
               :disabled="
                 item.status !== 'active' ||
                 !entitledModules.includes(item.module_key)
@@ -175,7 +178,7 @@
   import { api } from '../api/platform';
   import type { Plan, PlanModule } from '../api/tenant-license';
   import type { PermissionBundle } from '../api/permission-bundles';
-  import { platformPlanActions, platformPlanCatalogReads } from '../core/platform-shell-definitions';
+  import { platformDeveloperRuntimeRead, platformPlanActions, platformPlanCatalogReads } from '../core/platform-shell-definitions';
 
   const props = defineProps<{
     canApi: (method: string, path: string) => boolean;
@@ -187,6 +190,36 @@
       platformPlanCatalogReads.every(([method, path]) => props.canApi(method, path))
   );
   const modules = ref<PlanModule[]>([]);
+  const moduleNames = ref(new Map<string, string>());
+  const canReadModuleNames = computed(() =>
+    props.canApi(...platformDeveloperRuntimeRead.endpoints[0])
+  );
+  function moduleLabel(key: string, sourceName?: string): string {
+    const name = sourceName ?? moduleNames.value.get(key);
+    return name && name !== key ? `${name}（${key}）` : key;
+  }
+  async function loadModuleNames(): Promise<void> {
+    if (!canReadModuleNames.value) return;
+    try {
+      const first = await api.planModules(1);
+      const rows = [...first.lists];
+      const pages = Math.ceil(first.count / 100);
+      for (let page = 2; page <= pages; page += 1) {
+        const next = await api.planModules(page);
+        if (next.count !== first.count || next.lists.length === 0)
+          throw new Error('模块目录读取期间发生变化');
+        rows.push(...next.lists);
+      }
+      if (rows.length !== first.count ||
+          new Set(rows.map((row) => row.module_key)).size !== rows.length)
+        throw new Error('模块目录不完整');
+      moduleNames.value = new Map(rows.map(({ module_key, name }) => [module_key, name]));
+    } catch {
+      // This is a display-only read. Never turn a missing catalog privilege
+      // into a blocking plan read or derive names from another tenant.
+      moduleNames.value = new Map();
+    }
+  }
   const bundles = ref<PermissionBundle[]>([]);
   const formError = ref('');
   const visible = ref(false);
@@ -310,6 +343,7 @@
       )
         throw new Error('权限组合目录分页不完整');
       modules.value = moduleRows;
+      moduleNames.value = new Map(moduleRows.map(({ module_key, name }) => [module_key, name]));
       bundles.value = bundleRows;
     });
   }
@@ -375,5 +409,8 @@
   function retryPage() {
     void loadPage(pagination.page);
   }
-  onMounted(load);
+  onMounted(() => {
+    void load();
+    void loadModuleNames();
+  });
 </script>

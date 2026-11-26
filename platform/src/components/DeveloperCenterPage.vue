@@ -16,7 +16,7 @@
         <el-option
           v-for="item in moduleChoices"
           :key="item.key"
-          :label="`${item.key} · ${item.name}`"
+          :label="moduleLabel(item.key, item.name)"
           :value="item.key"
         />
       </el-select>
@@ -88,7 +88,9 @@
           :data="visibleOfficialCatalog"
           empty-text="当前渠道没有匹配模块"
         >
-          <el-table-column prop="key" label="模块" min-width="200" />
+          <el-table-column label="模块名称 / 标识" min-width="260">
+            <template #default="{ row }">{{ moduleLabel(row.key) }}</template>
+          </el-table-column>
           <el-table-column prop="version" label="发行版本" min-width="140" />
           <el-table-column label="本地源码" min-width="150">
             <template #default="{ row }">{{
@@ -120,7 +122,9 @@
         </el-table>
         <h3>已采用模块的更新</h3>
         <el-table :data="officialUpdates.modules">
-          <el-table-column prop="key" label="官方模块" min-width="200" />
+          <el-table-column label="模块名称 / 标识" min-width="260">
+            <template #default="{ row }">{{ moduleLabel(row.key) }}</template>
+          </el-table-column>
           <el-table-column
             prop="source_version"
             label="当前源码锁版本"
@@ -267,7 +271,11 @@
     <el-card v-if="runtimeLoaded" class="backup-center-card">
       <template #header>部署安装状态（不代表租户或成员已获授权）</template>
       <el-table :data="runtimeRows">
-        <el-table-column prop="module_key" label="模块" min-width="200" />
+        <el-table-column label="模块名称 / 标识" min-width="260">
+          <template #default="{ row }">{{
+            moduleLabel(row.module_key, row.name)
+          }}</template>
+        </el-table-column>
         <el-table-column prop="version" label="源码版本" />
         <el-table-column prop="status" label="安装状态" />
         <el-table-column prop="tenant_enabled_count" label="开通租户数" />
@@ -338,8 +346,8 @@
           :name="module.key"
         >
           <template #title
-            ><b>{{ module.key }}</b
-            >&nbsp;· {{ module.name }}&nbsp;·
+            ><b>{{ module.name }}</b
+            >&nbsp;· {{ module.key }}&nbsp;·
             {{ module.version || '版本未声明' }}</template
           >
           <el-descriptions :column="2" border>
@@ -496,7 +504,7 @@
   const catalogSearch = ref('');
   const visibleOfficialCatalog = computed(() =>
     (officialUpdates.value?.catalog || []).filter((row) =>
-      row.key.toLowerCase().includes(catalogSearch.value.trim().toLowerCase())
+      moduleLabel(row.key).toLowerCase().includes(catalogSearch.value.trim().toLowerCase())
     )
   );
   let officialIdempotency = '';
@@ -656,6 +664,12 @@
   const selected = ref('');
   const snapshot = ref<DeveloperCenterCatalogSnapshot | null>(null);
   const moduleChoices = ref<Array<{ key: string; name: string }>>([]);
+  const localModuleNames = computed(
+    () => new Map(moduleChoices.value.map(({ key, name }) => [key, name]))
+  );
+  function moduleLabel(key: string, name = localModuleNames.value.get(key)): string {
+    return name && name !== key ? `${name}（${key}）` : key;
+  }
 
   const labels: Record<string, string> = {
     declaration: '声明',
