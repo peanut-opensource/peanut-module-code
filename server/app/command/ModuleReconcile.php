@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\command;
 
 use app\platform\exception\module\ModuleLifecycleException;
+use app\common\services\authorization\GeneratedApiCatalog;
 use app\platform\exception\module\ModulePackageException;
 use app\platform\composition\module\ModuleDefinitionRegistryFactory;
 use app\platform\infrastructure\module\ModuleCatalogApplier;
@@ -61,7 +62,7 @@ final class ModuleReconcile extends ModuleContextualCommand
         }
 
         if ($selected !== []) {
-            return $this->runModuleOperation($output, function ($service) use ($selected, $preparedRelease): array {
+            return $this->reconcileWithFreshCatalog($output, function ($service) use ($selected, $preparedRelease): array {
                 $config = Config::get('modules', []);
                 $lock = is_array($config) ? trim((string) ($config['module_lock'] ?? '')) : '';
                 if ($lock === '') {
@@ -89,7 +90,7 @@ final class ModuleReconcile extends ModuleContextualCommand
             });
         }
 
-        return $this->runModuleOperation(
+        return $this->reconcileWithFreshCatalog(
             $output,
             function ($service) use ($releaseLocked, $preparedRelease): array {
                 $config = Config::get('modules', []);
@@ -146,6 +147,36 @@ final class ModuleReconcile extends ModuleContextualCommand
                 return $results;
             },
         );
+    }
+
+    /**
+     * Ensure all generated API consumers belong to the exact Module lock before any
+     * lifecycle/permission writes. Prepared deployments may not run Node generators;
+     * refusing a stale artifact here preserves the original active installation.
+     *
+     * @param callable(\app\common\contract\module\ModuleLifecycleCommands):array<string,mixed> $operation
+     */
+    private function reconcileWithFreshCatalog(Output $output, callable $operation): int
+    {
+        return $this->writeModuleResult($output, function () use ($operation): array {
+            self::assertSourceApiCatalogReady(dirname(__DIR__, 2));
+            return $operation($this->moduleLifecycle());
+        });
+    }
+
+    private static function assertSourceApiCatalogReady(string $serverRoot): void
+    {
+        try {
+            GeneratedApiCatalog::load($serverRoot);
+        } catch (\DomainException|\JsonException $exception) {
+            throw new ModuleLifecycleException(
+                'MODULE_API_CATALOG_STALE',
+                'The generated API catalog does not match the Module source lock. '
+                . 'Run the native scripts/generate-api-contracts.php generator and its --check '
+                . 'after module lock --write and before module reconcile; lifecycle data is unchanged.',
+                $exception,
+            );
+        }
     }
 
     /** The plan branch observes the current locked selection without mutation. */
