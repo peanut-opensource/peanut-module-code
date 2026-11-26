@@ -44,7 +44,7 @@ Route::group(function (): void {
         ->option(['peanut_permission' => 'peanut.integration.session.read']);
     Route::post('api/v1/integration-security/sessions/:sessionKey/revoke', [SessionSecurityController::class, 'revoke'])
         ->option(['peanut_permission' => 'peanut.integration.session.revoke']);
-})->middleware(LoginMiddleware::class)
+})->completeMatch()->middleware(LoginMiddleware::class)
     ->middleware(OfficialModuleMiddleware::class, 'peanut.integration', 'http.admin')
     ->middleware(AuthMiddleware::class)
     ->middleware(OperationLogMiddleware::class);
