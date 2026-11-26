@@ -173,11 +173,15 @@ const tenancyNodes = [
 const developerNodes = [
   ['platform.developer.tools', null, 'group', []],
   [developerPage, 'platform.developer.tools', 'page', [['GET', developerCatalogPath]]],
-  ['platform.developer.runtime.read', developerPage, 'operation', [['GET', instanceModulesPath]]],
-  ['platform.developer.official-updates.read', developerPage, 'operation', [['GET', instanceModulesPath + '/updates']]],
+  ['platform.developer.installations', 'platform.developer.tools', 'page', [['GET', instanceModulesPath]]],
+  ['platform.developer.official', 'platform.developer.tools', 'page', [['GET', instanceModulesPath + '/updates']]],
+  ['platform.developer.operations', 'platform.developer.tools', 'page', [['GET', moduleTaskPath]]],
+  ['platform.developer.diagnostics', 'platform.developer.tools', 'page', [['GET', developerCatalogPath]]],
+  ['platform.developer.runtime.read', 'platform.developer.installations', 'operation', [['GET', instanceModulesPath]]],
+  ['platform.developer.official-updates.read', 'platform.developer.official', 'operation', [['GET', instanceModulesPath + '/updates']]],
   ...[['upload-install', 'install'], ['upload-update', 'update'],
     ['official-install', 'official-install'], ['official-update', 'official-update']].map(([key, path]) => [
-    'platform.developer.module.' + key, developerPage, 'action', [['POST', instanceModulesPath + '/' + path]],
+    'platform.developer.module.' + key, 'platform.developer.operations', 'action', [['POST', instanceModulesPath + '/' + path]],
   ]),
 ];
 const updateOperatorPath = '/platformapi/operators/update';
@@ -494,7 +498,7 @@ test('the default preview projects the real Platform Shell branches and a no-men
   assert.equal(panel.candidateMode.value, 'shell');
   assert.equal(panel.candidateText.value, '');
   assert.match(panel.candidate.value.notice, /当前 Platform API 目录未见 File 存储来源/);
-  const [tenancy, groupNode, previewOperation, catalogAuditOperation, operations, developerTools, operation] =
+  const [tenancy, groupNode, previewOperation, catalogAuditOperation, operations, developerTools] =
     panel.candidate.value.data.tree;
   const [tenantsPage] = tenancy.children;
   for (const [key, view] of opsReadPages) {
@@ -528,10 +532,30 @@ test('the default preview projects the real Platform Shell branches and a no-men
   assert.match(auditPage.source, /#\/audit$/);
   assert.equal(developerTools.key, 'platform.developer.tools');
   assert.equal(developerTools.label, '开发者工具');
+  assert.deepEqual(plain(developerTools.children.map((child) => child.key)), [
+    developerPage, 'platform.developer.installations', 'platform.developer.official',
+    'platform.developer.operations', 'platform.developer.diagnostics',
+  ]);
   const developer = developerTools.children.find((child) => child.key === developerPage);
-  assert.match(developer.source, /#\/developer$/);
-  assert.deepEqual(plain(developer.children.map((child) => child.key)),
-    developerNodes.slice(2).map(([key]) => key));
+  assert.match(developer.source, /#\/developer\/modules$/);
+  assert.deepEqual(plain(developer.children), []);
+  const installs = developerTools.children.find((child) => child.key === 'platform.developer.installations');
+  assert.match(installs.source, /#\/developer\/installations$/);
+  assert.deepEqual(plain(installs.children.map((child) => child.key)),
+    ['platform.developer.runtime.read']);
+  const official = developerTools.children.find((child) => child.key === 'platform.developer.official');
+  assert.match(official.source, /#\/developer\/official$/);
+  assert.deepEqual(plain(official.children.map((child) => child.key)),
+    ['platform.developer.official-updates.read']);
+  const operationsPage = developerTools.children.find((child) => child.key === 'platform.developer.operations');
+  assert.match(operationsPage.source, /#\/developer\/operations$/);
+  assert.equal(operationsPage.api_ids.length, 1);
+  assert.deepEqual(plain(operationsPage.children.map((child) => child.key)),
+    [...developerNodes.slice(8).map(([key]) => key), 'platform.module.operation-task.read']);
+  assert.match(
+    developerTools.children.find((child) => child.key === 'platform.developer.diagnostics').source,
+    /#\/developer\/diagnostics$/
+  );
   const [operatorsNode, pageNode, workbench, bundlesPage, apisPage, menusPage] =
     groupNode.children;
   const [operatorAction] = operatorsNode.children;
@@ -557,8 +581,9 @@ test('the default preview projects the real Platform Shell branches and a no-men
   assert.equal(previewOperation.api_ids.length, 4);
   assert.equal(catalogAuditOperation.label, '全角色目录只读审计');
   assert.equal(catalogAuditOperation.api_ids.length, 4);
+  const operation = operationsPage.children.find((child) => child.key === 'platform.module.operation-task.read');
   assert.equal(operation.label, '读取模块操作任务');
-  assert.match(operation.source, /开发者中心.*模块任务回执/);
+  assert.match(operation.source, /开发者工具.*安装与升级.*模块任务回执/);
   assert.equal(panel.describeApis(operation.api_ids), 'GET ' + moduleTaskPath);
   assert.equal(previewCalls.length, 0);
 
@@ -625,7 +650,7 @@ test('the default preview projects the real Platform Shell branches and a no-men
       node('platform.ops.providers', 'platform.operations', 'page', [['GET', opsPath + '/providers']]),
       ...developerNodes.map((definition) => node(...definition)),
       node('platform.audit.list', 'platform.operations', 'page', [['GET', auditPath]]),
-      node('platform.module.operation-task.read', null, 'operation', [['GET', moduleTaskPath]]),
+      node('platform.module.operation-task.read', 'platform.developer.operations', 'operation', [['GET', moduleTaskPath]]),
     ],
     role_assignments: [{ role_id: '2', node_keys: [] }],
   }]);
@@ -1506,11 +1531,25 @@ test('native Platform role-node source is bound to the Shell definition and curr
   assert.equal(manifest.schema_version, 1);
   assert.equal(manifest.source_path, 'platform/src/core/platform-shell-definitions.ts');
   assert.equal(manifest.source_sha256, createHash('sha256').update(source).digest('hex'));
-  assert.equal(manifest.nodes.length, 81);
+  assert.equal(manifest.nodes.length, 85);
   const developerGroup = manifest.nodes.find((node) => node.key === 'platform.developer.tools');
   assert.equal(developerGroup?.type, 'group');
   assert.equal(developerGroup?.parent_key, null);
   assert.equal(manifest.nodes.find((node) => node.key === developerPage)?.parent_key, developerGroup.key);
+  for (const [key, route, parent] of [
+    [developerPage, '/platform/#/developer/modules', developerGroup.key],
+    ['platform.developer.installations', '/platform/#/developer/installations', developerGroup.key],
+    ['platform.developer.official', '/platform/#/developer/official', developerGroup.key],
+    ['platform.developer.operations', '/platform/#/developer/operations', developerGroup.key],
+    ['platform.developer.diagnostics', '/platform/#/developer/diagnostics', developerGroup.key],
+  ]) {
+    const page = manifest.nodes.find((node) => node.key === key);
+    assert.equal(page?.type, 'page');
+    assert.equal(page?.route_path, route);
+    assert.equal(page?.parent_key, parent);
+  }
+  assert.equal(manifest.nodes.find((node) => node.key === 'platform.module.operation-task.read')?.parent_key,
+    'platform.developer.operations');
   assert.equal(new Set(manifest.nodes.map((node) => node.key)).size, manifest.nodes.length);
   const byKey = Object.fromEntries(manifest.nodes.map((node) => [node.key, node]));
   for (const [key, type, path, parent] of [

@@ -632,18 +632,58 @@ export const platformDeveloperNavigation = {
   endpoints: [],
 } as const;
 
+// Preserve the historical catalog permission key when splitting its large UI.
+// Each child is a real, deep-linkable Platform page, never a tenant-admin installer.
 export const platformDeveloperPage = {
   key: 'platform.developer.catalog',
   parentKey: platformDeveloperNavigation.key,
   type: 'page',
-  view: 'developer',
-  label: '开发者中心',
+  view: 'developer/modules',
+  label: '本机模块',
   endpoints: [['GET', '/platformapi/developer-center/catalog']],
+} as const;
+
+export const platformDeveloperPages = {
+  installations: {
+    key: 'platform.developer.installations',
+    parentKey: platformDeveloperNavigation.key,
+    type: 'page',
+    view: 'developer/installations',
+    label: '安装与依赖',
+    endpoints: [['GET', '/platformapi/instance-tools/modules']],
+  },
+  official: {
+    key: 'platform.developer.official',
+    parentKey: platformDeveloperNavigation.key,
+    type: 'page',
+    view: 'developer/official',
+    label: '官方模块目录',
+    endpoints: [['GET', '/platformapi/instance-tools/modules/updates']],
+  },
+  operations: {
+    key: 'platform.developer.operations',
+    parentKey: platformDeveloperNavigation.key,
+    type: 'page',
+    view: 'developer/operations',
+    label: '安装与升级',
+    // Reuses the existing task read contract for the formal role directory.
+    // The client may also display this page with any authorized module write;
+    // opening it never fetches a task or grants that read capability.
+    endpoints: [['GET', '/platformapi/instance-tools/modules/tasks/{task_key}']],
+  },
+  diagnostics: {
+    key: 'platform.developer.diagnostics',
+    parentKey: platformDeveloperNavigation.key,
+    type: 'page',
+    view: 'developer/diagnostics',
+    label: '运行诊断',
+    endpoints: [['GET', '/platformapi/developer-center/catalog']],
+  },
 } as const;
 
 export const platformDeveloperRuntimeRead = {
   key: 'platform.developer.runtime.read',
-  parentKey: platformDeveloperPage.key,
+  parentKey: platformDeveloperPages.installations.key,
   type: 'operation',
   label: '读取安装与依赖状态',
   endpoints: [['GET', '/platformapi/instance-tools/modules']],
@@ -651,7 +691,7 @@ export const platformDeveloperRuntimeRead = {
 
 export const platformDeveloperOfficialUpdatesRead = {
   key: 'platform.developer.official-updates.read',
-  parentKey: platformDeveloperPage.key,
+  parentKey: platformDeveloperPages.official.key,
   type: 'operation',
   label: '刷新官方目录',
   endpoints: [['GET', '/platformapi/instance-tools/modules/updates']],
@@ -660,14 +700,14 @@ export const platformDeveloperOfficialUpdatesRead = {
 export const platformDeveloperUploadActions = {
   install: {
     key: 'platform.developer.module.upload-install',
-    parentKey: platformDeveloperPage.key,
+    parentKey: platformDeveloperPages.operations.key,
     type: 'action',
     label: '上传包安装',
     endpoints: [['POST', '/platformapi/instance-tools/modules/install']],
   },
   update: {
     key: 'platform.developer.module.upload-update',
-    parentKey: platformDeveloperPage.key,
+    parentKey: platformDeveloperPages.operations.key,
     type: 'action',
     label: '上传包升级',
     endpoints: [['POST', '/platformapi/instance-tools/modules/update']],
@@ -677,14 +717,14 @@ export const platformDeveloperUploadActions = {
 export const platformDeveloperOfficialActions = {
   install: {
     key: 'platform.developer.module.official-install',
-    parentKey: platformDeveloperPage.key,
+    parentKey: platformDeveloperPages.operations.key,
     type: 'action',
     label: '官方安装',
     endpoints: [['POST', '/platformapi/instance-tools/modules/official-install']],
   },
   update: {
     key: 'platform.developer.module.official-update',
-    parentKey: platformDeveloperPage.key,
+    parentKey: platformDeveloperPages.operations.key,
     type: 'action',
     label: '官方升级',
     endpoints: [['POST', '/platformapi/instance-tools/modules/official-update']],
@@ -715,10 +755,10 @@ export const platformPlanActions = {
 
 export const platformModuleTaskRead = {
   key: 'platform.module.operation-task.read',
-  parentKey: null,
+  parentKey: platformDeveloperPages.operations.key,
   type: 'operation',
   label: '读取模块操作任务',
-  source: '开发者中心 · 模块任务回执',
+  source: '开发者工具 · 安装与升级 · 模块任务回执',
   endpoints: [['GET', '/platformapi/instance-tools/modules/tasks/{task_key}']],
 } as const;
 
@@ -786,6 +826,7 @@ export const platformShellPreviewDefinitions = [
   platformOpsProvidersPage,
   platformDeveloperNavigation,
   platformDeveloperPage,
+  ...Object.values(platformDeveloperPages),
   platformDeveloperRuntimeRead,
   platformDeveloperOfficialUpdatesRead,
   ...Object.values(platformDeveloperUploadActions),

@@ -4,11 +4,11 @@
     "inputs": [
         {
             "path": "modules.lock",
-            "sha256": "9975816ef2d4bd53e8012b8c2f58b055d7cf19cc9a0981e74c07a48f32e4ecec"
+            "sha256": "68fc746426c6ccd1751f15610dcb09de45b558c0d0fd556b6998ea96e888fe8a"
         },
         {
             "path": "release-versions.json",
-            "sha256": "d2ec9c40a3d69f1b1c7c8ddd55efe048b446087bb2e5d8500d056923acbff6cc"
+            "sha256": "405ade0d0a31592a08fb5206bbe02c6a7599270caed1cf36bf4fadfa96f5d791"
         },
         {
             "path": "server/app/api/metadata/application/adminapi.php",
@@ -184,7 +184,7 @@
         },
         {
             "path": "server/generated/platform-role-source.json",
-            "sha256": "a74bd12095cdd908340f7511eebd72413683483109b2d06ca7f3ee2c86e35a8c"
+            "sha256": "f4dc8921f01d6f601c26ca8f68432c58c309543a3b3ccf2ebd95fe3354346950"
         },
         {
             "path": "server/route/admin.php",

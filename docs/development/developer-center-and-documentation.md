@@ -27,7 +27,16 @@ Provider目录复用当前App由ModuleComposition保存的同一实例，支持�
 
 ### 开发者导航与身份边界
 
-平台管理端独立“开发者工具”导航组仅保留实例级“开发者中心”（GET /platformapi/developer-center/catalog 及 /platformapi/instance-tools/*），由独立 Platform Session、平台权限及开发实例开关控制。实例模块安装、升级、重试仅此一处入口，不在租户 Admin 再显示另一套“模块治理”安装器；源码锁、实例安装、租户权益、人员许可四种状态互不替代。
+平台管理端独立“开发者工具”导航组仅包含实例级子页（GET /platformapi/developer-center/catalog 及 /platformapi/instance-tools/*），由独立 Platform Session、平台权限及开发实例开关控制。实例模块安装、升级、重试仅此组，不在租户 Admin 再显示另一套“模块治理”安装器；源码锁、实例安装、租户权益、人员许可四种状态互不替代。
+
+原本将全部内容挤在 `#/developer` 的页面已按正式只读/写能力拆为五个可直达子页：
+- `#/developer/modules` **本机模块**：作者中文名（稳定 Module key）、源码详情与按模块筛选，仅调用有权的 Developer Catalog GET；沿用原权限标识 `platform.developer.catalog`。
+- `#/developer/installations` **安装与依赖**：实际安装/租户开通数/依赖/阻断，独立调用 Instance Modules GET，不要求读取 Developer Catalog。
+- `#/developer/official` **官方模块目录**：稳定/RC 渠道、发行与更新、兼容性及固定版本预检；独立调用官方目录 GET，有权时可附加一次 Developer Catalog GET 取得本地作者中文名，无该权限时只显示未证实候选的技术 key。
+- `#/developer/operations` **安装与升级**：预检后的确认、受权上传包、提交任务、任务编号查回；只凭对应写动作或 Task GET 的既有授权显示，不自动访问 Catalog、安装列表或任务详情，原模块版本/摘要/幂等回执合同不变。
+- `#/developer/diagnostics` **运行诊断**：模块声明、发现、注册、生成 API 数量及证据状态；仅 Developer Catalog GET，不加载安装、官方发行或任务查询。
+
+历史 `#/developer` 被认证后重定向到**当前平台身份第一条有权子页**（优先本机模块）；拒绝无权深链，不以“页面存在”构造权限。菜单为五个正式 Platform page 节点，Action/Operation 节点分别归属其业务子页，角色目录、API、菜单来源均以 Scaffold Shell 声明和当前 Identity 作者元数据同步。页面切换仅加载本页需要的读取能力，后台无权页既不渲染功能也不发请求。正式浏览器验收应点击五个子页、刷新深链、前进后退、按权限拒绝，并区分只读验证与提交真实模块任务。
 
 租户自助管理沿现有 Admin 客户端/正式租户菜单和对应 tenant-permission / 模块权益过滤，**不等于**实例模块安装权或 Platform Session。原代码生成器涉及当前数据库结构，只在 standalone development 的独立本地实例工具路由存在；在 MT 租户中不开放该跨表浏览/写入入口，未完成租户安全隔离审计前禁止放宽。生产构建中也不编译本地实例工具。角色、套餐或模块安装时不得因导航可见而自动授予跨租户操作权限。
 

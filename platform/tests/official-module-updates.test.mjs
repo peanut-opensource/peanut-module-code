@@ -103,15 +103,29 @@ function fixture(t, adapter, loadDeveloper = false) {
   const { api } = dependencies['./platform'];
   if (!loadDeveloper) return api;
   return {
-    mountDeveloper(access) {
+    mountDeveloper(access, section = 'operations') {
       const scope = vue.effectScope();
       t.after(() => scope.stop());
-      return scope.run(() => dependencies['./developer-panel'].default.setup({
-        canReadUpdates: true,
-        canReadRuntime: false,
-        canReadTasks: false,
+      const allowed = (method, path) =>
+        access.some((item) => item.method === method && item.path === path);
+      const props = {
+        section,
+        canReadCatalog: allowed('GET', '/platformapi/developer-center/catalog'),
+        canReadUpdates: allowed('GET', '/platformapi/instance-tools/modules/updates'),
+        canReadRuntime: allowed('GET', '/platformapi/instance-tools/modules'),
+        canReadTasks: allowed('GET', '/platformapi/instance-tools/modules/tasks/{task_key}'),
         ...dependencies['./platform-access'].platformDeveloperModuleAccess(access),
-      }, { expose: () => {} }));
+      };
+      return scope.run(() => {
+        const panel = dependencies['./developer-panel'].default.setup(props, {
+          expose: () => {},
+          emit: (event) => {
+            assert.equal(event, 'open-operations');
+            props.section = 'operations';
+          },
+        });
+        return { ...panel, setSection: (value) => { props.section = value; } };
+      });
     },
   };
 }
@@ -376,6 +390,7 @@ test('the Developer Center independently gates uploaded and official install end
   prepareUpload(officialOnly);
   await officialOnly.submitPackage();
   assert.deepEqual(calls, [[uploadPath, 'multipart']]);
+  officialOnly.setSection('official');
   await officialOnly.previewCatalog(officialRow);
   assert.equal(officialOnly.canSubmitOfficial.value, true);
   await officialOnly.applyOfficial();
@@ -492,4 +507,67 @@ test('a Module list with missing author display name is rejected rather than mis
   );
   await assert.rejects(api.runtimeModules(), { message: 'Invalid Module installation row' });
   await assert.rejects(api.planModules(), { message: '套餐或许可证字段格式异常' });
+});
+
+test('each developer subpage only loads its own read contracts and never loads catalog on operations', async (t) => {
+  const catalog = '/platformapi/developer-center/catalog';
+  const runtime = '/platformapi/instance-tools/modules';
+  const updates = runtime + '/updates';
+  const calls = [];
+  const { mountDeveloper } = fixture(t, async (config) => {
+    calls.push(config.url);
+    if (config.url === catalog)
+      return envelope(config, { modules: [], status: {}, summary: {
+        modules: 0, discovered: 0, registered: 0, generated_api_operations: 0,
+      } });
+    if (config.url === runtime) return envelope(config, { lists: [], count: 0 });
+    if (config.url === updates) return envelope(config, {
+      schema_version: 1, channel: 'stable', edition: 'multi-tenant',
+      modules: [], catalog: [], withdrawal_policy: 'verified-current',
+      scaffold: { current_version: '5.1.18-rc.39', available_version: null },
+    });
+    throw new Error('A developer view called an unrelated endpoint: ' + config.url);
+  }, true);
+  const rights = [
+    { method: 'GET', path: catalog },
+    { method: 'GET', path: runtime },
+    { method: 'GET', path: updates },
+  ];
+  const drain = () => new Promise((resolve) => setImmediate(resolve));
+  for (const [section, expected] of [
+    ['modules', [catalog]],
+    ['installations', [runtime]],
+    ['official', [updates, catalog]],
+    ['operations', []],
+    ['diagnostics', [catalog]],
+  ]) {
+    calls.length = 0;
+    const panel = mountDeveloper(rights, section);
+    panel.activateSection(section);
+    await drain();
+    assert.deepEqual(calls.slice().sort(), expected.slice().sort(), section);
+  }
+});
+
+test('the developer page opens only when its declared read or write capability is present', async (t) => {
+  const catalog = '/platformapi/developer-center/catalog';
+  const runtime = '/platformapi/instance-tools/modules';
+  const { mountDeveloper } = fixture(t, async (config) => {
+    throw new Error('No unauthorized request may be made: ' + config.url);
+  }, true);
+  const panel = mountDeveloper([], 'official');
+  panel.activateSection('official');
+  panel.setSection('modules');
+  panel.activateSection('modules');
+  panel.setSection('installations');
+  panel.activateSection('installations');
+  panel.setSection('operations');
+  panel.activateSection('operations');
+  panel.setSection('diagnostics');
+  panel.activateSection('diagnostics');
+  assert.equal(panel.snapshot.value, null);
+  assert.equal(panel.runtimeLoaded.value, false);
+  assert.equal(panel.officialUpdates.value, null);
+  assert.equal(panel.canSubmitOfficial.value, false);
+  assert.ok(catalog && runtime);
 });

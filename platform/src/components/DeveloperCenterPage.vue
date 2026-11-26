@@ -1,11 +1,11 @@
 <template>
-  <section v-loading="loading">
+  <section v-loading="(section === 'modules' || section === 'diagnostics') && loading">
     <el-alert
-      title="仅平台实例级开发工具：模块声明、注册、安装与运行状态分别展示；租户自助功能由租户 Admin 按本租户权限提供，不在此安装或跨租户授权。"
+      title="仅平台实例级工具；此导航不授权租户业务操作，模块安装与成员授权仍为独立流程。"
       type="info"
       :closable="false"
     />
-    <div class="toolbar developer-toolbar">
+    <div v-if="section === 'modules' || section === 'diagnostics'" class="toolbar developer-toolbar">
       <el-select
         v-model="selected"
         clearable
@@ -21,22 +21,20 @@
         />
       </el-select>
       <el-button :loading="loading" @click="load">刷新目录</el-button>
-      <el-button
-        v-if="canReadRuntime"
-        :loading="runtimeLoading"
-        @click="loadRuntime(1)"
-      >
-        {{ platformDeveloperRuntimeRead.label }}
-      </el-button>
     </div>
-    <el-alert v-if="error" :title="error" type="error" show-icon />
-    <el-alert
-      v-if="runtimeError"
-      :title="runtimeError"
-      type="error"
-      show-icon
-    />
-    <el-card v-if="canReadUpdates" class="backup-center-card">
+    <div v-if="section === 'installations'" class="toolbar developer-toolbar">
+      <el-input
+        v-model="selected"
+        clearable
+        aria-label="安装状态模块标识"
+        placeholder="按 Module key 筛选，留空展示全部安装模块"
+        @keyup.enter="loadRuntime(1)"
+      />
+      <el-button :loading="runtimeLoading" @click="loadRuntime(1)">刷新安装状态</el-button>
+    </div>
+    <el-alert v-if="(section === 'modules' || section === 'diagnostics') && error" :title="error" type="error" show-icon />
+    <el-alert v-if="section === 'installations' && runtimeError" :title="runtimeError" type="error" show-icon />
+    <el-card v-if="section === 'official' && canReadUpdates" class="backup-center-card">
       <template #header>官方模块目录与更新（开发者）</template>
       <div class="toolbar developer-toolbar">
         <el-select
@@ -55,12 +53,6 @@
           >{{ platformDeveloperOfficialUpdatesRead.label }}</el-button
         >
       </div>
-      <el-alert
-        v-if="updatesError && !officialSelection"
-        :title="updatesError"
-        type="error"
-        show-icon
-      />
       <template v-if="officialUpdates">
         <p
           >脚手架：{{
@@ -82,7 +74,7 @@
           v-model="catalogSearch"
           clearable
           aria-label="筛选官方模块"
-          placeholder="按模块标识筛选"
+          placeholder="按模块中文名称或标识筛选"
         />
         <el-table
           :data="visibleOfficialCatalog"
@@ -156,6 +148,18 @@
           和迁移计划，任务执行时再次核对安装状态。版本及 SHA-256 始终固定。</p
         >
       </template>
+    </el-card>
+    <el-alert
+      v-if="section === 'official' && updatesError"
+      :title="updatesError"
+      type="error"
+      show-icon
+    />
+    <el-card
+      v-if="section === 'operations' && (officialSelection || officialPreview)"
+      class="backup-center-card"
+    >
+      <template #header>官方模块预检与确认提交</template>
       <template v-if="officialSelection && (officialPreview || updatesError)">
         <h3
           >{{ officialSelection.module_key }} →
@@ -189,11 +193,15 @@
       </template>
     </el-card>
     <el-card
-      v-if="canInstall || canUpdate || packageTask"
+      v-if="section === 'operations' && (canInstall || canUpdate || packageTask)"
       class="backup-center-card"
     >
-      <template #header>安装或升级模块</template>
-      <el-form label-position="top" @submit.prevent="submitPackage">
+      <template #header>上传固定模块包安装或升级</template>
+      <el-form
+        v-if="canInstall || canUpdate"
+        label-position="top"
+        @submit.prevent="submitPackage"
+      >
         <el-form-item label="操作">
           <el-select
             v-model="packageOperation"
@@ -268,7 +276,24 @@
         />
       </template>
     </el-card>
-    <el-card v-if="runtimeLoaded" class="backup-center-card">
+    <el-card v-if="section === 'operations' && canReadTasks" class="backup-center-card">
+      <template #header>按任务编号查询安装 / 升级结果</template>
+      <div class="toolbar developer-toolbar">
+        <el-input
+          v-model="taskLookupKey"
+          aria-label="模块任务编号"
+          clearable
+          placeholder="输入当前实例的 task_key 查询既有任务"
+          @keyup.enter="lookupTask"
+        />
+        <el-button :loading="packageLoading" :disabled="!taskLookupKey.trim()" @click="lookupTask">
+          查询任务
+        </el-button>
+      </div>
+      <el-alert v-if="packageError && !packageTask" :title="packageError" type="error" show-icon />
+      <StructuredDetails v-if="lookedUpTask" :value="lookedUpTask" />
+    </el-card>
+    <el-card v-if="section === 'installations' && runtimeLoaded" class="backup-center-card">
       <template #header>部署安装状态（不代表租户或成员已获授权）</template>
       <el-table :data="runtimeRows">
         <el-table-column label="模块名称 / 标识" min-width="260">
@@ -303,7 +328,7 @@
         @current-change="loadRuntime"
       />
     </el-card>
-    <template v-if="snapshot">
+    <template v-if="section === 'diagnostics' && snapshot">
       <div class="metric-grid">
         <el-card
           ><span>声明模块</span
@@ -339,6 +364,8 @@
           <el-table-column prop="reason" label="证据说明" min-width="320" />
         </el-table>
       </el-card>
+    </template>
+    <template v-if="section === 'modules' && snapshot">
       <el-collapse>
         <el-collapse-item
           v-for="module in snapshot.modules"
@@ -443,7 +470,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, ref } from 'vue';
+  import { computed, onMounted, ref, watch } from 'vue';
   import { ElMessageBox } from 'element-plus';
   import { api } from '../api/platform';
   import StructuredDetails from './StructuredDetails.vue';
@@ -459,9 +486,12 @@
     OfficialUpdatePreview,
   } from '../api/platform';
 
-  import { platformDeveloperOfficialUpdatesRead, platformDeveloperRuntimeRead } from '../core/platform-shell-definitions';
+  import { platformDeveloperOfficialUpdatesRead } from '../core/platform-shell-definitions';
 
+  type DeveloperSection = 'modules' | 'installations' | 'official' | 'operations' | 'diagnostics';
   const props = defineProps<{
+    section: DeveloperSection;
+    canReadCatalog: boolean;
     canReadUpdates: boolean;
     canInstallOfficial: boolean;
     canUpdateOfficial: boolean;
@@ -470,6 +500,7 @@
     canUpdate: boolean;
     canReadTasks: boolean;
   }>();
+  const emit = defineEmits<{ 'open-operations': [] }>();
   const loading = ref(false);
   const error = ref('');
   const runtimeLoading = ref(false);
@@ -487,6 +518,8 @@
   const packageLoading = ref(false);
   const packageError = ref('');
   const packageTask = ref<ModuleOperationTask | null>(null);
+  const taskLookupKey = ref('');
+  const lookedUpTask = ref<ModuleOperationTask | null>(null);
   let packageIdempotency = '';
   const releaseChannel = ref<'stable' | 'prerelease'>('stable');
   const updatesLoading = ref(false);
@@ -524,16 +557,16 @@
   }
 
   async function checkOfficialUpdates(): Promise<void> {
-    if (!props.canReadUpdates) return;
+    if (props.section !== 'official' || !props.canReadUpdates) return;
     resetOfficialSelection();
     updatesLoading.value = true;
     try {
-      officialUpdates.value = await api.officialModuleUpdates(
-        releaseChannel.value
-      );
+      const results = await api.officialModuleUpdates(releaseChannel.value);
+      if (props.section !== 'official') return;
+      officialUpdates.value = results;
     } catch (cause) {
-      updatesError.value =
-        cause instanceof Error ? cause.message : '官方更新查询失败';
+      if (props.section === 'official')
+        updatesError.value = cause instanceof Error ? cause.message : '官方更新查询失败';
     } finally {
       updatesLoading.value = false;
     }
@@ -593,7 +626,7 @@
     selection: OfficialModuleSelection,
     operation: 'install' | 'update'
   ): Promise<void> {
-    if (officialBusy.value || updatesLoading.value) return;
+    if (props.section !== 'official' || officialBusy.value || updatesLoading.value) return;
     officialOperation.value = operation;
     officialBusy.value = true;
     updatesError.value = '';
@@ -605,6 +638,7 @@
         selection,
         operation
       );
+      if (props.section === 'official') emit('open-operations');
     } catch (cause) {
       updatesError.value =
         cause instanceof Error ? cause.message : '模块预检未通过';
@@ -615,6 +649,7 @@
 
   async function applyOfficial(): Promise<void> {
     if (
+      props.section !== 'operations' ||
       officialBusy.value ||
       packageLoading.value ||
       !canSubmitOfficial.value ||
@@ -687,10 +722,14 @@
   );
 
   async function load(): Promise<void> {
+    const section = props.section;
+    if (!props.canReadCatalog || (section !== 'modules' && section !== 'diagnostics'))
+      return;
     loading.value = true;
     error.value = '';
     try {
       const next = await api.developerCatalog(selected.value);
+      if (section !== props.section) return;
       snapshot.value = next;
       if (!selected.value)
         moduleChoices.value = next.modules.map(({ key, name }) => ({
@@ -698,28 +737,31 @@
           name,
         }));
     } catch (cause) {
-      error.value =
-        cause instanceof Error ? cause.message : '开发者目录加载失败';
+      if (section === props.section)
+        error.value = cause instanceof Error ? cause.message : '开发者目录加载失败';
     } finally {
       loading.value = false;
     }
   }
 
   async function loadRuntime(page = 1): Promise<void> {
-    if (!props.canReadRuntime) return;
+    if (props.section !== 'installations' || !props.canReadRuntime) return;
     runtimeLoading.value = true;
     runtimeError.value = '';
     try {
       const result = await api.runtimeModules(selected.value, page);
+      if (props.section !== 'installations') return;
       runtimeRows.value = result.lists;
       runtimeTotal.value = result.count;
       runtimePage.value = page;
       runtimeLoaded.value = true;
     } catch (cause) {
-      runtimeRows.value = [];
-      runtimeLoaded.value = false;
-      runtimeError.value =
-        cause instanceof Error ? cause.message : '安装状态读取失败';
+      if (props.section === 'installations') {
+        runtimeRows.value = [];
+        runtimeLoaded.value = false;
+        runtimeError.value =
+          cause instanceof Error ? cause.message : '安装状态读取失败';
+      }
     } finally {
       runtimeLoading.value = false;
     }
@@ -732,6 +774,7 @@
 
   async function submitPackage(): Promise<void> {
     if (
+      props.section !== 'operations' ||
       officialBusy.value ||
       packageLoading.value ||
       (packageOperation.value === 'install'
@@ -768,8 +811,29 @@
     }
   }
 
+  async function lookupTask(): Promise<void> {
+    if (props.section !== 'operations' || !props.canReadTasks ||
+        packageLoading.value || !taskLookupKey.value.trim()) return;
+    packageLoading.value = true;
+    packageError.value = '';
+    lookedUpTask.value = null;
+    const key = taskLookupKey.value.trim();
+    try {
+      const task = await api.moduleOperationTask(key);
+      if (props.section !== 'operations' || taskLookupKey.value.trim() !== key) return;
+      if (task.task_key !== key) throw new Error('返回任务标识与查询不一致');
+      lookedUpTask.value = task;
+    } catch (cause) {
+      if (props.section === 'operations')
+        packageError.value = cause instanceof Error ? cause.message : '查询模块任务失败';
+    } finally {
+      packageLoading.value = false;
+    }
+  }
+
   async function refreshPackageTask(): Promise<void> {
     if (
+      props.section !== 'operations' ||
       !props.canReadTasks ||
       !packageTask.value ||
       packageLoading.value ||
@@ -785,7 +849,8 @@
       if (task.task_key !== taskKey)
         throw new Error('返回的任务与当前回执不一致，请重新刷新。');
       packageTask.value = task;
-      if (task.status === 'succeeded') await loadRuntime(runtimePage.value);
+      // The operations page never loads the installation list implicitly.
+      // Navigate to 安装与依赖 to read the updated state, if authorized.
     } catch (cause) {
       packageError.value =
         cause instanceof Error ? cause.message : '模块任务状态读取失败';
@@ -817,7 +882,31 @@
     return 'warning';
   }
 
-  onMounted(load);
+  async function loadOfficialAuthorNames(): Promise<void> {
+    if (!props.canReadCatalog || props.section !== 'official') return;
+    try {
+      const catalog = await api.developerCatalog();
+      if (props.section === 'official')
+        moduleChoices.value = catalog.modules.map(({ key, name }) => ({ key, name }));
+    } catch {
+      // The official release index remains usable without the separate
+      // developer-catalog permission; remote unknown keys stay raw.
+      if (props.section === 'official') moduleChoices.value = [];
+    }
+  }
+
+  function activateSection(section: DeveloperSection) {
+    selected.value = '';
+    if (section === 'modules' || section === 'diagnostics') void load();
+    else if (section === 'installations') void loadRuntime(1);
+    else if (section === 'official') {
+      void checkOfficialUpdates();
+      void loadOfficialAuthorNames();
+    }
+    // Operations has no list endpoint and never fetches an unrelated page.
+  }
+  onMounted(() => activateSection(props.section));
+  watch(() => props.section, (section) => activateSection(section));
 </script>
 
 <style scoped>

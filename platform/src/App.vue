@@ -1317,12 +1317,15 @@
               layout="prev, pager, next, total"
               @current-change="changeAuditPage" /></template
         ></template>
-        <template v-else-if="view === platformDeveloperPage.view"
+        <template v-else-if="isDeveloperView(view)"
           ><developer-center-page
+            :section="developerSection(view)"
             v-bind="developerModuleAccess"
+            :can-read-catalog="canApi(...platformDeveloperPage.endpoints[0])"
             :can-read-updates="canApi(...platformDeveloperOfficialUpdatesRead.endpoints[0])"
             :can-read-runtime="canApi(...platformDeveloperRuntimeRead.endpoints[0])"
             :can-read-tasks="canApi(...platformModuleTaskRead.endpoints[0])"
+            @open-operations="selectView(platformDeveloperPages.operations.view)"
         /></template> </el-main
     ></el-container>
   </component>
@@ -1567,6 +1570,7 @@
     platformDeveloperOfficialUpdatesRead,
     platformDeveloperNavigation,
     platformDeveloperPage,
+    platformDeveloperPages,
     platformDeveloperRuntimeRead,
     platformModuleTaskRead,
     platformOperationsNavigation,
@@ -1818,6 +1822,26 @@
   const developerModuleAccess = computed(() =>
     platformDeveloperModuleAccess(apiAccess.value)
   );
+  type DeveloperSection = 'modules' | 'installations' | 'official' | 'operations' | 'diagnostics';
+  const developerViews: Record<string, DeveloperSection> = {
+    [platformDeveloperPage.view]: 'modules',
+    [platformDeveloperPages.installations.view]: 'installations',
+    [platformDeveloperPages.official.view]: 'official',
+    [platformDeveloperPages.operations.view]: 'operations',
+    [platformDeveloperPages.diagnostics.view]: 'diagnostics',
+  };
+  const isDeveloperView = (name: string) => Object.hasOwn(developerViews, name);
+  const developerSection = (name: string): DeveloperSection => developerViews[name] ?? 'modules';
+  const authorizedDeveloperEntrance = () =>
+    [platformDeveloperPage, ...Object.values(platformDeveloperPages)]
+      .find(({ view: name }) => canView(name))?.view ?? 'overview';
+  function redirectLegacyDeveloper(name: string): string {
+    return name === 'developer' ? authorizedDeveloperEntrance() : name;
+  }
+  function replaceLegacyDeveloperUrl(requested: string, destination: string) {
+    if (requested === 'developer' && destination !== 'overview')
+      window.history.replaceState({}, '', platformViewHash(destination));
+  }
   const storageSections: Record<string, StorageSection> = {
     [platformStoragePages.accounts.view]: 'accounts',
     [platformStoragePages.spaces.view]: 'spaces',
@@ -1862,9 +1886,18 @@
     [platformOpsBackupsPage.view]: platformOpsBackupsPage.endpoints,
     [platformOpsProvidersPage.view]: platformOpsProvidersPage.endpoints,
     [platformDeveloperPage.view]: platformDeveloperPage.endpoints,
+    ...Object.fromEntries(Object.values(platformDeveloperPages).map((page) => [
+      page.view, page.endpoints,
+    ])),
     [platformAuditPage.view]: platformAuditPage.endpoints,
   };
   const canView = (name: string) => {
+    if (name === platformDeveloperPages.operations.view)
+      return developerModuleAccess.value.canInstall
+        || developerModuleAccess.value.canUpdate
+        || developerModuleAccess.value.canInstallOfficial
+        || developerModuleAccess.value.canUpdateOfficial
+        || canApi(...platformModuleTaskRead.endpoints[0]);
     if (Object.hasOwn(storageSections, name))
       return canReadStorage(storageSections[name]!);
     const alternateReadPage = [
@@ -1925,7 +1958,13 @@
     {
       key: platformDeveloperNavigation.id,
       title: platformDeveloperNavigation.label,
-      items: [platformDeveloperPage.view],
+      items: [
+        platformDeveloperPage.view,
+        platformDeveloperPages.installations.view,
+        platformDeveloperPages.official.view,
+        platformDeveloperPages.operations.view,
+        platformDeveloperPages.diagnostics.view,
+      ],
     },
   ];
   const visibleNavigationGroups = computed(() =>
@@ -2137,6 +2176,9 @@
     [platformTenantEntitlementsPage.view]: platformTenantEntitlementsPage.label,
     [platformPlansPage.view]: platformPlansPage.label,
     [platformDeveloperPage.view]: platformDeveloperPage.label,
+    ...Object.fromEntries(Object.values(platformDeveloperPages).map((page) => [
+      page.view, page.label,
+    ])),
     [platformStoragePages.accounts.view]: platformStoragePages.accounts.label,
     [platformStoragePages.spaces.view]: platformStoragePages.spaces.label,
     [platformStoragePages.routes.view]: platformStoragePages.routes.label,
@@ -2735,6 +2777,9 @@
   async function selectView(next: string) {
     try {
       await loadSessionInfo();
+      const requested = next;
+      next = redirectLegacyDeveloper(next);
+      replaceLegacyDeveloperUrl(requested, next);
       if (!canView(next)) {
         error.value = '当前账号无权访问此页面';
         return;
@@ -2783,7 +2828,9 @@
       await api.login(credentials.email.trim(), credentials.password);
       await loadSessionInfo();
       const requestedView = locationView();
-      view.value = canView(requestedView) ? requestedView : 'overview';
+      const destination = redirectLegacyDeveloper(requestedView);
+      view.value = canView(destination) ? destination : 'overview';
+      replaceLegacyDeveloperUrl(requestedView, view.value);
       authenticated.value = true;
       credentials.password = '';
     }, '登录成功');
@@ -3503,7 +3550,9 @@
       else if (authenticated.value) {
         await loadSessionInfo();
         const requestedView = locationView();
-        view.value = canView(requestedView) ? requestedView : 'overview';
+        const destination = redirectLegacyDeveloper(requestedView);
+        view.value = canView(destination) ? destination : 'overview';
+        replaceLegacyDeveloperUrl(requestedView, view.value);
         await loadView();
       }
     } catch (cause) {

@@ -1,7 +1,7 @@
 {
     "schema_version": 1,
     "source_path": "platform/src/core/platform-shell-definitions.ts",
-    "source_sha256": "5016395b71b87eaa7b9c2262b260ebb55feef1b376978460f7886bf04183fdc0",
+    "source_sha256": "a4070c3f57b5a81d21d31427ee76e135f6033ff8214b09602bea9511fd4e7d46",
     "nodes": [
         {
             "key": "platform.tenancy",
@@ -1028,7 +1028,59 @@
             "key": "platform.developer.catalog",
             "parent_key": "platform.developer.tools",
             "type": "page",
-            "route_path": "/platform/#/developer",
+            "route_path": "/platform/#/developer/modules",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/developer-center/catalog"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.developer.installations",
+            "parent_key": "platform.developer.tools",
+            "type": "page",
+            "route_path": "/platform/#/developer/installations",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/instance-tools/modules"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.developer.official",
+            "parent_key": "platform.developer.tools",
+            "type": "page",
+            "route_path": "/platform/#/developer/official",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/instance-tools/modules/updates"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.developer.operations",
+            "parent_key": "platform.developer.tools",
+            "type": "page",
+            "route_path": "/platform/#/developer/operations",
+            "api_endpoints": [
+                [
+                    "GET",
+                    "/platformapi/instance-tools/modules/tasks/{task_key}"
+                ]
+            ],
+            "api_owner": "platform"
+        },
+        {
+            "key": "platform.developer.diagnostics",
+            "parent_key": "platform.developer.tools",
+            "type": "page",
+            "route_path": "/platform/#/developer/diagnostics",
             "api_endpoints": [
                 [
                     "GET",
@@ -1039,7 +1091,7 @@
         },
         {
             "key": "platform.developer.runtime.read",
-            "parent_key": "platform.developer.catalog",
+            "parent_key": "platform.developer.installations",
             "type": "operation",
             "route_path": null,
             "api_endpoints": [
@@ -1052,7 +1104,7 @@
         },
         {
             "key": "platform.developer.official-updates.read",
-            "parent_key": "platform.developer.catalog",
+            "parent_key": "platform.developer.official",
             "type": "operation",
             "route_path": null,
             "api_endpoints": [
@@ -1065,7 +1117,7 @@
         },
         {
             "key": "platform.developer.module.upload-install",
-            "parent_key": "platform.developer.catalog",
+            "parent_key": "platform.developer.operations",
             "type": "action",
             "route_path": null,
             "api_endpoints": [
@@ -1078,7 +1130,7 @@
         },
         {
             "key": "platform.developer.module.upload-update",
-            "parent_key": "platform.developer.catalog",
+            "parent_key": "platform.developer.operations",
             "type": "action",
             "route_path": null,
             "api_endpoints": [
@@ -1091,7 +1143,7 @@
         },
         {
             "key": "platform.developer.module.official-install",
-            "parent_key": "platform.developer.catalog",
+            "parent_key": "platform.developer.operations",
             "type": "action",
             "route_path": null,
             "api_endpoints": [
@@ -1104,7 +1156,7 @@
         },
         {
             "key": "platform.developer.module.official-update",
-            "parent_key": "platform.developer.catalog",
+            "parent_key": "platform.developer.operations",
             "type": "action",
             "route_path": null,
             "api_endpoints": [
@@ -1130,7 +1182,7 @@
         },
         {
             "key": "platform.module.operation-task.read",
-            "parent_key": null,
+            "parent_key": "platform.developer.operations",
             "type": "operation",
             "route_path": null,
             "api_endpoints": [
