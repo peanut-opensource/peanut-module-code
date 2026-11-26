@@ -19525,7 +19525,20 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "AI 接入配置目录"
+                        "description": "AI 接入配置目录",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AiAccessCatalogResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
                     }
                 },
                 "security": [
@@ -19568,9 +19581,46 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "已保存的配置，不含令牌值"
+                        "description": "已保存的配置，不含令牌值",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AiAccessSaveResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
                     }
                 },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AiAccessSaveRequest"
+                            }
+                        }
+                    }
+                },
+                "x-peanut-errors": [
+                    "AI_ACCESS_CONFIGURATION_INVALID",
+                    "AI_ACCESS_ORIGIN_DENIED",
+                    "AI_ACCESS_SECRET_UNAVAILABLE"
+                ],
                 "security": [
                     {
                         "bearerAuth": {}
@@ -19611,9 +19661,45 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "远端模型候选"
+                        "description": "远端模型候选",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AiAccessDiscoverResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
                     }
                 },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AiAccessDiscoverRequest"
+                            }
+                        }
+                    }
+                },
+                "x-peanut-errors": [
+                    "AI_ACCESS_CONFIGURATION_INVALID",
+                    "AI_ACCESS_TARGET_UNAVAILABLE",
+                    "AI_ACCESS_ORIGIN_DENIED",
+                    "AI_ACCESS_SECRET_UNAVAILABLE",
+                    "AI_ACCESS_DISCOVERY_FAILED"
+                ],
                 "security": [
                     {
                         "bearerAuth": {}
@@ -19654,9 +19740,50 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "生成结果与请求回执"
+                        "description": "生成结果与请求回执",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AiAccessGenerateResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
                     }
                 },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AiAccessGenerateRequest"
+                            }
+                        }
+                    }
+                },
+                "x-peanut-errors": [
+                    "AI_ACCESS_INPUT_INVALID",
+                    "AI_ACCESS_REQUEST_KEY_INVALID",
+                    "AI_ACCESS_PERMISSION_DENIED",
+                    "AI_ACCESS_ORIGIN_DENIED",
+                    "AI_ACCESS_CREDENTIAL_AMBIGUOUS",
+                    "AI_ACCESS_TRANSACTION_ACTIVE",
+                    "AI_ACCESS_REQUEST_EXISTS",
+                    "AI_ACCESS_TARGET_UNAVAILABLE",
+                    "AI_ACCESS_PROVIDER_REJECTED",
+                    "AI_ACCESS_RESULT_UNKNOWN"
+                ],
                 "security": [
                     {
                         "bearerAuth": {}
@@ -19697,9 +19824,44 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "请求回执"
+                        "description": "请求回执",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AiAccessRequestStatusResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/AiAccessErrorResponse"
                     }
                 },
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "request_key",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z0-9_.:-]{1,100}$"
+                        }
+                    }
+                ],
+                "x-peanut-errors": [
+                    "AI_ACCESS_REQUEST_KEY_INVALID",
+                    "AI_ACCESS_PERMISSION_DENIED",
+                    "AI_ACCESS_REQUEST_NOT_FOUND"
+                ],
                 "security": [
                     {
                         "bearerAuth": {}
@@ -56501,6 +56663,1055 @@
                     }
                 }
             },
+            "AiAccessProvider": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "key",
+                    "name",
+                    "enabled",
+                    "priority",
+                    "origin",
+                    "api_prefix"
+                ],
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                    },
+                    "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                    },
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "priority": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 10000
+                    },
+                    "origin": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 255,
+                        "description": "Only the HTTPS origin already registered by the instance maintainer is eligible; the origin is never editable on the same provider identity."
+                    },
+                    "api_prefix": {
+                        "type": "string",
+                        "pattern": "^/[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*$",
+                        "maxLength": 80
+                    }
+                }
+            },
+            "AiAccessCredential": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "key",
+                    "name",
+                    "enabled",
+                    "provider",
+                    "models",
+                    "configured"
+                ],
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                    },
+                    "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                    },
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "provider": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                    },
+                    "models": {
+                        "type": "array",
+                        "items": {
+                            "oneOf": [
+                                {
+                                    "type": "string",
+                                    "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "*"
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    "configured": {
+                        "type": "boolean",
+                        "readOnly": true,
+                        "description": "Only whether an encrypted credential is configured; the credential value is never returned."
+                    }
+                }
+            },
+            "AiAccessModel": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "key",
+                    "name",
+                    "enabled",
+                    "provider",
+                    "priority",
+                    "definition",
+                    "remote_model",
+                    "protocols",
+                    "input_limit_chars",
+                    "max_output_tokens"
+                ],
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                    },
+                    "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                    },
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "provider": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                    },
+                    "priority": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 10000
+                    },
+                    "definition": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                    },
+                    "remote_model": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                    },
+                    "protocols": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "minProperties": 1,
+                        "properties": {
+                            "text": {
+                                "type": "string",
+                                "enum": [
+                                    "openai_text",
+                                    "openai_responses",
+                                    "anthropic_messages"
+                                ]
+                            },
+                            "image": {
+                                "type": "string",
+                                "enum": [
+                                    "openai_image"
+                                ]
+                            }
+                        }
+                    },
+                    "input_limit_chars": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 200000
+                    },
+                    "max_output_tokens": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 128000
+                    }
+                }
+            },
+            "AiAccessAuthor": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "key",
+                    "name",
+                    "enabled"
+                ],
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                    },
+                    "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                    },
+                    "enabled": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "AiAccessDefinition": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "key",
+                    "name",
+                    "enabled",
+                    "author",
+                    "capabilities"
+                ],
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                    },
+                    "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                    },
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "author": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                    },
+                    "capabilities": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "text",
+                                "image"
+                            ]
+                        },
+                        "uniqueItems": true
+                    }
+                }
+            },
+            "AiAccessDefault": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "key",
+                    "name",
+                    "enabled",
+                    "provider",
+                    "offering"
+                ],
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "enum": [
+                            "text",
+                            "image"
+                        ]
+                    },
+                    "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                    },
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "provider": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                    },
+                    "offering": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                    }
+                }
+            },
+            "AiAccessCatalog": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "providers",
+                    "credentials",
+                    "models",
+                    "authors",
+                    "definitions",
+                    "defaults",
+                    "can_configure"
+                ],
+                "properties": {
+                    "providers": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AiAccessProvider"
+                        }
+                    },
+                    "credentials": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AiAccessCredential"
+                        }
+                    },
+                    "models": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AiAccessModel"
+                        }
+                    },
+                    "authors": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AiAccessAuthor"
+                        }
+                    },
+                    "definitions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AiAccessDefinition"
+                        }
+                    },
+                    "defaults": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AiAccessDefault"
+                        }
+                    },
+                    "can_configure": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "AiAccessSaveRequest": {
+                "oneOf": [
+                    {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "required": [
+                            "kind",
+                            "key",
+                            "name",
+                            "enabled",
+                            "origin",
+                            "api_prefix"
+                        ],
+                        "properties": {
+                            "kind": {
+                                "type": "string",
+                                "enum": [
+                                    "provider"
+                                ]
+                            },
+                            "key": {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                            },
+                            "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 120
+                            },
+                            "enabled": {
+                                "type": "boolean"
+                            },
+                            "priority": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 10000
+                            },
+                            "origin": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255,
+                                "description": "Only the HTTPS origin already registered by the instance maintainer is eligible; the origin is never editable on the same provider identity."
+                            },
+                            "api_prefix": {
+                                "type": "string",
+                                "pattern": "^/[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*$",
+                                "maxLength": 80
+                            }
+                        }
+                    },
+                    {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "required": [
+                            "kind",
+                            "key",
+                            "name",
+                            "enabled",
+                            "provider",
+                            "models"
+                        ],
+                        "properties": {
+                            "kind": {
+                                "type": "string",
+                                "enum": [
+                                    "credential"
+                                ]
+                            },
+                            "key": {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                            },
+                            "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 120
+                            },
+                            "enabled": {
+                                "type": "boolean"
+                            },
+                            "provider": {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                            },
+                            "models": {
+                                "type": "array",
+                                "items": {
+                                    "oneOf": [
+                                        {
+                                            "type": "string",
+                                            "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                                        },
+                                        {
+                                            "type": "string",
+                                            "enum": [
+                                                "*"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            },
+                            "secret": {
+                                "type": "string",
+                                "writeOnly": true,
+                                "maxLength": 8192,
+                                "pattern": "^[^\\x00-\\x20\\x7f]*$",
+                                "description": "Only supplied when configuring or replacing a credential; omitted on an existing credential to retain its encrypted value. Never echoed."
+                            }
+                        }
+                    },
+                    {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "required": [
+                            "kind",
+                            "key",
+                            "name",
+                            "enabled",
+                            "provider",
+                            "definition",
+                            "remote_model",
+                            "protocols",
+                            "input_limit_chars",
+                            "max_output_tokens"
+                        ],
+                        "properties": {
+                            "kind": {
+                                "type": "string",
+                                "enum": [
+                                    "model"
+                                ]
+                            },
+                            "key": {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                            },
+                            "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 120
+                            },
+                            "enabled": {
+                                "type": "boolean"
+                            },
+                            "provider": {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                            },
+                            "priority": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 10000
+                            },
+                            "definition": {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                            },
+                            "remote_model": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200
+                            },
+                            "protocols": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "minProperties": 1,
+                                "properties": {
+                                    "text": {
+                                        "type": "string",
+                                        "enum": [
+                                            "openai_text",
+                                            "openai_responses",
+                                            "anthropic_messages"
+                                        ]
+                                    },
+                                    "image": {
+                                        "type": "string",
+                                        "enum": [
+                                            "openai_image"
+                                        ]
+                                    }
+                                }
+                            },
+                            "input_limit_chars": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 200000
+                            },
+                            "max_output_tokens": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 128000
+                            }
+                        }
+                    },
+                    {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "required": [
+                            "kind",
+                            "key",
+                            "name",
+                            "enabled"
+                        ],
+                        "properties": {
+                            "kind": {
+                                "type": "string",
+                                "enum": [
+                                    "author"
+                                ]
+                            },
+                            "key": {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                            },
+                            "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 120
+                            },
+                            "enabled": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "required": [
+                            "kind",
+                            "key",
+                            "name",
+                            "enabled",
+                            "author",
+                            "capabilities"
+                        ],
+                        "properties": {
+                            "kind": {
+                                "type": "string",
+                                "enum": [
+                                    "definition"
+                                ]
+                            },
+                            "key": {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                            },
+                            "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 120
+                            },
+                            "enabled": {
+                                "type": "boolean"
+                            },
+                            "author": {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                            },
+                            "capabilities": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                    "type": "string",
+                                    "enum": [
+                                        "text",
+                                        "image"
+                                    ]
+                                },
+                                "uniqueItems": true
+                            }
+                        }
+                    },
+                    {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "required": [
+                            "kind",
+                            "key",
+                            "name",
+                            "enabled",
+                            "provider",
+                            "offering"
+                        ],
+                        "properties": {
+                            "kind": {
+                                "type": "string",
+                                "enum": [
+                                    "default"
+                                ]
+                            },
+                            "key": {
+                                "type": "string",
+                                "enum": [
+                                    "text",
+                                    "image"
+                                ]
+                            },
+                            "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 120
+                            },
+                            "enabled": {
+                                "type": "boolean"
+                            },
+                            "provider": {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                            },
+                            "offering": {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                            }
+                        }
+                    }
+                ]
+            },
+            "AiAccessSavedEntry": {
+                "oneOf": [
+                    {
+                        "$ref": "#/components/schemas/AiAccessProvider"
+                    },
+                    {
+                        "$ref": "#/components/schemas/AiAccessCredential"
+                    },
+                    {
+                        "$ref": "#/components/schemas/AiAccessModel"
+                    },
+                    {
+                        "$ref": "#/components/schemas/AiAccessAuthor"
+                    },
+                    {
+                        "$ref": "#/components/schemas/AiAccessDefinition"
+                    },
+                    {
+                        "$ref": "#/components/schemas/AiAccessDefault"
+                    }
+                ]
+            },
+            "AiAccessDiscoverRequest": {
+                "type": "object",
+                "required": [
+                    "provider",
+                    "credential"
+                ],
+                "properties": {
+                    "provider": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                    },
+                    "credential": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                    }
+                }
+            },
+            "AiAccessRemoteModel": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "id",
+                    "owner"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                    },
+                    "owner": {
+                        "type": "string",
+                        "maxLength": 120
+                    }
+                }
+            },
+            "AiAccessDiscoveredModels": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "items"
+                ],
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AiAccessRemoteModel"
+                        }
+                    }
+                }
+            },
+            "AiAccessGenerateRequest": {
+                "type": "object",
+                "required": [
+                    "capability",
+                    "prompt",
+                    "request_key"
+                ],
+                "properties": {
+                    "capability": {
+                        "type": "string",
+                        "enum": [
+                            "text",
+                            "image"
+                        ]
+                    },
+                    "prompt": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200000,
+                        "pattern": "\\S",
+                        "description": "UTF-8 text; outbound calls require a tenant-authorized model and a transaction-free context."
+                    },
+                    "request_key": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9_.:-]{1,100}$"
+                    },
+                    "provider": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+                        "nullable": true
+                    },
+                    "model": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+                        "nullable": true
+                    },
+                    "credential": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+                        "nullable": true
+                    }
+                }
+            },
+            "AiAccessRequestReceipt": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "request_key",
+                    "provider_key",
+                    "model_key",
+                    "credential_key",
+                    "capability",
+                    "status",
+                    "provider_request_id",
+                    "usage"
+                ],
+                "properties": {
+                    "request_key": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9_.:-]{1,100}$"
+                    },
+                    "provider_key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                    },
+                    "model_key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                    },
+                    "credential_key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+                    },
+                    "capability": {
+                        "type": "string",
+                        "enum": [
+                            "text",
+                            "image"
+                        ]
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "sending",
+                            "succeeded",
+                            "rejected",
+                            "unknown"
+                        ]
+                    },
+                    "provider_request_id": {
+                        "type": "string",
+                        "nullable": true,
+                        "maxLength": 180
+                    },
+                    "usage": {
+                        "type": "object",
+                        "nullable": true,
+                        "additionalProperties": false,
+                        "properties": {
+                            "prompt_tokens": {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            "completion_tokens": {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            "input_tokens": {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            "output_tokens": {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            "total_tokens": {
+                                "type": "integer",
+                                "minimum": 0
+                            }
+                        }
+                    }
+                }
+            },
+            "AiAccessGenerateResult": {
+                "oneOf": [
+                    {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                            "text",
+                            "request"
+                        ],
+                        "properties": {
+                            "text": {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            "request": {
+                                "$ref": "#/components/schemas/AiAccessRequestReceipt"
+                            }
+                        }
+                    },
+                    {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                            "image",
+                            "mime_type",
+                            "request"
+                        ],
+                        "properties": {
+                            "image": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Base64-encoded PNG only, never a service URL."
+                            },
+                            "mime_type": {
+                                "type": "string",
+                                "enum": [
+                                    "image/png"
+                                ]
+                            },
+                            "request": {
+                                "$ref": "#/components/schemas/AiAccessRequestReceipt"
+                            }
+                        }
+                    }
+                ]
+            },
+            "AiAccessErrorEnvelope": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "code",
+                    "msg",
+                    "data"
+                ],
+                "properties": {
+                    "code": {
+                        "type": "integer",
+                        "minimum": 40000,
+                        "maximum": 59999
+                    },
+                    "msg": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": "object",
+                        "required": [
+                            "error_code"
+                        ],
+                        "additionalProperties": true,
+                        "properties": {
+                            "error_code": {
+                                "type": "string",
+                                "pattern": "^[A-Z][A-Z0-9_]+$"
+                            }
+                        }
+                    }
+                }
+            },
+            "AiAccessCatalogResponse": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "code",
+                    "msg",
+                    "data"
+                ],
+                "properties": {
+                    "code": {
+                        "type": "integer",
+                        "enum": [
+                            20000
+                        ]
+                    },
+                    "msg": {
+                        "type": "string",
+                        "enum": [
+                            "success"
+                        ]
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/AiAccessCatalog"
+                    }
+                }
+            },
+            "AiAccessSaveResponse": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "code",
+                    "msg",
+                    "data"
+                ],
+                "properties": {
+                    "code": {
+                        "type": "integer",
+                        "enum": [
+                            20000
+                        ]
+                    },
+                    "msg": {
+                        "type": "string",
+                        "enum": [
+                            "success"
+                        ]
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/AiAccessSavedEntry"
+                    }
+                }
+            },
+            "AiAccessDiscoverResponse": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "code",
+                    "msg",
+                    "data"
+                ],
+                "properties": {
+                    "code": {
+                        "type": "integer",
+                        "enum": [
+                            20000
+                        ]
+                    },
+                    "msg": {
+                        "type": "string",
+                        "enum": [
+                            "success"
+                        ]
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/AiAccessDiscoveredModels"
+                    }
+                }
+            },
+            "AiAccessGenerateResponse": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "code",
+                    "msg",
+                    "data"
+                ],
+                "properties": {
+                    "code": {
+                        "type": "integer",
+                        "enum": [
+                            20000
+                        ]
+                    },
+                    "msg": {
+                        "type": "string",
+                        "enum": [
+                            "success"
+                        ]
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/AiAccessGenerateResult"
+                    }
+                }
+            },
+            "AiAccessRequestStatusResponse": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "code",
+                    "msg",
+                    "data"
+                ],
+                "properties": {
+                    "code": {
+                        "type": "integer",
+                        "enum": [
+                            20000
+                        ]
+                    },
+                    "msg": {
+                        "type": "string",
+                        "enum": [
+                            "success"
+                        ]
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/AiAccessRequestReceipt"
+                    }
+                }
+            },
             "AiRecord": {
                 "type": "object",
                 "additionalProperties": false,
@@ -75219,6 +76430,16 @@
                     "application/json": {
                         "schema": {
                             "$ref": "#/components/schemas/ErrorEnvelope"
+                        }
+                    }
+                }
+            },
+            "AiAccessErrorResponse": {
+                "description": "Current tenant/member authorization, input or downstream failure; no credential contents.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/AiAccessErrorEnvelope"
                         }
                     }
                 }

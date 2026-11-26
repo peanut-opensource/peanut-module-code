@@ -4,7 +4,7 @@
     "inputs": [
         {
             "path": "modules.lock",
-            "sha256": "e3e398214e2e176a54d09139cf4e70b1b7e4bed54e30fefdc24b33c76f0e4566"
+            "sha256": "2ac833fb610a4de3628a330d9e498dfb34aa0bc0cfa83b72632b3747270da21b"
         },
         {
             "path": "release-versions.json",
@@ -40,7 +40,7 @@
         },
         {
             "path": "server/app/modules/custom/ai_access/api/metadata/openapi.php",
-            "sha256": "6a928763d20d7a2a43d86875b0183ed689f4fb2993ac406957afe9759e5a7ee8"
+            "sha256": "2b76e89596a68e3e2f8b51f4e45996b10ea9f6a384e2c0fc83d46f0ee5e9ce1f"
         },
         {
             "path": "server/app/modules/custom/ai_access/route/app.php",
@@ -223,8 +223,8 @@
         "route_count": 486,
         "generated_api_operations": 486,
         "route_only_operations": 0,
-        "complete_operations": 481,
-        "partial_operations": 5,
+        "complete_operations": 486,
+        "partial_operations": 0,
         "runtime_routes": 486,
         "documented_operations": 486,
         "undocumented_routes": 0,
@@ -3415,7 +3415,7 @@
             },
             "documented": true,
             "openapi_operation_id": "aiAccessCatalog",
-            "contract_quality": "partial",
+            "contract_quality": "complete",
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts",
                 "web/src/modules/custom-ai-access/generated/openapi.ts"
@@ -3431,10 +3431,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "response_schema:200",
-                    "permission_error_response"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -3469,8 +3466,10 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                404
             ],
             "middleware": [
                 {
@@ -3495,7 +3494,7 @@
             },
             "documented": true,
             "openapi_operation_id": "aiAccessRequestStatus",
-            "contract_quality": "partial",
+            "contract_quality": "complete",
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts",
                 "web/src/modules/custom-ai-access/generated/openapi.ts"
@@ -3511,10 +3510,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "response_schema:200",
-                    "permission_error_response"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -20268,8 +20264,10 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                409
             ],
             "middleware": [
                 {
@@ -20294,7 +20292,7 @@
             },
             "documented": true,
             "openapi_operation_id": "aiAccessDiscover",
-            "contract_quality": "partial",
+            "contract_quality": "complete",
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts",
                 "web/src/modules/custom-ai-access/generated/openapi.ts"
@@ -20310,10 +20308,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "response_schema:200",
-                    "permission_error_response"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -20348,8 +20343,10 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                409
             ],
             "middleware": [
                 {
@@ -20374,7 +20371,7 @@
             },
             "documented": true,
             "openapi_operation_id": "aiAccessGenerate",
-            "contract_quality": "partial",
+            "contract_quality": "complete",
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts",
                 "web/src/modules/custom-ai-access/generated/openapi.ts"
@@ -20390,10 +20387,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "response_schema:200",
-                    "permission_error_response"
-                ]
+                "requires_owner_contract": []
             }
         },
         {
@@ -20428,8 +20422,11 @@
                 }
             ],
             "errors": [
+                400,
                 401,
-                403
+                403,
+                409,
+                422
             ],
             "middleware": [
                 {
@@ -20454,7 +20451,7 @@
             },
             "documented": true,
             "openapi_operation_id": "aiAccessSave",
-            "contract_quality": "partial",
+            "contract_quality": "complete",
             "sdk_consumers": [
                 "web/src/generated/openapi.d.ts",
                 "web/src/modules/custom-ai-access/generated/openapi.ts"
@@ -20470,10 +20467,7 @@
                     "permissions",
                     "source"
                 ],
-                "requires_owner_contract": [
-                    "response_schema:200",
-                    "permission_error_response"
-                ]
+                "requires_owner_contract": []
             }
         },
         {

@@ -9676,6 +9676,238 @@ export interface components {
                 [key: string]: components["schemas"]["ApplicationDynamicValue"];
             };
         };
+        AiAccessProvider: {
+            key: string;
+            name: string;
+            enabled: boolean;
+            priority: number;
+            /** @description Only the HTTPS origin already registered by the instance maintainer is eligible; the origin is never editable on the same provider identity. */
+            origin: string;
+            api_prefix: string;
+        };
+        AiAccessCredential: {
+            key: string;
+            name: string;
+            enabled: boolean;
+            provider: string;
+            models: (string | "*")[];
+            /** @description Only whether an encrypted credential is configured; the credential value is never returned. */
+            readonly configured: boolean;
+        };
+        AiAccessModel: {
+            key: string;
+            name: string;
+            enabled: boolean;
+            provider: string;
+            priority: number;
+            definition: string;
+            remote_model: string;
+            protocols: {
+                /** @enum {string} */
+                text?: "openai_text" | "openai_responses" | "anthropic_messages";
+                /** @enum {string} */
+                image?: "openai_image";
+            };
+            input_limit_chars: number;
+            max_output_tokens: number;
+        };
+        AiAccessAuthor: {
+            key: string;
+            name: string;
+            enabled: boolean;
+        };
+        AiAccessDefinition: {
+            key: string;
+            name: string;
+            enabled: boolean;
+            author: string;
+            capabilities: ("text" | "image")[];
+        };
+        AiAccessDefault: {
+            /** @enum {string} */
+            key: "text" | "image";
+            name: string;
+            enabled: boolean;
+            provider: string;
+            offering: string;
+        };
+        AiAccessCatalog: {
+            providers: components["schemas"]["AiAccessProvider"][];
+            credentials: components["schemas"]["AiAccessCredential"][];
+            models: components["schemas"]["AiAccessModel"][];
+            authors: components["schemas"]["AiAccessAuthor"][];
+            definitions: components["schemas"]["AiAccessDefinition"][];
+            defaults: components["schemas"]["AiAccessDefault"][];
+            can_configure: boolean;
+        };
+        AiAccessSaveRequest: ({
+            /** @enum {string} */
+            kind: "provider";
+            key: string;
+            name: string;
+            enabled: boolean;
+            priority?: number;
+            /** @description Only the HTTPS origin already registered by the instance maintainer is eligible; the origin is never editable on the same provider identity. */
+            origin: string;
+            api_prefix: string;
+        } & {
+            [key: string]: unknown;
+        }) | ({
+            /** @enum {string} */
+            kind: "credential";
+            key: string;
+            name: string;
+            enabled: boolean;
+            provider: string;
+            models: (string | "*")[];
+            /** @description Only supplied when configuring or replacing a credential; omitted on an existing credential to retain its encrypted value. Never echoed. */
+            secret?: string;
+        } & {
+            [key: string]: unknown;
+        }) | ({
+            /** @enum {string} */
+            kind: "model";
+            key: string;
+            name: string;
+            enabled: boolean;
+            provider: string;
+            priority?: number;
+            definition: string;
+            remote_model: string;
+            protocols: {
+                /** @enum {string} */
+                text?: "openai_text" | "openai_responses" | "anthropic_messages";
+                /** @enum {string} */
+                image?: "openai_image";
+            };
+            input_limit_chars: number;
+            max_output_tokens: number;
+        } & {
+            [key: string]: unknown;
+        }) | ({
+            /** @enum {string} */
+            kind: "author";
+            key: string;
+            name: string;
+            enabled: boolean;
+        } & {
+            [key: string]: unknown;
+        }) | ({
+            /** @enum {string} */
+            kind: "definition";
+            key: string;
+            name: string;
+            enabled: boolean;
+            author: string;
+            capabilities: ("text" | "image")[];
+        } & {
+            [key: string]: unknown;
+        }) | ({
+            /** @enum {string} */
+            kind: "default";
+            /** @enum {string} */
+            key: "text" | "image";
+            name: string;
+            enabled: boolean;
+            provider: string;
+            offering: string;
+        } & {
+            [key: string]: unknown;
+        });
+        AiAccessSavedEntry: components["schemas"]["AiAccessProvider"] | components["schemas"]["AiAccessCredential"] | components["schemas"]["AiAccessModel"] | components["schemas"]["AiAccessAuthor"] | components["schemas"]["AiAccessDefinition"] | components["schemas"]["AiAccessDefault"];
+        AiAccessDiscoverRequest: {
+            provider: string;
+            credential: string;
+        };
+        AiAccessRemoteModel: {
+            id: string;
+            owner: string;
+        };
+        AiAccessDiscoveredModels: {
+            items: components["schemas"]["AiAccessRemoteModel"][];
+        };
+        AiAccessGenerateRequest: {
+            /** @enum {string} */
+            capability: "text" | "image";
+            /** @description UTF-8 text; outbound calls require a tenant-authorized model and a transaction-free context. */
+            prompt: string;
+            request_key: string;
+            provider?: string | null;
+            model?: string | null;
+            credential?: string | null;
+        };
+        AiAccessRequestReceipt: {
+            request_key: string;
+            provider_key: string;
+            model_key: string;
+            credential_key: string;
+            /** @enum {string} */
+            capability: "text" | "image";
+            /** @enum {string} */
+            status: "sending" | "succeeded" | "rejected" | "unknown";
+            provider_request_id: string | null;
+            usage: {
+                prompt_tokens?: number;
+                completion_tokens?: number;
+                input_tokens?: number;
+                output_tokens?: number;
+                total_tokens?: number;
+            } | null;
+        };
+        AiAccessGenerateResult: {
+            text: string;
+            request: components["schemas"]["AiAccessRequestReceipt"];
+        } | {
+            /** @description Base64-encoded PNG only, never a service URL. */
+            image: string;
+            /** @enum {string} */
+            mime_type: "image/png";
+            request: components["schemas"]["AiAccessRequestReceipt"];
+        };
+        AiAccessErrorEnvelope: {
+            code: number;
+            msg: string;
+            data: {
+                error_code: string;
+            } & {
+                [key: string]: unknown;
+            };
+        };
+        AiAccessCatalogResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            /** @enum {string} */
+            msg: "success";
+            data: components["schemas"]["AiAccessCatalog"];
+        };
+        AiAccessSaveResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            /** @enum {string} */
+            msg: "success";
+            data: components["schemas"]["AiAccessSavedEntry"];
+        };
+        AiAccessDiscoverResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            /** @enum {string} */
+            msg: "success";
+            data: components["schemas"]["AiAccessDiscoveredModels"];
+        };
+        AiAccessGenerateResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            /** @enum {string} */
+            msg: "success";
+            data: components["schemas"]["AiAccessGenerateResult"];
+        };
+        AiAccessRequestStatusResponse: {
+            /** @enum {integer} */
+            code: 20000;
+            /** @enum {string} */
+            msg: "success";
+            data: components["schemas"]["AiAccessRequestReceipt"];
+        };
         AiRecord: {
             id: number;
             title: string;
@@ -13974,6 +14206,15 @@ export interface components {
             };
             content: {
                 "application/json": components["schemas"]["ErrorEnvelope"];
+            };
+        };
+        /** @description Current tenant/member authorization, input or downstream failure; no credential contents. */
+        AiAccessErrorResponse: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AiAccessErrorEnvelope"];
             };
         };
         /** @description 统一 API 错误；X-Request-Id 响应头用于追踪。 */
@@ -20598,8 +20839,12 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AiAccessCatalogResponse"];
+                };
             };
+            401: components["responses"]["AiAccessErrorResponse"];
+            403: components["responses"]["AiAccessErrorResponse"];
         };
     };
     aiAccessSave: {
@@ -20609,15 +20854,26 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiAccessSaveRequest"];
+            };
+        };
         responses: {
             /** @description 已保存的配置，不含令牌值 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AiAccessSaveResponse"];
+                };
             };
+            400: components["responses"]["AiAccessErrorResponse"];
+            401: components["responses"]["AiAccessErrorResponse"];
+            403: components["responses"]["AiAccessErrorResponse"];
+            409: components["responses"]["AiAccessErrorResponse"];
+            422: components["responses"]["AiAccessErrorResponse"];
         };
     };
     aiAccessDiscover: {
@@ -20627,15 +20883,25 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiAccessDiscoverRequest"];
+            };
+        };
         responses: {
             /** @description 远端模型候选 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AiAccessDiscoverResponse"];
+                };
             };
+            400: components["responses"]["AiAccessErrorResponse"];
+            401: components["responses"]["AiAccessErrorResponse"];
+            403: components["responses"]["AiAccessErrorResponse"];
+            409: components["responses"]["AiAccessErrorResponse"];
         };
     };
     aiAccessGenerate: {
@@ -20645,20 +20911,32 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiAccessGenerateRequest"];
+            };
+        };
         responses: {
             /** @description 生成结果与请求回执 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AiAccessGenerateResponse"];
+                };
             };
+            400: components["responses"]["AiAccessErrorResponse"];
+            401: components["responses"]["AiAccessErrorResponse"];
+            403: components["responses"]["AiAccessErrorResponse"];
+            409: components["responses"]["AiAccessErrorResponse"];
         };
     };
     aiAccessRequestStatus: {
         parameters: {
-            query?: never;
+            query: {
+                request_key: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -20670,8 +20948,14 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AiAccessRequestStatusResponse"];
+                };
             };
+            400: components["responses"]["AiAccessErrorResponse"];
+            401: components["responses"]["AiAccessErrorResponse"];
+            403: components["responses"]["AiAccessErrorResponse"];
+            404: components["responses"]["AiAccessErrorResponse"];
         };
     };
     aiAssistantTextRoutes: {
