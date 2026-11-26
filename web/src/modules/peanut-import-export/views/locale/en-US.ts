@@ -87,6 +87,12 @@ export default {
     'The operation could not be completed. Check your input and retry.',
   'importExport.mappingInvalid':
     'Column mapping must be a nonempty JSON object with CSV headings as keys and target field strings as values.',
+  'importExport.actionAccepted': 'The server accepted the task; check its final status in the operation list. Accepted does not mean completed.',
+  'importExport.actionUnknown': 'The task submission result is unknown. Refresh and verify the existing operation before submitting again.',
+  'importExport.actionRefreshFailed': 'The server accepted the task, but refreshing the list failed. Do not resubmit.',
+  'importExport.actionOperationKey': 'Operation key',
+  'importExport.actionTaskKey': 'Task key',
+  'importExport.actionReviewed': 'I checked the task list and status; allow a new operation',
   'importExport.requestId': 'Request ID',
   'importExport.loading': 'Loading import and export operations…',
   'importExport.empty': 'No operations match this status',

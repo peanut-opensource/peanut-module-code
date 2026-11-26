@@ -82,6 +82,12 @@ export default {
   'importExport.error': '操作未能完成，请检查输入并重试。',
   'importExport.mappingInvalid':
     '列映射必须是非空 JSON 对象，键为 CSV 表头，值为目标字段字符串。',
+  'importExport.actionAccepted': '任务已由服务器受理；请在任务列表确认最终状态，受理不等于处理完成。',
+  'importExport.actionUnknown': '本次任务提交结果未确认；请先刷新并核对任务记录，不要直接重复提交。',
+  'importExport.actionRefreshFailed': '服务器已确认受理，但后续任务列表刷新失败；不要重复提交。',
+  'importExport.actionOperationKey': '操作编号',
+  'importExport.actionTaskKey': '任务编号',
+  'importExport.actionReviewed': '我已核对任务列表与目标状态，允许重新操作',
   'importExport.requestId': '请求编号',
   'importExport.loading': '正在加载导入导出任务…',
   'importExport.empty': '当前状态下暂无导入导出任务',

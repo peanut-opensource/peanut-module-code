@@ -46,6 +46,15 @@
     inputFileKey.value = fileKey;
   };
   const busy = computed(() => state.loading || state.mutating);
+  const mutationLocked = computed(() =>
+    state.actionFeedback?.kind === 'unknown' ||
+    state.actionFeedback?.refreshFailed === true
+  );
+  const feedbackMessage = computed(() =>
+    state.actionFeedback?.kind === 'unknown'
+      ? t('importExport.actionUnknown')
+      : t('importExport.actionAccepted')
+  );
   const errorMessage = computed(() => {
     const messages: Record<number, string> = {
       401: 'importExport.error401',
@@ -116,7 +125,7 @@
       >
     </PageHeader>
     <ElCard class="general-card" shadow="never">
-      <slot v-if="canCreate" name="submission" :disabled="busy" />
+      <slot v-if="canCreate" name="submission" :disabled="busy || mutationLocked" />
       <ElCollapse v-if="canCreate">
         <ElCollapseItem name="create" title="高级任务提交">
           <section
@@ -166,12 +175,12 @@
             <div class="operations-actions">
               <ElButton
                 type="primary"
-                :disabled="busy || !providerKey.trim() || !inputFileKey.trim()"
+                :disabled="busy || mutationLocked || !providerKey.trim() || !inputFileKey.trim()"
                 @click="submitImport"
                 >{{ t('importExport.import') }}</ElButton
               >
               <ElButton
-                :disabled="busy || !providerKey.trim()"
+                :disabled="busy || mutationLocked || !providerKey.trim()"
                 @click="runtime.submitExport(providerKey.trim())"
                 >{{ t('importExport.export') }}</ElButton
               >
@@ -225,6 +234,29 @@
         </div>
       </div>
       <ElAlert
+        v-if="state.actionFeedback"
+        :title="feedbackMessage"
+        :type="state.actionFeedback.kind === 'accepted' ? 'success' : 'warning'"
+        :closable="false"
+        show-icon
+      >
+        <p v-if="state.actionFeedback.operationKey">
+          {{ t('importExport.actionOperationKey') }}: {{ state.actionFeedback.operationKey }}
+        </p>
+        <p v-if="state.actionFeedback.taskJobKey">
+          {{ t('importExport.actionTaskKey') }}: {{ state.actionFeedback.taskJobKey }}
+        </p>
+        <p v-if="state.actionFeedback.requestId">
+          {{ t('importExport.requestId') }}: {{ state.actionFeedback.requestId }}
+        </p>
+        <p v-if="state.actionFeedback.refreshFailed">{{ t('importExport.actionRefreshFailed') }}</p>
+        <ElButton
+          v-if="state.actionFeedback.kind === 'unknown' && state.actionFeedback.verifiedRead"
+          type="warning"
+          @click="runtime.acknowledgeUnknown"
+        >{{ t('importExport.actionReviewed') }}</ElButton>
+      </ElAlert>
+      <ElAlert
         v-if="state.error"
         :title="errorMessage"
         type="warning"
@@ -239,7 +271,7 @@
       <ElTable
         class="pa-page-table"
         v-loading="state.loading"
-        :data="state.error ? [] : state.items"
+        :data="state.items"
         row-key="operationKey"
         border
         max-height="max(240px, calc(100dvh - 380px))"
@@ -332,7 +364,7 @@
                 v-if="['queued', 'running'].includes(row.status) && canCancel"
                 link
                 type="warning"
-                :disabled="busy"
+                :disabled="busy || mutationLocked"
                 @click="cancelOperation(row.operationKey)"
                 >{{ t('importExport.cancel') }}</ElButton
               >

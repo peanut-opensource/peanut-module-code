@@ -62,7 +62,10 @@
       cid: 'cid',
       body: 'body',
     });
-    if (!runtime.state.error) draftCsv.value = undefined;
+    // A server-confirmed enqueue is success even if the subsequent list GET
+    // failed. Do not offer the same file as a misleading unsent draft.
+    if (runtime.state.actionFeedback?.kind === 'accepted')
+      draftCsv.value = undefined;
   };
 </script>
 

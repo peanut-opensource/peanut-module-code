@@ -256,3 +256,150 @@ describe('import/export runtime', () => {
     expect(runtime.state.error).toBeNull();
   });
 });
+
+describe('asynchronous task result user feedback and permission fencing', () => {
+  it('retains confirmed queued operation and request ID after the follow-up list GET fails', async () => {
+    let lists = 0;
+    let submits = 0;
+    const runtime = createImportExportRuntime({
+      canRead: () => true, canCreate: () => true, canCancel: () => true,
+      transport: {
+        list: async () => {
+          lists += 1;
+          return lists === 1 ? listResult() : result(503, { detail: 'Transient list outage' });
+        },
+        submitExport: async () => {
+          submits += 1;
+          return result(201, { data: operation, meta: {} });
+        },
+        submitImport: async () => result(422, {}),
+        cancel: async () => result(422, {}),
+        download: async () => new Response(),
+      },
+    });
+    await runtime.load();
+    await runtime.submitExport('test.contacts');
+    expect(submits).toBe(1);
+    expect(runtime.state.actionFeedback).toMatchObject({
+      kind: 'accepted', action: 'export',
+      operationKey: operation.operation_key,
+      taskJobKey: operation.task_job_key,
+      requestId: 'req-1', refreshFailed: true,
+    });
+    expect(runtime.state.error).toMatchObject({ status: 503 });
+    expect(runtime.state.items).toHaveLength(1);
+    await runtime.submitExport('test.contacts');
+    expect(submits).toBe(1);
+    runtime.dispose();
+  });
+
+  it('preserves unknown command outcome until an explicit successful read and human acknowledgement', async () => {
+    let submits = 0;
+    const runtime = createImportExportRuntime({
+      canRead: () => true, canCreate: () => true, canCancel: () => true,
+      transport: {
+        list: async () => listResult(),
+        submitExport: async () => {
+          submits += 1;
+          if (submits === 1) throw new Error('socket reset after possible enqueue');
+          return result(201, { data: operation, meta: {} });
+        },
+        submitImport: async () => result(422, {}),
+        cancel: async () => result(422, {}),
+        download: async () => new Response(),
+      },
+    });
+    await runtime.submitExport('test.contacts');
+    expect(runtime.state.actionFeedback).toMatchObject({ kind: 'unknown', verifiedRead: false });
+    expect(runtime.state.error?.message).toContain('unconfirmed');
+    await runtime.submitExport('test.contacts');
+    expect(submits).toBe(1);
+    runtime.acknowledgeUnknown();
+    expect(runtime.state.actionFeedback?.kind).toBe('unknown');
+    await runtime.load();
+    expect(runtime.state.actionFeedback).toMatchObject({ kind: 'unknown', verifiedRead: true });
+    await runtime.submitExport('test.contacts');
+    expect(submits).toBe(1);
+    runtime.acknowledgeUnknown();
+    expect(runtime.state.actionFeedback).toBeNull();
+    await runtime.submitExport('test.contacts');
+    expect(submits).toBe(2);
+    expect(runtime.state.actionFeedback?.kind).toBe('accepted');
+    runtime.dispose();
+  });
+
+  it('401/403 on the task list revokes previously visible task and accepted receipt', async () => {
+    let reads = 0;
+    const runtime = createImportExportRuntime({
+      canRead: () => true, canCreate: () => true, canCancel: () => true,
+      transport: {
+        list: async () => (++reads === 1
+          ? listResult()
+          : result(403, { detail: 'Role no longer permits this list' })),
+        submitExport: async () => result(201, { data: operation, meta: {} }),
+        submitImport: async () => result(422, {}),
+        cancel: async () => result(422, {}),
+        download: async () => new Response(),
+      },
+    });
+    await runtime.load();
+    expect(runtime.state.items).toHaveLength(1);
+    await runtime.submitExport('test.contacts');
+    expect(runtime.state.items).toHaveLength(0);
+    expect(runtime.state.total).toBe(0);
+    expect(runtime.state.actionFeedback).toBeNull();
+    expect(runtime.state.error?.status).toBe(403);
+    runtime.dispose();
+  });
+
+  it('cancel acknowledgement cannot silently substitute another operation key', async () => {
+    const wrong = {
+      ...operation, operation_key: 'iox_' + 'f'.repeat(32),
+      status: 'cancelled', revision: 3, completed_at: '2026-07-24T00:00:01.000Z',
+    };
+    let cancels = 0;
+    const runtime = createImportExportRuntime({
+      canRead: () => true, canCreate: () => true, canCancel: () => true,
+      transport: {
+        list: async () => listResult(),
+        submitImport: async () => result(422, {}),
+        submitExport: async () => result(422, {}),
+        cancel: async () => {
+          cancels += 1;
+          return result(200, { data: wrong, meta: {} });
+        },
+        download: async () => new Response(),
+      },
+    });
+    await runtime.load();
+    await runtime.cancel(runtime.state.items[0]!);
+    expect(runtime.state.actionFeedback).toMatchObject({
+      kind: 'unknown', action: 'cancel', operationKey: operation.operation_key,
+      requestId: 'req-1',
+    });
+    await runtime.cancel(runtime.state.items[0]!);
+    expect(cancels).toBe(1);
+    runtime.dispose();
+  });
+
+  it('non-2xx definite revision conflict retains server trace but does not claim accepted', async () => {
+    const runtime = createImportExportRuntime({
+      canRead: () => true, canCreate: () => true, canCancel: () => true,
+      transport: {
+        list: async () => listResult(),
+        submitImport: async () => result(422, {}),
+        submitExport: async () => result(422, {}),
+        cancel: async () => result(409, { detail: 'Revision stale' }),
+        download: async () => new Response(),
+      },
+    });
+    await runtime.load();
+    await runtime.cancel(runtime.state.items[0]!);
+    expect(runtime.state.error).toMatchObject({
+      status: 409, requestId: 'req-1', message: 'Revision stale',
+    });
+    expect(runtime.state.actionFeedback).toBeNull();
+    expect(runtime.state.items).toHaveLength(1);
+    runtime.dispose();
+  });
+});
