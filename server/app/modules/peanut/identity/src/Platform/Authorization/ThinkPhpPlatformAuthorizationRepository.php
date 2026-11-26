@@ -60,6 +60,12 @@ final class ThinkPhpPlatformAuthorizationRepository implements \PeanutAdmin\Kern
      */
     public function roleFacts(int $operatorId): array
     {
+        // One global source switch: no per-role old/direct merge or runtime dual read.
+        $direct = new PlatformRoleDirectGrantStore();
+        if ($direct->source() === 'direct') {
+            return $direct->roleFacts($operatorId);
+        }
+
         $rows = PlatformOperator::alias('operator')
             ->leftJoin('platform_operator_role operator_role', 'operator_role.platform_operator_id = operator.id')
             ->leftJoin('platform_role role', 'role.id = operator_role.platform_role_id')

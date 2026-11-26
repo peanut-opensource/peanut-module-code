@@ -11,6 +11,16 @@ final class PlatformRoleAuthorizationPreviewFixture
             CREATE TABLE pa_platform_role (id INTEGER PRIMARY KEY, "key" TEXT UNIQUE, status TEXT, is_builtin INTEGER DEFAULT 0, revision INTEGER DEFAULT 1);
             CREATE TABLE pa_platform_operator_role (platform_operator_id INTEGER, platform_role_id INTEGER, UNIQUE(platform_operator_id,platform_role_id));
             CREATE TABLE pa_platform_role_permission (platform_role_id INTEGER, permission_id INTEGER, UNIQUE(platform_role_id,permission_id));
+            CREATE TABLE pa_platform_role_authorization_source (id INTEGER PRIMARY KEY, mode TEXT NOT NULL, changed_at TEXT);
+            CREATE TABLE pa_platform_role_direct_state (
+                platform_role_id INTEGER PRIMARY KEY, role_revision INTEGER NOT NULL, explicit_empty INTEGER NOT NULL,
+                catalog_sha256 TEXT NOT NULL, approved_permission_keys_json TEXT NOT NULL,
+                auxiliary_permission_keys_json TEXT NOT NULL, updated_at TEXT
+            );
+            CREATE TABLE pa_platform_role_node (platform_role_id INTEGER NOT NULL, node_key TEXT NOT NULL,
+                PRIMARY KEY(platform_role_id,node_key));
+            CREATE TABLE pa_platform_role_node_api (platform_role_id INTEGER NOT NULL, node_key TEXT NOT NULL,
+                api_id TEXT NOT NULL, PRIMARY KEY(platform_role_id,node_key,api_id));
             CREATE TABLE pa_permission (id INTEGER PRIMARY KEY, "key" TEXT UNIQUE, status TEXT, api_configured INTEGER DEFAULT 0);
             CREATE TABLE pa_permission_api (id INTEGER PRIMARY KEY, permission_id INTEGER, api_id TEXT, UNIQUE(permission_id,api_id));
             CREATE TABLE pa_system_api (id TEXT PRIMARY KEY, method TEXT, path TEXT, audience TEXT, access_mode TEXT, status TEXT, module_key TEXT, default_permission_keys TEXT, prerequisite_permission_keys TEXT, UNIQUE(method,path,audience));
@@ -24,6 +34,7 @@ final class PlatformRoleAuthorizationPreviewFixture
                 (11,'platform.fixture.read','active',0),(12,'platform.fixture.prerequisite','active',0),(13,'platform.fixture.shared','active',0),
                 (14,'platform.fixture.empty','active',1),(21,'tenant.fixture.foreign','active',0);
             INSERT INTO pa_platform_role_permission VALUES (101,1),(101,2),(101,3),(201,11),(202,12),(202,13),(202,14);
+            INSERT INTO pa_platform_role_authorization_source (id,mode) VALUES (1,'legacy');
             INSERT INTO pa_system_menu VALUES (1,'platform.fixture.retired','platform','page','retired',0),(2,'platform.fixture.foreign','tenant','page','active',0);
             INSERT INTO pa_credential VALUES (1,222,'email_password','email','demo-target@example.test','active');
             SQL);

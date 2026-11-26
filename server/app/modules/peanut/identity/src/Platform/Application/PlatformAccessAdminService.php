@@ -15,6 +15,10 @@ use PeanutAdmin\Kernel\Identity\EmailAddress;
 use PeanutAdmin\Kernel\Identity\PasswordHasher;
 use PeanutAdmin\Kernel\Identity\PasswordPolicy;
 use PeanutAdmin\Modules\Identity\Platform\PlatformOperatorStatus;
+use PeanutAdmin\Modules\Identity\Platform\Authorization\PlatformRoleDirectGrantStore;
+use PeanutAdmin\Modules\Identity\Platform\Authorization\ThinkPhpPlatformAuthorizationRepository;
+use PeanutAdmin\Modules\Identity\Contract\PlatformRoleAuthorizationPreview;
+use PeanutAdmin\Kernel\Module\ModuleAvailability;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Account;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Credential;
 use PeanutAdmin\Modules\Identity\Persistence\Model\Permission;
@@ -295,6 +299,17 @@ final readonly class PlatformAccessAdminService
                 'key' => $key, 'name' => $name, 'description' => $description, 'is_builtin' => 0,
                 'status' => 'active', 'created_at' => $now, 'updated_at' => $now,
             ]);
+            // A newly created role in direct mode has one explicitly empty
+            // authorization record, not an implicit fallback to legacy grants.
+            if ((new PlatformRoleDirectGrantStore())->source(true) === 'direct') {
+                $origin = Db::name('platform_role_direct_state')->order('platform_role_id')->find();
+                if ($origin === null) {
+                    throw AdminAccessException::conflict('PLATFORM_DIRECT_CATALOG_INCOMPLETE', 'Direct source has no registered role catalog.');
+                }
+                (new PlatformRoleDirectGrantStore())->save(
+                    $roleId, 1, [], [], [], (string) $origin['catalog_sha256'], $now,
+                );
+            }
             $role = $this->role($roleId);
             $this->recordAudit(
                 $actor,
@@ -337,6 +352,7 @@ final readonly class PlatformAccessAdminService
             ]) !== 1) {
                 throw AdminAccessException::revisionMismatch();
             }
+            $this->bumpDirectRoleRevisionIfActive($roleId, $expectedRevision);
             $after = $this->role($roleId);
             $this->recordAudit(
                 $actor,
@@ -380,6 +396,7 @@ final readonly class PlatformAccessAdminService
             ]) !== 1) {
                 throw AdminAccessException::revisionMismatch();
             }
+            $this->bumpDirectRoleRevisionIfActive($roleId, $expectedRevision);
             $this->bumpRoleOperators($roleId, $now);
             $this->assertControlAdminExists();
             $after = $this->role($roleId);
@@ -417,6 +434,9 @@ final readonly class PlatformAccessAdminService
         return Db::transaction(function () use ($actor, $roleId, $permissionKeys, $expectedRevision, $changeReason): array {
             $this->requireActor($actor);
             $this->lockControlPlane();
+            if ((new PlatformRoleDirectGrantStore())->source(true) !== 'legacy') {
+                throw AdminAccessException::conflict('PLATFORM_ROLE_SOURCE_DIRECT', 'Legacy Platform role grant writes are disabled after direct cutover.');
+            }
             $before = $this->role($roleId, true);
             $this->assertRoleRevision($before, $expectedRevision);
             if ($before['status'] !== 'active') {
@@ -464,6 +484,342 @@ final readonly class PlatformAccessAdminService
         });
     }
 
+    /**
+     * Formal direct-node role writer, without an enabled HTTP mutation route.
+     * The existing Code PlatformRoleNodeSource::authoritativeCandidate is passed
+     * by the trusted host and executed inside this native transaction.
+     *
+     * @param list<string> $nodeKeys
+     * @param callable(array<string,mixed>):array<string,mixed> $trustedSource
+     * @return array<string,mixed>
+     */
+    public function replaceRoleNodes(
+        PlatformContext $actor,
+        int $roleId,
+        array $nodeKeys,
+        int $expectedRevision,
+        string $expectedCatalogSha256,
+        string $changeReason,
+        callable $trustedSource,
+    ): array {
+        $changeReason = $this->changeReason($changeReason);
+        if (preg_match('/^[a-f0-9]{64}$/D', $expectedCatalogSha256) !== 1) {
+            throw AdminAccessException::invalid('PLATFORM_ROLE_SOURCE_INVALID', 'Expected catalog digest is invalid.');
+        }
+        return Db::transaction(function () use (
+            $actor, $roleId, $nodeKeys, $expectedRevision, $expectedCatalogSha256, $changeReason, $trustedSource,
+        ): array {
+            $this->requireActor($actor);
+            $this->lockControlPlane();
+            $direct = new PlatformRoleDirectGrantStore();
+            $direct->assertReady();
+            $mode = $direct->source(true);
+            $before = $this->role($roleId, true);
+            $this->assertRoleRevision($before, $expectedRevision);
+            if ($before['status'] !== 'active') {
+                throw AdminAccessException::conflict('PLATFORM_ROLE_INACTIVE', 'Only active Platform roles can receive direct nodes.');
+            }
+            $candidate = ['role_ids' => [$roleId], 'role_assignments' => [[
+                'role_id' => $roleId, 'expected_revision' => $expectedRevision, 'node_keys' => $nodeKeys,
+            ]]];
+            $resolved = $trustedSource($candidate);
+            $nodes = $direct->selectedNodes($resolved, $roleId, $expectedRevision, $nodeKeys);
+            $digest = $direct->catalogDigest($resolved['nodes'], true);
+            if (!hash_equals($expectedCatalogSha256, $digest)) {
+                throw AdminAccessException::conflict('PLATFORM_ROLE_API_CATALOG_DRIFT', 'Registered Platform node or API directory changed.');
+            }
+            $apiIds = array_values(array_unique(array_merge([], ...array_values($nodes ?: [[]]))));
+            if ($apiIds !== []) {
+                $actual = Db::name('system_api')->whereIn('id', $apiIds)
+                    ->where('audience', 'platform')->where('status', 'active')
+                    ->where('access_mode', 'platform_permission')->order('id')->lock(true)->column('id');
+                if (count($actual) !== count($apiIds)) {
+                    throw AdminAccessException::conflict('PLATFORM_ROLE_API_CATALOG_DRIFT', 'Selected API is not registered for Platform access.');
+                }
+            }
+            $now = $this->now();
+            $approved = $direct->approvedHttpKeys($apiIds);
+            $previousNodes = $mode === 'direct'
+                ? Db::name('platform_role_node')->where('platform_role_id', $roleId)->order('node_key')->column('node_key')
+                : null;
+            $previousDirectKeys = $mode === 'direct'
+                ? $direct->rolePermissionKeys($roleId, $expectedRevision) : null;
+            if ($mode === 'legacy') {
+                $bound = $before['permission_keys'] === [] ? [] : Db::name('permission_api')->alias('binding')
+                    ->join('permission permission', 'permission.id = binding.permission_id')
+                    ->whereIn('permission.key', $before['permission_keys'])
+                    ->distinct(true)->column('permission.key');
+                $auxiliary = array_values(array_diff($before['permission_keys'], $bound));
+                // Staging must not create permission keys that were absent from
+                // the role's current legacy authorization facts.
+                $approved = array_values(array_intersect($approved, $before['permission_keys']));
+            } else {
+                $stored = Db::name('platform_role_direct_state')
+                    ->where('platform_role_id', $roleId)->value('auxiliary_permission_keys_json');
+                if (!is_string($stored)) {
+                    throw AdminAccessException::conflict('PLATFORM_DIRECT_ROLE_NOT_MIGRATED', 'Direct role state is missing.');
+                }
+                $auxiliary = json_decode($stored, true, 32, JSON_THROW_ON_ERROR);
+            }
+            $direct->save($roleId, $expectedRevision + 1, $nodes, $approved, $auxiliary, $digest, $now);
+            if (PlatformRole::where('id', $roleId)->where('revision', $expectedRevision)->update([
+                'revision' => new Raw('revision + 1'), 'updated_at' => $now,
+            ]) !== 1) {
+                throw AdminAccessException::revisionMismatch();
+            }
+            $this->bumpRoleOperators($roleId, $now);
+            if ($mode === 'direct') {
+                $this->assertDirectControlAdminExists($direct);
+            } else {
+                $this->assertControlAdminExists();
+            }
+            $after = $this->role($roleId);
+            $nextDirectKeys = $direct->rolePermissionKeys($roleId, $expectedRevision + 1);
+            $this->recordAudit(
+                $actor, 'platform-role.nodes-replaced', 'platform.role.permission.assign',
+                'platform-role', $roleId,
+                [...$before, 'node_keys' => $previousNodes, 'direct_permission_keys' => $previousDirectKeys],
+                [...$after, 'node_keys' => $nodeKeys, 'direct_permission_keys' => $nextDirectKeys],
+                ['change_reason' => $changeReason, 'catalog_sha256' => $digest],
+            );
+            return [...$after, 'node_keys' => $nodeKeys, 'catalog_sha256' => $digest];
+        });
+    }
+
+    /**
+     * One atomic source cutover, never a per-role legacy/direct mixed read.
+     * A complete role catalog and effective API capability equivalence are
+     * required. Existing legacy grants remain immutable until explicit rollback.
+     *
+     * @param callable(array<string,mixed>):array<string,mixed> $trustedSource
+     */
+    public function activateDirectRoleSource(
+        PlatformContext $actor,
+        PlatformRoleAuthorizationPreview $preview,
+        ModuleAvailability $modules,
+        string $expectedCatalogSha256,
+        string $changeReason,
+        callable $trustedSource,
+    ): void {
+        $changeReason = $this->changeReason($changeReason);
+        Db::transaction(function () use ($actor, $preview, $modules, $expectedCatalogSha256, $changeReason, $trustedSource): void {
+            $this->requireActor($actor);
+            $this->lockControlPlane();
+            $direct = new PlatformRoleDirectGrantStore();
+            $direct->assertReady();
+            if ($direct->source(true) !== 'legacy') {
+                throw AdminAccessException::conflict('PLATFORM_ROLE_SOURCE_CONFLICT', 'Direct source is already active.');
+            }
+            $roles = Db::name('platform_role')->order('id')->lock(true)->field('id,revision,status')->select()->toArray();
+            $roleIds = array_map(static fn(array $row): int => (int) $row['id'], $roles);
+            $states = Db::name('platform_role_direct_state')->order('platform_role_id')->lock(true)->select()->toArray();
+            if ($roleIds === [] || count($states) > count($roleIds)) {
+                throw AdminAccessException::conflict('PLATFORM_DIRECT_CATALOG_INCOMPLETE', 'All Platform roles must have explicit direct grants.');
+            }
+            $stateByRole = array_column($states, null, 'platform_role_id');
+            foreach ($roles as $role) {
+                if (!in_array($role['status'], ['active', 'archived'], true)) {
+                    throw AdminAccessException::conflict('PLATFORM_DIRECT_CATALOG_INCOMPLETE', 'Unknown Platform role state.');
+                }
+                $roleId = (int) $role['id'];
+                if ($role['status'] !== 'archived' || isset($stateByRole[$roleId])) {
+                    continue;
+                }
+                // Archived roles cannot use the ordinary active-role writer,
+                // but they have no effective authorization. Stage one explicit
+                // empty snapshot inside this same all-or-nothing cutover.
+                $direct->save($roleId, (int) $role['revision'], [], [], [], $expectedCatalogSha256, $this->now());
+                $stateByRole[$roleId] = Db::name('platform_role_direct_state')
+                    ->where('platform_role_id', $roleId)->find();
+            }
+            if (count($stateByRole) !== count($roleIds)) {
+                throw AdminAccessException::conflict('PLATFORM_DIRECT_CATALOG_INCOMPLETE', 'Every active Platform role must be staged.');
+            }
+            $keysByRole = [];
+            foreach (Db::name('platform_role_node')->whereIn('platform_role_id', $roleIds)
+                ->field('platform_role_id,node_key')->order('platform_role_id,node_key')->select()->toArray() as $row) {
+                $keysByRole[(int) $row['platform_role_id']][] = (string) $row['node_key'];
+            }
+            $assignments = [];
+            foreach ($roles as $role) {
+                $roleId = (int) $role['id'];
+                $state = $stateByRole[$roleId] ?? null;
+                if ($state === null || (int) $state['role_revision'] !== (int) $role['revision'] ||
+                    !hash_equals($expectedCatalogSha256, (string) $state['catalog_sha256'])) {
+                    throw AdminAccessException::conflict('PLATFORM_DIRECT_CATALOG_STALE', 'Role revision or node source has changed.');
+                }
+                if ($role['status'] === 'archived' &&
+                    ((int) $state['explicit_empty'] !== 1 || ($keysByRole[$roleId] ?? []) !== [] ||
+                        json_decode((string) $state['approved_permission_keys_json'], true, 32, JSON_THROW_ON_ERROR) !== [] ||
+                        json_decode((string) $state['auxiliary_permission_keys_json'], true, 32, JSON_THROW_ON_ERROR) !== [])) {
+                    throw AdminAccessException::conflict('PLATFORM_DIRECT_ARCHIVED_ROLE_NOT_EMPTY', 'An archived role cannot hold direct grants.');
+                }
+                $assignments[] = ['role_id' => $roleId, 'expected_revision' => (int) $role['revision'],
+                    'node_keys' => $keysByRole[$roleId] ?? []];
+            }
+            $resolved = $trustedSource(['role_ids' => $roleIds, 'role_assignments' => $assignments]);
+            if (!is_array($resolved) || ($resolved['role_ids'] ?? null) !== $roleIds ||
+                ($resolved['role_assignments'] ?? null) !== $assignments ||
+                !is_array($resolved['nodes'] ?? null)) {
+                throw AdminAccessException::conflict('PLATFORM_ROLE_NODE_SOURCE_INVALID', 'Trusted source failed to resolve the complete role selection.');
+            }
+            $digest = $direct->catalogDigest($resolved['nodes'], true);
+            if (!hash_equals($expectedCatalogSha256, $digest)) {
+                throw AdminAccessException::conflict('PLATFORM_ROLE_API_CATALOG_DRIFT', 'Platform node or API directory changed at cutover.');
+            }
+            $activeIds = array_values(array_map(
+                static fn(array $row): int => (int) $row['id'],
+                array_filter($roles, static fn(array $row): bool => $row['status'] === 'active'),
+            ));
+            if ($activeIds === []) {
+                throw AdminAccessException::conflict('PLATFORM_CONTROL_ADMIN_REQUIRED', 'At least one active Platform role must remain.');
+            }
+            $activeScope = array_fill_keys($activeIds, true);
+            $activeCandidate = [
+                'role_ids' => $activeIds, 'nodes' => $resolved['nodes'],
+                'role_assignments' => array_values(array_filter(
+                    $assignments,
+                    static fn(array $row): bool => isset($activeScope[$row['role_id']]),
+                )),
+            ];
+            // Native catalog auditing intentionally treats archived roles as
+            // non-comparable. Prove all active roles with its original evaluator;
+            // the full role set (including inert archived snapshots) has
+            // already been checked against the locked directory above.
+            $report = $preview->auditCatalog($actor, $activeCandidate, $modules);
+            if (($report['equivalent'] ?? false) !== true || count($report['roles'] ?? []) !== count($activeIds)) {
+                throw AdminAccessException::conflict('PLATFORM_DIRECT_MIGRATION_NOT_EQUIVALENT', 'Complete and equivalent Platform authorization is required.');
+            }
+            // The node equivalence report compares selected API relationships,
+            // but cannot prove the actual role permission projection. Validate
+            // the SAME direct repository output that middleware will consume,
+            // including independent prerequisites and non-HTTP privileges.
+            $legacyKeys = [];
+            foreach (Db::name('platform_role_permission')->alias('binding')
+                ->join('permission permission', 'permission.id = binding.permission_id')
+                ->whereIn('binding.platform_role_id', $roleIds)
+                ->where('permission.status', 'active')->whereLike('permission.key', 'platform.%')
+                ->field('binding.platform_role_id,permission.key')->select()->toArray() as $grant) {
+                $legacyKeys[(int) $grant['platform_role_id']][$grant['key']] = true;
+            }
+            $projected = $direct->rolePermissionKeysBatch(array_column($roles, 'revision', 'id'));
+            foreach ($activeIds as $roleId) {
+                $current = array_keys($legacyKeys[$roleId] ?? []);
+                $future = $projected[$roleId] ?? [];
+                sort($current, SORT_STRING);
+                sort($future, SORT_STRING);
+                if ($current !== $future) {
+                    throw AdminAccessException::conflict('PLATFORM_DIRECT_MIGRATION_NOT_EQUIVALENT', 'Direct role permissions differ from the active legacy grants.');
+                }
+            }
+            Db::name('platform_role_authorization_source')->where('id', 1)->update(['mode' => 'direct', 'changed_at' => $this->now()]);
+            $this->assertDirectControlAdminExists($direct);
+            PlatformOperator::where('status', 'active')->update(['security_revision' => new Raw('security_revision + 1')]);
+            $this->recordAudit($actor, 'platform-role.source-activated', 'platform.role.permission.assign',
+                'platform-authorization-source', 1, ['mode' => 'legacy'], ['mode' => 'direct', 'catalog_sha256' => $digest],
+                ['change_reason' => $changeReason]);
+        });
+    }
+
+    /** Emergency single switch rollback; the unchanged legacy relations become active again. */
+    public function rollbackDirectRoleSource(PlatformContext $actor, string $changeReason): void
+    {
+        $changeReason = $this->changeReason($changeReason);
+        Db::transaction(function () use ($actor, $changeReason): void {
+            $this->requireActor($actor);
+            $this->lockControlPlane();
+            $direct = new PlatformRoleDirectGrantStore();
+            $direct->assertReady();
+            if ($direct->source(true) !== 'direct') {
+                throw AdminAccessException::conflict('PLATFORM_ROLE_SOURCE_CONFLICT', 'Direct source is not active.');
+            }
+            // An emergency return to the preserved legacy relation must never
+            // silently re-grant rights that were revoked while direct was
+            // active. Serialize the relevant source rows and compare every
+            // active role through the SAME evaluator used by live sessions.
+            $rows = Db::name('platform_role')->where('status', 'active')
+                ->field('id,revision')->order('id')->lock(true)->select()->toArray();
+            $revisions = array_column($rows, 'revision', 'id');
+            if ($revisions === []) {
+                throw AdminAccessException::conflict('PLATFORM_CONTROL_ADMIN_REQUIRED', 'At least one active Platform role must remain.');
+            }
+            Db::name('system_api')->where('audience', 'platform')->order('id')->lock(true)->column('id');
+            Db::name('permission_api')->order('permission_id,api_id')->lock(true)->column('id');
+            Db::name('permission')->whereLike('key', 'platform.%')->order('id')->lock(true)->column('id');
+            $current = $direct->rolePermissionKeysBatch($revisions);
+            $old = [];
+            foreach (Db::name('platform_role_permission')->alias('binding')
+                ->join('permission permission', 'permission.id = binding.permission_id')
+                ->whereIn('binding.platform_role_id', array_keys($revisions))
+                ->where('permission.status', 'active')->whereLike('permission.key', 'platform.%')
+                ->field('binding.platform_role_id,permission.key')->select()->toArray() as $grant) {
+                $old[(int) $grant['platform_role_id']][$grant['key']] = true;
+            }
+            foreach ($revisions as $roleId => $_revision) {
+                if (array_diff(array_keys($old[$roleId] ?? []), $current[$roleId]) !== []) {
+                    throw AdminAccessException::conflict(
+                        'PLATFORM_ROLLBACK_PRIVILEGE_EXPANSION',
+                        'Legacy grants would restore a permission revoked from the direct source.',
+                    );
+                }
+            }
+            Db::name('platform_role_authorization_source')->where('id', 1)->update(['mode' => 'legacy', 'changed_at' => $this->now()]);
+            $this->assertControlAdminExists();
+            PlatformOperator::where('status', 'active')->update(['security_revision' => new Raw('security_revision + 1')]);
+            $this->recordAudit($actor, 'platform-role.source-rolled-back', 'platform.role.permission.assign',
+                'platform-authorization-source', 1, ['mode' => 'direct'], ['mode' => 'legacy'],
+                ['change_reason' => $changeReason]);
+        });
+    }
+
+    /**
+     * The same last-admin condition as the original writer, now evaluated from
+     * direct grants. No permission bundle is written as a parallel source.
+     */
+    private function assertDirectControlAdminExists(PlatformRoleDirectGrantStore $direct): void
+    {
+        $rows = PlatformOperator::alias('operator')
+            ->join('platform_operator_role membership', 'membership.platform_operator_id = operator.id')
+            ->join('platform_role role', 'role.id = membership.platform_role_id')
+            ->where('operator.status', 'active')->where('role.status', 'active')
+            ->field('operator.id AS operator_id,role.id AS role_id,role.revision,role.key AS role_key,role.is_builtin')
+            ->order('operator.id,role.id')->select()->toArray();
+        $revisions = [];
+        foreach ($rows as $row) {
+            if ($row['role_key'] === 'platform.bootstrap-owner' && (int) $row['is_builtin'] === 1) {
+                return;
+            }
+            $revisions[(int) $row['role_id']] = (int) $row['revision'];
+        }
+        $permissions = $direct->rolePermissionKeysBatch($revisions);
+        $operators = [];
+        foreach ($rows as $row) {
+            $id = (int) $row['operator_id'];
+            foreach ($permissions[(int) $row['role_id']] as $key) {
+                $operators[$id][$key] = true;
+            }
+        }
+        foreach ($operators as $keys) {
+            if (count(array_intersect(self::CONTROL_PERMISSION_KEYS, array_keys($keys))) === count(self::CONTROL_PERMISSION_KEYS)) {
+                return;
+            }
+        }
+        throw AdminAccessException::conflict('PLATFORM_CONTROL_ADMIN_REQUIRED', 'At least one active Platform control administrator must remain.');
+    }
+
+    private function bumpDirectRoleRevisionIfActive(int $roleId, int $expectedRevision): void
+    {
+        if ((new PlatformRoleDirectGrantStore())->source(true) !== 'direct') {
+            return;
+        }
+        if (Db::name('platform_role_direct_state')->where('platform_role_id', $roleId)
+            ->where('role_revision', $expectedRevision)->update([
+                'role_revision' => $expectedRevision + 1, 'updated_at' => $this->now(),
+            ]) !== 1) {
+            throw AdminAccessException::conflict('PLATFORM_DIRECT_ROLE_NOT_MIGRATED', 'A Platform role has no current direct source.');
+        }
+    }
+
     private function createAccountAndCredential(string $email, string $displayName, string $password): int
     {
         $this->passwordPolicy->assertValid($password);
@@ -495,6 +851,11 @@ final readonly class PlatformAccessAdminService
 
     private function assertControlAdminExists(): void
     {
+        $direct = new PlatformRoleDirectGrantStore();
+        if ($direct->source() === 'direct') {
+            $this->assertDirectControlAdminExists($direct);
+            return;
+        }
         $rows = PlatformOperator::alias('operator')
             ->join('platform_operator_role operator_role', 'operator_role.platform_operator_id = operator.id')
             ->join('platform_role role', "role.id = operator_role.platform_role_id AND role.status = 'active'")
