@@ -163,11 +163,11 @@
         },
         {
             "key": "peanut.article",
-            "version": "1.0.21-rc.20",
+            "version": "1.0.21-rc.21",
             "source": {
                 "type": "canonical-contents",
                 "reference": "canonical-plugin-contents-v1",
-                "sha256": "dab40a3ba93b47fe2a0b19ad25890aa7b7308b277ecbd8ea88cfc2ff1c61b511"
+                "sha256": "9d004fa5dc9539a44396267d3d98bb5eba913918514e6c23196b2265498a42fa"
             },
             "trust": {
                 "channel": "bundled",
@@ -183,7 +183,7 @@
                     "modules": [
                         {
                             "key": "peanut.article",
-                            "version": "1.0.21-rc.20",
+                            "version": "1.0.21-rc.21",
                             "kernel_constraint": "^1.0",
                             "dependencies": [
                                 {
@@ -218,46 +218,46 @@
             "composer": [
                 {
                     "name": "peanut-business/peanut-article",
-                    "version": "1.0.21-rc.20",
-                    "sha256": "ea92dfa9987dc0e771a9c814e579b730b3db0b6de19af1b3d04b3d4f11c6a0a8"
+                    "version": "1.0.21-rc.21",
+                    "sha256": "611248e66c4d2dd248d3644c7751442a8245a4b3256a3239534025c6aaa2b67c"
                 }
             ],
             "npm": [
                 {
                     "name": "@peanut-admin/peanut-article",
-                    "version": "1.0.21-rc.20",
-                    "integrity": "sha256-ZO3auh1Leb9CLfAJHz96oVNFpDOknjn+cfKooW2IaBk="
+                    "version": "1.0.21-rc.21",
+                    "integrity": "sha256-6Y+kWOo03zG5abg6kCqJEy0y4+iOBsaJ1tF7ordFiZU="
                 },
                 {
                     "name": "@peanut-admin/peanut-article-pc",
-                    "version": "1.0.21-rc.20",
-                    "integrity": "sha256-Xek6vE6htzOMxK5zqCDeOayVDhthReByf3pjRJ4OkM4="
+                    "version": "1.0.21-rc.21",
+                    "integrity": "sha256-89ck5t9VaIOtaV9Su1ZS5gYSkFTFZ2S8wYuPOFGAMic="
                 },
                 {
                     "name": "@peanut-admin/peanut-article-uniapp",
-                    "version": "1.0.21-rc.20",
-                    "integrity": "sha256-y98YP1FQZ9TwcsAVNnPyDwN/zF2yilTpFscCBVW4AC4="
+                    "version": "1.0.21-rc.21",
+                    "integrity": "sha256-nED3n5lsQ4laBJ71xmhMWKT9exrpqEhue0sQMskU4hc="
                 }
             ],
             "frontend": [
                 {
                     "client_key": "pc-web",
                     "package": "@peanut-admin/peanut-article-pc",
-                    "version": "1.0.21-rc.20",
+                    "version": "1.0.21-rc.21",
                     "entry": "pc/modules/peanut-article/contribution.ts",
                     "sha256": "29f8b7624301a3531a579a60207a71055a50b68b021dec331724227318a51cf4"
                 },
                 {
                     "client_key": "uniapp",
                     "package": "@peanut-admin/peanut-article-uniapp",
-                    "version": "1.0.21-rc.20",
+                    "version": "1.0.21-rc.21",
                     "entry": "uniapp/src/modules/peanut-article/contribution.ts",
                     "sha256": "c0c06f27b613665a6858f2869ee8c2698c94b4defe3324edb070dcbd7c986ec2"
                 },
                 {
                     "client_key": "admin-web",
                     "package": "@peanut-admin/peanut-article",
-                    "version": "1.0.21-rc.20",
+                    "version": "1.0.21-rc.21",
                     "entry": "web/src/modules/peanut-article/contribution.ts",
                     "sha256": "3bdf14814908ce2861f3f917f687426604fc01b2b625d05853eabf06d6a5d820"
                 }
@@ -269,7 +269,7 @@
                 }
             ],
             "manifest": "server/app/modules/peanut/article/module.json",
-            "manifest_sha256": "d5b5696e70fde403416f4362553273dfc9c71dee2b4875972b8c1de76d64bcc6"
+            "manifest_sha256": "6b6201ea52b8ade513dc1c82fc9db7dfb168716857a617659be3999302f0c1a4"
         },
         {
             "key": "peanut.artifact-revision",

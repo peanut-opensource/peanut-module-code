@@ -23,7 +23,7 @@
         v-if="nextRevisionNo !== null"
         :disabled="loading"
         @click="load(true)"
-        >加载更早版本</el-button
+        >{{ error && items.length ? '重试加载更早版本' : '加载更早版本' }}</el-button
       >
       <p role="status"
         >列表仅含版本摘要；查看正文会重新核验权限，恢复和业务保存仍使用原入口。</p
@@ -110,6 +110,14 @@
   const deny = () => {
     clear();
     error.value = '历史内容不可用，请重新核验当前查看权限和文档归属。';
+  };
+  const temporaryServiceFailure = (cause: unknown): boolean => {
+    if (!cause || typeof cause !== 'object') return false;
+    const response = (cause as { response?: { status?: unknown } }).response;
+    // A denied/mismatched document or malformed 200 response must clear
+    // previously visible history. Only gateway/module unavailability permits
+    // retaining already authorized entries for the same live identity.
+    return [502, 503, 504].some((status) => response?.status === status);
   };
   const validatePage = (
     value: DocumentVersionsPage,
@@ -207,10 +215,18 @@
         throw new Error('DOCUMENT_HISTORY_RESPONSE_INVALID');
       items.value = more ? [...items.value, ...data.items] : data.items;
       nextRevisionNo.value = data.next_before_revision_no;
-    } catch {
+    } catch (cause) {
       if (live()) {
-        clear();
-        error.value = '历史查询失败；请检查当前权限和服务状态后显式重试。';
+        if (more && items.value.length > 0 && temporaryServiceFailure(cause)) {
+          // A failed continuation must not erase an already confirmed page
+          // or its exact pagination cursor. Retrying uses the same cursor.
+          error.value = '更早版本暂时无法读取；已载入历史仍可查看，可重试当前分页。';
+        } else {
+          // Authorization denial, owner drift, malformed response and first
+          // page failures are never displayed as previously valid content.
+          clear();
+          error.value = '历史查询失败；请检查当前权限和服务状态后显式重试。';
+        }
       }
     } finally {
       if (request === controller) {
