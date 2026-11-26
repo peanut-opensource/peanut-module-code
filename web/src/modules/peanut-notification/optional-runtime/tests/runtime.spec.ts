@@ -52,6 +52,7 @@ describe('notification runtime', () => {
     const runtime = createNotificationRuntime({
       transport,
       canRead: () => true,
+      canManage: () => true,
     });
     await runtime.load();
     expect(runtime.state.items).toHaveLength(1);
@@ -75,6 +76,7 @@ describe('notification runtime', () => {
     const denied = createNotificationRuntime({
       transport: deniedTransport,
       canRead: () => false,
+      canManage: () => false,
     });
     denied.state.selected.add(item.message_key);
     await denied.load();
@@ -99,6 +101,7 @@ describe('notification runtime', () => {
         bulk: vi.fn(),
       },
       canRead: () => true,
+      canManage: () => true,
     });
     invalid.toggle(item.message_key);
     await invalid.load();
@@ -122,6 +125,7 @@ describe('notification runtime', () => {
     const runtime = createNotificationRuntime({
       transport,
       canRead: () => true,
+      canManage: () => true,
     });
     await runtime.load();
     const mutation = runtime.markRead(runtime.state.items[0]!);

@@ -2,10 +2,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { Editor } from '@tiptap/core';
-import ContentEditor from '@/modules/official-content-tools/src/ContentEditor.vue';
-import FileAssetSelector from '@/modules/official-file/optional-runtime/src/FileAssetSelector.vue';
-import ContentToolRegistry from '@/modules/official-content-tools/src/registry';
-import type { SurfaceCallbacks } from '@/modules/official-content-tools/src/contracts';
+import ContentEditor from '@/modules/peanut-content-tools/src/ContentEditor.vue';
+import FileAssetSelector from '@/modules/peanut-file/optional-runtime/src/FileAssetSelector.vue';
+import ContentToolRegistry from '@/modules/peanut-content-tools/src/registry';
+import type { SurfaceCallbacks } from '@/modules/peanut-content-tools/src/contracts';
 import { emptyDocument, parseRichTextDocument } from '../src/document';
 import richTextExtensions from '../src/extensions';
 import RichTextEditor from '../components/RichTextEditor.vue';
@@ -523,11 +523,18 @@ describe('actual contributed adapter and File picker', () => {
           await button('选择文件素材').trigger('click');
           await flushPromises();
         }
-        expect(wrapper.emitted('error')).toContainEqual([
-          operation === 'link'
-            ? 'RICH_TEXT_LINK_INVALID'
-            : 'RICH_TEXT_MEDIA_INVALID',
-        ]);
+        if (operation === 'link') {
+          // The native link toolbar rejects unsafe input inline. It does not
+          // emit an adapter failure, and must leave the valid dirty document.
+          expect(wrapper.text()).toContain(
+            '请输入有效的 http、https 或 mailto 链接。'
+          );
+          expect(wrapper.emitted('error')).toBeUndefined();
+        } else {
+          expect(wrapper.emitted('error')).toContainEqual([
+            'RICH_TEXT_MEDIA_INVALID',
+          ]);
+        }
         expect(button('请求保存').attributes('disabled')).toBeUndefined();
         await button('请求保存').trigger('click');
         const saved = wrapper.emitted('save-request');

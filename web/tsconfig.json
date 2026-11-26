@@ -24,6 +24,7 @@
     "src/modules/**/optional-runtime/tests/**",
     "src/modules/peanut-settings/runtime/tests/**",
     "src/modules/peanut-content-tools/tests/**",
-    "src/modules/peanut-rich-text/tests/**"
+    "src/modules/peanut-rich-text/tests/**",
+    "src/modules/peanut-chart-examples/tests/**"
   ]
 }

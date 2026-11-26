@@ -128,9 +128,13 @@ describe('content tool registry', () => {
 describe('content surfaces', () => {
   it.each([
     ['image/png', 'builtin.image', 'img'],
+    ['image/webp', 'builtin.image', 'img'],
+    ['image/avif', 'builtin.image', 'img'],
     ['application/pdf', 'builtin.pdf', 'object'],
     ['audio/mpeg', 'builtin.audio', 'audio'],
+    ['audio/ogg', 'builtin.audio', 'audio'],
     ['video/mp4', 'builtin.video', 'video'],
+    ['video/webm', 'builtin.video', 'video'],
   ])('uses an actual controlled %s viewer', async (mime, id, element) => {
     if (mime === 'application/pdf') {
       vi.stubGlobal(

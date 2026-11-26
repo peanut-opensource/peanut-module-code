@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { createRequire } from 'node:module';
+import { createBaseConfig } from './vite.config.ts';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const webRequire = createRequire(resolve(root, 'package.json'));
@@ -12,16 +13,37 @@ if (!selectedCore)
     'WEB_CORE_SOURCE_ROOT is required for optional runtime tests.'
   );
 const coreRoot = resolve(selectedCore);
-const coreAliases = ['client', 'vue', 'ui-vue'].map((name) => {
-  const entry = resolve(coreRoot, `packages/${name}/src/index.ts`);
-  if (!existsSync(entry))
-    throw new Error(`Selected Core entry is missing: ${entry}`);
-  return { find: `@peanut-admin/${name}`, replacement: entry };
-});
+// Use the same two virtual manifests as the installed Admin build, not a
+// hand-written empty registry: tests must consume the current modules.lock.
+const nativeAppConfig = createBaseConfig(
+  { command: 'build', mode: 'multi-tenant', isPreview: false },
+  { VITE_DEPLOYMENT_MODE: 'multi-tenant' }
+);
+const applicationManifests = (nativeAppConfig.plugins || []).filter((plugin) =>
+  [
+    'peanut-module-contribution-manifest',
+    'peanut-instance-tool-route-manifest',
+  ].includes(plugin.name)
+);
+if (applicationManifests.length !== 2)
+  throw new Error('Current Admin module/instance route manifests are unavailable');
+const coreAliases = [
+  {
+    find: '@peanut-admin/ui-vue/tabs',
+    replacement: resolve(coreRoot, 'packages/ui-vue/src/tabs.ts'),
+  },
+  ...['client', 'vue', 'ui-vue'].map((name) => {
+    const entry = resolve(coreRoot, `packages/${name}/src/index.ts`);
+    if (!existsSync(entry))
+      throw new Error(`Selected Core entry is missing: ${entry}`);
+    return { find: `@peanut-admin/${name}`, replacement: entry };
+  }),
+];
 
 export default {
   root,
-  plugins: [vuePlugin()],
+  plugins: [...applicationManifests, vuePlugin()],
+  define: nativeAppConfig.define,
   resolve: {
     dedupe: [
       'vue',
@@ -75,6 +97,7 @@ export default {
       'src/modules/peanut-settings/runtime/tests/**/*.spec.ts',
       'src/modules/peanut-content-tools/tests/**/*.spec.ts',
       'src/modules/peanut-rich-text/tests/**/*.spec.ts',
+      'src/modules/peanut-chart-examples/tests/**/*.spec.ts',
     ],
     passWithNoTests: false,
   },

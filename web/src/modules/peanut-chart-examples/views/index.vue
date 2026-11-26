@@ -48,7 +48,10 @@
   import { downloadChartPng } from '../src/png-download';
 
   const app = useAppStore();
-  const dark = computed(() => app.theme === 'dark');
+  const dark = computed({
+    get: () => app.theme === 'dark',
+    set: (enabled: boolean) => app.toggleTheme(enabled),
+  });
   const loading = ref(false);
   const lineChartReady = ref(false);
   const interaction = ref('点击图形查看事件');

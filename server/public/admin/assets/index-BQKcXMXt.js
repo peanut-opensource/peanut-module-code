@@ -1,0 +1,1 @@
+import{d as o,f as a,ab as r,o as s,c as n}from"./index-DAd8SRNT.js";const d=o({__name:"index",setup(c){const e=a(),t=r().params.path;return e.replace(t),(p,_)=>(s(),n("div"))}});export{d as default};

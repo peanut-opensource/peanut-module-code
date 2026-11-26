@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "254a3af461ac62a3961ea0ee2de49369",
+    "content-hash": "58a070ffe8584256910828dfd87c9002",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -2442,11 +2442,11 @@
         },
         {
             "name": "peanut-business/peanut-chart-examples",
-            "version": "1.0.5-rc.2",
+            "version": "1.0.5-rc.3",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/chart_examples",
-                "reference": "432d6b8aa41a373ea96042c0417652ec09695516"
+                "reference": "e25a04be58d5a4900c3064c932f8d6570cfa23de"
             },
             "type": "peanut-admin-module",
             "extra": {
@@ -2506,11 +2506,11 @@
         },
         {
             "name": "peanut-business/peanut-content-tools",
-            "version": "1.0.4-rc.1",
+            "version": "1.0.4-rc.2",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/content_tools",
-                "reference": "449b1931f452c080dc6c3e495aa2e8592bcd76ae"
+                "reference": "74089be419b9d12e3cdac8dfde0772e5ee0dfff5"
             },
             "type": "peanut-admin-module",
             "extra": {
@@ -2572,11 +2572,11 @@
         },
         {
             "name": "peanut-business/peanut-file",
-            "version": "1.0.50-rc.20",
+            "version": "1.0.50-rc.21",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/file",
-                "reference": "c303b94e729cbfa8154cf452cc4d102a46e60069"
+                "reference": "75d5fbbe8899bbd20a5b079b912d539f83d98b8a"
             },
             "require": {
                 "aliyuncs/oss-sdk-php": "^2.4",
@@ -2765,11 +2765,11 @@
         },
         {
             "name": "peanut-business/peanut-notification",
-            "version": "1.0.33-rc.2",
+            "version": "1.0.33-rc.3",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/notification",
-                "reference": "e8fd70c62f8aedc4d38adbe1f4b53edcce500282"
+                "reference": "c669dfd7171466c7fa9440f2c278992af1a42585"
             },
             "require": {
                 "peanut-admin/core": "^5.0.2",
@@ -2955,11 +2955,11 @@
         },
         {
             "name": "peanut-business/peanut-rich-text",
-            "version": "1.0.19-rc.2",
+            "version": "1.0.19-rc.3",
             "dist": {
                 "type": "path",
                 "url": "app/modules/peanut/rich_text",
-                "reference": "0df4434fd704ca88729e339555b897382653160b"
+                "reference": "f7ae5c6c62be8752e338e0cfe8f84b635729d857"
             },
             "require": {
                 "peanut-business/peanut-identity": "^4.0.0-rc.32"
@@ -7079,5 +7079,5 @@
         "php": "^8.3"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }
