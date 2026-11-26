@@ -24,6 +24,7 @@ use PeanutAdmin\Modules\Task\Contract\JobExecution;
 use PeanutAdmin\Modules\Task\Contract\TaskHandler;
 use PeanutAdmin\Modules\Task\Contract\TaskWorkerContributor;
 use PeanutAdmin\Modules\Task\Contract\TaskWorkerDefinition;
+use PeanutAdmin\Modules\Task\ModuleProvider as TaskModuleProvider;
 use PeanutAdmin\Modules\Task\Service\TaskWorkerDefinitionRegistry;
 use think\App;
 
@@ -96,6 +97,11 @@ $registry = new CompiledModuleRegistry([
         'key' => 'fixture.worker',
         'backend' => ['provider' => FixtureWorkerProvider::class],
     ]),
+    // A Task worker registry is published only when the Task Module is selected.
+    ManifestDocument::fromObject('/peanut/task', (object) [
+        'key' => 'peanut.task',
+        'backend' => ['provider' => TaskModuleProvider::class],
+    ]),
 ], [], [], [], 'test');
 $app = new App(dirname(__DIR__, 4));
 (new ModuleComposition($app))->register($registry);
@@ -114,6 +120,10 @@ $notificationApp = new App(dirname(__DIR__, 4));
     ManifestDocument::fromObject('/peanut/notification', (object) [
         'key' => 'peanut.notification',
         'backend' => ['provider' => NotificationModuleProvider::class],
+    ]),
+    ManifestDocument::fromObject('/peanut/task', (object) [
+        'key' => 'peanut.task',
+        'backend' => ['provider' => TaskModuleProvider::class],
     ]),
 ], [], [], [], 'test'));
 $notificationApp->instance(
