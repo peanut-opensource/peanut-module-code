@@ -9,6 +9,9 @@
     <el-space class="chart-examples__controls" wrap>
       <el-switch v-model="loading" active-text="加载状态" />
       <el-switch v-model="dark" active-text="深色主题" />
+      <el-button :disabled="!lineChartReady || loading" @click="resetZoom"
+        >重置缩放</el-button
+      >
       <el-button :disabled="!lineChartReady || loading" @click="exportImage"
         >导出折线图 PNG</el-button
       >
@@ -63,6 +66,17 @@
   const onChartClick = (event: { name?: string; seriesName?: string }) => {
     interaction.value = `已点击：${event.seriesName || ''} ${event.name || ''}`;
   };
+  const resetZoom = () => {
+    if (!lineChart.value || !lineChartReady.value || loading.value) return;
+    try {
+      // vue-echarts exposes the native ECharts dispatchAction method.
+      lineChart.value.dispatchAction({ type: 'restore' });
+      interaction.value = '折线图已恢复完整范围';
+    } catch {
+      interaction.value = '重置缩放失败，请重试';
+    }
+  };
+
   const exportImage = () => {
     if (!lineChart.value || !lineChartReady.value || loading.value) return;
     try {

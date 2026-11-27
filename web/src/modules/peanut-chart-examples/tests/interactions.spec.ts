@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { defineComponent, h } from 'vue';
 import ChartExamples from '../views/index.vue';
 
-const app = vi.hoisted(() => ({ instance: null as unknown }));
+const app = vi.hoisted(() => ({ instance: null as unknown, restore: vi.fn() }));
 vi.mock('@/store', async () => {
   const { reactive } = await import('vue');
   const state = reactive({
@@ -27,6 +27,7 @@ vi.mock('@peanut-admin/peanut-chart/charts', async () => {
       setup(props, { emit, expose }) {
         expose({
           getDataURL: () => 'data:image/png;base64,iVBORw0KGgo=',
+          dispatchAction: app.restore,
         });
         onMounted(() => emit('finished'));
         return () =>
@@ -96,10 +97,18 @@ describe('ChartExamples native consumer interactions', () => {
       expect(options[0].dataZoom).toMatchObject([{ type: 'inside' }, { type: 'slider' }]);
       const exportButton = () => wrapper.findAll('button').find(x => x.text() === '导出折线图 PNG');
       expect(exportButton()?.attributes('disabled')).toBeUndefined();
+      const resetButton = () => wrapper.findAll('button').find(x => x.text() === '重置缩放');
+      expect(resetButton()?.attributes('disabled')).toBeUndefined();
+      await resetButton()?.trigger('click');
+      expect(app.restore).toHaveBeenCalledExactlyOnceWith({ type: 'restore' });
+      expect(wrapper.find('[role="status"]').text()).toBe('折线图已恢复完整范围');
       await wrapper.find('[aria-label="加载状态"]').trigger('click');
       await flushPromises();
       expect(charts[0].attributes('data-loading')).toBe('true');
       expect(exportButton()?.attributes('disabled')).toBeDefined();
+      expect(resetButton()?.attributes('disabled')).toBeDefined();
+      await resetButton()?.trigger('click');
+      expect(app.restore).toHaveBeenCalledTimes(1);
       await wrapper.find('[aria-label="加载状态"]').trigger('click');
       await charts[0].trigger('click');
       expect(wrapper.find('[role="status"]').text()).toContain('演示访问量 周一');
