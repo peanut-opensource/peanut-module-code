@@ -97,6 +97,28 @@ final class PlatformRoleDirectSourceVerticalTest extends TestCase
     }
 
 
+    public function testG18NativeMigrationTablesBelongToIdentityManifest(): void
+    {
+        $root = dirname(__DIR__, 3);
+        $manifest = json_decode((string) file_get_contents(
+            $root . '/server/app/modules/peanut/identity/module.json',
+        ), true, 64, JSON_THROW_ON_ERROR);
+        $source = (string) file_get_contents(
+            $root . '/server/app/modules/peanut/identity/database/migrations/20261125090000_platform_role_direct_grants.php',
+        );
+        preg_match_all('/CREATE TABLE (pa_platform_[a-z_]+) \(/', $source, $matches);
+        self::assertSame([
+            'pa_platform_role_authorization_source',
+            'pa_platform_role_direct_state',
+            'pa_platform_role_node',
+            'pa_platform_role_node_api',
+        ], $matches[1]);
+        foreach ($matches[1] as $table) {
+            self::assertContains($table, $manifest['database']['owned_tables'],
+                'Identity lifecycle must account for its own G18 migration table: ' . $table);
+        }
+    }
+
     public function testUnmigratedMainApplicationKeepsExistingLegacyAuthorization(): void
     {
         // Drop all direct tables BEFORE first authorization read, representing
