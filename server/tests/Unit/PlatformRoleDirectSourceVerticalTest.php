@@ -70,6 +70,9 @@ final class PlatformRoleDirectSourceVerticalTest extends TestCase
         $this->db->exec('PRAGMA foreign_keys=ON');
         ThinkPhpTestConnection::fromPdo($this->db);
         PlatformRoleAuthorizationCatalogAuditFixture::install($this->db);
+        // A native installed APP always has Identity's Module lifecycle table.
+        // An empty table models an optional Module that is not installed.
+        $this->db->exec('CREATE TABLE pa_module_installation (module_key TEXT PRIMARY KEY, status TEXT NOT NULL)');
         PlatformRoleAuthorizationCatalogAuditFixture::enablePlatformWrites($this->db);
         $this->direct = new PlatformRoleDirectGrantStore();
         $this->roles = new ThinkPhpPlatformAuthorizationRepository();
@@ -675,7 +678,8 @@ final class PlatformRoleDirectSourceVerticalTest extends TestCase
             }
             $menuInsert->execute([
                 ++$id, $node['key'], 'platform', $node['type'], 'active', 0,
-                'module', 'platform', $node['parent_key'], $node['route_path'], '["platform-web"]',
+                in_array($node['key'], ['platform.tenancy', 'platform.tenant.list'], true) ? 'system' : 'module',
+                'platform', $node['parent_key'], $node['route_path'], '["platform-web"]',
             ]);
         }
         $this->db->exec("INSERT INTO pa_permission (id,\"key\",status,api_configured) VALUES (100,'platform.tenant.read','active',0)");
@@ -704,6 +708,12 @@ final class PlatformRoleDirectSourceVerticalTest extends TestCase
         ]));
         $resolved = $source->authoritativeCandidate($request);
         self::assertGreaterThan(50, count($resolved['nodes']));
+        self::assertNotContains('platform.tenant.dictionary-catalog.read', array_column($resolved['nodes'], 'key'),
+            'Uninstalled ReferenceCodes must not contribute a Platform role API node');
+        $this->db->exec("UPDATE pa_system_menu SET source='untrusted' WHERE `key`='platform.tenancy'");
+        $this->assertRejected('PLATFORM_ROLE_MENU_CATALOG_DRIFT',
+            fn(): array => $source->authoritativeCandidate($request));
+        $this->db->exec("UPDATE pa_system_menu SET source='system' WHERE `key`='platform.tenancy'");
         $digest = $this->direct->catalogDigest($resolved['nodes']);
         $legacy = $this->legacyGrants();
         $contract = new PlatformRoleNodeWriteContract(
@@ -821,7 +831,8 @@ final class PlatformRoleDirectSourceVerticalTest extends TestCase
             }
             $menuInsert->execute([
                 ++$id, $node['key'], 'platform', $node['type'], 'active', 0,
-                'module', 'platform', $node['parent_key'], $node['route_path'], '["platform-web"]',
+                in_array($node['key'], ['platform.tenancy', 'platform.tenant.list'], true) ? 'system' : 'module',
+                'platform', $node['parent_key'], $node['route_path'], '["platform-web"]',
             ]);
         }
         $this->db->exec("INSERT INTO pa_permission (id,\"key\",status,api_configured) VALUES (100,'platform.tenant.read','active',0)");
@@ -850,6 +861,12 @@ final class PlatformRoleDirectSourceVerticalTest extends TestCase
         ]));
         $resolved = $source->authoritativeCandidate($request);
         self::assertGreaterThan(50, count($resolved['nodes']));
+        self::assertNotContains('platform.tenant.dictionary-catalog.read', array_column($resolved['nodes'], 'key'),
+            'Uninstalled ReferenceCodes must not contribute a Platform role API node');
+        $this->db->exec("UPDATE pa_system_menu SET source='untrusted' WHERE `key`='platform.tenancy'");
+        $this->assertRejected('PLATFORM_ROLE_MENU_CATALOG_DRIFT',
+            fn(): array => $source->authoritativeCandidate($request));
+        $this->db->exec("UPDATE pa_system_menu SET source='system' WHERE `key`='platform.tenancy'");
         $digest = $this->direct->catalogDigest($resolved['nodes']);
         $legacy = $this->legacyGrants();
         $contract = new PlatformRoleNodeWriteContract(
