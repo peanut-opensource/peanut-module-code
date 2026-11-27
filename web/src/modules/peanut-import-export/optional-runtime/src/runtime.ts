@@ -1,8 +1,9 @@
 import { inject, reactive } from 'vue';
 import type { InjectionKey } from 'vue';
-import { parseOperationList, parseOperationResponse } from './contracts';
+import { parseErrorReportCsv, parseOperationList, parseOperationResponse } from './contracts';
 import type {
   ImportExportOperation,
+  ImportExportRowIssue,
   ImportExportStatus,
   ImportExportTransport,
   ImportExportTransportResult,
@@ -45,12 +46,15 @@ export interface ImportExportState {
   loading: boolean;
   mutating: boolean;
   error: ImportExportError | null;
+  errorPreview: { fileKey: string; rows: ImportExportRowIssue[]; truncated: boolean } | null;
+  previewLoading: boolean;
   actionFeedback: ImportExportActionFeedback | null;
 }
 export interface ImportExportRuntime {
   state: ImportExportState;
   canCreate(): boolean;
   canCancel(): boolean;
+  canDownload(): boolean;
   load(): Promise<void>;
   acknowledgeUnknown(): void;
   setStatus(status: ImportExportStatus): Promise<void>;
@@ -62,6 +66,8 @@ export interface ImportExportRuntime {
   submitExport(providerKey: string): Promise<void>;
   cancel(operation: ImportExportOperation): Promise<void>;
   download(fileKey: string): Promise<void>;
+  previewErrors(fileKey: string): Promise<void>;
+  clearErrorPreview(): void;
   dispose(): void;
 }
 export interface ImportExportRuntimeOptions {
@@ -69,6 +75,7 @@ export interface ImportExportRuntimeOptions {
   canRead(): boolean;
   canCreate(): boolean;
   canCancel(): boolean;
+  canDownload?: () => boolean;
   saveDownload?: (
     response: Response,
     fileKey: string,
@@ -131,6 +138,8 @@ export const createImportExportRuntime = (
     loading: false,
     mutating: false,
     error: null,
+    errorPreview: null,
+    previewLoading: false,
     actionFeedback: null,
   });
   let disposeEpoch = 0;
@@ -155,6 +164,7 @@ export const createImportExportRuntime = (
         state.items = [];
         state.total = 0;
         state.actionFeedback = null;
+        state.errorPreview = null;
         throw new Error('IMPORT_EXPORT_PERMISSION_DENIED');
       }
       const { status, page, pageSize } = state;
@@ -173,6 +183,7 @@ export const createImportExportRuntime = (
           state.items = [];
           state.total = 0;
           state.actionFeedback = null;
+          state.errorPreview = null;
         }
         return;
       }
@@ -285,6 +296,7 @@ export const createImportExportRuntime = (
     state,
     canCreate: options.canCreate,
     canCancel: options.canCancel,
+    canDownload: () => options.canRead() && (options.canDownload?.() ?? true),
     load,
     acknowledgeUnknown() {
       if (state.actionFeedback?.kind === 'unknown' &&
@@ -341,6 +353,10 @@ export const createImportExportRuntime = (
       );
     },
     async download(fileKey) {
+      if (!options.canRead() || options.canDownload?.() === false) {
+        state.error = { message: 'File download permission is required.', requestId: null, status: 403 };
+        return;
+      }
       const currentDispose = disposeEpoch;
       downloadEpoch += 1;
       const currentDownload = downloadEpoch;
@@ -348,6 +364,8 @@ export const createImportExportRuntime = (
       const controller = new AbortController();
       downloadController = controller;
       state.error = null;
+      state.errorPreview = null;
+      state.previewLoading = false;
       try {
         const response = await options.transport.download(
           fileKey,
@@ -376,6 +394,11 @@ export const createImportExportRuntime = (
             });
           return;
         }
+        // A redirected session/login HTML response must not be saved as a .csv.
+        if (response.headers.get('content-type')?.toLowerCase().includes('text/html')) {
+          state.error = { message: 'The file response was not CSV.', requestId: null, status: null };
+          return;
+        }
         await (options.saveDownload ?? save)(
           response,
           fileKey,
@@ -396,6 +419,53 @@ export const createImportExportRuntime = (
         if (downloadController === controller) downloadController = null;
       }
     },
+    async previewErrors(fileKey) {
+      if (!options.canRead() || options.canDownload?.() === false) {
+        state.errorPreview = null;
+        return;
+      }
+      const currentDispose = disposeEpoch;
+      downloadEpoch += 1;
+      const currentDownload = downloadEpoch;
+      downloadController?.abort();
+      const controller = new AbortController();
+      downloadController = controller;
+      state.previewLoading = true;
+      state.errorPreview = null;
+      state.error = null;
+      try {
+        const response = await options.transport.download(fileKey, controller.signal);
+        if (currentDispose !== disposeEpoch || currentDownload !== downloadEpoch) return;
+        if (!response.ok) {
+          let body: unknown = null;
+          try { body = await response.json(); } catch { body = null; }
+          state.error = failure({ status: response.status, body, headers: response.headers });
+          return;
+        }
+        const mediaType = response.headers.get('content-type')?.toLowerCase() ?? '';
+        const blob = await response.blob();
+        // Report generation already has a hard limit; inline previews stay smaller.
+        if (!mediaType.startsWith('text/csv') || blob.size > 512 * 1024)
+          throw new Error('IMPORT_EXPORT_ERROR_REPORT_INVALID');
+        const preview = parseErrorReportCsv(await blob.text());
+        if (currentDispose === disposeEpoch && currentDownload === downloadEpoch && !controller.signal.aborted)
+          state.errorPreview = { fileKey, ...preview };
+      } catch (error) {
+        if (currentDispose === disposeEpoch && currentDownload === downloadEpoch && !aborted(error))
+          state.error = {
+            message: 'The error report could not be previewed. Download the CSV for the full report.',
+            requestId: null,
+            status: null,
+          };
+      } finally {
+        if (downloadController === controller) downloadController = null;
+        if (currentDispose === disposeEpoch && currentDownload === downloadEpoch)
+          state.previewLoading = false;
+      }
+    },
+    clearErrorPreview() {
+      state.errorPreview = null;
+    },
     dispose() {
       disposeEpoch += 1;
       readEpoch += 1;
@@ -414,6 +484,8 @@ export const createImportExportRuntime = (
       state.loading = false;
       state.mutating = false;
       state.error = null;
+      state.errorPreview = null;
+      state.previewLoading = false;
       state.actionFeedback = null;
     },
   };

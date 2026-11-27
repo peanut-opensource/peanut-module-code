@@ -20,6 +20,7 @@
     ElEmpty,
     ElInput,
     ElPagination,
+    ElDialog,
   } from 'element-plus';
   import { PageContent, PageHeader, PageToolbar } from '@peanut-admin/ui-vue';
   import { useMediaQuery } from '@vueuse/core';
@@ -34,6 +35,12 @@
   const inputFileKey = ref('');
   const mappingJson = ref('{}');
   const formError = ref('');
+  const errorPreviewVisible = ref(false);
+  const openErrorPreview = async (fileKey: string) => {
+    errorPreviewVisible.value = false;
+    await runtime.previewErrors(fileKey);
+    errorPreviewVisible.value = state.errorPreview?.fileKey === fileKey;
+  };
   const narrow = useMediaQuery('(max-width: 768px)');
   const visibleColumns = ref(['direction', 'progress', 'rows', 'expires']);
   const optionalColumns = ['direction', 'progress', 'rows', 'expires'];
@@ -79,6 +86,7 @@
   };
   const canCreate = computed(runtime.canCreate);
   const canCancel = computed(runtime.canCancel);
+  const canDownload = computed(runtime.canDownload);
   const statuses = [
     'queued',
     'running',
@@ -372,18 +380,30 @@
                 v-if="row.resultFileKey"
                 link
                 type="primary"
-                :disabled="busy"
+                :disabled="busy || !canDownload"
                 @click="runtime.download(row.resultFileKey)"
                 >{{ t('importExport.result') }}</ElButton
               >
               <ElButton
                 v-if="row.errorFileKey"
                 link
+                type="primary"
+                :loading="state.previewLoading"
+                :disabled="busy || !canDownload"
+                @click="openErrorPreview(row.errorFileKey)"
+                >{{ t('importExport.previewErrors') }}</ElButton
+              >
+              <ElButton
+                v-if="row.errorFileKey"
+                link
                 type="danger"
-                :disabled="busy"
+                :disabled="busy || !canDownload"
                 @click="runtime.download(row.errorFileKey)"
                 >{{ t('importExport.errors') }}</ElButton
               >
+              <small v-if="(row.errorFileKey || row.resultFileKey) && !canDownload">
+                {{ t('importExport.filePermissionRequired') }}
+              </small>
             </div></template
           ></ElTableColumn
         >
@@ -392,6 +412,30 @@
             :description="state.error ? errorMessage : t('importExport.empty')"
         /></template>
       </ElTable>
+      <ElDialog
+        v-model="errorPreviewVisible"
+        :title="t('importExport.previewTitle')"
+        width="min(720px, 94vw)"
+        @closed="runtime.clearErrorPreview()"
+      >
+        <p>{{ t('importExport.previewHint') }}</p>
+        <ElTable
+          :data="state.errorPreview?.rows ?? []"
+          border
+          max-height="380px"
+          :aria-label="t('importExport.previewTitle')"
+        >
+          <ElTableColumn prop="rowNumber" :label="t('importExport.rowNumber')" width="110" />
+          <ElTableColumn prop="columnKey" :label="t('importExport.columnKey')" min-width="150" />
+          <ElTableColumn prop="errorCode" :label="t('importExport.errorCode')" min-width="220" />
+        </ElTable>
+        <ElAlert
+          v-if="state.errorPreview?.truncated"
+          :title="t('importExport.previewTruncated')"
+          type="info"
+          :closable="false"
+        />
+      </ElDialog>
       <div class="pa-page-pagination">
         <ElPagination
           :current-page="state.page"

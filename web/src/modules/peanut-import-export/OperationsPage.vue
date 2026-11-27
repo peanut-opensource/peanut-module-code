@@ -38,6 +38,8 @@
     canRead: () => hasPermission(IMPORT_EXPORT_READ_PERMISSION, route.path),
     canCreate: () => hasPermission(IMPORT_EXPORT_CREATE_PERMISSION, route.path),
     canCancel: () => hasPermission(IMPORT_EXPORT_CANCEL_PERMISSION, route.path),
+    // File owns the original-delivery permission independently of this module's task read permission.
+    canDownload: () => hasPermission('peanut.file.download-original', route.path),
   });
 
   provide(importExportRuntimeKey, runtime);

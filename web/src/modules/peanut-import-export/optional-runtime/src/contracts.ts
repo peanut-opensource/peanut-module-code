@@ -10,6 +10,33 @@ export type ImportExportStatus =
   | 'cancelled'
   | 'expired';
 
+/** Bounded projection of the native CsvOperationRunner's redacted error CSV. */
+export interface ImportExportRowIssue {
+  rowNumber: number;
+  columnKey: string | null;
+  errorCode: string;
+}
+
+export const parseErrorReportCsv = (
+  value: string,
+  limit = 20
+): { rows: ImportExportRowIssue[]; truncated: boolean } => {
+  const lines = value.replace(/^\uFEFF/, '').split(/\r?\n/);
+  if (lines[0] !== 'row_number,column_key,error_code' || limit < 1 || limit > 100)
+    throw new Error('IMPORT_EXPORT_ERROR_REPORT_INVALID');
+  if (lines[lines.length - 1] === '') lines.pop();
+  const rows: ImportExportRowIssue[] = [];
+  for (const line of lines.slice(1)) {
+    const match = /^(\d+),([a-z][a-z0-9_]{0,63})?,([A-Z][A-Z0-9_]{2,63})$/.exec(line);
+    const rowNumber = Number(match?.[1]);
+    if (!match || !Number.isSafeInteger(rowNumber) || rowNumber < 2 || rowNumber > 100001)
+      throw new Error('IMPORT_EXPORT_ERROR_REPORT_INVALID');
+    if (rows.length < limit)
+      rows.push({ rowNumber, columnKey: match[2] || null, errorCode: match[3] });
+  }
+  return { rows, truncated: lines.length - 1 > limit };
+};
+
 export interface ImportExportOperation {
   operationKey: string;
   providerKey: string;

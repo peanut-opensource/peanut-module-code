@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { createImportExportRuntime } from '../src/runtime';
 import type {
   ImportExportTransport,
@@ -401,5 +402,112 @@ describe('asynchronous task result user feedback and permission fencing', () => 
     expect(runtime.state.actionFeedback).toBeNull();
     expect(runtime.state.items).toHaveLength(1);
     runtime.dispose();
+  });
+});
+
+describe('CSV error report preview and original download', () => {
+  const errorFileKey = 'file_' + 'f'.repeat(32);
+  const report = readFileSync(new URL('./fixtures/article-draft-errors.csv', import.meta.url), 'utf8');
+  const transport = (download: ImportExportTransport['download']): ImportExportTransport => ({
+    list: async () => listResult(),
+    submitImport: async () => result(422, {}),
+    submitExport: async () => result(422, {}),
+    cancel: async () => result(422, {}),
+    download,
+  });
+
+  it('previews authorized redacted line issues, keeps full download independent and clears on dispose', async () => {
+    const fileCalls: string[] = [];
+    const saved: string[] = [];
+    const runtime = createImportExportRuntime({
+      transport: transport(async (fileKey) => {
+        fileCalls.push(fileKey);
+        return new Response(report, { headers: { 'content-type': 'text/csv; charset=utf-8' } });
+      }),
+      canRead: () => true, canCreate: () => false, canCancel: () => false,
+      saveDownload: async (_response, fileKey) => { saved.push(fileKey); },
+    });
+    await runtime.previewErrors(errorFileKey);
+    expect(runtime.state.errorPreview).toEqual({
+      fileKey: errorFileKey,
+      rows: [
+        { rowNumber: 3, columnKey: 'title', errorCode: 'IMPORT_VALUE_REQUIRED' },
+        { rowNumber: 4, columnKey: 'body', errorCode: 'IMPORT_VALUE_TOO_LONG' },
+      ],
+      truncated: false,
+    });
+    expect(saved).toEqual([]);
+    await runtime.download(errorFileKey);
+    expect(fileCalls).toEqual([errorFileKey, errorFileKey]);
+    expect(saved).toEqual([errorFileKey]);
+    runtime.dispose();
+    expect(runtime.state.errorPreview).toBeNull();
+  });
+
+  it('refuses unauthorized reads, session HTML, malformed CSV and oversized previews', async () => {
+    let allowed = false;
+    let calls = 0;
+    let response = new Response(report, { headers: { 'content-type': 'text/csv' } });
+    const runtime = createImportExportRuntime({
+      transport: transport(async () => { calls += 1; return response; }),
+      canRead: () => allowed, canCreate: () => false, canCancel: () => false,
+      saveDownload: async () => { throw new Error('must not save HTML'); },
+    });
+    await runtime.previewErrors(errorFileKey);
+    expect(calls).toBe(0);
+    allowed = true;
+    response = new Response('<html>login</html>', { headers: { 'content-type': 'text/html' } });
+    await runtime.previewErrors(errorFileKey);
+    expect(runtime.state.errorPreview).toBeNull();
+    expect(runtime.state.error?.message).toContain('could not be previewed');
+    await runtime.download(errorFileKey);
+    expect(runtime.state.error?.message).toContain('not CSV');
+    response = new Response('row_number,column_key,error_code\n3,raw data,bad', {
+      headers: { 'content-type': 'text/csv' },
+    });
+    await runtime.previewErrors(errorFileKey);
+    expect(runtime.state.errorPreview).toBeNull();
+    response = new Response('x'.repeat(512 * 1024 + 1), { headers: { 'content-type': 'text/csv' } });
+    await runtime.previewErrors(errorFileKey);
+    expect(runtime.state.errorPreview).toBeNull();
+    expect(calls).toBe(4);
+    runtime.dispose();
+  });
+
+  it('requires File original-download permission independently of task read access', async () => {
+    let fetched = 0;
+    const runtime = createImportExportRuntime({
+      transport: transport(async () => {
+        fetched += 1;
+        return new Response(report, { headers: { 'content-type': 'text/csv' } });
+      }),
+      canRead: () => true,
+      canCreate: () => false,
+      canCancel: () => false,
+      canDownload: () => false,
+    });
+    expect(runtime.canDownload()).toBe(false);
+    await runtime.previewErrors(errorFileKey);
+    await runtime.download(errorFileKey);
+    expect(fetched).toBe(0);
+    expect(runtime.state.errorPreview).toBeNull();
+    expect(runtime.state.error?.status).toBe(403);
+    runtime.dispose();
+  });
+
+  it('aborts an in-flight preview on dispose rather than rendering a stale report', async () => {
+    const deferredResponse = deferred<Response>();
+    let signal: AbortSignal | null = null;
+    const runtime = createImportExportRuntime({
+      transport: transport(async (_key, incoming) => { signal = incoming; return deferredResponse.promise; }),
+      canRead: () => true, canCreate: () => false, canCancel: () => false,
+    });
+    const pending = runtime.previewErrors(errorFileKey);
+    runtime.dispose();
+    expect(signal?.aborted).toBe(true);
+    deferredResponse.resolve(new Response(report, { headers: { 'content-type': 'text/csv' } }));
+    await pending;
+    expect(runtime.state.errorPreview).toBeNull();
+    expect(runtime.state.previewLoading).toBe(false);
   });
 });

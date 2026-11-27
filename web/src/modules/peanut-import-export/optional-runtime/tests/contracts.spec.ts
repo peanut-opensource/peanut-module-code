@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { parseOperation, parseOperationList } from '../src/contracts';
+import { readFileSync } from 'node:fs';
+import { parseErrorReportCsv, parseOperation, parseOperationList } from '../src/contracts';
 
 const operation = {
   operation_key: `iox_${'a'.repeat(32)}`,
@@ -49,5 +50,32 @@ describe('import/export response contracts', () => {
         completed_at: operation.completed_at,
       })
     ).toThrow('IMPORT_EXPORT_RESPONSE_INVALID');
+  });
+});
+
+describe('official redacted CSV error row projection', () => {
+  it('locates the original CSV line and column without exposing source values', () => {
+    const report = readFileSync(new URL('./fixtures/article-draft-errors.csv', import.meta.url), 'utf8');
+    expect(parseErrorReportCsv(report)).toEqual({
+      rows: [
+        { rowNumber: 3, columnKey: 'title', errorCode: 'IMPORT_VALUE_REQUIRED' },
+        { rowNumber: 4, columnKey: 'body', errorCode: 'IMPORT_VALUE_TOO_LONG' },
+      ],
+      truncated: false,
+    });
+    const truncated = parseErrorReportCsv(report, 1);
+    expect(truncated.rows).toHaveLength(1);
+    expect(truncated.truncated).toBe(true);
+  });
+
+  it('rejects malformed or raw-value reports instead of displaying unsafe content', () => {
+    for (const report of [
+      '<html>session login</html>',
+      'row_number,column_key,error_code\n3,title,=HYPERLINK',
+      'row_number,column_key,error_code\n1,title,IMPORT_VALUE_REQUIRED',
+      'row_number,column_key,error_code\n3,title,IMPORT_VALUE_REQUIRED,private-record',
+      'row_number,column_key,error_code\n3,raw value,IMPORT_VALUE_REQUIRED',
+    ])
+      expect(() => parseErrorReportCsv(report)).toThrow('IMPORT_EXPORT_ERROR_REPORT_INVALID');
   });
 });
