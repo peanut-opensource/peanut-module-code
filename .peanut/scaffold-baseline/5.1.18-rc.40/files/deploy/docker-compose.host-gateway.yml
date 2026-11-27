@@ -1,0 +1,25 @@
+# 宿主机运行 PHP/前端时，只管理同一个开发 nginx 服务。
+# 单独选择本文件，不与 docker-compose.dev.yml 叠加，不同时运行两种网关配置。
+# 启动前核现有 nginx 的归属与占用；未启动的前端返回上游错误，不伪造页面。
+name: peanut-admin-development
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${DEV_HTTP_PORT:?set the development gateway port}:80"
+    volumes:
+      - ./nginx/development.conf:/etc/nginx/templates/default.conf.template:ro
+    environment:
+      PEANUT_API_HOST: host.docker.internal
+      PEANUT_API_PORT: ${PHP_PORT:?set the host PHP port}
+      PEANUT_WEB_HOST: host.docker.internal
+      PEANUT_WEB_PORT: ${VITE_PORT:?set the host admin port}
+      PEANUT_PLATFORM_HOST: host.docker.internal
+      PEANUT_PLATFORM_PORT: ${PLATFORM_PORT:?set the host platform port}
+      PEANUT_PC_HOST: host.docker.internal
+      PEANUT_PC_PORT: ${PC_PORT:?set the host PC port}
+      PEANUT_MOBILE_HOST: host.docker.internal
+      PEANUT_MOBILE_PORT: ${MOBILE_PORT:?set the host mobile port}
+      NGINX_ENVSUBST_FILTER: ^PEANUT_(API|WEB|PLATFORM|PC|MOBILE)_

@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+APP_DIR="$ROOT_DIR"
+CORE_DIR=""
+LOCAL_CORE_MODE=0
+RESOURCE_ID=""
+
+die() { printf 'scaffold-doctor: %s\n' "$*" >&2; exit 1; }
+usage() {
+  printf '%s\n' "Usage: $0 --resource-id <registered-id> [--path <application>] [--core-dir <core>]" \
+    'Resource registry: explicit PEANUT_RESOURCE_REGISTRY (absolute file path), otherwise the application-owned resources/project-resources.json.'
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --resource-id) [[ $# -gt 1 ]] || die '--resource-id requires a value'; RESOURCE_ID="$2"; shift 2 ;;
+    --path) [[ $# -gt 1 ]] || die '--path requires a value'; APP_DIR="$2"; shift 2 ;;
+    --core-dir) [[ $# -gt 1 && -n "$2" ]] || die '--core-dir requires a value'; CORE_DIR="$2"; LOCAL_CORE_MODE=1; shift 2 ;;
+    --help|-h) usage; exit 0 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+done
+[[ -n "$RESOURCE_ID" ]] || die '--resource-id is required; resource identity is never guessed'
+command -v jq >/dev/null || die 'jq is required'
+APP_DIR="$(CDPATH= cd -- "$APP_DIR" && pwd)"
+if [[ "$LOCAL_CORE_MODE" == 1 ]]; then
+  [[ -d "$CORE_DIR" ]] || die "core checkout is missing: $CORE_DIR"
+  CORE_DIR="$(CDPATH= cd -- "$CORE_DIR" && pwd)"
+fi
+REGISTRY="${PEANUT_RESOURCE_REGISTRY:-$APP_DIR/resources/project-resources.json}"
+[[ "$REGISTRY" == /* && ! -L "$REGISTRY" ]] || die 'resource registry must be an absolute, non-symlink file'
+[[ -f "$REGISTRY" && -r "$REGISTRY" ]] || die "resource registry missing or unreadable: $REGISTRY"
+jq -e --arg id "$RESOURCE_ID" '.. | objects | select(.stable_resource_id == $id)' "$REGISTRY" >/dev/null || die "resource is not registered: $RESOURCE_ID"
+COMPOSER_BIN="$APP_DIR/scripts/project-composer"
+
+for tool in php node; do command -v "$tool" >/dev/null || die "$tool is unavailable"; done
+[[ -x "$COMPOSER_BIN" ]] || die "project Composer entry point is unavailable: $COMPOSER_BIN"
+if command -v pnpm >/dev/null; then PM=pnpm; elif command -v npm >/dev/null; then PM=npm; else die 'pnpm or npm is unavailable'; fi
+COMPOSER_VERSION="$("$COMPOSER_BIN" --version --no-ansi)" || die 'unable to read the application Composer version'
+printf 'tooling=php:%s composer:%s node:%s package-manager:%s\n' "$(php -r 'echo PHP_VERSION;')" "${COMPOSER_VERSION%%$'\n'*}" "$(node --version)" "$PM"
+
+for file in server/composer.json server/composer.lock web/package.json web/pnpm-lock.yaml modules.lock RELEASE_METADATA.json release-versions.json; do
+  [[ -f "$APP_DIR/$file" ]] || die "missing required dependency/manifest file: $file"
+done
+if [[ "$APP_DIR" != "$ROOT_DIR" ]]; then
+  [[ -f "$APP_DIR/.peanut/application-manifest.json" ]] || die 'generated application manifest is missing'
+  jq -e '.protocol == "peanut.application-scaffold.v2" and (.application.profile | IN("minimal","standard","full"))' "$APP_DIR/.peanut/application-manifest.json" >/dev/null || die 'application manifest is invalid'
+fi
+php -r 'json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR);' "$APP_DIR/server/composer.lock"
+node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]));' "$APP_DIR/web/package.json"
+node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]));' "$APP_DIR/RELEASE_METADATA.json"
+node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]));' "$APP_DIR/modules.lock"
+node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]));' "$APP_DIR/release-versions.json"
+
+if ! jq -e '.schema_version == 3 and .protocol == "peanut.release-versions.v3"' "$APP_DIR/release-versions.json" >/dev/null; then
+  die 'release-versions.json must use peanut.release-versions.v3'
+fi
+
+LOCK_CHECKER="$ROOT_DIR/scripts/release-dependency-locks.mjs"
+[[ -f "$LOCK_CHECKER" ]] || LOCK_CHECKER="$APP_DIR/scripts/release-dependency-locks.mjs"
+[[ -f "$LOCK_CHECKER" ]] || die 'dependency lock verifier is missing: scripts/release-dependency-locks.mjs'
+node "$LOCK_CHECKER" "$APP_DIR" --native-locks --installed || exit $?
+
+if [[ "$LOCAL_CORE_MODE" == 1 ]]; then
+  while IFS=$'\t' read -r package version; do
+    package_dir="${package#@peanut-admin/}"
+    actual="$(jq -r '.version // empty' "$CORE_DIR/packages/$package_dir/package.json")"
+    [[ "$actual" == "$version" ]] || die "local Core Web identity mismatch: $package expected=$version actual=$actual"
+  done < <(jq -r '.core_web.packages | to_entries[] | [.key,.value.version] | @tsv' "$APP_DIR/release-versions.json")
+fi
+
+printf 'scaffold-doctor: OK resource=%s app=%s scope=php,four-clients mode=%s\n' "$RESOURCE_ID" "$APP_DIR" "$([[ "$LOCAL_CORE_MODE" == 1 ]] && printf local-core-development || printf fixed-candidate)"
