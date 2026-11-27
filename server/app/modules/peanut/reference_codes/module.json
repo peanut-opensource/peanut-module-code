@@ -3,7 +3,7 @@
   "key": "peanut.reference-codes",
   "name": "字典与参考编码",
   "description": "Tenant dictionaries, deployment reference values and versioned reference-code definitions.",
-  "version": "1.0.29-rc.5",
+  "version": "1.0.29-rc.6",
   "kernel_constraint": "^1.0",
   "license": "Apache-2.0",
   "php_package": "peanut-business/peanut-reference-codes",
