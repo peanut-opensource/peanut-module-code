@@ -26,13 +26,17 @@
         >{{ error && items.length ? '重试加载更早版本' : '加载更早版本' }}</el-button
       >
       <p role="status"
-        >列表仅含版本摘要；查看正文会重新核验权限，恢复和业务保存仍使用原入口。</p
+        >列表仅含版本摘要；查看正文会重新核验权限。恢复只会预填原文档业务操作，仍需确认提交。</p
       >
       <p v-if="selectedRevision" role="status">
         {{ viewerLoaded ? '已核验' : '正在加载并核验' }}版本
         {{ selectedRevision.revision_no }}（ID
         {{ selectedRevision.revision_id }}）的只读正文。
       </p>
+      <el-button
+        v-if="selectedRevision && viewerLoaded && canRestore"
+        @click="requestRestore"
+      >选此版本准备恢复（仍需确认）</el-button>
       <DocumentViewer
         v-if="selectedRevisionId"
         :key="selectedRevisionId"
@@ -62,6 +66,10 @@
     articleId: number;
     documentId: number;
     contextKey: string;
+    canRestore?: boolean;
+  }>();
+  const emit = defineEmits<{
+    (event: 'requestRestore', revisionId: number): void;
   }>();
   const owner = computed(() => ({
     module_key: 'peanut.article',
@@ -87,6 +95,19 @@
   const onViewerLoad = (detail: DocumentDetail) => {
     if (detail.revision_id === selectedRevisionId.value)
       viewerLoaded.value = true;
+  };
+  const requestRestore = () => {
+    const selectedItem = selectedRevision.value;
+    if (
+      disposed ||
+      !props.canRestore ||
+      !viewerLoaded.value ||
+      !selectedItem ||
+      selectedItem.revision_id !== selectedRevisionId.value ||
+      getSessionSnapshot().generation !== generation
+    )
+      return;
+    emit('requestRestore', selectedItem.revision_id);
   };
   let request: AbortController | undefined;
   let epoch = 0;

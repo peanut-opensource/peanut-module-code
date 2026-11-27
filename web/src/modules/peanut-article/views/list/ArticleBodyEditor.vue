@@ -37,6 +37,7 @@
         :metadata-resolver="resolveMetadata"
         :resolve-transport="resolveTransport"
         :business-actions="documentBusinessActions"
+        :restore-selection="restoreSelection"
         @load="onDocumentLoad"
         @save-state="saveState = $event"
         @operation-state="onDocumentOperation"
@@ -47,6 +48,8 @@
       :article-id="articleId"
       :document-id="editor.document_id"
       :context-key="context"
+      :can-restore="canRestoreHistory"
+      @request-restore="prepareHistoryRestore"
     />
     <el-button
       v-if="collaborationBaseline && !mountedEditor"
@@ -203,6 +206,8 @@
   const documentBusinessActions: NonNullable<
     DocumentSurfaceOptions['businessActions']
   > = ['version.restore'];
+  const restoreSelection = shallowRef<DocumentSurfaceOptions['restoreSelection']>();
+  let restoreSelectionSequence = 0;
   const documentOperation = shallowRef<DocumentOperationFeedback>();
   const documentOperationLocked = computed(
     () =>
@@ -262,6 +267,22 @@
       !attempt.value &&
       ['saved', 'idle', 'persisting'].includes(saveState.value)
   );
+  const canRestoreHistory = computed(
+    () =>
+      canAppendDraft.value &&
+      saveState.value === 'saved' &&
+      !hasUnsaved.value
+  );
+  const prepareHistoryRestore = (revisionId: number) => {
+    if (!canRestoreHistory.value || !Number.isSafeInteger(revisionId) || revisionId < 1)
+      return;
+    restoreSelection.value = {
+      revisionId,
+      selectionKey: `${context.value}:${++restoreSelectionSequence}`,
+    };
+    message.value =
+      `已选择历史版本 ID ${revisionId}；请在文档业务操作中确认恢复，当前尚未提交。`;
+  };
   function adoptDraft(text: string, acknowledge: (accepted: boolean) => void) {
     acknowledge(
       canAppendDraft.value &&
@@ -931,6 +952,7 @@
       emit('metadataReady', false);
       detail.value = undefined;
       documentOperation.value = undefined;
+      restoreSelection.value = undefined;
       attempt.value = undefined;
       targetAttempt.value = undefined;
       saved.value = undefined;

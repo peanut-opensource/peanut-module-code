@@ -31,8 +31,9 @@ function fixture() {
   let dispose;
   const props = vue.reactive({ articleId: 7, documentId: 9, contextKey: 'tenant-a' });
   const exports = {};
+  const restoreRequests = [];
   const body = script +
-    '\nexports.controls={opened,loading,error,items,nextRevisionNo,selectedRevisionId,viewerLoaded,load,close,selectRevision};';
+    '\nexports.controls={opened,loading,error,items,nextRevisionNo,selectedRevisionId,viewerLoaded,load,close,selectRevision,onViewerLoad,requestRestore};';
   const result = ts.transpileModule(body, {
     fileName: filename + '.ts',
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true },
@@ -40,7 +41,9 @@ function fixture() {
   });
   assert.equal(result.diagnostics?.length ?? 0, 0);
   scope.run(() => runInNewContext(result.outputText, {
-    exports, defineProps: () => props, AbortController, localStorage: {},
+    exports, defineProps: () => props, defineEmits: () => (event, revisionId) => {
+      restoreRequests.push({ event, revisionId });
+    }, AbortController, localStorage: {},
     window: {
       addEventListener(name, listener) { listeners.set(name, listener); },
       removeEventListener(name) { listeners.delete(name); },
@@ -62,7 +65,7 @@ function fixture() {
     },
   }, { filename }));
   return {
-    props, requests, ui: exports.controls,
+    props, requests, restoreRequests, ui: exports.controls,
     revokeSession() { sessionGeneration += 1; },
     dispose() { dispose(); scope.stop(); },
     listenerCount: () => listeners.size,
@@ -160,6 +163,31 @@ test('changing tenant context aborts an in-flight older-page request and prevent
   } finally { f.dispose(); }
 });
 
+test('only a verified historical revision may prepare a restore without submitting any command', async () => {
+  const f = fixture();
+  try {
+    f.props.canRestore = true;
+    await firstPage(f);
+    f.ui.selectRevision(30);
+    f.ui.requestRestore();
+    assert.equal(f.restoreRequests.length, 0, 'the selected row has not yet been read and verified');
+    f.ui.onViewerLoad({ revision_id: 30 });
+    f.ui.requestRestore();
+    assert.deepEqual(f.restoreRequests, [{ event: 'requestRestore', revisionId: 30 }]);
+    f.props.canRestore = false;
+    f.ui.requestRestore();
+    assert.equal(f.restoreRequests.length, 1, 'no editing permission cannot prepare a restore');
+    f.props.canRestore = true;
+    f.ui.selectRevision(29);
+    f.ui.requestRestore();
+    assert.equal(f.restoreRequests.length, 1, 'changing revisions revokes the old viewer proof');
+    f.revokeSession();
+    f.ui.onViewerLoad({ revision_id: 29 });
+    f.ui.requestRestore();
+    assert.equal(f.restoreRequests.length, 1, 'an obsolete session cannot prepare a restore');
+  } finally { f.dispose(); }
+});
+
 test('the rendered Document consumer exposes retry, old-page status and read-only document viewer', () => {
   const compiled = compiler.compileTemplate({ source: template, filename, id: 'article-body-history' });
   assert.equal(compiled.errors.length, 0);
@@ -167,4 +195,6 @@ test('the rendered Document consumer exposes retry, old-page status and read-onl
   assert.match(template, /@click="load\(true\)"/);
   assert.match(template, /:allow-downloads="false"/);
   assert.match(template, /@error="deny"/);
+  assert.match(template, /@click="requestRestore"/);
+  assert.match(template, /selectedRevision && viewerLoaded && canRestore/);
 });

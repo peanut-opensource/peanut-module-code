@@ -126,6 +126,7 @@
     document?: DocumentDetail;
     contextKey: string;
     allowedActions: DocumentBusinessAction[];
+    restoreSelection?: { revisionId: number; selectionKey: string };
     collaborationEnabled: boolean;
     readOnly: boolean;
     draftSaved: boolean;
@@ -538,6 +539,29 @@
     }
     await submit();
   };
+  watch(
+    () => props.restoreSelection,
+    (selection) => {
+      // A revision verified by the read-only history viewer is only a proposal.
+      // Never replace an admitted/unknown operation or submit from a watcher.
+      if (
+        !selection ||
+        disposed ||
+        busy.value ||
+        command.value ||
+        targetRequestId ||
+        props.readOnly ||
+        !props.document ||
+        !allowed.value.includes('version.restore') ||
+        !Number.isSafeInteger(selection.revisionId) ||
+        selection.revisionId < 1
+      )
+        return;
+      action.value = 'version.restore';
+      revision.value = String(selection.revisionId);
+    },
+    { flush: 'sync' }
+  );
   watch(
     [
       () => props.contextKey,

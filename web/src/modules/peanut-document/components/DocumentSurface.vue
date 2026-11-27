@@ -46,6 +46,7 @@
       :document="detail"
       :context-key="sessionKey"
       :allowed-actions="props.businessActions ?? []"
+      :restore-selection="props.restoreSelection"
       :collaboration-enabled="grants?.collaboration_enabled === true"
       :prepare-save-target="prepareSaveTarget"
       :read-only="operationReadOnly"

@@ -66,6 +66,8 @@ export interface DocumentSurfaceOptions {
   allowDownloads?: boolean;
   /** Owner-selected UI affordances only; every command is authorized by the server. */
   businessActions?: DocumentBusinessAction[];
+  /** A verified history selection only pre-fills the existing restore form; it never submits. */
+  restoreSelection?: { revisionId: number; selectionKey: string };
   /** Explicit owner edit-purpose endpoint; no independent detail/view request. */
   metadataResolver?: (signal: AbortSignal) => Promise<{
     detail: DocumentDetail;
